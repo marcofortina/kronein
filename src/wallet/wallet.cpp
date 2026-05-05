@@ -1972,28 +1972,29 @@ std::optional<PSBTError> CWallet::FillPSBT(PartiallySignedTransaction& psbtx, bo
     }
     LOCK(cs_wallet);
     // Get all of the previous transactions
-    for (unsigned int i = 0; i < psbtx.tx->vin.size(); ++i) {
-        const CTxIn& txin = psbtx.tx->vin[i];
-        PSBTInput& input = psbtx.inputs.at(i);
-
+    for (PSBTInput& input : psbtx.inputs) {
         if (PSBTInputSigned(input)) {
             continue;
         }
 
         // If the spent output is missing, grab it from the wallet transaction.
         if (input.witness_utxo.IsNull()) {
-            const Txid& txhash = txin.prevout.hash;
+            const Txid& txhash = input.prev_txid;
             const auto it = mapWallet.find(txhash);
             if (it != mapWallet.end()) {
                 const CWalletTx& wtx = it->second;
-                if (txin.prevout.n < wtx.tx->vout.size()) {
-                    input.witness_utxo = wtx.tx->vout[txin.prevout.n];
+                if (input.prev_out < wtx.tx->vout.size()) {
+                    input.witness_utxo = wtx.tx->vout[input.prev_out];
                 }
             }
         }
     }
 
-    const PrecomputedTransactionData txdata = PrecomputePSBTData(psbtx);
+    std::optional<PrecomputedTransactionData> txdata_res = PrecomputePSBTData(psbtx);
+    if (!txdata_res) {
+        return PSBTError::INVALID_TX;
+    }
+    const PrecomputedTransactionData& txdata = *txdata_res;
 
     // Fill in information from ScriptPubKeyMans
     for (ScriptPubKeyMan* spk_man : GetAllScriptPubKeyMans()) {

@@ -4,10 +4,11 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 import base64
+import struct
 from io import BytesIO
 
 from .messages import (
-    CTransaction,
+    deser_compact_size,
     deser_string,
     from_binary,
     ser_compact_size,
@@ -15,7 +16,6 @@ from .messages import (
 
 
 # global types
-PSBT_GLOBAL_UNSIGNED_TX = 0x00
 PSBT_GLOBAL_XPUB = 0x01
 PSBT_GLOBAL_TX_VERSION = 0x02
 PSBT_GLOBAL_FALLBACK_LOCKTIME = 0x03
@@ -99,45 +99,56 @@ class PSBT:
         self.g = g if g is not None else PSBTMap()
         self.i = i if i is not None else []
         self.o = o if o is not None else []
-        self.tx = None
+        self.version = 2
 
     def deserialize(self, f):
         assert f.read(5) == b"psbt\xff"
         self.g = from_binary(PSBTMap, f)
-        assert PSBT_GLOBAL_UNSIGNED_TX in self.g.map
-        self.tx = self._deserialize_unsigned_tx(self.g.map[PSBT_GLOBAL_UNSIGNED_TX])
-        self.i = [from_binary(PSBTMap, f) for _ in self.tx.vin]
-        self.o = [from_binary(PSBTMap, f) for _ in self.tx.vout]
+
+        assert PSBT_GLOBAL_VERSION in self.g.map
+        self.version = struct.unpack("<I", self.g.map[PSBT_GLOBAL_VERSION])[0]
+        assert self.version == 2
+        assert PSBT_GLOBAL_INPUT_COUNT in self.g.map
+        assert PSBT_GLOBAL_OUTPUT_COUNT in self.g.map
+        in_count = deser_compact_size(BytesIO(self.g.map[PSBT_GLOBAL_INPUT_COUNT]))
+        out_count = deser_compact_size(BytesIO(self.g.map[PSBT_GLOBAL_OUTPUT_COUNT]))
+
+        self.i = [from_binary(PSBTMap, f) for _ in range(in_count)]
+        self.o = [from_binary(PSBTMap, f) for _ in range(out_count)]
         return self
 
     def serialize(self):
         assert isinstance(self.g, PSBTMap)
         assert isinstance(self.i, list) and all(isinstance(x, PSBTMap) for x in self.i)
         assert isinstance(self.o, list) and all(isinstance(x, PSBTMap) for x in self.o)
-        assert PSBT_GLOBAL_UNSIGNED_TX in self.g.map
-        tx = self._deserialize_unsigned_tx(self.g.map[PSBT_GLOBAL_UNSIGNED_TX])
-        assert len(tx.vin) == len(self.i)
-        assert len(tx.vout) == len(self.o)
+        assert self.version == 2
+        self.g.map[PSBT_GLOBAL_VERSION] = struct.pack("<I", 2)
+        self.g.map[PSBT_GLOBAL_INPUT_COUNT] = ser_compact_size(len(self.i))
+        self.g.map[PSBT_GLOBAL_OUTPUT_COUNT] = ser_compact_size(len(self.o))
 
         psbt = [x.serialize() for x in [self.g] + self.i + self.o]
         return b"psbt\xff" + b"".join(psbt)
 
-    @staticmethod
-    def _deserialize_unsigned_tx(data):
-        stream = BytesIO(data)
-        tx = CTransaction()
-        tx.deserialize_without_witness(stream)
-        assert stream.read() == b""
-        return tx
-
     def make_blank(self):
         """
-        Remove all fields except for PSBT_GLOBAL_UNSIGNED_TX
+        Remove all fields except those required by PSBTv2.
         """
-        for m in self.i + self.o:
-            m.map.clear()
+        assert self.version == 2
+        self.g = PSBTMap(map={
+            PSBT_GLOBAL_TX_VERSION: self.g.map[PSBT_GLOBAL_TX_VERSION],
+            PSBT_GLOBAL_INPUT_COUNT: self.g.map[PSBT_GLOBAL_INPUT_COUNT],
+            PSBT_GLOBAL_OUTPUT_COUNT: self.g.map[PSBT_GLOBAL_OUTPUT_COUNT],
+            PSBT_GLOBAL_VERSION: self.g.map[PSBT_GLOBAL_VERSION],
+        })
 
-        self.g = PSBTMap(map={PSBT_GLOBAL_UNSIGNED_TX: self.g.map[PSBT_GLOBAL_UNSIGNED_TX]})
+        self.i = [PSBTMap(map={
+            PSBT_IN_PREVIOUS_TXID: item.map[PSBT_IN_PREVIOUS_TXID],
+            PSBT_IN_OUTPUT_INDEX: item.map[PSBT_IN_OUTPUT_INDEX],
+        }) for item in self.i]
+        self.o = [PSBTMap(map={
+            PSBT_OUT_SCRIPT: item.map[PSBT_OUT_SCRIPT],
+            PSBT_OUT_AMOUNT: item.map[PSBT_OUT_AMOUNT],
+        }) for item in self.o]
 
     def to_base64(self):
         return base64.b64encode(self.serialize()).decode("utf8")

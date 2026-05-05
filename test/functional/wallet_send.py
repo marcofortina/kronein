@@ -376,7 +376,7 @@ class WalletSendTest(BitcoinTestFramework):
         assert res["complete"]
         res = self.test_send(from_wallet=w0, to_wallet=w1, amount=1, add_to_wallet=False, change_address=change_address, change_position=0)
         assert res["complete"]
-        assert_equal(self.nodes[0].decodepsbt(res["psbt"])["tx"]["vout"][0]["scriptPubKey"]["address"], change_address)
+        assert_equal(self.nodes[0].decodepsbt(res["psbt"])["outputs"][0]["script"]["address"], change_address)
         self.log.info("Set lock time...")
         height = self.nodes[0].getblockchaininfo()["blocks"]
         res = self.test_send(from_wallet=w0, to_wallet=w1, amount=1, locktime=height + 1)

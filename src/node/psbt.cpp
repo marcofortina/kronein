@@ -16,15 +16,24 @@ PSBTAnalysis AnalyzePSBT(PartiallySignedTransaction psbtx)
     // Go through each input and build status
     PSBTAnalysis result;
 
+    std::optional<CMutableTransaction> unsigned_tx = psbtx.GetUnsignedTx();
+    if (!unsigned_tx) {
+        result.SetInvalid("PSBT cannot be made into a valid transaction");
+        return result;
+    }
+    CMutableTransaction& mtx = *unsigned_tx;
+
     bool calc_fee = true;
 
     CAmount in_amt = 0;
 
-    result.inputs.resize(psbtx.tx->vin.size());
+    result.inputs.resize(psbtx.inputs.size());
 
-    const PrecomputedTransactionData txdata = PrecomputePSBTData(psbtx);
+    // PrecomputePSBTData calls GetUnsignedTx() which we checked already works
+    const PrecomputedTransactionData txdata = *PrecomputePSBTData(psbtx);
 
-    for (unsigned int i = 0; i < psbtx.tx->vin.size(); ++i) {
+    for (unsigned int i = 0; i < psbtx.inputs.size(); ++i) {
+        PSBTInput& input = psbtx.inputs[i];
         PSBTInputAnalysis& input_analysis = result.inputs[i];
 
         // We set next role here and ratchet backwards as required
@@ -32,7 +41,7 @@ PSBTAnalysis AnalyzePSBT(PartiallySignedTransaction psbtx)
 
         // Check for a UTXO
         CTxOut utxo;
-        if (psbtx.GetInputUTXO(utxo, i)) {
+        if (input.GetUTXO(utxo)) {
             if (!MoneyRange(utxo.nValue) || !MoneyRange(in_amt + utxo.nValue)) {
                 result.SetInvalid(strprintf("PSBT is not valid. Input %u has invalid value", i));
                 return result;
@@ -73,7 +82,7 @@ PSBTAnalysis AnalyzePSBT(PartiallySignedTransaction psbtx)
 
     // Calculate next role for PSBT by grabbing "minimum" PSBTInput next role
     result.next = PSBTRole::EXTRACTOR;
-    for (unsigned int i = 0; i < psbtx.tx->vin.size(); ++i) {
+    for (unsigned int i = 0; i < psbtx.inputs.size(); ++i) {
         PSBTInputAnalysis& input_analysis = result.inputs[i];
         result.next = std::min(result.next, input_analysis.next);
     }
@@ -81,12 +90,12 @@ PSBTAnalysis AnalyzePSBT(PartiallySignedTransaction psbtx)
 
     if (calc_fee) {
         // Get the output amount
-        CAmount out_amt = std::accumulate(psbtx.tx->vout.begin(), psbtx.tx->vout.end(), CAmount(0),
-            [](CAmount a, const CTxOut& b) {
-                if (!MoneyRange(a) || !MoneyRange(b.nValue) || !MoneyRange(a + b.nValue)) {
+        CAmount out_amt = std::accumulate(psbtx.outputs.begin(), psbtx.outputs.end(), CAmount(0),
+            [](CAmount a, const PSBTOutput& b) {
+                if (!MoneyRange(a) || !MoneyRange(b.amount) || !MoneyRange(a + b.amount)) {
                     return CAmount(-1);
                 }
-                return a += b.nValue;
+                return a += b.amount;
             }
         );
         if (!MoneyRange(out_amt)) {
@@ -99,14 +108,13 @@ PSBTAnalysis AnalyzePSBT(PartiallySignedTransaction psbtx)
         result.fee = fee;
 
         // Estimate the size
-        CMutableTransaction mtx(*psbtx.tx);
         bool success = true;
 
-        for (unsigned int i = 0; i < psbtx.tx->vin.size(); ++i) {
+        for (unsigned int i = 0; i < psbtx.inputs.size(); ++i) {
             PSBTInput& input = psbtx.inputs[i];
             CTxOut prevout;
 
-            if (SignPSBTInput(DUMMY_SIGNING_PROVIDER, psbtx, i, nullptr, std::nullopt) != PSBTError::OK || !psbtx.GetInputUTXO(prevout, i)) {
+            if (SignPSBTInput(DUMMY_SIGNING_PROVIDER, psbtx, i, nullptr, std::nullopt) != PSBTError::OK || !input.GetUTXO(prevout)) {
                 success = false;
                 break;
             } else {

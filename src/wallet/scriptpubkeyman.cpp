@@ -496,7 +496,7 @@ std::optional<PSBTError> DescriptorScriptPubKeyMan::FillPSBT(PartiallySignedTran
     if (n_signed) {
         *n_signed = 0;
     }
-    for (unsigned int i = 0; i < psbtx.tx->vin.size(); ++i) {
+    for (unsigned int i = 0; i < psbtx.inputs.size(); ++i) {
         PSBTInput& input = psbtx.inputs.at(i);
 
         if (PSBTInputSigned(input)) {
@@ -563,8 +563,8 @@ std::optional<PSBTError> DescriptorScriptPubKeyMan::FillPSBT(PartiallySignedTran
     }
 
     // Fill in the Taproot keypaths for the outputs so hardware wallets can identify change.
-    for (unsigned int i = 0; i < psbtx.tx->vout.size(); ++i) {
-        std::unique_ptr<SigningProvider> keys = GetSolvingProvider(psbtx.tx->vout.at(i).scriptPubKey);
+    for (unsigned int i = 0; i < psbtx.outputs.size(); ++i) {
+        std::unique_ptr<SigningProvider> keys = GetSolvingProvider(psbtx.outputs.at(i).script);
         if (!keys) {
             continue;
         }
