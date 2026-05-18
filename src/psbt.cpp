@@ -75,6 +75,7 @@ bool PartiallySignedTransaction::Merge(const PartiallySignedTransaction& psbt)
         m_tx_modifiable = final_modifiable;
     }
 
+    m_proprietary.insert(psbt.m_proprietary.begin(), psbt.m_proprietary.end());
     unknown.insert(psbt.unknown.begin(), psbt.unknown.end());
 
     return true;
@@ -356,6 +357,7 @@ bool PSBTInput::Merge(const PSBTInput& input)
     sha256_preimages.insert(input.sha256_preimages.begin(), input.sha256_preimages.end());
     hash160_preimages.insert(input.hash160_preimages.begin(), input.hash160_preimages.end());
     hash256_preimages.insert(input.hash256_preimages.begin(), input.hash256_preimages.end());
+    m_proprietary.insert(input.m_proprietary.begin(), input.m_proprietary.end());
     unknown.insert(input.unknown.begin(), input.unknown.end());
     m_tap_script_sigs.insert(input.m_tap_script_sigs.begin(), input.m_tap_script_sigs.end());
     m_tap_scripts.insert(input.m_tap_scripts.begin(), input.m_tap_scripts.end());
@@ -430,6 +432,7 @@ bool PSBTOutput::IsNull() const
 
 bool PSBTOutput::Merge(const PSBTOutput& output)
 {
+    m_proprietary.insert(output.m_proprietary.begin(), output.m_proprietary.end());
     unknown.insert(output.unknown.begin(), output.unknown.end());
     m_tap_bip32_paths.insert(output.m_tap_bip32_paths.begin(), output.m_tap_bip32_paths.end());
 

@@ -19,10 +19,12 @@ from test_framework.messages import (
     CTxOut,
     MAX_BIP125_RBF_SEQUENCE,
     WITNESS_SCALE_FACTOR,
+    ser_compact_size,
 )
 from test_framework.psbt import (
     PSBT,
     PSBTMap,
+    PSBT_GLOBAL_PROPRIETARY,
     PSBT_GLOBAL_TX_VERSION,
     PSBT_IN_RIPEMD160,
     PSBT_IN_SHA256,
@@ -34,9 +36,11 @@ from test_framework.psbt import (
     PSBT_IN_MUSIG2_PUB_NONCE,
     PSBT_IN_OUTPUT_INDEX,
     PSBT_IN_PREVIOUS_TXID,
+    PSBT_IN_PROPRIETARY,
     PSBT_IN_SEQUENCE,
     PSBT_OUT_AMOUNT,
     PSBT_OUT_MUSIG2_PARTICIPANT_PUBKEYS,
+    PSBT_OUT_PROPRIETARY,
     PSBT_OUT_SCRIPT,
     PSBT_OUT_TAP_TREE,
 )
@@ -274,6 +278,50 @@ class PSBTTest(BitcoinTestFramework):
         assert_equal(out_participant_pks["aggregate_pubkey"], out_fake_agg_pubkey.hex())
         assert "participant_pubkeys" in out_participant_pks
         assert_equal(out_participant_pks["participant_pubkeys"], [out_pubkey1.hex(), out_pubkey2.hex()])
+
+    def test_combinepsbt_preserves_proprietary_fields(self):
+        self.log.info("Test that combining PSBTs preserves proprietary fields")
+
+        def proprietary_key(type_byte, identifier, subtype, key_data=b""):
+            return bytes([type_byte]) + ser_compact_size(len(identifier)) + identifier + ser_compact_size(subtype) + key_data
+
+        def proprietary_entry(key, value, identifier, subtype):
+            return {"identifier": identifier.hex(), "subtype": subtype, "key": key.hex(), "value": value.hex()}
+
+        tx = CTransaction()
+        tx.vin = [CTxIn(outpoint=COutPoint(hash=int('aa' * 32, 16), n=0), scriptSig=b"")]
+        tx.vout = [CTxOut(nValue=0, scriptPubKey=b"")]
+
+        global_key_a = proprietary_key(type_byte=PSBT_GLOBAL_PROPRIETARY, identifier=b"gc", subtype=1, key_data=b"\x01")
+        global_key_b = proprietary_key(type_byte=PSBT_GLOBAL_PROPRIETARY, identifier=b"gc", subtype=2, key_data=b"\x02")
+        input_key_a = proprietary_key(type_byte=PSBT_IN_PROPRIETARY, identifier=b"in", subtype=3, key_data=b"\x03")
+        input_key_b = proprietary_key(type_byte=PSBT_IN_PROPRIETARY, identifier=b"in", subtype=4, key_data=b"\x04")
+        output_key_a = proprietary_key(type_byte=PSBT_OUT_PROPRIETARY, identifier=b"out", subtype=5, key_data=b"\x05")
+        output_key_b = proprietary_key(type_byte=PSBT_OUT_PROPRIETARY, identifier=b"out", subtype=6, key_data=b"\x06")
+
+        psbt1 = self.psbt_from_tx(tx)
+        psbt1.g.map[global_key_a] = b"\xaa"
+        psbt1.i[0].map[input_key_a] = b"\xbb"
+        psbt1.o[0].map[output_key_a] = b"\xcc"
+
+        psbt2 = self.psbt_from_tx(tx)
+        psbt2.g.map[global_key_b] = b"\xdd"
+        psbt2.i[0].map[input_key_b] = b"\xee"
+        psbt2.o[0].map[output_key_b] = b"\xff"
+
+        decoded = self.nodes[0].decodepsbt(self.nodes[0].combinepsbt([psbt1.to_base64(), psbt2.to_base64()]))
+        assert_equal(decoded["proprietary"], [
+            proprietary_entry(key=global_key_a, value=b"\xaa", identifier=b"gc", subtype=1),
+            proprietary_entry(key=global_key_b, value=b"\xdd", identifier=b"gc", subtype=2),
+        ])
+        assert_equal(decoded["inputs"][0]["proprietary"], [
+            proprietary_entry(key=input_key_a, value=b"\xbb", identifier=b"in", subtype=3),
+            proprietary_entry(key=input_key_b, value=b"\xee", identifier=b"in", subtype=4),
+        ])
+        assert_equal(decoded["outputs"][0]["proprietary"], [
+            proprietary_entry(key=output_key_a, value=b"\xcc", identifier=b"out", subtype=5),
+            proprietary_entry(key=output_key_b, value=b"\xff", identifier=b"out", subtype=6),
+        ])
 
     def test_sighash_mismatch(self):
         self.log.info("Test sighash type mismatches")
@@ -695,6 +743,8 @@ class PSBTTest(BitcoinTestFramework):
             assert_equal(res_input[preimage_key][hash.hex()], preimage.hex())
 
         self.test_decodepsbt_musig2_input_output_types()
+
+        self.test_combinepsbt_preserves_proprietary_fields()
 
         self.log.info("Test that combining PSBTs with different transactions fails")
         tx = CTransaction()
