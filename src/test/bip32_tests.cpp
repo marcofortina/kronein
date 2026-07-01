@@ -8,6 +8,7 @@
 #include <key_io.h>
 #include <streams.h>
 #include <test/util/setup_common.h>
+#include <util/bip32.h>
 #include <util/strencodings.h>
 
 #include <string>
@@ -199,6 +200,21 @@ BOOST_AUTO_TEST_CASE(bip32_max_depth) {
     BOOST_CHECK(key_parent.nDepth == 255 && pubkey_parent.nDepth == 255);
     BOOST_CHECK(!key_parent.Derive(key_child, 0));
     BOOST_CHECK(!pubkey_parent.Derive(pubkey_child, 0));
+}
+
+BOOST_AUTO_TEST_CASE(parse_hd_keypath_index_bounds)
+{
+    for (const std::string prefix : {"", "m/", "m/0/"}) {
+        for (const std::string suffix : {"", "'"}) {
+            std::vector<uint32_t> keypath;
+            BOOST_REQUIRE(ParseHDKeypath(prefix + "2147483647" + suffix, keypath));
+            BOOST_CHECK_EQUAL(keypath.back(), suffix.empty() ? 0x7fffffffU : 0xffffffffU);
+            for (const std::string number : {"2147483648", "4294967295", "4294967296"}) {
+                keypath.clear();
+                BOOST_CHECK(!ParseHDKeypath(prefix + number + suffix, keypath));
+            }
+        }
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
