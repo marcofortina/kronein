@@ -11,6 +11,7 @@ from test_framework.blocktools import (
     MAX_STANDARD_TX_WEIGHT,
 )
 from test_framework.descriptors import descsum_create
+from test_framework.extendedkey import hardened
 from test_framework.key import H_POINT
 from test_framework.messages import (
     COutPoint,
@@ -40,15 +41,18 @@ from test_framework.psbt import (
     PSBT_IN_PREVIOUS_TXID,
     PSBT_IN_PROPRIETARY,
     PSBT_IN_SEQUENCE,
+    PSBT_IN_TAP_BIP32_DERIVATION,
+    PSBT_IN_TAP_INTERNAL_KEY,
     PSBT_IN_TAP_LEAF_SCRIPT,
+    PSBT_IN_WITNESS_UTXO,
     PSBT_OUT_AMOUNT,
     PSBT_OUT_MUSIG2_PARTICIPANT_PUBKEYS,
     PSBT_OUT_PROPRIETARY,
     PSBT_OUT_SCRIPT,
     PSBT_OUT_TAP_TREE,
 )
-from test_framework.script import CScript, LEAF_VERSION_TAPSCRIPT, OP_TRUE, SIGHASH_ALL, SIGHASH_ANYONECANPAY
-from test_framework.script_util import MIN_STANDARD_TX_NONWITNESS_SIZE
+from test_framework.script import CScript, LEAF_VERSION_TAPSCRIPT, OP_TRUE, SIGHASH_ALL, SIGHASH_ANYONECANPAY, hash160
+from test_framework.script_util import MIN_STANDARD_TX_NONWITNESS_SIZE, output_key_to_p2tr_script
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_not_equal,
@@ -282,6 +286,29 @@ class PSBTTest(BitcoinTestFramework):
         assert_equal(out_participant_pks["aggregate_pubkey"], out_fake_agg_pubkey.hex())
         assert "participant_pubkeys" in out_participant_pks
         assert_equal(out_participant_pks["participant_pubkeys"], [out_pubkey1.hex(), out_pubkey2.hex()])
+
+    def test_musig2_untrusted_derivation(self):
+        self.log.info("Test MuSig2 aggregate derivation from untrusted PSBT fields")
+        node = self.nodes[0]
+
+        script_pubkey = bytes.fromhex(H_POINT)
+        _, aggregate_pubkey = generate_keypair()
+        _, participant_pubkey = generate_keypair()
+
+        # Both have a matching aggregate fingerprint but cannot derive the script pubkey: 0 derives a different key, hardened(0) cannot be derived at all
+        for index in [0, hardened(0)]:
+            tx = CTransaction()
+            tx.vin = [CTxIn(outpoint=COutPoint(hash=1, n=0), scriptSig=b"")]
+            psbt = self.psbt_from_tx(tx)
+            psbt.i[0].map.update({
+                PSBT_IN_WITNESS_UTXO: CTxOut(nValue=1, scriptPubKey=output_key_to_p2tr_script(script_pubkey)).serialize(),
+                bytes([PSBT_IN_TAP_BIP32_DERIVATION]) + script_pubkey: ser_compact_size(0) + hash160(aggregate_pubkey)[:4] + index.to_bytes(4, "little"),
+                PSBT_IN_TAP_INTERNAL_KEY: script_pubkey,
+                bytes([PSBT_IN_MUSIG2_PARTICIPANT_PUBKEYS]) + aggregate_pubkey: [participant_pubkey],
+            })
+            encoded = psbt.to_base64()
+            assert_equal(node.analyzepsbt(encoded)["inputs"][0]["is_final"], False)
+            assert_equal(node.finalizepsbt(encoded)["complete"], False)
 
     def test_combinepsbt_preserves_proprietary_fields(self):
         self.log.info("Test that combining PSBTs preserves proprietary fields")
@@ -976,6 +1003,7 @@ class PSBTTest(BitcoinTestFramework):
             self.test_sighash_mismatch()
         self.test_sighash_adding()
         self.test_psbt_named_parameter_handling()
+        self.test_musig2_untrusted_derivation()
 
 if __name__ == '__main__':
     PSBTTest(__file__).main()
