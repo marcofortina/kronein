@@ -563,6 +563,14 @@ class PSBTTest(BitcoinTestFramework):
 
         wallet.unloadwallet()
 
+    def test_decodepsbt_long_sighash_type(self):
+        self.log.info("Test that decodepsbt rejects invalid trailing bytes in the sighash type field")
+        node = self.nodes[0]
+        psbt = PSBT.from_base64(node.createpsbt([{"txid": "00" * 32, "vout": 0}], [{"data": "00"}]))
+        # The first byte of this sighash type is ALL, but the type itself is not
+        psbt.i[0].map[PSBT_IN_SIGHASH_TYPE] = (0x101).to_bytes(4, "little")
+        assert_equal(node.decodepsbt(psbt.to_base64())["inputs"][0]["sighash"], "")
+
     def test_psbt_named_parameter_handling(self):
         """Test that PSBT Base64 parameters with '=' padding are handled correctly in -named mode"""
         self.log.info("Testing PSBT Base64 parameter handling with '=' padding characters")
@@ -1002,6 +1010,7 @@ class PSBTTest(BitcoinTestFramework):
         if not self.options.usecli:
             self.test_sighash_mismatch()
         self.test_sighash_adding()
+        self.test_decodepsbt_long_sighash_type()
         self.test_psbt_named_parameter_handling()
         self.test_musig2_untrusted_derivation()
 
