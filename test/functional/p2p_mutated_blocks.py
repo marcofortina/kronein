@@ -31,11 +31,6 @@ class MutatedBlocksTest(BitcoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 1
-        self.extra_args = [
-            [
-                "-testactivationheight=segwit@1", # causes unconnected headers/blocks to not have segwit considered deployed
-            ],
-        ]
 
     def run_test(self):
         self.wallet = MiniWallet(self.nodes[0])

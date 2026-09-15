@@ -54,7 +54,6 @@ struct DBVal {
     arith_uint256 total_new_outputs_ex_coinbase_amount{0};
     arith_uint256 total_coinbase_amount{0};
     CAmount total_unspendables_genesis_block{0};
-    CAmount total_unspendables_bip30{0};
     CAmount total_unspendables_scripts{0};
     CAmount total_unspendables_unclaimed_rewards{0};
 
@@ -74,7 +73,6 @@ struct DBVal {
         READWRITE(new_outputs);
         READWRITE(coinbase);
         READWRITE(obj.total_unspendables_genesis_block);
-        READWRITE(obj.total_unspendables_bip30);
         READWRITE(obj.total_unspendables_scripts);
         READWRITE(obj.total_unspendables_unclaimed_rewards);
 
@@ -125,12 +123,6 @@ bool CoinStatsIndex::CustomAppend(const interfaces::BlockInfo& block)
         for (size_t i = 0; i < block.data->vtx.size(); ++i) {
             const auto& tx{block.data->vtx.at(i)};
             const bool is_coinbase{tx->IsCoinBase()};
-
-            // Skip duplicate txid coinbase transactions (BIP30).
-            if (is_coinbase && IsBIP30Unspendable(block.hash, block.height)) {
-                m_total_unspendables_bip30 += block_subsidy;
-                continue;
-            }
 
             for (uint32_t j = 0; j < tx->vout.size(); ++j) {
                 const CTxOut& out{tx->vout[j]};
@@ -183,7 +175,7 @@ bool CoinStatsIndex::CustomAppend(const interfaces::BlockInfo& block)
     // new outputs + coinbase + current unspendable amount this means
     // the miner did not claim the full block reward. Unclaimed block
     // rewards are also unspendable.
-    const CAmount temp_total_unspendable_amount{m_total_unspendables_genesis_block + m_total_unspendables_bip30 + m_total_unspendables_scripts + m_total_unspendables_unclaimed_rewards};
+    const CAmount temp_total_unspendable_amount{m_total_unspendables_genesis_block + m_total_unspendables_scripts + m_total_unspendables_unclaimed_rewards};
     const arith_uint256 unclaimed_rewards{(m_total_prevout_spent_amount + m_total_subsidy) - (m_total_new_outputs_ex_coinbase_amount + m_total_coinbase_amount + temp_total_unspendable_amount)};
     assert(unclaimed_rewards <= arith_uint256(std::numeric_limits<CAmount>::max()));
     m_total_unspendables_unclaimed_rewards += static_cast<CAmount>(unclaimed_rewards.GetLow64());
@@ -198,7 +190,6 @@ bool CoinStatsIndex::CustomAppend(const interfaces::BlockInfo& block)
     value.second.total_new_outputs_ex_coinbase_amount = m_total_new_outputs_ex_coinbase_amount;
     value.second.total_coinbase_amount = m_total_coinbase_amount;
     value.second.total_unspendables_genesis_block = m_total_unspendables_genesis_block;
-    value.second.total_unspendables_bip30 = m_total_unspendables_bip30;
     value.second.total_unspendables_scripts = m_total_unspendables_scripts;
     value.second.total_unspendables_unclaimed_rewards = m_total_unspendables_unclaimed_rewards;
 
@@ -253,7 +244,6 @@ std::optional<CCoinsStats> CoinStatsIndex::LookUpStats(const CBlockIndex& block_
     stats.total_new_outputs_ex_coinbase_amount = entry.total_new_outputs_ex_coinbase_amount;
     stats.total_coinbase_amount = entry.total_coinbase_amount;
     stats.total_unspendables_genesis_block = entry.total_unspendables_genesis_block;
-    stats.total_unspendables_bip30 = entry.total_unspendables_bip30;
     stats.total_unspendables_scripts = entry.total_unspendables_scripts;
     stats.total_unspendables_unclaimed_rewards = entry.total_unspendables_unclaimed_rewards;
 
@@ -297,7 +287,6 @@ bool CoinStatsIndex::CustomInit(const std::optional<interfaces::BlockRef>& block
         m_total_new_outputs_ex_coinbase_amount = entry.total_new_outputs_ex_coinbase_amount;
         m_total_coinbase_amount = entry.total_coinbase_amount;
         m_total_unspendables_genesis_block = entry.total_unspendables_genesis_block;
-        m_total_unspendables_bip30 = entry.total_unspendables_bip30;
         m_total_unspendables_scripts = entry.total_unspendables_scripts;
         m_total_unspendables_unclaimed_rewards = entry.total_unspendables_unclaimed_rewards;
         m_current_block_hash = block->hash;
@@ -355,10 +344,6 @@ bool CoinStatsIndex::RevertBlock(const interfaces::BlockInfo& block)
         const auto& tx{block.data->vtx.at(i)};
         const bool is_coinbase{tx->IsCoinBase()};
 
-        if (is_coinbase && IsBIP30Unspendable(block.hash, block.height)) {
-            continue;
-        }
-
         for (uint32_t j = 0; j < tx->vout.size(); ++j) {
             const CTxOut& out{tx->vout[j]};
             const COutPoint outpoint{tx->GetHash(), j};
@@ -395,7 +380,6 @@ bool CoinStatsIndex::RevertBlock(const interfaces::BlockInfo& block)
     m_total_new_outputs_ex_coinbase_amount = read_out.second.total_new_outputs_ex_coinbase_amount;
     m_total_coinbase_amount = read_out.second.total_coinbase_amount;
     m_total_unspendables_genesis_block = read_out.second.total_unspendables_genesis_block;
-    m_total_unspendables_bip30 = read_out.second.total_unspendables_bip30;
     m_total_unspendables_scripts = read_out.second.total_unspendables_scripts;
     m_total_unspendables_unclaimed_rewards = read_out.second.total_unspendables_unclaimed_rewards;
     m_current_block_hash = *block.prev_hash;

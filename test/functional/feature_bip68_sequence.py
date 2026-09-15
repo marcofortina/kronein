@@ -9,7 +9,6 @@ import time
 
 from test_framework.blocktools import (
     NORMAL_GBT_REQUEST_PARAMS,
-    add_witness_commitment,
     create_block,
     script_to_p2wsh_script,
 )
@@ -20,7 +19,6 @@ from test_framework.messages import (
     CTxIn,
     CTxInWitness,
     CTxOut,
-    tx_from_hex,
 )
 from test_framework.script import (
     CScript,
@@ -33,9 +31,7 @@ from test_framework.script import (
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
-    assert_greater_than,
     assert_raises_rpc_error,
-    softfork_active,
 )
 from test_framework.wallet import MiniWallet
 
@@ -47,14 +43,6 @@ NOT_FINAL_ERROR = "non-BIP68-final"
 class BIP68Test(BitcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 2
-        self.extra_args = [
-            [
-                '-testactivationheight=csv@432',
-            ],
-            [
-                '-testactivationheight=csv@432',
-            ],
-        ]
 
     def run_test(self):
         self.relayfee = self.nodes[0].getnetworkinfo()["relayfee"]
@@ -69,14 +57,7 @@ class BIP68Test(BitcoinTestFramework):
         self.log.info("Running test sequence-lock-unconfirmed-inputs")
         self.test_sequence_lock_unconfirmed_inputs()
 
-        self.log.info("Running test BIP68 not consensus before activation")
-        self.test_bip68_not_consensus()
-
-        self.log.info("Activating BIP68 (and 112/113)")
-        self.activateCSV()
-
         self.log.info("Verifying version=2 transactions are standard.")
-        self.log.info("Note that version=2 transactions are always standard (independent of BIP68 activation status).")
         self.test_version2_relay()
 
         self.log.info("Passed")
@@ -341,60 +322,6 @@ class BIP68Test(BitcoinTestFramework):
         self.nodes[0].setmocktime(0)
         self.nodes[0].invalidateblock(self.nodes[0].getblockhash(cur_height+1))
         self.generate(self.wallet, 10, sync_fun=self.no_op)
-
-    # Make sure that BIP68 isn't being used to validate blocks prior to
-    # activation height.  If more blocks are mined prior to this test
-    # being run, then it's possible the test has activated the soft fork, and
-    # this test should be moved to run earlier, or deleted.
-    def test_bip68_not_consensus(self):
-        assert not softfork_active(self.nodes[0], 'csv')
-
-        tx1 = self.wallet.send_self_transfer(from_node=self.nodes[0])["tx"]
-
-        # Make an anyone-can-spend transaction
-        tx2 = CTransaction()
-        tx2.version = 1
-        tx2.vin = [CTxIn(COutPoint(tx1.txid_int, 0), nSequence=0)]
-        tx2.vout = [CTxOut(int(tx1.vout[0].nValue - self.relayfee * COIN), SCRIPT_W0_SH_OP_TRUE)]
-
-        # sign tx2
-        self.wallet.sign_tx(tx=tx2)
-        tx2_raw = tx2.serialize().hex()
-        tx2 = tx_from_hex(tx2_raw)
-
-        self.wallet.sendrawtransaction(from_node=self.nodes[0], tx_hex=tx2_raw)
-
-        # Now make an invalid spend of tx2 according to BIP68
-        sequence_value = 100 # 100 block relative locktime
-
-        tx3 = CTransaction()
-        tx3.version = 2
-        tx3.vin = [CTxIn(COutPoint(tx2.txid_int, 0), nSequence=sequence_value)]
-        tx3.wit.vtxinwit = [CTxInWitness()]
-        tx3.wit.vtxinwit[0].scriptWitness.stack = [CScript([OP_TRUE])]
-        tx3.vout = [CTxOut(int(tx2.vout[0].nValue - self.relayfee * COIN), SCRIPT_W0_SH_OP_TRUE)]
-
-        assert_raises_rpc_error(-26, NOT_FINAL_ERROR, self.wallet.sendrawtransaction, from_node=self.nodes[0], tx_hex=tx3.serialize().hex())
-
-        # make a block that violates bip68; ensure that the tip updates
-        block = create_block(tmpl=self.nodes[0].getblocktemplate(NORMAL_GBT_REQUEST_PARAMS), txlist=[tx1, tx2, tx3])
-        add_witness_commitment(block)
-        block.solve()
-
-        assert_equal(None, self.nodes[0].submitblock(block.serialize().hex()))
-        assert_equal(self.nodes[0].getbestblockhash(), block.hash_hex)
-
-    def activateCSV(self):
-        # activation should happen at block height 432 (3 periods)
-        # getblockchaininfo will show CSV as active at block 431 (144 * 3 -1) since it's returning whether CSV is active for the next block.
-        min_activation_height = 432
-        height = self.nodes[0].getblockcount()
-        assert_greater_than(min_activation_height - height, 2)
-        self.generate(self.wallet, min_activation_height - height - 2, sync_fun=self.no_op)
-        assert not softfork_active(self.nodes[0], 'csv')
-        self.generate(self.wallet, 1, sync_fun=self.no_op)
-        assert softfork_active(self.nodes[0], 'csv')
-        self.sync_blocks()
 
     # Use self.nodes[1] to test that version 2 transactions are standard.
     def test_version2_relay(self):

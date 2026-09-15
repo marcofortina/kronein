@@ -136,8 +136,7 @@ static ChainstateLoadResult CompleteChainstateInitialization(
     const auto& chainstates{chainman.m_chainstates};
     if (std::any_of(chainstates.begin(), chainstates.end(),
                     [](const auto& cs) EXCLUSIVE_LOCKS_REQUIRED(cs_main) { return cs->NeedsRedownload(); })) {
-        return {ChainstateLoadStatus::FAILURE, strprintf(_("Witness data for blocks after height %d requires validation. Please restart with -reindex."),
-                                                         chainman.GetConsensus().SegwitHeight)};
+        return {ChainstateLoadStatus::FAILURE, _("Witness data requires validation. Please restart with -reindex.")};
     };
 
     // Now that chainstates are loaded and we're able to flush to

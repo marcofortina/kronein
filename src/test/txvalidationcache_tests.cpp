@@ -15,11 +15,6 @@
 
 #include <boost/test/unit_test.hpp>
 
-struct Dersig100Setup : public TestChain100Setup {
-    Dersig100Setup()
-        : TestChain100Setup{ChainType::REGTEST, {.extra_args = {"-testactivationheight=dersig@102"}}} {}
-};
-
 bool CheckInputScripts(const CTransaction& tx, TxValidationState& state,
                        const CCoinsViewCache& inputs, script_verify_flags flags, bool cacheSigStore,
                        bool cacheFullScriptStore, PrecomputedTransactionData& txdata,
@@ -28,7 +23,7 @@ bool CheckInputScripts(const CTransaction& tx, TxValidationState& state,
 
 BOOST_AUTO_TEST_SUITE(txvalidationcache_tests)
 
-BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, Dersig100Setup)
+BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, TestChain100Setup)
 {
     // Make sure skipping validation of transactions that were
     // validated going into the memory pool does not allow
@@ -164,7 +159,7 @@ static void ValidateCheckInputsForAllFlags(const CTransaction &tx, script_verify
     }
 }
 
-BOOST_FIXTURE_TEST_CASE(checkinputs_test, Dersig100Setup)
+BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
 {
     // Test that passing CheckInputScripts with one set of script flags doesn't imply
     // that we would pass again with a different set of flags.
@@ -232,11 +227,17 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, Dersig100Setup)
         ValidateCheckInputsForAllFlags(CTransaction(spend_tx), SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_LOW_S | SCRIPT_VERIFY_STRICTENC, false, m_node.chainman->ActiveChainstate().CoinsTip(), m_node.chainman->m_validation_cache);
     }
 
-    // And if we produce a block with this tx, it should be valid (DERSIG not
-    // enabled yet), even though there's no cache entry.
-    CBlock block;
+    // Make the transaction valid under the mandatory strict-DER rule, then
+    // connect it to create outputs for the remaining cache tests.
+    {
+        std::vector<unsigned char> vchSig;
+        const uint256 hash{SignatureHash(p2pk_scriptPubKey, spend_tx, 0, SIGHASH_ALL, 0, SigVersion::BASE)};
+        BOOST_CHECK(coinbaseKey.Sign(hash, vchSig));
+        vchSig.push_back(static_cast<unsigned char>(SIGHASH_ALL));
+        spend_tx.vin[0].scriptSig = CScript{} << vchSig;
+    }
 
-    block = CreateAndProcessBlock({spend_tx}, p2pk_scriptPubKey);
+    CBlock block{CreateAndProcessBlock({spend_tx}, p2pk_scriptPubKey)};
     LOCK(cs_main);
     BOOST_CHECK(m_node.chainman->ActiveChain().Tip()->GetBlockHash() == block.GetHash());
     BOOST_CHECK(m_node.chainman->ActiveChainstate().CoinsTip().GetBestBlock() == block.GetHash());

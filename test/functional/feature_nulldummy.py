@@ -2,16 +2,8 @@
 # Copyright (c) 2016-present The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Test NULLDUMMY softfork.
+"""Test mandatory NULLDUMMY validation."""
 
-Connect to a single node.
-Generate 2 blocks (save the coinbases for later).
-Generate COINBASE_MATURITY (CB) more blocks to ensure the coinbases are mature.
-[Policy/Consensus] Check that NULLDUMMY compliant transactions are accepted in block CB + 3.
-[Policy] Check that non-NULLDUMMY transactions are rejected before activation.
-[Consensus] Check that the new NULLDUMMY rules are not enforced on block CB + 4.
-[Policy/Consensus] Check that the new NULLDUMMY rules are enforced on block CB + 5.
-"""
 import time
 
 from test_framework.address import address_to_scriptpubkey
@@ -40,9 +32,8 @@ from test_framework.wallet_util import generate_keypair
 NULLDUMMY_TX_ERROR = "mempool-script-verify-flag-failed (Dummy CHECKMULTISIG argument must be zero)"
 NULLDUMMY_BLK_ERROR = "block-script-verify-flag-failed (Dummy CHECKMULTISIG argument must be zero)"
 
+
 def invalidate_nulldummy_tx(tx):
-    """Transform a NULLDUMMY compliant tx (i.e. scriptSig starts with OP_0)
-    to be non-NULLDUMMY compliant by replacing the dummy with OP_TRUE"""
     assert_equal(tx.vin[0].scriptSig[0], OP_0)
     tx.vin[0].scriptSig = bytes([OP_TRUE]) + tx.vin[0].scriptSig[1:]
 
@@ -51,93 +42,96 @@ class NULLDUMMYTest(BitcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.setup_clean_chain = True
-        # This script tests NULLDUMMY activation, which is part of the 'segwit' deployment, so we go through
-        # normal segwit activation here (and don't use the default always-on behaviour).
-        self.extra_args = [[
-            f'-testactivationheight=segwit@{COINBASE_MATURITY + 5}',
-            '-addresstype=legacy',
-        ]]
+        self.extra_args = [['-addresstype=legacy']]
 
     def create_transaction(self, *, txid, input_details=None, addr, amount, privkey):
-        input = {"txid": txid, "vout": 0}
-        output = {addr: amount}
-        rawtx = self.nodes[0].createrawtransaction([input], output)
-        # Details only needed for scripthash or witness spends
-        input = None if not input_details else [{**input, **input_details}]
-        signedtx = self.nodes[0].signrawtransactionwithkey(rawtx, [privkey], input)
+        tx_input = {"txid": txid, "vout": 0}
+        rawtx = self.nodes[0].createrawtransaction([tx_input], {addr: amount})
+        inputs = None if not input_details else [{**tx_input, **input_details}]
+        signedtx = self.nodes[0].signrawtransactionwithkey(rawtx, [privkey], inputs)
         return tx_from_hex(signedtx["hex"])
 
     def run_test(self):
-        self.privkey, self.pubkey = generate_keypair(wif=True)
-        cms = self.nodes[0].createmultisig(1, [self.pubkey.hex()])
-        wms = self.nodes[0].createmultisig(1, [self.pubkey.hex()], 'p2sh-segwit')
-        self.ms_address = cms["address"]
-        ms_unlock_details = {"scriptPubKey": address_to_scriptpubkey(self.ms_address).hex(),
-                             "redeemScript": cms["redeemScript"]}
-        self.wit_ms_address = wms['address']
+        node = self.nodes[0]
+        privkey, pubkey = generate_keypair(wif=True)
+        base_multisig = node.createmultisig(1, [pubkey.hex()])
+        witness_multisig = node.createmultisig(1, [pubkey.hex()], 'p2sh-segwit')
+        base_address = base_multisig["address"]
+        base_unlock = {
+            "scriptPubKey": address_to_scriptpubkey(base_address).hex(),
+            "redeemScript": base_multisig["redeemScript"],
+        }
+        witness_address = witness_multisig['address']
 
-        self.coinbase_blocks = self.generate(self.nodes[0], 2)  # block height = 2
-        coinbase_txid = []
-        for i in self.coinbase_blocks:
-            coinbase_txid.append(self.nodes[0].getblock(i)['tx'][0])
-        self.generate(self.nodes[0], COINBASE_MATURITY)  # block height = COINBASE_MATURITY + 2
-        self.lastblockhash = self.nodes[0].getbestblockhash()
+        coinbase_blocks = self.generate(node, 2)
+        coinbase_txids = [node.getblock(block_hash)['tx'][0] for block_hash in coinbase_blocks]
+        self.generate(node, COINBASE_MATURITY)
+        self.lastblockhash = node.getbestblockhash()
         self.lastblockheight = COINBASE_MATURITY + 2
         self.lastblocktime = int(time.time()) + self.lastblockheight
 
-        self.log.info(f"Test 1: NULLDUMMY compliant base transactions should be accepted to mempool and mined before activation [{COINBASE_MATURITY + 3}]")
-        test1txs = [self.create_transaction(txid=coinbase_txid[0], addr=self.ms_address, amount=49,
-                                            privkey=self.nodes[0].get_deterministic_priv_key().key)]
-        txid1 = self.nodes[0].sendrawtransaction(test1txs[0].serialize_with_witness().hex(), 0)
-        test1txs.append(self.create_transaction(txid=txid1, input_details=ms_unlock_details,
-                                                addr=self.ms_address, amount=48,
-                                                privkey=self.privkey))
-        txid2 = self.nodes[0].sendrawtransaction(test1txs[1].serialize_with_witness().hex(), 0)
-        test1txs.append(self.create_transaction(txid=coinbase_txid[1],
-                                                addr=self.wit_ms_address, amount=49,
-                                                privkey=self.nodes[0].get_deterministic_priv_key().key))
-        txid3 = self.nodes[0].sendrawtransaction(test1txs[2].serialize_with_witness().hex(), 0)
-        self.block_submit(self.nodes[0], test1txs, accept=True)
+        funding_txs = [self.create_transaction(
+            txid=coinbase_txids[0],
+            addr=base_address,
+            amount=49,
+            privkey=node.get_deterministic_priv_key().key,
+        )]
+        base_funding_txid = node.sendrawtransaction(funding_txs[0].serialize_with_witness().hex(), 0)
+        funding_txs.append(self.create_transaction(
+            txid=base_funding_txid,
+            input_details=base_unlock,
+            addr=base_address,
+            amount=48,
+            privkey=privkey,
+        ))
+        base_spend_txid = node.sendrawtransaction(funding_txs[1].serialize_with_witness().hex(), 0)
+        funding_txs.append(self.create_transaction(
+            txid=coinbase_txids[1],
+            addr=witness_address,
+            amount=49,
+            privkey=node.get_deterministic_priv_key().key,
+        ))
+        witness_spend_txid = node.sendrawtransaction(funding_txs[2].serialize_with_witness().hex(), 0)
+        self.block_submit(node, funding_txs, accept=True)
 
-        self.log.info("Test 2: Non-NULLDUMMY base multisig transaction should not be accepted to mempool before activation")
-        test2tx = self.create_transaction(txid=txid2, input_details=ms_unlock_details,
-                                          addr=self.ms_address, amount=47,
-                                          privkey=self.privkey)
-        invalidate_nulldummy_tx(test2tx)
-        assert_raises_rpc_error(-26, NULLDUMMY_TX_ERROR, self.nodes[0].sendrawtransaction, test2tx.serialize_with_witness().hex(), 0)
+        valid_base_tx = self.create_transaction(
+            txid=base_spend_txid,
+            input_details=base_unlock,
+            addr=getnewdestination()[2],
+            amount=47,
+            privkey=privkey,
+        )
+        invalid_base_tx = CTransaction(valid_base_tx)
+        invalidate_nulldummy_tx(invalid_base_tx)
+        assert_raises_rpc_error(-26, NULLDUMMY_TX_ERROR, node.sendrawtransaction, invalid_base_tx.serialize_with_witness().hex(), 0)
+        self.block_submit(node, [invalid_base_tx], accept=False)
 
-        self.log.info(f"Test 3: Non-NULLDUMMY base transactions should be accepted in a block before activation [{COINBASE_MATURITY + 4}]")
-        self.block_submit(self.nodes[0], [test2tx], accept=True)
+        witness_unlock = {
+            "scriptPubKey": funding_txs[2].vout[0].scriptPubKey.hex(),
+            "amount": 49,
+            "witnessScript": witness_multisig["redeemScript"],
+        }
+        valid_witness_tx = self.create_transaction(
+            txid=witness_spend_txid,
+            input_details=witness_unlock,
+            addr=getnewdestination(address_type='p2sh-segwit')[2],
+            amount=48,
+            privkey=privkey,
+        )
+        invalid_witness_tx = CTransaction(valid_witness_tx)
+        invalid_witness_tx.wit.vtxinwit[0].scriptWitness.stack[0] = b'\x01'
+        assert_raises_rpc_error(-26, NULLDUMMY_TX_ERROR, node.sendrawtransaction, invalid_witness_tx.serialize_with_witness().hex(), 0)
+        self.block_submit(node, [invalid_witness_tx], with_witness=True, accept=False)
 
-        self.log.info("Test 4: Non-NULLDUMMY base multisig transaction is invalid after activation")
-        test4tx = self.create_transaction(txid=test2tx.txid_hex, input_details=ms_unlock_details,
-                                          addr=getnewdestination()[2], amount=46,
-                                          privkey=self.privkey)
-        test6txs = [CTransaction(test4tx)]
-        invalidate_nulldummy_tx(test4tx)
-        assert_raises_rpc_error(-26, NULLDUMMY_TX_ERROR, self.nodes[0].sendrawtransaction, test4tx.serialize_with_witness().hex(), 0)
-        self.block_submit(self.nodes[0], [test4tx], accept=False)
-
-        self.log.info("Test 5: Non-NULLDUMMY P2WSH multisig transaction invalid after activation")
-        test5tx = self.create_transaction(txid=txid3, input_details={"scriptPubKey": test1txs[2].vout[0].scriptPubKey.hex(),
-                                          "amount": 49, "witnessScript": wms["redeemScript"]},
-                                          addr=getnewdestination(address_type='p2sh-segwit')[2], amount=48,
-                                          privkey=self.privkey)
-        test6txs.append(CTransaction(test5tx))
-        test5tx.wit.vtxinwit[0].scriptWitness.stack[0] = b'\x01'
-        assert_raises_rpc_error(-26, NULLDUMMY_TX_ERROR, self.nodes[0].sendrawtransaction, test5tx.serialize_with_witness().hex(), 0)
-        self.block_submit(self.nodes[0], [test5tx], with_witness=True, accept=False)
-
-        self.log.info(f"Test 6: NULLDUMMY compliant base/witness transactions should be accepted to mempool and in block after activation [{COINBASE_MATURITY + 5}]")
-        for i in test6txs:
-            self.nodes[0].sendrawtransaction(i.serialize_with_witness().hex(), 0)
-        self.block_submit(self.nodes[0], test6txs, with_witness=True, accept=True)
+        for tx in (valid_base_tx, valid_witness_tx):
+            node.sendrawtransaction(tx.serialize_with_witness().hex(), 0)
+        self.block_submit(node, [valid_base_tx, valid_witness_tx], with_witness=True, accept=True)
 
     def block_submit(self, node, txs, *, with_witness=False, accept):
-        tmpl = node.getblocktemplate(NORMAL_GBT_REQUEST_PARAMS)
-        assert_equal(tmpl['previousblockhash'], self.lastblockhash)
-        assert_equal(tmpl['height'], self.lastblockheight + 1)
-        block = create_block(tmpl=tmpl, ntime=self.lastblocktime + 1, txlist=txs)
+        template = node.getblocktemplate(NORMAL_GBT_REQUEST_PARAMS)
+        assert_equal(template['previousblockhash'], self.lastblockhash)
+        assert_equal(template['height'], self.lastblockheight + 1)
+        block = create_block(tmpl=template, ntime=self.lastblocktime + 1, txlist=txs)
         if with_witness:
             add_witness_commitment(block)
         block.solve()

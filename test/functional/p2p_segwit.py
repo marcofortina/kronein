@@ -86,15 +86,12 @@ from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
     ensure_for,
-    softfork_active,
 )
 from test_framework.wallet import MiniWallet
 from test_framework.wallet_util import generate_keypair
 
 
 MAX_SIGOP_COST = 80000
-
-SEGWIT_HEIGHT = 120
 
 class UTXO():
     """Used to keep track of anyone-can-spend outputs that we can use in the tests."""
@@ -107,15 +104,11 @@ class UTXO():
 def subtest(func):
     """Wraps the subtests for logging and state assertions."""
     def func_wrapper(self, *args, **kwargs):
-        self.log.info("Subtest: {} (Segwit active = {})".format(func.__name__, self.segwit_active))
-        # Assert segwit status is as expected
-        assert_equal(softfork_active(self.nodes[0], 'segwit'), self.segwit_active)
+        self.log.info("Subtest: {}".format(func.__name__))
         func(self, *args, **kwargs)
         # Each subtest should leave some utxos for the next subtest
         assert self.utxo
         self.sync_blocks()
-        # Assert segwit status is as expected at end of subtest
-        assert_equal(softfork_active(self.nodes[0], 'segwit'), self.segwit_active)
 
     return func_wrapper
 
@@ -214,13 +207,12 @@ class SegWitTest(BitcoinTestFramework):
         self.num_nodes = 2
         # whitelist peers to speed up tx relay / mempool sync
         self.noban_tx_relay = True
-        # This test tests SegWit both pre and post-activation, so use the normal BIP9 activation.
         self.extra_args = [
             # -par=1 should not affect validation outcome or logging/reported failures. It is kept
             # here to exercise the code path still (as it is distinct for multithread script
             # validation).
-            ["-acceptnonstdtxn=1", f"-testactivationheight=segwit@{SEGWIT_HEIGHT}", "-par=1"],
-            ["-acceptnonstdtxn=0", f"-testactivationheight=segwit@{SEGWIT_HEIGHT}"],
+            ["-acceptnonstdtxn=1", "-par=1"],
+            ["-acceptnonstdtxn=0"],
         ]
 
     # Helper functions
@@ -255,22 +247,11 @@ class SegWitTest(BitcoinTestFramework):
         # Keep a place to store utxo's that can be used in later tests
         self.utxo = []
 
-        self.log.info("Starting tests before segwit activation")
-        self.segwit_active = False
         self.wallet = MiniWallet(self.nodes[0])
 
         self.test_non_witness_transaction()
-        self.test_v0_outputs_arent_spendable()
         self.test_block_relay()
-        self.test_unnecessary_witness_before_segwit_activation()
-        self.test_witness_tx_relay_before_segwit_activation()
         self.test_standardness_v0()
-
-        self.log.info("Advancing to segwit activation")
-        self.advance_to_segwit_active()
-
-        # Segwit status 'active'
-
         self.test_p2sh_witness()
         self.test_witness_commitments()
         self.test_block_malleability()
@@ -281,8 +262,7 @@ class SegWitTest(BitcoinTestFramework):
         self.test_max_witness_script_length()
         self.test_witness_input_length()
         self.test_block_relay()
-        self.test_tx_relay_after_segwit_activation()
-        self.test_standardness_v0()
+        self.test_tx_relay()
         self.test_segwit_versions()
         self.test_premature_coinbase_witness_spend()
         self.test_uncompressed_pubkey()
@@ -324,41 +304,10 @@ class SegWitTest(BitcoinTestFramework):
         self.generate(self.nodes[0], 1)
 
     @subtest
-    def test_unnecessary_witness_before_segwit_activation(self):
-        """Verify that blocks with witnesses are rejected before activation."""
-
-        tx = CTransaction()
-        tx.vin.append(CTxIn(COutPoint(self.utxo[0].sha256, self.utxo[0].n), b""))
-        tx.vout.append(CTxOut(self.utxo[0].nValue - 1000, CScript([OP_TRUE])))
-        tx.wit.vtxinwit.append(CTxInWitness())
-        tx.wit.vtxinwit[0].scriptWitness.stack = [CScript([CScriptNum(1)])]
-
-        # Verify the hash with witness differs from the txid
-        # (otherwise our testing framework must be broken!)
-        assert_not_equal(tx.txid_hex, tx.wtxid_hex)
-
-        # Construct a block that includes the transaction.
-        block = self.build_next_block()
-        self.update_witness_block_with_transactions(block, [tx])
-        # Sending witness data before activation is not allowed (anti-spam
-        # rule).
-        test_witness_block(self.nodes[0], self.test_node, block, accepted=False, reason='unexpected-witness')
-
-        # But it should not be permanently marked bad...
-        # Resend without witness information.
-        self.test_node.send_and_ping(msg_no_witness_block(block))  # make sure the block was processed
-        assert_equal(self.nodes[0].getbestblockhash(), block.hash_hex)
-
-        # Update our utxo list; we spent the first entry.
-        self.utxo.pop(0)
-        self.utxo.append(UTXO(tx.txid_int, 0, tx.vout[0].nValue))
-
-    @subtest
     def test_block_relay(self):
         """Test that block requests to NODE_WITNESS peer are with MSG_WITNESS_FLAG.
 
-        This is true regardless of segwit activation.
-        Also test that we don't ask for blocks from unupgraded peers."""
+        Also test that we don't ask for blocks from peers without witness support."""
 
         blocktype = 2 | MSG_WITNESS_FLAG
 
@@ -384,29 +333,9 @@ class SegWitTest(BitcoinTestFramework):
         assert self.test_node.last_message["getdata"].inv[0].type == blocktype
         test_witness_block(self.nodes[0], self.test_node, block2, True)
 
-        # Check that we can getdata for witness blocks or regular blocks,
-        # and the right thing happens.
-        if not self.segwit_active:
-            # Before activation, we should be able to request old blocks with
-            # or without witness, and they should be the same.
-            chain_height = self.nodes[0].getblockcount()
-            # Pick 10 random blocks on main chain, and verify that getdata's
-            # for MSG_BLOCK, MSG_WITNESS_BLOCK, and rpc getblock() are equal.
-            all_heights = list(range(chain_height + 1))
-            random.shuffle(all_heights)
-            all_heights = all_heights[0:10]
-            for height in all_heights:
-                block_hash = self.nodes[0].getblockhash(height)
-                rpc_block = self.nodes[0].getblock(block_hash, False)
-                block_hash = int(block_hash, 16)
-                block = self.test_node.request_block(block_hash, 2)
-                wit_block = self.test_node.request_block(block_hash, 2 | MSG_WITNESS_FLAG)
-                assert_equal(block.serialize(), wit_block.serialize())
-                assert_equal(block.serialize(), bytes.fromhex(rpc_block))
-        else:
-            # After activation, witness blocks and non-witness blocks should
-            # be different.  Verify rpc getblock() returns witness blocks, while
-            # getdata respects the requested type.
+        def check_witness_serialization():
+            # Verify rpc getblock() returns witness blocks, while getdata
+            # respects the requested type.
             block = self.build_next_block()
             self.update_witness_block_with_transactions(block, [])
             # This gives us a witness commitment.
@@ -427,7 +356,7 @@ class SegWitTest(BitcoinTestFramework):
             assert_equal(rpc_details["strippedsize"], len(block.serialize(False)))
             assert_equal(rpc_details["weight"], block.get_weight())
 
-            # Upgraded node should not ask for blocks from unupgraded
+            # Do not ask for blocks from a peer without witness support.
             block4 = self.build_next_block()
             block4.solve()
             self.old_node.getdataset = set()
@@ -446,118 +375,13 @@ class SegWitTest(BitcoinTestFramework):
             self.old_node.announce_tx_and_wait_for_getdata(block4.vtx[0])
             assert block4.hash_int not in self.old_node.getdataset
 
-    @subtest
-    def test_v0_outputs_arent_spendable(self):
-        """Test that v0 outputs aren't spendable before segwit activation.
-
-        ~6 months after segwit activation, the SCRIPT_VERIFY_WITNESS flag was
-        backdated so that it applies to all blocks, going back to the genesis
-        block.
-
-        Consequently, version 0 witness outputs are never spendable without
-        witness, and so can't be spent before segwit activation (the point at which
-        blocks are permitted to contain witnesses)."""
-
-        # Create two outputs, a p2wsh and p2sh-p2wsh
-        witness_script = CScript([OP_TRUE])
-        script_pubkey = script_to_p2wsh_script(witness_script)
-        p2sh_script_pubkey = script_to_p2sh_script(script_pubkey)
-
-        value = self.utxo[0].nValue // 3
-
-        tx = CTransaction()
-        tx.vin = [CTxIn(COutPoint(self.utxo[0].sha256, self.utxo[0].n), b'')]
-        tx.vout = [CTxOut(value, script_pubkey), CTxOut(value, p2sh_script_pubkey)]
-        tx.vout.append(CTxOut(value, CScript([OP_TRUE])))
-        txid = tx.txid_int
-
-        # Add it to a block
-        block = self.build_next_block()
-        self.update_witness_block_with_transactions(block, [tx])
-        # Verify that segwit isn't activated. A block serialized with witness
-        # should be rejected prior to activation.
-        test_witness_block(self.nodes[0], self.test_node, block, accepted=False, with_witness=True, reason='unexpected-witness')
-        # Now send the block without witness. It should be accepted
-        test_witness_block(self.nodes[0], self.test_node, block, accepted=True, with_witness=False)
-
-        # Now try to spend the outputs. This should fail since SCRIPT_VERIFY_WITNESS is always enabled.
-        p2wsh_tx = CTransaction()
-        p2wsh_tx.vin = [CTxIn(COutPoint(txid, 0), b'')]
-        p2wsh_tx.vout = [CTxOut(value, CScript([OP_TRUE]))]
-        p2wsh_tx.wit.vtxinwit.append(CTxInWitness())
-        p2wsh_tx.wit.vtxinwit[0].scriptWitness.stack = [CScript([OP_TRUE])]
-
-        p2sh_p2wsh_tx = CTransaction()
-        p2sh_p2wsh_tx.vin = [CTxIn(COutPoint(txid, 1), CScript([script_pubkey]))]
-        p2sh_p2wsh_tx.vout = [CTxOut(value, CScript([OP_TRUE]))]
-        p2sh_p2wsh_tx.wit.vtxinwit.append(CTxInWitness())
-        p2sh_p2wsh_tx.wit.vtxinwit[0].scriptWitness.stack = [CScript([OP_TRUE])]
-
-        for tx in [p2wsh_tx, p2sh_p2wsh_tx]:
-
-            block = self.build_next_block()
-            self.update_witness_block_with_transactions(block, [tx])
-
-            # When the block is serialized with a witness, the block will be rejected because witness
-            # data isn't allowed in blocks that don't commit to witness data.
-            test_witness_block(self.nodes[0], self.test_node, block, accepted=False, with_witness=True, reason='unexpected-witness')
-
-            # When the block is serialized without witness, validation fails because the transaction is
-            # invalid (transactions are always validated with SCRIPT_VERIFY_WITNESS so a segwit v0 transaction
-            # without a witness is invalid).
-            test_witness_block(self.nodes[0], self.test_node, block, accepted=False, with_witness=False,
-                               reason='block-script-verify-flag-failed (Witness program was passed an empty witness)')
-
-        self.utxo.pop(0)
-        self.utxo.append(UTXO(txid, 2, value))
-
-    @subtest
-    def test_witness_tx_relay_before_segwit_activation(self):
-
-        # Generate a transaction that doesn't require a witness, but send it
-        # with a witness.  Should be rejected for premature-witness, but should
-        # not be added to recently rejected list.
-        tx = CTransaction()
-        tx.vin.append(CTxIn(COutPoint(self.utxo[0].sha256, self.utxo[0].n), b""))
-        tx.vout.append(CTxOut(self.utxo[0].nValue - 1000, CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])))
-        tx.wit.vtxinwit.append(CTxInWitness())
-        tx.wit.vtxinwit[0].scriptWitness.stack = [b'a']
-
-        tx_hash = tx.txid_int
-        tx_value = tx.vout[0].nValue
-
-        # Verify that if a peer doesn't set nServices to include NODE_WITNESS,
-        # the getdata is just for the non-witness portion.
-        self.old_node.announce_tx_and_wait_for_getdata(tx)
-        assert self.old_node.last_message["getdata"].inv[0].type == MSG_TX
-
-        # Since we haven't delivered the tx yet, inv'ing the same tx from
-        # a witness transaction ought not result in a getdata.
-        self.test_node.announce_tx_and_wait_for_getdata(tx, success=False)
-
-        # Delivering this transaction with witness should fail (no matter who
-        # its from)
-        assert_equal(len(self.nodes[0].getrawmempool()), 0)
-        assert_equal(len(self.nodes[1].getrawmempool()), 0)
-        test_transaction_acceptance(self.nodes[0], self.old_node, tx, with_witness=True, accepted=False)
-        test_transaction_acceptance(self.nodes[0], self.test_node, tx, with_witness=True, accepted=False)
-
-        # But eliminating the witness should fix it
-        test_transaction_acceptance(self.nodes[0], self.test_node, tx, with_witness=False, accepted=True)
-
-        # Cleanup: mine the first transaction and update utxo
-        self.generate(self.nodes[0], 1)
-        assert_equal(len(self.nodes[0].getrawmempool()), 0)
-
-        self.utxo.pop(0)
-        self.utxo.append(UTXO(tx_hash, 0, tx_value))
+        check_witness_serialization()
 
     @subtest
     def test_standardness_v0(self):
         """Test V0 txout standardness.
 
-        V0 segwit outputs and inputs are always standard.
-        V0 segwit inputs may only be mined after activation, but not before."""
+        V0 segwit outputs and inputs are standard."""
 
         witness_script = CScript([OP_TRUE])
         script_pubkey = script_to_p2wsh_script(witness_script)
@@ -580,8 +404,7 @@ class SegWitTest(BitcoinTestFramework):
         tx.vout.append(CTxOut(8000, script_pubkey))  # Might burn this later
         tx.vin[0].nSequence = MAX_BIP125_RBF_SEQUENCE  # Just to have the option to bump this tx from the mempool
 
-        # This is always accepted, since the mempool policy is to consider segwit as always active
-        # and thus allow segwit outputs
+        # Witness outputs are standard.
         test_transaction_acceptance(self.nodes[1], self.std_node, tx, with_witness=True, accepted=True)
 
         # Now create something that looks like a P2PKH output. This won't be spendable.
@@ -605,58 +428,12 @@ class SegWitTest(BitcoinTestFramework):
         tx3.vout = [CTxOut(tx.vout[0].nValue - 1000, CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE]))]
         tx3.wit.vtxinwit.append(CTxInWitness())
         tx3.wit.vtxinwit[0].scriptWitness.stack = [witness_script]
-        if not self.segwit_active:
-            # Just check mempool acceptance, but don't add the transaction to the mempool, since witness is disallowed
-            # in blocks and the tx is impossible to mine right now.
-            testres3 = self.nodes[0].testmempoolaccept([tx3.serialize_with_witness().hex()])
-            testres3[0]["fees"].pop("effective-feerate")
-            testres3[0]["fees"].pop("effective-includes")
-            assert_equal(testres3,
-                [{
-                    'txid': tx3.txid_hex,
-                    'wtxid': tx3.wtxid_hex,
-                    'allowed': True,
-                    'vsize': tx3.get_vsize(),
-                    'fees': {
-                        'base': Decimal('0.00001000'),
-                    },
-                }],
-            )
-            # Create the same output as tx3, but by replacing tx
-            tx3_out = tx3.vout[0]
-            tx3 = tx
-            tx3.vout = [tx3_out]
-            testres3_replaced = self.nodes[0].testmempoolaccept([tx3.serialize_with_witness().hex()])
-            testres3_replaced[0]["fees"].pop("effective-feerate")
-            testres3_replaced[0]["fees"].pop("effective-includes")
-            assert_equal(testres3_replaced,
-                [{
-                    'txid': tx3.txid_hex,
-                    'wtxid': tx3.wtxid_hex,
-                    'allowed': True,
-                    'vsize': tx3.get_vsize(),
-                    'fees': {
-                        'base': Decimal('0.00011000'),
-                    },
-                }],
-            )
         test_transaction_acceptance(self.nodes[0], self.test_node, tx3, with_witness=True, accepted=True)
 
         self.generate(self.nodes[0], 1)
         self.utxo.pop(0)
         self.utxo.append(UTXO(tx3.txid_int, 0, tx3.vout[0].nValue))
         assert_equal(len(self.nodes[1].getrawmempool()), 0)
-
-    @subtest
-    def advance_to_segwit_active(self):
-        """Mine enough blocks to activate segwit."""
-        assert not softfork_active(self.nodes[0], 'segwit')
-        height = self.nodes[0].getblockcount()
-        self.generate(self.nodes[0], SEGWIT_HEIGHT - height - 2)
-        assert not softfork_active(self.nodes[0], 'segwit')
-        self.generate(self.nodes[0], 1)
-        assert softfork_active(self.nodes[0], 'segwit')
-        self.segwit_active = True
 
     @subtest
     def test_p2sh_witness(self):
@@ -685,11 +462,7 @@ class SegWitTest(BitcoinTestFramework):
         spend_tx.vin.append(CTxIn(COutPoint(tx.txid_int, 0), script_sig))
         spend_tx.vout.append(CTxOut(tx.vout[0].nValue - 1000, CScript([OP_TRUE])))
 
-        # This transaction should not be accepted into the mempool pre- or
-        # post-segwit.  Mempool acceptance will use SCRIPT_VERIFY_WITNESS which
-        # will require a witness to spend a witness program regardless of
-        # segwit activation.  Note that older bitcoind's that are not
-        # segwit-aware would also reject this for failing CLEANSTACK.
+        # A witness is required to spend a witness program.
         with self.nodes[0].assert_debug_log(
                 expected_msgs=[spend_tx.txid_hex, 'was not accepted: mempool-script-verify-flag-failed (Witness program was passed an empty witness)']):
             test_transaction_acceptance(self.nodes[0], self.test_node, spend_tx, with_witness=False, accepted=False)
@@ -706,8 +479,7 @@ class SegWitTest(BitcoinTestFramework):
                 expected_msgs=[spend_tx.txid_hex, 'was not accepted: mempool-script-verify-flag-failed (Script evaluated without error but finished with a false/empty top stack element)']):
             test_transaction_acceptance(self.nodes[0], self.test_node, spend_tx, with_witness=False, accepted=False)
 
-        # Now put the witness script in the witness, should succeed after
-        # segwit activates.
+        # Put the witness script in the witness; this should succeed.
         spend_tx.vin[0].scriptSig = script_sig
         spend_tx.wit.vtxinwit.append(CTxInWitness())
         spend_tx.wit.vtxinwit[0].scriptWitness.stack = [b'a', witness_script]
@@ -717,10 +489,6 @@ class SegWitTest(BitcoinTestFramework):
         block = self.build_next_block()
         self.update_witness_block_with_transactions(block, [spend_tx])
 
-        # If we're after activation, then sending this with witnesses should be valid.
-        # This no longer works before activation, because SCRIPT_VERIFY_WITNESS
-        # is always set.
-        # TODO: rewrite this test to make clear that it only works after activation.
         test_witness_block(self.nodes[0], self.test_node, block, accepted=True)
 
         # Update self.utxo
@@ -729,9 +497,7 @@ class SegWitTest(BitcoinTestFramework):
 
     @subtest
     def test_witness_commitments(self):
-        """Test witness commitments.
-
-        This test can only be run after segwit has activated."""
+        """Test witness commitments."""
 
         # First try a correct witness commitment.
         block = self.build_next_block()
@@ -1221,13 +987,13 @@ class SegWitTest(BitcoinTestFramework):
         self.utxo.append(UTXO(tx2.txid_int, 0, tx2.vout[0].nValue))
 
     @subtest
-    def test_tx_relay_after_segwit_activation(self):
-        """Test transaction relay after segwit activation.
+    def test_tx_relay(self):
+        """Test transaction relay with witness validation.
 
-        After segwit activates, verify that mempool:
+        Verify that mempool:
         - rejects transactions with unnecessary/extra witnesses
         - accepts transactions with valid witnesses
-        and that witness transactions are relayed to non-upgraded peers."""
+        and that witness transactions are relayed to peers without witness service."""
 
         # Generate a transaction that doesn't require a witness, but send it
         # with a witness.  Should be rejected because we can't use a witness
@@ -1321,7 +1087,7 @@ class SegWitTest(BitcoinTestFramework):
 
         Future segwit versions are non-standard to spend, but valid in blocks.
         Sending to future segwit versions is always allowed.
-        Can run this before and after segwit activation."""
+        """
 
         NUM_SEGWIT_VERSIONS = 17  # will test OP_0, OP1, ..., OP_16
         if len(self.utxo) < NUM_SEGWIT_VERSIONS:

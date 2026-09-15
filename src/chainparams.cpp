@@ -46,26 +46,6 @@ void ReadRegTestArgs(const ArgsManager& args, CChainParams::RegTestOptions& opti
     if (auto value = args.GetBoolArg("-fastprune")) options.fastprune = *value;
     if (HasTestOption(args, "bip94")) options.enforce_bip94 = true;
 
-    for (const std::string& arg : args.GetArgs("-testactivationheight")) {
-        const auto found{arg.find('@')};
-        if (found == std::string::npos) {
-            throw std::runtime_error(strprintf("Invalid format (%s) for -testactivationheight=name@height.", arg));
-        }
-
-        const auto value{arg.substr(found + 1)};
-        const auto height{ToIntegral<int32_t>(value)};
-        if (!height || *height < 0 || *height >= std::numeric_limits<int>::max()) {
-            throw std::runtime_error(strprintf("Invalid height value (%s) for -testactivationheight=name@height.", arg));
-        }
-
-        const auto deployment_name{arg.substr(0, found)};
-        if (const auto buried_deployment = GetBuriedDeployment(deployment_name)) {
-            options.activation_heights[*buried_deployment] = *height;
-        } else {
-            throw std::runtime_error(strprintf("Invalid name (%s) for -testactivationheight=name@height.", arg));
-        }
-    }
-
     for (const std::string& strDeployment : args.GetArgs("-vbparams")) {
         std::vector<std::string> vDeploymentParams = SplitString(strDeployment, ':');
         if (vDeploymentParams.size() < 3 || 4 < vDeploymentParams.size()) {

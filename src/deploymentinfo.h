@@ -9,9 +9,7 @@
 
 #include <array>
 #include <cassert>
-#include <optional>
 #include <string>
-#include <string_view>
 
 struct VBDeploymentInfo {
     /** Deployment name */
@@ -22,14 +20,10 @@ struct VBDeploymentInfo {
 
 extern const std::array<VBDeploymentInfo,Consensus::MAX_VERSION_BITS_DEPLOYMENTS> VersionBitsDeploymentInfo;
 
-std::string DeploymentName(Consensus::BuriedDeployment dep);
-
 inline std::string DeploymentName(Consensus::DeploymentPos pos)
 {
     assert(Consensus::ValidDeployment(pos));
     return VersionBitsDeploymentInfo[pos].name;
 }
-
-std::optional<Consensus::BuriedDeployment> GetBuriedDeployment(std::string_view deployment_name);
 
 #endif // BITCOIN_DEPLOYMENTINFO_H

@@ -224,13 +224,6 @@ RPC
 
 - `getblockchaininfo` now returns a new `time` field, that provides the chain tip time. (#22407)
 
-Tests
------
-
-- For the `regtest` network the activation heights of several softforks were
-  set to block height 1. They can be changed by the runtime setting
-  `-testactivationheight=name@height`. (#22818)
-
 Credits
 =======
 

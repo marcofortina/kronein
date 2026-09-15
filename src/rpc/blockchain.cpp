@@ -1044,7 +1044,6 @@ static RPCHelpMan gettxoutsetinfo()
                             {RPCResult::Type::OBJ, "unspendables", "Detailed view of the unspendable categories",
                             {
                                 {RPCResult::Type::STR_AMOUNT, "genesis_block", "The unspendable amount of the Genesis block subsidy"},
-                                {RPCResult::Type::STR_AMOUNT, "bip30", "Transactions overridden by duplicates (no longer possible with BIP30)"},
                                 {RPCResult::Type::STR_AMOUNT, "scripts", "Amounts sent to scripts that are unspendable (for example OP_RETURN outputs)"},
                                 {RPCResult::Type::STR_AMOUNT, "unclaimed_rewards", "Fee rewards that miners did not claim in their coinbase transaction"},
                             }}
@@ -1139,11 +1138,9 @@ static RPCHelpMan gettxoutsetinfo()
             }
 
             CAmount block_total_unspendable_amount = stats.total_unspendables_genesis_block +
-                                                     stats.total_unspendables_bip30 +
                                                      stats.total_unspendables_scripts +
                                                      stats.total_unspendables_unclaimed_rewards;
             CAmount prev_block_total_unspendable_amount = prev_stats.total_unspendables_genesis_block +
-                                                          prev_stats.total_unspendables_bip30 +
                                                           prev_stats.total_unspendables_scripts +
                                                           prev_stats.total_unspendables_unclaimed_rewards;
 
@@ -1164,7 +1161,6 @@ static RPCHelpMan gettxoutsetinfo()
 
             UniValue unspendables(UniValue::VOBJ);
             unspendables.pushKV("genesis_block", ValueFromAmount(stats.total_unspendables_genesis_block - prev_stats.total_unspendables_genesis_block));
-            unspendables.pushKV("bip30", ValueFromAmount(stats.total_unspendables_bip30 - prev_stats.total_unspendables_bip30));
             unspendables.pushKV("scripts", ValueFromAmount(stats.total_unspendables_scripts - prev_stats.total_unspendables_scripts));
             unspendables.pushKV("unclaimed_rewards", ValueFromAmount(stats.total_unspendables_unclaimed_rewards - prev_stats.total_unspendables_unclaimed_rewards));
             block_info.pushKV("unspendables", std::move(unspendables));
@@ -1288,21 +1284,6 @@ static RPCHelpMan verifychain()
                active_chainstate, chainman.GetParams().GetConsensus(), active_chainstate.CoinsTip(), check_level, check_depth) == VerifyDBResult::SUCCESS;
 },
     };
-}
-
-static void SoftForkDescPushBack(const CBlockIndex* blockindex, UniValue& softforks, const ChainstateManager& chainman, Consensus::BuriedDeployment dep)
-{
-    // For buried deployments.
-
-    if (!DeploymentEnabled(chainman, dep)) return;
-
-    UniValue rv(UniValue::VOBJ);
-    rv.pushKV("type", "buried");
-    // getdeploymentinfo reports the softfork as active from when the chain height is
-    // one below the activation height
-    rv.pushKV("active", DeploymentActiveAfter(blockindex, chainman, dep));
-    rv.pushKV("height", chainman.GetConsensus().DeploymentHeight(dep));
-    softforks.pushKV(DeploymentName(dep), std::move(rv));
 }
 
 static void SoftForkDescPushBack(const CBlockIndex* blockindex, UniValue& softforks, const ChainstateManager& chainman, Consensus::DeploymentPos id)
@@ -1448,8 +1429,8 @@ RPCHelpMan getblockchaininfo()
 
 namespace {
 const std::vector<RPCResult> RPCHelpForDeployment{
-    {RPCResult::Type::STR, "type", "one of \"buried\", \"bip9\""},
-    {RPCResult::Type::NUM, "height", /*optional=*/true, "height of the first block which the rules are or will be enforced (only for \"buried\" type, or \"bip9\" type with \"active\" status)"},
+    {RPCResult::Type::STR, "type", "\"bip9\""},
+    {RPCResult::Type::NUM, "height", /*optional=*/true, "height of the first block which the rules are or will be enforced (only with \"active\" status)"},
     {RPCResult::Type::BOOL, "active", "true if the rules are enforced for the mempool and the next block"},
     {RPCResult::Type::OBJ, "bip9", /*optional=*/true, "status of bip9 softforks (only for \"bip9\" type)",
     {
@@ -1475,11 +1456,6 @@ const std::vector<RPCResult> RPCHelpForDeployment{
 UniValue DeploymentInfo(const CBlockIndex* blockindex, const ChainstateManager& chainman)
 {
     UniValue softforks(UniValue::VOBJ);
-    SoftForkDescPushBack(blockindex, softforks, chainman, Consensus::DEPLOYMENT_HEIGHTINCB);
-    SoftForkDescPushBack(blockindex, softforks, chainman, Consensus::DEPLOYMENT_DERSIG);
-    SoftForkDescPushBack(blockindex, softforks, chainman, Consensus::DEPLOYMENT_CLTV);
-    SoftForkDescPushBack(blockindex, softforks, chainman, Consensus::DEPLOYMENT_CSV);
-    SoftForkDescPushBack(blockindex, softforks, chainman, Consensus::DEPLOYMENT_SEGWIT);
     SoftForkDescPushBack(blockindex, softforks, chainman, Consensus::DEPLOYMENT_TESTDUMMY);
     SoftForkDescPushBack(blockindex, softforks, chainman, Consensus::DEPLOYMENT_TAPROOT);
     return softforks;
@@ -1527,7 +1503,7 @@ RPCHelpMan getdeploymentinfo()
             deploymentinfo.pushKV("hash", blockindex->GetBlockHash().ToString());
             deploymentinfo.pushKV("height", blockindex->nHeight);
             {
-                const auto flagnames = GetScriptFlagNames(GetBlockScriptFlags(*blockindex, chainman));
+                const auto flagnames = GetScriptFlagNames(GetBlockScriptFlags());
                 UniValue uv_flagnames(UniValue::VARR);
                 uv_flagnames.push_backV(flagnames.begin(), flagnames.end());
                 deploymentinfo.pushKV("script_flags", uv_flagnames);
@@ -2061,9 +2037,8 @@ static RPCHelpMan getblockstats()
                 uint64_t out_size{GetSerializeSize(out) + PER_UTXO_OVERHEAD};
                 utxo_size_inc += out_size;
 
-                // The Genesis block and the repeated BIP30 block coinbases don't change the UTXO
-                // set counts, so they have to be excluded from the statistics
-                if (pindex.nHeight == 0 || (IsBIP30Repeat(pindex) && tx->IsCoinBase())) continue;
+                // The genesis block does not change the UTXO set counts.
+                if (pindex.nHeight == 0) continue;
                 // Skip unspendable outputs since they are not included in the UTXO set
                 if (out.scriptPubKey.IsUnspendable()) continue;
 
