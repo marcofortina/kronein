@@ -76,12 +76,12 @@ class CreateWalletTest(BitcoinTestFramework):
         assert_raises_rpc_error(-4, "Error: This wallet has no available keys", w3.getnewaddress)
         # Set the seed
         w3.importdescriptors([{
-            'desc': descsum_create('wpkh(tprv8ZgxMBicQKsPcwuZGKp8TeWppSuLMiLe2d9PupB14QpPeQsqoj3LneJLhGHH13xESfvASyd4EFLJvLrG8b7DrLxEuV7hpF9uUc6XruKA1Wq/0h/*)'),
+            'desc': descsum_create('tr(tprv8ZgxMBicQKsPcwuZGKp8TeWppSuLMiLe2d9PupB14QpPeQsqoj3LneJLhGHH13xESfvASyd4EFLJvLrG8b7DrLxEuV7hpF9uUc6XruKA1Wq/0h/*)'),
             'timestamp': 'now',
             'active': True
         },
         {
-            'desc': descsum_create('wpkh(tprv8ZgxMBicQKsPcwuZGKp8TeWppSuLMiLe2d9PupB14QpPeQsqoj3LneJLhGHH13xESfvASyd4EFLJvLrG8b7DrLxEuV7hpF9uUc6XruKA1Wq/1h/*)'),
+            'desc': descsum_create('tr(tprv8ZgxMBicQKsPcwuZGKp8TeWppSuLMiLe2d9PupB14QpPeQsqoj3LneJLhGHH13xESfvASyd4EFLJvLrG8b7DrLxEuV7hpF9uUc6XruKA1Wq/1h/*)'),
             'timestamp': 'now',
             'active': True,
             'internal': True
@@ -103,12 +103,12 @@ class CreateWalletTest(BitcoinTestFramework):
         with WalletUnlock(w4, "pass"):
             # Now set a seed and it should work. Wallet should also be encrypted
             w4.importdescriptors([{
-                'desc': descsum_create('wpkh(tprv8ZgxMBicQKsPcwuZGKp8TeWppSuLMiLe2d9PupB14QpPeQsqoj3LneJLhGHH13xESfvASyd4EFLJvLrG8b7DrLxEuV7hpF9uUc6XruKA1Wq/0h/*)'),
+                'desc': descsum_create('tr(tprv8ZgxMBicQKsPcwuZGKp8TeWppSuLMiLe2d9PupB14QpPeQsqoj3LneJLhGHH13xESfvASyd4EFLJvLrG8b7DrLxEuV7hpF9uUc6XruKA1Wq/0h/*)'),
                 'timestamp': 'now',
                 'active': True
             },
             {
-                'desc': descsum_create('wpkh(tprv8ZgxMBicQKsPcwuZGKp8TeWppSuLMiLe2d9PupB14QpPeQsqoj3LneJLhGHH13xESfvASyd4EFLJvLrG8b7DrLxEuV7hpF9uUc6XruKA1Wq/1h/*)'),
+                'desc': descsum_create('tr(tprv8ZgxMBicQKsPcwuZGKp8TeWppSuLMiLe2d9PupB14QpPeQsqoj3LneJLhGHH13xESfvASyd4EFLJvLrG8b7DrLxEuV7hpF9uUc6XruKA1Wq/1h/*)'),
                 'timestamp': 'now',
                 'active': True,
                 'internal': True
@@ -139,13 +139,11 @@ class CreateWalletTest(BitcoinTestFramework):
         # Born encrypted wallet is created (has keys)
         self.nodes[0].createwallet(wallet_name='w6', disable_private_keys=False, blank=False, passphrase='thisisapassphrase')
         w6 = node.get_wallet_rpc('w6')
-        assert_raises_rpc_error(-13, "Error: Please enter the wallet passphrase with walletpassphrase first.", w6.signmessage, "needanargument", "test")
         with WalletUnlock(w6, "thisisapassphrase"):
-            w6.signmessage(w6.getnewaddress('', 'legacy'), "test")
             w6.keypoolrefill(1)
-            # There should only be 1 key for legacy, 3 for descriptors
+            # There is one native external and one native internal key.
             walletinfo = w6.getwalletinfo()
-            keys = 4
+            keys = 1
             assert_equal(walletinfo['keypoolsize'], keys)
             assert_equal(walletinfo['keypoolsize_hd_internal'], keys)
         # Allow empty passphrase, but there should be a warning

@@ -17,8 +17,6 @@
 
 #include <QObject>
 
-enum class OutputType;
-
 class AddressTableModel;
 class ClientModel;
 class OptionsModel;

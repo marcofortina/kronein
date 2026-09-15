@@ -68,7 +68,7 @@ static void add_coin(CoinsResult& available_coins, CWallet& wallet, const CAmoun
     tx.vout.resize(nInput + 1);
     tx.vout[nInput].nValue = nValue;
     if (spendable) {
-        tx.vout[nInput].scriptPubKey = GetScriptForDestination(*Assert(wallet.GetNewDestination(OutputType::BECH32, "")));
+        tx.vout[nInput].scriptPubKey = GetScriptForDestination(*Assert(wallet.GetNewDestination(OutputType::BECH32M, "")));
     }
     Txid txid = tx.GetHash();
 
@@ -77,7 +77,7 @@ static void add_coin(CoinsResult& available_coins, CWallet& wallet, const CAmoun
     assert(ret.second);
     CWalletTx& wtx = (*ret.first).second;
     const auto& txout = wtx.tx->vout.at(nInput);
-    available_coins.Add(OutputType::BECH32, {COutPoint(wtx.GetHash(), nInput), txout, nAge, custom_size == 0 ? CalculateMaximumSignedInputSize(txout, &wallet, /*coin_control=*/nullptr) : custom_size, /*solvable=*/true, /*safe=*/true, wtx.GetTxTime(), fIsFromMe, feerate});
+    available_coins.Add(OutputType::BECH32M, {COutPoint(wtx.GetHash(), nInput), txout, nAge, custom_size == 0 ? CalculateMaximumSignedInputSize(txout, &wallet, /*coin_control=*/nullptr) : custom_size, /*solvable=*/true, /*safe=*/true, wtx.GetTxTime(), fIsFromMe, feerate});
 }
 
 // Helpers
@@ -223,8 +223,8 @@ BOOST_AUTO_TEST_CASE(bnb_search_test)
         COutput select_coin = available_coins.All().at(0);
         coin_control.Select(select_coin.outpoint);
         CoinsResult selected_input;
-        selected_input.Add(OutputType::BECH32, select_coin);
-        available_coins.Erase({available_coins.coins[OutputType::BECH32].begin()->outpoint});
+        selected_input.Add(OutputType::BECH32M, select_coin);
+        available_coins.Erase({available_coins.coins[OutputType::BECH32M].begin()->outpoint});
 
         LOCK(wallet->cs_wallet);
         const auto result10 = SelectCoins(*wallet, available_coins, selected_input, 10 * CENT, coin_control, coin_selection_params_bnb);
@@ -254,8 +254,8 @@ BOOST_AUTO_TEST_CASE(bnb_search_test)
         COutput select_coin = available_coins.All().at(1); // pre select 9 coin
         coin_control.Select(select_coin.outpoint);
         CoinsResult selected_input;
-        selected_input.Add(OutputType::BECH32, select_coin);
-        available_coins.Erase({(++available_coins.coins[OutputType::BECH32].begin())->outpoint});
+        selected_input.Add(OutputType::BECH32M, select_coin);
+        available_coins.Erase({(++available_coins.coins[OutputType::BECH32M].begin())->outpoint});
         const auto result13 = SelectCoins(*wallet, available_coins, selected_input, 10 * CENT, coin_control, coin_selection_params_bnb);
         BOOST_CHECK(EquivalentResult(expected_result, *result13));
     }
@@ -1282,7 +1282,7 @@ static util::Result<SelectionResult> select_coins(const CAmount& target, const C
     LOCK(wallet->cs_wallet);
     auto result = SelectCoins(*wallet, available_coins, /*pre_set_inputs=*/ {}, target, cc, cs_params);
     if (result) {
-        const auto signedTxSize = 10 + 34 + 68 * result->GetInputSet().size(); // static header size + output size + inputs size (P2WPKH)
+        const auto signedTxSize = 10 + 43 + 58 * result->GetInputSet().size(); // static header size + output size + inputs size (P2TR)
         BOOST_CHECK_LE(signedTxSize * WITNESS_SCALE_FACTOR, MAX_STANDARD_TX_WEIGHT);
 
         BOOST_CHECK_GE(result->GetSelectedValue(), target);
@@ -1303,20 +1303,20 @@ BOOST_AUTO_TEST_CASE(check_max_selection_weight)
     FastRandomContext rand;
     CoinSelectionParams cs_params{
         rand,
-        /*change_output_size=*/34,
-        /*change_spend_size=*/68,
+        /*change_output_size=*/43,
+        /*change_spend_size=*/58,
         /*min_change_target=*/CENT,
         /*effective_feerate=*/CFeeRate(0),
         /*long_term_feerate=*/CFeeRate(0),
         /*discard_feerate=*/CFeeRate(0),
-        /*tx_noinputs_size=*/10 + 34, // static header size + output size
+        /*tx_noinputs_size=*/10 + 43, // static header size + output size
         /*avoid_partial=*/false,
     };
 
     int max_weight = MAX_STANDARD_TX_WEIGHT - WITNESS_SCALE_FACTOR * (cs_params.tx_noinputs_size + cs_params.change_output_size);
     {
         // Scenario 1:
-        // The actor starts with 1x 50.0 BTC and 1515x 0.033 BTC (~100.0 BTC total) unspent outputs
+        // The actor starts with 1x 50.0 BTC and 1800x 0.028 BTC (~100.4 BTC total) unspent outputs
         // Then tries to spend 49.5 BTC
         // The 50.0 BTC output should be selected, because the transaction would otherwise be too large
 
@@ -1325,8 +1325,8 @@ BOOST_AUTO_TEST_CASE(check_max_selection_weight)
         const auto result = select_coins(
             target, cs_params, cc, [&](CWallet& wallet) {
                 CoinsResult available_coins;
-                for (int j = 0; j < 1515; ++j) {
-                    add_coin(available_coins, wallet, CAmount(0.033 * COIN), CFeeRate(0), 144, false, 0, true);
+                for (int j = 0; j < 1800; ++j) {
+                    add_coin(available_coins, wallet, CAmount(0.028 * COIN), CFeeRate(0), 144, false, 0, true);
                 }
 
                 add_coin(available_coins, wallet, CAmount(50 * COIN), CFeeRate(0), 144, false, 0, true);
@@ -1369,23 +1369,23 @@ BOOST_AUTO_TEST_CASE(check_max_selection_weight)
     {
         // Scenario 3:
 
-        // The actor starts with 1515x 0.033 BTC (49.995 BTC total) unspent outputs
+        // The actor starts with 1800x 0.028 BTC (50.4 BTC total) unspent outputs
         // No results should be returned, because the transaction would be too large
 
         // Perform selection
         const auto result = select_coins(
             target, cs_params, cc, [&](CWallet& wallet) {
                 CoinsResult available_coins;
-                for (int j = 0; j < 1515; ++j) {
-                    add_coin(available_coins, wallet, CAmount(0.033 * COIN), CFeeRate(0), 144, false, 0, true);
+                for (int j = 0; j < 1800; ++j) {
+                    add_coin(available_coins, wallet, CAmount(0.028 * COIN), CFeeRate(0), 144, false, 0, true);
                 }
                 return available_coins;
             },
             m_node);
 
         // No results
-        // 1515 inputs * 68 bytes = 103,020 bytes
-        // 103,020 bytes * 4 = 412,080 weight, which is above the MAX_STANDARD_TX_WEIGHT of 400,000
+        // 1800 inputs * 58 bytes = 104,400 bytes, which exceeds
+        // MAX_STANDARD_TX_WEIGHT after conversion to weight units.
         BOOST_CHECK(!result);
     }
 }
@@ -1426,7 +1426,7 @@ BOOST_AUTO_TEST_CASE(SelectCoins_effective_value_test)
 
     LOCK(wallet->cs_wallet);
     const auto preset_inputs = *Assert(FetchSelectedInputs(*wallet, cc, cs_params));
-    available_coins.Erase({available_coins.coins[OutputType::BECH32].begin()->outpoint});
+    available_coins.Erase({available_coins.coins[OutputType::BECH32M].begin()->outpoint});
 
     const auto result = SelectCoins(*wallet, available_coins, preset_inputs, target, cc, cs_params);
     BOOST_CHECK(!result);

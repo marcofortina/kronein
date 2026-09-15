@@ -236,8 +236,8 @@ class ToolWalletTest(BitcoinTestFramework):
         self.log.debug('Wallet file timestamp after calling getwalletinfo: {}'.format(timestamp_after))
 
         assert_equal(0, out['txcount'])
-        assert_equal(4000, out['keypoolsize'])
-        assert_equal(4000, out['keypoolsize_hd_internal'])
+        assert_equal(1000, out['keypoolsize'])
+        assert_equal(1000, out['keypoolsize_hd_internal'])
 
         self.log_wallet_timestamp_comparison(timestamp_before, timestamp_after)
         assert_equal(timestamp_before, timestamp_after)
@@ -391,7 +391,7 @@ class ToolWalletTest(BitcoinTestFramework):
         def_wallet = self.nodes[0].get_wallet_rpc(self.default_wallet_name)
         outputs = {}
         for i in range(500):
-            outputs[wallet.getnewaddress(address_type="p2sh-segwit")] = 0.01
+            outputs[wallet.getnewaddress()] = 0.01
         def_wallet.sendmany(amounts=outputs)
         self.generate(self.nodes[0], 1)
         send_res = wallet.sendall([def_wallet.getnewaddress()])

@@ -22,10 +22,8 @@ from test_framework.util import (
 class KeypoolRestoreTest(BitcoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
-        self.num_nodes = 5
-        self.extra_args = [[]]
-        for _ in range(self.num_nodes - 1):
-            self.extra_args.append(['-keypool=100'])
+        self.num_nodes = 2
+        self.extra_args = [[], ['-keypool=100']]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -39,54 +37,34 @@ class KeypoolRestoreTest(BitcoinTestFramework):
         self.stop_node(1)
         shutil.copyfile(wallet_path, wallet_backup_path)
         self.start_node(1, self.extra_args[1])
-        for i in [1, 2, 3, 4]:
-            self.connect_nodes(0, i)
+        self.connect_nodes(0, 1)
 
-        output_types = ["legacy", "p2sh-segwit", "bech32", "bech32m"]
-        for i, output_type in enumerate(output_types):
-            self.log.info("Generate keys for wallet with address type: {}".format(output_type))
-            idx = i+1
-            for _ in range(90):
-                addr_oldpool = self.nodes[idx].getnewaddress(address_type=output_type)
-            for _ in range(20):
-                addr_extpool = self.nodes[idx].getnewaddress(address_type=output_type)
+        self.log.info("Generate native Taproot keys")
+        for _ in range(90):
+            addr_oldpool = self.nodes[1].getnewaddress()
+        for _ in range(20):
+            addr_extpool = self.nodes[1].getnewaddress()
 
-            # Make sure we're creating the outputs we expect
-            address_details = self.nodes[idx].validateaddress(addr_extpool)
-            if i == 0:
-                assert not address_details["isscript"] and not address_details["iswitness"]
-            elif i == 1:
-                assert address_details["isscript"] and not address_details["iswitness"]
-            elif i == 2:
-                assert not address_details["isscript"] and address_details["iswitness"]
-            elif i == 3:
-                assert address_details["isscript"] and address_details["iswitness"]
+        address_details = self.nodes[1].validateaddress(addr_extpool)
+        assert address_details["isscript"] and address_details["iswitness"]
 
-            self.log.info("Send funds to wallet")
-            self.nodes[0].sendtoaddress(addr_oldpool, 10)
-            self.generate(self.nodes[0], 1)
-            self.nodes[0].sendtoaddress(addr_extpool, 5)
-            self.generate(self.nodes[0], 1)
+        self.log.info("Send funds to wallet")
+        self.nodes[0].sendtoaddress(addr_oldpool, 10)
+        self.generate(self.nodes[0], 1)
+        self.nodes[0].sendtoaddress(addr_extpool, 5)
+        self.generate(self.nodes[0], 1)
 
-            self.log.info("Restart node with wallet backup")
-            self.stop_node(idx)
-            shutil.copyfile(wallet_backup_path, wallet_path)
-            self.start_node(idx, self.extra_args[idx])
-            self.connect_nodes(0, idx)
-            self.sync_all()
+        self.log.info("Restart node with wallet backup")
+        self.stop_node(1)
+        shutil.copyfile(wallet_backup_path, wallet_path)
+        self.start_node(1, self.extra_args[1])
+        self.connect_nodes(0, 1)
+        self.sync_all()
 
-            self.log.info("Verify keypool is restored and balance is correct")
-            assert_equal(self.nodes[idx].getbalance(), 15)
-            assert_equal(self.nodes[idx].listtransactions()[0]['category'], "receive")
-            # Check that we have marked all keys up to the used keypool key as used
-            if output_type == 'legacy':
-                assert_equal(self.nodes[idx].getaddressinfo(self.nodes[idx].getnewaddress(address_type=output_type))['hdkeypath'], "m/44h/1h/0h/0/110")
-            elif output_type == 'p2sh-segwit':
-                assert_equal(self.nodes[idx].getaddressinfo(self.nodes[idx].getnewaddress(address_type=output_type))['hdkeypath'], "m/49h/1h/0h/0/110")
-            elif output_type == 'bech32':
-                assert_equal(self.nodes[idx].getaddressinfo(self.nodes[idx].getnewaddress(address_type=output_type))['hdkeypath'], "m/84h/1h/0h/0/110")
-            elif output_type == 'bech32m':
-                assert_equal(self.nodes[idx].getaddressinfo(self.nodes[idx].getnewaddress(address_type=output_type))['hdkeypath'], "m/86h/1h/0h/0/110")
+        self.log.info("Verify keypool is restored and balance is correct")
+        assert_equal(self.nodes[1].getbalance(), 15)
+        assert_equal(self.nodes[1].listtransactions()[0]['category'], "receive")
+        assert_equal(self.nodes[1].getaddressinfo(self.nodes[1].getnewaddress())['hdkeypath'], "m/86h/1h/0h/0/110")
 
 
 if __name__ == '__main__':

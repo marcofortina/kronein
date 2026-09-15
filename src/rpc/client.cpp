@@ -330,8 +330,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "gethdkeys", 0, "active_only" },
     { "gethdkeys", 0, "options" },
     { "gethdkeys", 0, "private" },
-    { "createwalletdescriptor", 1, "options" },
-    { "createwalletdescriptor", 1, "internal" },
     // Echo with conversion (For testing only)
     { "echojson", 0, "arg0" },
     { "echojson", 1, "arg1" },
@@ -371,7 +369,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "verifymessage", 1, "signature", ParamFormat::STRING },
     { "verifymessage", 2, "message", ParamFormat::STRING },
     { "getnewaddress", 0, "label", ParamFormat::STRING },
-    { "getnewaddress", 1, "address_type", ParamFormat::STRING },
     { "backupwallet", 0, "destination", ParamFormat::STRING },
     { "echoipc", 0, "arg", ParamFormat::STRING },
     { "encryptwallet", 0, "passphrase", ParamFormat::STRING },

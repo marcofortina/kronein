@@ -637,12 +637,17 @@ static DBErrors LoadActiveSPKMs(CWallet* pwallet, DatabaseBatch& batch) EXCLUSIV
             value >> id;
 
             bool internal = spk_key == DBKeys::ACTIVEINTERNALSPK;
-            auto [it, insert] = seen_spks.emplace(static_cast<OutputType>(output_type), internal);
+            const auto type = static_cast<OutputType>(output_type);
+            if (type != OutputType::BECH32M) {
+                strErr = "Only Taproot ScriptPubKeyMans can be active";
+                return DBErrors::CORRUPT;
+            }
+            auto [it, insert] = seen_spks.emplace(type, internal);
             if (!insert) {
                 strErr = "Multiple ScriptpubKeyMans specified for a single type";
                 return DBErrors::CORRUPT;
             }
-            pwallet->LoadActiveScriptPubKeyMan(id, static_cast<OutputType>(output_type), /*internal=*/internal);
+            pwallet->LoadActiveScriptPubKeyMan(id, type, /*internal=*/internal);
             return DBErrors::LOAD_OK;
         });
         result = std::max(result, spkm_res.m_result);

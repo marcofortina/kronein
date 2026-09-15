@@ -240,9 +240,8 @@ class WalletTaprootTest(BitcoinTestFramework):
         assert_equal(self.nodes[0].getdescriptorinfo(desc)['descriptor'], desc_pub)
         result = addr_gen.importdescriptors([{"desc": desc_pub, "active": True, "timestamp": "now"}])
         assert result[0]['success']
-        address_type = "bech32m" if "tr" in pattern else "bech32"
         for i in range(4):
-            addr_g = addr_gen.getnewaddress(address_type=address_type)
+            addr_g = addr_gen.getnewaddress()
             if treefn is not None:
                 addr_r = self.make_addr(treefn, keys, i)
                 assert_equal(addr_g, addr_r)
@@ -282,9 +281,8 @@ class WalletTaprootTest(BitcoinTestFramework):
         assert result[0]['success']
         result = rpc_online.importdescriptors([{"desc": desc_change, "active": True, "timestamp": "now", "internal": True}])
         assert result[0]['success']
-        address_type = "bech32m" if "tr" in pattern else "bech32"
         for i in range(4):
-            addr_g = rpc_online.getnewaddress(address_type=address_type)
+            addr_g = rpc_online.getnewaddress()
             if treefn is not None:
                 addr_r = self.make_addr(treefn, keys_pay, i)
                 assert_equal(addr_g, addr_r)
@@ -332,11 +330,10 @@ class WalletTaprootTest(BitcoinTestFramework):
         result = psbt_offline.importdescriptors([{"desc": desc_change, "active": True, "timestamp": "now", "internal": True}])
         assert result[0]['success']
         for key in keys_pay + keys_change:
-            result = key_only_wallet.importdescriptors([{"desc": descsum_create(f"wpkh({key['xprv']}/*)"), "timestamp":"now"}])
+            result = key_only_wallet.importdescriptors([{"desc": descsum_create(f"tr({key['xprv']}/*)"), "timestamp":"now"}])
             assert result[0]["success"]
-        address_type = "bech32m" if "tr" in pattern else "bech32"
         for i in range(4):
-            addr_g = psbt_online.getnewaddress(address_type=address_type)
+            addr_g = psbt_online.getnewaddress()
             if treefn is not None:
                 addr_r = self.make_addr(treefn, keys_pay, i)
                 assert_equal(addr_g, addr_r)
@@ -347,7 +344,7 @@ class WalletTaprootTest(BitcoinTestFramework):
             test_balance = int(psbt_online.getbalance() * 100000000)
             ret_amnt = random.randrange(100000, test_balance)
             # Increase fee_rate to compensate for the wallet's inability to estimate fees for script path spends.
-            psbt = psbt_online.walletcreatefundedpsbt([], [{self.boring.getnewaddress(): Decimal(ret_amnt) / 100000000}], None, {"subtractFeeFromOutputs":[0], "fee_rate": 200, "change_type": address_type})['psbt']
+            psbt = psbt_online.walletcreatefundedpsbt([], [{self.boring.getnewaddress(): Decimal(ret_amnt) / 100000000}], None, {"subtractFeeFromOutputs":[0], "fee_rate": 200})['psbt']
             res = psbt_offline.walletprocesspsbt(psbt=psbt, finalize=False)
             for wallet in [psbt_offline, key_only_wallet]:
                 res = wallet.walletprocesspsbt(psbt=psbt, finalize=False)
@@ -410,22 +407,10 @@ class WalletTaprootTest(BitcoinTestFramework):
             lambda k1: (key(H_POINT), [pk(k1)])
         )
         self.do_test(
-            "wpkh(XPRV)",
-            "wpkh($1/*)",
-            [True],
-            None
-        )
-        self.do_test(
             "tr(XPRV,{H,{H,XPUB}})",
             "tr($1/*,{pk($H),{pk($H),pk($2/*)}})",
             [True, False],
             lambda k1, k2: (key(k1), [pk(H_POINT), [pk(H_POINT), pk(k2)]])
-        )
-        self.do_test(
-            "wsh(multi(1,XPRV,XPUB))",
-            "wsh(multi(1,$1/*,$2/*))",
-            [True, False],
-            None
         )
         self.do_test(
             "tr(XPRV,{XPUB,XPUB})",

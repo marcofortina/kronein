@@ -37,7 +37,7 @@ void TestUnloadWallet(std::shared_ptr<CWallet>&& wallet);
 // Creates a copy of the provided database
 std::unique_ptr<WalletDatabase> DuplicateMockDatabase(WalletDatabase& database);
 
-/** Returns a new encoded destination from the wallet (hardcoded to BECH32) */
+/** Returns a new encoded Taproot destination from the wallet. */
 std::string getnewaddress(CWallet& w);
 /** Returns a new destination, of an specific type, from the wallet */
 CTxDestination getNewDestination(CWallet& w, OutputType output_type);

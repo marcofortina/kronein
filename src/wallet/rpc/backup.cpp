@@ -219,6 +219,9 @@ static UniValue ProcessDescriptorImport(CWallet& wallet, const UniValue& data, c
         if (active && !parsed_descs.at(0)->IsSingleType()) {
             throw JSONRPCError(RPC_WALLET_ERROR, "Combo descriptors cannot be set to active");
         }
+        if (active && parsed_descs.at(0)->GetOutputType() != OutputType::BECH32M) {
+            throw JSONRPCError(RPC_WALLET_ERROR, "Only Taproot descriptors can be active");
+        }
 
         // If the wallet disabled private keys, abort if private keys exist
         if (wallet.IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS) && !keys.keys.empty()) {
@@ -278,11 +281,7 @@ static UniValue ProcessDescriptorImport(CWallet& wallet, const UniValue& data, c
 
             // Set descriptor as active if necessary
             if (active) {
-                if (!w_desc.descriptor->GetOutputType()) {
-                    warnings.push_back("Unknown output type, cannot set descriptor to active.");
-                } else {
-                    wallet.AddActiveScriptPubKeyMan(spk_manager.GetID(), *w_desc.descriptor->GetOutputType(), desc_internal);
-                }
+                wallet.AddActiveScriptPubKeyMan(spk_manager.GetID(), OutputType::BECH32M, desc_internal);
             } else {
                 if (w_desc.descriptor->GetOutputType()) {
                     wallet.DeactivateScriptPubKeyMan(spk_manager.GetID(), *w_desc.descriptor->GetOutputType(), desc_internal);

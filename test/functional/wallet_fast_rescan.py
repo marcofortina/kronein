@@ -14,7 +14,7 @@ from test_framework.wallet_util import get_generate_key
 
 
 KEYPOOL_SIZE = 100   # smaller than default size to speed-up test
-NUM_DESCRIPTORS = 9  # number of descriptors (8 default ranged ones + 1 fixed non-ranged one)
+NUM_DESCRIPTORS = 3  # two native ranged descriptors and one fixed descriptor
 NUM_BLOCKS = 6       # number of blocks to mine
 
 
@@ -40,7 +40,10 @@ class WalletFastRescanTest(BitcoinTestFramework):
         node.createwallet(wallet_name='topup_test')
         w = node.get_wallet_rpc('topup_test')
         fixed_key = get_generate_key()
-        print(w.importdescriptors([{"desc": descsum_create(f"wpkh({fixed_key.privkey})"), "timestamp": "now"}]))
+        fixed_desc = descsum_create(f"tr({fixed_key.privkey})")
+        fixed_address = w.deriveaddresses(fixed_desc)[0]
+        fixed_spk = address_to_scriptpubkey(fixed_address)
+        assert_equal(w.importdescriptors([{"desc": fixed_desc, "timestamp": "now"}]), [{"success": True}])
         descriptors = w.listdescriptors()['descriptors']
         assert_equal(len(descriptors), NUM_DESCRIPTORS)
         w.backupwallet(WALLET_BACKUP_FILENAME)
@@ -55,8 +58,8 @@ class WalletFastRescanTest(BitcoinTestFramework):
                     spk = address_to_scriptpubkey(addr)
                     self.log.info(f"-> range [{start_range},{end_range}], last address {addr}")
                 else:
-                    spk = bytes.fromhex(fixed_key.p2wpkh_script)
-                    self.log.info(f"-> fixed non-range descriptor address {fixed_key.p2wpkh_addr}")
+                    spk = fixed_spk
+                    self.log.info(f"-> fixed non-range descriptor address {fixed_address}")
                 wallet.send_to(from_node=node, scriptPubKey=spk, amount=10000)
             self.generate(node, 1)
 

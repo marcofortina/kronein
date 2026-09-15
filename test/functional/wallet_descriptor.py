@@ -7,6 +7,7 @@
 import re
 
 from test_framework.blocktools import COINBASE_MATURITY
+from test_framework.descriptors import descsum_create
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_not_equal,
@@ -81,53 +82,23 @@ class WalletDescriptorTest(BitcoinTestFramework):
         self.nodes[0].createwallet(wallet_name="desc1")
         wallet = self.nodes[0].get_wallet_rpc("desc1")
 
-        # A descriptor wallet should have 100 addresses * 4 types = 400 keys
+        # A native wallet has one external and one internal Taproot descriptor.
         self.log.info("Checking wallet info")
         wallet_info = wallet.getwalletinfo()
         assert_equal(wallet_info['format'], 'sqlite')
-        assert_equal(wallet_info['keypoolsize'], 400)
-        assert_equal(wallet_info['keypoolsize_hd_internal'], 400)
+        assert_equal(wallet_info['keypoolsize'], 100)
+        assert_equal(wallet_info['keypoolsize_hd_internal'], 100)
         assert 'keypoololdest' not in wallet_info
 
         # Check that getnewaddress works
         self.log.info("Test that getnewaddress and getrawchangeaddress work")
-        addr = wallet.getnewaddress("", "legacy")
-        addr_info = wallet.getaddressinfo(addr)
-        assert addr_info['desc'].startswith('pkh(')
-        assert_equal(addr_info['hdkeypath'], 'm/44h/1h/0h/0/0')
-
-        addr = wallet.getnewaddress("", "p2sh-segwit")
-        addr_info = wallet.getaddressinfo(addr)
-        assert addr_info['desc'].startswith('sh(wpkh(')
-        assert_equal(addr_info['hdkeypath'], 'm/49h/1h/0h/0/0')
-
-        addr = wallet.getnewaddress("", "bech32")
-        addr_info = wallet.getaddressinfo(addr)
-        assert addr_info['desc'].startswith('wpkh(')
-        assert_equal(addr_info['hdkeypath'], 'm/84h/1h/0h/0/0')
-
-        addr = wallet.getnewaddress("", "bech32m")
+        addr = wallet.getnewaddress()
         addr_info = wallet.getaddressinfo(addr)
         assert addr_info['desc'].startswith('tr(')
         assert_equal(addr_info['hdkeypath'], 'm/86h/1h/0h/0/0')
 
         # Check that getrawchangeaddress works
-        addr = wallet.getrawchangeaddress("legacy")
-        addr_info = wallet.getaddressinfo(addr)
-        assert addr_info['desc'].startswith('pkh(')
-        assert_equal(addr_info['hdkeypath'], 'm/44h/1h/0h/1/0')
-
-        addr = wallet.getrawchangeaddress("p2sh-segwit")
-        addr_info = wallet.getaddressinfo(addr)
-        assert addr_info['desc'].startswith('sh(wpkh(')
-        assert_equal(addr_info['hdkeypath'], 'm/49h/1h/0h/1/0')
-
-        addr = wallet.getrawchangeaddress("bech32")
-        addr_info = wallet.getaddressinfo(addr)
-        assert addr_info['desc'].startswith('wpkh(')
-        assert_equal(addr_info['hdkeypath'], 'm/84h/1h/0h/1/0')
-
-        addr = wallet.getrawchangeaddress("bech32m")
+        addr = wallet.getrawchangeaddress()
         addr_info = wallet.getaddressinfo(addr)
         assert addr_info['desc'].startswith('tr(')
         assert_equal(addr_info['hdkeypath'], 'm/86h/1h/0h/1/0')
@@ -166,16 +137,16 @@ class WalletDescriptorTest(BitcoinTestFramework):
         self.log.info("Test that unlock is needed when deriving only hardened keys in an encrypted wallet")
         with WalletUnlock(send_wrpc, "pass"):
             send_wrpc.importdescriptors([{
-                "desc": "wpkh(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/0h/*h)#y4dfsj7n",
+                "desc": descsum_create("tr(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/0h/*h)"),
                 "timestamp": "now",
                 "range": [0,10],
                 "active": True
             }])
         # Exhaust keypool of 100
         for _ in range(100):
-            send_wrpc.getnewaddress(address_type='bech32')
+            send_wrpc.getnewaddress()
         # This should now error
-        assert_raises_rpc_error(-12, "Keypool ran out, please call keypoolrefill first", send_wrpc.getnewaddress, '', 'bech32')
+        assert_raises_rpc_error(-12, "Keypool ran out, please call keypoolrefill first", send_wrpc.getnewaddress)
 
         self.log.info("Test born encrypted wallets")
         self.nodes[0].createwallet('desc_enc', False, False, 'pass', False)
@@ -198,13 +169,7 @@ class WalletDescriptorTest(BitcoinTestFramework):
         self.nodes[0].createwallet(wallet_name='desc_import', disable_private_keys=True)
         imp_rpc = self.nodes[0].get_wallet_rpc('desc_import')
 
-        addr_types = [('legacy', False, 'pkh(', '44h/1h/0h', -13),
-                      ('p2sh-segwit', False, 'sh(wpkh(', '49h/1h/0h', -14),
-                      ('bech32', False, 'wpkh(', '84h/1h/0h', -13),
-                      ('bech32m', False, 'tr(', '86h/1h/0h', -13),
-                      ('legacy', True, 'pkh(', '44h/1h/0h', -13),
-                      ('p2sh-segwit', True, 'sh(wpkh(', '49h/1h/0h', -14),
-                      ('bech32', True, 'wpkh(', '84h/1h/0h', -13),
+        addr_types = [('bech32m', False, 'tr(', '86h/1h/0h', -13),
                       ('bech32m', True, 'tr(', '86h/1h/0h', -13)]
 
         for addr_type, internal, desc_prefix, deriv_path, int_idx in addr_types:
@@ -212,9 +177,9 @@ class WalletDescriptorTest(BitcoinTestFramework):
 
             self.log.info("Testing descriptor address type for {} {}".format(addr_type, int_str))
             if internal:
-                addr = exp_rpc.getrawchangeaddress(address_type=addr_type)
+                addr = exp_rpc.getrawchangeaddress()
             else:
-                addr = exp_rpc.getnewaddress(address_type=addr_type)
+                addr = exp_rpc.getnewaddress()
             desc = exp_rpc.getaddressinfo(addr)['parent_desc']
             assert_equal(desc_prefix, desc[0:len(desc_prefix)])
             idx = desc.index('/') + 1
@@ -227,9 +192,9 @@ class WalletDescriptorTest(BitcoinTestFramework):
             self.log.info("Testing the same descriptor is returned for address type {} {}".format(addr_type, int_str))
             for i in range(0, 10):
                 if internal:
-                    addr = exp_rpc.getrawchangeaddress(address_type=addr_type)
+                    addr = exp_rpc.getrawchangeaddress()
                 else:
-                    addr = exp_rpc.getnewaddress(address_type=addr_type)
+                    addr = exp_rpc.getnewaddress()
                 test_desc = exp_rpc.getaddressinfo(addr)['parent_desc']
                 assert_equal(desc, test_desc)
 
@@ -244,11 +209,11 @@ class WalletDescriptorTest(BitcoinTestFramework):
 
             for i in range(0, 10):
                 if internal:
-                    exp_addr = exp_rpc.getrawchangeaddress(address_type=addr_type)
-                    imp_addr = imp_rpc.getrawchangeaddress(address_type=addr_type)
+                    exp_addr = exp_rpc.getrawchangeaddress()
+                    imp_addr = imp_rpc.getrawchangeaddress()
                 else:
-                    exp_addr = exp_rpc.getnewaddress(address_type=addr_type)
-                    imp_addr = imp_rpc.getnewaddress(address_type=addr_type)
+                    exp_addr = exp_rpc.getnewaddress()
+                    imp_addr = imp_rpc.getnewaddress()
                 assert_equal(exp_addr, imp_addr)
 
         self.test_parent_descriptors()

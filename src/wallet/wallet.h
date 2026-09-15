@@ -144,9 +144,6 @@ static constexpr size_t DUMMY_NESTED_P2WPKH_INPUT_SIZE = 91;
 
 class CCoinControl;
 
-//! Default for -addresstype
-constexpr OutputType DEFAULT_ADDRESS_TYPE{OutputType::BECH32};
-
 static constexpr uint64_t KNOWN_WALLET_FLAGS =
         WALLET_FLAG_AVOID_REUSE
     |   WALLET_FLAG_BLANK_WALLET
@@ -644,8 +641,6 @@ public:
     bool ShouldResend() const;
     void ResubmitWalletTransactions(node::TxBroadcast broadcast_method, bool force);
 
-    OutputType TransactionChangeType(const std::optional<OutputType>& change_type, const std::vector<CRecipient>& vecSend) const;
-
     /** Fetch the inputs and sign with SIGHASH_ALL. */
     bool SignTransaction(CMutableTransaction& tx) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     /** Sign the tx given the input coins and sighash. */
@@ -719,14 +714,6 @@ public:
 
     /** The maximum fee amount we're willing to pay to prioritize partial spend avoidance. */
     CAmount m_max_aps_fee{DEFAULT_MAX_AVOIDPARTIALSPEND_FEE}; //!< note: this is absolute fee, not fee rate
-    OutputType m_default_address_type{DEFAULT_ADDRESS_TYPE};
-    /**
-     * Default output type for change outputs. When unset, automatically choose type
-     * based on address type setting and the types other of non-change outputs
-     * (see -changetype option documentation and implementation in
-     * CWallet::TransactionChangeType for details).
-     */
-    std::optional<OutputType> m_default_change_type{};
     /** Absolute maximum transaction fee (in satoshis) used by default for the wallet */
     CAmount m_default_max_tx_fee{DEFAULT_TRANSACTION_MAXFEE};
 

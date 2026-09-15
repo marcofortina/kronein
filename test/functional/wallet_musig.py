@@ -93,9 +93,9 @@ class WalletMuSigTest(BitcoinTestFramework):
         self.construct_and_import_musig_descriptor_in_wallets(pat, wallets, keys, only_one_musig_wallet=False)
 
         # Fund address
-        addr = wallets[0].getnewaddress(address_type="bech32m")
+        addr = wallets[0].getnewaddress()
         for wallet in wallets[1:]:
-            assert_equal(addr, wallet.getnewaddress(address_type="bech32m"))
+            assert_equal(addr, wallet.getnewaddress())
 
         self.def_wallet.sendtoaddress(addr, 10)
         self.generate(self.nodes[0], 1)
@@ -105,7 +105,6 @@ class WalletMuSigTest(BitcoinTestFramework):
         psbt = wallets[0].walletcreatefundedpsbt(
             outputs=[{self.def_wallet.getnewaddress(): 5}],
             inputs=[utxo],
-            change_type="bech32m",
             changePosition=1
         )["psbt"]
 
@@ -200,14 +199,14 @@ class WalletMuSigTest(BitcoinTestFramework):
             if only_one_musig_wallet and i > 0:
                 continue
             if addr is None:
-                addr = wallet.getnewaddress(address_type="bech32m")
+                addr = wallet.getnewaddress()
             else:
-                assert_equal(addr, wallet.getnewaddress(address_type="bech32m"))
+                assert_equal(addr, wallet.getnewaddress())
             if has_internal:
                 if change_addr is None:
-                    change_addr = wallet.getrawchangeaddress(address_type="bech32m")
+                    change_addr = wallet.getrawchangeaddress()
                 else:
-                    assert_equal(change_addr, wallet.getrawchangeaddress(address_type="bech32m"))
+                    assert_equal(change_addr, wallet.getrawchangeaddress())
 
         # Fund that address
         self.def_wallet.sendtoaddress(addr, 10)
@@ -222,7 +221,7 @@ class WalletMuSigTest(BitcoinTestFramework):
                 utxo = wallet.listunspent()[0]
             else:
                 assert_equal(utxo, wallet.listunspent()[0])
-        psbt = wallets[0].walletcreatefundedpsbt(outputs=[{self.def_wallet.getnewaddress(): 5}], inputs=[utxo], change_type="bech32m", changePosition=1, locktime=self.nodes[0].getblockcount())["psbt"]
+        psbt = wallets[0].walletcreatefundedpsbt(outputs=[{self.def_wallet.getnewaddress(): 5}], inputs=[utxo], changePosition=1, locktime=self.nodes[0].getblockcount())["psbt"]
 
         dec_psbt = self.nodes[0].decodepsbt(psbt)
         assert_equal(len(dec_psbt["inputs"]), 1)

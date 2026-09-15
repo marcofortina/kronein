@@ -417,11 +417,6 @@ manual (default: incoming only). Can be specified multiple times.
 .PP
 Wallet options:
 .HP
-\fB\-addresstype\fR
-.IP
-What type of addresses to use ("legacy", "p2sh\-segwit", "bech32",
-"bech32m", default: "bech32")
-.HP
 \fB\-avoidpartialspends\fR
 .IP
 Group outputs by address, selecting many (possibly all) or none, instead
@@ -432,12 +427,6 @@ fees due to less optimal coin selection caused by this added
 limitation and possibly a larger\-than\-necessary number of inputs
 being used. Always enabled for wallets with "avoid_reuse"
 enabled, otherwise default: 0.
-.HP
-\fB\-changetype\fR
-.IP
-What type of change to use ("legacy", "p2sh\-segwit", "bech32",
-"bech32m"). Default is "legacy" when \fB\-addresstype\fR=\fI\,legacy\/\fR, else it
-is an implementation detail.
 .HP
 \fB\-consolidatefeerate=\fR<amt>
 .IP

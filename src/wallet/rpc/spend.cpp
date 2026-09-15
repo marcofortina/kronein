@@ -491,7 +491,6 @@ CreatedTransactionResult FundTransaction(CWallet& wallet, const CMutableTransact
                     {"change_address", UniValueType(UniValue::VSTR)},
                     {"changePosition", UniValueType(UniValue::VNUM)},
                     {"change_position", UniValueType(UniValue::VNUM)},
-                    {"change_type", UniValueType(UniValue::VSTR)},
                     {"includeWatching", UniValueType(UniValue::VBOOL)},
                     {"include_watching", UniValueType(UniValue::VBOOL)},
                     {"inputs", UniValueType(UniValue::VARR)},
@@ -535,17 +534,6 @@ CreatedTransactionResult FundTransaction(CWallet& wallet, const CMutableTransact
                     throw JSONRPCError(RPC_INVALID_PARAMETER, "changePosition out of bounds");
                 }
                 change_position = (unsigned int)pos;
-            }
-
-            if (options.exists("change_type")) {
-                if (options.exists("changeAddress") || options.exists("change_address")) {
-                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot specify both change address and address type options");
-                }
-                if (std::optional<OutputType> parsed = ParseOutputType(options["change_type"].get_str())) {
-                    coinControl.m_change_type.emplace(parsed.value());
-                } else {
-                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, strprintf("Unknown change type '%s'", options["change_type"].get_str()));
-                }
             }
 
             if (options.exists("lockUnspents") || options.exists("lock_unspents")) {
@@ -734,7 +722,6 @@ RPCHelpMan fundrawtransaction()
                             {"maxconf", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "If add_inputs is specified, require inputs with at most this many confirmations."},
                             {"changeAddress", RPCArg::Type::STR, RPCArg::DefaultHint{"automatic"}, "The bitcoin address to receive the change"},
                             {"changePosition", RPCArg::Type::NUM, RPCArg::DefaultHint{"random"}, "The index of the change output"},
-                            {"change_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -changetype"}, "The output type to use. Only valid if changeAddress is not specified. Options are " + FormatAllOutputTypes() + "."},
                             {"includeWatching", RPCArg::Type::BOOL, RPCArg::Default{false}, "(DEPRECATED) No longer used"},
                             {"lockUnspents", RPCArg::Type::BOOL, RPCArg::Default{false}, "Lock selected unspent outputs"},
                             {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
@@ -1186,7 +1173,6 @@ RPCHelpMan send()
                     {"add_to_wallet", RPCArg::Type::BOOL, RPCArg::Default{true}, "When false, returns a serialized transaction which will not be added to the wallet or broadcast"},
                     {"change_address", RPCArg::Type::STR, RPCArg::DefaultHint{"automatic"}, "The bitcoin address to receive the change"},
                     {"change_position", RPCArg::Type::NUM, RPCArg::DefaultHint{"random"}, "The index of the change output"},
-                    {"change_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -changetype"}, "The output type to use. Only valid if change_address is not specified. Options are " + FormatAllOutputTypes() + "."},
                     {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB.", RPCArgOptions{.also_positional = true}},
                     {"include_watching", RPCArg::Type::BOOL, RPCArg::Default{"false"}, "(DEPRECATED) No longer used"},
                     {"inputs", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "Specify inputs instead of adding them automatically.",
@@ -1689,7 +1675,6 @@ RPCHelpMan walletcreatefundedpsbt()
                             {"maxconf", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "If add_inputs is specified, require inputs with at most this many confirmations."},
                             {"changeAddress", RPCArg::Type::STR, RPCArg::DefaultHint{"automatic"}, "The bitcoin address to receive the change"},
                             {"changePosition", RPCArg::Type::NUM, RPCArg::DefaultHint{"random"}, "The index of the change output"},
-                            {"change_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -changetype"}, "The output type to use. Only valid if changeAddress is not specified. Options are " + FormatAllOutputTypes() + "."},
                             {"includeWatching", RPCArg::Type::BOOL, RPCArg::Default{false}, "(DEPRECATED) No longer used"},
                             {"lockUnspents", RPCArg::Type::BOOL, RPCArg::Default{false}, "Lock selected unspent outputs"},
                             {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},

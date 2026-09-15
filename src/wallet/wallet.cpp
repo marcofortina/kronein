@@ -1678,14 +1678,8 @@ bool CWallet::IsHDEnabled() const
 bool CWallet::CanGetAddresses(bool internal) const
 {
     LOCK(cs_wallet);
-    if (m_spk_managers.empty()) return false;
-    for (OutputType t : OUTPUT_TYPES) {
-        auto spk_man = GetScriptPubKeyMan(t, internal);
-        if (spk_man && spk_man->CanGetAddresses(internal)) {
-            return true;
-        }
-    }
-    return false;
+    auto spk_man = GetScriptPubKeyMan(OutputType::BECH32M, internal);
+    return spk_man && spk_man->CanGetAddresses(internal);
 }
 
 void CWallet::SetWalletFlag(uint64_t flags)
@@ -2213,67 +2207,6 @@ SigningResult CWallet::SignMessage(const std::string& message, const PKHash& pkh
         }
     }
     return SigningResult::PRIVATE_KEY_NOT_AVAILABLE;
-}
-
-OutputType CWallet::TransactionChangeType(const std::optional<OutputType>& change_type, const std::vector<CRecipient>& vecSend) const
-{
-    // If -changetype is specified, always use that change type.
-    if (change_type) {
-        return *change_type;
-    }
-
-    // if m_default_address_type is legacy, use legacy address as change.
-    if (m_default_address_type == OutputType::LEGACY) {
-        return OutputType::LEGACY;
-    }
-
-    bool any_tr{false};
-    bool any_wpkh{false};
-    bool any_sh{false};
-    bool any_pkh{false};
-
-    for (const auto& recipient : vecSend) {
-        if (std::get_if<WitnessV1Taproot>(&recipient.dest)) {
-            any_tr = true;
-        } else if (std::get_if<WitnessV0KeyHash>(&recipient.dest)) {
-            any_wpkh = true;
-        } else if (std::get_if<ScriptHash>(&recipient.dest)) {
-            any_sh = true;
-        } else if (std::get_if<PKHash>(&recipient.dest)) {
-            any_pkh = true;
-        }
-    }
-
-    const bool has_bech32m_spkman(GetScriptPubKeyMan(OutputType::BECH32M, /*internal=*/true));
-    if (has_bech32m_spkman && any_tr) {
-        // Currently tr is the only type supported by the BECH32M spkman
-        return OutputType::BECH32M;
-    }
-    const bool has_bech32_spkman(GetScriptPubKeyMan(OutputType::BECH32, /*internal=*/true));
-    if (has_bech32_spkman && any_wpkh) {
-        // Currently wpkh is the only type supported by the BECH32 spkman
-        return OutputType::BECH32;
-    }
-    const bool has_p2sh_segwit_spkman(GetScriptPubKeyMan(OutputType::P2SH_SEGWIT, /*internal=*/true));
-    if (has_p2sh_segwit_spkman && any_sh) {
-        // Currently sh_wpkh is the only type supported by the P2SH_SEGWIT spkman
-        // As of 2021 about 80% of all SH are wrapping WPKH, so use that
-        return OutputType::P2SH_SEGWIT;
-    }
-    const bool has_legacy_spkman(GetScriptPubKeyMan(OutputType::LEGACY, /*internal=*/true));
-    if (has_legacy_spkman && any_pkh) {
-        // Currently pkh is the only type supported by the LEGACY spkman
-        return OutputType::LEGACY;
-    }
-
-    if (has_bech32m_spkman) {
-        return OutputType::BECH32M;
-    }
-    if (has_bech32_spkman) {
-        return OutputType::BECH32;
-    }
-    // else use m_default_address_type for change
-    return m_default_address_type;
 }
 
 void CWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::vector<std::pair<std::string, std::string>> orderForm)
@@ -2904,24 +2837,6 @@ bool CWallet::LoadWalletArgs(std::shared_ptr<CWallet> wallet, const WalletContex
     interfaces::Chain* chain = context.chain;
     const ArgsManager& args = *Assert(context.args);
 
-    if (!args.GetArg("-addresstype", "").empty()) {
-        std::optional<OutputType> parsed = ParseOutputType(args.GetArg("-addresstype", ""));
-        if (!parsed) {
-            error = strprintf(_("Unknown address type '%s'"), args.GetArg("-addresstype", ""));
-            return false;
-        }
-        wallet->m_default_address_type = parsed.value();
-    }
-
-    if (!args.GetArg("-changetype", "").empty()) {
-        std::optional<OutputType> parsed = ParseOutputType(args.GetArg("-changetype", ""));
-        if (!parsed) {
-            error = strprintf(_("Unknown change type '%s'"), args.GetArg("-changetype", ""));
-            return false;
-        }
-        wallet->m_default_change_type = parsed.value();
-    }
-
     if (const auto arg{args.GetArg("-mintxfee")}) {
         std::optional<CAmount> min_tx_fee = ParseMoney(*arg);
         if (!min_tx_fee) {
@@ -3338,14 +3253,8 @@ bool CWallet::Unlock(const CKeyingMaterial& vMasterKeyIn)
 std::set<ScriptPubKeyMan*> CWallet::GetActiveScriptPubKeyMans() const
 {
     std::set<ScriptPubKeyMan*> spk_mans;
-    for (bool internal : {false, true}) {
-        for (OutputType t : OUTPUT_TYPES) {
-            auto spk_man = GetScriptPubKeyMan(t, internal);
-            if (spk_man) {
-                spk_mans.insert(spk_man);
-            }
-        }
-    }
+    for (const auto& [_, spk_man] : m_external_spk_managers) spk_mans.insert(spk_man);
+    for (const auto& [_, spk_man] : m_internal_spk_managers) spk_mans.insert(spk_man);
     return spk_mans;
 }
 
@@ -3508,9 +3417,7 @@ void CWallet::SetupDescriptorScriptPubKeyMans(WalletBatch& batch, const CExtKey&
 {
     AssertLockHeld(cs_wallet);
     for (bool internal : {false, true}) {
-        for (OutputType t : OUTPUT_TYPES) {
-            SetupDescriptorScriptPubKeyMan(batch, master_key, t, internal);
-        }
+        SetupDescriptorScriptPubKeyMan(batch, master_key, OutputType::BECH32M, internal);
     }
 }
 
@@ -3555,6 +3462,7 @@ void CWallet::SetupDescriptorScriptPubKeyMans()
         for (bool internal : {false, true}) {
             const UniValue& descriptor_vals = signer_res.find_value(internal ? "internal" : "receive");
             if (!descriptor_vals.isArray()) throw std::runtime_error(std::string(__func__) + ": Unexpected result");
+            bool taproot_descriptor_added{false};
             for (const UniValue& desc_val : descriptor_vals.get_array().getValues()) {
                 const std::string& desc_str = desc_val.getValStr();
                 FlatSigningProvider keys;
@@ -3564,16 +3472,17 @@ void CWallet::SetupDescriptorScriptPubKeyMans()
                     throw std::runtime_error(std::string(__func__) + ": Invalid descriptor \"" + desc_str + "\" (" + desc_error + ")");
                 }
                 auto& desc = descs.at(0);
-                if (!desc->GetOutputType()) {
+                if (desc->GetOutputType() != OutputType::BECH32M) {
                     continue;
                 }
-                OutputType t =  *desc->GetOutputType();
                 auto spk_manager = std::unique_ptr<ExternalSignerScriptPubKeyMan>(new ExternalSignerScriptPubKeyMan(*this, m_keypool_size));
                 spk_manager->SetupDescriptor(batch, std::move(desc));
                 uint256 id = spk_manager->GetID();
                 AddScriptPubKeyMan(id, std::move(spk_manager));
-                AddActiveScriptPubKeyManWithDb(batch, id, t, internal);
+                AddActiveScriptPubKeyManWithDb(batch, id, OutputType::BECH32M, internal);
+                taproot_descriptor_added = true;
             }
+            if (!taproot_descriptor_added) throw std::runtime_error(std::string(__func__) + ": External signer did not provide a Taproot descriptor");
         }
 
         // Ensure imported descriptors are committed to disk
@@ -3589,6 +3498,9 @@ void CWallet::AddActiveScriptPubKeyMan(uint256 id, OutputType type, bool interna
 
 void CWallet::AddActiveScriptPubKeyManWithDb(WalletBatch& batch, uint256 id, OutputType type, bool internal)
 {
+    if (type != OutputType::BECH32M) {
+        throw std::invalid_argument("Only Taproot ScriptPubKeyMans can be active");
+    }
     if (!batch.WriteActiveScriptPubKeyMan(static_cast<uint8_t>(type), id, internal)) {
         throw std::runtime_error(std::string(__func__) + ": writing active ScriptPubKeyMan id failed");
     }

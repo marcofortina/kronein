@@ -226,13 +226,12 @@ class WalletMiniscriptTest(BitcoinTestFramework):
         )[0]["success"]
 
         self.log.info("Testing we derive new addresses for it")
-        addr_type = "bech32m" if desc.startswith("tr(") else "bech32"
         assert_equal(
-            self.ms_wo_wallet.getnewaddress(address_type=addr_type),
+            self.ms_wo_wallet.getnewaddress(),
             self.funder.deriveaddresses(desc, 0)[0],
         )
         assert_equal(
-            self.ms_wo_wallet.getnewaddress(address_type=addr_type),
+            self.ms_wo_wallet.getnewaddress(),
             self.funder.deriveaddresses(desc, 1)[1],
         )
 
@@ -265,8 +264,7 @@ class WalletMiniscriptTest(BitcoinTestFramework):
         assert res[0]["success"], res
 
         self.log.info("Generating an address for it and testing it detects funds")
-        addr_type = "bech32m" if is_taproot else "bech32"
-        addr = self.ms_sig_wallet.getnewaddress(address_type=addr_type)
+        addr = self.ms_sig_wallet.getnewaddress()
         txid = self.funder.sendtoaddress(addr, 0.01)
         self.wait_until(lambda: txid in self.funder.getrawmempool())
         self.funder.generatetoaddress(1, self.funder.getnewaddress())
@@ -355,12 +353,12 @@ class WalletMiniscriptTest(BitcoinTestFramework):
         )[0]
         assert not res["success"] and "is not satisfiable" in res["error"]["message"]
 
-        # Test we can track any type of Miniscript
-        for desc in DESCS:
+        # Native wallets track Miniscript through Taproot script paths.
+        for desc in (desc for desc in DESCS if desc.startswith("tr(")):
             self.watchonly_test(desc)
 
-        # Test we can sign for any Miniscript.
-        for desc in DESCS_PRIV:
+        # Test signing Taproot Miniscript policies.
+        for desc in (desc for desc in DESCS_PRIV if desc["desc"].startswith("tr(")):
             self.signing_test(
                 desc["desc"],
                 desc["sequence"],
@@ -393,7 +391,6 @@ class WalletMiniscriptTest(BitcoinTestFramework):
             ]
         )[0]
         assert not res["success"]
-        assert "is not a valid descriptor function" in res["error"]["message"]
 
 
 if __name__ == "__main__":

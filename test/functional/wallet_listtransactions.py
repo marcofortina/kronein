@@ -233,9 +233,9 @@ class ListTransactionsTest(BitcoinTestFramework):
         self.connect_nodes(1, 2)
         self.connect_nodes(2, 0)
 
-        addr1 = self.nodes[0].getnewaddress("pizza1", 'legacy')
-        addr2 = self.nodes[0].getnewaddress("pizza2", 'p2sh-segwit')
-        addr3 = self.nodes[0].getnewaddress("pizza3", 'bech32')
+        addr1 = self.nodes[0].getnewaddress("pizza1")
+        addr2 = self.nodes[0].getnewaddress("pizza2")
+        addr3 = self.nodes[0].getnewaddress("pizza3")
 
         self.log.info("Send to externally generated addresses")
         # send to an address beyond the next to be generated to test the keypool gap

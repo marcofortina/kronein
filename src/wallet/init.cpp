@@ -13,7 +13,6 @@
 #include <net.h>
 #include <node/context.h>
 #include <node/interface_ui.h>
-#include <outputtype.h>
 #include <univalue.h>
 #include <util/check.h>
 #include <util/moneystr.h>
@@ -43,12 +42,7 @@ public:
 
 void WalletInit::AddWalletOptions(ArgsManager& argsman) const
 {
-    argsman.AddArg("-addresstype", strprintf("What type of addresses to use (%s, default: \"%s\")", FormatAllOutputTypes(), FormatOutputType(DEFAULT_ADDRESS_TYPE)), ArgsManager::ALLOW_ANY, OptionsCategory::WALLET);
     argsman.AddArg("-avoidpartialspends", strprintf("Group outputs by address, selecting many (possibly all) or none, instead of selecting on a per-output basis. Privacy is improved as addresses are mostly swept with fewer transactions and outputs are aggregated in clean change addresses. It may result in higher fees due to less optimal coin selection caused by this added limitation and possibly a larger-than-necessary number of inputs being used. Always enabled for wallets with \"avoid_reuse\" enabled, otherwise default: %u.", DEFAULT_AVOIDPARTIALSPENDS), ArgsManager::ALLOW_ANY, OptionsCategory::WALLET);
-    argsman.AddArg("-changetype",
-                   strprintf("What type of change to use (%s). Default is \"legacy\" when "
-                   "-addresstype=legacy, else it is an implementation detail.", FormatAllOutputTypes()),
-                   ArgsManager::ALLOW_ANY, OptionsCategory::WALLET);
     argsman.AddArg("-consolidatefeerate=<amt>", strprintf("The maximum feerate (in %s/kvB) at which transaction building may use more inputs than strictly necessary so that the wallet's UTXO pool can be reduced (default: %s).", CURRENCY_UNIT, FormatMoney(DEFAULT_CONSOLIDATE_FEERATE)), ArgsManager::ALLOW_ANY, OptionsCategory::WALLET);
     argsman.AddArg("-disablewallet", "Do not load the wallet and disable wallet RPC calls", ArgsManager::ALLOW_ANY, OptionsCategory::WALLET);
     argsman.AddArg("-discardfee=<amt>", strprintf("The fee rate (in %s/kvB) that indicates your tolerance for discarding change by adding it to the fee (default: %s). "

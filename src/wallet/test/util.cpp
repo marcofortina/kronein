@@ -108,7 +108,7 @@ std::unique_ptr<WalletDatabase> DuplicateMockDatabase(WalletDatabase& database)
 
 std::string getnewaddress(CWallet& w)
 {
-    constexpr auto output_type = OutputType::BECH32;
+    constexpr auto output_type = OutputType::BECH32M;
     return EncodeDestination(getNewDestination(w, output_type));
 }
 

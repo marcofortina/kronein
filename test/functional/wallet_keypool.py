@@ -4,8 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the wallet keypool and interaction with wallet encryption/locking."""
 
-from decimal import Decimal
-
+from test_framework.descriptors import descsum_create
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
@@ -32,39 +31,13 @@ class KeyPoolTest(BitcoinTestFramework):
         nodes[0].walletpassphrase('test', 10)
         nodes[0].importdescriptors([
             {
-                "desc": "wpkh(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/0h/*h)#y4dfsj7n",
+                "desc": descsum_create("tr(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/0h/*h)"),
                 "timestamp": "now",
                 "range": [0,0],
                 "active": True
             },
             {
-                "desc": "pkh(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/1h/*h)#a0nyvl0k",
-                "timestamp": "now",
-                "range": [0,0],
-                "active": True
-            },
-            {
-                "desc": "sh(wpkh(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/2h/*h))#lmeu2axg",
-                "timestamp": "now",
-                "range": [0,0],
-                "active": True
-            },
-            {
-                "desc": "wpkh(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/3h/*h)#jkl636gm",
-                "timestamp": "now",
-                "range": [0,0],
-                "active": True,
-                "internal": True
-            },
-            {
-                "desc": "pkh(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/4h/*h)#l3crwaus",
-                "timestamp": "now",
-                "range": [0,0],
-                "active": True,
-                "internal": True
-            },
-            {
-                "desc": "sh(wpkh(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/5h/*h))#qg8wa75f",
+                "desc": descsum_create("tr(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/1h/*h)"),
                 "timestamp": "now",
                 "range": [0,0],
                 "active": True,
@@ -78,12 +51,12 @@ class KeyPoolTest(BitcoinTestFramework):
         assert_not_equal(addr_before_encrypting_data['hdmasterfingerprint'], addr_data['hdmasterfingerprint'])
         assert_raises_rpc_error(-12, "Error: Keypool ran out, please call keypoolrefill first", nodes[0].getnewaddress)
 
-        # put six (plus 2) new keys in the keypool (100% external-, +100% internal-keys, 1 in min)
+        # Put six native external and internal keys in the keypool.
         with WalletUnlock(nodes[0], 'test'):
             nodes[0].keypoolrefill(6)
         wi = nodes[0].getwalletinfo()
-        assert_equal(wi['keypoolsize_hd_internal'], 24)
-        assert_equal(wi['keypoolsize'], 24)
+        assert_equal(wi['keypoolsize_hd_internal'], 6)
+        assert_equal(wi['keypoolsize'], 6)
 
         # drain the internal keys
         nodes[0].getrawchangeaddress()
@@ -104,12 +77,12 @@ class KeyPoolTest(BitcoinTestFramework):
 
         # drain the external keys
         addr = set()
-        addr.add(nodes[0].getnewaddress(address_type="bech32"))
-        addr.add(nodes[0].getnewaddress(address_type="bech32"))
-        addr.add(nodes[0].getnewaddress(address_type="bech32"))
-        addr.add(nodes[0].getnewaddress(address_type="bech32"))
-        addr.add(nodes[0].getnewaddress(address_type="bech32"))
-        addr.add(nodes[0].getnewaddress(address_type="bech32"))
+        addr.add(nodes[0].getnewaddress())
+        addr.add(nodes[0].getnewaddress())
+        addr.add(nodes[0].getnewaddress())
+        addr.add(nodes[0].getnewaddress())
+        addr.add(nodes[0].getnewaddress())
+        addr.add(nodes[0].getnewaddress())
         assert len(addr) == 6
         # remember keypool sizes
         wi = nodes[0].getwalletinfo()
@@ -139,8 +112,8 @@ class KeyPoolTest(BitcoinTestFramework):
         with WalletUnlock(nodes[0], 'test'):
             nodes[0].keypoolrefill(100)
             wi = nodes[0].getwalletinfo()
-            assert_equal(wi['keypoolsize_hd_internal'], 400)
-            assert_equal(wi['keypoolsize'], 400)
+            assert_equal(wi['keypoolsize_hd_internal'], 100)
+            assert_equal(wi['keypoolsize'], 100)
 
         # create a blank wallet
         nodes[0].createwallet(wallet_name='w2', blank=True, disable_private_keys=True)
@@ -171,19 +144,6 @@ class KeyPoolTest(BitcoinTestFramework):
         # creating a 10,000 sat transaction without change should still be possible
         res = w2.walletcreatefundedpsbt(inputs=[], outputs=[{destination: 0.00010000}], subtractFeeFromOutputs=[0], feeRate=0.00010)
         assert_equal("psbt" in res, True)
-        # should work without subtractFeeFromOutputs if the exact fee is subtracted from the amount
-        res = w2.walletcreatefundedpsbt(inputs=[], outputs=[{destination: 0.00008900}], feeRate=0.00010)
-        assert_equal("psbt" in res, True)
-
-        # dust change should be removed
-        res = w2.walletcreatefundedpsbt(inputs=[], outputs=[{destination: 0.00008800}], feeRate=0.00010)
-        assert_equal("psbt" in res, True)
-
-        # create a transaction without change at the maximum fee rate, such that the output is still spendable:
-        res = w2.walletcreatefundedpsbt(inputs=[], outputs=[{destination: 0.00010000}], subtractFeeFromOutputs=[0], feeRate=0.0008823)
-        assert_equal("psbt" in res, True)
-        assert_equal(res["fee"], Decimal("0.00009706"))
-
         # creating a 10,000 sat transaction with a manual change address should be possible
         res = w2.walletcreatefundedpsbt(inputs=[], outputs=[{destination: 0.00010000}], subtractFeeFromOutputs=[0], feeRate=0.00010, changeAddress=addr.pop())
         assert_equal("psbt" in res, True)

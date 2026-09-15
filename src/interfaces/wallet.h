@@ -30,7 +30,6 @@
 class CFeeRate;
 class CKey;
 enum class FeeReason;
-enum class OutputType;
 struct PartiallySignedTransaction;
 struct bilingual_str;
 namespace common {
@@ -95,7 +94,7 @@ public:
     virtual std::string getWalletName() = 0;
 
     // Get a new address.
-    virtual util::Result<CTxDestination> getNewDestination(OutputType type, const std::string& label) = 0;
+    virtual util::Result<CTxDestination> getNewDestination(const std::string& label) = 0;
 
     //! Get public key.
     virtual bool getPubKey(const CScript& script, const CKeyID& address, CPubKey& pub_key) = 0;
@@ -261,14 +260,8 @@ public:
     // Return whether private keys enabled.
     virtual bool privateKeysDisabled() = 0;
 
-    // Return whether the wallet contains a Taproot scriptPubKeyMan
-    virtual bool taprootEnabled() = 0;
-
     // Return whether wallet uses an external signer.
     virtual bool hasExternalSigner() = 0;
-
-    // Get default address type.
-    virtual OutputType getDefaultAddressType() = 0;
 
     //! Get max tx fee.
     virtual CAmount getDefaultMaxTxFee() = 0;

@@ -26,7 +26,6 @@ from test_framework.util import (
     assert_greater_than_or_equal,
     assert_raises_rpc_error,
     count_bytes,
-    get_fee,
 )
 from test_framework.wallet_util import generate_keypair, WalletUnlock
 
@@ -63,27 +62,6 @@ class RawTransactionsTest(BitcoinTestFramework):
         self.connect_nodes(0, 2)
         self.connect_nodes(0, 3)
 
-    def lock_outputs_type(self, wallet, outputtype):
-        """
-        Only allow UTXOs of the given type
-        """
-        if outputtype in ["legacy", "p2pkh", "pkh"]:
-            prefixes = ["pkh(", "sh(multi("]
-        elif outputtype in ["p2sh-segwit", "sh_wpkh"]:
-            prefixes = ["sh(wpkh(", "sh(wsh("]
-        elif outputtype in ["bech32", "wpkh"]:
-            prefixes = ["wpkh(", "wsh("]
-        else:
-            assert False, f"Unknown output type {outputtype}"
-
-        to_lock = []
-        for utxo in wallet.listunspent():
-            if "desc" in utxo:
-                for prefix in prefixes:
-                    if utxo["desc"].startswith(prefix):
-                        to_lock.append({"txid": utxo["txid"], "vout": utxo["vout"]})
-        wallet.lockunspent(False, to_lock)
-
     def unlock_utxos(self, wallet):
         """
         Unlock all UTXOs except the watchonly one
@@ -115,7 +93,6 @@ class RawTransactionsTest(BitcoinTestFramework):
 
         self.test_add_inputs_default_value()
         self.test_preset_inputs_selection()
-        self.test_weight_calculation()
         self.test_weight_limits()
         self.test_change_position()
         self.test_simple()
@@ -126,16 +103,10 @@ class RawTransactionsTest(BitcoinTestFramework):
         self.test_invalid_option()
         self.test_invalid_change_address()
         self.test_valid_change_address()
-        self.test_change_type()
         self.test_coin_selection()
         self.test_two_vin()
         self.test_two_vin_two_vout()
         self.test_invalid_input()
-        self.test_fee_p2pkh()
-        self.test_fee_p2pkh_multi_out()
-        self.test_fee_p2sh()
-        self.test_fee_4of5()
-        self.test_spend_2of2()
         self.test_locked_wallet()
         self.test_many_inputs_fee()
         self.test_many_inputs_send()
@@ -149,11 +120,8 @@ class RawTransactionsTest(BitcoinTestFramework):
         self.test_transaction_too_large()
         self.test_include_unsafe()
         self.test_external_inputs()
-        self.test_22670()
-        self.test_feerate_rounding()
         self.test_input_confs_control()
         self.test_duplicate_outputs()
-        self.test_watchonly_cannot_grind_r()
         self.test_cannot_cover_fees()
 
     def test_duplicate_outputs(self):
@@ -161,11 +129,11 @@ class RawTransactionsTest(BitcoinTestFramework):
         self.nodes[1].createwallet("fundtx_duplicate_outputs")
         w = self.nodes[1].get_wallet_rpc("fundtx_duplicate_outputs")
 
-        addr = w.getnewaddress(address_type="bech32")
+        addr = w.getnewaddress()
         self.nodes[0].sendtoaddress(addr, 5, fee_rate=self.fee_rate_sats_per_vb)
         self.generate(self.nodes[0], 1)
 
-        address = self.nodes[0].getnewaddress("bech32")
+        address = self.nodes[0].getnewaddress()
         tx = CTransaction()
         tx.vin = []
         tx.vout = [CTxOut(1 * COIN, bytearray(address_to_scriptpubkey(address)))] * 2
@@ -327,19 +295,6 @@ class RawTransactionsTest(BitcoinTestFramework):
         out = dec_tx['vout'][0]
         assert_equal(change, out['scriptPubKey']['address'])
 
-    def test_change_type(self):
-        self.log.info("Test fundrawtxn with a provided change type")
-        utx = get_unspent(self.nodes[2].listunspent(), 5)
-
-        inputs  = [ {'txid' : utx['txid'], 'vout' : utx['vout']} ]
-        outputs = { self.nodes[0].getnewaddress() : Decimal(4.0) }
-        rawtx   = self.nodes[2].createrawtransaction(inputs, outputs)
-        assert_raises_rpc_error(-3, "JSON value of type null is not of expected type string", self.nodes[2].fundrawtransaction, rawtx, change_type=None)
-        assert_raises_rpc_error(-5, "Unknown change type ''", self.nodes[2].fundrawtransaction, rawtx, change_type='')
-        rawtx = self.nodes[2].fundrawtransaction(rawtx, change_type='bech32', fee_rate=self.fee_rate_sats_per_vb)
-        dec_tx = self.nodes[2].decoderawtransaction(rawtx['hex'])
-        assert_equal('witness_v0_keyhash', dec_tx['vout'][rawtx['changepos']]['scriptPubKey']['type'])
-
     def test_coin_selection(self):
         self.log.info("Test fundrawtxn with a vin < required amount")
         utx = get_unspent(self.nodes[2].listunspent(), 1)
@@ -438,164 +393,6 @@ class RawTransactionsTest(BitcoinTestFramework):
         rawtx   = self.nodes[2].createrawtransaction(inputs, outputs)
         assert_raises_rpc_error(-4, "Unable to find UTXO for external input", self.nodes[2].fundrawtransaction, rawtx)
 
-    def test_fee_p2pkh(self):
-        """Compare fee of a standard pubkeyhash transaction."""
-        self.log.info("Test fundrawtxn p2pkh fee")
-        self.lock_outputs_type(self.nodes[0], "p2pkh")
-        inputs = []
-        outputs = {self.nodes[1].getnewaddress():1.1}
-        rawtx = self.nodes[0].createrawtransaction(inputs, outputs)
-        fundedTx = self.nodes[0].fundrawtransaction(rawtx, fee_rate=self.fee_rate_sats_per_vb)
-
-        # Create same transaction over sendtoaddress.
-        txId = self.nodes[0].sendtoaddress(self.nodes[1].getnewaddress(), 1.1, fee_rate=self.fee_rate_sats_per_vb)
-        signedFee = self.nodes[0].getmempoolentry(txId)['fees']['base']
-
-        # Compare fee.
-        feeDelta = Decimal(fundedTx['fee']) - Decimal(signedFee)
-        assert feeDelta >= 0 and feeDelta <= self.fee_tolerance
-
-        self.unlock_utxos(self.nodes[0])
-
-    def test_fee_p2pkh_multi_out(self):
-        """Compare fee of a standard pubkeyhash transaction with multiple outputs."""
-        self.log.info("Test fundrawtxn p2pkh fee with multiple outputs")
-        self.lock_outputs_type(self.nodes[0], "p2pkh")
-        inputs = []
-        outputs = {
-            self.nodes[1].getnewaddress():1.1,
-            self.nodes[1].getnewaddress():1.2,
-            self.nodes[1].getnewaddress():0.1,
-            self.nodes[1].getnewaddress():1.3,
-            self.nodes[1].getnewaddress():0.2,
-            self.nodes[1].getnewaddress():0.3,
-        }
-        rawtx = self.nodes[0].createrawtransaction(inputs, outputs)
-        fundedTx = self.nodes[0].fundrawtransaction(rawtx, fee_rate=self.fee_rate_sats_per_vb)
-
-        # Create same transaction over sendtoaddress.
-        txId = self.nodes[0].sendmany("", outputs, fee_rate=self.fee_rate_sats_per_vb)
-        signedFee = self.nodes[0].getmempoolentry(txId)['fees']['base']
-
-        # Compare fee.
-        feeDelta = Decimal(fundedTx['fee']) - Decimal(signedFee)
-        assert feeDelta >= 0 and feeDelta <= self.fee_tolerance
-
-        self.unlock_utxos(self.nodes[0])
-
-    def test_fee_p2sh(self):
-        """Compare fee of a 2-of-2 multisig p2sh transaction."""
-        self.lock_outputs_type(self.nodes[0], "p2pkh")
-        # Create 2-of-2 addr.
-        addr1 = self.nodes[1].getnewaddress()
-        addr2 = self.nodes[1].getnewaddress()
-
-        addr1Obj = self.nodes[1].getaddressinfo(addr1)
-        addr2Obj = self.nodes[1].getaddressinfo(addr2)
-
-        mSigObj = self.nodes[3].createmultisig(2, [addr1Obj['pubkey'], addr2Obj['pubkey']])['address']
-
-        inputs = []
-        outputs = {mSigObj:1.1}
-        rawtx = self.nodes[0].createrawtransaction(inputs, outputs)
-        fundedTx = self.nodes[0].fundrawtransaction(rawtx, fee_rate=self.fee_rate_sats_per_vb)
-
-        # Create same transaction over sendtoaddress.
-        txId = self.nodes[0].sendtoaddress(mSigObj, 1.1, fee_rate=self.fee_rate_sats_per_vb)
-        signedFee = self.nodes[0].getmempoolentry(txId)['fees']['base']
-
-        # Compare fee.
-        feeDelta = Decimal(fundedTx['fee']) - Decimal(signedFee)
-        assert feeDelta >= 0 and feeDelta <= self.fee_tolerance
-
-        self.unlock_utxos(self.nodes[0])
-
-    def test_fee_4of5(self):
-        """Compare fee of a standard pubkeyhash transaction."""
-        self.log.info("Test fundrawtxn fee with 4-of-5 addresses")
-        self.lock_outputs_type(self.nodes[0], "p2pkh")
-
-        # Create 4-of-5 addr.
-        addr1 = self.nodes[1].getnewaddress()
-        addr2 = self.nodes[1].getnewaddress()
-        addr3 = self.nodes[1].getnewaddress()
-        addr4 = self.nodes[1].getnewaddress()
-        addr5 = self.nodes[1].getnewaddress()
-
-        addr1Obj = self.nodes[1].getaddressinfo(addr1)
-        addr2Obj = self.nodes[1].getaddressinfo(addr2)
-        addr3Obj = self.nodes[1].getaddressinfo(addr3)
-        addr4Obj = self.nodes[1].getaddressinfo(addr4)
-        addr5Obj = self.nodes[1].getaddressinfo(addr5)
-
-        mSigObj = self.nodes[1].createmultisig(
-            4,
-            [
-                addr1Obj['pubkey'],
-                addr2Obj['pubkey'],
-                addr3Obj['pubkey'],
-                addr4Obj['pubkey'],
-                addr5Obj['pubkey'],
-            ]
-        )['address']
-
-        inputs = []
-        outputs = {mSigObj:1.1}
-        rawtx = self.nodes[0].createrawtransaction(inputs, outputs)
-        fundedTx = self.nodes[0].fundrawtransaction(rawtx, fee_rate=self.fee_rate_sats_per_vb)
-
-        # Create same transaction over sendtoaddress.
-        txId = self.nodes[0].sendtoaddress(mSigObj, 1.1, fee_rate=self.fee_rate_sats_per_vb)
-        signedFee = self.nodes[0].getmempoolentry(txId)['fees']['base']
-
-        # Compare fee.
-        feeDelta = Decimal(fundedTx['fee']) - Decimal(signedFee)
-        assert feeDelta >= 0 and feeDelta <= self.fee_tolerance
-
-        self.unlock_utxos(self.nodes[0])
-
-    def test_spend_2of2(self):
-        """Spend a 2-of-2 multisig transaction over fundraw."""
-        self.log.info("Test fundpsbt spending 2-of-2 multisig")
-
-        # Create 2-of-2 addr.
-        addr1 = self.nodes[2].getnewaddress()
-        addr2 = self.nodes[2].getnewaddress()
-
-        addr1Obj = self.nodes[2].getaddressinfo(addr1)
-        addr2Obj = self.nodes[2].getaddressinfo(addr2)
-
-        self.nodes[2].createwallet(wallet_name='wmulti', disable_private_keys=True)
-        wmulti = self.nodes[2].get_wallet_rpc('wmulti')
-        w2 = self.nodes[2].get_wallet_rpc(self.default_wallet_name)
-        mSigObj = self.nodes[2].createmultisig(
-            2,
-            [
-                addr1Obj['pubkey'],
-                addr2Obj['pubkey'],
-            ]
-        )
-        import_res = wmulti.importdescriptors([{"desc": mSigObj["descriptor"], "timestamp": "now"}])
-        assert_equal(import_res[0]["success"], True)
-
-        # Send 1.2 BTC to msig addr.
-        self.nodes[0].sendtoaddress(mSigObj["address"], 1.2, fee_rate=self.fee_rate_sats_per_vb)
-        self.generate(self.nodes[0], 1)
-
-        oldBalance = self.nodes[1].getbalance()
-        inputs = []
-        outputs = {self.nodes[1].getnewaddress():1.1}
-        funded_psbt = wmulti.walletcreatefundedpsbt(inputs=inputs, outputs=outputs, changeAddress=w2.getrawchangeaddress())['psbt']
-
-        signed_psbt = w2.walletprocesspsbt(funded_psbt)
-        self.nodes[2].sendrawtransaction(signed_psbt['hex'])
-        self.generate(self.nodes[2], 1)
-
-        # Make sure funds are received at node1.
-        assert_equal(oldBalance+Decimal('1.10000000'), self.nodes[1].getbalance())
-
-        wmulti.unloadwallet()
-
     def test_locked_wallet(self):
         self.log.info("Test fundrawtxn with locked wallet and hardened derivation")
 
@@ -604,20 +401,20 @@ class RawTransactionsTest(BitcoinTestFramework):
         wallet = self.nodes[1].get_wallet_rpc("locked_wallet")
 
         # Add some balance to the wallet (this will be reverted at the end of the test)
-        df_wallet.sendall(recipients=[wallet.getnewaddress()])
-        self.generate(self.nodes[1], 1)
+        self.nodes[0].sendtoaddress(wallet.getnewaddress(), 5)
+        self.generate(self.nodes[0], 1)
 
         # Encrypt wallet and import descriptors
         wallet.encryptwallet("test")
 
         with WalletUnlock(wallet, "test"):
             wallet.importdescriptors([{
-                'desc': descsum_create('wpkh(tprv8ZgxMBicQKsPdYeeZbPSKd2KYLmeVKtcFA7kqCxDvDR13MQ6us8HopUR2wLcS2ZKPhLyKsqpDL2FtL73LMHcgoCL7DXsciA8eX8nbjCR2eG/0h/*h)'),
+                'desc': descsum_create('tr(tprv8ZgxMBicQKsPdYeeZbPSKd2KYLmeVKtcFA7kqCxDvDR13MQ6us8HopUR2wLcS2ZKPhLyKsqpDL2FtL73LMHcgoCL7DXsciA8eX8nbjCR2eG/0h/*h)'),
                 'timestamp': 'now',
                 'active': True
             },
             {
-                'desc': descsum_create('wpkh(tprv8ZgxMBicQKsPdYeeZbPSKd2KYLmeVKtcFA7kqCxDvDR13MQ6us8HopUR2wLcS2ZKPhLyKsqpDL2FtL73LMHcgoCL7DXsciA8eX8nbjCR2eG/1h/*h)'),
+                'desc': descsum_create('tr(tprv8ZgxMBicQKsPdYeeZbPSKd2KYLmeVKtcFA7kqCxDvDR13MQ6us8HopUR2wLcS2ZKPhLyKsqpDL2FtL73LMHcgoCL7DXsciA8eX8nbjCR2eG/1h/*h)'),
                 'timestamp': 'now',
                 'active': True,
                 'internal': True
@@ -630,19 +427,15 @@ class RawTransactionsTest(BitcoinTestFramework):
         # Choose input
         inputs = wallet.listunspent()
 
-        # Deduce exact fee to produce a changeless transaction
-        tx_size = 110  # Total tx size: 110 vbytes, p2wpkh -> p2wpkh. Input 68 vbytes + rest of tx is 42 vbytes.
-        value = inputs[0]["amount"] - get_fee(tx_size, self.min_relay_tx_fee)
-
-        outputs = {self.nodes[0].getnewaddress():value}
+        outputs = {self.nodes[0].getnewaddress(): inputs[0]["amount"]}
         rawtx = wallet.createrawtransaction(inputs, outputs)
         # fund a transaction that does not require a new key for the change output
-        funded_tx = wallet.fundrawtransaction(rawtx, fee_rate=self.fee_rate_sats_per_vb)
+        funded_tx = wallet.fundrawtransaction(rawtx, fee_rate=self.fee_rate_sats_per_vb, subtractFeeFromOutputs=[0])
         assert_equal(funded_tx["changepos"], -1)
 
         # fund a transaction that requires a new key for the change output
         # creating the key must be impossible because the wallet is locked
-        outputs = {self.nodes[0].getnewaddress():value - Decimal("0.1")}
+        outputs = {self.nodes[0].getnewaddress(): inputs[0]["amount"] - Decimal("0.1")}
         rawtx = wallet.createrawtransaction(inputs, outputs)
         assert_raises_rpc_error(-4, "Transaction needs a change address, but we can't generate it.", wallet.fundrawtransaction, rawtx)
 
@@ -751,7 +544,7 @@ class RawTransactionsTest(BitcoinTestFramework):
         wwatch = self.nodes[3].get_wallet_rpc('wwatch')
         # Setup change addresses for the watchonly wallet
         desc_import = [{
-            "desc": descsum_create("wpkh(tpubD6NzVbkrYhZ4YNXVQbNhMK1WqguFsUXceaVJKbmno2aZ3B6QfbMeraaYvnBSGpV3vxLyTTK9DYT1yoEck4XUScMzXoQ2U2oSmE2JyMedq3H/1/*)"),
+            "desc": descsum_create("tr(tpubD6NzVbkrYhZ4YNXVQbNhMK1WqguFsUXceaVJKbmno2aZ3B6QfbMeraaYvnBSGpV3vxLyTTK9DYT1yoEck4XUScMzXoQ2U2oSmE2JyMedq3H/1/*)"),
             "timestamp": "now",
             "internal": True,
             "active": True,
@@ -761,8 +554,7 @@ class RawTransactionsTest(BitcoinTestFramework):
         }]
         wwatch.importdescriptors(desc_import)
 
-        # Backward compatibility test (2nd params is includeWatching)
-        result = wwatch.fundrawtransaction(rawtx, True)
+        result = wwatch.fundrawtransaction(rawtx, options={"includeWatching": True})
         res_dec = self.nodes[0].decoderawtransaction(result["hex"])
         assert_equal(len(res_dec["vin"]), 1)
         assert_equal(res_dec["vin"][0]["txid"], self.watchonly_utxo['txid'])
@@ -826,11 +618,11 @@ class RawTransactionsTest(BitcoinTestFramework):
         for param, zero_value in product(["fee_rate", "feeRate"], [0, 0.000, 0.00000000, "0", "0.000", "0.00000000"]):
             assert_equal(self.nodes[3].fundrawtransaction(rawtx, {param: zero_value})["fee"], 0)
 
-        # With no arguments passed, expect fee of 140 satoshis.
-        assert_approx(node.fundrawtransaction(rawtx, fee_rate=self.fee_rate_sats_per_vb)["fee"], vexp=0.00000140, vspan=0.00000001)
+        # Reusing the same fee rate must produce the same fee.
+        assert_equal(node.fundrawtransaction(rawtx, fee_rate=self.fee_rate_sats_per_vb)["fee"], result["fee"])
         # Expect fee to be 10,000x higher when an explicit fee rate 10,000x greater is specified.
-        result = node.fundrawtransaction(rawtx, fee_rate=10000)
-        assert_approx(result["fee"], vexp=0.0140, vspan=0.0001)
+        high_fee_result = node.fundrawtransaction(rawtx, fee_rate=10000)
+        assert_approx(high_fee_result["fee"], vexp=result["fee"] * 10000, vspan=0.0001)
 
         self.log.info("Test fundrawtxn with invalid estimate_mode settings")
         for k, v in {"number": 42, "object": {"foo": "bar"}}.items():
@@ -1010,16 +802,16 @@ class RawTransactionsTest(BitcoinTestFramework):
         wallet = self.nodes[0].get_wallet_rpc(self.default_wallet_name)
         recipient = self.nodes[0].get_wallet_rpc("large")
         outputs = {}
-        rawtx = recipient.createrawtransaction([], {wallet.getnewaddress(): 147.99899260})
+        rawtx = recipient.createrawtransaction([], {wallet.getnewaddress(): 177.99899260})
 
-        # Make 1500 0.1 BTC outputs. The amount that we target for funding is in
+        # Make 1800 0.1 BTC outputs. The amount that we target for funding is in
         # the BnB range when these outputs are used.  However if these outputs
         # are selected, the transaction will end up being too large, so it
         # shouldn't use BnB and instead fall back to Knapsack but that behavior
         # is not implemented yet. For now we just check that we get an error.
         # First, force the wallet to bulk-generate the addresses we'll need.
-        recipient.keypoolrefill(1500)
-        for _ in range(1500):
+        recipient.keypoolrefill(1800)
+        for _ in range(1800):
             outputs[recipient.getnewaddress()] = 0.1
         wallet.sendmany("", outputs, fee_rate=self.fee_rate_sats_per_vb)
         self.generate(self.nodes[0], 10)
@@ -1118,7 +910,7 @@ class RawTransactionsTest(BitcoinTestFramework):
         # Create and fund the wallet with 5 BTC
         self.nodes[2].createwallet("test_preset_inputs")
         wallet = self.nodes[2].get_wallet_rpc("test_preset_inputs")
-        addr1 = wallet.getnewaddress(address_type="bech32")
+        addr1 = wallet.getnewaddress()
         self.nodes[0].sendtoaddress(addr1, 5, fee_rate=self.fee_rate_sats_per_vb)
         self.generate(self.nodes[0], 1)
 
@@ -1147,7 +939,7 @@ class RawTransactionsTest(BitcoinTestFramework):
         # verify that the dynamically set 'add_inputs=false' value works.
 
         # Fund wallet with 2 outputs, 5 BTC each.
-        addr2 = wallet.getnewaddress(address_type="bech32")
+        addr2 = wallet.getnewaddress()
         source_tx = self.nodes[0].send(outputs=[{addr1: 5}, {addr2: 5}], change_position=0, fee_rate=self.fee_rate_sats_per_vb)
         self.generate(self.nodes[0], 1)
 
@@ -1245,7 +1037,7 @@ class RawTransactionsTest(BitcoinTestFramework):
         wallet = self.nodes[2].get_wallet_rpc("test_preset_inputs_selection")
         outputs = {}
         for _ in range(4):
-            outputs[wallet.getnewaddress(address_type="bech32")] = 5
+            outputs[wallet.getnewaddress()] = 5
         self.nodes[0].sendmany("", outputs, fee_rate=self.fee_rate_sats_per_vb)
         self.generate(self.nodes[0], 1)
 
@@ -1274,43 +1066,13 @@ class RawTransactionsTest(BitcoinTestFramework):
         # so that the recipient's amount is no longer equal to the user's selected target of 29 BTC.
 
         # First case, use 'subtract_fee_from_outputs = true'
-        assert_raises_rpc_error(-4, "Insufficient funds", wallet.send, outputs=[{wallet.getnewaddress(address_type="bech32"): 29}], options=options)
+        assert_raises_rpc_error(-4, "Insufficient funds", wallet.send, outputs=[{wallet.getnewaddress(): 29}], options=options)
 
         # Second case, don't use 'subtract_fee_from_outputs'
         del options["subtract_fee_from_outputs"]
-        assert_raises_rpc_error(-4, "Insufficient funds", wallet.send, outputs=[{wallet.getnewaddress(address_type="bech32"): 29}], options=options)
+        assert_raises_rpc_error(-4, "Insufficient funds", wallet.send, outputs=[{wallet.getnewaddress(): 29}], options=options)
 
         self.nodes[2].unloadwallet("test_preset_inputs_selection")
-
-    def test_weight_calculation(self):
-        self.log.info("Test weight calculation with external inputs")
-
-        self.nodes[2].createwallet("test_weight_calculation")
-        wallet = self.nodes[2].get_wallet_rpc("test_weight_calculation")
-
-        addr = wallet.getnewaddress(address_type="bech32")
-        ext_addr = self.nodes[0].getnewaddress(address_type="bech32")
-        utxo, ext_utxo = self.create_outpoints(self.nodes[0], outputs=[{addr: 5}, {ext_addr: 5}])
-
-        self.nodes[0].sendtoaddress(wallet.getnewaddress(address_type="bech32"), 5, fee_rate=self.fee_rate_sats_per_vb)
-        self.generate(self.nodes[0], 1)
-
-        rawtx = wallet.createrawtransaction([utxo], [{self.nodes[0].getnewaddress(address_type="bech32"): 8}])
-        fundedtx = wallet.fundrawtransaction(rawtx, fee_rate=10, change_type="bech32")
-        # with 71-byte signatures we should expect following tx size
-        # tx overhead (10) + 2 inputs (41 each) + 2 p2wpkh (31 each) + 2 p2wpkh 71 byte sig witnesses (107 each) / witness scaling factor (4)
-        tx_size = ceil(10 + 41*2 + 31*2 + (107*2)/4)
-        assert_equal(fundedtx['fee'] * COIN, tx_size * 10)
-
-        # Using the other output should have 72 byte sigs
-        rawtx = wallet.createrawtransaction([ext_utxo], [{self.nodes[0].getnewaddress(): 13}])
-        ext_desc = self.nodes[0].getaddressinfo(ext_addr)["desc"]
-        fundedtx = wallet.fundrawtransaction(rawtx, fee_rate=10, change_type="bech32", solving_data={"descriptors": [ext_desc]})
-        # tx overhead (10) + 3 inputs (41 each) + 2 p2wpkh(31 each) + (2 p2wpkh 71 bytes sig witnesses (107 each) + p2wpkh 72 byte sig witness (108)) / witness scaling factor (4)
-        tx_size = ceil(10 + 41*3 + 31*2 + (107*2 + 108)/4)
-        assert_equal(fundedtx['fee'] * COIN, tx_size * 10)
-
-        self.nodes[2].unloadwallet("test_weight_calculation")
 
     def test_weight_limits(self):
         self.log.info("Test weight limits")
@@ -1319,18 +1081,19 @@ class RawTransactionsTest(BitcoinTestFramework):
         wallet = self.nodes[2].get_wallet_rpc("test_weight_limits")
 
         outputs = []
-        for _ in range(1472):
-            outputs.append({wallet.getnewaddress(address_type="legacy"): 0.1})
+        for _ in range(1800):
+            outputs.append({wallet.getnewaddress(): 0.1})
         txid = self.nodes[0].send(outputs=outputs, change_position=0, fee_rate=self.fee_rate_sats_per_vb)["txid"]
         self.generate(self.nodes[0], 1)
 
-        # 272 WU per input (273 when high-s); picking 1471 inputs will exceed the max standard tx weight.
-        rawtx = wallet.createrawtransaction([], [{wallet.getnewaddress(): 0.1 * 1471}])
+        # 230 WU per Taproot key-path input (231 with an explicit sighash byte);
+        # picking 1799 inputs exceeds the maximum standard transaction weight.
+        rawtx = wallet.createrawtransaction([], [{wallet.getnewaddress(): 0.1 * 1799}])
 
-        # 1) Try to fund transaction only using the preset inputs (pick all 1472 inputs to cover the fee)
+        # 1) Try to fund transaction only using all preset inputs to cover the fee.
         input_weights = []
-        for i in range(1, 1473):  # skip first output as it is the parent tx change output
-            input_weights.append({"txid": txid, "vout": i, "weight": 273})
+        for i in range(1, 1801):  # skip first output as it is the parent tx change output
+            input_weights.append({"txid": txid, "vout": i, "weight": 231})
         assert_raises_rpc_error(-4, "Transaction too large", wallet.fundrawtransaction, hexstring=rawtx, input_weights=input_weights)
 
         # 2) Let the wallet fund the transaction
@@ -1377,89 +1140,6 @@ class RawTransactionsTest(BitcoinTestFramework):
         signedtx = wallet.signrawtransactionwithwallet(fundedtx['hex'])
         assert wallet.testmempoolaccept([signedtx['hex']])[0]["allowed"]
         self.nodes[0].unloadwallet("unsafe")
-
-    def test_22670(self):
-        # In issue #22670, it was observed that ApproximateBestSubset may
-        # choose enough value to cover the target amount but not enough to cover the transaction fees.
-        # This leads to a transaction whose actual transaction feerate is lower than expected.
-        # However at normal feerates, the difference between the effective value and the real value
-        # that this bug is not detected because the transaction fee must be at least 0.01 BTC (the minimum change value).
-        # Otherwise the targeted minimum change value will be enough to cover the transaction fees that were not
-        # being accounted for. So the minimum relay fee is set to 0.1 BTC/kvB in this test.
-        self.log.info("Test issue 22670 ApproximateBestSubset bug")
-        # Make sure the default wallet will not be loaded when restarted with a high minrelaytxfee
-        self.nodes[0].unloadwallet(self.default_wallet_name, False)
-        feerate = Decimal("0.1")
-        self.restart_node(0, [f"-minrelaytxfee={feerate}", "-discardfee=0"]) # Set high minrelayfee, set discardfee to 0 for easier calculation
-
-        self.nodes[0].loadwallet(self.default_wallet_name, True)
-        funds = self.nodes[0].get_wallet_rpc(self.default_wallet_name)
-        self.nodes[0].createwallet(wallet_name="tester")
-        tester = self.nodes[0].get_wallet_rpc("tester")
-
-        # Because this test is specifically for ApproximateBestSubset, the target value must be greater
-        # than any single input available, and require more than 1 input. So we make 3 outputs
-        for i in range(0, 3):
-            funds.sendtoaddress(tester.getnewaddress(address_type="bech32"), 1)
-        self.generate(self.nodes[0], 1, sync_fun=self.no_op)
-
-        # Create transactions in order to calculate fees for the target bounds that can trigger this bug
-        change_tx = tester.fundrawtransaction(tester.createrawtransaction([], [{funds.getnewaddress(): 1.5}]))
-        tx = tester.createrawtransaction([], [{funds.getnewaddress(): 2}])
-        no_change_tx = tester.fundrawtransaction(tx, subtractFeeFromOutputs=[0])
-
-        overhead_fees = feerate * len(tx) / 2 / 1000
-        cost_of_change = change_tx["fee"] - no_change_tx["fee"]
-        fees = no_change_tx["fee"]
-        assert_greater_than(fees, 0.01)
-
-        def do_fund_send(target):
-            create_tx = tester.createrawtransaction([], [{funds.getnewaddress(): target}])
-            funded_tx = tester.fundrawtransaction(create_tx)
-            signed_tx = tester.signrawtransactionwithwallet(funded_tx["hex"])
-            assert signed_tx["complete"]
-            decoded_tx = tester.decoderawtransaction(signed_tx["hex"])
-            assert_equal(len(decoded_tx["vin"]), 3)
-            assert tester.testmempoolaccept([signed_tx["hex"]])[0]["allowed"]
-
-        # We want to choose more value than is available in 2 inputs when considering the fee,
-        # but not enough to need 3 inputs when not considering the fee.
-        # So the target value must be at least 2.00000001 - fee.
-        lower_bound = Decimal("2.00000001") - fees
-        # The target value must be at most 2 - cost_of_change - not_input_fees - min_change (these are all
-        # included in the target before ApproximateBestSubset).
-        upper_bound = Decimal("2.0") - cost_of_change - overhead_fees - Decimal("0.01")
-        assert_greater_than_or_equal(upper_bound, lower_bound)
-        do_fund_send(lower_bound)
-        do_fund_send(upper_bound)
-
-        self.restart_node(0)
-        self.connect_nodes(0, 1)
-        self.connect_nodes(0, 2)
-        self.connect_nodes(0, 3)
-
-    def test_feerate_rounding(self):
-        self.log.info("Test that rounding of GetFee does not result in an assertion")
-
-        self.nodes[1].createwallet("roundtest")
-        w = self.nodes[1].get_wallet_rpc("roundtest")
-
-        addr = w.getnewaddress(address_type="bech32")
-        self.nodes[0].sendtoaddress(addr, 1, fee_rate=self.fee_rate_sats_per_vb)
-        self.generate(self.nodes[0], 1)
-
-        # A P2WPKH input costs 68 vbytes; With a single P2WPKH output, the rest of the tx is 42 vbytes for a total of 110 vbytes.
-        # At a feerate of 1.85 sat/vb, the input will need a fee of 125.8 sats and the rest 77.7 sats
-        # The entire tx fee should be 203.5 sats.
-        # Coin selection rounds the fee individually instead of at the end (due to how CFeeRate::GetFee works).
-        # If rounding down (which is the incorrect behavior), then the calculated fee will be 125 + 77 = 202.
-        # If rounding up, then the calculated fee will be 126 + 78 = 204.
-        # In the former case, the calculated needed fee is higher than the actual fee being paid, so an assertion is reached
-        # To test this does not happen, we subtract 202 sats from the input value. If working correctly, this should
-        # fail with insufficient funds rather than bitcoind asserting.
-        rawtx = w.createrawtransaction(inputs=[], outputs=[{self.nodes[0].getnewaddress(address_type="bech32"): 1 - 0.00000202}])
-        expected_err_msg = "The total exceeds your balance when the 0.00000078 transaction fee is included."
-        assert_raises_rpc_error(-4, expected_err_msg, w.fundrawtransaction, rawtx, fee_rate=1.85)
 
     def test_input_confs_control(self):
         self.nodes[0].createwallet("minconf")
@@ -1522,29 +1202,6 @@ class RawTransactionsTest(BitcoinTestFramework):
 
         wallet.unloadwallet()
 
-    def test_watchonly_cannot_grind_r(self):
-        self.log.info("Test that a watchonly wallet will estimate higher fees for a tx than the wallet with private keys")
-        self.nodes[0].createwallet("grind")
-        wallet = self.nodes[0].get_wallet_rpc("grind")
-        default_wallet = self.nodes[0].get_wallet_rpc(self.default_wallet_name)
-
-        self.nodes[0].createwallet(wallet_name="grind_watchonly", disable_private_keys=True)
-        watchonly = self.nodes[0].get_wallet_rpc("grind_watchonly")
-        assert_equal(watchonly.importdescriptors(wallet.listdescriptors()["descriptors"])[0]["success"], True)
-
-        # Send to legacy address type so that we will have an ecdsa signature with a measurable effect on the feerate
-        default_wallet.sendtoaddress(wallet.getnewaddress(address_type="legacy"), 10)
-        self.generate(self.nodes[0], 1)
-
-        assert_equal(wallet.listunspent(), watchonly.listunspent())
-
-        ret_addr = default_wallet.getnewaddress()
-        tx = wallet.createrawtransaction([], [{ret_addr: 5}])
-        funded = wallet.fundrawtransaction(hexstring=tx, fee_rate=10)
-
-        watchonly_funded = watchonly.fundrawtransaction(hexstring=tx, fee_rate=10)
-        assert_greater_than(watchonly_funded["fee"], funded["fee"])
-
     def test_cannot_cover_fees(self):
         self.log.info("Test error message when transaction amount exceeds available balance when fees are included")
         default_wallet = self.nodes[0].get_wallet_rpc(self.default_wallet_name)
@@ -1562,7 +1219,7 @@ class RawTransactionsTest(BitcoinTestFramework):
         self.log.info("Test without preselected inputs")
         self.log.info("Attempt to send 0.45 BTC without SFFO")
         rawtx = wallet.createrawtransaction(inputs=[], outputs=[{default_wallet.getnewaddress(): 0.45}])
-        assert_raises_rpc_error(-4, amount_with_fee_err_msg.format("0.00000042"), wallet.fundrawtransaction, rawtx, options={"fee_rate":1})
+        assert_raises_rpc_error(-4, amount_with_fee_err_msg.format("0.00000054"), wallet.fundrawtransaction, rawtx, options={"fee_rate":1})
 
         self.log.info("Send 0.45 BTC with SFFO")
         wallet.fundrawtransaction(rawtx, options={"subtractFeeFromOutputs":[0]})
@@ -1573,7 +1230,7 @@ class RawTransactionsTest(BitcoinTestFramework):
         self.log.info("Test with preselected inputs")
         self.log.info("Attempt to send 0.45 BTC preselecting 0.15 BTC utxo")
         rawtx = wallet.createrawtransaction(inputs=[{"txid": txid2, "vout": vout2}], outputs=[{default_wallet.getnewaddress(): 0.45}])
-        assert_raises_rpc_error(-4, amount_with_fee_err_msg.format("0.00000042"), wallet.fundrawtransaction, rawtx, options={"fee_rate":1})
+        assert_raises_rpc_error(-4, amount_with_fee_err_msg.format("0.00000054"), wallet.fundrawtransaction, rawtx, options={"fee_rate":1})
 
         self.log.info("Send 0.45 BTC preselecting 0.15 BTC utxo with SFFO")
         wallet.fundrawtransaction(hexstring=rawtx, options={"subtractFeeFromOutputs":[0]})

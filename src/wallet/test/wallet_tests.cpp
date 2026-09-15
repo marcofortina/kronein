@@ -466,18 +466,12 @@ BOOST_FIXTURE_TEST_CASE(BasicOutputTypesTest, ListCoinsTest)
     BOOST_CHECK_EQUAL(available_coins.Size(), expected_coins_sizes[OutputType::UNKNOWN]);
     BOOST_CHECK_EQUAL(available_coins.coins[OutputType::UNKNOWN].size(), expected_coins_sizes[OutputType::UNKNOWN]);
 
-    // We will create a self transfer for each of the OutputTypes and
-    // verify it is put in the correct bucket after running GetAvailablecoins
-    //
-    // For each OutputType, We expect 2 UTXOs in our wallet following the self transfer:
+    // Create a native Taproot self transfer and verify that it is placed in
+    // the Bech32m bucket. We expect two wallet UTXOs:
     //   1. One UTXO as the recipient
-    //   2. One UTXO from the change, due to payment address matching logic
-
-    for (const auto& out_type : OUTPUT_TYPES) {
-        if (out_type == OutputType::UNKNOWN) continue;
-        expected_coins_sizes[out_type] = 2U;
-        TestCoinsResult(*this, out_type, 1 * COIN, expected_coins_sizes);
-    }
+    //   2. One UTXO from the change
+    expected_coins_sizes[OutputType::BECH32M] = 2U;
+    TestCoinsResult(*this, OutputType::BECH32M, 1 * COIN, expected_coins_sizes);
 }
 
 BOOST_FIXTURE_TEST_CASE(wallet_disableprivkeys, TestChain100Setup)
@@ -485,7 +479,7 @@ BOOST_FIXTURE_TEST_CASE(wallet_disableprivkeys, TestChain100Setup)
     const std::shared_ptr<CWallet> wallet = std::make_shared<CWallet>(m_node.chain.get(), "", CreateMockableWalletDatabase());
     LOCK(wallet->cs_wallet);
     wallet->SetWalletFlag(WALLET_FLAG_DISABLE_PRIVATE_KEYS);
-    BOOST_CHECK(!wallet->GetNewDestination(OutputType::BECH32, ""));
+    BOOST_CHECK(!wallet->GetNewDestination(OutputType::BECH32M, ""));
 }
 
 // Explicit calculation which is used to test the wallet constant

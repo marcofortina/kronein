@@ -42,7 +42,7 @@ class NULLDUMMYTest(BitcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.setup_clean_chain = True
-        self.extra_args = [['-addresstype=legacy']]
+        self.extra_args = [[]]
 
     def create_transaction(self, *, txid, input_details=None, addr, amount, privkey):
         tx_input = {"txid": txid, "vout": 0}

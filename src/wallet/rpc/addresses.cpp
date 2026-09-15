@@ -27,7 +27,6 @@ RPCHelpMan getnewaddress()
                 "so payments received with the address will be associated with 'label'.\n",
                 {
                     {"label", RPCArg::Type::STR, RPCArg::Default{""}, "The label name for the address to be linked to. It can also be set to the empty string \"\" to represent the default label. The label does not need to exist, it will be created if there is no label by the given name."},
-                    {"address_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -addresstype"}, "The address type to use. Options are " + FormatAllOutputTypes() + "."},
                 },
                 RPCResult{
                     RPCResult::Type::STR, "address", "The new bitcoin address"
@@ -50,16 +49,7 @@ RPCHelpMan getnewaddress()
     // Parse the label first so we don't generate a key if there's an error
     const std::string label{LabelFromValue(request.params[0])};
 
-    OutputType output_type = pwallet->m_default_address_type;
-    if (!request.params[1].isNull()) {
-        std::optional<OutputType> parsed = ParseOutputType(request.params[1].get_str());
-        if (!parsed) {
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, strprintf("Unknown address type '%s'", request.params[1].get_str()));
-        }
-        output_type = parsed.value();
-    }
-
-    auto op_dest = pwallet->GetNewDestination(output_type, label);
+    auto op_dest = pwallet->GetNewDestination(OutputType::BECH32M, label);
     if (!op_dest) {
         throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, util::ErrorString(op_dest).original);
     }
@@ -75,9 +65,7 @@ RPCHelpMan getrawchangeaddress()
         "getrawchangeaddress",
         "Returns a new Bitcoin address, for receiving change.\n"
                 "This is for use with raw transactions, NOT normal use.\n",
-                {
-                    {"address_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -changetype"}, "The address type to use. Options are " + FormatAllOutputTypes() + "."},
-                },
+                {},
                 RPCResult{
                     RPCResult::Type::STR, "address", "The address"
                 },
@@ -96,16 +84,7 @@ RPCHelpMan getrawchangeaddress()
         throw JSONRPCError(RPC_WALLET_ERROR, "Error: This wallet has no available keys");
     }
 
-    OutputType output_type = pwallet->m_default_change_type.value_or(pwallet->m_default_address_type);
-    if (!request.params[0].isNull()) {
-        std::optional<OutputType> parsed = ParseOutputType(request.params[0].get_str());
-        if (!parsed) {
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, strprintf("Unknown address type '%s'", request.params[0].get_str()));
-        }
-        output_type = parsed.value();
-    }
-
-    auto op_dest = pwallet->GetNewChangeDestination(output_type);
+    auto op_dest = pwallet->GetNewChangeDestination(OutputType::BECH32M);
     if (!op_dest) {
         throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, util::ErrorString(op_dest).original);
     }

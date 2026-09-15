@@ -58,7 +58,6 @@ class BumpFeeTest(BitcoinTestFramework):
         self.extra_args = [[
             "-walletrbf={}".format(i),
             "-mintxfee=0.00002",
-            "-addresstype=bech32",
         ] for i in range(self.num_nodes)]
 
     def skip_test_if_missing_module(self):
@@ -351,7 +350,7 @@ def test_segwit_bumpfee_succeeds(self, rbf_node, dest_address):
     # Create a transaction with segwit output, then create an RBF transaction
     # which spends it, and make sure bumpfee can be called on it.
 
-    segwit_out = rbf_node.getnewaddress(address_type='bech32')
+    segwit_out = rbf_node.getnewaddress()
     segwitid = rbf_node.send({segwit_out: "0.0009"}, options={"change_position": 1})["txid"]
 
     rbfraw = rbf_node.createrawtransaction([{
@@ -597,8 +596,8 @@ def test_watchonly_psbt(self, peer_node, rbf_node, dest_address):
     result = watcher.importdescriptors(reqs)
     assert_equal(result, [{'success': True}, {'success': True}])
 
-    funding_address1 = watcher.getnewaddress(address_type='bech32')
-    funding_address2 = watcher.getnewaddress(address_type='bech32')
+    funding_address1 = watcher.getnewaddress()
+    funding_address2 = watcher.getnewaddress()
     peer_node.sendmany("", {funding_address1: 0.001, funding_address2: 0.001})
     self.generate(peer_node, 1)
 
@@ -786,7 +785,7 @@ def test_feerate_checks_replaced_outputs(self, rbf_node, peer_node):
     self.log.info("Test that feerate checks use replaced outputs")
     outputs = []
     for i in range(50):
-        outputs.append({rbf_node.getnewaddress(address_type="bech32"): 1})
+        outputs.append({rbf_node.getnewaddress(): 1})
     tx_res = rbf_node.send(outputs=outputs, fee_rate=5)
     tx_details = rbf_node.gettransaction(txid=tx_res["txid"], verbose=True)
 
@@ -800,7 +799,7 @@ def test_feerate_checks_replaced_outputs(self, rbf_node, peer_node):
     min_fee_rate = (min_fee / est_bumped_size).quantize(Decimal("1.000"))
 
     # Attempt to bumpfee and replace all outputs with a single one using a feerate slightly less than the minimum
-    new_outputs = [{rbf_node.getnewaddress(address_type="bech32"): 49}]
+    new_outputs = [{rbf_node.getnewaddress(): 49}]
     assert_raises_rpc_error(-8, "Insufficient total fee", rbf_node.bumpfee, tx_res["txid"], {"fee_rate": min_fee_rate - 1, "outputs": new_outputs})
 
     # Bumpfee and replace all outputs with a single one using the minimum feerate
@@ -814,7 +813,7 @@ def test_bumpfee_with_feerate_ignores_walletincrementalrelayfee(self, rbf_node, 
     peer_node.sendtoaddress(rbf_node.getnewaddress(), 2)
     self.generate(peer_node, 1)
 
-    dest_address = peer_node.getnewaddress(address_type="bech32")
+    dest_address = peer_node.getnewaddress()
     tx = rbf_node.send(outputs=[{dest_address: 1}], fee_rate=2)
 
     # Ensure you can not fee bump with a fee_rate below or equal to the original fee_rate

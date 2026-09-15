@@ -488,7 +488,7 @@ class ListSinceBlockTest(BitcoinTestFramework):
 
     def test_label(self):
         self.log.info('Test passing "label" argument fetches incoming transactions having the specified label')
-        new_addr = self.nodes[1].getnewaddress(label="new_addr", address_type="bech32")
+        new_addr = self.nodes[1].getnewaddress(label="new_addr")
 
         self.nodes[2].sendtoaddress(address=new_addr, amount="0.001")
         self.generate(self.nodes[2], 1)

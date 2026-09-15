@@ -77,15 +77,12 @@ class SegWitTest(BitcoinTestFramework):
         self.extra_args = [
             [
                 "-acceptnonstdtxn=1",
-                "-addresstype=legacy",
             ],
             [
                 "-acceptnonstdtxn=1",
-                "-addresstype=legacy",
             ],
             [
                 "-acceptnonstdtxn=1",
-                "-addresstype=legacy",
             ],
         ]
         self.rpc_timeout = 120

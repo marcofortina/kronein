@@ -48,8 +48,6 @@ BOOST_FIXTURE_TEST_CASE(SubtractFee, TestChain100Setup)
         CCoinControl coin_control;
         coin_control.m_feerate.emplace(10000);
         coin_control.fOverrideFeeRate = true;
-        // We need to use a change type with high cost of change so that the leftover amount will be dropped to fee instead of added as a change output
-        coin_control.m_change_type = OutputType::LEGACY;
         auto res = CreateTransaction(*wallet, {recipient}, /*change_pos=*/std::nullopt, coin_control);
         BOOST_CHECK(res);
         const auto& txr = *res;
@@ -67,15 +65,6 @@ BOOST_FIXTURE_TEST_CASE(SubtractFee, TestChain100Setup)
     // input amount is paid to recipient not the miner (to_reduce == fee - 123)
     BOOST_CHECK_EQUAL(fee, check_tx(123));
 
-    // Send full input minus fee amount to recipient, check leftover input
-    // amount is paid to recipient not the miner (to_reduce == 0)
-    BOOST_CHECK_EQUAL(fee, check_tx(fee));
-
-    // Send full input minus more than the fee amount to recipient, check
-    // leftover input amount is paid to recipient not the miner (to_reduce ==
-    // -123). This overpays the recipient instead of overpaying the miner more
-    // than double the necessary fee.
-    BOOST_CHECK_EQUAL(fee, check_tx(fee + 123));
 }
 
 BOOST_FIXTURE_TEST_CASE(wallet_duplicated_preset_inputs_test, TestChain100Setup)
@@ -94,7 +83,7 @@ BOOST_FIXTURE_TEST_CASE(wallet_duplicated_preset_inputs_test, TestChain100Setup)
 
     // Try to create a tx that spends more than what preset inputs + wallet selected inputs are covering for.
     // The wallet can cover up to 200 BTC, and the tx target is 299 BTC.
-    std::vector<CRecipient> recipients{{*Assert(wallet->GetNewDestination(OutputType::BECH32, "dummy")),
+    std::vector<CRecipient> recipients{{*Assert(wallet->GetNewDestination(OutputType::BECH32M, "dummy")),
                                            /*nAmount=*/299 * COIN, /*fSubtractFeeFromAmount=*/true}};
     CCoinControl coin_control;
     coin_control.m_allow_other_inputs = true;

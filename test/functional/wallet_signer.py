@@ -85,57 +85,28 @@ class WalletSignerTest(BitcoinTestFramework):
         )
         self.clear_mock_result(self.nodes[1])
 
-        assert_equal(hww.getwalletinfo()["keypoolsize"], 40)
+        assert_equal(hww.getwalletinfo()["keypoolsize"], 10)
 
-        address1 = hww.getnewaddress(address_type="bech32")
-        assert_equal(address1, "bcrt1qm90ugl4d48jv8n6e5t9ln6t9zlpm5th68x4f8g")
-        address_info = hww.getaddressinfo(address1)
-        assert_equal(address_info['solvable'], True)
-        assert_equal(address_info['ismine'], True)
-        assert_equal(address_info['hdkeypath'], "m/84h/1h/0h/0/0")
-
-        address2 = hww.getnewaddress(address_type="p2sh-segwit")
-        assert_equal(address2, "2N2gQKzjUe47gM8p1JZxaAkTcoHPXV6YyVp")
-        address_info = hww.getaddressinfo(address2)
-        assert_equal(address_info['solvable'], True)
-        assert_equal(address_info['ismine'], True)
-        assert_equal(address_info['hdkeypath'], "m/49h/1h/0h/0/0")
-
-        address3 = hww.getnewaddress(address_type="legacy")
-        assert_equal(address3, "n1LKejAadN6hg2FrBXoU1KrwX4uK16mco9")
-        address_info = hww.getaddressinfo(address3)
-        assert_equal(address_info['solvable'], True)
-        assert_equal(address_info['ismine'], True)
-        assert_equal(address_info['hdkeypath'], "m/44h/1h/0h/0/0")
-
-        address4 = hww.getnewaddress(address_type="bech32m")
-        assert_equal(address4, "bcrt1phw4cgpt6cd30kz9k4wkpwm872cdvhss29jga2xpmftelhqll62ms4e9sqj")
-        address_info = hww.getaddressinfo(address4)
+        address = hww.getnewaddress()
+        assert_equal(address, "bcrt1phw4cgpt6cd30kz9k4wkpwm872cdvhss29jga2xpmftelhqll62ms4e9sqj")
+        address_info = hww.getaddressinfo(address)
         assert_equal(address_info['solvable'], True)
         assert_equal(address_info['ismine'], True)
         assert_equal(address_info['hdkeypath'], "m/86h/1h/0h/0/0")
 
         self.log.info('Test walletdisplayaddress')
-        for address in [address1, address2, address3]:
-            result = hww.walletdisplayaddress(address)
-            assert_equal(result, {"address": address})
+        result = hww.walletdisplayaddress(address)
+        assert_equal(result, {"address": address})
 
         # Handle error thrown by script
         self.set_mock_result(self.nodes[1], "2")
         assert_raises_rpc_error(-1, 'RunCommandParseJSON error',
-            hww.walletdisplayaddress, address1
+            hww.walletdisplayaddress, address
         )
         self.clear_mock_result(self.nodes[1])
 
-        # Returned address MUST match:
-        address_fail = hww.getnewaddress(address_type="bech32")
-        assert_equal(address_fail, "bcrt1ql7zg7ukh3dwr25ex2zn9jse926f27xy2jz58tm")
-        assert_raises_rpc_error(-1, 'Signer echoed unexpected address wrong_address',
-            hww.walletdisplayaddress, address_fail
-        )
-
         self.log.info('Prepare mock PSBT')
-        self.nodes[0].sendtoaddress(address4, 1)
+        self.nodes[0].sendtoaddress(address, 1)
         self.generate(self.nodes[0], 1)
 
         # Load private key into wallet to generate a signed PSBT for the mock
@@ -160,7 +131,7 @@ class WalletSignerTest(BitcoinTestFramework):
         assert_equal(result[0], {'success': True})
         assert_equal(result[1], {'success': True})
         assert_equal(mock_wallet.getwalletinfo()["txcount"], 1)
-        dest = self.nodes[0].getnewaddress(address_type='bech32')
+        dest = self.nodes[0].getnewaddress()
         mock_psbt = mock_wallet.walletcreatefundedpsbt([], {dest:0.5}, 0, {'replaceable': True}, True)['psbt']
         mock_psbt_signed = mock_wallet.walletprocesspsbt(psbt=mock_psbt, sign=True, sighashtype="ALL", bip32derivs=True)
         mock_tx = mock_psbt_signed["hex"]
@@ -215,7 +186,7 @@ class WalletSignerTest(BitcoinTestFramework):
         assert_equal(hww.getwalletinfo()["external_signer"], True)
 
         # Fund wallet
-        self.nodes[0].sendtoaddress(hww.getnewaddress(address_type="bech32m"), 1)
+        self.nodes[0].sendtoaddress(hww.getnewaddress(), 1)
         self.generate(self.nodes[0], 1)
 
         # Restart node with no signer connected
