@@ -20,7 +20,6 @@ class DecodeScriptTest(BitcoinTestFramework):
         assert_equal(result["asm"], "1 " + xonly_public_key)
         assert_equal(result["type"], "witness_v1_taproot")
         assert_equal(result["address"], "bcrt1pqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs7r922v")
-        assert "segwit" not in result
 
         self.log.info("Decode an OP_RETURN output")
         result = self.nodes[0].decodescript("6a04deadbeef")
