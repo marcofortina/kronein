@@ -4,8 +4,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <key_io.h>
-#include <outputtype.h>
-#include <pubkey.h>
 #include <rpc/protocol.h>
 #include <rpc/request.h>
 #include <rpc/server.h>
@@ -13,7 +11,6 @@
 #include <script/descriptor.h>
 #include <script/script.h>
 #include <script/signingprovider.h>
-#include <tinyformat.h>
 #include <univalue.h>
 #include <util/check.h>
 #include <util/strencodings.h>
@@ -86,86 +83,9 @@ static RPCHelpMan validateaddress()
     };
 }
 
-static RPCHelpMan createmultisig()
-{
-    return RPCHelpMan{
-        "createmultisig",
-        "Creates a multi-signature address with n signatures of m keys required.\n"
-        "It returns a json object with the address and redeemScript.\n",
-        {
-            {"nrequired", RPCArg::Type::NUM, RPCArg::Optional::NO, "The number of required signatures out of the m keys."},
-            {"keys", RPCArg::Type::ARR, RPCArg::Optional::NO, "The hex-encoded public keys.",
-                {
-                    {"key", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "The hex-encoded public key"},
-                }},
-            {"address_type", RPCArg::Type::STR, RPCArg::Default{"legacy"}, "The address type to use. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\"."},
-        },
-        RPCResult{
-            RPCResult::Type::OBJ, "", "",
-            {
-                {RPCResult::Type::STR, "address", "The value of the new multisig address."},
-                {RPCResult::Type::STR_HEX, "redeemScript", "The string value of the hex-encoded redemption script."},
-                {RPCResult::Type::STR, "descriptor", "The descriptor for this multisig"},
-                {RPCResult::Type::ARR, "warnings", /*optional=*/true, "Any warnings resulting from the creation of this multisig",
-                {
-                    {RPCResult::Type::STR, "", ""},
-                }},
-            }
-        },
-        RPCExamples{
-            "\nCreate a multisig address from 2 public keys\n"
-            + HelpExampleCli("createmultisig", "2 \"[\\\"03789ed0bb717d88f7d321a368d905e7430207ebbd82bd342cf11ae157a7ace5fd\\\",\\\"03dbc6764b8884a92e871274b87583e6d5c2a58819473e17e107ef3f6aa5a61626\\\"]\"") +
-            "\nAs a JSON-RPC call\n"
-            + HelpExampleRpc("createmultisig", "2, [\"03789ed0bb717d88f7d321a368d905e7430207ebbd82bd342cf11ae157a7ace5fd\",\"03dbc6764b8884a92e871274b87583e6d5c2a58819473e17e107ef3f6aa5a61626\"]")
-                },
-        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-        {
-            int required = request.params[0].getInt<int>();
-
-            // Get the public keys
-            const UniValue& keys = request.params[1].get_array();
-            std::vector<CPubKey> pubkeys;
-            pubkeys.reserve(keys.size());
-            for (unsigned int i = 0; i < keys.size(); ++i) {
-                pubkeys.push_back(HexToPubKey(keys[i].get_str()));
-            }
-
-            // Get the output type
-            auto address_type{self.Arg<std::string_view>("address_type")};
-            auto output_type{ParseOutputType(address_type)};
-            if (!output_type) {
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, tfm::format("Unknown address type '%s'", address_type));
-            } else if (output_type.value() == OutputType::BECH32M) {
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "createmultisig cannot create bech32m multisig addresses");
-            }
-
-            FlatSigningProvider keystore;
-            CScript inner;
-            const CTxDestination dest = AddAndGetMultisigDestination(required, pubkeys, output_type.value(), keystore, inner);
-
-            // Make the descriptor
-            std::unique_ptr<Descriptor> descriptor = InferDescriptor(GetScriptForDestination(dest), keystore);
-
-            UniValue result(UniValue::VOBJ);
-            result.pushKV("address", EncodeDestination(dest));
-            result.pushKV("redeemScript", HexStr(inner));
-            result.pushKV("descriptor", descriptor->ToString());
-
-            UniValue warnings(UniValue::VARR);
-            if (descriptor->GetOutputType() != output_type.value()) {
-                // Only warns if the user has explicitly chosen an address type we cannot generate
-                warnings.push_back("Unable to make chosen address type, please ensure no uncompressed public keys are present.");
-            }
-            PushWarnings(warnings, result);
-
-            return result;
-        },
-    };
-}
-
 static RPCHelpMan getdescriptorinfo()
 {
-    const std::string EXAMPLE_DESCRIPTOR = "wpkh([d34db33f/84h/0h/0h]0279be667ef9dcbbac55a06295Ce870b07029Bfcdb2dce28d959f2815b16f81798)";
+    const std::string EXAMPLE_DESCRIPTOR = "tr([d34db33f/86h/0h/0h]79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798)";
 
     return RPCHelpMan{
         "getdescriptorinfo",
@@ -243,7 +163,11 @@ static UniValue DeriveAddresses(const Descriptor* desc, int64_t range_begin, int
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Descriptor does not have a corresponding address");
             }
 
-            addresses.push_back(EncodeDestination(dest));
+            std::string address{EncodeDestination(dest)};
+            if (address.empty()) {
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Descriptor does not produce a Taproot address");
+            }
+            addresses.push_back(std::move(address));
         }
     }
 
@@ -257,17 +181,14 @@ static UniValue DeriveAddresses(const Descriptor* desc, int64_t range_begin, int
 
 static RPCHelpMan deriveaddresses()
 {
-    const std::string EXAMPLE_DESCRIPTOR = "wpkh([d34db33f/84h/0h/0h]xpub6DJ2dNUysrn5Vt36jH2KLBT2i1auw1tTSSomg8PhqNiUtx8QX2SvC9nrHu81fT41fvDUnhMjEzQgXnQjKEu3oaqMSzhSrHMxyyoEAmUHQbY/0/*)#cjjspncu";
+    const std::string EXAMPLE_DESCRIPTOR = "tr([d34db33f/86h/0h/0h]xpub6DJ2dNUysrn5Vt36jH2KLBT2i1auw1tTSSomg8PhqNiUtx8QX2SvC9nrHu81fT41fvDUnhMjEzQgXnQjKEu3oaqMSzhSrHMxyyoEAmUHQbY/0/*)#fzjmrt67";
 
     return RPCHelpMan{
         "deriveaddresses",
-        "Derives one or more addresses corresponding to an output descriptor.\n"
-         "Examples of output descriptors are:\n"
-         "    pkh(<pubkey>)                                     P2PKH outputs for the given pubkey\n"
-         "    wpkh(<pubkey>)                                    Native segwit P2PKH outputs for the given pubkey\n"
-         "    sh(multi(<n>,<pubkey>,<pubkey>,...))              P2SH-multisig outputs for the given threshold and pubkeys\n"
-         "    raw(<hex script>)                                 Outputs whose output script equals the specified hex-encoded bytes\n"
-         "    tr(<pubkey>,multi_a(<n>,<pubkey>,<pubkey>,...))   P2TR-multisig outputs for the given threshold and pubkeys\n"
+        "Derives one or more Taproot addresses corresponding to an output descriptor.\n"
+         "The descriptor must produce P2TR outputs, for example:\n"
+         "    tr(<pubkey>)                                      P2TR key-path outputs for the given pubkey\n"
+         "    tr(<pubkey>,multi_a(<n>,<pubkey>,<pubkey>,...))   P2TR script-path multisig outputs\n"
          "\nIn the above, <pubkey> either refers to a fixed public key in hexadecimal notation, or to an xpub/xprv optionally followed by one\n"
          "or more path elements separated by \"/\", where \"h\" represents a hardened child key.\n"
         "For more information on output descriptors, see the documentation in the doc/descriptors.md file.\n",
@@ -295,7 +216,7 @@ static RPCHelpMan deriveaddresses()
             },
         },
         RPCExamples{
-            "First three native segwit receive addresses\n" +
+            "First three Taproot receive addresses\n" +
             HelpExampleCli("deriveaddresses", "\"" + EXAMPLE_DESCRIPTOR + "\" \"[0,2]\"") +
             HelpExampleRpc("deriveaddresses", "\"" + EXAMPLE_DESCRIPTOR + "\", \"[0,2]\"")
         },
@@ -345,7 +266,6 @@ void RegisterOutputScriptRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
         {"util", &validateaddress},
-        {"util", &createmultisig},
         {"util", &deriveaddresses},
         {"util", &getdescriptorinfo},
     };

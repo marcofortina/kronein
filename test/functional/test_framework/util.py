@@ -733,7 +733,7 @@ def sync_txindex(test_framework, node):
     test_framework.log.debug(f"Synced in {time.time() - sync_start} seconds")
 
 def wallet_importprivkey(wallet_rpc, privkey, timestamp, *, label=""):
-    desc = descsum_create("combo(" + privkey + ")")
+    desc = descsum_create("tr(" + privkey + ")")
     req = [{
         "desc": desc,
         "timestamp": timestamp,

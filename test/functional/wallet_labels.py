@@ -100,7 +100,7 @@ class WalletLabelsTest(BitcoinTestFramework):
             linked_addresses.add(address_group[0][0])
 
         # send 50 from each address to a third address not in this wallet
-        common_address = "msf4WtN1YQKXvNtvdFYt9JBnUD2FB41kjr"
+        common_address = self.nodes[1].getnewaddress()
         node.sendmany(
             amounts={common_address: 100},
             subtractfeefrom=[common_address],
@@ -180,32 +180,16 @@ class WalletLabelsTest(BitcoinTestFramework):
         self.invalid_label_name_test()
         self.test_label_named_parameter_handling()
 
-        # This is a descriptor wallet test because of segwit v1+ addresses
         self.log.info('Check watchonly labels')
         node.createwallet(wallet_name='watch_only', disable_private_keys=True)
         wallet_watch_only = node.get_wallet_rpc('watch_only')
-        BECH32_VALID = {
-            '✔️_VER15_PROG40': 'bcrt10qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxkg7fn',
-            '✔️_VER16_PROG03': 'bcrt1sqqqqq8uhdgr',
-            '✔️_VER16_PROB02': 'bcrt1sqqqq4wstyw',
-        }
-        BECH32_INVALID = {
-            '❌_VER15_PROG41': 'bcrt1sqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqajlxj8',
-            '❌_VER16_PROB01': 'bcrt1sqq5r4036',
-        }
-        for label in BECH32_VALID:
-            ad = BECH32_VALID[label]
-            import_res = wallet_watch_only.importdescriptors([{"desc": descsum_create(f"addr({ad})"), "timestamp": "now", "label": label}])
-            assert_equal(import_res[0]["success"], True)
-            self.generatetoaddress(node, 1, ad)
-            assert_equal(wallet_watch_only.getaddressesbylabel(label=label), {ad: {'purpose': 'receive'}})
-            assert_equal(wallet_watch_only.getreceivedbylabel(label=label), 0)
-        for label in BECH32_INVALID:
-            ad = BECH32_INVALID[label]
-            import_res = wallet_watch_only.importdescriptors([{"desc": descsum_create(f"addr({ad})"), "timestamp": "now", "label": label}])
-            assert_equal(import_res[0]["success"], False)
-            assert_equal(import_res[0]["error"]["code"], -5)
-            assert_equal(import_res[0]["error"]["message"], "Address is not valid")
+        label = 'watch_only'
+        address = self.nodes[1].getnewaddress()
+        import_res = wallet_watch_only.importdescriptors([{"desc": descsum_create(f"addr({address})"), "timestamp": "now", "label": label}])
+        assert_equal(import_res[0]["success"], True)
+        self.generatetoaddress(node, 1, address)
+        assert_equal(wallet_watch_only.getaddressesbylabel(label=label), {address: {'purpose': 'receive'}})
+        assert_equal(wallet_watch_only.getreceivedbylabel(label=label), 0)
 
 
 class Label:

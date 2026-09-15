@@ -13,7 +13,6 @@
 #include <common/args.h>
 #include <common/messages.h>
 #include <common/settings.h>
-#include <common/signmessage.h>
 #include <common/system.h>
 #include <consensus/amount.h>
 #include <consensus/consensus.h>
@@ -2194,19 +2193,6 @@ std::optional<PSBTError> CWallet::FillPSBT(PartiallySignedTransaction& psbtx, bo
     }
 
     return {};
-}
-
-SigningResult CWallet::SignMessage(const std::string& message, const PKHash& pkhash, std::string& str_sig) const
-{
-    SignatureData sigdata;
-    CScript script_pub_key = GetScriptForDestination(pkhash);
-    for (const auto& spk_man_pair : m_spk_managers) {
-        if (spk_man_pair.second->CanProvide(script_pub_key, sigdata)) {
-            LOCK(cs_wallet);  // DescriptorScriptPubKeyMan calls IsLocked which can lock cs_wallet in a deadlocking order
-            return spk_man_pair.second->SignMessage(message, pkhash, str_sig);
-        }
-    }
-    return SigningResult::PRIVATE_KEY_NOT_AVAILABLE;
 }
 
 void CWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::vector<std::pair<std::string, std::string>> orderForm)

@@ -164,10 +164,6 @@ public:
         }
         return false;
     }
-    SigningResult signMessage(const std::string& message, const PKHash& pkhash, std::string& str_sig) override
-    {
-        return m_wallet->SignMessage(message, pkhash, str_sig);
-    }
     bool isSpendable(const CTxDestination& dest) override
     {
         LOCK(m_wallet->cs_wallet);

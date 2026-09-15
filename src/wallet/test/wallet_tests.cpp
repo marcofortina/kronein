@@ -4,6 +4,7 @@
 
 #include <wallet/wallet.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <future>
 #include <memory>
@@ -308,32 +309,40 @@ void TestLoadWallet(const std::string& name, std::function<void(std::shared_ptr<
 
 BOOST_FIXTURE_TEST_CASE(LoadReceiveRequests, TestingSetup)
 {
-    TestLoadWallet("receive-requests", [](std::shared_ptr<CWallet> wallet) EXCLUSIVE_LOCKS_REQUIRED(wallet->cs_wallet) {
-        BOOST_CHECK(!wallet->IsAddressPreviouslySpent(PKHash()));
+    CKey key_a;
+    key_a.MakeNewKey(true);
+    CKey key_b;
+    key_b.MakeNewKey(true);
+    const CTxDestination dest_a{WitnessV1Taproot{XOnlyPubKey{key_a.GetPubKey()}}};
+    const CTxDestination dest_b{WitnessV1Taproot{XOnlyPubKey{key_b.GetPubKey()}}};
+
+    TestLoadWallet("receive-requests", [dest_a, dest_b](std::shared_ptr<CWallet> wallet) EXCLUSIVE_LOCKS_REQUIRED(wallet->cs_wallet) {
+        BOOST_CHECK(!wallet->IsAddressPreviouslySpent(dest_a));
         WalletBatch batch{wallet->GetDatabase()};
-        BOOST_CHECK(batch.WriteAddressPreviouslySpent(PKHash(), true));
-        BOOST_CHECK(batch.WriteAddressPreviouslySpent(ScriptHash(), true));
-        BOOST_CHECK(wallet->SetAddressReceiveRequest(batch, PKHash(), "0", "val_rr00"));
-        BOOST_CHECK(wallet->EraseAddressReceiveRequest(batch, PKHash(), "0"));
-        BOOST_CHECK(wallet->SetAddressReceiveRequest(batch, PKHash(), "1", "val_rr10"));
-        BOOST_CHECK(wallet->SetAddressReceiveRequest(batch, PKHash(), "1", "val_rr11"));
-        BOOST_CHECK(wallet->SetAddressReceiveRequest(batch, ScriptHash(), "2", "val_rr20"));
+        BOOST_CHECK(batch.WriteAddressPreviouslySpent(dest_a, true));
+        BOOST_CHECK(batch.WriteAddressPreviouslySpent(dest_b, true));
+        BOOST_CHECK(wallet->SetAddressReceiveRequest(batch, dest_a, "0", "val_rr00"));
+        BOOST_CHECK(wallet->EraseAddressReceiveRequest(batch, dest_a, "0"));
+        BOOST_CHECK(wallet->SetAddressReceiveRequest(batch, dest_a, "1", "val_rr10"));
+        BOOST_CHECK(wallet->SetAddressReceiveRequest(batch, dest_a, "1", "val_rr11"));
+        BOOST_CHECK(wallet->SetAddressReceiveRequest(batch, dest_b, "2", "val_rr20"));
     });
-    TestLoadWallet("receive-requests", [](std::shared_ptr<CWallet> wallet) EXCLUSIVE_LOCKS_REQUIRED(wallet->cs_wallet) {
-        BOOST_CHECK(wallet->IsAddressPreviouslySpent(PKHash()));
-        BOOST_CHECK(wallet->IsAddressPreviouslySpent(ScriptHash()));
+    TestLoadWallet("receive-requests", [dest_a, dest_b](std::shared_ptr<CWallet> wallet) EXCLUSIVE_LOCKS_REQUIRED(wallet->cs_wallet) {
+        BOOST_CHECK(wallet->IsAddressPreviouslySpent(dest_a));
+        BOOST_CHECK(wallet->IsAddressPreviouslySpent(dest_b));
         auto requests = wallet->GetAddressReceiveRequests();
+        std::ranges::sort(requests);
         auto erequests = {"val_rr11", "val_rr20"};
         BOOST_CHECK_EQUAL_COLLECTIONS(requests.begin(), requests.end(), std::begin(erequests), std::end(erequests));
-        RunWithinTxn(wallet->GetDatabase(), /*process_desc=*/"test", [](WalletBatch& batch){
-            BOOST_CHECK(batch.WriteAddressPreviouslySpent(PKHash(), false));
-            BOOST_CHECK(batch.EraseAddressData(ScriptHash()));
+        RunWithinTxn(wallet->GetDatabase(), /*process_desc=*/"test", [dest_a, dest_b](WalletBatch& batch){
+            BOOST_CHECK(batch.WriteAddressPreviouslySpent(dest_a, false));
+            BOOST_CHECK(batch.EraseAddressData(dest_b));
             return true;
         });
     });
-    TestLoadWallet("receive-requests", [](std::shared_ptr<CWallet> wallet) EXCLUSIVE_LOCKS_REQUIRED(wallet->cs_wallet) {
-        BOOST_CHECK(!wallet->IsAddressPreviouslySpent(PKHash()));
-        BOOST_CHECK(!wallet->IsAddressPreviouslySpent(ScriptHash()));
+    TestLoadWallet("receive-requests", [dest_a, dest_b](std::shared_ptr<CWallet> wallet) EXCLUSIVE_LOCKS_REQUIRED(wallet->cs_wallet) {
+        BOOST_CHECK(!wallet->IsAddressPreviouslySpent(dest_a));
+        BOOST_CHECK(!wallet->IsAddressPreviouslySpent(dest_b));
         auto requests = wallet->GetAddressReceiveRequests();
         auto erequests = {"val_rr11"};
         BOOST_CHECK_EQUAL_COLLECTIONS(requests.begin(), requests.end(), std::begin(erequests), std::end(erequests));

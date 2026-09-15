@@ -130,7 +130,7 @@ class CreateWalletTest(BitcoinTestFramework):
         self.log.info('New blank and encrypted wallets can be created')
         self.nodes[0].createwallet(wallet_name='wblank', disable_private_keys=False, blank=True, passphrase='thisisapassphrase')
         wblank = node.get_wallet_rpc('wblank')
-        assert_raises_rpc_error(-13, "Error: Please enter the wallet passphrase with walletpassphrase first.", wblank.signmessage, "needanargument", "test")
+        assert_raises_rpc_error(-13, "Error: Please enter the wallet passphrase with walletpassphrase first.", wblank.keypoolrefill, 1)
         with WalletUnlock(wblank, "thisisapassphrase"):
             assert_raises_rpc_error(-4, "Error: This wallet has no available keys", wblank.getnewaddress)
             assert_raises_rpc_error(-4, "Error: This wallet has no available keys", wblank.getrawchangeaddress)

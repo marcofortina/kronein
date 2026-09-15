@@ -492,24 +492,6 @@ bool DescriptorScriptPubKeyMan::SignTransaction(CMutableTransaction& tx, const s
     return ::SignTransaction(tx, keys.get(), coins, sighash, input_errors);
 }
 
-SigningResult DescriptorScriptPubKeyMan::SignMessage(const std::string& message, const PKHash& pkhash, std::string& str_sig) const
-{
-    std::unique_ptr<FlatSigningProvider> keys = GetSigningProvider(GetScriptForDestination(pkhash), true);
-    if (!keys) {
-        return SigningResult::PRIVATE_KEY_NOT_AVAILABLE;
-    }
-
-    CKey key;
-    if (!keys->GetKey(ToKeyID(pkhash), key)) {
-        return SigningResult::PRIVATE_KEY_NOT_AVAILABLE;
-    }
-
-    if (!MessageSign(key, message, str_sig)) {
-        return SigningResult::SIGNING_FAILED;
-    }
-    return SigningResult::OK;
-}
-
 std::optional<PSBTError> DescriptorScriptPubKeyMan::FillPSBT(PartiallySignedTransaction& psbtx, const PrecomputedTransactionData& txdata, std::optional<int> sighash_type, bool sign, bool bip32derivs, int* n_signed, bool finalize) const
 {
     if (n_signed) {

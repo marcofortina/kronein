@@ -53,11 +53,11 @@ BOOST_AUTO_TEST_CASE(key_io_valid_parse)
             destination = DecodeDestination(exp_base58string);
             BOOST_CHECK_MESSAGE(!IsValidDestination(destination), "IsValid privkey as pubkey:" + strTest);
         } else {
-            // Must be valid public key
             destination = DecodeDestination(exp_base58string);
             CScript script = GetScriptForDestination(destination);
-            BOOST_CHECK_MESSAGE(IsValidDestination(destination), "!IsValid:" + strTest);
-            BOOST_CHECK_EQUAL(HexStr(script), HexStr(exp_payload));
+            const bool is_taproot{exp_payload.size() == 34 && exp_payload[0] == std::byte{0x51} && exp_payload[1] == std::byte{0x20}};
+            BOOST_CHECK_MESSAGE(IsValidDestination(destination) == is_taproot, "Unexpected address validity:" + strTest);
+            if (is_taproot) BOOST_CHECK_EQUAL(HexStr(script), HexStr(exp_payload));
 
             // Try flipped case version
             for (char& c : exp_base58string) {
@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE(key_io_valid_parse)
                 }
             }
             destination = DecodeDestination(exp_base58string);
-            BOOST_CHECK_MESSAGE(IsValidDestination(destination) == try_case_flip, "!IsValid case flipped:" + strTest);
+            BOOST_CHECK_MESSAGE(IsValidDestination(destination) == (is_taproot && try_case_flip), "Unexpected case-flipped validity:" + strTest);
             if (IsValidDestination(destination)) {
                 script = GetScriptForDestination(destination);
                 BOOST_CHECK_EQUAL(HexStr(script), HexStr(exp_payload));
@@ -110,8 +110,12 @@ BOOST_AUTO_TEST_CASE(key_io_valid_gen)
             CScript exp_script(exp_payload.begin(), exp_payload.end());
             BOOST_CHECK(ExtractDestination(exp_script, dest));
             std::string address = EncodeDestination(dest);
-
-            BOOST_CHECK_EQUAL(address, exp_base58string);
+            const bool is_taproot{exp_payload.size() == 34 && exp_payload[0] == OP_1 && exp_payload[1] == 0x20};
+            if (is_taproot) {
+                BOOST_CHECK_EQUAL(address, exp_base58string);
+            } else {
+                BOOST_CHECK(address.empty());
+            }
         }
     }
 

@@ -2823,7 +2823,7 @@ std::unique_ptr<DescriptorImpl> InferScript(const CScript& script, ParseScriptCo
 
     CTxDestination dest;
     if (ExtractDestination(script, dest)) {
-        if (GetScriptForDestination(dest) == script) {
+        if (!EncodeDestination(dest).empty() && GetScriptForDestination(dest) == script) {
             return std::make_unique<AddressDescriptor>(std::move(dest));
         }
     }

@@ -526,13 +526,12 @@ class WalletTest(BitcoinTestFramework):
         # Verify nothing new in wallet
         assert_equal(total_txs, len(self.nodes[0].listtransactions("*", 99999)))
 
-        # Test getaddressinfo on external address. Note that these addresses are taken from disablewallet.py
-        assert_raises_rpc_error(-5, "Invalid or unsupported Base58-encoded address.", self.nodes[0].getaddressinfo, "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy")
-        address_info = self.nodes[0].getaddressinfo("mneYUmWYsuk7kySiURxCi3AGxrAqZxLgPZ")
-        assert_equal(address_info['address'], "mneYUmWYsuk7kySiURxCi3AGxrAqZxLgPZ")
-        assert_equal(address_info["scriptPubKey"], "76a9144e3854046c7bd1594ac904e4793b6a45b36dea0988ac")
+        # Test getaddressinfo on an external Taproot address.
+        external_address = self.nodes[1].getnewaddress()
+        address_info = self.nodes[0].getaddressinfo(external_address)
+        assert_equal(address_info['address'], external_address)
         assert not address_info["ismine"]
-        assert not address_info["isscript"]
+        assert address_info["isscript"]
         assert not address_info["ischange"]
 
         # Test getaddressinfo 'ischange' field on change address.
@@ -596,11 +595,11 @@ class WalletTest(BitcoinTestFramework):
         assert_equal(self.nodes[2].gettransaction(txid_feeReason_four)['txid'], txid_feeReason_four)
 
         self.log.info("Testing 'listunspent' outputs the parent descriptor(s) of coins")
-        # Create two multisig descriptors, and send a UTxO each.
-        multi_a = descsum_create("wsh(multi(1,tpubD6NzVbkrYhZ4YBNjUo96Jxd1u4XKWgnoc7LsA1jz3Yc2NiDbhtfBhaBtemB73n9V5vtJHwU6FVXwggTbeoJWQ1rzdz8ysDuQkpnaHyvnvzR/*,tpubD6NzVbkrYhZ4YHdDGMAYGaWxMSC1B6tPRTHuU5t3BcfcS3nrF523iFm5waFd1pP3ZvJt4Jr8XmCmsTBNx5suhcSgtzpGjGMASR3tau1hJz4/*))")
-        multi_b = descsum_create("wsh(multi(1,tpubD6NzVbkrYhZ4YHdDGMAYGaWxMSC1B6tPRTHuU5t3BcfcS3nrF523iFm5waFd1pP3ZvJt4Jr8XmCmsTBNx5suhcSgtzpGjGMASR3tau1hJz4/*,tpubD6NzVbkrYhZ4Y2RLiuEzNQkntjmsLpPYDm3LTRBYynUQtDtpzeUKAcb9sYthSFL3YR74cdFgF5mW8yKxv2W2CWuZDFR2dUpE5PF9kbrVXNZ/*))")
-        addr_a = self.nodes[0].deriveaddresses(multi_a, 0)[0]
-        addr_b = self.nodes[0].deriveaddresses(multi_b, 0)[0]
+        # Create two Taproot descriptors, and send a UTXO to each.
+        desc_a = descsum_create("tr(tpubD6NzVbkrYhZ4YBNjUo96Jxd1u4XKWgnoc7LsA1jz3Yc2NiDbhtfBhaBtemB73n9V5vtJHwU6FVXwggTbeoJWQ1rzdz8ysDuQkpnaHyvnvzR/*)")
+        desc_b = descsum_create("tr(tpubD6NzVbkrYhZ4YHdDGMAYGaWxMSC1B6tPRTHuU5t3BcfcS3nrF523iFm5waFd1pP3ZvJt4Jr8XmCmsTBNx5suhcSgtzpGjGMASR3tau1hJz4/*)")
+        addr_a = self.nodes[0].deriveaddresses(desc_a, 0)[0]
+        addr_b = self.nodes[0].deriveaddresses(desc_b, 0)[0]
         txid_a = self.nodes[0].sendtoaddress(addr_a, 0.01)
         txid_b = self.nodes[0].sendtoaddress(addr_b, 0.01)
         self.generate(self.nodes[0], 1, sync_fun=self.no_op)
@@ -611,12 +610,12 @@ class WalletTest(BitcoinTestFramework):
         wo_wallet = self.nodes[0].get_wallet_rpc("wo")
         wo_wallet.importdescriptors([
             {
-                "desc": multi_a,
+                "desc": desc_a,
                 "active": False,
                 "timestamp": "now",
             },
             {
-                "desc": multi_b,
+                "desc": desc_b,
                 "active": False,
                 "timestamp": "now",
             },
@@ -624,9 +623,9 @@ class WalletTest(BitcoinTestFramework):
         coins = wo_wallet.listunspent(minconf=0)
         assert_equal(len(coins), 2)
         coin_a = next(c for c in coins if c["txid"] == txid_a)
-        assert_equal(coin_a["parent_descs"][0], multi_a)
+        assert_equal(coin_a["parent_descs"][0], desc_a)
         coin_b = next(c for c in coins if c["txid"] == txid_b)
-        assert_equal(coin_b["parent_descs"][0], multi_b)
+        assert_equal(coin_b["parent_descs"][0], desc_b)
         self.nodes[0].unloadwallet("wo")
 
         self.log.info("Test -spendzeroconfchange")

@@ -102,7 +102,6 @@ add_library(bitcoin_common STATIC EXCLUDE_FROM_ALL
   common/pcp.cpp
   common/run_command.cpp
   common/settings.cpp
-  common/signmessage.cpp
   common/system.cpp
   common/url.cpp
   compressor.cpp
@@ -255,7 +254,6 @@ add_library(bitcoin_node STATIC EXCLUDE_FROM_ALL
   rpc/rawtransaction.cpp
   rpc/server.cpp
   rpc/server_util.cpp
-  rpc/signmessage.cpp
   rpc/txoutproof.cpp
   script/sigcache.cpp
   signet.cpp
