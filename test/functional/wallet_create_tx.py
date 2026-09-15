@@ -61,7 +61,7 @@ class CreateTxWalletTest(BitcoinTestFramework):
             assert_raises_rpc_error(
                 -6,
                 "Fee exceeds maximum configured by user (e.g. -maxtxfee, maxfeerate)",
-                lambda: self.nodes[0].sendmany(dummy="", amounts=outputs),
+                lambda: self.nodes[0].sendmany(amounts=outputs),
             )
             assert_raises_rpc_error(
                 -4,
@@ -77,7 +77,7 @@ class CreateTxWalletTest(BitcoinTestFramework):
         assert_raises_rpc_error(
             -6,
             "Fee exceeds maximum configured by user (e.g. -maxtxfee, maxfeerate)",
-            lambda: self.nodes[0].sendmany(dummy="", amounts=outputs, fee_rate=fee_rate_sats_per_vb),
+            lambda: self.nodes[0].sendmany(amounts=outputs, fee_rate=fee_rate_sats_per_vb),
         )
         assert_raises_rpc_error(
             -4,

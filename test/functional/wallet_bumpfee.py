@@ -590,7 +590,7 @@ def test_watchonly_psbt(self, peer_node, rbf_node, dest_address):
 
     funding_address1 = watcher.getnewaddress()
     funding_address2 = watcher.getnewaddress()
-    peer_node.sendmany("", {funding_address1: 0.001, funding_address2: 0.001})
+    peer_node.sendmany({funding_address1: 0.001, funding_address2: 0.001})
     self.generate(peer_node, 1)
 
     # Create single-input PSBT for transaction to be bumped

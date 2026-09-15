@@ -29,16 +29,15 @@ class WalletLabelsTest(BitcoinTestFramework):
     def invalid_label_name_test(self):
         node = self.nodes[0]
         address = node.getnewaddress()
-        pubkey = node.getaddressinfo(address)['pubkey']
         rpc_calls = [
             [node.getnewaddress],
             [node.setlabel, address],
             [node.getaddressesbylabel],
             [node.getreceivedbylabel],
-            [node.listsinceblock, node.getblockhash(0), 1, False, True, False],
+            [node.listsinceblock, node.getblockhash(0), 1, True, False],
         ]
         response = node.importdescriptors([{
-            'desc': f'pkh({pubkey})',
+            'desc': descsum_create(f'addr({address})'),
             'label': '*',
             'timestamp': 'now',
         }])
@@ -105,7 +104,6 @@ class WalletLabelsTest(BitcoinTestFramework):
         node.sendmany(
             amounts={common_address: 100},
             subtractfeefrom=[common_address],
-            minconf=1,
         )
         # there should be 1 address group, with the previously
         # unlinked addresses now linked (they both have 0 balance)
@@ -195,16 +193,16 @@ class WalletLabelsTest(BitcoinTestFramework):
             '❌_VER15_PROG41': 'bcrt1sqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqajlxj8',
             '❌_VER16_PROB01': 'bcrt1sqq5r4036',
         }
-        for l in BECH32_VALID:
-            ad = BECH32_VALID[l]
-            import_res = wallet_watch_only.importdescriptors([{"desc": descsum_create(f"addr({ad})"), "timestamp": "now", "label": l}])
+        for label in BECH32_VALID:
+            ad = BECH32_VALID[label]
+            import_res = wallet_watch_only.importdescriptors([{"desc": descsum_create(f"addr({ad})"), "timestamp": "now", "label": label}])
             assert_equal(import_res[0]["success"], True)
             self.generatetoaddress(node, 1, ad)
-            assert_equal(wallet_watch_only.getaddressesbylabel(label=l), {ad: {'purpose': 'receive'}})
-            assert_equal(wallet_watch_only.getreceivedbylabel(label=l), 0)
-        for l in BECH32_INVALID:
-            ad = BECH32_INVALID[l]
-            import_res = wallet_watch_only.importdescriptors([{"desc": descsum_create(f"addr({ad})"), "timestamp": "now", "label": l}])
+            assert_equal(wallet_watch_only.getaddressesbylabel(label=label), {ad: {'purpose': 'receive'}})
+            assert_equal(wallet_watch_only.getreceivedbylabel(label=label), 0)
+        for label in BECH32_INVALID:
+            ad = BECH32_INVALID[label]
+            import_res = wallet_watch_only.importdescriptors([{"desc": descsum_create(f"addr({ad})"), "timestamp": "now", "label": label}])
             assert_equal(import_res[0]["success"], False)
             assert_equal(import_res[0]["error"]["code"], -5)
             assert_equal(import_res[0]["error"]["message"], "Address is not valid")

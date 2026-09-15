@@ -70,7 +70,7 @@ class ListTransactionsTest(BitcoinTestFramework):
                    self.nodes[1].getnewaddress(): 0.22,
                    self.nodes[0].getnewaddress(): 0.33,
                    self.nodes[1].getnewaddress(): 0.44}
-        txid = self.nodes[1].sendmany("", send_to)
+        txid = self.nodes[1].sendmany(send_to)
         self.sync_all()
         assert_array_result(self.nodes[1].listtransactions(),
                             {"category": "send", "amount": Decimal("-0.11")},

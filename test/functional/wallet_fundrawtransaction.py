@@ -487,7 +487,7 @@ class RawTransactionsTest(BitcoinTestFramework):
         fundedTx = self.nodes[1].fundrawtransaction(rawtx, fee_rate=self.fee_rate_sats_per_vb)
 
         # Create same transaction over sendtoaddress.
-        txId = self.nodes[1].sendmany("", outputs, fee_rate=self.fee_rate_sats_per_vb)
+        txId = self.nodes[1].sendmany(outputs, fee_rate=self.fee_rate_sats_per_vb)
         signedFee = self.nodes[1].getmempoolentry(txId)['fees']['base']
 
         # Compare fee.
@@ -813,7 +813,7 @@ class RawTransactionsTest(BitcoinTestFramework):
         recipient.keypoolrefill(1800)
         for _ in range(1800):
             outputs[recipient.getnewaddress()] = 0.1
-        wallet.sendmany("", outputs, fee_rate=self.fee_rate_sats_per_vb)
+        wallet.sendmany(outputs, fee_rate=self.fee_rate_sats_per_vb)
         self.generate(self.nodes[0], 10)
         assert_raises_rpc_error(-4, "The inputs size exceeds the maximum weight. "
                                     "Please try sending a smaller amount or manually consolidating your wallet's UTXOs",
@@ -1038,7 +1038,7 @@ class RawTransactionsTest(BitcoinTestFramework):
         outputs = {}
         for _ in range(4):
             outputs[wallet.getnewaddress()] = 5
-        self.nodes[0].sendmany("", outputs, fee_rate=self.fee_rate_sats_per_vb)
+        self.nodes[0].sendmany(outputs, fee_rate=self.fee_rate_sats_per_vb)
         self.generate(self.nodes[0], 1)
 
         # Select the preset inputs
@@ -1147,7 +1147,7 @@ class RawTransactionsTest(BitcoinTestFramework):
 
         # Fund the wallet with different chain heights
         for _ in range(2):
-            self.nodes[2].sendmany("", {wallet.getnewaddress():1, wallet.getnewaddress():1}, fee_rate=self.fee_rate_sats_per_vb)
+            self.nodes[2].sendmany({wallet.getnewaddress():1, wallet.getnewaddress():1}, fee_rate=self.fee_rate_sats_per_vb)
             self.generate(self.nodes[2], 1)
 
         unconfirmed_txid = wallet.sendtoaddress(wallet.getnewaddress(), 0.5, fee_rate=self.fee_rate_sats_per_vb)

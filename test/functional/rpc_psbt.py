@@ -147,7 +147,7 @@ class PSBTTest(BitcoinTestFramework):
 
         # Fund the wallet with different chain heights
         for _ in range(2):
-            self.nodes[1].sendmany("", {wallet.getnewaddress():1, wallet.getnewaddress():1})
+            self.nodes[1].sendmany({wallet.getnewaddress():1, wallet.getnewaddress():1})
             self.generate(self.nodes[1], 1)
 
         unconfirmed_txid = wallet.sendtoaddress(wallet.getnewaddress(), 0.5)
