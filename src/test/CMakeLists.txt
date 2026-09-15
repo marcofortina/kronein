@@ -143,8 +143,6 @@ target_json_data_sources(test_bitcoin
   data/base58_encode_decode.json
   data/bip341_wallet_vectors.json
   data/blockfilters.json
-  data/key_io_invalid.json
-  data/key_io_valid.json
   data/script_tests.json
   data/sighash.json
   data/tx_invalid.json

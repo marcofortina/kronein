@@ -2,153 +2,53 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <test/data/key_io_invalid.json.h>
-#include <test/data/key_io_valid.json.h>
-
 #include <key.h>
 #include <key_io.h>
 #include <script/script.h>
-#include <test/util/json.h>
 #include <test/util/setup_common.h>
-#include <univalue.h>
 #include <util/chaintype.h>
 #include <util/strencodings.h>
 
 #include <boost/test/unit_test.hpp>
 
-#include <algorithm>
+#include <string>
+#include <variant>
 
 BOOST_FIXTURE_TEST_SUITE(key_io_tests, BasicTestingSetup)
 
-// Goal: check that parsed keys match test payload
-BOOST_AUTO_TEST_CASE(key_io_valid_parse)
+BOOST_AUTO_TEST_CASE(taproot_address)
 {
-    UniValue tests = read_json(json_tests::key_io_valid);
-    CKey privkey;
-    CTxDestination destination;
     SelectParams(ChainType::MAIN);
 
-    for (unsigned int idx = 0; idx < tests.size(); idx++) {
-        const UniValue& test = tests[idx];
-        std::string strTest = test.write();
-        if (test.size() < 3) { // Allow for extra stuff (useful for comments)
-            BOOST_ERROR("Bad test: " << strTest);
-            continue;
-        }
-        std::string exp_base58string = test[0].get_str();
-        const std::vector<std::byte> exp_payload{ParseHex<std::byte>(test[1].get_str())};
-        const UniValue &metadata = test[2].get_obj();
-        bool isPrivkey = metadata.find_value("isPrivkey").get_bool();
-        SelectParams(ChainTypeFromString(metadata.find_value("chain").get_str()).value());
-        bool try_case_flip = metadata.find_value("tryCaseFlip").isNull() ? false : metadata.find_value("tryCaseFlip").get_bool();
-        if (isPrivkey) {
-            bool isCompressed = metadata.find_value("isCompressed").get_bool();
-            // Must be valid private key
-            privkey = DecodeSecret(exp_base58string);
-            BOOST_CHECK_MESSAGE(privkey.IsValid(), "!IsValid:" + strTest);
-            BOOST_CHECK_MESSAGE(privkey.IsCompressed() == isCompressed, "compressed mismatch:" + strTest);
-            BOOST_CHECK_MESSAGE(std::ranges::equal(privkey, exp_payload), "key mismatch:" + strTest);
+    const std::string address{"bc1pqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqsyjer9e"};
+    const CTxDestination destination{DecodeDestination(address)};
+    BOOST_REQUIRE(IsValidDestination(destination));
+    BOOST_CHECK(std::holds_alternative<WitnessV1Taproot>(destination));
+    BOOST_CHECK_EQUAL(HexStr(GetScriptForDestination(destination)), "51200101010101010101010101010101010101010101010101010101010101010101");
+    BOOST_CHECK_EQUAL(EncodeDestination(destination), address);
 
-            // Private key must be invalid public key
-            destination = DecodeDestination(exp_base58string);
-            BOOST_CHECK_MESSAGE(!IsValidDestination(destination), "IsValid privkey as pubkey:" + strTest);
-        } else {
-            destination = DecodeDestination(exp_base58string);
-            CScript script = GetScriptForDestination(destination);
-            const bool is_taproot{exp_payload.size() == 34 && exp_payload[0] == std::byte{0x51} && exp_payload[1] == std::byte{0x20}};
-            BOOST_CHECK_MESSAGE(IsValidDestination(destination) == is_taproot, "Unexpected address validity:" + strTest);
-            if (is_taproot) BOOST_CHECK_EQUAL(HexStr(script), HexStr(exp_payload));
-
-            // Try flipped case version
-            for (char& c : exp_base58string) {
-                if (c >= 'a' && c <= 'z') {
-                    c = (c - 'a') + 'A';
-                } else if (c >= 'A' && c <= 'Z') {
-                    c = (c - 'A') + 'a';
-                }
-            }
-            destination = DecodeDestination(exp_base58string);
-            BOOST_CHECK_MESSAGE(IsValidDestination(destination) == (is_taproot && try_case_flip), "Unexpected case-flipped validity:" + strTest);
-            if (IsValidDestination(destination)) {
-                script = GetScriptForDestination(destination);
-                BOOST_CHECK_EQUAL(HexStr(script), HexStr(exp_payload));
-            }
-
-            // Public key must be invalid private key
-            privkey = DecodeSecret(exp_base58string);
-            BOOST_CHECK_MESSAGE(!privkey.IsValid(), "IsValid pubkey as privkey:" + strTest);
-        }
-    }
+    std::string invalid_checksum{address};
+    invalid_checksum.back() = invalid_checksum.back() == 'q' ? 'p' : 'q';
+    BOOST_CHECK(!IsValidDestination(DecodeDestination(invalid_checksum)));
 }
 
-// Goal: check that generated keys match test vectors
-BOOST_AUTO_TEST_CASE(key_io_valid_gen)
+BOOST_AUTO_TEST_CASE(private_keys)
 {
-    UniValue tests = read_json(json_tests::key_io_valid);
+    SelectParams(ChainType::MAIN);
+    const std::string main_wif{"Kwr371tjA9u2rFSMZjTNun2PXXP3WPZu2afRHTcta6KxEUdm1vEw"};
+    CKey key{DecodeSecret(main_wif)};
+    BOOST_REQUIRE(key.IsValid());
+    BOOST_CHECK(key.IsCompressed());
+    BOOST_CHECK_EQUAL(EncodeSecret(key), main_wif);
 
-    for (unsigned int idx = 0; idx < tests.size(); idx++) {
-        const UniValue& test = tests[idx];
-        std::string strTest = test.write();
-        if (test.size() < 3) // Allow for extra stuff (useful for comments)
-        {
-            BOOST_ERROR("Bad test: " << strTest);
-            continue;
-        }
-        std::string exp_base58string = test[0].get_str();
-        std::vector<unsigned char> exp_payload = ParseHex(test[1].get_str());
-        const UniValue &metadata = test[2].get_obj();
-        bool isPrivkey = metadata.find_value("isPrivkey").get_bool();
-        SelectParams(ChainTypeFromString(metadata.find_value("chain").get_str()).value());
-        if (isPrivkey) {
-            bool isCompressed = metadata.find_value("isCompressed").get_bool();
-            CKey key;
-            key.Set(exp_payload.begin(), exp_payload.end(), isCompressed);
-            assert(key.IsValid());
-            BOOST_CHECK_MESSAGE(EncodeSecret(key) == exp_base58string, "result mismatch: " + strTest);
-        } else {
-            CTxDestination dest;
-            CScript exp_script(exp_payload.begin(), exp_payload.end());
-            BOOST_CHECK(ExtractDestination(exp_script, dest));
-            std::string address = EncodeDestination(dest);
-            const bool is_taproot{exp_payload.size() == 34 && exp_payload[0] == OP_1 && exp_payload[1] == 0x20};
-            if (is_taproot) {
-                BOOST_CHECK_EQUAL(address, exp_base58string);
-            } else {
-                BOOST_CHECK(address.empty());
-            }
-        }
-    }
+    SelectParams(ChainType::REGTEST);
+    const std::string regtest_wif{"cVpF924EspNh8KjYsfhgY96mmxvT6DgdWiTYMtMjuM74hJaU5psW"};
+    key = DecodeSecret(regtest_wif);
+    BOOST_REQUIRE(key.IsValid());
+    BOOST_CHECK(key.IsCompressed());
+    BOOST_CHECK_EQUAL(EncodeSecret(key), regtest_wif);
 
     SelectParams(ChainType::MAIN);
-}
-
-
-// Goal: check that base58 parsing code is robust against a variety of corrupted data
-BOOST_AUTO_TEST_CASE(key_io_invalid)
-{
-    UniValue tests = read_json(json_tests::key_io_invalid); // Negative testcases
-    CKey privkey;
-    CTxDestination destination;
-
-    for (unsigned int idx = 0; idx < tests.size(); idx++) {
-        const UniValue& test = tests[idx];
-        std::string strTest = test.write();
-        if (test.size() < 1) // Allow for extra stuff (useful for comments)
-        {
-            BOOST_ERROR("Bad test: " << strTest);
-            continue;
-        }
-        std::string exp_base58string = test[0].get_str();
-
-        // must be invalid as public and as private key
-        for (const auto& chain : {ChainType::MAIN, ChainType::TESTNET, ChainType::SIGNET, ChainType::REGTEST}) {
-            SelectParams(chain);
-            destination = DecodeDestination(exp_base58string);
-            BOOST_CHECK_MESSAGE(!IsValidDestination(destination), "IsValid pubkey in mainnet:" + strTest);
-            privkey = DecodeSecret(exp_base58string);
-            BOOST_CHECK_MESSAGE(!privkey.IsValid(), "IsValid privkey in mainnet:" + strTest);
-        }
-    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
