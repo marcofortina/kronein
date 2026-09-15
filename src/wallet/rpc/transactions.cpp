@@ -85,11 +85,11 @@ static UniValue ListReceived(const CWallet& wallet, const UniValue& params, cons
         fIncludeEmpty = params[1].get_bool();
 
     std::optional<CTxDestination> filtered_address{std::nullopt};
-    if (!by_label && !params[3].isNull() && !params[3].get_str().empty()) {
-        if (!IsValidDestinationString(params[3].get_str())) {
+    if (!by_label && !params[2].isNull() && !params[2].get_str().empty()) {
+        if (!IsValidDestinationString(params[2].get_str())) {
             throw JSONRPCError(RPC_WALLET_ERROR, "address_filter parameter was invalid");
         }
-        filtered_address = DecodeDestination(params[3].get_str());
+        filtered_address = DecodeDestination(params[2].get_str());
     }
 
     // Tally
@@ -195,7 +195,6 @@ RPCHelpMan listreceivedbyaddress()
                 {
                     {"minconf", RPCArg::Type::NUM, RPCArg::Default{1}, "The minimum number of confirmations before payments are included."},
                     {"include_empty", RPCArg::Type::BOOL, RPCArg::Default{false}, "Whether to include addresses that haven't received any payments."},
-                    {"include_watchonly", RPCArg::Type::BOOL, RPCArg::Default{false}, "(DEPRECATED) No longer used"},
                     {"address_filter", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "If present and non-empty, only return information on this address."},
                     {"include_immature_coinbase", RPCArg::Type::BOOL, RPCArg::Default{false}, "Include immature coinbase transactions."},
                 },
@@ -218,9 +217,9 @@ RPCHelpMan listreceivedbyaddress()
                 RPCExamples{
                     HelpExampleCli("listreceivedbyaddress", "")
             + HelpExampleCli("listreceivedbyaddress", "6 true")
-            + HelpExampleCli("listreceivedbyaddress", "6 true true \"\" true")
-            + HelpExampleRpc("listreceivedbyaddress", "6, true, true")
-            + HelpExampleRpc("listreceivedbyaddress", "6, true, true, \"" + EXAMPLE_ADDRESS[0] + "\", true")
+            + HelpExampleCli("listreceivedbyaddress", "6 true \"\" true")
+            + HelpExampleRpc("listreceivedbyaddress", "6, true")
+            + HelpExampleRpc("listreceivedbyaddress", "6, true, \"" + EXAMPLE_ADDRESS[0] + "\", true")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -231,7 +230,7 @@ RPCHelpMan listreceivedbyaddress()
     // the user could have gotten from another RPC command prior to now
     pwallet->BlockUntilSyncedToCurrentChain();
 
-    const bool include_immature_coinbase{request.params[4].isNull() ? false : request.params[4].get_bool()};
+    const bool include_immature_coinbase{request.params[3].isNull() ? false : request.params[3].get_bool()};
 
     LOCK(pwallet->cs_wallet);
 
@@ -248,7 +247,6 @@ RPCHelpMan listreceivedbylabel()
                 {
                     {"minconf", RPCArg::Type::NUM, RPCArg::Default{1}, "The minimum number of confirmations before payments are included."},
                     {"include_empty", RPCArg::Type::BOOL, RPCArg::Default{false}, "Whether to include labels that haven't received any payments."},
-                    {"include_watchonly", RPCArg::Type::BOOL, RPCArg::Default{false}, "(DEPRECATED) No longer used"},
                     {"include_immature_coinbase", RPCArg::Type::BOOL, RPCArg::Default{false}, "Include immature coinbase transactions."},
                 },
                 RPCResult{
@@ -265,7 +263,7 @@ RPCHelpMan listreceivedbylabel()
                 RPCExamples{
                     HelpExampleCli("listreceivedbylabel", "")
             + HelpExampleCli("listreceivedbylabel", "6 true")
-            + HelpExampleRpc("listreceivedbylabel", "6, true, true, true")
+            + HelpExampleRpc("listreceivedbylabel", "6, true, true")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -276,7 +274,7 @@ RPCHelpMan listreceivedbylabel()
     // the user could have gotten from another RPC command prior to now
     pwallet->BlockUntilSyncedToCurrentChain();
 
-    const bool include_immature_coinbase{request.params[3].isNull() ? false : request.params[3].get_bool()};
+    const bool include_immature_coinbase{request.params[2].isNull() ? false : request.params[2].get_bool()};
 
     LOCK(pwallet->cs_wallet);
 
@@ -428,7 +426,6 @@ RPCHelpMan listtransactions()
                           "with the specified label, or \"*\" to disable filtering and return all transactions."},
                     {"count", RPCArg::Type::NUM, RPCArg::Default{10}, "The number of transactions to return"},
                     {"skip", RPCArg::Type::NUM, RPCArg::Default{0}, "The number of transactions to skip"},
-                    {"include_watchonly", RPCArg::Type::BOOL, RPCArg::Default{false}, "(DEPRECATED) No longer used"},
                 },
                 RPCResult{
                     RPCResult::Type::ARR, "", "",
@@ -531,7 +528,6 @@ RPCHelpMan listsinceblock()
                 {
                     {"blockhash", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "If set, the block hash to list transactions since, otherwise list all transactions."},
                     {"target_confirmations", RPCArg::Type::NUM, RPCArg::Default{1}, "Return the nth block hash from the main chain. e.g. 1 would mean the best block hash. Note: this is not used as a filter, but only affects [lastblock] in the return value"},
-                    {"include_watchonly", RPCArg::Type::BOOL, RPCArg::Default{false}, "(DEPRECATED) No longer used"},
                     {"include_removed", RPCArg::Type::BOOL, RPCArg::Default{true}, "Show transactions that were removed due to a reorg in the \"removed\" array\n"
                                                                        "(not guaranteed to work on pruned nodes)"},
                     {"include_change", RPCArg::Type::BOOL, RPCArg::Default{false}, "Also add entries for change outputs.\n"},
@@ -608,12 +604,12 @@ RPCHelpMan listsinceblock()
         }
     }
 
-    bool include_removed = (request.params[3].isNull() || request.params[3].get_bool());
-    bool include_change = (!request.params[4].isNull() && request.params[4].get_bool());
+    bool include_removed = (request.params[2].isNull() || request.params[2].get_bool());
+    bool include_change = (!request.params[3].isNull() && request.params[3].get_bool());
 
     // Only set it if 'label' was provided.
     std::optional<std::string> filter_label;
-    if (!request.params[5].isNull()) filter_label.emplace(LabelFromValue(request.params[5]));
+    if (!request.params[4].isNull()) filter_label.emplace(LabelFromValue(request.params[4]));
 
     int depth = height ? wallet.GetLastBlockHeight() + 1 - *height : -1;
 
@@ -667,7 +663,6 @@ RPCHelpMan gettransaction()
         "Get detailed information about in-wallet transaction <txid>\n",
                 {
                     {"txid", RPCArg::Type::STR, RPCArg::Optional::NO, "The transaction id"},
-                    {"include_watchonly", RPCArg::Type::BOOL, RPCArg::Default{false}, "(DEPRECATED) No longer used"},
                     {"verbose", RPCArg::Type::BOOL, RPCArg::Default{false},
                             "Whether to include a `decoded` field containing the decoded transaction (equivalent to RPC decoderawtransaction)"},
                 },
@@ -713,7 +708,7 @@ RPCHelpMan gettransaction()
                 RPCExamples{
                     HelpExampleCli("gettransaction", "\"1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d\"")
             + HelpExampleCli("gettransaction", "\"1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d\" true")
-            + HelpExampleCli("gettransaction", "\"1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d\" false true")
+            + HelpExampleCli("gettransaction", "\"1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d\" true")
             + HelpExampleRpc("gettransaction", "\"1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d\"")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
@@ -729,7 +724,7 @@ RPCHelpMan gettransaction()
 
     Txid hash{Txid::FromUint256(ParseHashV(request.params[0], "txid"))};
 
-    bool verbose = request.params[2].isNull() ? false : request.params[2].get_bool();
+    bool verbose = request.params[1].isNull() ? false : request.params[1].get_bool();
 
     UniValue entry(UniValue::VOBJ);
     auto it = pwallet->mapWallet.find(hash);

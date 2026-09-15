@@ -169,9 +169,7 @@ RPCHelpMan getbalance()
                 "The available balance is what the wallet considers currently spendable, and is\n"
                 "thus affected by options which limit spendability such as -spendzeroconfchange.\n",
                 {
-                    {"dummy", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Remains for backward compatibility. Must be excluded or set to \"*\"."},
                     {"minconf", RPCArg::Type::NUM, RPCArg::Default{0}, "Only include transactions confirmed at least this many times."},
-                    {"include_watchonly", RPCArg::Type::BOOL, RPCArg::Default{false}, "No longer used"},
                     {"avoid_reuse", RPCArg::Type::BOOL, RPCArg::Default{true}, "(only available if avoid_reuse wallet flag is set) Do not include balance in dirty outputs; addresses are considered dirty if they have previously been used in a transaction."},
                 },
                 RPCResult{
@@ -181,9 +179,9 @@ RPCHelpMan getbalance()
             "\nThe total amount in the wallet with 0 or more confirmations\n"
             + HelpExampleCli("getbalance", "") +
             "\nThe total amount in the wallet with at least 6 confirmations\n"
-            + HelpExampleCli("getbalance", "\"*\" 6") +
+            + HelpExampleCli("getbalance", "6") +
             "\nAs a JSON-RPC call\n"
-            + HelpExampleRpc("getbalance", "\"*\", 6")
+            + HelpExampleRpc("getbalance", "6")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -196,13 +194,9 @@ RPCHelpMan getbalance()
 
     LOCK(pwallet->cs_wallet);
 
-    if (self.MaybeArg<std::string_view>("dummy").value_or("*") != "*") {
-        throw JSONRPCError(RPC_METHOD_DEPRECATED, "dummy first argument must be excluded or set to \"*\".");
-    }
-
     const auto min_depth{self.Arg<int>("minconf")};
 
-    bool avoid_reuse = GetAvoidReuseFlag(*pwallet, request.params[3]);
+    bool avoid_reuse = GetAvoidReuseFlag(*pwallet, request.params[1]);
 
     const auto bal = GetBalance(*pwallet, min_depth, avoid_reuse);
 

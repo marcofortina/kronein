@@ -479,106 +479,100 @@ CreatedTransactionResult FundTransaction(CWallet& wallet, const CMutableTransact
     std::optional<unsigned int> change_position;
     bool lockUnspents = false;
     if (!options.isNull()) {
-        if (options.type() == UniValue::VBOOL) {
-            // backward compatibility bool only fallback, does nothing
-        } else {
-            RPCTypeCheckObj(options,
-                {
-                    {"add_inputs", UniValueType(UniValue::VBOOL)},
-                    {"include_unsafe", UniValueType(UniValue::VBOOL)},
-                    {"add_to_wallet", UniValueType(UniValue::VBOOL)},
-                    {"changeAddress", UniValueType(UniValue::VSTR)},
-                    {"change_address", UniValueType(UniValue::VSTR)},
-                    {"changePosition", UniValueType(UniValue::VNUM)},
-                    {"change_position", UniValueType(UniValue::VNUM)},
-                    {"includeWatching", UniValueType(UniValue::VBOOL)},
-                    {"include_watching", UniValueType(UniValue::VBOOL)},
-                    {"inputs", UniValueType(UniValue::VARR)},
-                    {"lockUnspents", UniValueType(UniValue::VBOOL)},
-                    {"lock_unspents", UniValueType(UniValue::VBOOL)},
-                    {"locktime", UniValueType(UniValue::VNUM)},
-                    {"fee_rate", UniValueType()}, // will be checked by AmountFromValue() in SetFeeEstimateMode()
-                    {"feeRate", UniValueType()}, // will be checked by AmountFromValue() below
-                    {"psbt", UniValueType(UniValue::VBOOL)},
-                    {"solving_data", UniValueType(UniValue::VOBJ)},
-                    {"subtractFeeFromOutputs", UniValueType(UniValue::VARR)},
-                    {"subtract_fee_from_outputs", UniValueType(UniValue::VARR)},
-                    {"replaceable", UniValueType(UniValue::VBOOL)},
-                    {"conf_target", UniValueType(UniValue::VNUM)},
-                    {"estimate_mode", UniValueType(UniValue::VSTR)},
-                    {"minconf", UniValueType(UniValue::VNUM)},
-                    {"maxconf", UniValueType(UniValue::VNUM)},
-                    {"input_weights", UniValueType(UniValue::VARR)},
-                    {"max_tx_weight", UniValueType(UniValue::VNUM)},
-                },
-                true, true);
+        RPCTypeCheckObj(options,
+            {
+                {"add_inputs", UniValueType(UniValue::VBOOL)},
+                {"include_unsafe", UniValueType(UniValue::VBOOL)},
+                {"add_to_wallet", UniValueType(UniValue::VBOOL)},
+                {"changeAddress", UniValueType(UniValue::VSTR)},
+                {"change_address", UniValueType(UniValue::VSTR)},
+                {"changePosition", UniValueType(UniValue::VNUM)},
+                {"change_position", UniValueType(UniValue::VNUM)},
+                {"inputs", UniValueType(UniValue::VARR)},
+                {"lockUnspents", UniValueType(UniValue::VBOOL)},
+                {"lock_unspents", UniValueType(UniValue::VBOOL)},
+                {"locktime", UniValueType(UniValue::VNUM)},
+                {"fee_rate", UniValueType()}, // will be checked by AmountFromValue() in SetFeeEstimateMode()
+                {"feeRate", UniValueType()}, // will be checked by AmountFromValue() below
+                {"psbt", UniValueType(UniValue::VBOOL)},
+                {"solving_data", UniValueType(UniValue::VOBJ)},
+                {"subtractFeeFromOutputs", UniValueType(UniValue::VARR)},
+                {"subtract_fee_from_outputs", UniValueType(UniValue::VARR)},
+                {"replaceable", UniValueType(UniValue::VBOOL)},
+                {"conf_target", UniValueType(UniValue::VNUM)},
+                {"estimate_mode", UniValueType(UniValue::VSTR)},
+                {"minconf", UniValueType(UniValue::VNUM)},
+                {"maxconf", UniValueType(UniValue::VNUM)},
+                {"input_weights", UniValueType(UniValue::VARR)},
+                {"max_tx_weight", UniValueType(UniValue::VNUM)},
+            },
+            true, true);
 
-            if (options.exists("add_inputs")) {
-                coinControl.m_allow_other_inputs = options["add_inputs"].get_bool();
-            }
-
-            if (options.exists("changeAddress") || options.exists("change_address")) {
-                const std::string change_address_str = (options.exists("change_address") ? options["change_address"] : options["changeAddress"]).get_str();
-                CTxDestination dest = DecodeDestination(change_address_str);
-
-                if (!IsValidDestination(dest)) {
-                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Change address must be a valid bitcoin address");
-                }
-
-                coinControl.destChange = dest;
-            }
-
-            if (options.exists("changePosition") || options.exists("change_position")) {
-                int pos = (options.exists("change_position") ? options["change_position"] : options["changePosition"]).getInt<int>();
-                if (pos < 0 || (unsigned int)pos > recipients.size()) {
-                    throw JSONRPCError(RPC_INVALID_PARAMETER, "changePosition out of bounds");
-                }
-                change_position = (unsigned int)pos;
-            }
-
-            if (options.exists("lockUnspents") || options.exists("lock_unspents")) {
-                lockUnspents = (options.exists("lock_unspents") ? options["lock_unspents"] : options["lockUnspents"]).get_bool();
-            }
-
-            if (options.exists("include_unsafe")) {
-                coinControl.m_include_unsafe_inputs = options["include_unsafe"].get_bool();
-            }
-
-            if (options.exists("feeRate")) {
-                if (options.exists("fee_rate")) {
-                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot specify both fee_rate (" + CURRENCY_ATOM + "/vB) and feeRate (" + CURRENCY_UNIT + "/kvB)");
-                }
-                if (options.exists("conf_target")) {
-                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot specify both conf_target and feeRate. Please provide either a confirmation target in blocks for automatic fee estimation, or an explicit fee rate.");
-                }
-                if (options.exists("estimate_mode")) {
-                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot specify both estimate_mode and feeRate");
-                }
-                coinControl.m_feerate = CFeeRate(AmountFromValue(options["feeRate"]));
-                coinControl.fOverrideFeeRate = true;
-            }
-
-            if (options.exists("replaceable")) {
-                coinControl.m_signal_bip125_rbf = options["replaceable"].get_bool();
-            }
-
-            if (options.exists("minconf")) {
-                coinControl.m_min_depth = options["minconf"].getInt<int>();
-
-                if (coinControl.m_min_depth < 0) {
-                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Negative minconf");
-                }
-            }
-
-            if (options.exists("maxconf")) {
-                coinControl.m_max_depth = options["maxconf"].getInt<int>();
-
-                if (coinControl.m_max_depth < coinControl.m_min_depth) {
-                    throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("maxconf can't be lower than minconf: %d < %d", coinControl.m_max_depth, coinControl.m_min_depth));
-                }
-            }
-            SetFeeEstimateMode(wallet, coinControl, options["conf_target"], options["estimate_mode"], options["fee_rate"], override_min_fee);
+        if (options.exists("add_inputs")) {
+            coinControl.m_allow_other_inputs = options["add_inputs"].get_bool();
         }
+
+        if (options.exists("changeAddress") || options.exists("change_address")) {
+            const std::string change_address_str = (options.exists("change_address") ? options["change_address"] : options["changeAddress"]).get_str();
+            CTxDestination dest = DecodeDestination(change_address_str);
+
+            if (!IsValidDestination(dest)) {
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Change address must be a valid bitcoin address");
+            }
+
+            coinControl.destChange = dest;
+        }
+
+        if (options.exists("changePosition") || options.exists("change_position")) {
+            int pos = (options.exists("change_position") ? options["change_position"] : options["changePosition"]).getInt<int>();
+            if (pos < 0 || (unsigned int)pos > recipients.size()) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "changePosition out of bounds");
+            }
+            change_position = (unsigned int)pos;
+        }
+
+        if (options.exists("lockUnspents") || options.exists("lock_unspents")) {
+            lockUnspents = (options.exists("lock_unspents") ? options["lock_unspents"] : options["lockUnspents"]).get_bool();
+        }
+
+        if (options.exists("include_unsafe")) {
+            coinControl.m_include_unsafe_inputs = options["include_unsafe"].get_bool();
+        }
+
+        if (options.exists("feeRate")) {
+            if (options.exists("fee_rate")) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot specify both fee_rate (" + CURRENCY_ATOM + "/vB) and feeRate (" + CURRENCY_UNIT + "/kvB)");
+            }
+            if (options.exists("conf_target")) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot specify both conf_target and feeRate. Please provide either a confirmation target in blocks for automatic fee estimation, or an explicit fee rate.");
+            }
+            if (options.exists("estimate_mode")) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot specify both estimate_mode and feeRate");
+            }
+            coinControl.m_feerate = CFeeRate(AmountFromValue(options["feeRate"]));
+            coinControl.fOverrideFeeRate = true;
+        }
+
+        if (options.exists("replaceable")) {
+            coinControl.m_signal_bip125_rbf = options["replaceable"].get_bool();
+        }
+
+        if (options.exists("minconf")) {
+            coinControl.m_min_depth = options["minconf"].getInt<int>();
+
+            if (coinControl.m_min_depth < 0) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Negative minconf");
+            }
+        }
+
+        if (options.exists("maxconf")) {
+            coinControl.m_max_depth = options["maxconf"].getInt<int>();
+
+            if (coinControl.m_max_depth < coinControl.m_min_depth) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("maxconf can't be lower than minconf: %d < %d", coinControl.m_max_depth, coinControl.m_min_depth));
+            }
+        }
+        SetFeeEstimateMode(wallet, coinControl, options["conf_target"], options["estimate_mode"], options["fee_rate"], override_min_fee);
     }
 
     if (options.exists("solving_data")) {
@@ -722,7 +716,6 @@ RPCHelpMan fundrawtransaction()
                             {"maxconf", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "If add_inputs is specified, require inputs with at most this many confirmations."},
                             {"changeAddress", RPCArg::Type::STR, RPCArg::DefaultHint{"automatic"}, "The bitcoin address to receive the change"},
                             {"changePosition", RPCArg::Type::NUM, RPCArg::DefaultHint{"random"}, "The index of the change output"},
-                            {"includeWatching", RPCArg::Type::BOOL, RPCArg::Default{false}, "(DEPRECATED) No longer used"},
                             {"lockUnspents", RPCArg::Type::BOOL, RPCArg::Default{false}, "Lock selected unspent outputs"},
                             {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
                             {"feeRate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_UNIT + "/kvB."},
@@ -1027,7 +1020,6 @@ static RPCHelpMan bumpfee_helper(std::string method_name)
         UniValue options = request.params[1];
         RPCTypeCheckObj(options,
             {
-                {"confTarget", UniValueType(UniValue::VNUM)},
                 {"conf_target", UniValueType(UniValue::VNUM)},
                 {"fee_rate", UniValueType()}, // will be checked by AmountFromValue() in SetFeeEstimateMode()
                 {"replaceable", UniValueType(UniValue::VBOOL)},
@@ -1037,16 +1029,10 @@ static RPCHelpMan bumpfee_helper(std::string method_name)
             },
             true, true);
 
-        if (options.exists("confTarget") && options.exists("conf_target")) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "confTarget and conf_target options should not both be set. Use conf_target (confTarget is deprecated).");
-        }
-
-        auto conf_target = options.exists("confTarget") ? options["confTarget"] : options["conf_target"];
-
         if (options.exists("replaceable")) {
             coin_control.m_signal_bip125_rbf = options["replaceable"].get_bool();
         }
-        SetFeeEstimateMode(*pwallet, coin_control, conf_target, options["estimate_mode"], options["fee_rate"], /*override_min_fee=*/false);
+        SetFeeEstimateMode(*pwallet, coin_control, options["conf_target"], options["estimate_mode"], options["fee_rate"], /*override_min_fee=*/false);
 
         // Prepare new outputs by creating a temporary tx and calling AddOutputs().
         if (!options["outputs"].isNull()) {
@@ -1174,7 +1160,6 @@ RPCHelpMan send()
                     {"change_address", RPCArg::Type::STR, RPCArg::DefaultHint{"automatic"}, "The bitcoin address to receive the change"},
                     {"change_position", RPCArg::Type::NUM, RPCArg::DefaultHint{"random"}, "The index of the change output"},
                     {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB.", RPCArgOptions{.also_positional = true}},
-                    {"include_watching", RPCArg::Type::BOOL, RPCArg::Default{"false"}, "(DEPRECATED) No longer used"},
                     {"inputs", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "Specify inputs instead of adding them automatically.",
                         {
                           {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "", {
@@ -1296,7 +1281,6 @@ RPCHelpMan sendall()
                     {
                         {"add_to_wallet", RPCArg::Type::BOOL, RPCArg::Default{true}, "When false, returns the serialized transaction without broadcasting or adding it to the wallet"},
                         {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB.", RPCArgOptions{.also_positional = true}},
-                        {"include_watching", RPCArg::Type::BOOL, RPCArg::Default{false}, "(DEPRECATED) No longer used"},
                         {"inputs", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "Use exactly the specified inputs to build the transaction. Specifying inputs is incompatible with the send_max, minconf, and maxconf options.",
                             {
                                 {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
@@ -1675,7 +1659,6 @@ RPCHelpMan walletcreatefundedpsbt()
                             {"maxconf", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "If add_inputs is specified, require inputs with at most this many confirmations."},
                             {"changeAddress", RPCArg::Type::STR, RPCArg::DefaultHint{"automatic"}, "The bitcoin address to receive the change"},
                             {"changePosition", RPCArg::Type::NUM, RPCArg::DefaultHint{"random"}, "The index of the change output"},
-                            {"includeWatching", RPCArg::Type::BOOL, RPCArg::Default{false}, "(DEPRECATED) No longer used"},
                             {"lockUnspents", RPCArg::Type::BOOL, RPCArg::Default{false}, "Lock selected unspent outputs"},
                             {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
                             {"feeRate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_UNIT + "/kvB."},

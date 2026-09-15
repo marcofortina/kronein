@@ -159,8 +159,6 @@ class BumpFeeTest(BitcoinTestFramework):
             rbf_node.bumpfee, rbfid, estimate_mode="economical", fee_rate=NORMAL)
 
         self.log.info("Test invalid conf_target settings")
-        assert_raises_rpc_error(-8, "confTarget and conf_target options should not both be set",
-            rbf_node.bumpfee, rbfid, {"confTarget": 123, "conf_target": 456})
 
         self.log.info("Test invalid estimate_mode settings")
         if not self.options.usecli:

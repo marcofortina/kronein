@@ -554,7 +554,7 @@ class RawTransactionsTest(BitcoinTestFramework):
         }]
         wwatch.importdescriptors(desc_import)
 
-        result = wwatch.fundrawtransaction(rawtx, options={"includeWatching": True})
+        result = wwatch.fundrawtransaction(rawtx)
         res_dec = self.nodes[0].decoderawtransaction(result["hex"])
         assert_equal(len(res_dec["vin"]), 1)
         assert_equal(res_dec["vin"][0]["txid"], self.watchonly_utxo['txid'])

@@ -477,11 +477,6 @@ RPCHelpMan simulaterawtransaction()
                     {"rawtx", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, ""},
                 },
             },
-            {"options", RPCArg::Type::OBJ_NAMED_PARAMS, RPCArg::Optional::OMITTED, "",
-                {
-                    {"include_watchonly", RPCArg::Type::BOOL, RPCArg::Default{false}, "(DEPRECATED) No longer used"},
-                },
-            },
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "",
