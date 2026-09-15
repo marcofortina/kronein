@@ -10,7 +10,6 @@
 #include <util/fs.h>
 #include <util/translation.h>
 #include <wallet/sqlite.h>
-#include <wallet/migrate.h>
 #include <wallet/test/util.h>
 #include <wallet/walletutil.h>
 
@@ -66,7 +65,6 @@ static std::vector<std::unique_ptr<WalletDatabase>> TestDatabases(const fs::path
     DatabaseOptions options;
     DatabaseStatus status;
     bilingual_str error;
-    // Unable to test BerkeleyRO since we cannot create a new BDB database to open
     dbs.emplace_back(MakeSQLiteDatabase(path_root / "sqlite", options, status, error));
     dbs.emplace_back(CreateMockableWalletDatabase());
     return dbs;
@@ -180,10 +178,6 @@ BOOST_AUTO_TEST_CASE(erase_prefix)
     auto make_key = [](std::string type, std::string id) { return std::make_pair(type, id); };
 
     for (const auto& database : TestDatabases(m_path_root)) {
-        if (dynamic_cast<BerkeleyRODatabase*>(database.get())) {
-            // Skip this test if BerkeleyRO
-            continue;
-        }
         std::unique_ptr<DatabaseBatch> batch = database->MakeBatch();
 
         // Write two entries with the same key type prefix, a third one with a different prefix

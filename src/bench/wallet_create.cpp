@@ -32,7 +32,6 @@ static void WalletCreate(benchmark::Bench& bench, bool encrypted)
     context.chain = test_setup->m_node.chain.get();
 
     DatabaseOptions options;
-    options.require_format = DatabaseFormat::SQLITE;
     options.require_create = true;
     options.create_flags = WALLET_FLAG_DESCRIPTORS;
 

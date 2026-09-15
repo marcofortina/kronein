@@ -161,14 +161,9 @@ static RPCHelpMan listwalletdir()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     UniValue wallets(UniValue::VARR);
-    for (const auto& [path, db_type] : ListDatabases(GetWalletDir())) {
+    for (const auto& [path, _] : ListDatabases(GetWalletDir())) {
         UniValue wallet(UniValue::VOBJ);
         wallet.pushKV("name", path.utf8string());
-                UniValue warnings(UniValue::VARR);
-        if (db_type == "bdb") {
-            warnings.push_back("This wallet is a legacy wallet and will need to be migrated with migratewallet before it can be loaded");
-        }
-        wallet.pushKV("warnings", warnings);
         wallets.push_back(std::move(wallet));
     }
 
@@ -579,65 +574,6 @@ RPCHelpMan simulaterawtransaction()
     };
 }
 
-static RPCHelpMan migratewallet()
-{
-    return RPCHelpMan{
-        "migratewallet",
-        "Migrate the wallet to a descriptor wallet.\n"
-        "A new wallet backup will need to be made.\n"
-        "\nThe migration process will create a backup of the wallet before migrating. This backup\n"
-        "file will be named <wallet name>-<timestamp>.legacy.bak and can be found in the directory\n"
-        "for this wallet. In the event of an incorrect migration, the backup can be restored using restorewallet."
-        "\nEncrypted wallets must have the passphrase provided as an argument to this call.\n"
-        "\nThis RPC may take a long time to complete. Increasing the RPC client timeout is recommended.",
-        {
-            {"wallet_name", RPCArg::Type::STR, RPCArg::DefaultHint{"the wallet name from the RPC endpoint"}, "The name of the wallet to migrate. If provided both here and in the RPC endpoint, the two must be identical."},
-            {"passphrase", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "The wallet passphrase"},
-        },
-        RPCResult{
-            RPCResult::Type::OBJ, "", "",
-            {
-                {RPCResult::Type::STR, "wallet_name", "The name of the primary migrated wallet"},
-                {RPCResult::Type::STR, "watchonly_name", /*optional=*/true, "The name of the migrated wallet containing the watchonly scripts"},
-                {RPCResult::Type::STR, "solvables_name", /*optional=*/true, "The name of the migrated wallet containing solvable but not watched scripts"},
-                {RPCResult::Type::STR, "backup_path", "The location of the backup of the original wallet"},
-            }
-        },
-        RPCExamples{
-            HelpExampleCli("migratewallet", "")
-            + HelpExampleRpc("migratewallet", "")
-        },
-        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-        {
-            const std::string wallet_name{EnsureUniqueWalletName(request, self.MaybeArg<std::string_view>("wallet_name"))};
-
-            SecureString wallet_pass;
-            wallet_pass.reserve(100);
-            if (!request.params[1].isNull()) {
-                wallet_pass = std::string_view{request.params[1].get_str()};
-            }
-
-            WalletContext& context = EnsureWalletContext(request.context);
-            util::Result<MigrationResult> res = MigrateLegacyToDescriptor(wallet_name, wallet_pass, context);
-            if (!res) {
-                throw JSONRPCError(RPC_WALLET_ERROR, util::ErrorString(res).original);
-            }
-
-            UniValue r{UniValue::VOBJ};
-            r.pushKV("wallet_name", res->wallet_name);
-            if (res->watchonly_wallet) {
-                r.pushKV("watchonly_name", res->watchonly_wallet->GetName());
-            }
-            if (res->solvables_wallet) {
-                r.pushKV("solvables_name", res->solvables_wallet->GetName());
-            }
-            r.pushKV("backup_path", res->backup_path.utf8string());
-
-            return r;
-        },
-    };
-}
-
 RPCHelpMan gethdkeys()
 {
     return RPCHelpMan{
@@ -941,7 +877,6 @@ std::span<const CRPCCommand> GetWalletRPCCommands()
         {"wallet", &listwallets},
         {"wallet", &loadwallet},
         {"wallet", &lockunspent},
-        {"wallet", &migratewallet},
         {"wallet", &removeprunedfunds},
         {"wallet", &rescanblockchain},
         {"wallet", &send},

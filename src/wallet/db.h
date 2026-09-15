@@ -164,15 +164,9 @@ public:
     virtual std::unique_ptr<DatabaseBatch> MakeBatch() = 0;
 };
 
-enum class DatabaseFormat {
-    SQLITE,
-    BERKELEY_RO,
-};
-
 struct DatabaseOptions {
     bool require_existing = false;
     bool require_create = false;
-    std::optional<DatabaseFormat> require_format;
     uint64_t create_flags = 0;
     SecureString create_passphrase;
 
@@ -187,7 +181,6 @@ enum class DatabaseStatus {
     SUCCESS,
     FAILED_BAD_PATH,
     FAILED_BAD_FORMAT,
-    FAILED_LEGACY_DISABLED,
     FAILED_ALREADY_LOADED,
     FAILED_ALREADY_EXISTS,
     FAILED_NOT_FOUND,
@@ -205,9 +198,7 @@ std::vector<std::pair<fs::path, std::string>> ListDatabases(const fs::path& path
 void ReadDatabaseArgs(const ArgsManager& args, DatabaseOptions& options);
 std::unique_ptr<WalletDatabase> MakeDatabase(const fs::path& path, const DatabaseOptions& options, DatabaseStatus& status, bilingual_str& error);
 
-fs::path BDBDataFile(const fs::path& path);
 fs::path SQLiteDataFile(const fs::path& path);
-bool IsBDBFile(const fs::path& path);
 bool IsSQLiteFile(const fs::path& path);
 } // namespace wallet
 

@@ -10,6 +10,5 @@ target_sources(fuzz
     fees.cpp
     scriptpubkeyman.cpp
     spend.cpp
-    wallet_bdb_parser.cpp
 )
 target_link_libraries(fuzz bitcoin_wallet)

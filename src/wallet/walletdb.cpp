@@ -19,7 +19,6 @@
 #include <util/fs.h>
 #include <util/time.h>
 #include <util/translation.h>
-#include <wallet/migrate.h>
 #include <wallet/sqlite.h>
 #include <wallet/wallet.h>
 
@@ -443,9 +442,8 @@ static DBErrors LoadWalletFlags(CWallet* pwallet, DatabaseBatch& batch) EXCLUSIV
             pwallet->WalletLogPrintf("Error reading wallet database: Unknown non-tolerable wallet flags found\n");
             return DBErrors::TOO_NEW;
         }
-        // All wallets must be descriptor wallets unless opened with a bdb_ro db
-        // bdb_ro is only used for legacy to descriptor migration.
-        if (pwallet->GetDatabase().Format() != "bdb_ro" && !pwallet->IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS)) {
+        // All native wallets must be descriptor wallets.
+        if (!pwallet->IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS)) {
             return DBErrors::LEGACY_WALLET;
         }
     }
@@ -1306,18 +1304,10 @@ std::unique_ptr<WalletDatabase> MakeDatabase(const fs::path& path, const Databas
         return nullptr;
     }
 
-    std::optional<DatabaseFormat> format;
+    bool is_sqlite{false};
     if (exists) {
-        if (IsBDBFile(BDBDataFile(path))) {
-            format = DatabaseFormat::BERKELEY_RO;
-        }
         if (IsSQLiteFile(SQLiteDataFile(path))) {
-            if (format) {
-                error = Untranslated(strprintf("Failed to load database path '%s'. Data is in ambiguous format.", fs::PathToString(path)));
-                status = DatabaseStatus::FAILED_BAD_FORMAT;
-                return nullptr;
-            }
-            format = DatabaseFormat::SQLITE;
+            is_sqlite = true;
         }
     } else if (options.require_existing) {
         error = Untranslated(strprintf("Failed to load database path '%s'. Path does not exist.", fs::PathToString(path)));
@@ -1325,49 +1315,18 @@ std::unique_ptr<WalletDatabase> MakeDatabase(const fs::path& path, const Databas
         return nullptr;
     }
 
-    if (!format && options.require_existing) {
+    if (!is_sqlite && options.require_existing) {
         error = Untranslated(strprintf("Failed to load database path '%s'. Data is not in recognized format.", fs::PathToString(path)));
         status = DatabaseStatus::FAILED_BAD_FORMAT;
         return nullptr;
     }
 
-    if (format && options.require_create) {
+    if (is_sqlite && options.require_create) {
         error = Untranslated(strprintf("Failed to create database path '%s'. Database already exists.", fs::PathToString(path)));
         status = DatabaseStatus::FAILED_ALREADY_EXISTS;
         return nullptr;
     }
 
-    // BERKELEY_RO can only be opened if require_format was set, which only occurs in migration.
-    if (format && format == DatabaseFormat::BERKELEY_RO && (!options.require_format || options.require_format != DatabaseFormat::BERKELEY_RO)) {
-        error = Untranslated(strprintf("Failed to open database path '%s'. The wallet appears to be a Legacy wallet, please use the wallet migration tool (migratewallet RPC or the GUI option).", fs::PathToString(path)));
-        status = DatabaseStatus::FAILED_LEGACY_DISABLED;
-        return nullptr;
-    }
-
-    // A db already exists so format is set, but options also specifies the format, so make sure they agree
-    if (format && options.require_format && format != options.require_format) {
-        error = Untranslated(strprintf("Failed to load database path '%s'. Data is not in required format.", fs::PathToString(path)));
-        status = DatabaseStatus::FAILED_BAD_FORMAT;
-        return nullptr;
-    }
-
-    // Format is not set when a db doesn't already exist, so use the format specified by the options if it is set.
-    if (!format && options.require_format) format = options.require_format;
-
-    if (!format) {
-        format = DatabaseFormat::SQLITE;
-    }
-
-    if (format == DatabaseFormat::SQLITE) {
-        return MakeSQLiteDatabase(path, options, status, error);
-    }
-
-    if (format == DatabaseFormat::BERKELEY_RO) {
-        return MakeBerkeleyRODatabase(path, options, status, error);
-    }
-
-    error = Untranslated(STR_INTERNAL_BUG("Could not determine wallet format"));
-    status = DatabaseStatus::FAILED_BAD_FORMAT;
-    return nullptr;
+    return MakeSQLiteDatabase(path, options, status, error);
 }
 } // namespace wallet

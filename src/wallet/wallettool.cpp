@@ -113,7 +113,6 @@ bool ExecuteWalletToolFunc(const ArgsManager& args, const std::string& command)
         ReadDatabaseArgs(args, options);
         options.require_create = true;
         options.create_flags |= WALLET_FLAG_DESCRIPTORS;
-        options.require_format = DatabaseFormat::SQLITE;
 
         const std::shared_ptr<CWallet> wallet_instance = MakeWallet(name, path, options);
         if (wallet_instance) {
@@ -133,10 +132,6 @@ bool ExecuteWalletToolFunc(const ArgsManager& args, const std::string& command)
         ReadDatabaseArgs(args, options);
         options.require_existing = true;
         DatabaseStatus status;
-
-        if (IsBDBFile(BDBDataFile(path))) {
-            options.require_format = DatabaseFormat::BERKELEY_RO;
-        }
 
         bilingual_str error;
         std::unique_ptr<WalletDatabase> database = MakeDatabase(path, options, status, error);

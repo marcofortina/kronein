@@ -32,8 +32,7 @@ bool VerifyWallets(WalletContext& context)
     if (args.IsArgSet("-walletdir")) {
         const fs::path wallet_dir{args.GetPathArg("-walletdir")};
         std::error_code error;
-        // The canonical path cleans the path, preventing >1 Berkeley environment instances for the same directory
-        // It also lets the fs::exists and fs::is_directory checks below pass on windows, since they return false
+        // The canonical path lets the fs::exists and fs::is_directory checks below pass on windows, since they return false
         // if a path has trailing slashes, and it strips trailing slashes.
         fs::path canonical_wallet_dir = fs::canonical(wallet_dir, error);
         if (error || !fs::exists(canonical_wallet_dir)) {
@@ -101,10 +100,6 @@ bool VerifyWallets(WalletContext& context)
         if (!MakeWalletDatabase(wallet_file, options, status, error_string)) {
             if (status == DatabaseStatus::FAILED_NOT_FOUND) {
                 chain.initWarning(Untranslated(strprintf("Skipping -wallet path that doesn't exist. %s", error_string.original)));
-            } else if (status == DatabaseStatus::FAILED_LEGACY_DISABLED) {
-                // Skipping legacy wallets as they will not be loaded.
-                // This will be properly communicated to the user during the loading process.
-                continue;
             } else {
                 chain.initError(error_string);
                 return false;
@@ -140,11 +135,6 @@ bool LoadWallets(WalletContext& context)
             std::unique_ptr<WalletDatabase> database = MakeWalletDatabase(name, options, status, error);
             if (!database) {
                 if (status == DatabaseStatus::FAILED_NOT_FOUND) continue;
-                if (status == DatabaseStatus::FAILED_LEGACY_DISABLED) {
-                    // Inform user that legacy wallet is not loaded and suggest upgrade options
-                    chain.initWarning(error);
-                    continue;
-                }
             }
             chain.initMessage(_("Loading wallet…"));
             std::shared_ptr<CWallet> pwallet = database ? CWallet::LoadExisting(context, name, std::move(database), error, warnings) : nullptr;

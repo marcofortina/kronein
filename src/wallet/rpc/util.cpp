@@ -133,7 +133,6 @@ void HandleWalletError(const std::shared_ptr<CWallet>& wallet, DatabaseStatus& s
         switch (status) {
             case DatabaseStatus::FAILED_NOT_FOUND:
             case DatabaseStatus::FAILED_BAD_FORMAT:
-            case DatabaseStatus::FAILED_LEGACY_DISABLED:
                 code = RPC_WALLET_NOT_FOUND;
                 break;
             case DatabaseStatus::FAILED_ALREADY_LOADED:

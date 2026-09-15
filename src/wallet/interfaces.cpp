@@ -43,7 +43,6 @@ using interfaces::Wallet;
 using interfaces::WalletAddress;
 using interfaces::WalletBalances;
 using interfaces::WalletLoader;
-using interfaces::WalletMigrationResult;
 using interfaces::WalletOrderForm;
 using interfaces::WalletTx;
 using interfaces::WalletTxOut;
@@ -599,18 +598,6 @@ public:
         }
         return wallet;
     }
-    util::Result<WalletMigrationResult> migrateWallet(const std::string& name, const SecureString& passphrase) override
-    {
-        auto res = wallet::MigrateLegacyToDescriptor(name, passphrase, m_context);
-        if (!res) return util::Error{util::ErrorString(res)};
-        WalletMigrationResult out{
-            .wallet = MakeWallet(m_context, res->wallet),
-            .watchonly_wallet_name = res->watchonly_wallet ? std::make_optional(res->watchonly_wallet->GetName()) : std::nullopt,
-            .solvables_wallet_name = res->solvables_wallet ? std::make_optional(res->solvables_wallet->GetName()) : std::nullopt,
-            .backup_path = res->backup_path,
-        };
-        return out;
-    }
     bool isEncrypted(const std::string& wallet_name) override
     {
         auto wallets{GetWallets(m_context)};
@@ -623,10 +610,6 @@ public:
         DatabaseStatus status;
         bilingual_str error;
         auto db = MakeWalletDatabase(wallet_name, options, status, error);
-        if (!db && status == wallet::DatabaseStatus::FAILED_LEGACY_DISABLED) {
-            options.require_format = wallet::DatabaseFormat::BERKELEY_RO;
-            db = MakeWalletDatabase(wallet_name, options, status, error);
-        }
         if (!db) return false;
         return WalletBatch(*db).IsEncrypted();
     }

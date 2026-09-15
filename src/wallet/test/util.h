@@ -24,10 +24,6 @@ class CWallet;
 class WalletDatabase;
 struct WalletContext;
 
-static const DatabaseFormat DATABASE_FORMATS[] = {
-       DatabaseFormat::SQLITE,
-};
-
 const std::string ADDRESS_BCRT1_UNSPENDABLE = "bcrt1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3xueyj";
 
 std::unique_ptr<CWallet> CreateSyncedWallet(interfaces::Chain& chain, CChain& cchain, const CKey& key);
