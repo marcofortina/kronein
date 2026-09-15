@@ -52,18 +52,6 @@ libbitcoinconsensus
   aware of the UTXO set, and therefore be able to fully validate transactions and
   blocks. (#29189)
 
-mempool.dat compatibility
--------------------------
-
-- The `mempool.dat` file created by -persistmempool or the savemempool RPC will
-  be written in a new format. This new format includes the XOR'ing of transaction
-  contents to mitigate issues where external programs (such as anti-virus) attempt
-  to interpret and potentially modify the file.
-
-  This new format can not be read by previous software releases. To allow for a
-  downgrade, a temporary setting `-persistmempoolv1` has been added to fall back
-  to the legacy format. (#28207)
-
 P2P and network changes
 -----------------------
 
