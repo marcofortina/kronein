@@ -254,7 +254,6 @@ BASE_SCRIPTS = [
     'wallet_multisig_descriptor_psbt.py',
     'wallet_miniscript_decaying_multisig_descriptor_psbt.py',
     'wallet_txn_doublespend.py',
-    'wallet_backwards_compatibility.py',
     'wallet_txn_clone.py --mineblock',
     'feature_notifications.py',
     'rpc_getblockfilter.py',

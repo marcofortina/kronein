@@ -24,7 +24,6 @@ namespace wallet {
 bool ExternalSignerScriptPubKeyMan::SetupDescriptor(WalletBatch& batch, std::unique_ptr<Descriptor> desc)
 {
     LOCK(cs_desc_man);
-    assert(m_storage.IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS));
     assert(m_storage.IsWalletFlagSet(WALLET_FLAG_EXTERNAL_SIGNER));
 
     int64_t creation_time = GetTime();

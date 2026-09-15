@@ -386,8 +386,6 @@ std::shared_ptr<CWallet> CreateWallet(WalletContext& context, const std::string&
     uint64_t wallet_creation_flags = options.create_flags;
     const SecureString& passphrase = options.create_passphrase;
 
-    // Only descriptor wallets can be created
-    Assert(wallet_creation_flags & WALLET_FLAG_DESCRIPTORS);
 
     // Indicate that the wallet is actually supposed to be blank and not just blank to make it encrypted
     bool create_blank = (wallet_creation_flags & WALLET_FLAG_BLANK_WALLET);
@@ -466,13 +464,10 @@ std::shared_ptr<CWallet> CreateWallet(WalletContext& context, const std::string&
     return wallet;
 }
 
-// Re-creates wallet from the backup file by renaming and moving it into the wallet's directory.
-// If 'load_after_restore=true', the wallet object will be fully initialized and appended to the context.
-std::shared_ptr<CWallet> RestoreWallet(WalletContext& context, const fs::path& backup_file, const std::string& wallet_name, std::optional<bool> load_on_start, DatabaseStatus& status, bilingual_str& error, std::vector<bilingual_str>& warnings, bool load_after_restore, bool allow_unnamed)
+// Re-creates a wallet from a backup file and loads it.
+std::shared_ptr<CWallet> RestoreWallet(WalletContext& context, const fs::path& backup_file, const std::string& wallet_name, std::optional<bool> load_on_start, DatabaseStatus& status, bilingual_str& error, std::vector<bilingual_str>& warnings)
 {
-    // Error if the wallet name is empty and allow_unnamed == false
-    // allow_unnamed == true is only used by migration to migrate an unnamed wallet
-    if (!allow_unnamed && wallet_name.empty()) {
+    if (wallet_name.empty()) {
         error = Untranslated("Wallet name cannot be empty");
         status = DatabaseStatus::FAILED_NEW_UNNAMED;
         return nullptr;
@@ -524,9 +519,7 @@ std::shared_ptr<CWallet> RestoreWallet(WalletContext& context, const fs::path& b
         fs::copy_file(backup_file, wallet_file, fs::copy_options::none);
         wallet_file_copied = true;
 
-        if (load_after_restore) {
-            wallet = LoadWallet(context, wallet_name, load_on_start, options, status, error, warnings);
-        }
+        wallet = LoadWallet(context, wallet_name, load_on_start, options, status, error, warnings);
     } catch (const std::exception& e) {
         assert(!wallet);
         if (!error.empty()) error += Untranslated("\n");
@@ -534,7 +527,7 @@ std::shared_ptr<CWallet> RestoreWallet(WalletContext& context, const fs::path& b
     }
 
     // Remove created wallet path only when loading fails
-    if (load_after_restore && !wallet) {
+    if (!wallet) {
         if (wallet_file_copied) fs::remove(wallet_file);
         // Clean up the parent directory if we created it during restoration.
         // As we have created it, it must be empty after deleting the wallet file.
@@ -559,19 +552,6 @@ const CWalletTx* CWallet::GetWalletTx(const Txid& hash) const
     if (it == mapWallet.end())
         return nullptr;
     return &(it->second);
-}
-
-void CWallet::UpgradeDescriptorCache()
-{
-    if (!IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS) || IsLocked() || IsWalletFlagSet(WALLET_FLAG_LAST_HARDENED_XPUB_CACHED)) {
-        return;
-    }
-
-    for (ScriptPubKeyMan* spkm : GetAllScriptPubKeyMans()) {
-        DescriptorScriptPubKeyMan* desc_spkm = dynamic_cast<DescriptorScriptPubKeyMan*>(spkm);
-        desc_spkm->UpgradeDescriptorCache();
-    }
-    SetWalletFlag(WALLET_FLAG_LAST_HARDENED_XPUB_CACHED);
 }
 
 /* Given a wallet passphrase string and an unencrypted master key, determine the proper key
@@ -628,8 +608,6 @@ bool CWallet::Unlock(const SecureString& strWalletPassphrase)
                 continue; // try another master key
             }
             if (Unlock(plain_master_key)) {
-                // Now that we've unlocked, upgrade the descriptor cache
-                UpgradeDescriptorCache();
                 return true;
             }
         }
@@ -806,9 +784,6 @@ void CWallet::AddToSpends(const CWalletTx& wtx)
 
 bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
 {
-    // Only descriptor wallets can be encrypted
-    Assert(IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS));
-
     if (HasEncryptionKeys())
         return false;
 
@@ -2392,13 +2367,6 @@ DBErrors CWallet::PopulateWalletFromDB(bilingual_str& error, std::vector<bilingu
                             "The wallet might have been created on a newer version.\n"
                             "Please try running the latest software version.\n"), wallet_file);
         break;
-    case DBErrors::UNEXPECTED_LEGACY_ENTRY:
-        error = strprintf(_("Unexpected legacy entry in descriptor wallet found. Loading wallet %s\n\n"
-                            "The wallet might have been tampered with or created with malicious intent.\n"), wallet_file);
-        break;
-    case DBErrors::LEGACY_WALLET:
-        error = strprintf(_("Error loading %s: Only descriptor wallets are supported"), wallet_file);
-        break;
     case DBErrors::LOAD_FAIL:
         error = strprintf(_("Error loading %s"), wallet_file);
         break;
@@ -3082,12 +3050,7 @@ std::shared_ptr<CWallet> CWallet::CreateNew(WalletContext& context, const std::s
     {
         LOCK(walletInstance->cs_wallet);
 
-        // Init with passed flags.
-        // Always set the cache upgrade flag as this feature is supported from the beginning.
-        walletInstance->InitWalletFlags(wallet_creation_flags | WALLET_FLAG_LAST_HARDENED_XPUB_CACHED);
-
-        // Only descriptor wallets can be created
-        assert(walletInstance->IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS));
+        walletInstance->InitWalletFlags(wallet_creation_flags);
 
         if ((wallet_creation_flags & WALLET_FLAG_EXTERNAL_SIGNER) || !(wallet_creation_flags & (WALLET_FLAG_DISABLE_PRIVATE_KEYS | WALLET_FLAG_BLANK_WALLET))) {
             walletInstance->SetupDescriptorScriptPubKeyMans();
@@ -3477,16 +3440,6 @@ std::vector<WalletDescriptor> CWallet::GetWalletDescriptors(const CScript& scrip
     return descs;
 }
 
-LegacyDataSPKM* CWallet::GetLegacyDataSPKM() const
-{
-    if (IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS)) {
-        return nullptr;
-    }
-    auto it = m_internal_spk_managers.find(OutputType::LEGACY);
-    if (it == m_internal_spk_managers.end()) return nullptr;
-    return dynamic_cast<LegacyDataSPKM*>(it->second);
-}
-
 void CWallet::AddScriptPubKeyMan(const uint256& id, std::unique_ptr<ScriptPubKeyMan> spkm_man)
 {
     // Add spkm_man to m_spk_managers before calling any method
@@ -3495,29 +3448,6 @@ void CWallet::AddScriptPubKeyMan(const uint256& id, std::unique_ptr<ScriptPubKey
 
     // Update birth time if needed
     MaybeUpdateBirthTime(spkm->GetTimeFirstKey());
-}
-
-LegacyDataSPKM* CWallet::GetOrCreateLegacyDataSPKM()
-{
-    SetupLegacyScriptPubKeyMan();
-    return GetLegacyDataSPKM();
-}
-
-void CWallet::SetupLegacyScriptPubKeyMan()
-{
-    if (!m_internal_spk_managers.empty() || !m_external_spk_managers.empty() || !m_spk_managers.empty() || IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS)) {
-        return;
-    }
-
-    Assert(m_database->Format() == "mock");
-    std::unique_ptr<ScriptPubKeyMan> spk_manager = std::make_unique<LegacyDataSPKM>(*this);
-
-    for (const auto& type : LEGACY_OUTPUT_TYPES) {
-        m_internal_spk_managers[type] = spk_manager.get();
-        m_external_spk_managers[type] = spk_manager.get();
-    }
-    uint256 id = spk_manager->GetID();
-    AddScriptPubKeyMan(id, std::move(spk_manager));
 }
 
 bool CWallet::WithEncryptionKey(std::function<bool (const CKeyingMaterial&)> cb) const
@@ -3674,10 +3604,6 @@ void CWallet::AddActiveScriptPubKeyManWithDb(WalletBatch& batch, uint256 id, Out
 
 void CWallet::LoadActiveScriptPubKeyMan(uint256 id, OutputType type, bool internal)
 {
-    // Activating ScriptPubKeyManager for a given output and change type is incompatible with legacy wallets.
-    // Legacy wallets have only one ScriptPubKeyManager and it's active for all output and change types.
-    Assert(IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS));
-
     WalletLogPrintf("Setting spkMan to active: id = %s, type = %s, internal = %s\n", id.ToString(), FormatOutputType(type), internal ? "true" : "false");
     auto& spk_mans = internal ? m_internal_spk_managers : m_external_spk_managers;
     auto& spk_mans_other = internal ? m_external_spk_managers : m_internal_spk_managers;
@@ -3746,8 +3672,6 @@ std::optional<bool> CWallet::IsInternalScriptPubKeyMan(ScriptPubKeyMan* spk_man)
 util::Result<std::reference_wrapper<DescriptorScriptPubKeyMan>> CWallet::AddWalletDescriptor(WalletDescriptor& desc, const FlatSigningProvider& signing_provider, const std::string& label, bool internal)
 {
     AssertLockHeld(cs_wallet);
-
-    Assert(IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS));
 
     auto spk_man = GetDescriptorScriptPubKeyMan(desc);
     if (spk_man) {
@@ -3824,8 +3748,6 @@ std::set<CExtPubKey> CWallet::GetActiveHDPubKeys() const
 {
     AssertLockHeld(cs_wallet);
 
-    Assert(IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS));
-
     std::set<CExtPubKey> active_xpubs;
     for (const auto& spkm : GetActiveScriptPubKeyMans()) {
         const DescriptorScriptPubKeyMan* desc_spkm = dynamic_cast<DescriptorScriptPubKeyMan*>(spkm);
@@ -3843,8 +3765,6 @@ std::set<CExtPubKey> CWallet::GetActiveHDPubKeys() const
 
 std::optional<CKey> CWallet::GetKey(const CKeyID& keyid) const
 {
-    Assert(IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS));
-
     for (const auto& spkm : GetAllScriptPubKeyMans()) {
         const DescriptorScriptPubKeyMan* desc_spkm = dynamic_cast<DescriptorScriptPubKeyMan*>(spkm);
         assert(desc_spkm);

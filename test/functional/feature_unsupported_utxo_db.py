@@ -26,7 +26,7 @@ class UnsupportedUtxoDbTest(BitcoinTestFramework):
             self.num_nodes,
             versions=[
                 140300,  # Last release with previous utxo db format
-                None,  # For MiniWallet, without migration code
+                None,  # MiniWallet does not use a wallet database.
             ],
         )
 

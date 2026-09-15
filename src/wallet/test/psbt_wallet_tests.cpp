@@ -33,7 +33,6 @@ static void import_descriptor(CWallet& wallet, const std::string& descriptor)
 BOOST_AUTO_TEST_CASE(psbt_updater_test)
 {
     LOCK(m_wallet.cs_wallet);
-    m_wallet.SetWalletFlag(WALLET_FLAG_DESCRIPTORS);
 
     // Create prevtxs and add to wallet
     DataStream s_prev_tx1{

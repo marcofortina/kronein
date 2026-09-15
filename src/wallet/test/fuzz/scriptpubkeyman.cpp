@@ -85,7 +85,6 @@ FUZZ_TARGET(scriptpubkeyman, .init = initialize_spkm)
     CWallet& wallet{*wallet_ptr};
     {
         LOCK(wallet.cs_wallet);
-        wallet.SetWalletFlag(WALLET_FLAG_DESCRIPTORS);
         wallet.SetLastBlockProcessed(chainstate.m_chain.Height(), chainstate.m_chain.Tip()->GetBlockHash());
         wallet.m_keypool_size = 1;
     }

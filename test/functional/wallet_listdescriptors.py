@@ -127,7 +127,7 @@ class ListDescriptorsTest(BitcoinTestFramework):
         assert_equal(expected, wallet.listdescriptors())
 
         self.log.info('Test taproot descriptor do not have mixed hardened derivation marker')
-        node.createwallet(wallet_name='w5', descriptors=True, disable_private_keys=True)
+        node.createwallet(wallet_name='w5', disable_private_keys=True)
         wallet = node.get_wallet_rpc('w5')
         wallet.importdescriptors([{
             'desc': "tr([1dce71b2/48'/1'/0'/2']tpubDEeP3GefjqbaDTTaVAF5JkXWhoFxFDXQ9KuhVrMBViFXXNR2B3Lvme2d2AoyiKfzRFZChq2AGMNbU1qTbkBMfNv7WGVXLt2pnYXY87gXqcs/0/*,and_v(v:pk([c658b283/48'/1'/0'/2']tpubDFL5wzgPBYK5pZ2Kh1T8qrxnp43kjE5CXfguZHHBrZSWpkfASy5rVfj7prh11XdqkC1P3kRwUPBeX7AHN8XBNx8UwiprnFnEm5jyswiRD4p/0/*),older(65535)))#xl20m6md",

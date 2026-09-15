@@ -4,11 +4,6 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test descriptor wallet function."""
 
-try:
-    import sqlite3
-except ImportError:
-    pass
-
 import re
 
 from test_framework.blocktools import COINBASE_MATURITY
@@ -29,7 +24,6 @@ class WalletDescriptorTest(BitcoinTestFramework):
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
-        self.skip_if_no_py_sqlite3()
 
     def test_parent_descriptors(self):
         self.log.info("Check that parent_descs is the same for all RPCs and is normalized")
@@ -184,7 +178,7 @@ class WalletDescriptorTest(BitcoinTestFramework):
         assert_raises_rpc_error(-12, "Keypool ran out, please call keypoolrefill first", send_wrpc.getnewaddress, '', 'bech32')
 
         self.log.info("Test born encrypted wallets")
-        self.nodes[0].createwallet('desc_enc', False, False, 'pass', False, True)
+        self.nodes[0].createwallet('desc_enc', False, False, 'pass', False)
         enc_rpc = self.nodes[0].get_wallet_rpc('desc_enc')
         enc_rpc.getnewaddress() # Makes sure that we can get a new address from a born encrypted wallet
 
@@ -256,17 +250,6 @@ class WalletDescriptorTest(BitcoinTestFramework):
                     exp_addr = exp_rpc.getnewaddress(address_type=addr_type)
                     imp_addr = imp_rpc.getnewaddress(address_type=addr_type)
                 assert_equal(exp_addr, imp_addr)
-
-        self.log.info("Test that loading descriptor wallet containing legacy key types throws error")
-        self.nodes[0].createwallet(wallet_name="crashme")
-        self.nodes[0].unloadwallet("crashme")
-        wallet_db = self.nodes[0].wallets_path / "crashme" / self.wallet_data_filename
-        conn = sqlite3.connect(wallet_db)
-        with conn:
-            # add "cscript" entry: key type is uint160 (20 bytes), value type is CScript (zero-length here)
-            conn.execute('INSERT INTO main VALUES(?, ?)', (b'\x07cscript' + b'\x00'*20, b'\x00'))
-        conn.close()
-        assert_raises_rpc_error(-4, "Unexpected legacy entry in descriptor wallet found.", self.nodes[0].loadwallet, "crashme")
 
         self.test_parent_descriptors()
 

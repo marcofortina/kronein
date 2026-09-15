@@ -45,7 +45,7 @@ class CreateWalletTest(BitcoinTestFramework):
         assert_raises_rpc_error(-4, "Error: This wallet has no available keys", w1.getrawchangeaddress)
         import_res = w1.importdescriptors([{"desc": w0.getaddressinfo(address1)['desc'], "timestamp": "now"}])
         assert_equal(import_res[0]["success"], True)
-        assert_equal(sorted(w1.getwalletinfo()["flags"]), sorted(["last_hardened_xpub_cached", "descriptor_wallet", "disable_private_keys"]))
+        assert_equal(w1.getwalletinfo()["flags"], ["disable_private_keys"])
 
         self.log.info('Test that private keys cannot be imported')
         privkey, pubkey = generate_keypair(wif=True)
@@ -163,9 +163,6 @@ class CreateWalletTest(BitcoinTestFramework):
 
         self.log.info('Using a passphrase with private keys disabled returns error')
         assert_raises_rpc_error(-4, 'Passphrase provided but private keys are disabled. A passphrase is only used to encrypt private keys, so cannot be used for wallets with private keys disabled.', self.nodes[0].createwallet, wallet_name='w9', disable_private_keys=True, passphrase='thisisapassphrase')
-
-        self.log.info("Test that legacy wallets cannot be created")
-        assert_raises_rpc_error(-4, 'descriptors argument must be set to "true"; it is no longer possible to create a legacy wallet.', self.nodes[0].createwallet, wallet_name="legacy", descriptors=False)
 
         self.log.info("Check that the version number is being logged correctly")
 

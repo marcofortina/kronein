@@ -34,7 +34,6 @@ using wallet::AddWallet;
 using wallet::CWallet;
 using wallet::CreateMockableWalletDatabase;
 using wallet::RemoveWallet;
-using wallet::WALLET_FLAG_DESCRIPTORS;
 using wallet::WalletContext;
 
 namespace
@@ -77,7 +76,6 @@ void TestAddAddressesToSendBook(interfaces::Node& node)
     test.m_node.wallet_loader = wallet_loader.get();
     node.setContext(&test.m_node);
     const std::shared_ptr<CWallet> wallet = std::make_shared<CWallet>(node.context()->chain.get(), "", CreateMockableWalletDatabase());
-    wallet->SetWalletFlag(WALLET_FLAG_DESCRIPTORS);
     {
         LOCK(wallet->cs_wallet);
         wallet->SetupDescriptorScriptPubKeyMans();

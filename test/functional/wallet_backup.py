@@ -162,7 +162,6 @@ class WalletBackupTest(BitcoinTestFramework):
 
     def test_restore_into_unnamed_wallet(self):
         self.log.info("Test restore into a default unnamed wallet")
-        # This is also useful to test the migration recovery after failure logic
         node = self.nodes[3]
         backup_file = self.nodes[0].datadir_path / 'wallet.bak'
         assert_raises_rpc_error(-8, "Wallet name cannot be empty", node.restorewallet, "", backup_file)

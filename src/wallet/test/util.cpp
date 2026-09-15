@@ -26,7 +26,6 @@ std::unique_ptr<CWallet> CreateSyncedWallet(interfaces::Chain& chain, CChain& cc
     }
     {
         LOCK(wallet->cs_wallet);
-        wallet->SetWalletFlag(WALLET_FLAG_DESCRIPTORS);
         wallet->SetupDescriptorScriptPubKeyMans();
 
         FlatSigningProvider provider;
@@ -63,7 +62,6 @@ std::shared_ptr<CWallet> TestCreateWallet(WalletContext& context)
 {
     DatabaseOptions options;
     options.require_create = true;
-    options.create_flags = WALLET_FLAG_DESCRIPTORS;
     DatabaseStatus status;
     bilingual_str error;
     std::vector<bilingual_str> warnings;
@@ -220,8 +218,6 @@ MockableDatabase& GetMockableDatabase(CWallet& wallet)
 
 wallet::DescriptorScriptPubKeyMan* CreateDescriptor(CWallet& keystore, const std::string& desc_str, const bool success)
 {
-    keystore.SetWalletFlag(WALLET_FLAG_DESCRIPTORS);
-
     FlatSigningProvider keys;
     std::string error;
     auto parsed_descs = Parse(desc_str, keys, error, false);

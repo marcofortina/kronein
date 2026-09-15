@@ -27,12 +27,10 @@ struct FuzzedWallet {
         wallet = std::make_shared<CWallet>(&chain, name, CreateMockableWalletDatabase());
         {
             LOCK(wallet->cs_wallet);
-            wallet->SetWalletFlag(WALLET_FLAG_DESCRIPTORS);
             auto height{*Assert(chain.getHeight())};
             wallet->SetLastBlockProcessed(height, chain.getBlockHash(height));
         }
         wallet->m_keypool_size = 1; // Avoid timeout in TopUp()
-        assert(wallet->IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS));
         ImportDescriptors(seed_insecure);
     }
     void ImportDescriptors(const std::string& seed_insecure)

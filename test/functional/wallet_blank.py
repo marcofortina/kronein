@@ -25,7 +25,6 @@ class WalletBlankTest(BitcoinTestFramework):
         self.nodes[0].createwallet(wallet_name="idesc", disable_private_keys=True, blank=True)
         wallet = self.nodes[0].get_wallet_rpc("idesc")
         info = wallet.getwalletinfo()
-        assert_equal(info["descriptors"], True)
         assert_equal(info["blank"], True)
         wallet.importdescriptors([{
             "desc": ADDRESS_BCRT1_UNSPENDABLE_DESCRIPTOR,
@@ -39,7 +38,6 @@ class WalletBlankTest(BitcoinTestFramework):
         wallet = self.nodes[0].get_wallet_rpc("encblankdesc")
 
         info = wallet.getwalletinfo()
-        assert_equal(info["descriptors"], True)
         assert_equal(info["blank"], True)
         descs = wallet.listdescriptors()
 

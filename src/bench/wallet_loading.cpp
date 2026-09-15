@@ -41,9 +41,8 @@ static void WalletLoadingDescriptors(benchmark::Bench& bench)
 
     // Setup the wallet
     // Loading the wallet will also create it
-    uint64_t create_flags = WALLET_FLAG_DESCRIPTORS;
     auto database = CreateMockableWalletDatabase();
-    auto wallet = TestCreateWallet(std::move(database), context, create_flags);
+    auto wallet = TestCreateWallet(std::move(database), context, /*create_flags=*/0);
 
     // Generate a bunch of transactions and addresses to put into the wallet
     for (int i = 0; i < 1000; ++i) {

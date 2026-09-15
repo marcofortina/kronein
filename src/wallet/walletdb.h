@@ -50,9 +50,7 @@ enum class DBErrors : int
     TOO_NEW = 5,
     UNKNOWN_DESCRIPTOR = 6,
     LOAD_FAIL = 7,
-    UNEXPECTED_LEGACY_ENTRY = 8,
-    LEGACY_WALLET = 9,
-    CORRUPT = 10,
+    CORRUPT = 8,
 };
 
 namespace DBKeys {
@@ -61,21 +59,13 @@ extern const std::string ACTIVEEXTERNALSPK;
 extern const std::string ACTIVEINTERNALSPK;
 extern const std::string BESTBLOCK;
 extern const std::string BESTBLOCK_NOMERKLE;
-extern const std::string CRYPTED_KEY;
-extern const std::string CSCRIPT;
-extern const std::string DEFAULTKEY;
 extern const std::string DESTDATA;
 extern const std::string FLAGS;
-extern const std::string HDCHAIN;
-extern const std::string KEY;
-extern const std::string KEYMETA;
 extern const std::string LOCKED_UTXO;
 extern const std::string MASTER_KEY;
 extern const std::string MINVERSION;
 extern const std::string NAME;
-extern const std::string OLD_KEY;
 extern const std::string ORDERPOSNEXT;
-extern const std::string POOL;
 extern const std::string PURPOSE;
 extern const std::string SETTINGS;
 extern const std::string TX;
@@ -83,51 +73,7 @@ extern const std::string VERSION;
 extern const std::string WALLETDESCRIPTOR;
 extern const std::string WALLETDESCRIPTORCKEY;
 extern const std::string WALLETDESCRIPTORKEY;
-extern const std::string WATCHMETA;
-extern const std::string WATCHS;
-
-// Keys in this set pertain only to the legacy wallet (LegacyScriptPubKeyMan) and are removed during migration from legacy to descriptors.
-extern const std::unordered_set<std::string> LEGACY_TYPES;
 } // namespace DBKeys
-
-/* simple HD chain data model */
-class CHDChain
-{
-public:
-    uint32_t nExternalChainCounter;
-    uint32_t nInternalChainCounter;
-    CKeyID seed_id; //!< seed hash160
-    int64_t m_next_external_index{0}; // Next index in the keypool to be used. Memory only.
-    int64_t m_next_internal_index{0}; // Next index in the keypool to be used. Memory only.
-
-    static const int VERSION_HD_BASE        = 1;
-    static const int VERSION_HD_CHAIN_SPLIT = 2;
-    static const int CURRENT_VERSION        = VERSION_HD_CHAIN_SPLIT;
-    int nVersion;
-
-    CHDChain() { SetNull(); }
-
-    SERIALIZE_METHODS(CHDChain, obj)
-    {
-        READWRITE(obj.nVersion, obj.nExternalChainCounter, obj.seed_id);
-        if (obj.nVersion >= VERSION_HD_CHAIN_SPLIT) {
-            READWRITE(obj.nInternalChainCounter);
-        }
-    }
-
-    void SetNull()
-    {
-        nVersion = CHDChain::CURRENT_VERSION;
-        nExternalChainCounter = 0;
-        nInternalChainCounter = 0;
-        seed_id.SetNull();
-    }
-
-    bool operator==(const CHDChain& chain) const
-    {
-        return seed_id == chain.seed_id;
-    }
-};
 
 class CKeyMetadata
 {
@@ -227,14 +173,8 @@ public:
     bool WriteTx(const CWalletTx& wtx);
     bool EraseTx(Txid hash);
 
-    bool WriteKeyMetadata(const CKeyMetadata& meta, const CPubKey& pubkey, bool overwrite);
-    bool WriteKey(const CPubKey& vchPubKey, const CPrivKey& vchPrivKey, const CKeyMetadata &keyMeta);
-    bool WriteCryptedKey(const CPubKey& vchPubKey, const std::vector<unsigned char>& vchCryptedSecret, const CKeyMetadata &keyMeta);
     bool WriteMasterKey(unsigned int nID, const CMasterKey& kMasterKey);
     bool EraseMasterKey(unsigned int id);
-
-    bool WriteWatchOnly(const CScript &script, const CKeyMetadata &keymeta);
-    bool EraseWatchOnly(const CScript &script);
 
     bool WriteBestBlock(const CBlockLocator& locator);
     bool ReadBestBlock(CBlockLocator& locator);
@@ -269,7 +209,6 @@ public:
     bool WriteVersion(int client_version) { return m_batch->Write(DBKeys::VERSION, CLIENT_VERSION); }
 
     //! Delete records of the given types
-    bool EraseRecords(const std::unordered_set<std::string>& types);
 
     bool WriteWalletFlags(uint64_t flags);
     //! Begin a new transaction
@@ -305,14 +244,7 @@ private:
  */
 bool RunWithinTxn(WalletDatabase& database, std::string_view process_desc, const std::function<bool(WalletBatch&)>& func);
 
-bool LoadKey(CWallet* pwallet, DataStream& ssKey, DataStream& ssValue, std::string& strErr);
-bool LoadCryptedKey(CWallet* pwallet, DataStream& ssKey, DataStream& ssValue, std::string& strErr);
 bool LoadEncryptionKey(CWallet* pwallet, DataStream& ssKey, DataStream& ssValue, std::string& strErr);
-bool LoadHDChain(CWallet* pwallet, DataStream& ssValue, std::string& strErr);
-
-//! Returns true if there are any DBKeys::LEGACY_TYPES record in the wallet db
-bool HasLegacyRecords(CWallet& wallet);
-bool HasLegacyRecords(CWallet& wallet, DatabaseBatch& batch);
 } // namespace wallet
 
 #endif // BITCOIN_WALLET_WALLETDB_H

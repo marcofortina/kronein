@@ -20,7 +20,6 @@ static std::shared_ptr<CWallet> NewWallet(const node::NodeContext& m_node)
 {
     std::unique_ptr<CWallet> wallet = std::make_unique<CWallet>(m_node.chain.get(), "", CreateMockableWalletDatabase());
     LOCK(wallet->cs_wallet);
-    wallet->SetWalletFlag(WALLET_FLAG_DESCRIPTORS);
     wallet->SetupDescriptorScriptPubKeyMans();
     return wallet;
 }

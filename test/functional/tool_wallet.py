@@ -73,7 +73,6 @@ class ToolWalletTest(BitcoinTestFramework):
             ===========
             Name: %s
             Format: sqlite
-            Descriptors: yes
             Encrypted: no
             HD (hd seed available): yes
             Keypool Size: %d
@@ -369,7 +368,6 @@ class ToolWalletTest(BitcoinTestFramework):
             ===========
             Name: conflicts
             Format: sqlite
-            Descriptors: yes
             Encrypted: no
             HD (hd seed available): yes
             Keypool Size: 8
@@ -385,8 +383,7 @@ class ToolWalletTest(BitcoinTestFramework):
         self.nodes[0].createwallet("bigrecords")
         wallet = self.nodes[0].get_wallet_rpc("bigrecords")
 
-        # Both BDB and sqlite have maximum page sizes of 65536 bytes, with defaults of 4096
-        # When a record exceeds some size threshold, both BDB and SQLite will store the data
+        # SQLite stores sufficiently large records across multiple pages.
         # in one or more overflow pages. We want to make sure that our tooling can dump such
         # records, even when they span multiple pages. To make a large record, we just need
         # to make a very big transaction.
@@ -414,14 +411,6 @@ class ToolWalletTest(BitcoinTestFramework):
         else:
             assert False, "Big transaction was not found in wallet dump"
 
-    def test_no_create_legacy(self):
-        self.log.info("Test that legacy wallets cannot be created")
-
-        self.assert_raises_tool_error("Invalid parameter -legacy", "-wallet=legacy", "-legacy", "create")
-        assert not (self.nodes[0].wallets_path / "legacy").exists()
-        self.assert_raises_tool_error("Invalid parameter -descriptors", "-wallet=legacy", "-descriptors=false", "create")
-        assert not (self.nodes[0].wallets_path / "legacy").exists()
-
     def test_no_create_unnamed(self):
         self.log.info("Test that unnamed (default) wallets cannot be created")
 
@@ -442,7 +431,6 @@ class ToolWalletTest(BitcoinTestFramework):
         self.test_dump_createfromdump()
         self.test_chainless_conflicts()
         self.test_dump_very_large_records()
-        self.test_no_create_legacy()
         self.test_no_create_unnamed()
 
 

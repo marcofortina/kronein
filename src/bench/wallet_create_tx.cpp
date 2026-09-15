@@ -42,7 +42,6 @@
 using kernel::ChainstateRole;
 using wallet::CWallet;
 using wallet::CreateMockableWalletDatabase;
-using wallet::WALLET_FLAG_DESCRIPTORS;
 
 struct TipBlock
 {
@@ -120,7 +119,6 @@ static void WalletCreateTx(benchmark::Bench& bench, const OutputType output_type
     CWallet wallet{test_setup->m_node.chain.get(), "", CreateMockableWalletDatabase()};
     {
         LOCK(wallet.cs_wallet);
-        wallet.SetWalletFlag(WALLET_FLAG_DESCRIPTORS);
         wallet.SetupDescriptorScriptPubKeyMans();
     }
 
@@ -175,7 +173,6 @@ static void AvailableCoins(benchmark::Bench& bench, const std::vector<OutputType
     CWallet wallet{test_setup->m_node.chain.get(), "", CreateMockableWalletDatabase()};
     {
         LOCK(wallet.cs_wallet);
-        wallet.SetWalletFlag(WALLET_FLAG_DESCRIPTORS);
         wallet.SetupDescriptorScriptPubKeyMans();
     }
 

@@ -31,7 +31,6 @@ static void WalletCreate(CWallet* wallet_instance, uint64_t wallet_creation_flag
 
     wallet_instance->InitWalletFlags(wallet_creation_flags);
 
-    Assert(wallet_instance->IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS));
     wallet_instance->SetupDescriptorScriptPubKeyMans();
 
     tfm::format(std::cout, "Topping up keypool...\n");
@@ -83,7 +82,6 @@ static void WalletShowInfo(CWallet* wallet_instance)
     tfm::format(std::cout, "Wallet info\n===========\n");
     tfm::format(std::cout, "Name: %s\n", wallet_instance->GetName());
     tfm::format(std::cout, "Format: %s\n", wallet_instance->GetDatabase().Format());
-    tfm::format(std::cout, "Descriptors: %s\n", wallet_instance->IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS) ? "yes" : "no");
     tfm::format(std::cout, "Encrypted: %s\n", wallet_instance->HasEncryptionKeys() ? "yes" : "no");
     tfm::format(std::cout, "HD (hd seed available): %s\n", wallet_instance->IsHDEnabled() ? "yes" : "no");
     tfm::format(std::cout, "Keypool Size: %u\n", wallet_instance->GetKeyPoolSize());
@@ -112,7 +110,6 @@ bool ExecuteWalletToolFunc(const ArgsManager& args, const std::string& command)
         DatabaseOptions options;
         ReadDatabaseArgs(args, options);
         options.require_create = true;
-        options.create_flags |= WALLET_FLAG_DESCRIPTORS;
 
         const std::shared_ptr<CWallet> wallet_instance = MakeWallet(name, path, options);
         if (wallet_instance) {
