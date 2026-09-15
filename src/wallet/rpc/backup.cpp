@@ -481,7 +481,6 @@ RPCHelpMan listdescriptors()
                         {RPCResult::Type::NUM, "", "Range start inclusive"},
                         {RPCResult::Type::NUM, "", "Range end inclusive"},
                     }},
-                    {RPCResult::Type::NUM, "next", /*optional=*/true, "Same as next_index field. Kept for compatibility reason."},
                     {RPCResult::Type::NUM, "next_index", /*optional=*/true, "The next index to generate addresses from; defined only for ranged descriptors"},
                 }},
             }}
@@ -555,7 +554,6 @@ RPCHelpMan listdescriptors()
             range.push_back(info.range->first);
             range.push_back(info.range->second - 1);
             spk.pushKV("range", std::move(range));
-            spk.pushKV("next", info.next_index);
             spk.pushKV("next_index", info.next_index);
         }
         descriptors.push_back(std::move(spk));

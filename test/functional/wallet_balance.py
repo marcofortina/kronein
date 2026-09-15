@@ -22,7 +22,7 @@ def create_transactions(node, address, amt, fees):
     # Create and sign raw transactions from node to address for amt.
     # Creates a transaction for each fee and returns an array
     # of the raw transactions.
-    utxos = [u for u in node.listunspent(0) if u['spendable']]
+    utxos = node.listunspent(0)
 
     # Create transactions
     inputs = []

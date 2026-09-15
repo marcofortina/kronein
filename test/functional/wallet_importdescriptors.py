@@ -39,7 +39,7 @@ class ImportDescriptorsTest(BitcoinTestFramework):
                 "timestamp": "now",
                 "active": True,
                 "range": [0, 100],
-                "next_index": item["next"],
+                "next_index": item["next_index"],
             }
             if item.get("internal", False):
                 request["internal"] = True

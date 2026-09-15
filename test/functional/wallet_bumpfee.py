@@ -13,11 +13,12 @@ can be disabled or reordered if needed for debugging. If new test cases are
 added in the future, they should try to follow the same convention and not
 make assumptions about execution order.
 """
-from decimal import Decimal
+from decimal import Decimal, ROUND_CEILING
 
 from test_framework.blocktools import (
     COINBASE_MATURITY,
 )
+from test_framework.descriptors import descsum_create
 from test_framework.messages import (
     MAX_BIP125_RBF_SEQUENCE,
     MAX_SEQUENCE_NONFINAL,
@@ -125,10 +126,10 @@ class BumpFeeTest(BitcoinTestFramework):
             assert_raises_rpc_error(-3, "Unexpected key {}".format(key), rbf_node.bumpfee, rbfid, {key: NORMAL})
 
         # Bumping to just above minrelay should fail to increase the total fee enough.
-        assert_raises_rpc_error(-8, "Insufficient total fee 0.00000141", rbf_node.bumpfee, rbfid, fee_rate=INSUFFICIENT)
+        assert_raises_rpc_error(-8, "Insufficient total fee 0.00000154", rbf_node.bumpfee, rbfid, fee_rate=INSUFFICIENT)
 
         self.log.info("Test invalid fee rate settings")
-        assert_raises_rpc_error(-4, "Specified or calculated fee 0.141 is too high (cannot be higher than -maxtxfee 0.10",
+        assert_raises_rpc_error(-4, "Specified or calculated fee 0.154 is too high (cannot be higher than -maxtxfee 0.10",
             rbf_node.bumpfee, rbfid, fee_rate=TOO_HIGH)
         # Test fee_rate with zero values.
         msg = "Insufficient total fee 0.00"
@@ -511,15 +512,9 @@ def test_dust_to_fee(self, rbf_node, dest_address):
     self.log.info('Test that bumped output that is dust is dropped to fee')
     rbfid = spend_one_input(rbf_node, dest_address)
     fulltx = rbf_node.getrawtransaction(rbfid, 1)
-    # The DER formatting used by Bitcoin to serialize ECDSA signatures means that signatures can have a
-    # variable size of 70-72 bytes (or possibly even less), with most being 71 or 72 bytes. The signature
-    # in the witness is divided by 4 for the vsize, so this variance can take the weight across a 4-byte
-    # boundary. Thus expected transaction size (p2wpkh, 1 input, 2 outputs) is 140-141 vbytes, usually 141.
-    if not 140 <= fulltx["vsize"] <= 141:
-        raise AssertionError("Invalid tx vsize of {} (140-141 expected), full tx: {}".format(fulltx["vsize"], fulltx))
-    # Bump with fee_rate of 350.25 sat/vB vbytes to create dust.
-    # Expected fee is 141 vbytes * fee_rate 0.00350250 BTC / 1000 vbytes = 0.00049385 BTC.
-    # or occasionally 140 vbytes * fee_rate 0.00350250 BTC / 1000 vbytes = 0.00049035 BTC.
+    # A native transaction with one Taproot key-path input and two Taproot outputs is 154 vbytes.
+    assert_equal(fulltx["vsize"], 154)
+    # Bump with a fee rate high enough to turn the change into dust.
     # Dust should be dropped to the fee, so actual bump fee is 0.00050000 BTC.
     bumped_tx = rbf_node.bumpfee(rbfid, fee_rate=350.25)
     full_bumped_tx = rbf_node.getrawtransaction(bumped_tx["txid"], 1)
@@ -531,9 +526,7 @@ def test_dust_to_fee(self, rbf_node, dest_address):
 
 def test_maxtxfee_fails(self, rbf_node, dest_address):
     self.log.info('Test that bumpfee fails when it hits -maxtxfee')
-    # size of bumped transaction (p2wpkh, 1 input, 2 outputs): 141 vbytes
-    # expected bump fee of 141 vbytes * 0.00200000 BTC / 1000 vbytes = 0.00002820 BTC
-    # which exceeds maxtxfee and is expected to raise
+    # The native Taproot transaction fee exceeds maxtxfee and must raise.
     self.restart_node(1, ['-maxtxfee=0.000025'] + self.extra_args[1])
     rbf_node.walletpassphrase(WALLET_PASSPHRASE, WALLET_PASSPHRASE_TIMEOUT)
     rbfid = spend_one_input(rbf_node, dest_address)
@@ -546,9 +539,10 @@ def test_maxtxfee_fails(self, rbf_node, dest_address):
 
 def test_watchonly_psbt(self, peer_node, rbf_node, dest_address):
     self.log.info('Test that PSBT is returned for bumpfee in watchonly wallets')
-    priv_rec_desc = "wpkh([00000001/84'/1'/0']tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/0/*)#rweraev0"
+    xpriv = "tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK"
+    priv_rec_desc = descsum_create(f"tr([00000001/86'/1'/0']{xpriv}/0/*)")
     pub_rec_desc = rbf_node.getdescriptorinfo(priv_rec_desc)["descriptor"]
-    priv_change_desc = "wpkh([00000001/84'/1'/0']tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/1/*)#j6uzqvuh"
+    priv_change_desc = descsum_create(f"tr([00000001/86'/1'/0']{xpriv}/1/*)")
     pub_change_desc = rbf_node.getdescriptorinfo(priv_change_desc)["descriptor"]
     # Create a wallet with private keys that can sign PSBTs
     rbf_node.createwallet(wallet_name="signer", disable_private_keys=False, blank=True)
@@ -711,7 +705,7 @@ def test_unconfirmed_not_spendable(self, rbf_node, rbf_node_address):
     self.generate(rbf_node, 1, sync_fun=self.no_op)
     assert_equal(
         sum(1 for t in rbf_node.listunspent(minconf=0, include_unsafe=False)
-            if t["txid"] == rbfid and t["address"] == rbf_node_address and t["spendable"]), 1)
+            if t["txid"] == rbfid and t["address"] == rbf_node_address), 1)
     self.clear_mempool()
 
 
@@ -773,7 +767,7 @@ def test_no_more_inputs_fails(self, rbf_node, dest_address):
     self.generatetoaddress(rbf_node, 1, dest_address)
     # spend all funds, no change output
     rbfid = rbf_node.sendall(recipients=[rbf_node.getnewaddress()])['txid']
-    assert_raises_rpc_error(-4, "Unable to create transaction. The total exceeds your balance when the 0.00001051 transaction fee is included.", rbf_node.bumpfee, rbfid)
+    assert_raises_rpc_error(-4, "Unable to create transaction. The total exceeds your balance when the 0.00001354 transaction fee is included.", rbf_node.bumpfee, rbfid)
     self.clear_mempool()
 
 
@@ -789,17 +783,23 @@ def test_feerate_checks_replaced_outputs(self, rbf_node, peer_node):
     tx_res = rbf_node.send(outputs=outputs, fee_rate=5)
     tx_details = rbf_node.gettransaction(txid=tx_res["txid"], verbose=True)
 
-    # Calculate the minimum feerate required for the bump to work.
-    # Since the bumped tx will replace all of the outputs with a single output, we can estimate that its size will 31 * (len(outputs) - 1) bytes smaller
-    tx_size = tx_details["decoded"]["vsize"]
-    est_bumped_size = tx_size - (len(tx_details["decoded"]["vout"]) - 1) * 31
+    # Calculate the minimum feerate required for the bump using the actual
+    # signed size of the replacement instead of assuming a specific output type.
+    new_outputs = [{rbf_node.getnewaddress(): 49}]
+    replacement_inputs = [
+        {"txid": txin["txid"], "vout": txin["vout"], "sequence": txin["sequence"]}
+        for txin in tx_details["decoded"]["vin"]
+    ]
+    replacement = rbf_node.createrawtransaction(replacement_inputs, new_outputs)
+    replacement = rbf_node.signrawtransactionwithwallet(replacement)
+    assert replacement["complete"]
+    est_bumped_size = rbf_node.decoderawtransaction(replacement["hex"])["vsize"]
     inc_fee_rate = rbf_node.getmempoolinfo()["incrementalrelayfee"]
     # RPC gives us fee as negative
     min_fee = (-tx_details["fee"] + get_fee(est_bumped_size, inc_fee_rate)) * Decimal(1e8)
-    min_fee_rate = (min_fee / est_bumped_size).quantize(Decimal("1.000"))
+    min_fee_rate = (min_fee / est_bumped_size).to_integral_value(rounding=ROUND_CEILING)
 
     # Attempt to bumpfee and replace all outputs with a single one using a feerate slightly less than the minimum
-    new_outputs = [{rbf_node.getnewaddress(): 49}]
     assert_raises_rpc_error(-8, "Insufficient total fee", rbf_node.bumpfee, tx_res["txid"], {"fee_rate": min_fee_rate - 1, "outputs": new_outputs})
 
     # Bumpfee and replace all outputs with a single one using the minimum feerate
