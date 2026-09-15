@@ -76,7 +76,7 @@ std::optional<ConfigError> InitConfig(ArgsManager& args, SettingsAbortFn setting
                 const std::string config_source = cli_config_path.empty()
                     ? strprintf("data directory %s", fs::quoted(fs::PathToString(orig_datadir_path)))
                     : strprintf("command line argument %s", fs::quoted("-conf=" + cli_config_path));
-                std::string error = strprintf(
+                const std::string error = strprintf(
                     "Data directory %1$s contains a %2$s file which is ignored, because a different configuration file "
                     "%3$s from %4$s is being used instead. Possible ways to address this would be to:\n"
                     "- Delete or rename the %2$s file in data directory %1$s.\n"
@@ -86,12 +86,7 @@ std::optional<ConfigError> InitConfig(ArgsManager& args, SettingsAbortFn setting
                     fs::quoted(BITCOIN_CONF_FILENAME),
                     fs::quoted(fs::PathToString(orig_config_path)),
                     config_source);
-                if (args.GetBoolArg("-allowignoredconf", false)) {
-                    LogWarning("%s", error);
-                } else {
-                    error += "\n- Set allowignoredconf=1 option to treat this condition as a warning, not an error.";
-                    return ConfigError{ConfigStatus::FAILED, Untranslated(error)};
-                }
+                return ConfigError{ConfigStatus::FAILED, Untranslated(error)};
             }
         }
 

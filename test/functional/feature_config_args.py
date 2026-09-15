@@ -146,7 +146,13 @@ class ConfArgsTest(BitcoinTestFramework):
         util.write_config(main_conf_file_path, n=0, chain='', extra_config=f'includeconf={inc_conf_file_path}\n')
         with open(inc_conf_file_path, 'w') as conf:
             conf.write('acceptnonstdtxn=1\n')
-        self.nodes[0].assert_start_raises_init_error(extra_args=[f"-conf={main_conf_file_path}", "-allowignoredconf"], expected_msg='Error: acceptnonstdtxn is not currently supported for main chain')
+        default_conf_file_path = self.nodes[0].datadir_path / "bitcoin.conf"
+        default_conf_contents = default_conf_file_path.read_text()
+        default_conf_file_path.unlink()
+        try:
+            self.nodes[0].assert_start_raises_init_error(extra_args=[f"-conf={main_conf_file_path}"], expected_msg='Error: acceptnonstdtxn is not currently supported for main chain')
+        finally:
+            default_conf_file_path.write_text(default_conf_contents)
 
         with open(inc_conf_file_path, 'w') as conf:
             conf.write('nono\n')
@@ -206,14 +212,17 @@ class ConfArgsTest(BitcoinTestFramework):
         node_args = node.args
         node.args = [arg for arg in node.args if not arg.startswith("-datadir=")]
 
-        # Check that correct configuration file path is actually logged
-        # (conf_path, not node.bitcoinconf)
-        with self.nodes[0].assert_debug_log(expected_msgs=[f"Config file: {conf_path}"]):
-            self.start_node(0, ["-allowignoredconf"], env=env)
-            self.stop_node(0)
-
-        # Restore node arguments after the test
-        node.args = node_args
+        # Avoid leaving a second configuration file in the configured datadir.
+        node.bitcoinconf.unlink()
+        try:
+            # Check that correct configuration file path is actually logged
+            # (conf_path, not node.bitcoinconf)
+            with self.nodes[0].assert_debug_log(expected_msgs=[f"Config file: {conf_path}"]):
+                self.start_node(0, env=env)
+                self.stop_node(0)
+        finally:
+            node.bitcoinconf.write_text(conf_text)
+            node.args = node_args
 
     def test_invalid_command_line_options(self):
         self.nodes[0].assert_start_raises_init_error(
