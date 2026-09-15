@@ -107,7 +107,6 @@ add_library(bitcoin_common STATIC EXCLUDE_FROM_ALL
   common/url.cpp
   compressor.cpp
   core_io.cpp
-  deploymentinfo.cpp
   external_signer.cpp
   init/common.cpp
   kernel/chainparams.cpp
@@ -183,7 +182,6 @@ add_library(bitcoin_node STATIC EXCLUDE_FROM_ALL
   blockfilter.cpp
   consensus/tx_verify.cpp
   dbwrapper.cpp
-  deploymentstatus.cpp
   flatfile.cpp
   headerssync.cpp
   httprpc.cpp
@@ -268,7 +266,6 @@ add_library(bitcoin_node STATIC EXCLUDE_FROM_ALL
   txrequest.cpp
   validation.cpp
   validationinterface.cpp
-  versionbits.cpp
   $<$<TARGET_EXISTS:bitcoin_wallet>:wallet/init.cpp>
   $<$<NOT:$<TARGET_EXISTS:bitcoin_wallet>>:dummywallet.cpp>
 )

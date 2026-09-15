@@ -312,8 +312,7 @@ typedef uint8_t btck_SynchronizationState;
 
 /** Possible warning types issued by validation. */
 typedef uint8_t btck_Warning;
-#define btck_Warning_UNKNOWN_NEW_RULES_ACTIVATED ((btck_Warning)(0))
-#define btck_Warning_LARGE_WORK_INVALID_CHAIN ((btck_Warning)(1))
+#define btck_Warning_LARGE_WORK_INVALID_CHAIN ((btck_Warning)(0))
 
 /** Callback function types */
 

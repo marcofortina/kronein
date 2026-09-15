@@ -60,7 +60,6 @@ from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_not_equal,
     assert_equal,
-    softfork_active,
 )
 from test_framework.wallet import MiniWallet
 
@@ -962,8 +961,6 @@ class CompactBlocksTest(BitcoinTestFramework):
 
         # We will need UTXOs to construct transactions in later tests.
         self.make_utxos()
-
-        assert softfork_active(self.nodes[0], "segwit")
 
         self.log.info("Testing SENDCMPCT p2p message... ")
         self.test_sendcmpct(self.segwit_node)

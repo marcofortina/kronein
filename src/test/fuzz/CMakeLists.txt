@@ -135,7 +135,6 @@ add_executable(fuzz
   utxo_total_supply.cpp
   validation_load_mempool.cpp
   vecdeque.cpp
-  versionbits.cpp
 )
 
 add_windows_application_manifest(fuzz)

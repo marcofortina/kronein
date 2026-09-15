@@ -217,8 +217,6 @@ btck_SynchronizationState cast_state(SynchronizationState state)
 btck_Warning cast_btck_warning(kernel::Warning warning)
 {
     switch (warning) {
-    case kernel::Warning::UNKNOWN_NEW_RULES_ACTIVATED:
-        return btck_Warning_UNKNOWN_NEW_RULES_ACTIVATED;
     case kernel::Warning::LARGE_WORK_INVALID_CHAIN:
         return btck_Warning_LARGE_WORK_INVALID_CHAIN;
     } // no default case, so the compiler can warn about missing cases

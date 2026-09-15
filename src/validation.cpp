@@ -2748,22 +2748,20 @@ static void UpdateTipLog(
     const CCoinsViewCache& coins_tip,
     const CBlockIndex* tip,
     const std::string& func_name,
-    const std::string& prefix,
-    const std::string& warning_messages) EXCLUSIVE_LOCKS_REQUIRED(::cs_main)
+    const std::string& prefix) EXCLUSIVE_LOCKS_REQUIRED(::cs_main)
 {
 
     AssertLockHeld(::cs_main);
 
     // Disable rate limiting in LogPrintLevel_ so this source location may log during IBD.
-    LogPrintLevel_(BCLog::LogFlags::ALL, util::log::Level::Info, /*should_ratelimit=*/false, "%s%s: new best=%s height=%d version=0x%08x log2_work=%f tx=%lu date='%s' progress=%f cache=%.1fMiB(%utxo)%s\n",
+    LogPrintLevel_(BCLog::LogFlags::ALL, util::log::Level::Info, /*should_ratelimit=*/false, "%s%s: new best=%s height=%d version=0x%08x log2_work=%f tx=%lu date='%s' progress=%f cache=%.1fMiB(%utxo)\n",
                    prefix, func_name,
                    tip->GetBlockHash().ToString(), tip->nHeight, tip->nVersion,
                    log(tip->nChainWork.getdouble()) / log(2.0), tip->m_chain_tx_count,
                    FormatISO8601DateTime(tip->GetBlockTime()),
                    chainman.GuessVerificationProgress(tip),
                    coins_tip.DynamicMemoryUsage() * (1.0 / (1 << 20)),
-                   coins_tip.GetCacheSize(),
-                   !warning_messages.empty() ? strprintf(" warning='%s'", warning_messages) : "");
+                   coins_tip.GetCacheSize());
 }
 
 void Chainstate::UpdateTip(const CBlockIndex* pindexNew)
@@ -2777,7 +2775,7 @@ void Chainstate::UpdateTip(const CBlockIndex* pindexNew)
         // Only log every so often so that we don't bury log messages at the tip.
         constexpr int BACKGROUND_LOG_INTERVAL = 2000;
         if (pindexNew->nHeight % BACKGROUND_LOG_INTERVAL == 0) {
-            UpdateTipLog(m_chainman, coins_tip, pindexNew, __func__, "[background validation] ", "");
+            UpdateTipLog(m_chainman, coins_tip, pindexNew, __func__, "[background validation] ");
         }
         return;
     }
@@ -2787,20 +2785,7 @@ void Chainstate::UpdateTip(const CBlockIndex* pindexNew)
         m_mempool->AddTransactionsUpdated(1);
     }
 
-    std::vector<bilingual_str> warning_messages;
-    if (!m_chainman.IsInitialBlockDownload()) {
-        auto bits = m_chainman.m_versionbitscache.CheckUnknownActivations(pindexNew, m_chainman.GetParams());
-        for (auto [bit, active] : bits) {
-            const bilingual_str warning = strprintf(_("Unknown new rules activated (versionbit %i)"), bit);
-            if (active) {
-                m_chainman.GetNotifications().warningSet(kernel::Warning::UNKNOWN_NEW_RULES_ACTIVATED, warning);
-            } else {
-                warning_messages.push_back(warning);
-            }
-        }
-    }
-    UpdateTipLog(m_chainman, coins_tip, pindexNew, __func__, "",
-                 util::Join(warning_messages, Untranslated(", ")).original);
+    UpdateTipLog(m_chainman, coins_tip, pindexNew, __func__, "");
 }
 
 /** Disconnect m_chain's tip.
@@ -6031,12 +6016,7 @@ ChainstateManager::ChainstateManager(const util::SignalInterrupt& interrupt, Opt
 {
 }
 
-ChainstateManager::~ChainstateManager()
-{
-    LOCK(::cs_main);
-
-    m_versionbitscache.Clear();
-}
+ChainstateManager::~ChainstateManager() = default;
 
 Chainstate* ChainstateManager::LoadAssumeutxoChainstate()
 {

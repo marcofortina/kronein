@@ -24,7 +24,6 @@
 #include <util/result.h>
 #include <util/time.h>
 #include <validation.h>
-#include <versionbits.h>
 #include <wallet/coincontrol.h>
 #include <wallet/coinselection.h>
 #include <wallet/spend.h>
@@ -86,7 +85,7 @@ void generateFakeBlock(const CChainParams& params,
 
     block.vtx = {MakeTransactionRef(std::move(coinbase_tx))};
 
-    block.nVersion = VERSIONBITS_LAST_OLD_BLOCK_VERSION;
+    block.nVersion = CBlockHeader::CURRENT_VERSION;
     block.hashPrevBlock = tip.prev_block_hash;
     block.hashMerkleRoot = BlockMerkleRoot(block);
     block.nTime = ++tip.prev_block_time;

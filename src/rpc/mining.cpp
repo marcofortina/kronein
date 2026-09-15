@@ -15,8 +15,6 @@
 #include <consensus/params.h>
 #include <consensus/validation.h>
 #include <core_io.h>
-#include <deploymentinfo.h>
-#include <deploymentstatus.h>
 #include <interfaces/mining.h>
 #include <key_io.h>
 #include <net.h>
@@ -601,26 +599,15 @@ static UniValue BIP22ValidationResult(const BlockValidationState& state)
     return "valid?";
 }
 
-// Prefix rule name with ! if not optional, see BIP9
-static std::string gbt_rule_value(const std::string& name, bool gbt_optional_rule)
-{
-    std::string s{name};
-    if (!gbt_optional_rule) {
-        s.insert(s.begin(), '!');
-    }
-    return s;
-}
-
 static RPCHelpMan getblocktemplate()
 {
     return RPCHelpMan{
         "getblocktemplate",
         "If the request parameters include a 'mode' key, that is used to explicitly select between the default 'template' request or a 'proposal'.\n"
         "It returns data needed to construct a block to work on.\n"
-        "For full specification, see BIPs 22, 23, 9, and 145:\n"
+        "For full specification, see BIPs 22, 23, and 145:\n"
         "    https://github.com/bitcoin/bips/blob/master/bip-0022.mediawiki\n"
         "    https://github.com/bitcoin/bips/blob/master/bip-0023.mediawiki\n"
-        "    https://github.com/bitcoin/bips/blob/master/bip-0009.mediawiki#getblocktemplate_changes\n"
         "    https://github.com/bitcoin/bips/blob/master/bip-0145.mediawiki\n",
         {
             {"template_request", RPCArg::Type::OBJ, RPCArg::Optional::NO, "Format of the template",
@@ -648,17 +635,12 @@ static RPCHelpMan getblocktemplate()
                 {RPCResult::Type::NUM, "version", "The preferred block version"},
                 {RPCResult::Type::ARR, "rules", "specific block rules that are to be enforced",
                 {
-                    {RPCResult::Type::STR, "", "name of a rule the client must understand to some extent; see BIP 9 for format"},
-                }},
-                {RPCResult::Type::OBJ_DYN, "vbavailable", "set of pending, supported versionbit (BIP 9) softfork deployments",
-                {
-                    {RPCResult::Type::NUM, "rulename", "identifies the bit number as indicating acceptance and readiness for the named softfork rule"},
+                    {RPCResult::Type::STR, "", "name of a rule the client must understand to some extent"},
                 }},
                 {RPCResult::Type::ARR, "capabilities", "",
                 {
                     {RPCResult::Type::STR, "value", "A supported feature, for example 'proposal'"},
                 }},
-                {RPCResult::Type::NUM, "vbrequired", "bit mask of versionbits the server requires set in submissions"},
                 {RPCResult::Type::STR, "previousblockhash", "The hash of current highest block"},
                 {RPCResult::Type::ARR, "transactions", "contents of non-coinbase transactions that should be included in the next block",
                 {
@@ -941,44 +923,15 @@ static RPCHelpMan getblocktemplate()
     UniValue aRules(UniValue::VARR);
     aRules.push_back("csv");
     aRules.push_back("!segwit");
+    aRules.push_back("taproot");
     if (consensusParams.signet_blocks) {
         // indicate to miner that they must understand signet rules
         // when attempting to mine with this template
         aRules.push_back("!signet");
     }
 
-    UniValue vbavailable(UniValue::VOBJ);
-    const auto gbtstatus = chainman.m_versionbitscache.GBTStatus(*pindexPrev, consensusParams);
-
-    for (const auto& [name, info] : gbtstatus.signalling) {
-        vbavailable.pushKV(gbt_rule_value(name, info.gbt_optional_rule), info.bit);
-        if (!info.gbt_optional_rule && !setClientRules.contains(name)) {
-            // If the client doesn't support this, don't indicate it in the [default] version
-            block.nVersion &= ~info.mask;
-        }
-    }
-
-    for (const auto& [name, info] : gbtstatus.locked_in) {
-        block.nVersion |= info.mask;
-        vbavailable.pushKV(gbt_rule_value(name, info.gbt_optional_rule), info.bit);
-        if (!info.gbt_optional_rule && !setClientRules.contains(name)) {
-            // If the client doesn't support this, don't indicate it in the [default] version
-            block.nVersion &= ~info.mask;
-        }
-    }
-
-    for (const auto& [name, info] : gbtstatus.active) {
-        aRules.push_back(gbt_rule_value(name, info.gbt_optional_rule));
-        if (!info.gbt_optional_rule && !setClientRules.contains(name)) {
-            // Not supported by the client; make sure it's safe to proceed
-            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Support for '%s' rule requires explicit client support", name));
-        }
-    }
-
     result.pushKV("version", block.nVersion);
     result.pushKV("rules", std::move(aRules));
-    result.pushKV("vbavailable", std::move(vbavailable));
-    result.pushKV("vbrequired", 0);
 
     result.pushKV("previousblockhash", block.hashPrevBlock.GetHex());
     result.pushKV("transactions", std::move(transactions));

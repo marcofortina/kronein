@@ -6,7 +6,6 @@
 
 Test the following RPCs:
     - getblockchaininfo
-    - getdeploymentinfo
     - getchaintxstats
     - gettxoutsetinfo
     - gettxout
@@ -100,7 +99,6 @@ class BlockchainTest(BitcoinTestFramework):
         self._test_waitforblock() # also tests waitfornewblock
         self._test_waitforblockheight()
         self._test_getblock()
-        self._test_getdeploymentinfo()
         self._test_verificationprogress()
         self._test_y2106()
         assert self.nodes[0].verifychain(4, 0)
@@ -194,71 +192,15 @@ class BlockchainTest(BitcoinTestFramework):
         assert_equal(res['bits'], nbits_str(REGTEST_N_BITS))
         assert_equal(res['target'], target_str(REGTEST_TARGET))
 
-    def check_signalling_deploymentinfo_result(self, gdi_result, height, blockhash, status_next):
-        assert height >= 144 and height <= 287
-
-        assert_equal(gdi_result, {
-          "hash": blockhash,
-          "height": height,
-          "script_flags": ["CHECKLOCKTIMEVERIFY","CHECKSEQUENCEVERIFY","DERSIG","NULLDUMMY","P2SH","TAPROOT","WITNESS"],
-          "deployments": {
-            'testdummy': {
-                'type': 'bip9',
-                'bip9': {
-                    'bit': 28,
-                    'start_time': 0,
-                    'timeout': 0x7fffffffffffffff,  # testdummy does not have a timeout so is set to the max int64 value
-                    'min_activation_height': 0,
-                    'status': 'started',
-                    'status_next': status_next,
-                    'since': 144,
-                    'statistics': {
-                        'period': 144,
-                        'threshold': 108,
-                        'elapsed': height - 143,
-                        'count': height - 143,
-                        'possible': True,
-                    },
-                    'signalling': '#'*(height-143),
-                },
-                'active': False
-            },
-            'taproot': {
-                'type': 'bip9',
-                'bip9': {
-                    'start_time': -1,
-                    'timeout': 9223372036854775807,
-                    'min_activation_height': 0,
-                    'status': 'active',
-                    'status_next': 'active',
-                    'since': 0,
-                },
-                'height': 0,
-                'active': True
-            }
-          }
-        })
-
-    def _test_getdeploymentinfo(self):
-        # Note: continues past -stopatheight height, so must be invoked
-        # after _test_stopatheight
-
-        self.log.info("Test getdeploymentinfo")
-        self.stop_node(0)
-        self.start_node(0)
-
-        gbci207 = self.nodes[0].getblockchaininfo()
-        self.check_signalling_deploymentinfo_result(self.nodes[0].getdeploymentinfo(), gbci207["blocks"], gbci207["bestblockhash"], "started")
-
-        # block just prior to lock in
-        self.generate(self.wallet, 287 - gbci207["blocks"])
-        gbci287 = self.nodes[0].getblockchaininfo()
-        self.check_signalling_deploymentinfo_result(self.nodes[0].getdeploymentinfo(), gbci287["blocks"], gbci287["bestblockhash"], "locked_in")
-
-        # calling with an explicit hash works
-        self.check_signalling_deploymentinfo_result(self.nodes[0].getdeploymentinfo(gbci207["bestblockhash"]), gbci207["blocks"], gbci207["bestblockhash"], "started")
-
     def _test_verificationprogress(self):
+        # The preceding header-only tests leave the best header ahead of the
+        # active chain. Catch up so this test measures tip age only.
+        while True:
+            chain_info = self.nodes[0].getblockchaininfo()
+            if chain_info["blocks"] >= chain_info["headers"]:
+                break
+            self.generate(self.wallet, 1)
+
         self.log.info("Check that verificationprogress is less than 1 when the block tip is old")
         future = 2 * 60 * 60
         self.nodes[0].setmocktime(self.nodes[0].getblockchaininfo()["time"] + future + 1)

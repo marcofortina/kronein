@@ -743,7 +743,7 @@ class CBlockHeader:
             self.nNonce = header.nNonce
 
     def set_null(self):
-        self.nVersion = 4
+        self.nVersion = 1
         self.hashPrevBlock = 0
         self.hashMerkleRoot = 0
         self.nTime = 0

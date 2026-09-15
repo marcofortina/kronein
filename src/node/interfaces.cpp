@@ -10,7 +10,6 @@
 #include <common/args.h>
 #include <consensus/merkle.h>
 #include <consensus/validation.h>
-#include <deploymentstatus.h>
 #include <external_signer.h>
 #include <index/blockfilterindex.h>
 #include <init.h>

@@ -19,7 +19,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 struct AssumeutxoHash : public BaseHash<uint256> {
@@ -136,19 +135,9 @@ public:
     };
 
     /**
-     * VersionBitsParameters holds activation parameters
-     */
-    struct VersionBitsParameters {
-        int64_t start_time;
-        int64_t timeout;
-        int min_activation_height;
-    };
-
-    /**
      * RegTestOptions holds configurations for creating a regtest CChainParams.
      */
     struct RegTestOptions {
-        std::unordered_map<Consensus::DeploymentPos, VersionBitsParameters> version_bits_parameters{};
         bool fastprune{false};
         bool enforce_bip94{false};
     };

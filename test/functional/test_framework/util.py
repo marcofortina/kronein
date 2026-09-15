@@ -652,11 +652,6 @@ def delete_cookie_file(datadir, chain):
         os.remove(os.path.join(datadir, chain, ".cookie"))
 
 
-def softfork_active(node, key):
-    """Return whether a softfork is active."""
-    return node.getdeploymentinfo()['deployments'][key]['active']
-
-
 def set_node_times(nodes, t):
     for node in nodes:
         node.setmocktime(t)

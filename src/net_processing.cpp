@@ -18,7 +18,6 @@
 #include <consensus/validation.h>
 #include <core_memusage.h>
 #include <crypto/siphash.h>
-#include <deploymentstatus.h>
 #include <flatfile.h>
 #include <headerssync.h>
 #include <index/blockfilterindex.h>

@@ -16,8 +16,6 @@
 #include <consensus/params.h>
 #include <consensus/validation.h>
 #include <core_io.h>
-#include <deploymentinfo.h>
-#include <deploymentstatus.h>
 #include <flatfile.h>
 #include <hash.h>
 #include <index/blockfilterindex.h>
@@ -52,7 +50,6 @@
 #include <util/translation.h>
 #include <validation.h>
 #include <validationinterface.h>
-#include <versionbits.h>
 
 #include <cstdint>
 
@@ -1286,61 +1283,6 @@ static RPCHelpMan verifychain()
     };
 }
 
-static void SoftForkDescPushBack(const CBlockIndex* blockindex, UniValue& softforks, const ChainstateManager& chainman, Consensus::DeploymentPos id)
-{
-    // For BIP9 deployments.
-    if (!DeploymentEnabled(chainman, id)) return;
-    if (blockindex == nullptr) return;
-
-    UniValue bip9(UniValue::VOBJ);
-    BIP9Info info{chainman.m_versionbitscache.Info(*blockindex, chainman.GetConsensus(), id)};
-    const auto& depparams{chainman.GetConsensus().vDeployments[id]};
-
-    // BIP9 parameters
-    if (info.stats.has_value()) {
-        bip9.pushKV("bit", depparams.bit);
-    }
-    bip9.pushKV("start_time", depparams.nStartTime);
-    bip9.pushKV("timeout", depparams.nTimeout);
-    bip9.pushKV("min_activation_height", depparams.min_activation_height);
-
-    // BIP9 status
-    bip9.pushKV("status", info.current_state);
-    bip9.pushKV("since", info.since);
-    bip9.pushKV("status_next", info.next_state);
-
-    // BIP9 signalling status, if applicable
-    if (info.stats.has_value()) {
-        UniValue statsUV(UniValue::VOBJ);
-        statsUV.pushKV("period", info.stats->period);
-        statsUV.pushKV("elapsed", info.stats->elapsed);
-        statsUV.pushKV("count", info.stats->count);
-        if (info.stats->threshold > 0 || info.stats->possible) {
-            statsUV.pushKV("threshold", info.stats->threshold);
-            statsUV.pushKV("possible", info.stats->possible);
-        }
-        bip9.pushKV("statistics", std::move(statsUV));
-
-        std::string sig;
-        sig.reserve(info.signalling_blocks.size());
-        for (const bool s : info.signalling_blocks) {
-            sig.push_back(s ? '#' : '-');
-        }
-        bip9.pushKV("signalling", sig);
-    }
-
-    UniValue rv(UniValue::VOBJ);
-    rv.pushKV("type", "bip9");
-    bool is_active = false;
-    if (info.active_since.has_value()) {
-        rv.pushKV("height", *info.active_since);
-        is_active = (*info.active_since <= blockindex->nHeight + 1);
-    }
-    rv.pushKV("active", is_active);
-    rv.pushKV("bip9", bip9);
-    softforks.pushKV(DeploymentName(id), std::move(rv));
-}
-
 // used by rest.cpp:rest_chaininfo, so cannot be static
 RPCHelpMan getblockchaininfo()
 {
@@ -1424,93 +1366,6 @@ RPCHelpMan getblockchaininfo()
     obj.pushKV("warnings", node::GetWarningsForRpc(*CHECK_NONFATAL(node.warnings), IsDeprecatedRPCEnabled("warnings")));
     return obj;
 },
-    };
-}
-
-namespace {
-const std::vector<RPCResult> RPCHelpForDeployment{
-    {RPCResult::Type::STR, "type", "\"bip9\""},
-    {RPCResult::Type::NUM, "height", /*optional=*/true, "height of the first block which the rules are or will be enforced (only with \"active\" status)"},
-    {RPCResult::Type::BOOL, "active", "true if the rules are enforced for the mempool and the next block"},
-    {RPCResult::Type::OBJ, "bip9", /*optional=*/true, "status of bip9 softforks (only for \"bip9\" type)",
-    {
-        {RPCResult::Type::NUM, "bit", /*optional=*/true, "the bit (0-28) in the block version field used to signal this softfork (only for \"started\" and \"locked_in\" status)"},
-        {RPCResult::Type::NUM_TIME, "start_time", "the minimum median time past of a block at which the bit gains its meaning"},
-        {RPCResult::Type::NUM_TIME, "timeout", "the median time past of a block at which the deployment is considered failed if not yet locked in"},
-        {RPCResult::Type::NUM, "min_activation_height", "minimum height of blocks for which the rules may be enforced"},
-        {RPCResult::Type::STR, "status", "status of deployment at specified block (one of \"defined\", \"started\", \"locked_in\", \"active\", \"failed\")"},
-        {RPCResult::Type::NUM, "since", "height of the first block to which the status applies"},
-        {RPCResult::Type::STR, "status_next", "status of deployment at the next block"},
-        {RPCResult::Type::OBJ, "statistics", /*optional=*/true, "numeric statistics about signalling for a softfork (only for \"started\" and \"locked_in\" status)",
-        {
-            {RPCResult::Type::NUM, "period", "the length in blocks of the signalling period"},
-            {RPCResult::Type::NUM, "threshold", /*optional=*/true, "the number of blocks with the version bit set required to activate the feature (only for \"started\" status)"},
-            {RPCResult::Type::NUM, "elapsed", "the number of blocks elapsed since the beginning of the current period"},
-            {RPCResult::Type::NUM, "count", "the number of blocks with the version bit set in the current period"},
-            {RPCResult::Type::BOOL, "possible", /*optional=*/true, "returns false if there are not enough blocks left in this period to pass activation threshold (only for \"started\" status)"},
-        }},
-        {RPCResult::Type::STR, "signalling", /*optional=*/true, "indicates blocks that signalled with a # and blocks that did not with a -"},
-    }},
-};
-
-UniValue DeploymentInfo(const CBlockIndex* blockindex, const ChainstateManager& chainman)
-{
-    UniValue softforks(UniValue::VOBJ);
-    SoftForkDescPushBack(blockindex, softforks, chainman, Consensus::DEPLOYMENT_TESTDUMMY);
-    SoftForkDescPushBack(blockindex, softforks, chainman, Consensus::DEPLOYMENT_TAPROOT);
-    return softforks;
-}
-} // anon namespace
-
-RPCHelpMan getdeploymentinfo()
-{
-    return RPCHelpMan{"getdeploymentinfo",
-        "Returns an object containing various state info regarding deployments of consensus changes.",
-        {
-            {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Default{"hash of current chain tip"}, "The block hash at which to query deployment state"},
-        },
-        RPCResult{
-            RPCResult::Type::OBJ, "", "", {
-                {RPCResult::Type::STR, "hash", "requested block hash (or tip)"},
-                {RPCResult::Type::NUM, "height", "requested block height (or tip)"},
-                {RPCResult::Type::ARR, "script_flags", "script verify flags for the block", {
-                    {RPCResult::Type::STR, "flag", "a script verify flag"},
-                }},
-                {RPCResult::Type::OBJ_DYN, "deployments", "", {
-                    {RPCResult::Type::OBJ, "xxxx", "name of the deployment", RPCHelpForDeployment}
-                }},
-            }
-        },
-        RPCExamples{ HelpExampleCli("getdeploymentinfo", "") + HelpExampleRpc("getdeploymentinfo", "") },
-        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-        {
-            const ChainstateManager& chainman = EnsureAnyChainman(request.context);
-            LOCK(cs_main);
-            const Chainstate& active_chainstate = chainman.ActiveChainstate();
-
-            const CBlockIndex* blockindex;
-            if (request.params[0].isNull()) {
-                blockindex = CHECK_NONFATAL(active_chainstate.m_chain.Tip());
-            } else {
-                const uint256 hash(ParseHashV(request.params[0], "blockhash"));
-                blockindex = chainman.m_blockman.LookupBlockIndex(hash);
-                if (!blockindex) {
-                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
-                }
-            }
-
-            UniValue deploymentinfo(UniValue::VOBJ);
-            deploymentinfo.pushKV("hash", blockindex->GetBlockHash().ToString());
-            deploymentinfo.pushKV("height", blockindex->nHeight);
-            {
-                const auto flagnames = GetScriptFlagNames(GetBlockScriptFlags());
-                UniValue uv_flagnames(UniValue::VARR);
-                uv_flagnames.push_backV(flagnames.begin(), flagnames.end());
-                deploymentinfo.pushKV("script_flags", uv_flagnames);
-            }
-            deploymentinfo.pushKV("deployments", DeploymentInfo(blockindex, chainman));
-            return deploymentinfo;
-        },
     };
 }
 
@@ -3483,7 +3338,6 @@ void RegisterBlockchainRPCCommands(CRPCTable& t)
         {"blockchain", &getblockheader},
         {"blockchain", &getchaintips},
         {"blockchain", &getdifficulty},
-        {"blockchain", &getdeploymentinfo},
         {"blockchain", &gettxout},
         {"blockchain", &gettxoutsetinfo},
         {"blockchain", &pruneblockchain},

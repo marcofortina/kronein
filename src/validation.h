@@ -13,7 +13,6 @@
 #include <coins.h>
 #include <consensus/amount.h>
 #include <cuckoocache.h>
-#include <deploymentstatus.h>
 #include <kernel/chain.h>
 #include <kernel/chainparams.h>
 #include <kernel/chainstatemanager_opts.h>
@@ -36,7 +35,6 @@
 #include <util/result.h>
 #include <util/time.h>
 #include <util/translation.h>
-#include <versionbits.h>
 
 #include <algorithm>
 #include <atomic>
@@ -1186,11 +1184,6 @@ public:
         return m_blockman.m_block_index;
     }
 
-    /**
-     * Track versionbit status
-     */
-    mutable VersionBitsCache m_versionbitscache;
-
     /** Check whether we are doing an initial block download (synchronizing from disk or network) */
     bool IsInitialBlockDownload() const noexcept;
 
@@ -1376,25 +1369,6 @@ public:
     //! is not locked at other times when the chainstate is in use.)
     std::vector<std::unique_ptr<Chainstate>> m_chainstates GUARDED_BY(::cs_main);
 };
-
-/** Deployment* info via ChainstateManager */
-template<typename DEP>
-bool DeploymentActiveAfter(const CBlockIndex* pindexPrev, const ChainstateManager& chainman, DEP dep)
-{
-    return DeploymentActiveAfter(pindexPrev, chainman.GetConsensus(), dep, chainman.m_versionbitscache);
-}
-
-template<typename DEP>
-bool DeploymentActiveAt(const CBlockIndex& index, const ChainstateManager& chainman, DEP dep)
-{
-    return DeploymentActiveAt(index, chainman.GetConsensus(), dep, chainman.m_versionbitscache);
-}
-
-template<typename DEP>
-bool DeploymentEnabled(const ChainstateManager& chainman, DEP dep)
-{
-    return DeploymentEnabled(chainman.GetConsensus(), dep);
-}
 
 // Returns the script flags required by consensus.
 script_verify_flags GetBlockScriptFlags();

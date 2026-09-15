@@ -15,7 +15,6 @@
 #include <util/check.h>
 #include <validation.h>
 #include <validationinterface.h>
-#include <versionbits.h>
 
 #include <algorithm>
 #include <memory>
@@ -54,7 +53,7 @@ std::vector<std::shared_ptr<CBlock>> CreateBlockChain(size_t total_height, const
         coinbase_tx.vin[0].scriptSig = CScript() << (height + 1) << OP_0;
         block.vtx = {MakeTransactionRef(std::move(coinbase_tx))};
 
-        block.nVersion = VERSIONBITS_LAST_OLD_BLOCK_VERSION;
+        block.nVersion = CBlockHeader::CURRENT_VERSION;
         block.hashPrevBlock = (height >= 1 ? *ret.at(height - 1) : params.GenesisBlock()).GetHash();
         block.hashMerkleRoot = BlockMerkleRoot(block);
         block.nTime = ++time;

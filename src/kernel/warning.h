@@ -7,7 +7,6 @@
 
 namespace kernel {
 enum class Warning {
-    UNKNOWN_NEW_RULES_ACTIVATED,
     LARGE_WORK_INVALID_CHAIN,
 };
 } // namespace kernel

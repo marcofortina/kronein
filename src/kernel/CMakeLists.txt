@@ -26,8 +26,6 @@ add_library(bitcoinkernel
   ../consensus/tx_check.cpp
   ../consensus/tx_verify.cpp
   ../dbwrapper.cpp
-  ../deploymentinfo.cpp
-  ../deploymentstatus.cpp
   ../flatfile.cpp
   ../hash.cpp
   ../logging.cpp
@@ -77,7 +75,6 @@ add_library(bitcoinkernel
   ../util/tokenpipe.cpp
   ../validation.cpp
   ../validationinterface.cpp
-  ../versionbits.cpp
   $<TARGET_OBJECTS:bitcoin_clientversion>
   $<TARGET_OBJECTS:bitcoin_crypto>
   $<TARGET_OBJECTS:leveldb>

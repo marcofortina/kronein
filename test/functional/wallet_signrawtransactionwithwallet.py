@@ -182,9 +182,6 @@ class SignRawTransactionWithWalletTest(BitcoinTestFramework):
         self.nodes[0].walletpassphrase("password", 9999)
         getcontext().prec = 8
 
-        # Make sure CSV is active
-        assert self.nodes[0].getdeploymentinfo()['deployments']['csv']['active']
-
         # Create a P2WSH script with CSV
         script = CScript([1, OP_CHECKSEQUENCEVERIFY, OP_DROP])
         address = script_to_p2wsh(script)
@@ -215,9 +212,6 @@ class SignRawTransactionWithWalletTest(BitcoinTestFramework):
         self.log.info("Test signing a transaction containing a fully signed CLTV input")
         self.nodes[0].walletpassphrase("password", 9999)
         getcontext().prec = 8
-
-        # Make sure CLTV is active
-        assert self.nodes[0].getdeploymentinfo()['deployments']['bip65']['active']
 
         # Create a P2WSH script with CLTV
         script = CScript([100, OP_CHECKLOCKTIMEVERIFY, OP_DROP])

@@ -1294,7 +1294,7 @@ class FullBlockTest(BitcoinTestFramework):
         self.sign_tx(tx, spend_tx)
         return tx
 
-    def next_block(self, number, spend=None, additional_coinbase_value=0, *, script=None, version=4, additional_output_scripts=None):
+    def next_block(self, number, spend=None, additional_coinbase_value=0, *, script=None, version=1, additional_output_scripts=None):
         if script is None:
             script = CScript([OP_TRUE])
         if additional_output_scripts is None:
