@@ -35,14 +35,6 @@ std::vector<std::pair<fs::path, std::string>> ListDatabases(const fs::path& wall
                     // Found a directory which contains wallet.dat sqlite file, add it as a wallet with SQLITE format.
                     paths.emplace_back(path, "sqlite");
                 }
-            } else if (it.depth() == 0 && it->symlink_status().type() == fs::file_type::regular && it->path().extension() != ".bak") {
-                if (it->path().filename() == "wallet.dat") {
-                    // Found top-level wallet.dat file, add top level directory ""
-                    // as a wallet.
-                    if (IsSQLiteFile(it->path())) {
-                        paths.emplace_back(fs::path(), "sqlite");
-                    }
-                }
             }
         } catch (const std::exception& e) {
             LogWarning("Error while scanning wallet dir item: %s [%s].", e.what(), fs::PathToString(it->path()));

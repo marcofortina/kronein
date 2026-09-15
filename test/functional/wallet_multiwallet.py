@@ -71,7 +71,7 @@ class MultiWalletTest(BitcoinTestFramework):
                 return wallet_dir(name, "wallet.dat")
             return wallet_dir(name)
 
-        assert_equal(self.nodes[0].listwalletdir(), {'wallets': [{'name': self.default_wallet_name, "warnings": []}]})
+        assert_equal(self.nodes[0].listwalletdir(), {'wallets': [{'name': self.default_wallet_name}]})
 
         # check wallet.dat is created
         self.stop_nodes()
@@ -86,7 +86,7 @@ class MultiWalletTest(BitcoinTestFramework):
             self.start_node(0)
             with self.nodes[0].assert_debug_log(unexpected_msgs=['Error scanning directory entries under'], expected_msgs=[]):
                 result = self.nodes[0].listwalletdir()
-                assert_equal(result, {'wallets': [{'name': 'default_wallet', 'warnings': []}]})
+                assert_equal(result, {'wallets': [{'name': 'default_wallet'}]})
             os.chmod(data_dir('wallets'), 0)
             with self.nodes[0].assert_debug_log(expected_msgs=['Error scanning directory entries under']):
                 result = self.nodes[0].listwalletdir()
@@ -105,8 +105,8 @@ class MultiWalletTest(BitcoinTestFramework):
         os.mkdir(wallet_dir('self_walletdat_symlink'))
         os.symlink('wallet.dat', wallet_dir('self_walletdat_symlink/wallet.dat'))
 
-        # rename wallet.dat to make sure plain wallet file paths (as opposed to
-        # directory paths) can be loaded
+        # Move a valid SQLite wallet to a plain file path to verify that only
+        # native wallet directories are accepted.
         # create another dummy wallet for use in testing backups later
         self.start_node(0)
         node.createwallet("empty")
@@ -128,8 +128,6 @@ class MultiWalletTest(BitcoinTestFramework):
         #   sub/w5     - to verify relative wallet path is created correctly
         #   extern/w6  - to verify absolute wallet path is created correctly
         #   w7_symlink - to verify symlinked wallet path is initialized correctly
-        #   w8         - to verify existing wallet file is loaded correctly. Not tested for SQLite wallets as this is a deprecated BDB behavior.
-        #   ''         - to verify default wallet file is created correctly
         to_create = ['w1', 'w2', 'w3', 'w', 'sub/w5', 'w7_symlink']
         in_wallet_dir = [w.replace('/', os.path.sep) for w in to_create]  # Wallets in the wallet dir
         in_wallet_dir.append('w7')  # w7 is not loaded or created, but will be listed by listwalletdir because w7_symlink
@@ -170,6 +168,8 @@ class MultiWalletTest(BitcoinTestFramework):
 
         self.start_node(0, ['-wallet=w1', '-wallet=w1'])
         self.stop_node(0, 'Warning: Ignoring duplicate -wallet w1.')
+
+        self.nodes[0].assert_start_raises_init_error(['-wallet=w8'], r'Error: Invalid -wallet path \'w8\'\. .*', match=ErrorMatch.FULL_REGEX)
 
         # should not initialize if wallet file is a symlink
         os.symlink('w8', wallet_dir('w8_symlink'))
@@ -293,6 +293,9 @@ class MultiWalletTest(BitcoinTestFramework):
         # Fail to load if wallet doesn't exist
         path = wallet_dir("wallets")
         assert_raises_rpc_error(-18, "Wallet file verification failed. Failed to load database path '{}'. Path does not exist.".format(path), self.nodes[0].loadwallet, 'wallets')
+
+        # Fail to load a database stored as a plain file.
+        assert_raises_rpc_error(-4, "Wallet file verification failed. Invalid -wallet path 'w8'", self.nodes[0].loadwallet, 'w8')
 
         # Fail to load duplicate wallets
         assert_raises_rpc_error(-35, "Wallet \"w1\" is already loaded.", self.nodes[0].loadwallet, wallet_names[0])

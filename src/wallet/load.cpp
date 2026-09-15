@@ -55,25 +55,6 @@ bool VerifyWallets(WalletContext& context)
 
     chain.initMessage(_("Verifying wallet(s)…"));
 
-    // For backwards compatibility if an unnamed top level wallet exists in the
-    // wallets directory, include it in the default list of wallets to load.
-    if (!args.IsArgSet("wallet")) {
-        DatabaseOptions options;
-        DatabaseStatus status;
-        ReadDatabaseArgs(args, options);
-        bilingual_str error_string;
-        options.require_existing = true;
-        options.verify = false;
-        if (MakeWalletDatabase("", options, status, error_string)) {
-            common::SettingsValue wallets(common::SettingsValue::VARR);
-            wallets.push_back(""); // Default wallet name is ""
-            // Pass write=false because no need to write file and probably
-            // better not to. If unnamed wallet needs to be added next startup
-            // and the setting is empty, this code will just run again.
-            chain.overwriteRwSetting("wallet", std::move(wallets), interfaces::SettingsAction::SKIP_WRITE);
-        }
-    }
-
     // Keep track of each wallet absolute path to detect duplicates.
     std::set<fs::path> wallet_paths;
 

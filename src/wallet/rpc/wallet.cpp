@@ -140,10 +140,6 @@ static RPCHelpMan listwalletdir()
                             {RPCResult::Type::OBJ, "", "",
                             {
                                 {RPCResult::Type::STR, "name", "The wallet name"},
-                                {RPCResult::Type::ARR, "warnings", /*optional=*/true, "Warning messages, if any, related to loading the wallet.",
-                                {
-                                    {RPCResult::Type::STR, "", ""},
-                                }},
                             }},
                         }},
                     }
