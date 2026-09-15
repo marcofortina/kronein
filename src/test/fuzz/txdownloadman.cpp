@@ -38,7 +38,7 @@ static TxValidationResult TESTED_TX_RESULTS[] = {
     TxValidationResult::TX_MISSING_INPUTS,
     TxValidationResult::TX_PREMATURE_SPEND,
     TxValidationResult::TX_WITNESS_MUTATED,
-    TxValidationResult::TX_WITNESS_STRIPPED,
+    TxValidationResult::TX_WITNESS_MISSING,
     TxValidationResult::TX_CONFLICT,
     TxValidationResult::TX_MEMPOOL_POLICY,
     // Skip TX_NO_MEMPOOL
@@ -195,7 +195,6 @@ FUZZ_TARGET(txdownloadman, .init = initialize)
                 node::TxDownloadConnectionInfo info{
                     .m_preferred = fuzzed_data_provider.ConsumeBool(),
                     .m_relay_permissions = fuzzed_data_provider.ConsumeBool(),
-                    .m_wtxid_relay = fuzzed_data_provider.ConsumeBool()
                 };
                 txdownloadman.ConnectedPeer(rand_peer, info);
             },
@@ -320,7 +319,6 @@ FUZZ_TARGET(txdownloadman_impl, .init = initialize)
                 node::TxDownloadConnectionInfo info{
                     .m_preferred = fuzzed_data_provider.ConsumeBool(),
                     .m_relay_permissions = HasRelayPermissions(rand_peer),
-                    .m_wtxid_relay = fuzzed_data_provider.ConsumeBool()
                 };
                 txdownload_impl.ConnectedPeer(rand_peer, info);
             },

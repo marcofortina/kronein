@@ -101,9 +101,7 @@ void TxDownloadManagerImpl::BlockConnected(const std::shared_ptr<const CBlock>& 
 
     for (const auto& ptx : pblock->vtx) {
         RecentConfirmedTransactionsFilter().insert(ptx->GetHash().ToUint256());
-        if (ptx->HasWitness()) {
-            RecentConfirmedTransactionsFilter().insert(ptx->GetWitnessHash().ToUint256());
-        }
+        RecentConfirmedTransactionsFilter().insert(ptx->GetWitnessHash().ToUint256());
         m_txrequest.ForgetTxHash(ptx->GetHash().ToUint256());
         m_txrequest.ForgetTxHash(ptx->GetWitnessHash().ToUint256());
     }
@@ -134,10 +132,7 @@ bool TxDownloadManagerImpl::AlreadyHaveTx(const GenTxid& gtxid, bool include_rec
     // discerning which one that is, so the orphanage can store multiple transactions with the
     // same txid.
     //
-    // While we won't query by txid, we can try to "guess" what the wtxid is based on the txid.
-    // A non-segwit transaction's txid == wtxid. Query this txhash "casted" to a wtxid. This will
-    // help us find non-segwit transactions, saving bandwidth, and should have no false positives.
-    if (m_orphanage->HaveTx(Wtxid::FromUint256(hash))) return true;
+    if (const auto* wtxid = std::get_if<Wtxid>(&gtxid); wtxid && m_orphanage->HaveTx(*wtxid)) return true;
 
     if (include_reconsiderable && RecentRejectsReconsiderableFilter().contains(hash)) return true;
 
@@ -152,7 +147,6 @@ void TxDownloadManagerImpl::ConnectedPeer(NodeId nodeid, const TxDownloadConnect
     if (m_peer_info.contains(nodeid)) return;
 
     m_peer_info.try_emplace(nodeid, info);
-    if (info.m_wtxid_relay) m_num_wtxid_peers += 1;
 }
 
 void TxDownloadManagerImpl::DisconnectedPeer(NodeId nodeid)
@@ -161,7 +155,6 @@ void TxDownloadManagerImpl::DisconnectedPeer(NodeId nodeid)
     m_txrequest.DisconnectedPeer(nodeid);
 
     if (auto it = m_peer_info.find(nodeid); it != m_peer_info.end()) {
-        if (it->second.m_connection_info.m_wtxid_relay) m_num_wtxid_peers -= 1;
         m_peer_info.erase(it);
     }
 
@@ -214,7 +207,7 @@ bool TxDownloadManagerImpl::AddTxAnnouncement(NodeId peer, const GenTxid& gtxid,
     //     MAX_PEER_TX_REQUEST_IN_FLIGHT requests in flight (and don't have NetPermissionFlags::Relay).
     auto delay{0us};
     if (!info.m_preferred) delay += NONPREF_PEER_TX_DELAY;
-    if (!gtxid.IsWtxid() && m_num_wtxid_peers > 0) delay += TXID_RELAY_DELAY;
+    if (!gtxid.IsWtxid()) delay += TXID_RELAY_DELAY;
     const bool overloaded = !info.m_relay_permissions && m_txrequest.CountInFlight(peer) >= MAX_PEER_TX_REQUEST_IN_FLIGHT;
     if (overloaded) delay += OVERLOADED_PEER_TX_DELAY;
 
@@ -248,7 +241,7 @@ bool TxDownloadManagerImpl::MaybeAddOrphanResolutionCandidate(const std::vector<
     // parent and child are announced and thus requested around the same time, and we happen to
     // receive child sooner. Waiting a few seconds may allow us to cancel the orphan resolution
     // request if the parent arrives in that time.
-    if (m_num_wtxid_peers > 0) delay += TXID_RELAY_DELAY;
+    delay += TXID_RELAY_DELAY;
     const bool overloaded = !info.m_relay_permissions && m_txrequest.CountInFlight(nodeid) >= MAX_PEER_TX_REQUEST_IN_FLIGHT;
     if (overloaded) delay += OVERLOADED_PEER_TX_DELAY;
 
@@ -404,10 +397,10 @@ node::RejectedTxTodo TxDownloadManagerImpl::MempoolRejectedTx(const CTransaction
                 // that if a peer is overloading us with invs and orphans, they will eventually not be
                 // able to add any more transactions to the orphanage.
                 //
-                // Search by txid and, if the tx has a witness, wtxid
+                // Native serialization always gives txid and wtxid distinct domains.
                 std::vector<NodeId> orphan_resolution_candidates{nodeid};
                 m_txrequest.GetCandidatePeers(ptx->GetHash().ToUint256(), orphan_resolution_candidates);
-                if (ptx->HasWitness()) m_txrequest.GetCandidatePeers(ptx->GetWitnessHash().ToUint256(), orphan_resolution_candidates);
+                m_txrequest.GetCandidatePeers(ptx->GetWitnessHash().ToUint256(), orphan_resolution_candidates);
 
                 for (const auto& nodeid : orphan_resolution_candidates) {
                     if (MaybeAddOrphanResolutionCandidate(unique_parents, ptx->GetWitnessHash(), nodeid, now)) {
@@ -428,29 +421,19 @@ node::RejectedTxTodo TxDownloadManagerImpl::MempoolRejectedTx(const CTransaction
                 // Here we add both the txid and the wtxid, as we know that
                 // regardless of what witness is provided, we will not accept
                 // this, so we don't need to allow for redownload of this txid
-                // from any of our non-wtxidrelay peers.
+                // during orphan resolution by txid.
                 RecentRejectsFilter().insert(tx.GetHash().ToUint256());
                 RecentRejectsFilter().insert(tx.GetWitnessHash().ToUint256());
                 m_txrequest.ForgetTxHash(tx.GetHash().ToUint256());
                 m_txrequest.ForgetTxHash(tx.GetWitnessHash().ToUint256());
             }
         }
-    } else if (state.GetResult() == TxValidationResult::TX_WITNESS_STRIPPED) {
+    } else if (state.GetResult() == TxValidationResult::TX_WITNESS_MISSING) {
         add_extra_compact_tx = false;
     } else {
         // We can add the wtxid of this transaction to our reject filter.
-        // Do not add txids of witness transactions or witness-stripped
-        // transactions to the filter, as they can have been malleated;
-        // adding such txids to the reject filter would potentially
-        // interfere with relay of valid transactions from peers that
-        // do not support wtxid-based relay. See
-        // https://github.com/bitcoin/bitcoin/issues/8279 for details.
-        // We can remove this restriction (and always add wtxids to
-        // the filter even for witness stripped transactions) once
-        // wtxid-based relay is broadly deployed.
-        // See also comments in https://github.com/bitcoin/bitcoin/pull/18044#discussion_r443419034
-        // for concerns around weakening security of unupgraded nodes
-        // if we start doing this too early.
+        // Do not add the txid: different witness data can produce another
+        // candidate with the same txid. Announcements are keyed by wtxid.
         if (state.GetResult() == TxValidationResult::TX_RECONSIDERABLE) {
             // If the result is TX_RECONSIDERABLE, add it to m_lazy_recent_rejects_reconsiderable
             // because we should not download or submit this transaction by itself again, but may
@@ -476,9 +459,7 @@ node::RejectedTxTodo TxDownloadManagerImpl::MempoolRejectedTx(const CTransaction
         // processing of this transaction in the event that child
         // transactions are later received (resulting in
         // parent-fetching by txid via the orphan-handling logic).
-        // We only add the txid if it differs from the wtxid, to avoid wasting entries in the
-        // rolling bloom filter.
-        if (state.GetResult() == TxValidationResult::TX_INPUTS_NOT_STANDARD && ptx->HasWitness()) {
+        if (state.GetResult() == TxValidationResult::TX_INPUTS_NOT_STANDARD) {
             RecentRejectsFilter().insert(ptx->GetHash().ToUint256());
             m_txrequest.ForgetTxHash(ptx->GetHash().ToUint256());
         }
@@ -509,7 +490,7 @@ std::pair<bool, std::optional<PackageToValidate>> TxDownloadManagerImpl::Receive
 
     // Mark that we have received a response
     m_txrequest.ReceivedResponse(nodeid, txid.ToUint256());
-    if (ptx->HasWitness()) m_txrequest.ReceivedResponse(nodeid, wtxid.ToUint256());
+    m_txrequest.ReceivedResponse(nodeid, wtxid.ToUint256());
 
     // First check if we should drop this tx.
     // We do the AlreadyHaveTx() check using wtxid, rather than txid - in the
@@ -574,7 +555,6 @@ void TxDownloadManagerImpl::CheckIsEmpty()
     assert(m_orphanage->TotalOrphanUsage() == 0);
     assert(m_orphanage->CountUniqueOrphans() == 0);
     assert(m_txrequest.Size() == 0);
-    assert(m_num_wtxid_peers == 0);
 }
 std::vector<TxOrphanage::OrphanInfo> TxDownloadManagerImpl::GetOrphanTransactions() const
 {

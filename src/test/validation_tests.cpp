@@ -250,7 +250,7 @@ BOOST_AUTO_TEST_CASE(block_malleation)
             block.vtx.push_back(MakeTransactionRef(mtx));
             block.hashMerkleRoot = block.vtx.back()->GetHash().ToUint256();
             assert(block.vtx.back()->IsCoinBase());
-            assert(GetSerializeSize(TX_NO_WITNESS(block.vtx.back())) == 64);
+            assert(GetSerializeSize(TX_BASE(block.vtx.back())) == 64);
         }
         BOOST_CHECK(is_not_mutated(block, /*check_witness_root=*/false));
     }
@@ -275,11 +275,11 @@ BOOST_AUTO_TEST_CASE(block_malleation)
         // The `random_tx` function used to mine the txs below simply created
         // empty transactions with a random version field.
         CMutableTransaction tx1;
-        BOOST_CHECK(DecodeHexTx(tx1, "ff204bd0000000000000", /*try_no_witness=*/true, /*try_witness=*/false));
+        SpanReader{ParseHex("ff204bd0000000000000")} >> TX_BASE(tx1);
         CMutableTransaction tx2;
-        BOOST_CHECK(DecodeHexTx(tx2, "8ae53c92000000000000", /*try_no_witness=*/true, /*try_witness=*/false));
+        SpanReader{ParseHex("8ae53c92000000000000")} >> TX_BASE(tx2);
         CMutableTransaction tx3;
-        BOOST_CHECK(DecodeHexTx(tx3, "cdaf22d00002c6a7f848f8ae4d30054e61dcf3303d6fe01d282163341f06feecc10032b3160fcab87bdfe3ecfb769206ef2d991b92f8a268e423a6ef4d485f06", /*try_no_witness=*/true, /*try_witness=*/false));
+        SpanReader{ParseHex("cdaf22d00002c6a7f848f8ae4d30054e61dcf3303d6fe01d282163341f06feecc10032b3160fcab87bdfe3ecfb769206ef2d991b92f8a268e423a6ef4d485f06")} >> TX_BASE(tx3);
         {
             // Verify that double_sha256(txid1||txid2) == txid3
             HashWriter hasher;
@@ -287,7 +287,7 @@ BOOST_AUTO_TEST_CASE(block_malleation)
             hasher.write(tx2.GetHash());
             assert(hasher.GetHash() == tx3.GetHash().ToUint256());
             // Verify that tx3 is 64 bytes in size (without witness).
-            assert(GetSerializeSize(TX_NO_WITNESS(tx3)) == 64);
+            assert(GetSerializeSize(TX_BASE(tx3)) == 64);
         }
 
         CBlock block;

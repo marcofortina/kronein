@@ -200,7 +200,7 @@ UniValue blockToJSON(BlockManager& blockman, const CBlock& block, const CBlockIn
 {
     UniValue result = blockheaderToJSON(tip, blockindex, pow_limit);
 
-    result.pushKV("strippedsize", ::GetSerializeSize(TX_NO_WITNESS(block)));
+    result.pushKV("strippedsize", ::GetSerializeSize(TX_BASE(block)));
     result.pushKV("size", ::GetSerializeSize(TX_WITH_WITNESS(block)));
     result.pushKV("weight", ::GetBlockWeight(block));
 

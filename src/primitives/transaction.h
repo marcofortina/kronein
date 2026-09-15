@@ -174,65 +174,38 @@ public:
 struct CMutableTransaction;
 
 struct TransactionSerParams {
-    const bool allow_witness;
+    const bool include_witness;
     SER_PARAMS_OPFUNC
 };
-static constexpr TransactionSerParams TX_WITH_WITNESS{.allow_witness = true};
-static constexpr TransactionSerParams TX_NO_WITNESS{.allow_witness = false};
+static constexpr TransactionSerParams TX_WITH_WITNESS{.include_witness = true};
+static constexpr TransactionSerParams TX_BASE{.include_witness = false};
 
 /**
- * Basic transaction serialization format:
+ * Base transaction serialization used for txids and signature hashes:
  * - uint32_t version
  * - std::vector<CTxIn> vin
  * - std::vector<CTxOut> vout
  * - uint32_t nLockTime
  *
- * Extended transaction serialization format:
+ * Native transaction serialization used on disk and on the network:
  * - uint32_t version
- * - unsigned char dummy = 0x00
- * - unsigned char flags (!= 0)
  * - std::vector<CTxIn> vin
  * - std::vector<CTxOut> vout
- * - if (flags & 1):
- *   - CScriptWitness scriptWitness; (deserialized into CTxIn)
+ * - CScriptWitness scriptWitness for every input
  * - uint32_t nLockTime
  */
 template<typename Stream, typename TxType>
 void UnserializeTransaction(TxType& tx, Stream& s, const TransactionSerParams& params)
 {
-    const bool fAllowWitness = params.allow_witness;
-
     s >> tx.version;
-    unsigned char flags = 0;
     tx.vin.clear();
     tx.vout.clear();
-    /* Try to read the vin. In case the dummy is there, this will be read as an empty vector. */
     s >> tx.vin;
-    if (tx.vin.size() == 0 && fAllowWitness) {
-        /* We read a dummy or an empty vin. */
-        s >> flags;
-        if (flags != 0) {
-            s >> tx.vin;
-            s >> tx.vout;
-        }
-    } else {
-        /* We read a non-empty vin. Assume a normal vout follows. */
-        s >> tx.vout;
-    }
-    if ((flags & 1) && fAllowWitness) {
-        /* The witness flag is present, and we support witnesses. */
-        flags ^= 1;
+    s >> tx.vout;
+    if (params.include_witness) {
         for (size_t i = 0; i < tx.vin.size(); i++) {
             s >> tx.vin[i].scriptWitness.stack;
         }
-        if (!tx.HasWitness()) {
-            /* It's illegal to encode witnesses when all witness stacks are empty. */
-            throw std::ios_base::failure("Superfluous witness record");
-        }
-    }
-    if (flags) {
-        /* Unknown flag in the serialization */
-        throw std::ios_base::failure("Unknown transaction optional data");
     }
     s >> tx.nLockTime;
 }
@@ -240,26 +213,10 @@ void UnserializeTransaction(TxType& tx, Stream& s, const TransactionSerParams& p
 template<typename Stream, typename TxType>
 void SerializeTransaction(const TxType& tx, Stream& s, const TransactionSerParams& params)
 {
-    const bool fAllowWitness = params.allow_witness;
-
     s << tx.version;
-    unsigned char flags = 0;
-    // Consistency check
-    if (fAllowWitness) {
-        /* Check whether witnesses need to be serialized. */
-        if (tx.HasWitness()) {
-            flags |= 1;
-        }
-    }
-    if (flags) {
-        /* Use extended format in case witnesses are to be serialized. */
-        std::vector<CTxIn> vinDummy;
-        s << vinDummy;
-        s << flags;
-    }
     s << tx.vin;
     s << tx.vout;
-    if (flags & 1) {
+    if (params.include_witness) {
         for (size_t i = 0; i < tx.vin.size(); i++) {
             s << tx.vin[i].scriptWitness.stack;
         }

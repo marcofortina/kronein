@@ -13,8 +13,7 @@ from test_framework.blocktools import (
         create_coinbase
 )
 from test_framework.messages import (
-        MSG_BLOCK,
-        MSG_TYPE_MASK,
+    MSG_BLOCK,
 )
 from test_framework.p2p import (
         CBlockHeader,
@@ -36,7 +35,7 @@ class P2PStaller(P2PDataStore):
     def on_getdata(self, message):
         for inv in message.inv:
             self.getdata_requests.append(inv.hash)
-            if (inv.type & MSG_TYPE_MASK) == MSG_BLOCK:
+            if inv.type == MSG_BLOCK:
                 if (inv.hash not in self.stall_blocks):
                     self.send_without_ping(msg_block(self.block_store[inv.hash]))
 

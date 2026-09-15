@@ -1013,7 +1013,7 @@ static RPCHelpMan addpeeraddress()
     bool success{false};
 
     CService service{net_addr.value(), port};
-    CAddress address{MaybeFlipIPv6toCJDNS(service), ServiceFlags{NODE_NETWORK | NODE_WITNESS}};
+    CAddress address{MaybeFlipIPv6toCJDNS(service), NODE_NETWORK};
     address.nTime = Now<NodeSeconds>();
     // The source address is set equal to the address. This is equivalent to the peer
     // announcing itself.

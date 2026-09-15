@@ -76,8 +76,8 @@ void HeadersSyncSetup::ResetAndInitialize()
         connman.Handshake(
             /*node=*/p2p_node,
             /*successfully_connected=*/true,
-            /*remote_services=*/ServiceFlags(NODE_NETWORK | NODE_WITNESS),
-            /*local_services=*/ServiceFlags(NODE_NETWORK | NODE_WITNESS),
+            /*remote_services=*/NODE_NETWORK,
+            /*local_services=*/NODE_NETWORK,
             /*version=*/PROTOCOL_VERSION,
             /*relay_txs=*/true);
 

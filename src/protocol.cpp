@@ -57,18 +57,14 @@ bool operator<(const CInv& a, const CInv& b)
 
 std::string CInv::GetMessageType() const
 {
-    std::string cmd;
-    if (type & MSG_WITNESS_FLAG)
-        cmd.append("witness-");
-    int masked = type & MSG_TYPE_MASK;
-    switch (masked)
+    switch (type)
     {
-    case MSG_TX:             return cmd.append(NetMsgType::TX);
+    case MSG_TX:             return NetMsgType::TX;
     // WTX is not a message type, just an inv type
-    case MSG_WTX:            return cmd.append("wtx");
-    case MSG_BLOCK:          return cmd.append(NetMsgType::BLOCK);
-    case MSG_FILTERED_BLOCK: return cmd.append(NetMsgType::MERKLEBLOCK);
-    case MSG_CMPCT_BLOCK:    return cmd.append(NetMsgType::CMPCTBLOCK);
+    case MSG_WTX:            return "wtx";
+    case MSG_BLOCK:          return NetMsgType::BLOCK;
+    case MSG_FILTERED_BLOCK: return NetMsgType::MERKLEBLOCK;
+    case MSG_CMPCT_BLOCK:    return NetMsgType::CMPCTBLOCK;
     default:
         throw std::out_of_range(strprintf("CInv::GetMessageType(): type=%d unknown type", type));
     }
@@ -95,7 +91,6 @@ static std::string serviceFlagToStr(size_t bit)
     case NODE_NONE: abort();  // impossible
     case NODE_NETWORK:         return "NETWORK";
     case NODE_BLOOM:           return "BLOOM";
-    case NODE_WITNESS:         return "WITNESS";
     case NODE_COMPACT_FILTERS: return "COMPACT_FILTERS";
     case NODE_NETWORK_LIMITED: return "NETWORK_LIMITED";
     case NODE_P2P_V2:          return "P2P_V2";

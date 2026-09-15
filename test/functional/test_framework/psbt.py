@@ -4,6 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 import base64
+from io import BytesIO
 
 from .messages import (
     CTransaction,
@@ -113,7 +114,7 @@ class PSBT:
         assert f.read(5) == b"psbt\xff"
         self.g = from_binary(PSBTMap, f)
         assert PSBT_GLOBAL_UNSIGNED_TX in self.g.map
-        self.tx = from_binary(CTransaction, self.g.map[PSBT_GLOBAL_UNSIGNED_TX])
+        self.tx = self._deserialize_unsigned_tx(self.g.map[PSBT_GLOBAL_UNSIGNED_TX])
         self.i = [from_binary(PSBTMap, f) for _ in self.tx.vin]
         self.o = [from_binary(PSBTMap, f) for _ in self.tx.vout]
         return self
@@ -123,12 +124,20 @@ class PSBT:
         assert isinstance(self.i, list) and all(isinstance(x, PSBTMap) for x in self.i)
         assert isinstance(self.o, list) and all(isinstance(x, PSBTMap) for x in self.o)
         assert PSBT_GLOBAL_UNSIGNED_TX in self.g.map
-        tx = from_binary(CTransaction, self.g.map[PSBT_GLOBAL_UNSIGNED_TX])
+        tx = self._deserialize_unsigned_tx(self.g.map[PSBT_GLOBAL_UNSIGNED_TX])
         assert len(tx.vin) == len(self.i)
         assert len(tx.vout) == len(self.o)
 
         psbt = [x.serialize() for x in [self.g] + self.i + self.o]
         return b"psbt\xff" + b"".join(psbt)
+
+    @staticmethod
+    def _deserialize_unsigned_tx(data):
+        stream = BytesIO(data)
+        tx = CTransaction()
+        tx.deserialize_without_witness(stream)
+        assert stream.read() == b""
+        return tx
 
     def make_blank(self):
         """

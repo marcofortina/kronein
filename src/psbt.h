@@ -303,7 +303,7 @@ struct PSBTInput
         // Write the utxo
         if (non_witness_utxo) {
             SerializeToVector(s, CompactSizeWriter(PSBT_IN_NON_WITNESS_UTXO));
-            SerializeToVector(s, TX_NO_WITNESS(non_witness_utxo));
+            SerializeToVector(s, TX_WITH_WITNESS(non_witness_utxo));
         }
         if (!witness_utxo.IsNull()) {
             SerializeToVector(s, CompactSizeWriter(PSBT_IN_WITNESS_UTXO));
@@ -509,7 +509,6 @@ struct PSBTInput
                     } else if (key.size() != 1) {
                         throw std::ios_base::failure("Non-witness utxo key is more than one byte type");
                     }
-                    // Set the stream to unserialize with witness since this is always a valid network transaction
                     UnserializeFromVector(s, TX_WITH_WITNESS(non_witness_utxo));
                     break;
                 }
@@ -1176,7 +1175,7 @@ struct PartiallySignedTransaction
         SerializeToVector(s, CompactSizeWriter(PSBT_GLOBAL_UNSIGNED_TX));
 
         // Write serialized tx to a stream
-        SerializeToVector(s, TX_NO_WITNESS(*tx));
+        SerializeToVector(s, TX_BASE(*tx));
 
         // Write xpubs
         for (const auto& xpub_pair : m_xpubs) {
@@ -1268,8 +1267,7 @@ struct PartiallySignedTransaction
                         throw std::ios_base::failure("Global unsigned tx key is more than one byte type");
                     }
                     CMutableTransaction mtx;
-                    // Set the stream to serialize with non-witness since this should always be non-witness
-                    UnserializeFromVector(s, TX_NO_WITNESS(mtx));
+                    UnserializeFromVector(s, TX_BASE(mtx));
                     tx = std::move(mtx);
                     // Make sure that all scriptSigs and scriptWitnesses are empty
                     for (const CTxIn& txin : tx->vin) {

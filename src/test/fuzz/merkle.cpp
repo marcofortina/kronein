@@ -38,7 +38,7 @@ FUZZ_TARGET(merkle)
     FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
 
     const bool with_witness = fuzzed_data_provider.ConsumeBool();
-    std::optional<CBlock> block {ConsumeDeserializable<CBlock>(fuzzed_data_provider, with_witness ? TX_WITH_WITNESS : TX_NO_WITNESS)};
+    std::optional<CBlock> block {ConsumeDeserializable<CBlock>(fuzzed_data_provider, with_witness ? TX_WITH_WITNESS : TX_BASE)};
     if (!block){
         return;
     }

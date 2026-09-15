@@ -366,7 +366,7 @@ class MiniWallet:
         if self._mode in (MiniWalletMode.RAW_OP_TRUE, MiniWalletMode.ADDRESS_OP_TRUE):
             vsize = Decimal(104)  # anyone-can-spend
         elif self._mode == MiniWalletMode.RAW_P2PK:
-            vsize = Decimal(168)  # P2PK (73 bytes scriptSig + 35 bytes scriptPubKey + 60 bytes other)
+            vsize = Decimal(169)  # P2PK (73 bytes scriptSig + 35 bytes scriptPubKey + 60 bytes other + empty witness stack)
         else:
             assert False
         if target_vsize and not fee:  # respect fee_rate if target vsize is passed

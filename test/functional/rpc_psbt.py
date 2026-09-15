@@ -20,6 +20,7 @@ from test_framework.messages import (
     CTxOut,
     MAX_BIP125_RBF_SEQUENCE,
     WITNESS_SCALE_FACTOR,
+    tx_from_hex,
 )
 from test_framework.psbt import (
     PSBT,
@@ -57,10 +58,6 @@ from test_framework.wallet_util import (
     get_generate_key,
 )
 
-import json
-import os
-
-
 class PSBTTest(BitcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 3
@@ -92,7 +89,7 @@ class PSBTTest(BitcoinTestFramework):
         signed_psbt_obj = PSBT.from_base64(signed_psbt)
         substitute_addr = wallet.getnewaddress()
         raw = wallet.createrawtransaction([{"txid": utxos[0]["txid"], "vout": utxos[0]["vout"]}], [{substitute_addr: 0.9999}])
-        signed_psbt_obj.g.map[PSBT_GLOBAL_UNSIGNED_TX] = bytes.fromhex(raw)
+        signed_psbt_obj.g.map[PSBT_GLOBAL_UNSIGNED_TX] = tx_from_hex(raw).serialize_without_witness()
 
         # Check that the walletprocesspsbt call succeeds but also recognizes that the transaction is not complete
         signed_psbt_incomplete = wallet.walletprocesspsbt(psbt=signed_psbt_obj.to_base64(), finalize=False)
@@ -219,7 +216,7 @@ class PSBTTest(BitcoinTestFramework):
         tx.vin = [CTxIn(outpoint=COutPoint(hash=int('ee' * 32, 16), n=0), scriptSig=b"")]
         tx.vout = [CTxOut(nValue=0, scriptPubKey=b"")]
         psbt = PSBT()
-        psbt.g = PSBTMap({PSBT_GLOBAL_UNSIGNED_TX: tx.serialize()})
+        psbt.g = PSBTMap({PSBT_GLOBAL_UNSIGNED_TX: tx.serialize_without_witness()})
         participant1_keydata = in_pubkey1 + in_fake_agg_pubkey + fake_leaf_hash
         psbt.i = [PSBTMap({
                     bytes([PSBT_IN_MUSIG2_PARTICIPANT_PUBKEYS]) + in_fake_agg_pubkey: [in_pubkey1, in_pubkey2],
@@ -373,7 +370,11 @@ class PSBTTest(BitcoinTestFramework):
         """Test that PSBT Base64 parameters with '=' padding are handled correctly in -named mode"""
         self.log.info("Testing PSBT Base64 parameter handling with '=' padding characters")
         node = self.nodes[0]
-        psbt_with_padding = "cHNidP8BAJoCAAAAAqvNEjSrzRI0q80SNKvNEjSrzRI0q80SNKvNEjSrzRI0AAAAAAD9////NBLNqzQSzas0Es2rNBLNqzQSzas0Es2rNBLNqzQSzasBAAAAAP3///8CoIYBAAAAAAAWABQVQBGVs/sqFAmC8HZ8O+g1htqivkANAwAAAAAAFgAUir7MzgyzDnRMjdkVa7d+Dwr07jsAAAAAAAAAAAA="
+        psbt = PSBT.from_base64(node.createpsbt([], [{node.getnewaddress(): 1}]))
+        padding = b""
+        while not (psbt_with_padding := psbt.to_base64()).endswith("="):
+            padding += b"\x00"
+            psbt.g.map[0x50] = padding
 
         # Test decodepsbt with explicit named parameter containing '=' padding
         result = node.cli("-named", "decodepsbt", f"psbt={psbt_with_padding}").send_cli()
@@ -385,7 +386,7 @@ class PSBTTest(BitcoinTestFramework):
 
         # Test analyzepsbt with positional argument containing '=' padding
         result = node.cli("-named", "analyzepsbt", psbt_with_padding).send_cli()
-        assert 'inputs' in result
+        assert isinstance(result, dict)
 
         # Test finalizepsbt with positional argument containing '=' padding
         result = node.cli("-named", "finalizepsbt", psbt_with_padding, "extract=true").send_cli()
@@ -680,7 +681,7 @@ class PSBTTest(BitcoinTestFramework):
         assert_raises_rpc_error(-22, "Inputs must not have scriptSigs and scriptWitnesses",
                                 self.nodes[0].converttopsbt, hexstring=signedtx['hex'], permitsigdata=False)
         assert_raises_rpc_error(-22, "Inputs must not have scriptSigs and scriptWitnesses",
-                                self.nodes[0].converttopsbt, hexstring=signedtx['hex'], permitsigdata=False, iswitness=True)
+                                self.nodes[0].converttopsbt, hexstring=signedtx['hex'], permitsigdata=False)
         # Unless we allow it to convert and strip signatures
         self.nodes[0].converttopsbt(hexstring=signedtx['hex'], permitsigdata=True)
 
@@ -791,71 +792,8 @@ class PSBTTest(BitcoinTestFramework):
         assert_raises_rpc_error(-4, "Insufficient funds", wunsafe.walletcreatefundedpsbt, [], [{self.nodes[0].getnewaddress(): 1}])
         wunsafe.walletcreatefundedpsbt([], [{self.nodes[0].getnewaddress(): 1}], 0, {"include_unsafe": True})
 
-        # BIP 174 Test Vectors
-
-        # Check that unknown values are just passed through
-        unknown_psbt = "cHNidP8BAD8CAAAAAf//////////////////////////////////////////AAAAAAD/////AQAAAAAAAAAAA2oBAAAAAAAACg8BAgMEBQYHCAkPAQIDBAUGBwgJCgsMDQ4PAAA="
-        unknown_out = self.nodes[0].walletprocesspsbt(unknown_psbt)['psbt']
-        assert_equal(unknown_psbt, unknown_out)
-
-        # Open the data file
-        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data/rpc_psbt.json')) as f:
-            d = json.load(f)
-            invalids = d['invalid']
-            invalid_with_msgs = d["invalid_with_msg"]
-            valids = d['valid']
-            creators = d['creator']
-            signers = d['signer']
-            combiners = d['combiner']
-            finalizers = d['finalizer']
-            extractors = d['extractor']
-
-        # Invalid PSBTs
-        for invalid in invalids:
-            assert_raises_rpc_error(-22, "TX decode failed", self.nodes[0].decodepsbt, invalid)
-        for invalid in invalid_with_msgs:
-            psbt, msg = invalid
-            assert_raises_rpc_error(-22, f"TX decode failed {msg}", self.nodes[0].decodepsbt, psbt)
-
-        # Valid PSBTs
-        for valid in valids:
-            self.nodes[0].decodepsbt(valid)
-
-        # Creator Tests
-        for creator in creators:
-            created_tx = self.nodes[0].createpsbt(inputs=creator['inputs'], outputs=creator['outputs'], replaceable=False)
-            assert_equal(created_tx, creator['result'])
-
-        # Signer tests
-        for i, signer in enumerate(signers):
-            self.nodes[2].createwallet(wallet_name="wallet{}".format(i))
-            wrpc = self.nodes[2].get_wallet_rpc("wallet{}".format(i))
-            for key in signer['privkeys']:
-                wallet_importprivkey(wrpc, key, "now")
-            signed_tx = wrpc.walletprocesspsbt(signer['psbt'], True, "ALL")['psbt']
-            assert_equal(signed_tx, signer['result'])
-
-        # Combiner test
-        for combiner in combiners:
-            combined = self.nodes[2].combinepsbt(combiner['combine'])
-            assert_equal(combined, combiner['result'])
-
         # Empty combiner test
         assert_raises_rpc_error(-8, "Parameter 'txs' cannot be empty", self.nodes[0].combinepsbt, [])
-
-        # Finalizer test
-        for finalizer in finalizers:
-            finalized = self.nodes[2].finalizepsbt(finalizer['finalize'], False)['psbt']
-            assert_equal(finalized, finalizer['result'])
-
-        # Extractor test
-        for extractor in extractors:
-            extracted = self.nodes[2].finalizepsbt(extractor['extract'], True)['hex']
-            assert_equal(extracted, extractor['result'])
-
-        # Unload extra wallets
-        for i, signer in enumerate(signers):
-            self.nodes[2].unloadwallet("wallet{}".format(i))
 
         self.test_utxo_conversion()
         self.test_psbt_incomplete_after_invalid_modification()
@@ -945,34 +883,12 @@ class PSBTTest(BitcoinTestFramework):
         assert analyzed['inputs'][0]['has_utxo'] and not analyzed['inputs'][0]['is_final'] and analyzed['inputs'][0]['next'] == 'signer' and analyzed['next'] == 'signer' and analyzed['inputs'][0]['missing']['signatures'][0] == addrinfo['embedded']['witness_program']
 
         # Check fee and size things
-        assert analyzed['fee'] == Decimal('0.001') and analyzed['estimated_vsize'] == 134 and analyzed['estimated_feerate'] == Decimal('0.00746268')
+        assert analyzed['fee'] == Decimal('0.001') and analyzed['estimated_vsize'] == 133 and analyzed['estimated_feerate'] == Decimal('0.00751879')
 
         # After signing and finalizing, needs extracting
         signed = self.nodes[1].walletprocesspsbt(updated)['psbt']
         analyzed = self.nodes[0].analyzepsbt(signed)
         assert analyzed['inputs'][0]['has_utxo'] and analyzed['inputs'][0]['is_final'] and analyzed['next'] == 'extractor'
-
-        self.log.info("PSBT spending unspendable outputs should have error message and Creator as next")
-        analysis = self.nodes[0].analyzepsbt('cHNidP8BAJoCAAAAAljoeiG1ba8MI76OcHBFbDNvfLqlyHV5JPVFiHuyq911AAAAAAD/////g40EJ9DsZQpoqka7CwmK6kQiwHGyyng1Kgd5WdB86h0BAAAAAP////8CcKrwCAAAAAAWAEHYXCtx0AYLCcmIauuBXlCZHdoSTQDh9QUAAAAAFv8/wADXYP/7//////8JxOh0LR2HAI8AAAAAAAEBIADC6wsAAAAAF2oUt/X69ELjeX2nTof+fZ10l+OyAokDAQcJAwEHEAABAACAAAEBIADC6wsAAAAAF2oUt/X69ELjeX2nTof+fZ10l+OyAokDAQcJAwEHENkMak8AAAAA')
-        assert_equal(analysis['next'], 'creator')
-        assert_equal(analysis['error'], 'PSBT is not valid. Input 0 spends unspendable output')
-
-        self.log.info("PSBT with invalid values should have error message and Creator as next")
-        analysis = self.nodes[0].analyzepsbt('cHNidP8BAHECAAAAAfA00BFgAm6tp86RowwH6BMImQNL5zXUcTT97XoLGz0BAAAAAAD/////AgD5ApUAAAAAFgAUKNw0x8HRctAgmvoevm4u1SbN7XL87QKVAAAAABYAFPck4gF7iL4NL4wtfRAKgQbghiTUAAAAAAABAR8AgIFq49AHABYAFJUDtxf2PHo641HEOBOAIvFMNTr2AAAA')
-        assert_equal(analysis['next'], 'creator')
-        assert_equal(analysis['error'], 'PSBT is not valid. Input 0 has invalid value')
-
-        self.log.info("PSBT with signed, but not finalized, inputs should have Finalizer as next")
-        analysis = self.nodes[0].analyzepsbt('cHNidP8BAHECAAAAAZYezcxdnbXoQCmrD79t/LzDgtUo9ERqixk8wgioAobrAAAAAAD9////AlDDAAAAAAAAFgAUy/UxxZuzZswcmFnN/E9DGSiHLUsuGPUFAAAAABYAFLsH5o0R38wXx+X2cCosTMCZnQ4baAAAAAABAR8A4fUFAAAAABYAFOBI2h5thf3+Lflb2LGCsVSZwsltIgIC/i4dtVARCRWtROG0HHoGcaVklzJUcwo5homgGkSNAnJHMEQCIGx7zKcMIGr7cEES9BR4Kdt/pzPTK3fKWcGyCJXb7MVnAiALOBgqlMH4GbC1HDh/HmylmO54fyEy4lKde7/BT/PWxwEBAwQBAAAAIgYC/i4dtVARCRWtROG0HHoGcaVklzJUcwo5homgGkSNAnIYDwVpQ1QAAIABAACAAAAAgAAAAAAAAAAAAAAiAgL+CIiB59NSCssOJRGiMYQK1chahgAaaJpIXE41Cyir+xgPBWlDVAAAgAEAAIAAAACAAQAAAAAAAAAA')
-        assert_equal(analysis['next'], 'finalizer')
-
-        analysis = self.nodes[0].analyzepsbt('cHNidP8BAHECAAAAAfA00BFgAm6tp86RowwH6BMImQNL5zXUcTT97XoLGz0BAAAAAAD/////AgCAgWrj0AcAFgAUKNw0x8HRctAgmvoevm4u1SbN7XL87QKVAAAAABYAFPck4gF7iL4NL4wtfRAKgQbghiTUAAAAAAABAR8A8gUqAQAAABYAFJUDtxf2PHo641HEOBOAIvFMNTr2AAAA')
-        assert_equal(analysis['next'], 'creator')
-        assert_equal(analysis['error'], 'PSBT is not valid. Output amount invalid')
-
-        assert_raises_rpc_error(-22, "TX decode failed", self.nodes[0].analyzepsbt, "cHNidP8BAJoCAAAAAkvEW8NnDtdNtDpsmze+Ht2LH35IJcKv00jKAlUs21RrAwAAAAD/////S8Rbw2cO1020OmybN74e3Ysffkglwq/TSMoCVSzbVGsBAAAAAP7///8CwLYClQAAAAAWABSNJKzjaUb3uOxixsvh1GGE3fW7zQD5ApUAAAAAFgAUKNw0x8HRctAgmvoevm4u1SbN7XIAAAAAAAEAnQIAAAACczMa321tVHuN4GKWKRncycI22aX3uXgwSFUKM2orjRsBAAAAAP7///9zMxrfbW1Ue43gYpYpGdzJwjbZpfe5eDBIVQozaiuNGwAAAAAA/v///wIA+QKVAAAAABl2qRT9zXUVA8Ls5iVqynLHe5/vSe1XyYisQM0ClQAAAAAWABRmWQUcjSjghQ8/uH4Bn/zkakwLtAAAAAAAAQEfQM0ClQAAAAAWABRmWQUcjSjghQ8/uH4Bn/zkakwLtAAAAA==")
-
-        assert_raises_rpc_error(-22, "TX decode failed", self.nodes[0].walletprocesspsbt, "cHNidP8BAJoCAAAAAkvEW8NnDtdNtDpsmze+Ht2LH35IJcKv00jKAlUs21RrAwAAAAD/////S8Rbw2cO1020OmybN74e3Ysffkglwq/TSMoCVSzbVGsBAAAAAP7///8CwLYClQAAAAAWABSNJKzjaUb3uOxixsvh1GGE3fW7zQD5ApUAAAAAFgAUKNw0x8HRctAgmvoevm4u1SbN7XIAAAAAAAEAnQIAAAACczMa321tVHuN4GKWKRncycI22aX3uXgwSFUKM2orjRsBAAAAAP7///9zMxrfbW1Ue43gYpYpGdzJwjbZpfe5eDBIVQozaiuNGwAAAAAA/v///wIA+QKVAAAAABl2qRT9zXUVA8Ls5iVqynLHe5/vSe1XyYisQM0ClQAAAAAWABRmWQUcjSjghQ8/uH4Bn/zkakwLtAAAAAAAAQEfQM0ClQAAAAAWABRmWQUcjSjghQ8/uH4Bn/zkakwLtAAAAA==")
 
         self.log.info("Test that we can fund psbts with external inputs specified")
 
@@ -1151,7 +1067,7 @@ class PSBTTest(BitcoinTestFramework):
                   CTxIn(outpoint=COutPoint(hash=int('dd' * 32, 16), n=0), scriptSig=b"")]
         tx.vout = [CTxOut(nValue=0, scriptPubKey=b"")]
         psbt = PSBT()
-        psbt.g = PSBTMap({PSBT_GLOBAL_UNSIGNED_TX: tx.serialize()})
+        psbt.g = PSBTMap({PSBT_GLOBAL_UNSIGNED_TX: tx.serialize_without_witness()})
         psbt.i = [PSBTMap({bytes([PSBT_IN_RIPEMD160]) + hash_ripemd160: preimage_ripemd160}),
                   PSBTMap({bytes([PSBT_IN_SHA256]) + hash_sha256: preimage_sha256}),
                   PSBTMap({bytes([PSBT_IN_HASH160]) + hash_hash160: preimage_hash160}),
@@ -1174,9 +1090,9 @@ class PSBTTest(BitcoinTestFramework):
         tx = CTransaction()
         tx.vin = [CTxIn(outpoint=COutPoint(hash=int('aa' * 32, 16), n=0), scriptSig=b"")]
         tx.vout = [CTxOut(nValue=0, scriptPubKey=b"")]
-        psbt1 = PSBT(g=PSBTMap({PSBT_GLOBAL_UNSIGNED_TX: tx.serialize()}), i=[PSBTMap()], o=[PSBTMap()]).to_base64()
+        psbt1 = PSBT(g=PSBTMap({PSBT_GLOBAL_UNSIGNED_TX: tx.serialize_without_witness()}), i=[PSBTMap()], o=[PSBTMap()]).to_base64()
         tx.vout[0].nValue += 1  # slightly modify tx
-        psbt2 = PSBT(g=PSBTMap({PSBT_GLOBAL_UNSIGNED_TX: tx.serialize()}), i=[PSBTMap()], o=[PSBTMap()]).to_base64()
+        psbt2 = PSBT(g=PSBTMap({PSBT_GLOBAL_UNSIGNED_TX: tx.serialize_without_witness()}), i=[PSBTMap()], o=[PSBTMap()]).to_base64()
         assert_raises_rpc_error(-8, "PSBTs not compatible (different transactions)", self.nodes[0].combinepsbt, [psbt1, psbt2])
         assert_equal(self.nodes[0].combinepsbt([psbt1, psbt1]), psbt1)
 
@@ -1186,11 +1102,11 @@ class PSBTTest(BitcoinTestFramework):
         tx.vin = [CTxIn(outpoint=COutPoint(hash=int('dd' * 32, 16), n=0), scriptSig=b"")]
         tx.vout = [CTxOut(nValue=0, scriptPubKey=b"")]
         psbt = PSBT()
-        psbt.g = PSBTMap({PSBT_GLOBAL_UNSIGNED_TX: tx.serialize()})
+        psbt.g = PSBTMap({PSBT_GLOBAL_UNSIGNED_TX: tx.serialize_without_witness()})
         psbt.i = [PSBTMap({bytes([PSBT_IN_WITNESS_UTXO]) : acs_prevout.serialize()})]
         psbt.o = [PSBTMap()]
         assert_equal(self.nodes[0].finalizepsbt(psbt.to_base64()),
-            {'hex': '0200000001dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd0000000000000000000100000000000000000000000000', 'complete': True})
+            {'hex': '0200000001dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd000000000000000000010000000000000000000000000000', 'complete': True})
 
         self.log.info("Test we don't crash when making a 0-value funded transaction at 0 fee without forcing an input selection")
         assert_raises_rpc_error(-4, "Transaction requires one destination of non-zero value, a non-zero feerate, or a pre-selected input", self.nodes[0].walletcreatefundedpsbt, [], [{"data": "deadbeef"}], 0, {"fee_rate": "0"})

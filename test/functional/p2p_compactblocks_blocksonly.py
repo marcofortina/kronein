@@ -7,7 +7,6 @@
 from test_framework.messages import (
     MSG_BLOCK,
     MSG_CMPCT_BLOCK,
-    MSG_WITNESS_FLAG,
     CBlock,
     CBlockHeader,
     CInv,
@@ -93,7 +92,7 @@ class P2PCompactBlocksBlocksOnly(BitcoinTestFramework):
         block1 = self.build_block_on_tip()
 
         p2p_conn_blocksonly.send_and_ping(msg_headers(headers=[CBlockHeader(block1)]))
-        assert_equal(p2p_conn_blocksonly.last_message['getdata'].inv, [CInv(MSG_BLOCK | MSG_WITNESS_FLAG, block1.hash_int)])
+        assert_equal(p2p_conn_blocksonly.last_message['getdata'].inv, [CInv(MSG_BLOCK, block1.hash_int)])
 
         p2p_conn_high_bw.send_and_ping(msg_headers(headers=[CBlockHeader(block1)]))
         assert_equal(p2p_conn_high_bw.last_message['getdata'].inv, [CInv(MSG_CMPCT_BLOCK, block1.hash_int)])

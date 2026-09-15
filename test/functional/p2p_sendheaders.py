@@ -80,10 +80,9 @@ b. Then send 99 more headers that don't connect.
    Expect: getheaders message each time.
 """
 from test_framework.blocktools import create_block, create_coinbase
-from test_framework.messages import CInv
+from test_framework.messages import CInv, NODE_NONE
 from test_framework.p2p import (
     CBlockHeader,
-    NODE_WITNESS,
     P2PInterface,
     p2p_lock,
     MSG_BLOCK,
@@ -139,7 +138,8 @@ class BaseNode(P2PInterface):
         self.send_without_ping(getblocks_message)
 
     def wait_for_block_announcement(self, block_hash, timeout=60):
-        test_function = lambda: self.last_blockhash_announced == block_hash
+        def test_function():
+            return self.last_blockhash_announced == block_hash
         self.wait_until(test_function, timeout=timeout)
 
     def on_inv(self, message):
@@ -165,7 +165,8 @@ class BaseNode(P2PInterface):
     def check_last_headers_announcement(self, headers):
         """Test whether the last headers announcements received are right.
            Headers may be announced across more than one message."""
-        test_function = lambda: (len(self.recent_headers_announced) >= len(headers))
+        def test_function():
+            return len(self.recent_headers_announced) >= len(headers)
         self.wait_until(test_function)
         with p2p_lock:
             assert_equal(self.recent_headers_announced, headers)
@@ -177,7 +178,8 @@ class BaseNode(P2PInterface):
         """Test whether the last announcement received had the right inv.
         inv should be a list of block hashes."""
 
-        test_function = lambda: self.block_announced
+        def test_function():
+            return self.block_announced
         self.wait_until(test_function)
 
         with p2p_lock:
@@ -225,7 +227,7 @@ class SendHeadersTest(BitcoinTestFramework):
         inv_node = self.nodes[0].add_p2p_connection(BaseNode())
         # Make sure NODE_NETWORK is not set for test_node, so no block download
         # will occur outside of direct fetching
-        test_node = self.nodes[0].add_p2p_connection(BaseNode(), services=NODE_WITNESS)
+        test_node = self.nodes[0].add_p2p_connection(BaseNode(), services=NODE_NONE)
 
         self.test_null_locators(test_node, inv_node)
         self.test_nonnull_locators(test_node, inv_node)

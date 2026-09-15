@@ -13,7 +13,6 @@ from test_framework.messages import (
     MSG_BLOCK,
     NODE_NETWORK_LIMITED,
     NODE_P2P_V2,
-    NODE_WITNESS,
     msg_getdata,
 )
 from test_framework.p2p import P2PInterface
@@ -35,7 +34,8 @@ class P2PIgnoreInv(P2PInterface):
     def on_addr(self, message):
         self.firstAddrnServices = message.addrs[0].nServices
     def wait_for_addr(self, timeout=5):
-        test_function = lambda: self.last_message.get("addr")
+        def test_function():
+            return self.last_message.get("addr")
         self.wait_until(test_function, timeout=timeout)
     def send_getdata_for_block(self, blockhash):
         getdata_request = msg_getdata()
@@ -118,7 +118,7 @@ class NodeNetworkLimitedTest(BitcoinTestFramework):
     def run_test(self):
         node = self.nodes[0].add_p2p_connection(P2PIgnoreInv())
 
-        expected_services = NODE_WITNESS | NODE_NETWORK_LIMITED
+        expected_services = NODE_NETWORK_LIMITED
         if self.options.v2transport:
             expected_services |= NODE_P2P_V2
 

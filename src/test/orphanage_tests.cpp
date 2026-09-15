@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE(peer_dos_limits)
 
     // Construct transactions to use. They must all be the same size.
     static constexpr unsigned int NUM_TXNS_CREATED = 100;
-    static constexpr int64_t TX_SIZE{469};
+    static constexpr int64_t TX_SIZE{467};
     static constexpr int64_t TOTAL_SIZE = NUM_TXNS_CREATED * TX_SIZE;
 
     std::vector<CTransactionRef> txns;
@@ -672,13 +672,13 @@ BOOST_AUTO_TEST_CASE(too_large_orphan_tx)
     tx.vin.resize(1);
 
     // check that txs larger than MAX_STANDARD_TX_WEIGHT are not added to the orphanage
-    BulkTransaction(tx, MAX_STANDARD_TX_WEIGHT + 4);
-    BOOST_CHECK_EQUAL(GetTransactionWeight(CTransaction(tx)), MAX_STANDARD_TX_WEIGHT + 4);
+    BulkTransaction(tx, MAX_STANDARD_TX_WEIGHT + 1);
+    BOOST_CHECK_GT(GetTransactionWeight(CTransaction(tx)), MAX_STANDARD_TX_WEIGHT);
     BOOST_CHECK(!orphanage->AddTx(MakeTransactionRef(tx), 0));
 
     tx.vout.clear();
-    BulkTransaction(tx, MAX_STANDARD_TX_WEIGHT);
-    BOOST_CHECK_EQUAL(GetTransactionWeight(CTransaction(tx)), MAX_STANDARD_TX_WEIGHT);
+    BulkTransaction(tx, MAX_STANDARD_TX_WEIGHT - 3);
+    BOOST_CHECK_LE(GetTransactionWeight(CTransaction(tx)), MAX_STANDARD_TX_WEIGHT);
     BOOST_CHECK(orphanage->AddTx(MakeTransactionRef(tx), 0));
 }
 

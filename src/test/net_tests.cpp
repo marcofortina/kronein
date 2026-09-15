@@ -839,7 +839,7 @@ BOOST_AUTO_TEST_CASE(initial_advertise_from_version_message)
                /*inbound_onion=*/false,
                /*network_key=*/2};
 
-    const uint64_t services{NODE_NETWORK | NODE_WITNESS};
+    const uint64_t services{NODE_NETWORK};
     const int64_t time{0};
 
     // Force ChainstateManager::IsInitialBlockDownload() to return false.

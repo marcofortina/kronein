@@ -27,16 +27,12 @@ enum class TxValidationResult {
     TX_NOT_STANDARD,          //!< otherwise didn't meet our local policy rules
     TX_MISSING_INPUTS,        //!< transaction was missing some of its inputs
     TX_PREMATURE_SPEND,       //!< transaction spends a coinbase too early, or violates locktime/sequence locks
-    /**
-     * Transaction might have a witness prior to SegWit
-     * activation, or witness may have been malleated (which includes
-     * non-standard witnesses).
-     */
+    /** Witness may have been malleated, including a non-standard witness. */
     TX_WITNESS_MUTATED,
     /**
      * Transaction is missing a witness.
      */
-    TX_WITNESS_STRIPPED,
+    TX_WITNESS_MISSING,
     /**
      * Tx already in mempool or conflicts with a tx in the chain
      * (if it conflicts with another tx in mempool, we use MEMPOOL_POLICY as it failed to reach the RBF threshold)
@@ -131,16 +127,16 @@ class BlockValidationState : public ValidationState<BlockValidationResult> {};
 // weight = (stripped_size * 3) + total_size.
 static inline int32_t GetTransactionWeight(const CTransaction& tx)
 {
-    return ::GetSerializeSize(TX_NO_WITNESS(tx)) * (WITNESS_SCALE_FACTOR - 1) + ::GetSerializeSize(TX_WITH_WITNESS(tx));
+    return ::GetSerializeSize(TX_BASE(tx)) * (WITNESS_SCALE_FACTOR - 1) + ::GetSerializeSize(TX_WITH_WITNESS(tx));
 }
 static inline int64_t GetBlockWeight(const CBlock& block)
 {
-    return ::GetSerializeSize(TX_NO_WITNESS(block)) * (WITNESS_SCALE_FACTOR - 1) + ::GetSerializeSize(TX_WITH_WITNESS(block));
+    return ::GetSerializeSize(TX_BASE(block)) * (WITNESS_SCALE_FACTOR - 1) + ::GetSerializeSize(TX_WITH_WITNESS(block));
 }
 static inline int64_t GetTransactionInputWeight(const CTxIn& txin)
 {
     // scriptWitness size is added here because witnesses and txins are split up in segwit serialization.
-    return ::GetSerializeSize(TX_NO_WITNESS(txin)) * (WITNESS_SCALE_FACTOR - 1) + ::GetSerializeSize(TX_WITH_WITNESS(txin)) + ::GetSerializeSize(txin.scriptWitness.stack);
+    return ::GetSerializeSize(TX_BASE(txin)) * (WITNESS_SCALE_FACTOR - 1) + ::GetSerializeSize(TX_WITH_WITNESS(txin)) + ::GetSerializeSize(txin.scriptWitness.stack);
 }
 
 /** Compute at which vout of the block's coinbase transaction the witness commitment occurs, or -1 if not found */

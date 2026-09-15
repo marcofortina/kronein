@@ -163,13 +163,13 @@ void MinerTestingSetup::TestPackageSelection(const CScript& scriptPubKey, const 
 
     // parent_tx and high_fee_tx are added to the block as a package.
     const auto combined_txs_fee = parent_tx.GetFee() + high_fee_tx.GetFee();
-    const auto combined_txs_size = parent_tx.GetTxSize() + high_fee_tx.GetTxSize();
-    FeeFrac package_feefrac{combined_txs_fee, combined_txs_size};
+    const auto combined_txs_weight = parent_tx.GetAdjustedWeight() + high_fee_tx.GetAdjustedWeight();
+    const auto package_feefrac = ToFeePerVSize(FeePerWeight{combined_txs_fee, combined_txs_weight});
     // The package should be added first.
     BOOST_CHECK(block_package_feerates[0] == package_feefrac);
 
     // The medium_fee_tx should be added next.
-    FeeFrac medium_tx_feefrac{medium_fee_tx.GetFee(), medium_fee_tx.GetTxSize()};
+    const auto medium_tx_feefrac = ToFeePerVSize(FeePerWeight{medium_fee_tx.GetFee(), medium_fee_tx.GetAdjustedWeight()});
     BOOST_CHECK(block_package_feerates[1] == medium_tx_feefrac);
 
     // Test that a package below the block min tx fee doesn't get included

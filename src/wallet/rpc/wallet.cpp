@@ -528,7 +528,7 @@ RPCHelpMan simulaterawtransaction()
 
     for (size_t i = 0; i < txs.size(); ++i) {
         CMutableTransaction mtx;
-        if (!DecodeHexTx(mtx, txs[i].get_str(), /*try_no_witness=*/ true, /*try_witness=*/ true)) {
+        if (!DecodeHexTx(mtx, txs[i].get_str())) {
             throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Transaction hex string decoding failure.");
         }
 

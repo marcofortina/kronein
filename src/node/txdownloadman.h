@@ -28,7 +28,7 @@ static constexpr int32_t MAX_PEER_TX_REQUEST_IN_FLIGHT = 100;
  *  rate (by our own policy, see INVENTORY_BROADCAST_PER_SECOND) for several minutes, while not receiving
  *  the actual transaction (from any peer) in response to requests for them. */
 static constexpr int32_t MAX_PEER_TX_ANNOUNCEMENTS = 5000;
-/** How long to delay requesting transactions via txids, if we have wtxid-relaying peers */
+/** How long to delay requesting transactions via txids, allowing wtxid announcements to arrive first. */
 static constexpr auto TXID_RELAY_DELAY{2s};
 /** How long to delay requesting transactions from non-preferred peers */
 static constexpr auto NONPREF_PEER_TX_DELAY{2s};
@@ -49,8 +49,6 @@ struct TxDownloadConnectionInfo {
     const bool m_preferred;
     /** Whether this peer has Relay permissions. */
     const bool m_relay_permissions;
-    /** Whether this peer supports wtxid relay. */
-    const bool m_wtxid_relay;
 };
 struct PackageToValidate {
     Package m_txns;

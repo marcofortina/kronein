@@ -43,20 +43,13 @@ public:
      * million to make it highly unlikely for users to have issues with this
      * filter.
      *
-     * We typically only add wtxids to this filter. For non-segwit
-     * transactions, the txid == wtxid, so this only prevents us from
-     * re-downloading non-segwit transactions when communicating with
-     * non-wtxidrelay peers -- which is important for avoiding malleation
-     * attacks that could otherwise interfere with transaction relay from
-     * non-wtxidrelay peers. For communicating with wtxidrelay peers, having
-     * the reject filter store wtxids is exactly what we want to avoid
-     * redownload of a rejected transaction.
+     * We normally add wtxids to this filter, matching the identifier used for
+     * transaction announcements.
      *
      * In cases where we can tell that a segwit transaction will fail
      * validation no matter the witness, we may add the txid of such
      * transaction to the filter as well. This can be helpful when
-     * communicating with txid-relay peers or if we were to otherwise fetch a
-     * transaction via txid (eg in our orphan handling).
+     * fetching a transaction via txid during orphan resolution.
      *
      * Memory used: 1.3 MB
      */
@@ -140,9 +133,6 @@ public:
     /** Information for all of the peers we may download transactions from. This is not necessarily
      * all peers we are connected to (no block-relay-only and temporary connections). */
     std::map<NodeId, PeerInfo> m_peer_info;
-
-    /** Number of wtxid relay peers we have in m_peer_info. */
-    uint32_t m_num_wtxid_peers{0};
 
     void ActiveTipChange();
     void BlockConnected(const std::shared_ptr<const CBlock>& pblock);

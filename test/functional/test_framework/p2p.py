@@ -68,13 +68,10 @@ from test_framework.messages import (
     msg_sendtxrcncl,
     msg_tx,
     MSG_TX,
-    MSG_TYPE_MASK,
     msg_verack,
     msg_version,
     MSG_WTX,
-    msg_wtxidrelay,
     NODE_NETWORK,
-    NODE_WITNESS,
     MAGIC_BYTES,
     sha256,
 )
@@ -96,19 +93,19 @@ from test_framework.v2_p2p import (
 logger = logging.getLogger("TestFramework.p2p")
 
 # The minimum P2P version that this test framework supports
-MIN_P2P_VERSION_SUPPORTED = 60001
+MIN_P2P_VERSION_SUPPORTED = 70016
 # The P2P version that this test framework implements and sends in its `version` message
-# Version 70016 supports wtxid relay
+# Native protocol baseline.
 P2P_VERSION = 70016
 # The services that this test framework offers in its `version` message
-P2P_SERVICES = NODE_NETWORK | NODE_WITNESS
+P2P_SERVICES = NODE_NETWORK
 # The P2P user agent string that this test framework sends in its `version` message
 P2P_SUBVERSION = "/python-p2p-tester:0.0.3/"
 # Value for relay that this test framework sends in its `version` message
 P2P_VERSION_RELAY = 1
 # Delay after receiving a tx inv before requesting transactions from non-preferred peers, in seconds
 NONPREF_PEER_TX_DELAY = 2
-# Delay for requesting transactions via txids if we have wtxid-relaying peers, in seconds
+# Delay for requesting transactions via txids, in seconds
 TXID_RELAY_DELAY = 2
 # Delay for requesting transactions if the peer has MAX_PEER_TX_REQUEST_IN_FLIGHT or more requests
 OVERLOADED_PEER_TX_DELAY = 2
@@ -150,7 +147,6 @@ MESSAGEMAP = {
     b"tx": msg_tx,
     b"verack": msg_verack,
     b"version": msg_version,
-    b"wtxidrelay": msg_wtxidrelay,
 }
 
 
@@ -459,7 +455,7 @@ class P2PInterface(P2PConnection):
 
     Individual testcases should subclass this and override the on_* methods
     if they want to alter message handling behaviour."""
-    def __init__(self, support_addrv2=False, wtxidrelay=True):
+    def __init__(self, support_addrv2=False):
         super().__init__()
 
         # Track number of messages of each type received.
@@ -478,9 +474,6 @@ class P2PInterface(P2PConnection):
         self.nServices = 0
 
         self.support_addrv2 = support_addrv2
-
-        # If the peer supports wtxid-relay
-        self.wtxidrelay = wtxidrelay
 
     def peer_connect_send_version(self, services):
         # Send a version msg
@@ -562,7 +555,6 @@ class P2PInterface(P2PConnection):
     def on_sendheaders(self, message): pass
     def on_sendtxrcncl(self, message): pass
     def on_tx(self, message): pass
-    def on_wtxidrelay(self, message): pass
 
     def on_inv(self, message):
         want = msg_getdata()
@@ -585,8 +577,6 @@ class P2PInterface(P2PConnection):
         if not self.p2p_connected_to_node:
             self.send_version()
             self.reconnect = False
-        if message.nVersion >= 70016 and self.wtxidrelay:
-            self.send_without_ping(msg_wtxidrelay())
         if self.support_addrv2:
             self.send_without_ping(msg_sendaddrv2())
         self.send_without_ping(msg_verack())
@@ -606,11 +596,13 @@ class P2PInterface(P2PConnection):
         wait_until_helper_internal(test_function, timeout=timeout, lock=p2p_lock, timeout_factor=self.timeout_factor, check_interval=check_interval)
 
     def wait_for_connect(self, *, timeout=60):
-        test_function = lambda: self.is_connected
+        def test_function():
+            return self.is_connected
         self.wait_until(test_function, timeout=timeout, check_connected=False)
 
     def wait_for_disconnect(self, *, timeout=60):
-        test_function = lambda: not self.is_connected
+        def test_function():
+            return not self.is_connected
         self.wait_until(test_function, timeout=timeout, check_connected=False)
 
     def wait_for_reconnect(self, *, timeout=60):
@@ -837,10 +829,9 @@ class P2PDataStore(P2PInterface):
         """Check for the tx/block in our stores and if found, reply with MSG_TX or MSG_BLOCK."""
         for inv in message.inv:
             self.getdata_requests.append(inv.hash)
-            invtype = inv.type & MSG_TYPE_MASK
-            if (invtype == MSG_TX or invtype == MSG_WTX) and inv.hash in self.tx_store.keys():
+            if (inv.type == MSG_TX or inv.type == MSG_WTX) and inv.hash in self.tx_store.keys():
                 self.send_without_ping(msg_tx(self.tx_store[inv.hash]))
-            elif invtype == MSG_BLOCK and inv.hash in self.block_store.keys():
+            elif inv.type == MSG_BLOCK and inv.hash in self.block_store.keys():
                 self.send_without_ping(msg_block(self.block_store[inv.hash]))
             else:
                 logger.debug('getdata message type {} received.'.format(hex(inv.type)))
@@ -948,7 +939,7 @@ class P2PDataStore(P2PInterface):
                     assert tx.txid_hex not in raw_mempool, "{} tx found in mempool".format(tx.txid_hex)
 
 class P2PTxInvStore(P2PInterface):
-    """A P2PInterface which stores a count of how many times each txid has been announced."""
+    """A P2PInterface which stores a count of how many times each wtxid has been announced."""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.tx_invs_received = defaultdict(int)
@@ -957,8 +948,7 @@ class P2PTxInvStore(P2PInterface):
         super().on_inv(message) # Send getdata in response.
         # Store how many times invs have been received for each tx.
         for i in message.inv:
-            if (i.type == MSG_TX) or (i.type == MSG_WTX):
-                # save txid
+            if i.type == MSG_WTX:
                 self.tx_invs_received[i.hash] += 1
 
     def get_invs(self):

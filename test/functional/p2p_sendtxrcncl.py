@@ -7,9 +7,7 @@
 
 from test_framework.messages import (
     msg_sendtxrcncl,
-    msg_verack,
     msg_version,
-    msg_wtxidrelay,
     NODE_BLOOM,
 )
 from test_framework.p2p import (
@@ -25,16 +23,11 @@ from test_framework.util import (
 )
 
 class PeerNoVerack(P2PInterface):
-    def __init__(self, wtxidrelay=True):
-        super().__init__(wtxidrelay=wtxidrelay)
-
     def on_version(self, message):
         # Avoid sending verack in response to version.
         # When calling add_p2p_connection, wait_for_verack=False must be set (see
         # comment in add_p2p_connection).
         self.send_version()
-        if message.nVersion >= 70016 and self.wtxidrelay:
-            self.send_without_ping(msg_wtxidrelay())
 
 class SendTxrcnclReceiver(P2PInterface):
     def __init__(self):
@@ -86,18 +79,6 @@ class SendTxRcnclTest(BitcoinTestFramework):
         verack_index = [i for i, msg in enumerate(peer.messages) if msg.msgtype == b'verack'][0]
         sendtxrcncl_index = [i for i, msg in enumerate(peer.messages) if msg.msgtype == b'sendtxrcncl'][0]
         assert sendtxrcncl_index < verack_index
-        self.nodes[0].disconnect_p2ps()
-
-        self.log.info('SENDTXRCNCL on pre-WTXID version should not be sent')
-        peer = self.nodes[0].add_p2p_connection(SendTxrcnclReceiver(), send_version=False, wait_for_verack=False)
-        pre_wtxid_version_msg = msg_version()
-        pre_wtxid_version_msg.nVersion = 70015
-        pre_wtxid_version_msg.strSubVer = P2P_SUBVERSION
-        pre_wtxid_version_msg.nServices = P2P_SERVICES
-        pre_wtxid_version_msg.relay = 1
-        peer.send_without_ping(pre_wtxid_version_msg)
-        peer.wait_for_verack()
-        assert not peer.sendtxrcncl_msg_received
         self.nodes[0].disconnect_p2ps()
 
         self.log.info('SENDTXRCNCL for fRelay=false should not be sent')
@@ -200,36 +181,17 @@ class SendTxRcnclTest(BitcoinTestFramework):
             peer.send_without_ping(sendtxrcncl_higher_version)
         self.nodes[0].disconnect_p2ps()
 
-        self.log.info('unexpected SENDTXRCNCL is ignored')
-        peer = self.nodes[0].add_p2p_connection(PeerNoVerack(), send_version=False, wait_for_verack=False)
-        old_version_msg = msg_version()
-        old_version_msg.nVersion = 70015
-        old_version_msg.strSubVer = P2P_SUBVERSION
-        old_version_msg.nServices = P2P_SERVICES
-        old_version_msg.relay = 1
-        peer.send_without_ping(old_version_msg)
-        with self.nodes[0].assert_debug_log(['Ignore unexpected txreconciliation signal'], timeout=2):
-            peer.send_without_ping(create_sendtxrcncl_msg())
-        self.nodes[0].disconnect_p2ps()
-
         self.log.info('sending SENDTXRCNCL after sending VERACK triggers a disconnect')
         peer = self.nodes[0].add_p2p_connection(P2PInterface())
         with self.nodes[0].assert_debug_log(["sendtxrcncl received after verack"]):
             peer.send_without_ping(create_sendtxrcncl_msg())
             peer.wait_for_disconnect()
 
-        self.log.info('SENDTXRCNCL without WTXIDRELAY is ignored (recon state is erased after VERACK)')
-        peer = self.nodes[0].add_p2p_connection(PeerNoVerack(wtxidrelay=False), send_version=True, wait_for_verack=False)
-        with self.nodes[0].assert_debug_log(['Forget txreconciliation state of peer']):
-            peer.send_without_ping(create_sendtxrcncl_msg())
-            peer.send_and_ping(msg_verack())
-        self.nodes[0].disconnect_p2ps()
-
         # Now, *receiving* from *outbound*.
         self.log.info('SENDTXRCNCL if block-relay-only triggers a disconnect')
         peer = self.nodes[0].add_outbound_p2p_connection(
             PeerNoVerack(), wait_for_verack=False, p2p_idx=0, connection_type="block-relay-only")
-        with self.nodes[0].assert_debug_log(["we indicated no tx relay, disconnecting peer=5"]):
+        with self.nodes[0].assert_debug_log(["we indicated no tx relay, disconnecting"]):
             peer.send_without_ping(create_sendtxrcncl_msg())
             peer.wait_for_disconnect()
 

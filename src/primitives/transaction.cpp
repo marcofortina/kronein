@@ -68,7 +68,7 @@ CMutableTransaction::CMutableTransaction(const CTransaction& tx) : vin(tx.vin), 
 
 Txid CMutableTransaction::GetHash() const
 {
-    return Txid::FromUint256((HashWriter{} << TX_NO_WITNESS(*this)).GetHash());
+    return Txid::FromUint256((HashWriter{} << TX_BASE(*this)).GetHash());
 }
 
 bool CTransaction::ComputeHasWitness() const
@@ -80,15 +80,11 @@ bool CTransaction::ComputeHasWitness() const
 
 Txid CTransaction::ComputeHash() const
 {
-    return Txid::FromUint256((HashWriter{} << TX_NO_WITNESS(*this)).GetHash());
+    return Txid::FromUint256((HashWriter{} << TX_BASE(*this)).GetHash());
 }
 
 Wtxid CTransaction::ComputeWitnessHash() const
 {
-    if (!HasWitness()) {
-        return Wtxid::FromUint256(hash.ToUint256());
-    }
-
     return Wtxid::FromUint256((HashWriter{} << TX_WITH_WITNESS(*this)).GetHash());
 }
 

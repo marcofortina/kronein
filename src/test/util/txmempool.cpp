@@ -244,8 +244,9 @@ void MockMempoolMinFee(const CFeeRate& target_feerate, CTxMemPool& mempool)
     const auto tx{MakeTransactionRef(mtx)};
     LockPoints lp;
     // The new mempool min feerate is equal to the removed package's feerate + incremental feerate.
-    const auto tx_fee = target_feerate.GetFee(GetVirtualTransactionSize(*tx)) -
-        mempool.m_opts.incremental_relay_feerate.GetFee(GetVirtualTransactionSize(*tx));
+    const CAmount removal_fee_per_k{target_feerate.GetFeePerK() - mempool.m_opts.incremental_relay_feerate.GetFeePerK()};
+    const int64_t tx_vsize{GetVirtualTransactionSize(*tx)};
+    const CAmount tx_fee{(removal_fee_per_k * tx_vsize + 999) / 1000};
     {
         auto changeset = mempool.GetChangeSet();
         changeset->StageAddition(tx, /*fee=*/tx_fee,

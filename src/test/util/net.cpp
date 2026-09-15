@@ -127,7 +127,7 @@ CNode* ConnmanTestMsg::ConnectNodePublic(PeerManager& peerman, const char* pszDe
     CNode* node = ConnectNode(CAddress{}, pszDest, /*fCountFailure=*/false, conn_type, /*use_v2transport=*/true, /*proxy_override=*/std::nullopt);
     if (!node) return nullptr;
     node->SetCommonVersion(PROTOCOL_VERSION);
-    peerman.InitializeNode(*node, ServiceFlags(NODE_NETWORK | NODE_WITNESS));
+    peerman.InitializeNode(*node, NODE_NETWORK);
     node->fSuccessfullyConnected = true;
     AddTestNode(*node);
     return node;

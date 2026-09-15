@@ -44,7 +44,7 @@ static CScript ScriptFromHex(const std::string& str)
 static CMutableTransaction TxFromHex(const std::string& str)
 {
     CMutableTransaction tx;
-    SpanReader{ParseHex(str)} >> TX_NO_WITNESS(tx);
+    SpanReader{ParseHex(str)} >> TX_BASE(tx);
     return tx;
 }
 

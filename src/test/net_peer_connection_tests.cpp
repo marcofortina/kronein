@@ -77,7 +77,7 @@ void AddPeer(NodeId& id, std::vector<CNode*>& nodes, PeerManager& peerman, Connm
     CNode& node = *nodes.back();
     node.SetCommonVersion(PROTOCOL_VERSION);
 
-    peerman.InitializeNode(node, ServiceFlags(NODE_NETWORK | NODE_WITNESS));
+    peerman.InitializeNode(node, NODE_NETWORK);
     node.fSuccessfullyConnected = true;
 
     connman.AddTestNode(node);

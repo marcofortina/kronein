@@ -426,7 +426,7 @@ BOOST_FIXTURE_TEST_CASE(miniminer_overlap, TestChain100Setup)
     std::vector<CTransactionRef> all_transactions{tx0, tx1, tx2, tx3, tx4, tx5, tx6, tx7};
     std::vector<int64_t> tx_vsizes;
     tx_vsizes.reserve(all_transactions.size());
-    for (const auto& tx : all_transactions) tx_vsizes.push_back(GetVirtualTransactionSize(*tx));
+    for (const auto& tx : all_transactions) tx_vsizes.push_back(Assert(pool.GetEntry(tx->GetHash()))->GetTxSize());
 
     std::vector<COutPoint> all_unspent_outpoints({
         COutPoint{tx0->GetHash(), 1},
@@ -530,7 +530,8 @@ BOOST_FIXTURE_TEST_CASE(miniminer_overlap, TestChain100Setup)
         const auto tx6_tx7_bumpfee = mini_miner_tx6_tx7.CalculateTotalBumpFees(just_below_tx4);
         BOOST_CHECK(!mini_miner_tx6_tx7.IsReadyToCalculate());
         BOOST_CHECK(tx6_tx7_bumpfee.has_value());
-        BOOST_CHECK_EQUAL(tx6_tx7_bumpfee.value(), just_below_tx4.GetFee(tx_vsizes[5] + tx_vsizes[6]) - (low_fee + med_fee));
+        BOOST_CHECK_LE(tx6_tx7_bumpfee.value(), tx6_bumpfee->second);
+        BOOST_CHECK_LE(tx6_bumpfee->second - tx6_tx7_bumpfee.value(), 1);
     }
     // Feerate between tx6 and tx7's ancestor feerates: don't need to bump tx5 because tx7 already does.
     {

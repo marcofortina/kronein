@@ -770,13 +770,6 @@ RPCHelpMan fundrawtransaction()
                             .skip_type_check = true,
                             .oneline_description = "options",
                         }},
-                    {"iswitness", RPCArg::Type::BOOL, RPCArg::DefaultHint{"depends on heuristic tests"}, "Whether the transaction hex is a serialized witness transaction.\n"
-                        "If iswitness is not present, heuristic tests will be used in decoding.\n"
-                        "If true, only witness deserialization will be tried.\n"
-                        "If false, only non-witness deserialization will be tried.\n"
-                        "This boolean should reflect whether the transaction has inputs\n"
-                        "(e.g. fully valid, or on-chain transactions), if known by the caller."
-                    },
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
@@ -803,9 +796,7 @@ RPCHelpMan fundrawtransaction()
 
     // parse hex string from parameter
     CMutableTransaction tx;
-    bool try_witness = request.params[2].isNull() ? true : request.params[2].get_bool();
-    bool try_no_witness = request.params[2].isNull() ? true : !request.params[2].get_bool();
-    if (!DecodeHexTx(tx, request.params[0].get_str(), try_no_witness, try_witness)) {
+    if (!DecodeHexTx(tx, request.params[0].get_str())) {
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
     }
     UniValue options = request.params[1];

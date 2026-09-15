@@ -283,8 +283,8 @@ std::string ConsumeScalarRPCArgument(FuzzedDataProvider& fuzzed_data_provider, b
                 return;
             }
             DataStream data_stream;
-            auto allow_witness = (fuzzed_data_provider.ConsumeBool() ? TX_WITH_WITNESS : TX_NO_WITNESS);
-            data_stream << allow_witness(*opt_tx);
+            auto ser_params = (fuzzed_data_provider.ConsumeBool() ? TX_WITH_WITNESS : TX_BASE);
+            data_stream << ser_params(*opt_tx);
             r = HexStr(data_stream);
         },
         [&] {

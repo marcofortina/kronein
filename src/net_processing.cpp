@@ -282,8 +282,6 @@ struct Peer {
     /** Whether a ping has been requested by the user */
     std::atomic<bool> m_ping_queued{false};
 
-    /** Whether this peer relays txs via wtxid */
-    std::atomic<bool> m_wtxid_relay{false};
     /** The feerate in the most recent BIP133 `feefilter` message sent to the peer.
      *  It is *not* a p2p protocol violation for the peer to send us
      *  transactions with a lower fee rate than this. See BIP133. */
@@ -300,14 +298,13 @@ struct Peer {
         std::unique_ptr<CBloomFilter> m_bloom_filter PT_GUARDED_BY(m_bloom_filter_mutex) GUARDED_BY(m_bloom_filter_mutex){nullptr};
 
         mutable RecursiveMutex m_tx_inventory_mutex;
-        /** A filter of all the (w)txids that the peer has announced to
+        /** A filter of all the transaction identifiers that the peer has announced to
          *  us or we have announced to the peer. We use this to avoid announcing
-         *  the same (w)txid to a peer that already has the transaction. */
+         *  the same wtxid to a peer that already has the transaction. */
         CRollingBloomFilter m_tx_inventory_known_filter GUARDED_BY(m_tx_inventory_mutex){50000, 0.000001};
-        /** Set of wtxids we still have to announce. For non-wtxid-relay peers,
-         *  we retrieve the txid from the corresponding mempool transaction when
-         *  constructing the `inv` message. We use the mempool to sort transactions
-         *  in dependency order before relay, so this does not have to be sorted. */
+        /** Set of wtxids we still have to announce. We use the mempool to sort
+         *  transactions in dependency order before relay, so this does not have
+         *  to be sorted. */
         std::set<Wtxid> m_tx_inventory_to_send GUARDED_BY(m_tx_inventory_mutex);
         /** Whether the peer has requested us to send our complete mempool. Only
          *  permitted if the peer has NetPermissionFlags::Mempool or we advertise
@@ -544,7 +541,7 @@ public:
     std::vector<PrivateBroadcast::TxBroadcastInfo> GetPrivateBroadcastInfo() const override EXCLUSIVE_LOCKS_REQUIRED(!m_peer_mutex);
     std::vector<CTransactionRef> AbortPrivateBroadcast(const uint256& id) override EXCLUSIVE_LOCKS_REQUIRED(!m_peer_mutex);
     void SendPings() override EXCLUSIVE_LOCKS_REQUIRED(!m_peer_mutex);
-    void InitiateTxBroadcastToAll(const Txid& txid, const Wtxid& wtxid) override EXCLUSIVE_LOCKS_REQUIRED(!m_peer_mutex);
+    void InitiateTxBroadcastToAll(const Wtxid& wtxid) override EXCLUSIVE_LOCKS_REQUIRED(!m_peer_mutex);
     void InitiateTxBroadcastPrivate(const CTransactionRef& tx) override EXCLUSIVE_LOCKS_REQUIRED(!m_peer_mutex);
     void SetBestBlock(int height, std::chrono::seconds time) override
     {
@@ -818,8 +815,6 @@ private:
     /** Get a pointer to a mutable CNodeState. */
     CNodeState* State(NodeId pnode) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
-    uint32_t GetFetchFlags(const Peer& peer) const;
-
     std::map<uint64_t, std::chrono::microseconds> m_next_inv_to_inbounds_per_network_key GUARDED_BY(g_msgproc_mutex);
 
     /** Number of nodes with fSyncStarted. */
@@ -835,9 +830,6 @@ private:
      * punished if the block is invalid.
      */
     std::map<uint256, std::pair<NodeId, bool>> mapBlockSource GUARDED_BY(cs_main);
-
-    /** Number of peers with wtxid relay. */
-    std::atomic<int> m_wtxid_relay_peers{0};
 
     /** Number of outbound peers with m_chain_sync.m_protect. */
     int m_outbound_peers_with_protect_from_disconnect GUARDED_BY(cs_main) = 0;
@@ -1160,12 +1152,6 @@ static bool IsLimitedPeer(const Peer& peer)
 {
     return (!(peer.m_their_services & NODE_NETWORK) &&
              (peer.m_their_services & NODE_NETWORK_LIMITED));
-}
-
-/** Whether this peer can serve us witness data */
-static bool CanServeWitnesses(const Peer& peer)
-{
-    return peer.m_their_services & NODE_WITNESS;
 }
 
 std::chrono::microseconds PeerManagerImpl::NextInvToInbounds(std::chrono::microseconds now,
@@ -1498,11 +1484,6 @@ void PeerManagerImpl::FindNextBlocks(std::vector<const CBlockIndex*>& vBlocks, c
                 return;
             }
 
-            if (!CanServeWitnesses(peer)) {
-                // We wouldn't download this block or its descendants from this peer.
-                return;
-            }
-
             if (pindex->nStatus & BLOCK_HAVE_DATA || (activeChain && activeChain->Contains(pindex))) {
                 if (activeChain && pindex->HaveNumChainTxs()) {
                     state->pindexLastCommonBlock = pindex;
@@ -1629,7 +1610,7 @@ void PeerManagerImpl::ReattemptInitialBroadcast(CScheduler& scheduler)
         CTransactionRef tx = m_mempool.get(txid);
 
         if (tx != nullptr) {
-            InitiateTxBroadcastToAll(txid, tx->GetWitnessHash());
+            InitiateTxBroadcastToAll(tx->GetWitnessHash());
         } else {
             m_mempool.RemoveUnbroadcastTx(txid, true);
         }
@@ -1685,8 +1666,6 @@ void PeerManagerImpl::FinalizeNode(const CNode& node)
         // destructed.
         PeerRef peer = RemovePeer(nodeid);
         assert(peer != nullptr);
-        m_wtxid_relay_peers -= peer->m_wtxid_relay;
-        assert(m_wtxid_relay_peers >= 0);
     }
     CNodeState *state = State(nodeid);
     assert(state != nullptr);
@@ -1724,7 +1703,6 @@ void PeerManagerImpl::FinalizeNode(const CNode& node)
         assert(m_num_preferred_download_peers == 0);
         assert(m_peers_downloading_from == 0);
         assert(m_outbound_peers_with_protect_from_disconnect == 0);
-        assert(m_wtxid_relay_peers == 0);
         WITH_LOCK(m_tx_download_mutex, m_txdownloadman.CheckIsEmpty());
     }
     } // cs_main
@@ -1760,10 +1738,10 @@ ServiceFlags PeerManagerImpl::GetDesirableServiceFlags(ServiceFlags services) co
     if (services & NODE_NETWORK_LIMITED) {
         // Limited peers are desirable when we are close to the tip.
         if (ApproximateBestBlockDepth() < NODE_NETWORK_LIMITED_ALLOW_CONN_BLOCKS) {
-            return ServiceFlags(NODE_NETWORK_LIMITED | NODE_WITNESS);
+            return NODE_NETWORK_LIMITED;
         }
     }
-    return ServiceFlags(NODE_NETWORK | NODE_WITNESS);
+    return NODE_NETWORK;
 }
 
 PeerRef PeerManagerImpl::GetPeerRef(NodeId id) const
@@ -1966,9 +1944,6 @@ util::Expected<void, std::string> PeerManagerImpl::FetchBlock(NodeId peer_id, co
     PeerRef peer = GetPeerRef(peer_id);
     if (peer == nullptr) return util::Unexpected{"Peer does not exist"};
 
-    // Ignore pre-segwit peers
-    if (!CanServeWitnesses(*peer)) return util::Unexpected{"Pre-SegWit peer"};
-
     LOCK(cs_main);
 
     // Forget about all prior requests
@@ -1979,7 +1954,7 @@ util::Expected<void, std::string> PeerManagerImpl::FetchBlock(NodeId peer_id, co
 
     // Construct message to request the block
     const uint256& hash{block_index.GetBlockHash()};
-    std::vector<CInv> invs{CInv(MSG_BLOCK | MSG_WITNESS_FLAG, hash)};
+    std::vector<CInv> invs{CInv(MSG_BLOCK, hash)};
 
     // Send block request message to the peer
     bool success = m_connman.ForNode(peer_id, [this, &invs](CNode* node) {
@@ -2239,7 +2214,7 @@ void PeerManagerImpl::SendPings()
     for(auto& it : m_peer_map) it.second->m_ping_queued = true;
 }
 
-void PeerManagerImpl::InitiateTxBroadcastToAll(const Txid& txid, const Wtxid& wtxid)
+void PeerManagerImpl::InitiateTxBroadcastToAll(const Wtxid& wtxid)
 {
     LOCK(m_peer_mutex);
     for(auto& it : m_peer_map) {
@@ -2255,7 +2230,7 @@ void PeerManagerImpl::InitiateTxBroadcastToAll(const Txid& txid, const Wtxid& wt
         // in the announcement.
         if (tx_relay->m_next_inv_send_time == 0s) continue;
 
-        const uint256& hash{peer.m_wtxid_relay ? wtxid.ToUint256() : txid.ToUint256()};
+        const uint256& hash{wtxid.ToUint256()};
         if (!tx_relay->m_tx_inventory_known_filter.contains(hash)) {
             tx_relay->m_tx_inventory_to_send.insert(wtxid);
         }
@@ -2400,9 +2375,8 @@ void PeerManagerImpl::ProcessGetBlockData(CNode& pfrom, Peer& peer, const CInv& 
     std::shared_ptr<const CBlock> pblock;
     if (a_recent_block && a_recent_block->GetHash() == inv.hash) {
         pblock = a_recent_block;
-    } else if (inv.IsMsgWitnessBlk()) {
-        // Fast-path: in this case it is possible to serve the block directly from disk,
-        // as the network format matches the format on disk
+    } else if (inv.IsMsgBlk()) {
+        // The native network format matches the format on disk.
         if (const auto block_data{m_chainman.m_blockman.ReadRawBlock(block_pos)}) {
             MakeAndPushMessage(pfrom, NetMsgType::BLOCK, std::span{*block_data});
         } else {
@@ -2431,8 +2405,6 @@ void PeerManagerImpl::ProcessGetBlockData(CNode& pfrom, Peer& peer, const CInv& 
     }
     if (pblock) {
         if (inv.IsMsgBlk()) {
-            MakeAndPushMessage(pfrom, NetMsgType::BLOCK, TX_NO_WITNESS(*pblock));
-        } else if (inv.IsMsgWitnessBlk()) {
             MakeAndPushMessage(pfrom, NetMsgType::BLOCK, TX_WITH_WITNESS(*pblock));
         } else if (inv.IsMsgFilteredBlk()) {
             bool sendMerkleBlock = false;
@@ -2453,7 +2425,7 @@ void PeerManagerImpl::ProcessGetBlockData(CNode& pfrom, Peer& peer, const CInv& 
                 // Thus, the protocol spec specified allows for us to provide duplicate txn here,
                 // however we MUST always provide at least what the remote peer needs
                 for (const auto& [tx_idx, _] : merkleBlock.vMatchedTxn)
-                    MakeAndPushMessage(pfrom, NetMsgType::TX, TX_NO_WITNESS(*pblock->vtx[tx_idx]));
+                    MakeAndPushMessage(pfrom, NetMsgType::TX, TX_WITH_WITNESS(*pblock->vtx[tx_idx]));
             }
             // else
             // no response
@@ -2541,9 +2513,7 @@ void PeerManagerImpl::ProcessGetData(CNode& pfrom, Peer& peer, const std::atomic
         }
 
         if (auto tx{FindTxForGetData(*tx_relay, ToGenTxid(inv))}) {
-            // WTX and WITNESS_TX imply we serialize with witness
-            const auto maybe_with_witness = (inv.IsMsgTx() ? TX_NO_WITNESS : TX_WITH_WITNESS);
-            MakeAndPushMessage(pfrom, NetMsgType::TX, maybe_with_witness(*tx));
+            MakeAndPushMessage(pfrom, NetMsgType::TX, TX_WITH_WITNESS(*tx));
             m_mempool.RemoveUnbroadcastTx(tx->GetHash());
         } else {
             vNotFound.push_back(inv);
@@ -2583,15 +2553,6 @@ void PeerManagerImpl::ProcessGetData(CNode& pfrom, Peer& peer, const std::atomic
         // assume we have them and request the parents from us.
         MakeAndPushMessage(pfrom, NetMsgType::NOTFOUND, vNotFound);
     }
-}
-
-uint32_t PeerManagerImpl::GetFetchFlags(const Peer& peer) const
-{
-    uint32_t nFetchFlags = 0;
-    if (CanServeWitnesses(peer)) {
-        nFetchFlags |= MSG_WITNESS_FLAG;
-    }
-    return nFetchFlags;
 }
 
 void PeerManagerImpl::SendBlockTransactions(CNode& pfrom, Peer& peer, const CBlock& block, const BlockTransactionsRequest& req)
@@ -2849,8 +2810,7 @@ void PeerManagerImpl::HeadersDirectFetchBlocks(CNode& pfrom, const Peer& peer, c
         // Calculate all the blocks we'd need to switch to last_header, up to a limit.
         while (pindexWalk && !m_chainman.ActiveChain().Contains(pindexWalk) && vToFetch.size() <= MAX_BLOCKS_IN_TRANSIT_PER_PEER) {
             if (!(pindexWalk->nStatus & BLOCK_HAVE_DATA) &&
-                    !IsBlockRequested(pindexWalk->GetBlockHash()) &&
-                    CanServeWitnesses(peer)) {
+                    !IsBlockRequested(pindexWalk->GetBlockHash())) {
                 // We don't have this block, and it's not yet in flight.
                 vToFetch.push_back(pindexWalk);
             }
@@ -2872,8 +2832,7 @@ void PeerManagerImpl::HeadersDirectFetchBlocks(CNode& pfrom, const Peer& peer, c
                     // Can't download any more from this peer
                     break;
                 }
-                uint32_t nFetchFlags = GetFetchFlags(peer);
-                vGetData.emplace_back(MSG_BLOCK | nFetchFlags, pindex->GetBlockHash());
+                vGetData.emplace_back(MSG_BLOCK, pindex->GetBlockHash());
                 BlockRequested(pfrom.GetId(), *pindex);
                 LogDebug(BCLog::NET, "Requesting block %s from  peer=%d\n",
                         pindex->GetBlockHash().ToString(), pfrom.GetId());
@@ -3157,7 +3116,7 @@ void PeerManagerImpl::ProcessValidTx(NodeId nodeid, const CTransactionRef& tx, c
              tx->GetWitnessHash().ToString(),
              m_mempool.size(), m_mempool.DynamicMemoryUsage() / 1000);
 
-    InitiateTxBroadcastToAll(tx->GetHash(), tx->GetWitnessHash());
+    InitiateTxBroadcastToAll(tx->GetWitnessHash());
 
     for (const CTransactionRef& removedTx : replaced_transactions) {
         AddToCompactExtraTransactions(removedTx);
@@ -3492,7 +3451,7 @@ void PeerManagerImpl::ProcessCompactBlockTxns(CNode& pfrom, Peer& peer, const Bl
                 // peer for the same block. We let the full block download below continue under the same m_downloading_since
                 // timer.
                 std::vector<CInv> invs;
-                invs.emplace_back(MSG_BLOCK | GetFetchFlags(peer), block_transactions.blockhash);
+                invs.emplace_back(MSG_BLOCK, block_transactions.blockhash);
                 MakeAndPushMessage(pfrom, NetMsgType::GETDATA, invs);
             } else {
                 RemoveBlockRequest(block_transactions.blockhash, pfrom.GetId());
@@ -3562,11 +3521,11 @@ void PeerManagerImpl::PushPrivateBroadcastTx(CNode& node)
     }
     const CTransactionRef& tx{*opt_tx};
 
-    LogDebug(BCLog::PRIVBROADCAST, "P2P handshake completed, sending INV for txid=%s%s, peer=%d%s",
-             tx->GetHash().ToString(), tx->HasWitness() ? strprintf(", wtxid=%s", tx->GetWitnessHash().ToString()) : "",
+    LogDebug(BCLog::PRIVBROADCAST, "P2P handshake completed, sending INV for wtxid=%s, peer=%d%s",
+             tx->GetWitnessHash().ToString(),
              node.GetId(), node.LogIP(fLogIPs));
 
-    MakeAndPushMessage(node, NetMsgType::INV, std::vector<CInv>{{CInv{MSG_TX, tx->GetHash().ToUint256()}}});
+    MakeAndPushMessage(node, NetMsgType::INV, std::vector<CInv>{{CInv{MSG_WTX, tx->GetWitnessHash().ToUint256()}}});
 }
 
 void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string& msg_type, DataStream& vRecv,
@@ -3708,10 +3667,6 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
             return;
         }
 
-        if (greatest_common_version >= WTXID_RELAY_VERSION) {
-            MakeAndPushMessage(pfrom, NetMsgType::WTXIDRELAY);
-        }
-
         // Signal ADDRv2 support (BIP155).
         if (greatest_common_version >= 70016) {
             // BIP155 defines addrv2 and sendaddrv2 for all protocol versions, but some
@@ -3721,9 +3676,8 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
             MakeAndPushMessage(pfrom, NetMsgType::SENDADDRV2);
         }
 
-        if (greatest_common_version >= WTXID_RELAY_VERSION && m_txreconciliation) {
+        if (m_txreconciliation) {
             // Per BIP-330, we announce txreconciliation support if:
-            // - protocol version per the peer's VERSION message supports WTXID_RELAY;
             // - transaction relay is supported per the peer's VERSION message
             // - this is not a block-relay-only connection and not a feeler
             // - this is not an addr fetch connection;
@@ -3872,13 +3826,8 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
             MakeAndPushMessage(pfrom, NetMsgType::SENDCMPCT, /*high_bandwidth=*/false, /*version=*/CMPCTBLOCKS_VERSION);
         }
 
-        if (m_txreconciliation) {
-            if (!peer.m_wtxid_relay || !m_txreconciliation->IsPeerRegistered(pfrom.GetId())) {
-                // We could have optimistically pre-registered/registered the peer. In that case,
-                // we should forget about the reconciliation state here if this wasn't followed
-                // by WTXIDRELAY (since WTXIDRELAY can't be announced later).
-                m_txreconciliation->ForgetPeer(pfrom.GetId());
-            }
+        if (m_txreconciliation && !m_txreconciliation->IsPeerRegistered(pfrom.GetId())) {
+            m_txreconciliation->ForgetPeer(pfrom.GetId());
         }
 
         {
@@ -3887,7 +3836,6 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
             m_txdownloadman.ConnectedPeer(pfrom.GetId(), node::TxDownloadConnectionInfo {
                 .m_preferred = state->fPreferredDownload,
                 .m_relay_permissions = pfrom.HasPermission(NetPermissionFlags::Relay),
-                .m_wtxid_relay = peer.m_wtxid_relay,
             });
         }
 
@@ -3915,28 +3863,6 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
         // save whether peer selects us as BIP152 high-bandwidth peer
         // (receiving sendcmpct(1) signals high-bandwidth, sendcmpct(0) low-bandwidth)
         pfrom.m_bip152_highbandwidth_from = sendcmpct_hb;
-        return;
-    }
-
-    // BIP339 defines feature negotiation of wtxidrelay, which must happen between
-    // VERSION and VERACK to avoid relay problems from switching after a connection is up.
-    if (msg_type == NetMsgType::WTXIDRELAY) {
-        if (pfrom.fSuccessfullyConnected) {
-            // Disconnect peers that send a wtxidrelay message after VERACK.
-            LogDebug(BCLog::NET, "wtxidrelay received after verack, %s\n", pfrom.DisconnectMsg(fLogIPs));
-            pfrom.fDisconnect = true;
-            return;
-        }
-        if (pfrom.GetCommonVersion() >= WTXID_RELAY_VERSION) {
-            if (!peer.m_wtxid_relay) {
-                peer.m_wtxid_relay = true;
-                m_wtxid_relay_peers++;
-            } else {
-                LogDebug(BCLog::NET, "ignoring duplicate wtxidrelay from peer=%d\n", pfrom.GetId());
-            }
-        } else {
-            LogDebug(BCLog::NET, "ignoring wtxidrelay due to old common version=%d from peer=%d\n", pfrom.GetCommonVersion(), pfrom.GetId());
-        }
         return;
     }
 
@@ -4137,14 +4063,9 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
         for (CInv& inv : vInv) {
             if (interruptMsgProc) return;
 
-            // Ignore INVs that don't match wtxidrelay setting.
-            // Note that orphan parent fetching always uses MSG_TX GETDATAs regardless of the wtxidrelay setting.
-            // This is fine as no INV messages are involved in that process.
-            if (peer.m_wtxid_relay) {
-                if (inv.IsMsgTx()) continue;
-            } else {
-                if (inv.IsMsgWtx()) continue;
-            }
+            // Transaction announcements use wtxids. MSG_TX remains available only for
+            // requesting an orphan's parent, whose outpoint contains a txid.
+            if (inv.IsMsgTx()) continue;
 
             if (inv.IsMsgBlk()) {
                 const bool fAlreadyHave = AlreadyHaveBlock(inv.hash);
@@ -4237,7 +4158,7 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
 
             // The GETDATA request must contain exactly one inv and it must be for the transaction
             // that we INVed to the peer earlier.
-            if (vInv.size() == 1 && vInv[0].IsMsgTx() && vInv[0].hash == pushed_tx->GetHash().ToUint256()) {
+            if (vInv.size() == 1 && vInv[0].IsMsgWtx() && vInv[0].hash == pushed_tx->GetWitnessHash().ToUint256()) {
 
                 MakeAndPushMessage(pfrom, NetMsgType::TX, TX_WITH_WITNESS(*pushed_tx));
 
@@ -4381,7 +4302,7 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
         // expensive disk reads, because it will require the peer to
         // actually receive all the data read from disk over the network.
         LogDebug(BCLog::NET, "Peer %d sent us a getblocktxn for a block > %i deep\n", pfrom.GetId(), MAX_BLOCKTXN_DEPTH);
-        CInv inv{MSG_WITNESS_BLOCK, req.blockhash};
+        CInv inv{MSG_BLOCK, req.blockhash};
         WITH_LOCK(peer.m_getdata_requests_mutex, peer.m_getdata_requests.push_back(inv));
         // The message processing loop will go around again (without pausing) and we'll respond then
         return;
@@ -4484,8 +4405,7 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
         const Txid& txid = ptx->GetHash();
         const Wtxid& wtxid = ptx->GetWitnessHash();
 
-        const uint256& hash = peer.m_wtxid_relay ? wtxid.ToUint256() : txid.ToUint256();
-        AddKnownTx(peer, hash);
+        AddKnownTx(peer, wtxid.ToUint256());
 
         if (const auto num_broadcasted{m_tx_for_private_broadcast.Remove(ptx)}) {
             LogDebug(BCLog::PRIVBROADCAST, "Received our privately broadcast transaction (txid=%s) from the "
@@ -4512,7 +4432,7 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
                 } else {
                     LogInfo("Force relaying tx %s (wtxid=%s) from peer=%d\n",
                               txid.ToString(), wtxid.ToString(), pfrom.GetId());
-                    InitiateTxBroadcastToAll(txid, wtxid);
+                    InitiateTxBroadcastToAll(wtxid);
                 }
             }
 
@@ -4644,7 +4564,7 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
                 // We requested this block for some reason, but our mempool will probably be useless
                 // so we just grab the block via normal getdata
                 std::vector<CInv> vInv(1);
-                vInv[0] = CInv(MSG_BLOCK | GetFetchFlags(peer), blockhash);
+                vInv[0] = CInv(MSG_BLOCK, blockhash);
                 MakeAndPushMessage(pfrom, NetMsgType::GETDATA, vInv);
             }
             return;
@@ -4681,7 +4601,7 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
                     if (first_in_flight)  {
                         // Duplicate txindexes, the block is now in-flight, so just request it
                         std::vector<CInv> vInv(1);
-                        vInv[0] = CInv(MSG_BLOCK | GetFetchFlags(peer), blockhash);
+                        vInv[0] = CInv(MSG_BLOCK, blockhash);
                         MakeAndPushMessage(pfrom, NetMsgType::GETDATA, vInv);
                     } else {
                         // Give up for this peer and wait for other peer(s)
@@ -4740,7 +4660,7 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
                 // We requested this block, but its far into the future, so our
                 // mempool will probably be useless - request the block normally
                 std::vector<CInv> vInv(1);
-                vInv[0] = CInv(MSG_BLOCK | GetFetchFlags(peer), blockhash);
+                vInv[0] = CInv(MSG_BLOCK, blockhash);
                 MakeAndPushMessage(pfrom, NetMsgType::GETDATA, vInv);
                 return;
             } else {
@@ -5996,11 +5916,8 @@ bool PeerManagerImpl::SendMessages(CNode& node)
                     LOCK(tx_relay->m_bloom_filter_mutex);
 
                     for (const auto& txinfo : vtxinfo) {
-                        const Txid& txid{txinfo.tx->GetHash()};
                         const Wtxid& wtxid{txinfo.tx->GetWitnessHash()};
-                        const auto inv = peer.m_wtxid_relay ?
-                                             CInv{MSG_WTX, wtxid.ToUint256()} :
-                                             CInv{MSG_TX, txid.ToUint256()};
+                        const CInv inv{MSG_WTX, wtxid.ToUint256()};
                         tx_relay->m_tx_inventory_to_send.erase(wtxid);
 
                         // Don't send transactions that peers will not put into their mempool
@@ -6051,12 +5968,7 @@ bool PeerManagerImpl::SendMessages(CNode& node)
                         if (!txinfo.tx) {
                             continue;
                         }
-                        // `TxRelay::m_tx_inventory_known_filter` contains either txids or wtxids
-                        // depending on whether our peer supports wtxid-relay. Therefore, first
-                        // construct the inv and then use its hash for the filter check.
-                        const auto inv = peer.m_wtxid_relay ?
-                                             CInv{MSG_WTX, wtxid.ToUint256()} :
-                                             CInv{MSG_TX, txinfo.tx->GetHash().ToUint256()};
+                        const CInv inv{MSG_WTX, wtxid.ToUint256()};
                         // Check if not in the filter already
                         if (tx_relay->m_tx_inventory_known_filter.contains(inv.hash)) {
                             continue;
@@ -6177,8 +6089,7 @@ bool PeerManagerImpl::SendMessages(CNode& node)
                     vToDownload, from_tip, historical_blocks->second);
             }
             for (const CBlockIndex *pindex : vToDownload) {
-                uint32_t nFetchFlags = GetFetchFlags(peer);
-                vGetData.emplace_back(MSG_BLOCK | nFetchFlags, pindex->GetBlockHash());
+                vGetData.emplace_back(MSG_BLOCK, pindex->GetBlockHash());
                 BlockRequested(node.GetId(), *pindex);
                 LogDebug(BCLog::NET, "Requesting block %s (%d) peer=%d\n", pindex->GetBlockHash().ToString(),
                     pindex->nHeight, node.GetId());
@@ -6197,7 +6108,7 @@ bool PeerManagerImpl::SendMessages(CNode& node)
         {
             LOCK(m_tx_download_mutex);
             for (const GenTxid& gtxid : m_txdownloadman.GetRequestsToSend(node.GetId(), current_time)) {
-                vGetData.emplace_back(gtxid.IsWtxid() ? MSG_WTX : (MSG_TX | GetFetchFlags(peer)), gtxid.ToUint256());
+                vGetData.emplace_back(gtxid.IsWtxid() ? MSG_WTX : MSG_TX, gtxid.ToUint256());
                 if (vGetData.size() >= MAX_GETDATA_SZ) {
                     MakeAndPushMessage(node, NetMsgType::GETDATA, vGetData);
                     vGetData.clear();

@@ -15,7 +15,6 @@ from test_framework.mempool_util import (
 from test_framework.messages import (
     CInv,
     MSG_TX,
-    MSG_TYPE_MASK,
     MSG_WTX,
     msg_inv,
     msg_notfound,
@@ -26,7 +25,6 @@ from test_framework.p2p import (
     p2p_lock,
     NONPREF_PEER_TX_DELAY,
     GETDATA_TX_INTERVAL,
-    TXID_RELAY_DELAY,
     OVERLOADED_PEER_TX_DELAY
 )
 from test_framework.test_framework import BitcoinTestFramework
@@ -37,13 +35,13 @@ from test_framework.wallet import MiniWallet
 
 
 class TestP2PConn(P2PInterface):
-    def __init__(self, wtxidrelay=True):
-        super().__init__(wtxidrelay=wtxidrelay)
+    def __init__(self):
+        super().__init__()
         self.tx_getdata_count = 0
 
     def on_getdata(self, message):
         for i in message.inv:
-            if i.type & MSG_TYPE_MASK == MSG_TX or i.type & MSG_TYPE_MASK == MSG_WTX:
+            if i.type in (MSG_TX, MSG_WTX):
                 self.tx_getdata_count += 1
 
 
@@ -53,7 +51,7 @@ MAX_PEER_TX_ANNOUNCEMENTS = 5000
 
 # Python test constants
 NUM_INBOUND = 10
-MAX_GETDATA_INBOUND_WAIT = GETDATA_TX_INTERVAL + NONPREF_PEER_TX_DELAY + TXID_RELAY_DELAY
+MAX_GETDATA_INBOUND_WAIT = GETDATA_TX_INTERVAL + NONPREF_PEER_TX_DELAY
 
 class ConnectionType(Enum):
     """ Different connection types
@@ -123,7 +121,7 @@ class TxDownloadTest(BitcoinTestFramework):
         #   peer, plus
         # * the first time it is re-requested from the outbound peer, plus
         # * 2 seconds to avoid races
-        assert self.nodes[1].getpeerinfo()[0]['inbound'] == False
+        assert not self.nodes[1].getpeerinfo()[0]['inbound']
         timeout = 2 + NONPREF_PEER_TX_DELAY + GETDATA_TX_INTERVAL
         self.log.info("Tx should be received at node 1 after {} seconds".format(timeout))
         self.nodes[0].bumpmocktime(timeout)
@@ -288,22 +286,6 @@ class TxDownloadTest(BitcoinTestFramework):
             with p2p_lock:
                 assert_equal(non_pref_peer.tx_getdata_count, 0)
 
-    def test_txid_inv_delay(self, glob_wtxid=False):
-        self.log.info('Check that inv from a txid-relay peers are delayed by {} s, with a wtxid peer {}'.format(TXID_RELAY_DELAY, glob_wtxid))
-        self.restart_node(0, extra_args=['-whitelist=noban@127.0.0.1'])
-        mock_time = int(time.time() + 1)
-        self.nodes[0].setmocktime(mock_time)
-        peer = self.nodes[0].add_p2p_connection(TestP2PConn(wtxidrelay=False))
-        if glob_wtxid:
-            # Add a second wtxid-relay connection otherwise TXID_RELAY_DELAY is waived in
-            # lack of wtxid-relay peers
-            self.nodes[0].add_p2p_connection(TestP2PConn(wtxidrelay=True))
-        peer.send_and_ping(msg_inv([CInv(t=MSG_TX, h=0xff11ff11)]))
-        with p2p_lock:
-            assert_equal(peer.tx_getdata_count, 0 if glob_wtxid else 1)
-        self.nodes[0].setmocktime(mock_time + TXID_RELAY_DELAY)
-        peer.wait_until(lambda: peer.tx_getdata_count >= 1, timeout=1)
-
     def test_large_inv_batch(self):
         self.log.info('Test how large inv batches are handled with relay permission')
         self.restart_node(0, extra_args=['-whitelist=relay@127.0.0.1'])
@@ -320,7 +302,7 @@ class TxDownloadTest(BitcoinTestFramework):
 
     def test_spurious_notfound(self):
         self.log.info('Check that spurious notfound is ignored')
-        self.nodes[0].p2ps[0].send_without_ping(msg_notfound(vec=[CInv(MSG_TX, 1)]))
+        self.nodes[0].p2ps[0].send_without_ping(msg_notfound(vec=[CInv(MSG_WTX, 1)]))
 
     def test_rejects_filter_reset(self):
         self.log.info('Check that rejected tx is not requested again')
@@ -345,35 +327,21 @@ class TxDownloadTest(BitcoinTestFramework):
         node.bumpmocktime(MAX_GETDATA_INBOUND_WAIT)
         peer.wait_for_getdata([int(low_fee_tx['wtxid'], 16)])
 
-    def test_inv_wtxidrelay_mismatch(self):
-        self.log.info("Check that INV messages that don't match the wtxidrelay setting are ignored")
+    def test_wtxid_announcements(self):
+        self.log.info("Check that only wtxid transaction announcements are accepted")
         node = self.nodes[0]
-        wtxidrelay_on_peer = node.add_p2p_connection(TestP2PConn(wtxidrelay=True))
-        wtxidrelay_off_peer = node.add_p2p_connection(TestP2PConn(wtxidrelay=False))
+        peer = node.add_p2p_connection(TestP2PConn())
         random_tx = self.wallet.create_self_transfer()
 
-        # MSG_TX INV from wtxidrelay=True peer -> mismatch, ignored
-        wtxidrelay_on_peer.send_and_ping(msg_inv([CInv(t=MSG_TX, h=int(random_tx['txid'], 16))]))
+        peer.send_and_ping(msg_inv([CInv(t=MSG_TX, h=int(random_tx['txid'], 16))]))
         node.setmocktime(int(time.time()))
         node.bumpmocktime(MAX_GETDATA_INBOUND_WAIT)
-        wtxidrelay_on_peer.sync_with_ping()
-        assert_equal(wtxidrelay_on_peer.tx_getdata_count, 0)
+        peer.sync_with_ping()
+        assert_equal(peer.tx_getdata_count, 0)
 
-        # MSG_WTX INV from wtxidrelay=False peer -> mismatch, ignored
-        wtxidrelay_off_peer.send_and_ping(msg_inv([CInv(t=MSG_WTX, h=int(random_tx['wtxid'], 16))]))
+        peer.send_and_ping(msg_inv([CInv(t=MSG_WTX, h=int(random_tx['wtxid'], 16))]))
         node.bumpmocktime(MAX_GETDATA_INBOUND_WAIT)
-        wtxidrelay_off_peer.sync_with_ping()
-        assert_equal(wtxidrelay_off_peer.tx_getdata_count, 0)
-
-        # MSG_TX INV from wtxidrelay=False peer works
-        wtxidrelay_off_peer.send_and_ping(msg_inv([CInv(t=MSG_TX, h=int(random_tx['txid'], 16))]))
-        node.bumpmocktime(MAX_GETDATA_INBOUND_WAIT)
-        wtxidrelay_off_peer.wait_for_getdata([int(random_tx['txid'], 16)])
-
-        # MSG_WTX INV from wtxidrelay=True peer works
-        wtxidrelay_on_peer.send_and_ping(msg_inv([CInv(t=MSG_WTX, h=int(random_tx['wtxid'], 16))]))
-        node.bumpmocktime(MAX_GETDATA_INBOUND_WAIT)
-        wtxidrelay_on_peer.wait_for_getdata([int(random_tx['wtxid'], 16)])
+        peer.wait_for_getdata([int(random_tx['wtxid'], 16)])
 
     def run_test(self):
         self.wallet = MiniWallet(self.nodes[0])
@@ -386,8 +354,6 @@ class TxDownloadTest(BitcoinTestFramework):
         self.test_preferred_inv(ConnectionType.INBOUND)
         self.test_preferred_inv(ConnectionType.OUTBOUND)
         self.test_preferred_inv(ConnectionType.WHITELIST)
-        self.test_txid_inv_delay()
-        self.test_txid_inv_delay(True)
         self.test_large_inv_batch()
         self.test_spurious_notfound()
 
@@ -398,7 +364,7 @@ class TxDownloadTest(BitcoinTestFramework):
             (self.test_inv_block, True),
             (self.test_tx_requests, True),
             (self.test_rejects_filter_reset, False),
-            (self.test_inv_wtxidrelay_mismatch, False),
+            (self.test_wtxid_announcements, False),
         ]:
             self.stop_nodes()
             self.start_nodes()

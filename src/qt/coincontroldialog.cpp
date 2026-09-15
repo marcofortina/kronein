@@ -384,7 +384,6 @@ void CoinControlDialog::updateLabels(CCoinControl& m_coin_control, WalletModel *
     unsigned int nBytes         = 0;
     unsigned int nBytesInputs   = 0;
     unsigned int nQuantity      = 0;
-    bool fWitness               = false;
 
     auto vCoinControl{m_coin_control.ListSelected()};
 
@@ -426,7 +425,6 @@ void CoinControlDialog::updateLabels(CCoinControl& m_coin_control, WalletModel *
                 // not supported, should be unreachable
                 throw std::runtime_error("Trying to spend future segwit version script");
             }
-            fWitness = true;
         }
         else if(ExtractDestination(out.txout.scriptPubKey, address))
         {
@@ -447,14 +445,9 @@ void CoinControlDialog::updateLabels(CCoinControl& m_coin_control, WalletModel *
     {
         // Bytes
         nBytes = nBytesInputs + ((CoinControlDialog::payAmounts.size() > 0 ? CoinControlDialog::payAmounts.size() + 1 : 2) * 34) + 10; // always assume +1 output for change here
-        if (fWitness)
-        {
-            // there is some fudging in these numbers related to the actual virtual transaction size calculation that will keep this estimate from being exact.
-            // usually, the result will be an overestimate within a couple of satoshis so that the confirmation dialog ends up displaying a slightly smaller fee.
-            // also, the witness stack size value is a variable sized integer. usually, the number of stack items will be well under the single byte var int limit.
-            nBytes += 2; // account for the serialized marker and flag bytes
-            nBytes += nQuantity; // account for the witness byte that holds the number of stack items for each input.
-        }
+        // Native transaction serialization includes one witness stack for every input. There is
+        // some rounding in the per-input witness estimates, so this remains a slight overestimate.
+        nBytes += nQuantity;
 
         // in the subtract fee from amount case, we can tell if zero change already and subtract the bytes, so that fee calculation afterwards is accurate
         if (CoinControlDialog::fSubtractFeeFromAmount)
