@@ -697,8 +697,7 @@ util::Result<SelectionResult> ChooseSelectionResult(interfaces::Chain& chain, co
         return util::Error{_("Maximum transaction weight is too low, can not accommodate change output")};
     }
 
-    // The knapsack solver has some legacy behavior where it will spend dust outputs. We retain this behavior, so don't filter for positive only here.
-    if (auto knapsack_result{KnapsackSolver(groups.mixed_group, nTargetValue, coin_selection_params.m_min_change_target, coin_selection_params.rng_fast, max_selection_weight)}) {
+    if (auto knapsack_result{KnapsackSolver(groups.positive_group, nTargetValue, coin_selection_params.m_min_change_target, coin_selection_params.rng_fast, max_selection_weight)}) {
         results.push_back(*knapsack_result);
     } else append_error(std::move(knapsack_result));
 
