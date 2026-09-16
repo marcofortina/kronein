@@ -33,8 +33,8 @@ namespace {
 
 mp::Log GetRequestedIPCLogLevel()
 {
-    if (LogAcceptCategory(BCLog::IPC, BCLog::Level::Trace)) return mp::Log::Trace;
-    if (LogAcceptCategory(BCLog::IPC, BCLog::Level::Debug)) return mp::Log::Debug;
+    if (LogAcceptCategory(BCLog::IPC, util::log::Level::Trace)) return mp::Log::Trace;
+    if (LogAcceptCategory(BCLog::IPC, util::log::Level::Debug)) return mp::Log::Debug;
 
     // Info, Warning, and Error are logged unconditionally
     return mp::Log::Info;

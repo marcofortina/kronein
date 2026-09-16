@@ -62,13 +62,8 @@ bool ShouldLog(Category category, Level level);
 void Log(Entry entry);
 } // namespace util::log
 
-namespace BCLog {
-//! Alias for compatibility. Prefer util::log::Level over BCLog::Level in new code.
-using Level = util::log::Level;
-} // namespace BCLog
-
 template <typename... Args>
-inline void LogPrintFormatInternal(SourceLocation&& source_loc, BCLog::LogFlags flag, BCLog::Level level, bool should_ratelimit, util::ConstevalFormatString<sizeof...(Args)> fmt, const Args&... args)
+inline void LogPrintFormatInternal(SourceLocation&& source_loc, BCLog::LogFlags flag, util::log::Level level, bool should_ratelimit, util::ConstevalFormatString<sizeof...(Args)> fmt, const Args&... args)
 {
     std::string log_msg;
     try {
@@ -92,9 +87,9 @@ inline void LogPrintFormatInternal(SourceLocation&& source_loc, BCLog::LogFlags 
 // Be conservative when using functions that unconditionally log to debug.log!
 // It should not be the case that an inbound peer can fill up a user's storage
 // with debug.log entries.
-#define LogInfo(...) LogPrintLevel_(BCLog::LogFlags::ALL, BCLog::Level::Info, /*should_ratelimit=*/true, __VA_ARGS__)
-#define LogWarning(...) LogPrintLevel_(BCLog::LogFlags::ALL, BCLog::Level::Warning, /*should_ratelimit=*/true, __VA_ARGS__)
-#define LogError(...) LogPrintLevel_(BCLog::LogFlags::ALL, BCLog::Level::Error, /*should_ratelimit=*/true, __VA_ARGS__)
+#define LogInfo(...) LogPrintLevel_(BCLog::LogFlags::ALL, util::log::Level::Info, /*should_ratelimit=*/true, __VA_ARGS__)
+#define LogWarning(...) LogPrintLevel_(BCLog::LogFlags::ALL, util::log::Level::Warning, /*should_ratelimit=*/true, __VA_ARGS__)
+#define LogError(...) LogPrintLevel_(BCLog::LogFlags::ALL, util::log::Level::Error, /*should_ratelimit=*/true, __VA_ARGS__)
 
 // Use a macro instead of a function for conditional logging to prevent
 // evaluating arguments when logging for the category is not enabled.
@@ -105,14 +100,14 @@ inline void LogPrintFormatInternal(SourceLocation&& source_loc, BCLog::LogFlags 
 #define detail_LogIfCategoryAndLevelEnabled(category, level, ...)      \
     do {                                                               \
         if (util::log::ShouldLog((category), (level))) {               \
-            bool rate_limit{level >= BCLog::Level::Info};              \
+            bool rate_limit{level >= util::log::Level::Info};          \
             Assume(!rate_limit); /*Only called with the levels below*/ \
             LogPrintLevel_(category, level, rate_limit, __VA_ARGS__);  \
         }                                                              \
     } while (0)
 
 // Log conditionally, prefixing the output with the passed category name.
-#define LogDebug(category, ...) detail_LogIfCategoryAndLevelEnabled(category, BCLog::Level::Debug, __VA_ARGS__)
-#define LogTrace(category, ...) detail_LogIfCategoryAndLevelEnabled(category, BCLog::Level::Trace, __VA_ARGS__)
+#define LogDebug(category, ...) detail_LogIfCategoryAndLevelEnabled(category, util::log::Level::Debug, __VA_ARGS__)
+#define LogTrace(category, ...) detail_LogIfCategoryAndLevelEnabled(category, util::log::Level::Trace, __VA_ARGS__)
 
 #endif // BITCOIN_UTIL_LOG_H

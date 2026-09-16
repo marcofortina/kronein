@@ -58,7 +58,7 @@ struct LogCategory {
 };
 
 namespace BCLog {
-    constexpr auto DEFAULT_LOG_LEVEL{Level::Debug};
+    constexpr auto DEFAULT_LOG_LEVEL{util::log::Level::Debug};
     constexpr size_t DEFAULT_MAX_LOG_BUFFER{1'000'000}; // buffer up to 1MB of log data prior to StartLogging
     constexpr uint64_t RATELIMIT_MAX_BYTES{1024 * 1024}; // maximum number of bytes per source location that can be logged within the RATELIMIT_WINDOW
     constexpr auto RATELIMIT_WINDOW{1h}; // time window after which log ratelimit stats are reset
@@ -133,7 +133,7 @@ namespace BCLog {
             std::string str, threadname;
             SourceLocation source_loc;
             LogFlags category;
-            Level level;
+            util::log::Level level;
         };
 
     private:
@@ -150,16 +150,16 @@ namespace BCLog {
         std::shared_ptr<LogRateLimiter> m_limiter GUARDED_BY(m_cs);
 
         //! Category-specific log level. Overrides `m_log_level`.
-        std::unordered_map<LogFlags, Level> m_category_log_levels GUARDED_BY(m_cs);
+        std::unordered_map<LogFlags, util::log::Level> m_category_log_levels GUARDED_BY(m_cs);
 
         //! If there is no category-specific log level, all logs with a severity
         //! level lower than `m_log_level` will be ignored.
-        std::atomic<Level> m_log_level{DEFAULT_LOG_LEVEL};
+        std::atomic<util::log::Level> m_log_level{DEFAULT_LOG_LEVEL};
 
         /** Log categories bitfield. */
         std::atomic<CategoryMask> m_categories{BCLog::NONE};
 
-        void FormatLogStrInPlace(std::string& str, LogFlags category, Level level, const SourceLocation& source_loc, std::string_view threadname, SystemClock::time_point now, std::chrono::seconds mocktime) const;
+        void FormatLogStrInPlace(std::string& str, LogFlags category, util::log::Level level, const SourceLocation& source_loc, std::string_view threadname, SystemClock::time_point now, std::chrono::seconds mocktime) const;
 
         std::string LogTimestampStr(SystemClock::time_point now, std::chrono::seconds mocktime) const;
 
@@ -167,10 +167,10 @@ namespace BCLog {
         std::list<std::function<void(const std::string&)>> m_print_callbacks GUARDED_BY(m_cs) {};
 
         /** Send a string to the log output (internal) */
-        void LogPrintStr_(std::string_view str, SourceLocation&& source_loc, BCLog::LogFlags category, BCLog::Level level, bool should_ratelimit)
+        void LogPrintStr_(std::string_view str, SourceLocation&& source_loc, BCLog::LogFlags category, util::log::Level level, bool should_ratelimit)
             EXCLUSIVE_LOCKS_REQUIRED(m_cs);
 
-        std::string GetLogPrefix(LogFlags category, Level level) const;
+        std::string GetLogPrefix(LogFlags category, util::log::Level level) const;
 
     public:
         bool m_print_to_console = false;
@@ -186,7 +186,7 @@ namespace BCLog {
         std::atomic<bool> m_reopen_file{false};
 
         /** Send a string to the log output */
-        void LogPrintStr(std::string_view str, SourceLocation&& source_loc, BCLog::LogFlags category, BCLog::Level level, bool should_ratelimit)
+        void LogPrintStr(std::string_view str, SourceLocation&& source_loc, BCLog::LogFlags category, util::log::Level level, bool should_ratelimit)
             EXCLUSIVE_LOCKS_REQUIRED(!m_cs);
 
         /** Returns whether logs will be written to any output */
@@ -238,25 +238,25 @@ namespace BCLog {
 
         void ShrinkDebugFile();
 
-        std::unordered_map<LogFlags, Level> CategoryLevels() const EXCLUSIVE_LOCKS_REQUIRED(!m_cs)
+        std::unordered_map<LogFlags, util::log::Level> CategoryLevels() const EXCLUSIVE_LOCKS_REQUIRED(!m_cs)
         {
             StdLockGuard scoped_lock(m_cs);
             return m_category_log_levels;
         }
-        void SetCategoryLogLevel(const std::unordered_map<LogFlags, Level>& levels) EXCLUSIVE_LOCKS_REQUIRED(!m_cs)
+        void SetCategoryLogLevel(const std::unordered_map<LogFlags, util::log::Level>& levels) EXCLUSIVE_LOCKS_REQUIRED(!m_cs)
         {
             StdLockGuard scoped_lock(m_cs);
             m_category_log_levels = levels;
         }
-        void AddCategoryLogLevel(LogFlags category, Level level)
+        void AddCategoryLogLevel(LogFlags category, util::log::Level level)
         {
             StdLockGuard scoped_lock(m_cs);
             m_category_log_levels[category] = level;
         }
         bool SetCategoryLogLevel(std::string_view category_str, std::string_view level_str) EXCLUSIVE_LOCKS_REQUIRED(!m_cs);
 
-        Level LogLevel() const { return m_log_level.load(); }
-        void SetLogLevel(Level level) { m_log_level = level; }
+        util::log::Level LogLevel() const { return m_log_level.load(); }
+        void SetLogLevel(util::log::Level level) { m_log_level = level; }
         bool SetLogLevel(std::string_view level);
 
         CategoryMask GetCategoryMask() const { return m_categories.load(); }
@@ -267,7 +267,7 @@ namespace BCLog {
         bool DisableCategory(std::string_view str);
 
         bool WillLogCategory(LogFlags category) const;
-        bool WillLogCategoryLevel(LogFlags category, Level level) const EXCLUSIVE_LOCKS_REQUIRED(!m_cs);
+        bool WillLogCategoryLevel(LogFlags category, util::log::Level level) const EXCLUSIVE_LOCKS_REQUIRED(!m_cs);
 
         /** Returns a vector of the log categories in alphabetical order. */
         std::vector<LogCategory> LogCategoriesList() const;
@@ -281,7 +281,7 @@ namespace BCLog {
         std::string LogLevelsString() const;
 
         //! Returns the string representation of a log level.
-        static std::string LogLevelToStr(BCLog::Level level);
+        static std::string LogLevelToStr(util::log::Level level);
 
         bool DefaultShrinkDebugFile() const;
     };
@@ -291,7 +291,7 @@ namespace BCLog {
 BCLog::Logger& LogInstance();
 
 /** Return true if log accepts specified category, at the specified level. */
-static inline bool LogAcceptCategory(BCLog::LogFlags category, BCLog::Level level)
+static inline bool LogAcceptCategory(BCLog::LogFlags category, util::log::Level level)
 {
     return LogInstance().WillLogCategoryLevel(category, level);
 }

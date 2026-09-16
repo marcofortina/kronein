@@ -145,17 +145,17 @@ struct btck_BlockValidationState : Handle<btck_BlockValidationState, BlockValida
 
 namespace {
 
-BCLog::Level get_bclog_level(btck_LogLevel level)
+util::log::Level get_bclog_level(btck_LogLevel level)
 {
     switch (level) {
     case btck_LogLevel_INFO: {
-        return BCLog::Level::Info;
+        return util::log::Level::Info;
     }
     case btck_LogLevel_DEBUG: {
-        return BCLog::Level::Debug;
+        return util::log::Level::Debug;
     }
     case btck_LogLevel_TRACE: {
-        return BCLog::Level::Trace;
+        return util::log::Level::Trace;
     }
     }
     assert(false);

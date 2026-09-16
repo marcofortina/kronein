@@ -56,8 +56,8 @@ struct LogSetup : public BasicTestingSetup {
     bool prev_log_timestamps;
     bool prev_log_threadnames;
     bool prev_log_sourcelocations;
-    std::unordered_map<BCLog::LogFlags, BCLog::Level> prev_category_levels;
-    BCLog::Level prev_log_level;
+    std::unordered_map<BCLog::LogFlags, util::log::Level> prev_category_levels;
+    util::log::Level prev_log_level;
     BCLog::CategoryMask prev_category_mask;
 
     LogSetup() : prev_log_path{LogInstance().m_file_path},
@@ -80,7 +80,7 @@ struct LogSetup : public BasicTestingSetup {
         // Prevent tests from failing when the line number of the logs changes.
         LogInstance().m_log_sourcelocations = false;
 
-        LogInstance().SetLogLevel(BCLog::Level::Debug);
+        LogInstance().SetLogLevel(util::log::Level::Debug);
         LogInstance().DisableCategory(BCLog::LogFlags::ALL);
         LogInstance().SetCategoryLogLevel({});
         LogInstance().SetRateLimiting(nullptr);
@@ -117,18 +117,18 @@ BOOST_FIXTURE_TEST_CASE(logging_LogPrintStr, LogSetup)
     struct Case {
         std::string msg;
         BCLog::LogFlags category;
-        BCLog::Level level;
+        util::log::Level level;
         std::string prefix;
         SourceLocation loc;
     };
 
     std::vector<Case> cases = {
-        {"foo1: bar1", BCLog::NET, BCLog::Level::Debug, "[net] ", SourceLocation{__func__}},
-        {"foo2: bar2", BCLog::NET, BCLog::Level::Info, "[net:info] ", SourceLocation{__func__}},
-        {"foo3: bar3", BCLog::ALL, BCLog::Level::Debug, "[debug] ", SourceLocation{__func__}},
-        {"foo4: bar4", BCLog::ALL, BCLog::Level::Info, "", SourceLocation{__func__}},
-        {"foo5: bar5", BCLog::NONE, BCLog::Level::Debug, "[debug] ", SourceLocation{__func__}},
-        {"foo6: bar6", BCLog::NONE, BCLog::Level::Info, "", SourceLocation{__func__}},
+        {"foo1: bar1", BCLog::NET, util::log::Level::Debug, "[net] ", SourceLocation{__func__}},
+        {"foo2: bar2", BCLog::NET, util::log::Level::Info, "[net:info] ", SourceLocation{__func__}},
+        {"foo3: bar3", BCLog::ALL, util::log::Level::Debug, "[debug] ", SourceLocation{__func__}},
+        {"foo4: bar4", BCLog::ALL, util::log::Level::Info, "", SourceLocation{__func__}},
+        {"foo5: bar5", BCLog::NONE, util::log::Level::Debug, "[debug] ", SourceLocation{__func__}},
+        {"foo6: bar6", BCLog::NONE, util::log::Level::Info, "", SourceLocation{__func__}},
     };
 
     std::vector<std::string> expected;
@@ -186,7 +186,7 @@ BOOST_FIXTURE_TEST_CASE(logging_LogPrintMacros_CategoryName, LogSetup)
 
 BOOST_FIXTURE_TEST_CASE(logging_SeverityLevels, LogSetup)
 {
-    LogInstance().SetLogLevel(BCLog::Level::Debug);
+    LogInstance().SetLogLevel(util::log::Level::Debug);
     LogInstance().EnableCategory(BCLog::LogFlags::ALL);
     LogInstance().SetCategoryLogLevel(/*category_str=*/"net", /*level_str=*/"info");
 
@@ -223,7 +223,7 @@ BOOST_FIXTURE_TEST_CASE(logging_Conf, LogSetup)
 
         auto result = init::SetLoggingLevel(args);
         BOOST_REQUIRE(result);
-        BOOST_CHECK_EQUAL(LogInstance().LogLevel(), BCLog::Level::Debug);
+        BOOST_CHECK_EQUAL(LogInstance().LogLevel(), util::log::Level::Debug);
     }
 
     // Set category-specific log level
@@ -242,7 +242,7 @@ BOOST_FIXTURE_TEST_CASE(logging_Conf, LogSetup)
         const auto& category_levels{LogInstance().CategoryLevels()};
         const auto net_it{category_levels.find(BCLog::LogFlags::NET)};
         BOOST_REQUIRE(net_it != category_levels.end());
-        BOOST_CHECK_EQUAL(net_it->second, BCLog::Level::Trace);
+        BOOST_CHECK_EQUAL(net_it->second, util::log::Level::Trace);
     }
 
     // Set both global log level and category-specific log level
@@ -256,18 +256,18 @@ BOOST_FIXTURE_TEST_CASE(logging_Conf, LogSetup)
 
         auto result = init::SetLoggingLevel(args);
         BOOST_REQUIRE(result);
-        BOOST_CHECK_EQUAL(LogInstance().LogLevel(), BCLog::Level::Debug);
+        BOOST_CHECK_EQUAL(LogInstance().LogLevel(), util::log::Level::Debug);
 
         const auto& category_levels{LogInstance().CategoryLevels()};
         BOOST_CHECK_EQUAL(category_levels.size(), 2);
 
         const auto net_it{category_levels.find(BCLog::LogFlags::NET)};
         BOOST_CHECK(net_it != category_levels.end());
-        BOOST_CHECK_EQUAL(net_it->second, BCLog::Level::Trace);
+        BOOST_CHECK_EQUAL(net_it->second, util::log::Level::Trace);
 
         const auto http_it{category_levels.find(BCLog::LogFlags::HTTP)};
         BOOST_CHECK(http_it != category_levels.end());
-        BOOST_CHECK_EQUAL(http_it->second, BCLog::Level::Info);
+        BOOST_CHECK_EQUAL(http_it->second, util::log::Level::Info);
     }
 }
 
@@ -383,7 +383,7 @@ void LogFromLocation(Location location, const std::string& message) {
         LogDebug(BCLog::LogFlags::HTTP, "%s\n", message);
         return;
     case Location::INFO_NOLIMIT:
-        LogPrintLevel_(BCLog::LogFlags::ALL, BCLog::Level::Info, /*should_ratelimit=*/false, "%s\n", message);
+        LogPrintLevel_(BCLog::LogFlags::ALL, util::log::Level::Info, /*should_ratelimit=*/false, "%s\n", message);
         return;
     } // no default case, so the compiler can warn about missing cases
     assert(false);

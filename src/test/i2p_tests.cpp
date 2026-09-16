@@ -29,7 +29,7 @@ public:
           m_prev_log_level{LogInstance().LogLevel()},
           m_create_sock_orig{CreateSock}
     {
-        LogInstance().SetLogLevel(BCLog::Level::Trace);
+        LogInstance().SetLogLevel(util::log::Level::Trace);
     }
 
     ~EnvTestingSetup()
@@ -39,7 +39,7 @@ public:
     }
 
 private:
-    const BCLog::Level m_prev_log_level;
+    const util::log::Level m_prev_log_level;
     const decltype(CreateSock) m_create_sock_orig;
 };
 

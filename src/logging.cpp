@@ -21,7 +21,7 @@ using util::Join;
 using util::RemovePrefixView;
 
 const char * const DEFAULT_DEBUGLOGFILE = "debug.log";
-constexpr auto MAX_USER_SETABLE_SEVERITY_LEVEL{BCLog::Level::Info};
+constexpr auto MAX_USER_SETABLE_SEVERITY_LEVEL{util::log::Level::Info};
 
 BCLog::Logger& LogInstance()
 {
@@ -75,7 +75,7 @@ bool BCLog::Logger::StartLogging()
     // dump buffered messages from before we opened the log
     m_buffering = false;
     if (m_buffer_lines_discarded > 0) {
-        LogPrintStr_(strprintf("Early logging buffer overflowed, %d log lines discarded.\n", m_buffer_lines_discarded), SourceLocation{__func__}, BCLog::ALL, Level::Info, /*should_ratelimit=*/false);
+        LogPrintStr_(strprintf("Early logging buffer overflowed, %d log lines discarded.\n", m_buffer_lines_discarded), SourceLocation{__func__}, BCLog::ALL, util::log::Level::Info, /*should_ratelimit=*/false);
     }
     while (!m_msgs_before_open.empty()) {
         const auto& buflog = m_msgs_before_open.front();
@@ -151,11 +151,11 @@ bool BCLog::Logger::WillLogCategory(BCLog::LogFlags category) const
     return (m_categories.load(std::memory_order_relaxed) & category) != 0;
 }
 
-bool BCLog::Logger::WillLogCategoryLevel(BCLog::LogFlags category, BCLog::Level level) const
+bool BCLog::Logger::WillLogCategoryLevel(BCLog::LogFlags category, util::log::Level level) const
 {
     // Log messages at Info, Warning and Error level unconditionally, so that
     // important troubleshooting information doesn't get lost.
-    if (level >= BCLog::Level::Info) return true;
+    if (level >= util::log::Level::Info) return true;
 
     if (!WillLogCategory(category)) return false;
 
@@ -231,18 +231,18 @@ bool GetLogCategory(BCLog::LogFlags& flag, std::string_view str)
     return false;
 }
 
-std::string BCLog::Logger::LogLevelToStr(BCLog::Level level)
+std::string BCLog::Logger::LogLevelToStr(util::log::Level level)
 {
     switch (level) {
-    case BCLog::Level::Trace:
+    case util::log::Level::Trace:
         return "trace";
-    case BCLog::Level::Debug:
+    case util::log::Level::Debug:
         return "debug";
-    case BCLog::Level::Info:
+    case util::log::Level::Info:
         return "info";
-    case BCLog::Level::Warning:
+    case util::log::Level::Warning:
         return "warning";
-    case BCLog::Level::Error:
+    case util::log::Level::Error:
         return "error";
     }
     assert(false);
@@ -258,18 +258,18 @@ static std::string LogCategoryToStr(BCLog::LogFlags category)
     return it->second;
 }
 
-static std::optional<BCLog::Level> GetLogLevel(std::string_view level_str)
+static std::optional<util::log::Level> GetLogLevel(std::string_view level_str)
 {
     if (level_str == "trace") {
-        return BCLog::Level::Trace;
+        return util::log::Level::Trace;
     } else if (level_str == "debug") {
-        return BCLog::Level::Debug;
+        return util::log::Level::Debug;
     } else if (level_str == "info") {
-        return BCLog::Level::Info;
+        return util::log::Level::Info;
     } else if (level_str == "warning") {
-        return BCLog::Level::Warning;
+        return util::log::Level::Warning;
     } else if (level_str == "error") {
-        return BCLog::Level::Error;
+        return util::log::Level::Error;
     } else {
         return std::nullopt;
     }
@@ -286,15 +286,15 @@ std::vector<LogCategory> BCLog::Logger::LogCategoriesList() const
 }
 
 /** Log severity levels that can be selected by the user. */
-static constexpr std::array<BCLog::Level, 3> LogLevelsList()
+static constexpr std::array<util::log::Level, 3> LogLevelsList()
 {
-    return {BCLog::Level::Info, BCLog::Level::Debug, BCLog::Level::Trace};
+    return {util::log::Level::Info, util::log::Level::Debug, util::log::Level::Trace};
 }
 
 std::string BCLog::Logger::LogLevelsString() const
 {
     const auto& levels = LogLevelsList();
-    return Join(std::vector<BCLog::Level>{levels.begin(), levels.end()}, ", ", [](BCLog::Level level) { return LogLevelToStr(level); });
+    return Join(std::vector<util::log::Level>{levels.begin(), levels.end()}, ", ", [](util::log::Level level) { return LogLevelToStr(level); });
 }
 
 std::string BCLog::Logger::LogTimestampStr(SystemClock::time_point now, std::chrono::seconds mocktime) const
@@ -340,21 +340,21 @@ namespace BCLog {
     }
 } // namespace BCLog
 
-std::string BCLog::Logger::GetLogPrefix(BCLog::LogFlags category, BCLog::Level level) const
+std::string BCLog::Logger::GetLogPrefix(BCLog::LogFlags category, util::log::Level level) const
 {
     if (category == LogFlags::NONE) category = LogFlags::ALL;
 
     const bool has_category{m_always_print_category_level || category != LogFlags::ALL};
 
     // If there is no category, Info is implied
-    if (!has_category && level == Level::Info) return {};
+    if (!has_category && level == util::log::Level::Info) return {};
 
     std::string s{"["};
     if (has_category) {
         s += LogCategoryToStr(category);
     }
 
-    if (m_always_print_category_level || !has_category || level != Level::Debug) {
+    if (m_always_print_category_level || !has_category || level != util::log::Level::Debug) {
         // If there is a category, Debug is implied, so don't add the level
 
         // Only add separator if we have a category
@@ -404,7 +404,7 @@ BCLog::LogRateLimiter::Status BCLog::LogRateLimiter::Consume(
     return status;
 }
 
-void BCLog::Logger::FormatLogStrInPlace(std::string& str, BCLog::LogFlags category, BCLog::Level level, const SourceLocation& source_loc, std::string_view threadname, SystemClock::time_point now, std::chrono::seconds mocktime) const
+void BCLog::Logger::FormatLogStrInPlace(std::string& str, BCLog::LogFlags category, util::log::Level level, const SourceLocation& source_loc, std::string_view threadname, SystemClock::time_point now, std::chrono::seconds mocktime) const
 {
     if (!str.ends_with('\n')) str.push_back('\n');
 
@@ -421,14 +421,14 @@ void BCLog::Logger::FormatLogStrInPlace(std::string& str, BCLog::LogFlags catego
     str.insert(0, LogTimestampStr(now, mocktime));
 }
 
-void BCLog::Logger::LogPrintStr(std::string_view str, SourceLocation&& source_loc, BCLog::LogFlags category, BCLog::Level level, bool should_ratelimit)
+void BCLog::Logger::LogPrintStr(std::string_view str, SourceLocation&& source_loc, BCLog::LogFlags category, util::log::Level level, bool should_ratelimit)
 {
     StdLockGuard scoped_lock(m_cs);
     return LogPrintStr_(str, std::move(source_loc), category, level, should_ratelimit);
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-void BCLog::Logger::LogPrintStr_(std::string_view str, SourceLocation&& source_loc, BCLog::LogFlags category, BCLog::Level level, bool should_ratelimit)
+void BCLog::Logger::LogPrintStr_(std::string_view str, SourceLocation&& source_loc, BCLog::LogFlags category, util::log::Level level, bool should_ratelimit)
 {
     std::string str_prefixed = LogEscapeMessage(str);
 
@@ -474,7 +474,7 @@ void BCLog::Logger::LogPrintStr_(std::string_view str, SourceLocation&& source_l
                              source_loc.file_name(), source_loc.line(), source_loc.function_name_short(),
                              m_limiter->m_max_bytes,
                              Ticks<std::chrono::seconds>(m_limiter->m_reset_window)),
-                         SourceLocation{__func__}, LogFlags::ALL, Level::Warning, /*should_ratelimit=*/false); // with should_ratelimit=false, this cannot lead to infinite recursion
+                         SourceLocation{__func__}, LogFlags::ALL, util::log::Level::Warning, /*should_ratelimit=*/false); // with should_ratelimit=false, this cannot lead to infinite recursion
         } else if (status == LogRateLimiter::Status::STILL_SUPPRESSED) {
             ratelimit = true;
         }
@@ -563,7 +563,7 @@ void BCLog::LogRateLimiter::Reset()
     for (const auto& [source_loc, stats] : source_locations) {
         if (stats.m_dropped_bytes == 0) continue;
         LogPrintLevel_(
-            LogFlags::ALL, Level::Warning, /*should_ratelimit=*/false,
+            LogFlags::ALL, util::log::Level::Warning, /*should_ratelimit=*/false,
             "Restarting logging from %s:%d (%s): %d bytes were dropped during the last %ss.",
             source_loc.file_name(), source_loc.line(), source_loc.function_name_short(),
             stats.m_dropped_bytes, Ticks<std::chrono::seconds>(m_reset_window));
