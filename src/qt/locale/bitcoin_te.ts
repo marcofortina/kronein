@@ -58,12 +58,6 @@
         <translation type="unfinished">ఇవి మీరు పంపే చెల్లింపుల బిట్‌కాయిన్ చిరునామాలు. నాణేలు పంపే ముందు ప్రతిసారి అందుకునే చిరునామా మరియు చెల్లింపు మొత్తం సరిచూసుకోండి.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">చెల్లింపులను స్వీకరించడానికి ఇవి మీ బిట్‌కాయిన్ చిరునామాలు. కొత్త చిరునామాలను సృష్టించడానికి స్వీకరించే ట్యాబ్‌లోని 'కొత్త స్వీకరించే చిరునామాను సృష్టించు' బటన్‌ను ఉపయోగించండి. 
-'లెగసీ' రకం చిరునామాలతో మాత్రమే సంతకం చేయడం సాధ్యమవుతుంది.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">చిరునామాను కాపీ చెయ్యండి</translation>
     </message>
@@ -490,22 +484,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>&amp;Change Passphrase…</source>
         <translation type="unfinished">&amp;సంకేతపదం మార్చండి</translation>
-    </message>
-    <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">సంతకం &amp;సందేశం...</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">మీ బిట్‌కాయిన్ చిరునామాలు మీ స్వంతమని నిరూపించుకోవడానికి వాటితో సందేశాలను సంతకం చేయండి</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;సందేశాన్ని ధృవీకరించండి...</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">సందేశాలు పేర్కొన్న బిట్‌కాయిన్ చిరునామాలతో సంతకం చేసినట్లు నిర్ధారించుకోవడానికి వాటిని ధృవీకరించండి</translation>
     </message>
     <message>
         <source>&amp;Load PSBT from file…</source>
@@ -1029,19 +1007,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">వాలెట్లను లోడ్ చేస్తోంది…</translation>
     </message>
 </context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">వాలెట్‌ని పునరుద్ధరించండి</translation>
-    </message>
-    <message>
-        <source>Restoring Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <extracomment>Descriptive text of the restore wallets progress window which indicates to the user that wallets are currently being restored.</extracomment>
-        <translation type="unfinished">వాలెట్‌ని పునరుద్ధరిస్తోంది &lt;b&gt;%1&lt;/b&gt;...</translation>
-    </message>
-    </context>
 <context>
     <name>OpenWalletActivity</name>
     <message>
@@ -2161,10 +2126,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <source>Could not unlock wallet.</source>
         <translation type="unfinished">వాలెట్‌ని అన్‌లాక్ చేయడం సాధ్యపడలేదు.</translation>
     </message>
-    <message>
-        <source>Could not generate new %1 address</source>
-        <translation type="unfinished">కొత్త %1 చిరునామాను రూపొందించడం సాధ్యం కాలేదు</translation>
-    </message>
 </context>
 <context>
     <name>ReceiveRequestDialog</name>
@@ -2332,21 +2293,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Message:</source>
         <translation type="unfinished">సందేశం:</translation>
-    </message>
-    </context>
-<context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">క్లిప్‌బోర్డ్ నుండి చిరునామాను అతికించండి</translation>
-    </message>
-    <message>
-        <source>Enter the message you want to sign here</source>
-        <translation type="unfinished">మీరు సంతకం చేయాలనుకుంటున్న సందేశాన్ని ఇక్కడ నమోదు చేయండి</translation>
-    </message>
-    <message>
-        <source>Signature</source>
-        <translation type="unfinished">సంతకం</translation>
     </message>
     </context>
 <context>
@@ -2619,20 +2565,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">తెలియని -blockfilterindex విలువ %s.</translation>
     </message>
     <message>
-        <source>Unknown address type '%s'</source>
-        <translation type="unfinished">తెలియని చిరునామా రకం '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown change type '%s'</source>
-        <translation type="unfinished">తెలియని మార్పు రకం '%s'</translation>
-    </message>
-    <message>
         <source>Unknown network specified in -onlynet: '%s'</source>
         <translation type="unfinished">తెలియని నెట్‌వర్క్ -onlynetలో పేర్కొనబడింది: '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown new rules activated (versionbit %i)</source>
-        <translation type="unfinished">తెలియని కొత్త నియమాలు (వెర్షన్‌బిట్‌ %i)ని యాక్టివేట్ చేశాయి</translation>
     </message>
     <message>
         <source>Unsupported logging category %s=%s.</source>

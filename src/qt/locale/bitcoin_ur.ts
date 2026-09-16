@@ -58,11 +58,6 @@
         <translation type="unfinished">یہ آپ کے ادائیگی بھیجنے کے لئے بٹ کوائن ایڈریس ہیں.سکے بھیجنے سے پہلے ہمیشہ رقم اور وصول کنندہ پتہ چیک کریں۔</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">ادائیگیوں کے لئے آپ کے بٹ کوائن ایڈریس ہیں۔ نئے پتے بنانے کے لئے وصول کنندہ ٹیب میں 'نیا وصول کنندہ پتہ بنائیں' بٹن کا استعمال کریں۔دستخط صرف 'میراثی' قسم کے پتے کے ساتھ ہی ممکن ہے۔</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;پتا نقل کریں</translation>
     </message>
@@ -536,22 +531,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">&amp; بیک اپ والیٹ…</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">سائن اور پیغام…</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">اپنے ویکیپیڈیا پتوں کے ساتھ پیغامات پر دستخط کریں تاکہ آپ ان کے مالک ہوں</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">پیغام کی توثیق کریں…</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">پیغامات کی توثیق کریں تاکہ یہ یقینی بن سکے کہ ان پر بٹ کوائن کے مخصوص پتوں پر دستخط ہوئے ہیں</translation>
-    </message>
-    <message>
         <source>Open &amp;URI…</source>
         <translation type="unfinished">کھولیں اور یو آر آئی…</translation>
     </message>
@@ -715,14 +694,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Close all wallets</source>
         <translation type="unfinished">تمام والیٹس بند کریں</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">والیٹ منتقل کریں</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">ایک والیٹ منتقل کریں</translation>
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
@@ -1055,44 +1026,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <source>Loading wallets…</source>
         <extracomment>Descriptive text of the load wallets progress window which indicates to the user that wallets are currently being loaded.</extracomment>
         <translation type="unfinished">اپکا والٹ لوڈ ہورہا ہے </translation>
-    </message>
-</context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate wallet</source>
-        <translation type="unfinished">بٹ کوائن کے لیے بٹوے کو منتقل کریں</translation>
-    </message>
-    <message>
-        <source>Migrating the wallet will convert this wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">والیٹ کی منتقلی اس والیٹ کو ایک یا ایک سے زیادہ ڈسکرپٹر والیٹ میں تبدیل کر دے گی۔ ایک نیا والیٹ بیک اپ بنانا ہوگا۔
-
-اگر اس والیٹ میں کوئی واچ اونلی اسکرپٹس ہیں، تو ایک نیا والیٹ بنایا جائے گا جس میں وہ واچ اونلی اسکرپٹس ہوں گے۔
-
-اگر اس والیٹ میں کوئی حل طلب لیکن واچ نہیں کیے گئے اسکرپٹس ہیں، تو ایک مختلف اور نیا والیٹ بنایا جائے گا جس میں وہ اسکرپٹس ہوں گے۔
-
-منتقلی کے عمل سے پہلے والیٹ کا بیک اپ بنایا جائے گا۔ اس بیک اپ فائل کا نام &lt;wallet name&gt;- &lt;timestamp&gt;.legacy.bak ہوگا اور یہ اس والیٹ کی ڈائرکٹری میں مل سکتی ہے۔ غلط منتقلی کی صورت میں، بیک اپ کو "Restore Wallet" فعالیت کے ساتھ بحال کیا جا سکتا ہے۔</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">والیٹ منتقل کریں</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">والیٹ بحال کریں</translation>
-    </message>
-    <message>
-        <source>Migration failed</source>
-        <translation type="unfinished">بٹ کوائن کے لیے منتقلی ناکام ہوئی</translation>
-    </message>
-    <message>
-        <source>Migration Successful</source>
-        <translation type="unfinished">بٹ کوائن کے لیے منتقلی کامیاب ہوئی</translation>
     </message>
 </context>
 <context>
@@ -2576,65 +2509,6 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished">استعمال شدہ پتوں کی فہرست میں شامل کرنے کے لیے اس پتے کے لیے ایک لیبل درج کریں۔</translation>
     </message>
     </context>
-<context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Signatures - Sign / Verify a Message</source>
-        <translation type="unfinished">دستخط - ایک پیغام پر دستخط / تصدیق کریں۔</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address to sign the message with</source>
-        <translation type="unfinished">پیغام پر دستخط کرنے کے لیے بٹ کوائن کا پتہ</translation>
-    </message>
-    <message>
-        <source>Choose previously used address</source>
-        <translation type="unfinished">پہلے استعمال شدہ پتہ کا انتخاب کریں۔</translation>
-    </message>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">کلپ بورڈ سے پتہ چسپاں کریں۔</translation>
-    </message>
-    <message>
-        <source>Enter the message you want to sign here</source>
-        <translation type="unfinished">وہ پیغام درج کریں جس پر آپ دستخط کرنا چاہتے ہیں۔</translation>
-    </message>
-    <message>
-        <source>Signature</source>
-        <translation type="unfinished">دستخط</translation>
-    </message>
-    <message>
-        <source>The entered address is invalid.</source>
-        <translation type="unfinished">درج کیا گیا پتہ غلط ہے۔</translation>
-    </message>
-    <message>
-        <source>Please check the address and try again.</source>
-        <translation type="unfinished">براہ کرم پتہ چیک کریں اور دوبارہ کوشش کریں۔</translation>
-    </message>
-    <message>
-        <source>No error</source>
-        <translation type="unfinished">کوئی غلطی نہیں۔</translation>
-    </message>
-    <message>
-        <source>Message signing failed.</source>
-        <translation type="unfinished">پیغام پر دستخط ناکام ہو گئے۔</translation>
-    </message>
-    <message>
-        <source>The signature could not be decoded.</source>
-        <translation type="unfinished">دستخط کو ڈی کوڈ نہیں کیا جا سکا۔</translation>
-    </message>
-    <message>
-        <source>Please check the signature and try again.</source>
-        <translation type="unfinished">براہ کرم دستخط چیک کریں اور دوبارہ کوشش کریں۔</translation>
-    </message>
-    <message>
-        <source>Message verification failed.</source>
-        <translation type="unfinished">پیغام کی تصدیق ناکام ہو گئی۔</translation>
-    </message>
-    <message>
-        <source>Message verified.</source>
-        <translation type="unfinished">پیغام کی تصدیق ہو گئی۔</translation>
-    </message>
-</context>
 <context>
     <name>TransactionDesc</name>
     <message>

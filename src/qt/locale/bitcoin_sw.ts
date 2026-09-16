@@ -58,12 +58,6 @@
         <translation type="unfinished">Hizi ndizo anwani zako za kutuma malipo ya sarafu ya Bitcoin. Hakikisha kila wakati kiwango na anwani ya kupokea kabla ya kutuma sarafu.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">Hizi ndizo anwani zako za Bitcoin za kupokea malipo. Tumia kitufe cha 'Unda anwani mpya ya kupokea' kwenye kichupo cha kupokea ili kuunda anwani mpya.
-Kutia sahihi kunawezekana tu kwa anwani za aina ya 'urithi'.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">Nakili &amp;anwani</translation>
     </message>
@@ -451,22 +445,6 @@ Kutia sahihi kunawezekana tu kwa anwani za aina ya 'urithi'.</translation>
         <translation type="unfinished">&amp;Badilisha Nenosiri...</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">Saini &amp;ujumbe...</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Saini ujumbe na anwani zako za Bitcoin ili kuthibitisha umiliki wao.</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;Thibitisha ujumbe...</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">Hakikisha ujumbe umethibitishwa kuwa ulisainiwa na anwani za Bitcoin zilizotajwa</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">&amp;Pakia PSBT kutoka faili...</translation>
     </message>
@@ -634,14 +612,6 @@ Kutia sahihi kunawezekana tu kwa anwani za aina ya 'urithi'.</translation>
     <message>
         <source>Close all wallets</source>
         <translation type="unfinished">Funga pochi zote</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Hamisha Pochi</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">Hamisha mkoba</translation>
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
@@ -975,46 +945,6 @@ Kutia sahihi kunawezekana tu kwa anwani za aina ya 'urithi'.</translation>
         <source>Loading wallets…</source>
         <extracomment>Descriptive text of the load wallets progress window which indicates to the user that wallets are currently being loaded.</extracomment>
         <translation type="unfinished">Inapakia pochi...</translation>
-    </message>
-</context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate wallet</source>
-        <translation type="unfinished">Hamisha pochi</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to migrate the wallet &lt;i&gt;%1&lt;/i&gt;?</source>
-        <translation type="unfinished">Je una uhakika ungependa kuhamisha pochi&lt;i&gt;%1&lt;/i&gt;?</translation>
-    </message>
-    <message>
-        <source>Migrating the wallet will convert this wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">Kuhamisha pochi kutabadilisha pochi hii hadi pochi moja au zaidi za kifafanuzi. Nakala mpya ya mkoba itahitaji kufanywa.
-Ikiwa pochi hii ina hati zozote za kutazama pekee, pochi mpya itaundwa ambayo ina hati hizo za kutazama pekee.
-Ikiwa pochi hii ina hati zinazoweza kutengenezea lakini zisizotazamwa, pochi tofauti na mpya itaundwa ambayo ina hati hizo.
-
-Mchakato wa uhamiaji utaunda nakala rudufu ya pochi kabla ya kuhama. Faili hii ya chelezo itaitwa &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak na inaweza kupatikana katika saraka ya pochi hii. Katika tukio la uhamiaji usio sahihi, hifadhi inaweza kurejeshwa na utendaji wa "Rejesha Wallet".</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Hamisha Pochi</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">Rejesha Pochi</translation>
-    </message>
-    <message>
-        <source>Migration failed</source>
-        <translation type="unfinished">Uhamiaji haukufaulu</translation>
-    </message>
-    <message>
-        <source>Migration Successful</source>
-        <translation type="unfinished">Uhamiaji Umefaulu</translation>
     </message>
 </context>
 <context>
@@ -1532,20 +1462,12 @@ Mchakato wa uhamiaji utaunda nakala rudufu ya pochi kabla ya kuhama. Faili hii y
         <translation type="unfinished">Imeshindwa kutatua -%s anuani: '%s'</translation>
     </message>
     <message>
-        <source>Error: Address book data in wallet cannot be identified to belong to migrated wallets</source>
-        <translation type="unfinished">HITILAFU: Data za kitabu cha anunai katika pochi haziwezi kutambulika kuwa ni ya pochi zilizohamia.</translation>
-    </message>
-    <message>
         <source>default wallet</source>
         <translation type="unfinished">mkoba chaguo-msingi</translation>
     </message>
     <message>
         <source>Error: No %s addresses available.</source>
         <translation type="unfinished">Hitilafu: Hamna anuani zilizopo %s.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to remove watchonly address book data</source>
-        <translation type="unfinished">Hitilafu: Imeshindwa kuondoa data katika kitabu cha anuani ya kutazama tu</translation>
     </message>
     <message>
         <source>Invalid -i2psam address or hostname: '%s'</source>
@@ -1570,10 +1492,6 @@ Mchakato wa uhamiaji utaunda nakala rudufu ya pochi kabla ya kuhama. Faili hii y
     <message>
         <source>Transaction needs a change address, but we can't generate it.</source>
         <translation type="unfinished">Muamala unahitaji mabadiliko ya anuani, lakini hatuwezi kuitengeneza.</translation>
-    </message>
-    <message>
-        <source>Unknown address type '%s'</source>
-        <translation type="unfinished">Aina ya anuani haifahamiki '%s'</translation>
     </message>
     <message>
         <source>Verifying wallet(s)…</source>

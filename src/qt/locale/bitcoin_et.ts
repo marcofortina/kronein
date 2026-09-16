@@ -58,11 +58,6 @@
         <translation type="unfinished">Need on sinu Bitcoin aadressid maksete saatmiseks. Ennem müntide saatmist kontrolli alati summat ja makse saaja aadressi.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">Need on sinu Bitcoin aadressid makse vastuvõtuks.Kasuta ‘Loo uus vastuvõttu aadress’ nuppu vastuvõtmise vahekaardis, et luua uus aadress. Allkirjastamine on võimalik ainult 'pärand' tüüpi aadressidega.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;Kopeeri Aadress</translation>
     </message>
@@ -415,22 +410,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">&amp;Muuda Salasõna...</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">Allkirjuta &amp;sõnum...</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Omandi tõestamiseks allkirjasta sõnumid oma Bitcoini aadressiga</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;Kinnita sõnum...</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">Kinnita sõnumid kindlustamaks et need allkirjastati määratud Bitcoini aadressiga</translation>
-    </message>
-    <message>
         <source>Open &amp;URI…</source>
         <translation type="unfinished">Ava &amp;URI…</translation>
     </message>
@@ -534,10 +513,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Close all wallets</source>
         <translation type="unfinished">Sulge kõik rahakotid</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Migreeri rahakott</translation>
     </message>
     <message>
         <source>&amp;Window</source>
@@ -705,13 +680,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">(vahetusraha)</translation>
     </message>
 </context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Migreeri rahakott</translation>
-    </message>
-    </context>
 <context>
     <name>OpenWalletActivity</name>
     <message>
@@ -1467,121 +1435,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">Sõnum:</translation>
     </message>
     </context>
-<context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Signatures - Sign / Verify a Message</source>
-        <translation type="unfinished">Signatuurid - Allkirjasta / Kinnita Sõnum</translation>
-    </message>
-    <message>
-        <source>&amp;Sign Message</source>
-        <translation type="unfinished">&amp;Allkirjastamise teade</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address to sign the message with</source>
-        <translation type="unfinished">Bitcoin aadress millega sõnum allkirjastada</translation>
-    </message>
-    <message>
-        <source>Choose previously used address</source>
-        <translation type="unfinished">Vali eelnevalt kasutatud aadress</translation>
-    </message>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">Kleebi aadress vahemälust</translation>
-    </message>
-    <message>
-        <source>Enter the message you want to sign here</source>
-        <translation type="unfinished">Sisesta siia allkirjastamise sõnum</translation>
-    </message>
-    <message>
-        <source>Signature</source>
-        <translation type="unfinished">Allkiri</translation>
-    </message>
-    <message>
-        <source>Sign the message to prove you own this Bitcoin address</source>
-        <translation type="unfinished">Allkirjasta sõnum Bitcoini aadressi sulle kuulumise tõestamiseks</translation>
-    </message>
-    <message>
-        <source>Sign &amp;Message</source>
-        <translation type="unfinished">Allkirjasta &amp;Sõnum</translation>
-    </message>
-    <message>
-        <source>Reset all sign message fields</source>
-        <translation type="unfinished">Tühjenda kõik sõnumi allkirjastamise väljad</translation>
-    </message>
-    <message>
-        <source>Clear &amp;All</source>
-        <translation type="unfinished">Puhasta &amp;Kõik</translation>
-    </message>
-    <message>
-        <source>&amp;Verify Message</source>
-        <translation type="unfinished">&amp;Kinnita Sõnum</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address the message was signed with</source>
-        <translation type="unfinished">Bitcoin aadress millega sõnum on allkirjastatud</translation>
-    </message>
-    <message>
-        <source>Verify the message to ensure it was signed with the specified Bitcoin address</source>
-        <translation type="unfinished">Kinnita sõnum tõestamaks selle allkirjastatust määratud Bitcoini aadressiga.</translation>
-    </message>
-    <message>
-        <source>Verify &amp;Message</source>
-        <translation type="unfinished">Kinnita &amp;Sõnum</translation>
-    </message>
-    <message>
-        <source>Reset all verify message fields</source>
-        <translation type="unfinished">Tühjenda kõik sõnumi kinnitamise väljad</translation>
-    </message>
-    <message>
-        <source>Click "Sign Message" to generate signature</source>
-        <translation type="unfinished">Allkirja loomiseks vajuta "Allkirjasta Sõnum"</translation>
-    </message>
-    <message>
-        <source>The entered address is invalid.</source>
-        <translation type="unfinished">Sisestatud aadress ei ole korrektne</translation>
-    </message>
-    <message>
-        <source>Please check the address and try again.</source>
-        <translation type="unfinished">Palun kontrolli aadressi ja proovi uuesti.</translation>
-    </message>
-    <message>
-        <source>Wallet unlock was cancelled.</source>
-        <translation type="unfinished">Rahakoti lahtilukustamine on katkestatud.</translation>
-    </message>
-    <message>
-        <source>Private key for the entered address is not available.</source>
-        <translation type="unfinished">Sisestatud aadressi privaatvõti pole saadaval.</translation>
-    </message>
-    <message>
-        <source>Message signing failed.</source>
-        <translation type="unfinished">Sõnumi allkirjastamine ebaõnnestus.</translation>
-    </message>
-    <message>
-        <source>Message signed.</source>
-        <translation type="unfinished">Sõnum allkirjastatud.</translation>
-    </message>
-    <message>
-        <source>The signature could not be decoded.</source>
-        <translation type="unfinished">Allkirja ei õnnestunud dekodeerida.</translation>
-    </message>
-    <message>
-        <source>Please check the signature and try again.</source>
-        <translation type="unfinished">Palun kontrolli allkirja ja proovi uuesti.</translation>
-    </message>
-    <message>
-        <source>The signature did not match the message digest.</source>
-        <translation type="unfinished">Allkiri ei vastanud sõnumi krüptoräsile.</translation>
-    </message>
-    <message>
-        <source>Message verification failed.</source>
-        <translation type="unfinished">Sõnumi verifitseerimine ebaõnnestus.</translation>
-    </message>
-    <message>
-        <source>Message verified.</source>
-        <translation type="unfinished">Sõnum verifitseeritud.</translation>
-    </message>
-</context>
 <context>
     <name>TransactionDesc</name>
     <message>

@@ -62,12 +62,6 @@
         <translation type="unfinished">To są twoje adresy Bitcoin do wysyłania płatności. Zawsze sprawdzaj kwotę oraz adres odbiorczy przed wysłaniem monet.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">To są twoje adresy Bitcoin do odbierania płatności. Użyj przycisku „Utwórz nowy adres odbiorczy” w zakładce odbierania, aby utworzyć nowe adresy. 
-Podpisywanie jest możliwe tylko z adresami typu „legacy”.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;Kopiuj adres</translation>
     </message>
@@ -543,22 +537,6 @@ Podpisywanie jest możliwe tylko z adresami typu „legacy”.</translation>
         <translation type="unfinished">&amp;Zmień hasło…</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">Podpisz &amp;wiadomość…</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Podpisz wiadomości swoimi adresami Bitcoin, aby potwierdzić, że je posiadasz.</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;Zweryfikuj wiadomość…</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">Zweryfikuj wiadomości, aby upewnić się, że zostały podpisane określonymi adresami bitcoinowymi.</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">&amp;Wczytaj PSBT z pliku…</translation>
     </message>
@@ -577,10 +555,6 @@ Podpisywanie jest możliwe tylko z adresami typu „legacy”.</translation>
     <message>
         <source>Close All Wallets…</source>
         <translation type="unfinished">Zamknij wszystkie portfele…</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet File…</source>
-        <translation type="unfinished">Przywróć i migruj plik portfela…</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -733,14 +707,6 @@ Podpisywanie jest możliwe tylko z adresami typu „legacy”.</translation>
         <translation type="unfinished">Zamknij wszystkie portfele</translation>
     </message>
     <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Migruj Portfel</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">Migruj Portfel</translation>
-    </message>
-    <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
         <translation type="unfinished">Pokaż pomoc dla %1 aby zobaczyć listę możliwych opcji wiersza poleceń</translation>
     </message>
@@ -783,15 +749,6 @@ Podpisywanie jest możliwe tylko z adresami typu „legacy”.</translation>
     <message>
         <source>Wallet name cannot be empty</source>
         <translation type="unfinished">Nazwa portfela nie może być pusta</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet Backup</source>
-        <translation type="unfinished">Przywróć i migruj kopię zapasową portfela</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet</source>
-        <extracomment>Title of pop-up window shown when the user is attempting to restore a wallet.</extracomment>
-        <translation type="unfinished">Przywróć i migruj portfel</translation>
     </message>
     <message>
         <source>&amp;Window</source>
@@ -1109,91 +1066,6 @@ Podpisywanie jest możliwe tylko z adresami typu „legacy”.</translation>
         <source>Loading wallets…</source>
         <extracomment>Descriptive text of the load wallets progress window which indicates to the user that wallets are currently being loaded.</extracomment>
         <translation type="unfinished">Ładowanie portfeli…</translation>
-    </message>
-</context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate wallet</source>
-        <translation type="unfinished">Migruj Portfel</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to migrate the wallet &lt;i&gt;%1&lt;/i&gt;?</source>
-        <translation type="unfinished">Na pewno chcesz przeprowadzić migrację portfela &lt;i&gt;%1&lt;/i&gt;?</translation>
-    </message>
-    <message>
-        <source>Migrating the wallet will convert this wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">Migracja portfela przekonwertuje ten portfel na jeden lub więcej portfeli opisowych. Należy utworzyć nową kopię zapasową portfela.
-Jeśli ten portfel zawiera jakiekolwiek skrypty tylko do odczytu (watchonly), zostanie utworzony nowy portfel, który zawiera takie skrypty.
-Jeśli ten portfel zawiera jakiekolwiek skrypty rozwiązywalne, ale nie obserwowane, zostanie utworzony inny i nowy portfel, który zawiera takie skrypty.
-
-Proces migracji utworzy kopię zapasową portfela przed migracją. Plik kopii zapasowej będzie nosił nazwę &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak i można go znaleźć w katalogu tego portfela. W przypadku nieprawidłowej migracji kopię zapasową można przywrócić za pomocą funkcji "Przywróć portfel".</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Migruj Portfel</translation>
-    </message>
-    <message>
-        <source>Migrating Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <translation type="unfinished">Przenoszenie portfela &lt;b&gt;%1&lt;/b&gt;…</translation>
-    </message>
-    <message>
-        <source>The wallet '%1' was migrated successfully.</source>
-        <translation type="unfinished">Portfel '%1' został poprawnie przemigrowany.</translation>
-    </message>
-    <message>
-        <source>Watchonly scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Skrypty tylko do odczytu zostały przemigrowane do nowego portfela '%1'.</translation>
-    </message>
-    <message>
-        <source>Solvable but not watched scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Rozwiązywalne, ale nie obserwowane skrypty zostały przemigrowane do nowego portfela '%1'</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate wallet</source>
-        <translation type="unfinished">Przywróć i przeprowadź migrację portfela</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to restore the wallet file &lt;i&gt;%1&lt;/i&gt; to &lt;i&gt;%2&lt;/i&gt; and migrate it?</source>
-        <translation type="unfinished">Czy na pewno chcesz przywrócić plik portfela &lt;i&gt;%1&lt;/i&gt; do &lt;i&gt;%2&lt;/i&gt; i przeprowadzić migrację?</translation>
-    </message>
-    <message>
-        <source>Restoring the wallet will copy the backup file to the wallets directory and place it in the standard wallet directory layout. The original file will not be modified.
-
-Migrating the wallet will convert the restored wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">Przywracanie portfela spowoduje skopiowanie pliku kopii zapasowej do katalogu wallets i umieszczenie go w standardowej strukturze katalogów portfela. Oryginalny plik nie zostanie zmodyfikowany.
-
-Migracja portfela spowoduje konwersję przywróconego portfela do jednego lub większej liczby portfeli deskryptorowych. Konieczne będzie utworzenie nowej kopii zapasowej portfela.
-Jeśli ten portfel zawiera jakiekolwiek skrypty watchonly, zostanie utworzony nowy portfel zawierający je.
-Jeśli ten portfel zawiera jakiekolwiek skrypty rozwiązywalne (solvable), ale nie obserwowane, zostanie utworzony inny, nowy portfel zawierający te skrypty.
-
-Proces migracji utworzy kopię zapasową portfela przed rozpoczęciem migracji. Plik kopii zapasowej będzie nazwany &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak i będzie dostępny w katalogu tego portfela. W przypadku nieprawidłowej migracji kopię zapasową można przywrócić za pomocą funkcji „Przywróć portfel”.</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">Przywróć portfel</translation>
-    </message>
-    <message>
-        <source>Restoring Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <extracomment>Descriptive text of the restore wallets progress window which indicates to the user that wallets are currently being restored.</extracomment>
-        <translation type="unfinished">Przywracanie portfela &lt;b&gt;%1&lt;/b&gt;…</translation>
-    </message>
-    <message>
-        <source>Migration failed</source>
-        <translation type="unfinished">Migracja nie powiodła się</translation>
-    </message>
-    <message>
-        <source>Migration Successful</source>
-        <translation type="unfinished">Migracja powiodła się</translation>
     </message>
 </context>
 <context>
@@ -2837,28 +2709,8 @@ Aby uzyskać więcej informacji na temat używania tej konsoli wpisz %6.
         <translation type="unfinished">Kopiuj &amp;kwotę</translation>
     </message>
     <message>
-        <source>Not recommended due to higher fees and less protection against typos.</source>
-        <translation type="unfinished">Nie zalecane ze względu na wyższe opłaty i mniejszą ochronę przed błędami.</translation>
-    </message>
-    <message>
-        <source>Generates an address compatible with older wallets.</source>
-        <translation type="unfinished">Generuje adres kompatybilny ze starszymi portfelami.</translation>
-    </message>
-    <message>
-        <source>Generates a native segwit address (BIP-173). Some old wallets don't support it.</source>
-        <translation type="unfinished">Generuje adres natywny segwit (BIP-173). Niektóre stare portfele go nie obsługują.</translation>
-    </message>
-    <message>
-        <source>Bech32m (BIP-350) is an upgrade to Bech32, wallet support is still limited.</source>
-        <translation type="unfinished">Bech32m (BIP-350) to ulepszona wersja Bech32, ale wsparcie portfeli nadal jest ograniczone.</translation>
-    </message>
-    <message>
         <source>Could not unlock wallet.</source>
         <translation type="unfinished">Nie udało się odblokować portfela.</translation>
-    </message>
-    <message>
-        <source>Could not generate new %1 address</source>
-        <translation type="unfinished">Nie udało się wygenerować nowego adresu %1</translation>
     </message>
 </context>
 <context>
@@ -3374,149 +3226,6 @@ Uwaga: Ponieważ opłata jest naliczana za każdy bajt, opłata "100 satoshi za 
     <message>
         <source>Create Unsigned</source>
         <translation type="unfinished">Utwórz niepodpisaną transakcję</translation>
-    </message>
-</context>
-<context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Signatures - Sign / Verify a Message</source>
-        <translation type="unfinished">Podpisy - Podpisz / zweryfikuj wiadomość</translation>
-    </message>
-    <message>
-        <source>&amp;Sign Message</source>
-        <translation type="unfinished">Podpi&amp;sz Wiadomość</translation>
-    </message>
-    <message>
-        <source>You can sign messages/agreements with your legacy (P2PKH) addresses to prove you can receive bitcoins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation type="unfinished">Możesz podpisywać wiadomości swoimi starymi (P2PKH) adresami aby udowodnić, że możesz odbierać wysłane na nie bitcoiny. Uważaj, aby nie podpisać niczego ogólnikowego lub losowego, gdyż zastosowany phishing może nakłonić cię do przekazania swojej tożsamości. Akceptuj i podpisuj tylko w pełni zrozumiałe komunikaty.</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address to sign the message with</source>
-        <translation type="unfinished">Adres Bitcoin, za pomocą którego podpisać wiadomość</translation>
-    </message>
-    <message>
-        <source>Choose previously used address</source>
-        <translation type="unfinished">Wybierz wcześniej użyty adres</translation>
-    </message>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">Wklej adres ze schowka</translation>
-    </message>
-    <message>
-        <source>Enter the message you want to sign here</source>
-        <translation type="unfinished">Tutaj wprowadź wiadomość, którą chcesz podpisać</translation>
-    </message>
-    <message>
-        <source>Signature</source>
-        <translation type="unfinished">Podpis</translation>
-    </message>
-    <message>
-        <source>Copy the current signature to the clipboard</source>
-        <translation type="unfinished">Skopiuj aktualny podpis do schowka</translation>
-    </message>
-    <message>
-        <source>Sign the message to prove you own this Bitcoin address</source>
-        <translation type="unfinished">Podpisz wiadomość aby dowieść, że ten adres jest twój</translation>
-    </message>
-    <message>
-        <source>Sign &amp;Message</source>
-        <translation type="unfinished">Podpisz Wiado&amp;mość</translation>
-    </message>
-    <message>
-        <source>Reset all sign message fields</source>
-        <translation type="unfinished">Zresetuj wszystkie pola podpisanej wiadomości</translation>
-    </message>
-    <message>
-        <source>Clear &amp;All</source>
-        <translation type="unfinished">Wyczyść &amp;wszystko</translation>
-    </message>
-    <message>
-        <source>&amp;Verify Message</source>
-        <translation type="unfinished">&amp;Zweryfikuj wiadomość</translation>
-    </message>
-    <message>
-        <source>Enter the receiver's address, message (ensure you copy line breaks, spaces, tabs, etc. exactly) and signature below to verify the message. Be careful not to read more into the signature than what is in the signed message itself, to avoid being tricked by a man-in-the-middle attack. Note that this only proves the signing party receives with the address, it cannot prove sendership of any transaction!</source>
-        <translation type="unfinished">Wpisz poniżej adres odbiorcy, wiadomość (upewnij się, że dokładnie skopiujesz podziały wierszy, spacje, tabulatory itp.) oraz podpis, aby zweryfikować wiadomość. Uważaj, aby nie doszukiwać się w podpisie więcej, niż wynika z samej podpisanej wiadomości, aby nie dać się oszukać atakiem typu man-in-the-middle. Zwróć uwagę, że dowodzi to jedynie, iż podpisujący kontroluje ten adres; nie dowodzi wysłania żadnej transakcji!</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address the message was signed with</source>
-        <translation type="unfinished">Adres Bitcoin, którym została podpisana wiadomość</translation>
-    </message>
-    <message>
-        <source>The signed message to verify</source>
-        <translation type="unfinished">Podpisana wiadomość do weryfikacji</translation>
-    </message>
-    <message>
-        <source>The signature given when the message was signed</source>
-        <translation type="unfinished">Podpis podawany przy podpisywaniu wiadomości</translation>
-    </message>
-    <message>
-        <source>Verify the message to ensure it was signed with the specified Bitcoin address</source>
-        <translation type="unfinished">Zweryfikuj wiadomość, aby upewnić się, że została podpisana podanym adresem Bitcoin.</translation>
-    </message>
-    <message>
-        <source>Verify &amp;Message</source>
-        <translation type="unfinished">Zweryfikuj Wiado&amp;mość</translation>
-    </message>
-    <message>
-        <source>Reset all verify message fields</source>
-        <translation type="unfinished">Resetuje wszystkie pola weryfikacji wiadomości</translation>
-    </message>
-    <message>
-        <source>Click "Sign Message" to generate signature</source>
-        <translation type="unfinished">Kliknij "Podpisz Wiadomość" żeby wygenerować podpis</translation>
-    </message>
-    <message>
-        <source>The entered address is invalid.</source>
-        <translation type="unfinished">Podany adres jest nieprawidłowy.</translation>
-    </message>
-    <message>
-        <source>Please check the address and try again.</source>
-        <translation type="unfinished">Sprawdź adres i spróbuj ponownie.</translation>
-    </message>
-    <message>
-        <source>The entered address does not refer to a legacy (P2PKH) key. Message signing for SegWit and other non-P2PKH address types is not supported in this version of %1. Please check the address and try again.</source>
-        <translation type="unfinished">Podany adres nie jest związany z kluczem starego typu (P2PKH). Podpisywanie wiadomości dla adresów SegWit i innych niż P2PKH nie jest wspierane w tej wersji %1. Sprawdź adres i spróbuj ponownie.</translation>
-    </message>
-    <message>
-        <source>Wallet unlock was cancelled.</source>
-        <translation type="unfinished">Odblokowanie portfela zostało anulowane.</translation>
-    </message>
-    <message>
-        <source>No error</source>
-        <translation type="unfinished">Brak błędów</translation>
-    </message>
-    <message>
-        <source>Private key for the entered address is not available.</source>
-        <translation type="unfinished">Klucz prywatny dla podanego adresu nie jest dostępny.</translation>
-    </message>
-    <message>
-        <source>Message signing failed.</source>
-        <translation type="unfinished">Podpisanie wiadomości nie powiodło się.</translation>
-    </message>
-    <message>
-        <source>Message signed.</source>
-        <translation type="unfinished">Wiadomość podpisana.</translation>
-    </message>
-    <message>
-        <source>The signature could not be decoded.</source>
-        <translation type="unfinished">Podpis nie może zostać zdekodowany.</translation>
-    </message>
-    <message>
-        <source>Please check the signature and try again.</source>
-        <translation type="unfinished">Sprawdź podpis i spróbuj ponownie.</translation>
-    </message>
-    <message>
-        <source>The signature did not match the message digest.</source>
-        <translation type="unfinished">Podpis nie odpowiada skrótowi wiadomości.</translation>
-    </message>
-    <message>
-        <source>Message verification failed.</source>
-        <translation type="unfinished">Weryfikacja wiadomości nie powiodła się.</translation>
-    </message>
-    <message>
-        <source>Message verified.</source>
-        <translation type="unfinished">Wiadomość zweryfikowana.</translation>
     </message>
 </context>
 <context>
@@ -4119,20 +3828,8 @@ Przejdź do Plik &gt; Otwórz Portfel, aby wczytać portfel.
         <translation type="unfinished">Wystąpił błąd podczas uruchamiania/przesyłania bazy danych transakcji dla procesu usuwania transakcji w portfelu</translation>
     </message>
     <message>
-        <source>Error: Dumpfile format record is incorrect. Got "%s", expected "format".</source>
-        <translation type="unfinished">Błąd: rekord formatu pliku zrzutu jest nieprawidłowy. Otrzymano „1%s”, oczekiwany „format”.</translation>
-    </message>
-    <message>
         <source>Error: Dumpfile identifier record is incorrect. Got "%s", expected "%s".</source>
         <translation type="unfinished">Błąd: rekord identyfikatora pliku zrzutu jest nieprawidłowy. Otrzymano "%s", oczekiwano "%s".</translation>
-    </message>
-    <message>
-        <source>Error: Dumpfile version is not supported. This version of bitcoin-wallet only supports version 1 dumpfiles. Got dumpfile with version %s</source>
-        <translation type="unfinished">Błąd: wersja pliku zrzutu nie jest obsługiwana. Ta wersja bitcoin-wallet obsługuje tylko pliki zrzutu w wersji 1. Otrzymano plik zrzutu w wersji %s</translation>
-    </message>
-    <message>
-        <source>Error: Unable to produce descriptors for this legacy wallet. Make sure to provide the wallet's passphrase if it is encrypted.</source>
-        <translation type="unfinished">Błąd: Nie można wygenerować deskryptorów dla tego portfela typu legacy. Upewnij się, że podano hasło portfela, jeśli jest on zaszyfrowany.</translation>
     </message>
     <message>
         <source>File %s already exists. If you are sure this is what you want, move it out of the way first.</source>
@@ -4215,10 +3912,6 @@ Przejdź do Plik &gt; Otwórz Portfel, aby wczytać portfel.
         <translation type="unfinished">Ostrzeżenie: Wykryto klucze prywatne w portfelu {%s} z wyłączonymi kluczami prywatnymi</translation>
     </message>
     <message>
-        <source>Witness data for blocks after height %d requires validation. Please restart with -reindex.</source>
-        <translation type="unfinished">Dane świadków dotyczące bloków po wysokości %d wymagają sprawdzenia. Uruchom ponownie z opcją -reindex.</translation>
-    </message>
-    <message>
         <source>You need to rebuild the database using -reindex to go back to unpruned mode.  This will redownload the entire blockchain</source>
         <translation type="unfinished">Musisz przebudować bazę używając parametru -reindex aby wrócić do trybu pełnego. To spowoduje ponowne pobranie całego łańcucha bloków</translation>
     </message>
@@ -4263,26 +3956,10 @@ Przejdź do Plik &gt; Otwórz Portfel, aby wczytać portfel.
         <translation type="unfinished">Błąd podczas odczytywania %s! Wszystkie klucze zostały odczytane poprawnie, ale może brakować danych transakcji lub wpisów w książce adresowej, albo mogą one być nieprawidłowe.</translation>
     </message>
     <message>
-        <source>Error: Address book data in wallet cannot be identified to belong to migrated wallets</source>
-        <translation type="unfinished">Błąd: Danych książki adresowej w portfelu nie można zidentyfikować jako należących do zmigrowanych portfeli</translation>
-    </message>
-    <message>
-        <source>Error: Duplicate descriptors created during migration. Your wallet may be corrupted.</source>
-        <translation type="unfinished">Błąd: Podczas migracji utworzono zduplikowane deskryptory. Twój portfel może być uszkodzony.</translation>
-    </message>
-    <message>
-        <source>Error: Transaction %s in wallet cannot be identified to belong to migrated wallets</source>
-        <translation type="unfinished">Błąd: Transakcja %s w portfelu nie może być zidentyfikowana jako należąca do przemigrowanych portfeli</translation>
-    </message>
-    <message>
         <source>Failed to remove snapshot chainstate dir (%s). Manually remove it before restarting.
 </source>
         <translation type="unfinished">Nie udało się usunąć katalogu snapshot chainstate (%s). Usuń go ręcznie przed ponownym uruchomieniem.
 </translation>
-    </message>
-    <message>
-        <source>Failed to rename invalid peers.dat file. Please move or delete it and try again.</source>
-        <translation type="unfinished">Zmiana nazwy nieprawidłowego pliku peers.dat nie powiodła się. Przenieś go lub usuń i spróbuj ponownie.</translation>
     </message>
     <message>
         <source>Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable %s.</source>
@@ -4311,10 +3988,6 @@ Przejdź do Plik &gt; Otwórz Portfel, aby wczytać portfel.
     <message>
         <source>Maximum transaction weight is too low, can not accommodate change output</source>
         <translation type="unfinished">Maksymalna waga transakcji jest zbyt niska, nie wystarczy na wyjście reszty</translation>
-    </message>
-    <message>
-        <source>Option '-checkpoints' is set but checkpoints were removed. This option has no effect.</source>
-        <translation type="unfinished">Opcja "-checkpoints" jest zaznaczona, ale punkty zaczepienia zostały usunięte. Ta opcja nie ma efektu.</translation>
     </message>
     <message>
         <source>Outbound connections restricted to CJDNS (-onlynet=cjdns) but -cjdnsreachable is not provided</source>
@@ -4373,30 +4046,8 @@ Przejdź do Plik &gt; Otwórz Portfel, aby wczytać portfel.
         <translation type="unfinished">Niepotwierdzone UTXO są dostępne, ale ich wydanie tworzy łańcuch transakcji, który zostanie odrzucony przez mempool.</translation>
     </message>
     <message>
-        <source>Unexpected legacy entry in descriptor wallet found. Loading wallet %s
-
-The wallet might have been tampered with or created with malicious intent.
-</source>
-        <translation type="unfinished">W portfelu typu descriptor znaleziono nieoczekiwany wpis typu legacy. Ładowanie portfela %s
-
-Portfel mógł zostać naruszony lub utworzony w złośliwym celu.
-</translation>
-    </message>
-    <message>
         <source>Your computer's date and time appear to be more than %d minutes out of sync with the network, this may lead to consensus failure. After you've confirmed your computer's clock, this message should no longer appear when you restart your node. Without a restart, it should stop showing automatically after you've connected to a sufficient number of new outbound peers, which may take some time. You can inspect the `timeoffset` field of the `getpeerinfo` and `getnetworkinfo` RPC methods to get more info.</source>
         <translation type="unfinished">Data i godzina Twojego komputera wydają się być przesunięte o więcej %d minut względem sieci, co może prowadzić do błędów konsensusu. Po upewnieniu się, że zegar Twojego komputera jest poprawny, ta wiadomość nie powinna się już pojawiać po ponownym uruchomieniu Twojego węzła. Bez ponownego uruchamiania komunikat powinien zniknąć automatycznie po nawiązaniu przez węzeł wystarczającej liczby nowych połączeń wychodzących, co może zająć trochę czasu. Możesz sprawdzić pole `timeoffset` w metodach RPC `getpeerinfo` oraz `getnetworkinfo`, aby uzyskać więcej informacji.</translation>
-    </message>
-    <message>
-        <source>
-Unable to cleanup failed migration</source>
-        <translation type="unfinished">
-Nie można wyczyścić nieudanej migracji</translation>
-    </message>
-    <message>
-        <source>
-Unable to restore backup of wallet.</source>
-        <translation type="unfinished">
-Nie można przywrócić kopii zapasowej portfela</translation>
     </message>
     <message>
         <source>default wallet</source>
@@ -4539,10 +4190,6 @@ Nie można przywrócić kopii zapasowej portfela</translation>
         <translation type="unfinished">Błąd: Suma kontrolna pliku zrzutu nie zgadza się. Obliczona %s, oczekiwana %s</translation>
     </message>
     <message>
-        <source>Error: Failed to create new watchonly wallet</source>
-        <translation type="unfinished">Błąd: Utworzenie portfela tylko do odczytu nie powiodło się</translation>
-    </message>
-    <message>
         <source>Error: Got key that was not hex: %s</source>
         <translation type="unfinished">Błąd: Otrzymano klucz, który nie jest szesnastkowy: %s</translation>
     </message>
@@ -4563,64 +4210,8 @@ Nie można przywrócić kopii zapasowej portfela</translation>
         <translation type="unfinished">Błąd: Brak dostępnych adresów %s</translation>
     </message>
     <message>
-        <source>Error: Not all address book records were migrated</source>
-        <translation type="unfinished">Błąd: Nie wszystkie wpisy z książki adresowej zostały przeniesione</translation>
-    </message>
-    <message>
-        <source>Error: Not all transaction records were migrated</source>
-        <translation type="unfinished">Błąd: Nie wszystkie wpisy transakcji zostały przeniesione</translation>
-    </message>
-    <message>
-        <source>Error: This wallet already uses SQLite</source>
-        <translation type="unfinished">Błąd: Ten portfel już używa SQLite</translation>
-    </message>
-    <message>
-        <source>Error: This wallet is already a descriptor wallet</source>
-        <translation type="unfinished">Błąd: Ten portfel jest już portfelem opisowym (descriptor wallet)</translation>
-    </message>
-    <message>
-        <source>Error: Unable to begin reading all records in the database</source>
-        <translation type="unfinished">Błąd: Nie można odczytać wszystkich rekordów z bazy danych</translation>
-    </message>
-    <message>
-        <source>Error: Unable to make a backup of your wallet</source>
-        <translation type="unfinished">Błąd: Nie mogę zrobić kopii twojego portfela</translation>
-    </message>
-    <message>
-        <source>Error: Unable to parse version %u as a uint32_t</source>
-        <translation type="unfinished">Błąd: Nie można zinterpretować wersji %u jako uint32_t</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read all records in the database</source>
-        <translation type="unfinished">Błąd: Nie można odczytać wszystkich rekordów z bazy danych</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read wallet's best block locator record</source>
-        <translation type="unfinished">Błąd: Nie można odczytać najlepszego rekordu lokalizatora bloków portfela</translation>
-    </message>
-    <message>
-        <source>Error: Unable to remove watchonly address book data</source>
-        <translation type="unfinished">Błąd: Nie można usunąć danych książki adresowej tylko do odczytu</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write data to disk for wallet %s</source>
-        <translation type="unfinished">Błąd: Nie można zapisać danych na dysku dla portfela %s</translation>
-    </message>
-    <message>
         <source>Error: Unable to write record to new wallet</source>
         <translation type="unfinished">Błąd: Wpisanie rekordu do nowego portfela jest niemożliwe</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write solvable wallet best block locator record</source>
-        <translation type="unfinished">Błąd: Nie można zapisać rekordu lokalizatora najlepszego bloku w rozwiązywalnym portfelu.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write watchonly wallet best block locator record</source>
-        <translation type="unfinished">Błąd: nie można zapisać rekordu lokalizatora najlepszego bloku portfela tylko do obserwacji</translation>
-    </message>
-    <message>
-        <source>Error: database transaction cannot be executed for wallet %s</source>
-        <translation type="unfinished">Błąd: transakcja bazy danych nie może zostać wykonana dla portfela %s</translation>
     </message>
     <message>
         <source>Failed to acquire rescan reserver during wallet initialization</source>
@@ -4727,10 +4318,6 @@ Nie można przywrócić kopii zapasowej portfela</translation>
         <translation type="unfinished">Zduplikowana konfiguracja powiązania dla adresu %s. Sprawdź ustawienia -bind, -bind=...=onion oraz -whitebind.</translation>
     </message>
     <message>
-        <source>Error creating %s: Could not write version metadata.</source>
-        <translation type="unfinished">Błąd tworzenia %s: Nie można zapisać metadanych wersji.</translation>
-    </message>
-    <message>
         <source>Invalid amount for -%s=&lt;amount&gt;: '%s'</source>
         <translation type="unfinished">Nieprawidłowa kwota dla -%s=&lt;amount&gt;: '%s'</translation>
     </message>
@@ -4793,14 +4380,6 @@ Nie można przywrócić kopii zapasowej portfela</translation>
     <message>
         <source>Only direction was set, no permissions: '%s'</source>
         <translation type="unfinished">Tylko kierunek został ustalony, brak uprawnień: '%s'</translation>
-    </message>
-    <message>
-        <source>Option '-limitancestorsize' is given but ancestor size limits have been replaced with cluster size limits (see -limitclustersize). This option has no effect.</source>
-        <translation type="unfinished">Podano opcję „-limitancestorsize”, ale limity rozmiaru przodków zostały zastąpione limitami rozmiaru klastra (zobacz -limitclustersize). Ta opcja nie ma żadnego wpływu.</translation>
-    </message>
-    <message>
-        <source>Option '-limitdescendantsize' is given but descendant size limits have been replaced with cluster size limits (see -limitclustersize). This option has no effect.</source>
-        <translation type="unfinished">Podano opcję „-limitdescendantsize”, ale limity rozmiaru potomków zostały zastąpione limitami rozmiaru klastra (zobacz -limitclustersize). Ta opcja nie ma żadnego wpływu.</translation>
     </message>
     <message>
         <source>Private broadcast of own transactions requested (-privatebroadcast) and -proxyrandomize is disabled. Tor circuits for private broadcast connections may be correlated to other connections over Tor. For maximum privacy set -proxyrandomize=1.</source>
@@ -5015,20 +4594,8 @@ Nie można przywrócić kopii zapasowej portfela</translation>
         <translation type="unfinished">Nieznana wartość -blockfilterindex %s.</translation>
     </message>
     <message>
-        <source>Unknown address type '%s'</source>
-        <translation type="unfinished">Nieznany typ adresu '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown change type '%s'</source>
-        <translation type="unfinished">Nieznany typ reszty '%s'</translation>
-    </message>
-    <message>
         <source>Unknown network specified in -onlynet: '%s'</source>
         <translation type="unfinished">Nieznana sieć w -onlynet: '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown new rules activated (versionbit %i)</source>
-        <translation type="unfinished">Aktywowano nieznane nowe reguły (versionbit %i)</translation>
     </message>
     <message>
         <source>Unrecognised option "%s" provided in -test=&lt;option&gt;.</source>
@@ -5037,10 +4604,6 @@ Nie można przywrócić kopii zapasowej portfela</translation>
     <message>
         <source>Unsupported global logging level %s=%s. Valid values: %s.</source>
         <translation type="unfinished">Niewspierany globalny poziom logowania %s=%s. Poprawne wartości: %s.</translation>
-    </message>
-    <message>
-        <source>Wallet file creation failed: %s</source>
-        <translation type="unfinished">Utworzenie pliku portfela nie powiodło się: %s</translation>
     </message>
     <message>
         <source>Warning: Found invalid chain more than 6 blocks longer than our best chain. This could be due to database corruption or consensus incompatibility with peers.</source>
@@ -5053,14 +4616,6 @@ Nie można przywrócić kopii zapasowej portfela</translation>
     <message>
         <source>Unsupported logging category %s=%s.</source>
         <translation type="unfinished">Nieobsługiwana kategoria rejestrowania %s=%s.</translation>
-    </message>
-    <message>
-        <source>Error loading %s: Wallet is a legacy wallet. Please migrate to a descriptor wallet using the migration tool (migratewallet RPC).</source>
-        <translation type="unfinished">Błąd podczas ładowania %s: portfel jest portfelem typu legacy. Proszę przeprowadzić migrację do portfela opartego na deskryptorach za pomocą narzędzia migracyjnego (RPC migratewallet).</translation>
-    </message>
-    <message>
-        <source>Error: Dumpfile specifies an unsupported database format (%s). Only sqlite database dumps are supported</source>
-        <translation type="unfinished">Błąd: Plik zrzutu określa nieobsługiwany format bazy danych (%s). Obsługiwane są tylko zrzuty baz danych w formacie sqlite.</translation>
     </message>
     <message>
         <source>Failed to calculate bump fees, because unconfirmed UTXOs depend on an enormous cluster of unconfirmed transactions.</source>
@@ -5085,22 +4640,6 @@ Spróbuj uruchomić najnowszą wersję programu.
     <message>
         <source>Do you want to rebuild the databases now?</source>
         <translation type="unfinished">Czy chcesz teraz przebudować bazy?</translation>
-    </message>
-    <message>
-        <source>Error: Could not add watchonly tx %s to watchonly wallet</source>
-        <translation type="unfinished">Błąd: Nie można dodać tx %s tylko do odczytu do portfela tylko do odczytu</translation>
-    </message>
-    <message>
-        <source>Error: Could not delete watchonly transactions. </source>
-        <translation type="unfinished">Błąd: Nie można usunąć transakcji tylko do odczytu.</translation>
-    </message>
-    <message>
-        <source>Error: Wallet does not exist</source>
-        <translation type="unfinished">Błąd: Portfel nie istnieje</translation>
-    </message>
-    <message>
-        <source>Error: cannot remove legacy wallet records</source>
-        <translation type="unfinished">Błąd: nie można usunąć zapisów starszych portfeli</translation>
     </message>
     <message>
         <source>Failed to start indexes, shutting down…</source>

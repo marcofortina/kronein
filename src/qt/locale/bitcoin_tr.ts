@@ -58,12 +58,6 @@
         <translation type="unfinished">Bunlar ödemeleri gönderdiğiniz Bitcoin adreslerinizdir. Para göndermeden önce her zaman tutarı ve alıcı adresi kontrol ediniz.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">Bunlar ödeme almak için kullanacağınız bitcoin adreslerinizdir. Yeni adres oluşturmak için ödeme alma sekmesindeki 'Yeni alıcı adresi oluşturun' kısmına tıklayın.
-İmzalama sadece 'legacy' tipindeki adreslerle mümkündür.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">Adresi &amp;Kopyala</translation>
     </message>
@@ -521,22 +515,6 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">&amp;Parolayı Değiştir...</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">&amp;Mesajı imzala...</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Bitcoin adreslerine sahip olduğunuzu kanıtlamak için mesajlarınızı imzalayın</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;Mesajı doğrula...</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">Belirtilen Bitcoin adresleriyle imzalandıklarından emin olmak için mesajları doğrulayın</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">&amp;PSBT'yi dosyadan yükle...</translation>
     </message>
@@ -691,14 +669,6 @@ Cüzdan kilidini aç.</translation>
     <message>
         <source>Close all wallets</source>
         <translation type="unfinished">Tüm cüzdanları kapat</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Cüzdanı Taşı</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">Bir Cüzdanı Taşı</translation>
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
@@ -1029,67 +999,6 @@ Cüzdan kilidini aç.</translation>
         <source>Loading wallets…</source>
         <extracomment>Descriptive text of the load wallets progress window which indicates to the user that wallets are currently being loaded.</extracomment>
         <translation type="unfinished">Cüzdanlar yükleniyor...</translation>
-    </message>
-</context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate wallet</source>
-        <translation type="unfinished">Cüzdanı taşı</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to migrate the wallet &lt;i&gt;%1&lt;/i&gt;?</source>
-        <translation type="unfinished">Cüzdanı taşımak istediğine emin misin &lt;i&gt;%1&lt;/i&gt;?</translation>
-    </message>
-    <message>
-        <source>Migrating the wallet will convert this wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">Cüzdanı taşımak, bu cüzdanı bir veya daha fazla descriptor cüzdana dönüştürecektir. Yeni bir cüzdan yedeği oluşturulması gerekecektir.
-Eğer bu cüzdan yalnızca izlenen scriptler içeriyorsa, bu scriptleri içeren yeni bir cüzdan oluşturulacaktır.
-Eğer bu cüzdan çözülebilir ama izlenmeyen scriptler içeriyorsa, bu scriptleri içeren farklı ve yeni bir cüzdan oluşturulacaktır.
-
-Taşıma işlemi, taşıma işleminden önce cüzdanın bir yedeğini oluşturacaktır. Bu yedek dosya &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak olarak adlandırılacak ve bu cüzdanın bulunduğu dizinde bulunacaktır. Yanlış bir taşıma durumunda, yedek "Cüzdanı Geri Yükle" işlevi ile geri yüklenebilir.</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Cüzdanı Taşı</translation>
-    </message>
-    <message>
-        <source>Migrating Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <translation type="unfinished">Cüzdan Taşınıyor &lt;b&gt;%1&lt;/b&gt;...</translation>
-    </message>
-    <message>
-        <source>The wallet '%1' was migrated successfully.</source>
-        <translation type="unfinished">Cüzdan '%1' başarıyla taşındı.</translation>
-    </message>
-    <message>
-        <source>Watchonly scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Yalnızca izlenen scriptler yeni bir cüzdana taşındı, adı '%1'.</translation>
-    </message>
-    <message>
-        <source>Solvable but not watched scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Çözülebilir ama izlenmeyen scriptler yeni bir cüzdana taşındı, adı '%1'.</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">Cüzdanı Geri Yükle</translation>
-    </message>
-    <message>
-        <source>Restoring Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <extracomment>Descriptive text of the restore wallets progress window which indicates to the user that wallets are currently being restored.</extracomment>
-        <translation type="unfinished">Cüzdan Onarılıyor&lt;b&gt;%1&lt;/b&gt;</translation>
-    </message>
-    <message>
-        <source>Migration failed</source>
-        <translation type="unfinished">Taşıma başarısız oldu</translation>
-    </message>
-    <message>
-        <source>Migration Successful</source>
-        <translation type="unfinished">Taşıma Başarılı</translation>
     </message>
 </context>
 <context>
@@ -2528,14 +2437,6 @@ Taşıma işlemi, taşıma işleminden önce cüzdanın bir yedeğini oluşturac
         <translation type="unfinished">&amp;miktarı kopyala</translation>
     </message>
     <message>
-        <source>Not recommended due to higher fees and less protection against typos.</source>
-        <translation type="unfinished">Yazım yanlışlarına karşı daha az koruma sağladığından ve yüksek ücretinden ötürü tavsiye edilmemektedir.</translation>
-    </message>
-    <message>
-        <source>Generates an address compatible with older wallets.</source>
-        <translation type="unfinished">Daha eski cüzdanlarla uyumlu bir adres oluşturur.</translation>
-    </message>
-    <message>
         <source>Could not unlock wallet.</source>
         <translation type="unfinished">Cüzdanın kilidi açılamadı.</translation>
     </message>
@@ -2941,141 +2842,6 @@ Taşıma işlemi, taşıma işleminden önce cüzdanın bir yedeğini oluşturac
     <message>
         <source>Create Unsigned</source>
         <translation type="unfinished">İmzasız Oluştur</translation>
-    </message>
-</context>
-<context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Signatures - Sign / Verify a Message</source>
-        <translation type="unfinished">İmzalar - Giri‭s / Mesaji Onayla</translation>
-    </message>
-    <message>
-        <source>&amp;Sign Message</source>
-        <translation type="unfinished">İleti &amp;imzala</translation>
-    </message>
-    <message>
-        <source>You can sign messages/agreements with your legacy (P2PKH) addresses to prove you can receive bitcoins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation type="unfinished">Eski (P2PKH) adreslerinizle mesajları/anlaşmaları imzalayarak bu adreslere gönderilen Bitcoin'leri alabileceğinizi unutmayın. Belirsiz veya rastgele şeyleri imzalamaktan kaçının, çünkü kimlik bilgilerinizi çalmak isteyen oltalama saldırıları sizi kandırmaya çalışabilir. Sadece tamamen ayrıntılı ve onayladığınız beyanları imzalayın.</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address to sign the message with</source>
-        <translation type="unfinished">İletinin imzalanmasında kullanılacak Bitcoin adresi</translation>
-    </message>
-    <message>
-        <source>Choose previously used address</source>
-        <translation type="unfinished">Önceden kullanılmış adres seç</translation>
-    </message>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">Panodan adres yapıştır</translation>
-    </message>
-    <message>
-        <source>Enter the message you want to sign here</source>
-        <translation type="unfinished">İmzalamak istediğiniz iletiyi burada giriniz</translation>
-    </message>
-    <message>
-        <source>Signature</source>
-        <translation type="unfinished">İmza</translation>
-    </message>
-    <message>
-        <source>Sign the message to prove you own this Bitcoin address</source>
-        <translation type="unfinished">Bu Bitcoin adresinin sizin olduğunu ispatlamak için iletiyi imzalayın</translation>
-    </message>
-    <message>
-        <source>Sign &amp;Message</source>
-        <translation type="unfinished">&amp;İletiyi imzala</translation>
-    </message>
-    <message>
-        <source>Reset all sign message fields</source>
-        <translation type="unfinished">Tüm ileti alanlarını sıfırla</translation>
-    </message>
-    <message>
-        <source>Clear &amp;All</source>
-        <translation type="unfinished">Tümünü &amp;Temizle</translation>
-    </message>
-    <message>
-        <source>&amp;Verify Message</source>
-        <translation type="unfinished">İletiyi &amp;kontrol et</translation>
-    </message>
-    <message>
-        <source>Enter the receiver's address, message (ensure you copy line breaks, spaces, tabs, etc. exactly) and signature below to verify the message. Be careful not to read more into the signature than what is in the signed message itself, to avoid being tricked by a man-in-the-middle attack. Note that this only proves the signing party receives with the address, it cannot prove sendership of any transaction!</source>
-        <translation type="unfinished">Alıcının adresini, iletiyi (satır sonları, boşluklar, sekmeler vs. karakterleri tam olarak kopyaladığınızdan emin olunuz) ve imzayı aşağıya giriniz. Bir ortadaki adam saldırısı tarafından kandırılmaya engel olmak için imzadan, imzalı iletinin içeriğini aşan bir anlam çıkarmamaya dikkat ediniz. Bunun sadece imzalayan tarafın adres ile alım yapabildiğini ispatladığını ve herhangi bir işlemin gönderi tarafını kanıtlayamayacağını unutmayınız!</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address the message was signed with</source>
-        <translation type="unfinished">İletinin imzalanmasında kullanılan Bitcoin adresi</translation>
-    </message>
-    <message>
-        <source>The signed message to verify</source>
-        <translation type="unfinished">Doğrulamak için imzalanmış mesaj</translation>
-    </message>
-    <message>
-        <source>Verify the message to ensure it was signed with the specified Bitcoin address</source>
-        <translation type="unfinished">Belirtilen Bitcoin adresi ile imzalandığını doğrulamak için iletiyi kontrol et</translation>
-    </message>
-    <message>
-        <source>Verify &amp;Message</source>
-        <translation type="unfinished">&amp;Mesajı Denetle</translation>
-    </message>
-    <message>
-        <source>Reset all verify message fields</source>
-        <translation type="unfinished">Tüm ileti kontrolü alanlarını sıfırla</translation>
-    </message>
-    <message>
-        <source>Click "Sign Message" to generate signature</source>
-        <translation type="unfinished">İmzayı oluşturmak için "İletiyi İmzala"ya tıklayın</translation>
-    </message>
-    <message>
-        <source>The entered address is invalid.</source>
-        <translation type="unfinished">Girilen adres geçersizdir.</translation>
-    </message>
-    <message>
-        <source>Please check the address and try again.</source>
-        <translation type="unfinished">Lütfen adresi kontrol edip tekrar deneyiniz.</translation>
-    </message>
-    <message>
-        <source>The entered address does not refer to a legacy (P2PKH) key. Message signing for SegWit and other non-P2PKH address types is not supported in this version of %1. Please check the address and try again.</source>
-        <translation type="unfinished">Girilen adres, eski (P2PKH) bir anahtarı belirtmiyor. Bu sürümde SegWit ve diğer P2PKH olmayan %1 versiyon adres türleri için mesajla imzalama desteklenmiyor. Lütfen adresi kontrol edin ve tekrar deneyin.</translation>
-    </message>
-    <message>
-        <source>Wallet unlock was cancelled.</source>
-        <translation type="unfinished">Cüzdan kilidinin açılması iptal edildi.</translation>
-    </message>
-    <message>
-        <source>No error</source>
-        <translation type="unfinished">Hata yok</translation>
-    </message>
-    <message>
-        <source>Private key for the entered address is not available.</source>
-        <translation type="unfinished">Girilen adres için özel anahtar mevcut değildir.</translation>
-    </message>
-    <message>
-        <source>Message signing failed.</source>
-        <translation type="unfinished">Mesaj imzalama başarısız.</translation>
-    </message>
-    <message>
-        <source>Message signed.</source>
-        <translation type="unfinished">Mesaj imzalandı.</translation>
-    </message>
-    <message>
-        <source>The signature could not be decoded.</source>
-        <translation type="unfinished">İmzanın kodu çözülemedi.</translation>
-    </message>
-    <message>
-        <source>Please check the signature and try again.</source>
-        <translation type="unfinished">Lütfen imzayı kontrol edip tekrar deneyiniz.</translation>
-    </message>
-    <message>
-        <source>The signature did not match the message digest.</source>
-        <translation type="unfinished">İmza iletinin özeti ile eşleşmedi.</translation>
-    </message>
-    <message>
-        <source>Message verification failed.</source>
-        <translation type="unfinished">İleti doğrulaması başarısız oldu.</translation>
-    </message>
-    <message>
-        <source>Message verified.</source>
-        <translation type="unfinished">Mesaj doğrulandı.</translation>
     </message>
 </context>
 <context>
@@ -3703,10 +3469,6 @@ Taşıma işlemi, taşıma işleminden önce cüzdanın bir yedeğini oluşturac
 </translation>
     </message>
     <message>
-        <source>Failed to rename invalid peers.dat file. Please move or delete it and try again.</source>
-        <translation type="unfinished">Geçersiz peers.dat dosyası yeniden adlandırılamadı. Lütfen taşıyın veya silin ve tekrar deneyin.</translation>
-    </message>
-    <message>
         <source>Flushing block file to disk failed. This is likely the result of an I/O error.</source>
         <translation type="unfinished">Blok dosyasını diske yazma başarısız oldu. Bu muhtemelen bir G/Ç hatasının sonucudur.</translation>
     </message>
@@ -3741,12 +3503,6 @@ Taşıma işlemi, taşıma işleminden önce cüzdanın bir yedeğini oluşturac
     <message>
         <source>Your computer's date and time appear to be more than %d minutes out of sync with the network, this may lead to consensus failure. After you've confirmed your computer's clock, this message should no longer appear when you restart your node. Without a restart, it should stop showing automatically after you've connected to a sufficient number of new outbound peers, which may take some time. You can inspect the `timeoffset` field of the `getpeerinfo` and `getnetworkinfo` RPC methods to get more info.</source>
         <translation type="unfinished">Bilgisayarınızın tarihi ve saati, ağla %d dakikadan fazla senkronizasyon görünmüyor; bu başarısız işlem hatasına yol açabilir. Bilgisayarınızın saatini düzenledikten sonra, bu mesaj tekrar görünmemelidir. Düğümünüzü yeniden başlattığınızda mesaj kaybolmalıdır. Yeniden başlatma olmadan, yeterli sayıda yeni çıkış bağlantısı sağladıktan sonra otomatik olarak kaybolmalıdır, bu biraz zaman alabilir. Daha fazla bilgi almak için `getpeerinfo` ve `getnetworkinfo` RPC yöntemlerinin `timeoffset` alanını kontrol edebilirsiniz.</translation>
-    </message>
-    <message>
-        <source>
-Unable to restore backup of wallet.</source>
-        <translation type="unfinished">
-Cüzdan yedeği geri yüklenemiyor.</translation>
     </message>
     <message>
         <source>default wallet</source>
@@ -3827,34 +3583,6 @@ Cüzdan yedeği geri yüklenemiyor.</translation>
     <message>
         <source>Error reading from database, shutting down.</source>
         <translation type="unfinished">Veritabanı okuma hatası, program kapatılıyor.</translation>
-    </message>
-    <message>
-        <source>Error: Failed to create new watchonly wallet</source>
-        <translation type="unfinished">Hata: Yeni  sadece izlenebilir (watchonly) cüzdanı oluşturulamadı</translation>
-    </message>
-    <message>
-        <source>Error: This wallet already uses SQLite</source>
-        <translation type="unfinished">Hata: Bu cüzdan zaten SQLite kullanıyor</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read wallet's best block locator record</source>
-        <translation type="unfinished">Hata: Cüzdan okunamadı en iyi blok bulucu kaydı </translation>
-    </message>
-    <message>
-        <source>Error: Unable to write data to disk for wallet %s</source>
-        <translation type="unfinished">Hata: Cüzdan %s için  diske veri yazılamıyor</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write solvable wallet best block locator record</source>
-        <translation type="unfinished">Hata: Cüzdana yazılamadı en iyi blok bulucu kaydı </translation>
-    </message>
-    <message>
-        <source>Error: Unable to write watchonly wallet best block locator record</source>
-        <translation type="unfinished">Hata: Yalnızca izlenen cüzdanın en iyi blok bulucu kaydını yazmak mümkün değil</translation>
-    </message>
-    <message>
-        <source>Error: database transaction cannot be executed for wallet %s</source>
-        <translation type="unfinished">Hata: %sCüzdan için veri tabanında işlem yapılamaz</translation>
     </message>
     <message>
         <source>Failed to disconnect block.</source>
@@ -4093,10 +3821,6 @@ Cüzdan yedeği geri yüklenemiyor.</translation>
         <translation type="unfinished">HTTP sunucusu başlatılamadı. Ayrıntılar için debug.log dosyasına bakınız.</translation>
     </message>
     <message>
-        <source>Unknown address type '%s'</source>
-        <translation type="unfinished">Bilinmeyen adres türü '%s'</translation>
-    </message>
-    <message>
         <source>Unknown network specified in -onlynet: '%s'</source>
         <translation type="unfinished">-onlynet için bilinmeyen bir ağ belirtildi: '%s'</translation>
     </message>
@@ -4109,10 +3833,6 @@ Cüzdan yedeği geri yüklenemiyor.</translation>
         <translation type="unfinished">Desteklenmeyen global günlük seviyesi %s=%s. Geçerli değer:%s.</translation>
     </message>
     <message>
-        <source>Wallet file creation failed: %s</source>
-        <translation type="unfinished">%s Cüzdan dosyaları oluşturulamadı.</translation>
-    </message>
-    <message>
         <source>acceptstalefeeestimates is not supported on %s chain.</source>
         <translation type="unfinished">acceptstalefeeestimates %s blok zincirinde desteklenmiyor.</translation>
     </message>
@@ -4123,22 +3843,6 @@ Cüzdan yedeği geri yüklenemiyor.</translation>
     <message>
         <source>Do you want to rebuild the databases now?</source>
         <translation type="unfinished">Veritabanlarını şimdi yeniden inşa etmek istiyor musunuz?</translation>
-    </message>
-    <message>
-        <source>Error: Could not add watchonly tx %s to watchonly wallet</source>
-        <translation type="unfinished">Hata: Sadece izleme %s cüzdanı. tx izleme cüzdanına eklenemedi</translation>
-    </message>
-    <message>
-        <source>Error: Could not delete watchonly transactions. </source>
-        <translation type="unfinished">Hata: Yalnızca izlenen işlemler silinemedi.</translation>
-    </message>
-    <message>
-        <source>Error: Wallet does not exist</source>
-        <translation type="unfinished">Hata: Böyle bir cüzdan yok</translation>
-    </message>
-    <message>
-        <source>Error: cannot remove legacy wallet records</source>
-        <translation type="unfinished">Hata: Eski cüzdan kayıtları silinemiyor</translation>
     </message>
     <message>
         <source>Not enough file descriptors available. %d available, %d required.</source>

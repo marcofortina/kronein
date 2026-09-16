@@ -290,10 +290,6 @@
         <translation type="unfinished">&amp;Хүлээж авах</translation>
     </message>
     <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;Баталгаажуулах мэссэж</translation>
-    </message>
-    <message>
         <source>Close Wallet…</source>
         <translation type="unfinished">Хэтэвч хаах…</translation>
     </message>
@@ -872,17 +868,6 @@
     <message>
         <source>Message:</source>
         <translation type="unfinished">Зурвас:</translation>
-    </message>
-    </context>
-<context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">Копидсон хаягийг буулгах</translation>
-    </message>
-    <message>
-        <source>Clear &amp;All</source>
-        <translation type="unfinished">&amp;Бүгдийг Цэвэрлэ</translation>
     </message>
     </context>
 <context>

@@ -42,12 +42,6 @@
         <translation type="unfinished">اینها آدرس های بیت کوین شما برای ارسال پرداخت هستند. همیشه قبل از ارسال سکه، مبلغ و آدرس دریافت کننده را بررسی کنید.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">اینها آدرس های بیت کوین شما برای دریافت هستند. از دکمه "ایجاد آدرس دریافت جدید" در برگه دریافت برای ایجاد آدرس های جدید استفاده کنید.
-امضا فقط با آدرس هایی از نوع "میراث" امکان پذیر است.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;کپی کردن آدرس</translation>
     </message>
@@ -333,22 +327,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>&amp;Change Passphrase…</source>
         <translation type="unfinished">تغییر عبارت عبور</translation>
-    </message>
-    <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">ثبت &amp;پیام</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">پیام‌ها را با آدرس بیت‌کوین خود امضا کنید تا مالکیت آن‌ها را اثبات کنید</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">پیام تایید</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">پیام‌ها را تأیید کنید تا مطمئن شوید که با آدرس‌های بیت‌کوین مشخص‌شده امضا شده‌اند</translation>
     </message>
     <message>
         <source>&amp;Load PSBT from file…</source>
@@ -765,17 +743,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">در حال بارگیری کیف پول…</translation>
     </message>
 </context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Watchonly scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">اسکریپت های Watchonly با موفقیت به کیف پول '%1' منتقل گردیدند.</translation>
-    </message>
-    <message>
-        <source>Solvable but not watched scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">اسکریپت های قابل حل اما تماشا نشده به کیف پول جدیدی به نام "%1" منتقل شده اند.</translation>
-    </message>
-    </context>
 <context>
     <name>OpenWalletActivity</name>
     <message>
@@ -1539,21 +1506,6 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
 </context>
 <context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>You can sign messages/agreements with your legacy (P2PKH) addresses to prove you can receive bitcoins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation type="unfinished">می‌توانید پیام‌ها/توافق‌نامه‌هایی را با آدرس‌های قدیمی خود (P2PKH) امضا کنید تا ثابت کنید که می‌توانید بیت‌کوین‌های ارسال شده برای آنها را دریافت کنید. مراقب باشید هیچ چیز مبهم یا تصادفی را امضا نکنید، زیرا حملات فیشینگ ممکن است سعی کنند شما را فریب دهند تا با هویت خود آنها را امضا کنید. فقط اظهارات کاملاً مفصلی را که قابل قبول هستند را امضا کنید.</translation>
-    </message>
-    <message>
-        <source>Copy the current signature to the clipboard</source>
-        <translation type="unfinished">امضا کنونی را در حافظه رونوشت کن</translation>
-    </message>
-    <message>
-        <source>The entered address does not refer to a legacy (P2PKH) key. Message signing for SegWit and other non-P2PKH address types is not supported in this version of %1. Please check the address and try again.</source>
-        <translation type="unfinished">آدرسی که وارد شده است به کلید قدیمی (P2PKH) اشاره نمی‌کند. امضای پیام برای آدرس‌های SegWit و سایر آدرس‌های غیر P2PKH در این نسخه %1 پشتیبانی نمی‌شود. لطفاً آدرس را بررسی کرده و دوباره امتحان کنید.</translation>
-    </message>
-    </context>
-<context>
     <name>TransactionDesc</name>
     <message>
         <source>own address</source>
@@ -1660,10 +1612,6 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished">حداکثر وزن تراکنش بسیار کم است، امکان افزودن خروجی تغییر (change output) وجود ندارد</translation>
     </message>
     <message>
-        <source>Option '-checkpoints' is set but checkpoints were removed. This option has no effect.</source>
-        <translation type="unfinished">گزینه '-checkpoints' نهاده شده ولی checkpoint ها پاک شده‌اند. این گزینه کاربردی ندارد.</translation>
-    </message>
-    <message>
         <source>Prune: last wallet synchronisation goes beyond pruned data. You need to -reindex (download the whole blockchain again in case of a pruned node)</source>
         <translation type="unfinished">«هرس‌سازی (Prune): آخرین همگام‌سازی کیف پول فراتر از داده‌های هرس‌شده است. لازم است ‎-reindex‎ را اجرا کنید (در صورت استفاده از نود هرس‌شده، باید کل بلاک‌چین دوباره دانلود شود).»</translation>
     </message>
@@ -1753,26 +1701,6 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished">خطا در خواندن رکورد بعدی از پایگاه داده کیف پول</translation>
     </message>
     <message>
-        <source>Error: Unable to read wallet's best block locator record</source>
-        <translation type="unfinished">خطا: خواندن بهترین سابقه یاب بلوک کیف پول امکان پذیر نیست</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write data to disk for wallet %s</source>
-        <translation type="unfinished">خطا: ناتوان در نوشتن داده روی دیسک برای کیف پول %s</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write solvable wallet best block locator record</source>
-        <translation type="unfinished">خطا: نوشتن بهترین سابقه یاب بلوک کیف پول قابل حل امکان پذیر نیست</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write watchonly wallet best block locator record</source>
-        <translation type="unfinished">خطا: نوشتن بهترین سابقه بلوک یاب کیف پول فقط دیدنی امکان پذیر نیست</translation>
-    </message>
-    <message>
-        <source>Error: database transaction cannot be executed for wallet %s</source>
-        <translation type="unfinished">خطا: تراکنش پایگاه داده را نمی توان برای کیف پول اجرا کرد %s</translation>
-    </message>
-    <message>
         <source>Failed to disconnect block.</source>
         <translation type="unfinished">گسستن بلاک شکست خورد.</translation>
     </message>
@@ -1797,28 +1725,8 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished">تراکنش %s به این کیف پول تعلق ندارد</translation>
     </message>
     <message>
-        <source>Wallet file creation failed: %s</source>
-        <translation type="unfinished">عدم موفقیت در ساخت فایل کیف پول: %s</translation>
-    </message>
-    <message>
         <source>Do you want to rebuild the databases now?</source>
         <translation type="unfinished">آیا اکنون تمایل به بازسازی پایگاه های داده دارید؟</translation>
-    </message>
-    <message>
-        <source>Error: Could not add watchonly tx %s to watchonly wallet</source>
-        <translation type="unfinished">خطا:‌ نشد تراکنش فقط قابل مشاهده %s به کیف پول فقط قابل مشاهده اضافه شود</translation>
-    </message>
-    <message>
-        <source>Error: Could not delete watchonly transactions. </source>
-        <translation type="unfinished">خطا: تراکنش های فقط دیدنی حذف نشد.</translation>
-    </message>
-    <message>
-        <source>Error: Wallet does not exist</source>
-        <translation type="unfinished">خطا: کیف پول وجود ندارد</translation>
-    </message>
-    <message>
-        <source>Error: cannot remove legacy wallet records</source>
-        <translation type="unfinished">خطا: نمیتوان پیشینه کیف پول قدیمی را پاک کرد</translation>
     </message>
     <message>
         <source>Failed to start indexes, shutting down…</source>

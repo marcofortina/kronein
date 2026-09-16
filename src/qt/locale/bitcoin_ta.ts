@@ -58,12 +58,6 @@
         <translation type="unfinished">இவை பணம் அனுப்புவதற்கு உங்களின் பிட்காயின் முகவரிகள். பிட்காயின்களை அனுப்புவதற்கு முன் எப்பொழுதும் தொகையும் பெறுதலையும் சரிபார்க்கவும்.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">பிட்காயின் பெறுவதற்காக உங்கள் முகவரி இவை. புதிய முகவரிகளை உருவாக்க 'புதிய முகவரியை உருவாக்கு' என்ற பட்டனை கிளிக் செய்யவும்.
-கையொப்பமிடுவது 'மரபு' வகையின் முகவரிகளால் மட்டுமே சாத்தியமாகும்.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;காபி முகவரி</translation>
     </message>
@@ -471,18 +465,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">&amp;கடவுச்சொல்லை மாற்றுக…</translation>
     </message>
     <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">உங்கள் பிட்டினின் முகவரியுடன் செய்திகளை உங்களிடம் வைத்திருப்பதை நிரூபிக்க</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;செய்தியை சரிபார்க்கவும்...</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">குறிப்பிடப்பட்ட விக்கிபீடியா முகவர்களுடன் கையொப்பமிடப்பட்டதை உறுதிப்படுத்த, செய்திகளை சரிபார்க்கவும்</translation>
-    </message>
-    <message>
         <source>Open &amp;URI…</source>
         <translation type="unfinished">திறந்த &amp;URI...</translation>
     </message>
@@ -862,14 +844,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Create wallet warning</source>
         <translation type="unfinished">வாலட் உருவாக்கம் எச்சரிக்கை</translation>
-    </message>
-    </context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">பணப்பையை மீட்டெடுக்க</translation>
     </message>
     </context>
 <context>
@@ -2319,129 +2293,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     </context>
 <context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Signatures - Sign / Verify a Message</source>
-        <translation type="unfinished">கையொப்பங்கள் - ஒரு செய்தியை கையொப்பமிடுதல் / சரிபார்த்தல்</translation>
-    </message>
-    <message>
-        <source>&amp;Sign Message</source>
-        <translation type="unfinished">&amp;செய்தியை கையொப்பமிடுங்கள்</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address to sign the message with</source>
-        <translation type="unfinished">செய்தியை கையொப்பமிட பிட்காயின் முகவரி</translation>
-    </message>
-    <message>
-        <source>Choose previously used address</source>
-        <translation type="unfinished">முன்பு பயன்படுத்திய முகவரியைத் தேர்வுசெய்</translation>
-    </message>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">கிளிப்போர்டிலிருந்து முகவரியை பேஸ்ட் செய்யவும்</translation>
-    </message>
-    <message>
-        <source>Enter the message you want to sign here</source>
-        <translation type="unfinished">நீங்கள் கையொப்பமிட வேண்டிய செய்தியை இங்கே உள்ளிடவும்</translation>
-    </message>
-    <message>
-        <source>Signature</source>
-        <translation type="unfinished">கையொப்பம்</translation>
-    </message>
-    <message>
-        <source>Sign the message to prove you own this Bitcoin address</source>
-        <translation type="unfinished">இந்த பிட்காயின் முகவரி உங்களுக்கு சொந்தமானது என்பதை நிரூபிக்க செய்தியை கையொப்பமிடுங்கள்</translation>
-    </message>
-    <message>
-        <source>Sign &amp;Message</source>
-        <translation type="unfinished">கையொப்பம் &amp;செய்தி</translation>
-    </message>
-    <message>
-        <source>Reset all sign message fields</source>
-        <translation type="unfinished">எல்லா கையொப்ப செய்தி உள்ளீடுகளை ரீசெட் செய்யவும்</translation>
-    </message>
-    <message>
-        <source>Clear &amp;All</source>
-        <translation type="unfinished">அழி &amp;அனைத்து</translation>
-    </message>
-    <message>
-        <source>&amp;Verify Message</source>
-        <translation type="unfinished">&amp;செய்தியைச் சரிபார்க்கவும்</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address the message was signed with</source>
-        <translation type="unfinished">செய்தி கையொப்பமிடப்பட்ட பிட்காயின் முகவரி</translation>
-    </message>
-    <message>
-        <source>The signed message to verify</source>
-        <translation type="unfinished">சரிபார்க்க கையொப்பமிடப்பட்ட செய்தி</translation>
-    </message>
-    <message>
-        <source>Verify the message to ensure it was signed with the specified Bitcoin address</source>
-        <translation type="unfinished">குறிப்பிட்ட பிட்காயின் முகவரியுடன் கையொப்பமிடப்பட்டதா என்பதை உறுதிப்படுத்த இந்த செய்தியைச் சரிபார்க்கவும்</translation>
-    </message>
-    <message>
-        <source>Verify &amp;Message</source>
-        <translation type="unfinished">சரிபார்க்கவும் &amp;செய்தி</translation>
-    </message>
-    <message>
-        <source>Reset all verify message fields</source>
-        <translation type="unfinished">எல்லா செய்தியை சரிபார்க்கும் உள்ளீடுகளை ரீசெட் செய்யவும்</translation>
-    </message>
-    <message>
-        <source>Click "Sign Message" to generate signature</source>
-        <translation type="unfinished">கையொப்பத்தை உருவாக்க "செய்தியை கையொப்பமிடு" என்பதை கிளிக் செய்யவும்</translation>
-    </message>
-    <message>
-        <source>The entered address is invalid.</source>
-        <translation type="unfinished">உள்ளிட்ட முகவரி தவறானது.</translation>
-    </message>
-    <message>
-        <source>Please check the address and try again.</source>
-        <translation type="unfinished">முகவரியைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்.</translation>
-    </message>
-    <message>
-        <source>Wallet unlock was cancelled.</source>
-        <translation type="unfinished">வாலட் திறத்தல் ரத்து செய்யப்பட்டது.</translation>
-    </message>
-    <message>
-        <source>No error</source>
-        <translation type="unfinished">தவறு எதுவுமில்லை</translation>
-    </message>
-    <message>
-        <source>Private key for the entered address is not available.</source>
-        <translation type="unfinished">உள்ளிட்ட முகவரிக்கான ப்ரைவேட் கீ கிடைக்கவில்லை.</translation>
-    </message>
-    <message>
-        <source>Message signing failed.</source>
-        <translation type="unfinished">செய்தியை கையொப்பமிடுதல் தோல்வியுற்றது.</translation>
-    </message>
-    <message>
-        <source>Message signed.</source>
-        <translation type="unfinished">செய்தி கையொப்பமிடப்பட்டது.</translation>
-    </message>
-    <message>
-        <source>The signature could not be decoded.</source>
-        <translation type="unfinished">கையொப்பத்தை டிகோட் செய்ய இயலவில்லை.</translation>
-    </message>
-    <message>
-        <source>Please check the signature and try again.</source>
-        <translation type="unfinished">கையொப்பத்தை சரிபார்த்து மீண்டும் முயற்சிக்கவும்.</translation>
-    </message>
-    <message>
-        <source>The signature did not match the message digest.</source>
-        <translation type="unfinished">கையொப்பம் செய்தியுடன் பொருந்தவில்லை.</translation>
-    </message>
-    <message>
-        <source>Message verification failed.</source>
-        <translation type="unfinished">செய்தி சரிபார்ப்பு தோல்வியுற்றது.</translation>
-    </message>
-    <message>
-        <source>Message verified.</source>
-        <translation type="unfinished">செய்தி சரிபார்க்கப்பட்டது.</translation>
-    </message>
-</context>
-<context>
     <name>SplashScreen</name>
     <message>
         <source>press q to shutdown</source>
@@ -3103,14 +2954,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Unable to start HTTP server. See debug log for details.</source>
         <translation type="unfinished">HTTP சேவையகத்தைத் தொடங்க முடியவில்லை. விவரங்களுக்கு debug.log ஐ பார்க்கவும்.</translation>
-    </message>
-    <message>
-        <source>Unknown address type '%s'</source>
-        <translation type="unfinished">தெரியாத முகவரி வகை '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown change type '%s'</source>
-        <translation type="unfinished">தெரியாத மாற்று வகை '%s'</translation>
     </message>
     <message>
         <source>Wallet needed to be rewritten: restart %s to complete</source>

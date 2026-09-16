@@ -629,14 +629,6 @@
     </message>
     </context>
 <context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">පසුම්බිය ප්‍රතිස්ථාපනය කිරීම</translation>
-    </message>
-    </context>
-<context>
     <name>OpenWalletActivity</name>
     <message>
         <source>Open Wallet</source>
@@ -1066,13 +1058,6 @@
     </message>
 </context>
 <context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Signature</source>
-        <translation type="unfinished">අත්සන</translation>
-    </message>
-    </context>
-<context>
     <name>TrafficGraphWidget</name>
     <message>
         <source>kB/s</source>
@@ -1297,10 +1282,6 @@
         <translation type="unfinished">%s පූරණය වීමේ දෝෂයකි</translation>
     </message>
     <message>
-        <source>Error: Unable to make a backup of your wallet</source>
-        <translation type="unfinished">දෝෂය: ඔබගේ පසුම්බිය ප්‍රතිස්ථාපනය කල නොහැකි විය.</translation>
-    </message>
-    <message>
         <source>Loading wallet…</source>
         <translation type="unfinished">පසුම්බිය පූරණය වෙමින්…</translation>
     </message>
@@ -1311,10 +1292,6 @@
     <message>
         <source>This is experimental software.</source>
         <translation type="unfinished">මෙය පර්යේෂණාත්මක මෘදුකාංගයකි.</translation>
-    </message>
-    <message>
-        <source>Unknown address type '%s'</source>
-        <translation type="unfinished">'%s' නොදන්නා ලිපින වර්ගයකි</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

@@ -58,12 +58,6 @@
         <translation type="unfinished">V&amp;alitse</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">Nämä ovat Bitcoin-osoitteesi maksujen vastaanottoa varten. Käytä painiketta "Luo uusi vastaanotto-osoite" vastaanottovälilehdessä luodaksesi uusia osoitteita.
-Allekirjoitus on mahdollista vain 'legacy'-tyyppisillä osoitteilla.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;Kopioi osoite</translation>
     </message>
@@ -538,22 +532,6 @@ Allekirjoitus on mahdollista vain 'legacy'-tyyppisillä osoitteilla.</translatio
         <translation type="unfinished">&amp;Vaihda salalauseke...</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">Allekirjoita &amp;viesti...</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Allekirjoita viestisi omalla Bitcoin -osoitteellasi todistaaksesi, että omistat ne</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;Varmenna viesti...</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">Varmista, että viestisi on allekirjoitettu määritetyllä Bitcoin -osoitteella</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">&amp;Lataa PSBT tiedostosta...</translation>
     </message>
@@ -723,14 +701,6 @@ Allekirjoitus on mahdollista vain 'legacy'-tyyppisillä osoitteilla.</translatio
         <translation type="unfinished">Sulje kaikki lompakot</translation>
     </message>
     <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Siirrä lompakko</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">Siirrä lompakko</translation>
-    </message>
-    <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
         <translation type="unfinished">Näytä %1 ohjeet saadaksesi listan mahdollisista Bitcoinin komentorivivalinnoista</translation>
     </message>
@@ -773,15 +743,6 @@ Allekirjoitus on mahdollista vain 'legacy'-tyyppisillä osoitteilla.</translatio
     <message>
         <source>Wallet name cannot be empty</source>
         <translation type="unfinished">Lompakon nimeä ei voi jättää tyhjäksi</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet Backup</source>
-        <translation type="unfinished">Palauta ja siirrä lompakon varmuuskopio</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet</source>
-        <extracomment>Title of pop-up window shown when the user is attempting to restore a wallet.</extracomment>
-        <translation type="unfinished">Palauta ja siirrä lompakko</translation>
     </message>
     <message>
         <source>&amp;Window</source>
@@ -1098,75 +1059,6 @@ Allekirjoitus on mahdollista vain 'legacy'-tyyppisillä osoitteilla.</translatio
         <source>Loading wallets…</source>
         <extracomment>Descriptive text of the load wallets progress window which indicates to the user that wallets are currently being loaded.</extracomment>
         <translation type="unfinished">Ladataan lompakoita...</translation>
-    </message>
-</context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate wallet</source>
-        <translation type="unfinished">Siirrä lompakko</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to migrate the wallet &lt;i&gt;%1&lt;/i&gt;?</source>
-        <translation type="unfinished">Oletko varma, että haluat siirtää lompakon &lt;i&gt;%1&lt;/i&gt;?</translation>
-    </message>
-    <message>
-        <source>Migrating the wallet will convert this wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">Lompakon siirtäminen muuntaa tämän lompakon yhdeksi tai useammaksi kuvailluksi lompakoksi. Uusi lompakon varmuuskopio on tehtävä.
-Jos tämä lompakko sisältää vain katseltavia skriptejä, luodaan uusi lompakko, joka sisältää nämä katseltavat skriptit.
-Jos tämä lompakko sisältää ratkaistavia mutta ei katsottuja skriptejä, luodaan eri ja uusi lompakko, joka sisältää nämä skriptit.
-
-Siirtoprosessi luo varmuuskopion lompakosta ennen siirtoa. Tämä varmuuskopiotiedosto nimetään &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak ja se löytyy tämän lompakon hakemistosta. Virheellisen siirron sattuessa varmuuskopio voidaan palauttaa "Palauta lompakko" -toiminnolla.</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Siirrä lompakko</translation>
-    </message>
-    <message>
-        <source>Migrating Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <translation type="unfinished">Siirretään lompakkoa &lt;b&gt;%1&lt;/b&gt;...</translation>
-    </message>
-    <message>
-        <source>The wallet '%1' was migrated successfully.</source>
-        <translation type="unfinished">Lompakko '%1' siirrettiin onnistuneesti.</translation>
-    </message>
-    <message>
-        <source>Watchonly scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Pelkästään katseltavissa olevat skriptit on siirretty uuteen lompakkoon nimeltä '%1'.</translation>
-    </message>
-    <message>
-        <source>Solvable but not watched scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Ratkaistavat mutta ei katsotut skriptit on siirretty uuteen lompakkoon nimeltä '%1'.</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate wallet</source>
-        <translation type="unfinished">Palauta ja siirrä lompakko</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to restore the wallet file &lt;i&gt;%1&lt;/i&gt; to &lt;i&gt;%2&lt;/i&gt; and migrate it?</source>
-        <translation type="unfinished">Haluatko varmasti palauttaa lompakon &lt;i&gt;%1&lt;/i&gt; kohteeseen &lt;i&gt;%2&lt;/i&gt; ja siirtää sen?</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">Palauta lompakko</translation>
-    </message>
-    <message>
-        <source>Restoring Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <extracomment>Descriptive text of the restore wallets progress window which indicates to the user that wallets are currently being restored.</extracomment>
-        <translation type="unfinished">Lompakon palautus&lt;b&gt;%1&lt;/b&gt;…</translation>
-    </message>
-    <message>
-        <source>Migration failed</source>
-        <translation type="unfinished">Siirto epäonnistui</translation>
-    </message>
-    <message>
-        <source>Migration Successful</source>
-        <translation type="unfinished">Siirto onnistui</translation>
     </message>
 </context>
 <context>
@@ -2819,33 +2711,8 @@ Lisätietoja konsolin käytöstä saat kirjoittamalla %6.
         <translation type="unfinished">Kopioi &amp;määrä</translation>
     </message>
     <message>
-        <source>Base58 (Legacy)</source>
-        <translation type="unfinished">Base58 (Vanha)</translation>
-    </message>
-    <message>
-        <source>Not recommended due to higher fees and less protection against typos.</source>
-        <translation type="unfinished">Ei suositella korkeampien maksujen ja heikomman suojan kirjoitusvirheitä vastaan.</translation>
-    </message>
-    <message>
-        <source>Generates an address compatible with older wallets.</source>
-        <translation type="unfinished">Luo osoitteen, joka on yhteensopiva vanhempien lompakoiden kanssa.</translation>
-    </message>
-    <message>
-        <source>Generates a native segwit address (BIP-173). Some old wallets don't support it.</source>
-        <translation type="unfinished"> 
-Luo natiivin segwit-osoitteen (BIP-173). Jotkin vanhat lompakot eivät tue sitä.</translation>
-    </message>
-    <message>
-        <source>Bech32m (BIP-350) is an upgrade to Bech32, wallet support is still limited.</source>
-        <translation type="unfinished">Bech32m (BIP-350) on päivitys Bech32, mutta lompakkojen tuki on edelleen rajallinen.</translation>
-    </message>
-    <message>
         <source>Could not unlock wallet.</source>
         <translation type="unfinished">Lompakkoa ei voitu avata.</translation>
-    </message>
-    <message>
-        <source>Could not generate new %1 address</source>
-        <translation type="unfinished">Uutta %1-osoitetta ei voitu luoda</translation>
     </message>
 </context>
 <context>
@@ -3357,141 +3224,6 @@ Huom: Koska maksu lasketaan per tavu, "100 satoshin per kB" maksunopeus 500 virt
     <message>
         <source>Create Unsigned</source>
         <translation type="unfinished">Luo allekirjoittamaton</translation>
-    </message>
-</context>
-<context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Signatures - Sign / Verify a Message</source>
-        <translation type="unfinished">Allekirjoitukset - Allekirjoita / Varmista viesti</translation>
-    </message>
-    <message>
-        <source>&amp;Sign Message</source>
-        <translation type="unfinished">&amp;Allekirjoita viesti</translation>
-    </message>
-    <message>
-        <source>You can sign messages/agreements with your legacy (P2PKH) addresses to prove you can receive bitcoins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation type="unfinished">Voit allekirjoittaa viestejä/sopimuksia vanhojen (P2PKH) osoitteidesi kanssa todistaaksesi, että voit vastaanottaa niihin lähetettyjä bitcoineja. Varo allekirjoittamasta mitään epämääräistä tai satunnaista, sillä phishing-hyökkäykset voivat yrittää huijata sinua allekirjoittamaan henkilöllisyytesi heille. Allekirjoita vain täysin yksityiskohtaiset lausunnot, joihin suostut.</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address to sign the message with</source>
-        <translation type="unfinished">Bitcoin-osoite jolla viesti allekirjoitetaan</translation>
-    </message>
-    <message>
-        <source>Choose previously used address</source>
-        <translation type="unfinished">Valitse aikaisemmin käytetty osoite</translation>
-    </message>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">Liitä osoite leikepöydältä</translation>
-    </message>
-    <message>
-        <source>Enter the message you want to sign here</source>
-        <translation type="unfinished">Kirjoita tähän viesti minkä haluat allekirjoittaa</translation>
-    </message>
-    <message>
-        <source>Signature</source>
-        <translation type="unfinished">Allekirjoitus</translation>
-    </message>
-    <message>
-        <source>Sign the message to prove you own this Bitcoin address</source>
-        <translation type="unfinished">Allekirjoita viesti todistaaksesi, että omistat tämän Bitcoin-osoitteen</translation>
-    </message>
-    <message>
-        <source>Sign &amp;Message</source>
-        <translation type="unfinished">Allekirjoita &amp;viesti</translation>
-    </message>
-    <message>
-        <source>Reset all sign message fields</source>
-        <translation type="unfinished">Tyhjennä kaikki allekirjoita-viesti-kentät</translation>
-    </message>
-    <message>
-        <source>Clear &amp;All</source>
-        <translation type="unfinished">&amp;Tyhjennnä Kaikki</translation>
-    </message>
-    <message>
-        <source>&amp;Verify Message</source>
-        <translation type="unfinished">&amp;Varmista viesti</translation>
-    </message>
-    <message>
-        <source>Enter the receiver's address, message (ensure you copy line breaks, spaces, tabs, etc. exactly) and signature below to verify the message. Be careful not to read more into the signature than what is in the signed message itself, to avoid being tricked by a man-in-the-middle attack. Note that this only proves the signing party receives with the address, it cannot prove sendership of any transaction!</source>
-        <translation type="unfinished">Syötä vastaanottajan osoite, viesti ja allekirjoitus (varmista että kopioit rivinvaihdot, välilyönnit, sarkaimet yms. täsmälleen) alle vahvistaaksesi viestin. Varo lukemasta allekirjoitukseen enempää kuin mitä viestissä itsessään on välttääksesi man-in-the-middle -hyökkäyksiltä. Huomaa, että tämä todentaa ainoastaan allekirjoittavan vastaanottajan osoitteen, tämä ei voi todentaa minkään tapahtuman lähettäjää!</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address the message was signed with</source>
-        <translation type="unfinished">Bitcoin-osoite jolla viesti on allekirjoitettu</translation>
-    </message>
-    <message>
-        <source>The signed message to verify</source>
-        <translation type="unfinished">Allekirjoitettu viesti vahvistettavaksi</translation>
-    </message>
-    <message>
-        <source>The signature given when the message was signed</source>
-        <translation type="unfinished">Viestin allekirjoittamisen yhteydessä annettu allekirjoitus</translation>
-    </message>
-    <message>
-        <source>Verify the message to ensure it was signed with the specified Bitcoin address</source>
-        <translation type="unfinished">Tarkista viestin allekirjoitus varmistaaksesi, että se allekirjoitettiin tietyllä Bitcoin-osoitteella</translation>
-    </message>
-    <message>
-        <source>Verify &amp;Message</source>
-        <translation type="unfinished">Varmista &amp;viesti...</translation>
-    </message>
-    <message>
-        <source>Reset all verify message fields</source>
-        <translation type="unfinished">Tyhjennä kaikki varmista-viesti-kentät</translation>
-    </message>
-    <message>
-        <source>Click "Sign Message" to generate signature</source>
-        <translation type="unfinished">Valitse "Allekirjoita Viesti" luodaksesi allekirjoituksen.</translation>
-    </message>
-    <message>
-        <source>The entered address is invalid.</source>
-        <translation type="unfinished">Syötetty osoite on virheellinen.</translation>
-    </message>
-    <message>
-        <source>Please check the address and try again.</source>
-        <translation type="unfinished">Tarkista osoite ja yritä uudelleen.</translation>
-    </message>
-    <message>
-        <source>Wallet unlock was cancelled.</source>
-        <translation type="unfinished">Lompakon avaaminen peruttiin.</translation>
-    </message>
-    <message>
-        <source>No error</source>
-        <translation type="unfinished">Ei virhettä</translation>
-    </message>
-    <message>
-        <source>Private key for the entered address is not available.</source>
-        <translation type="unfinished">Yksityistä avainta syötetylle osoitteelle ei ole saatavilla.</translation>
-    </message>
-    <message>
-        <source>Message signing failed.</source>
-        <translation type="unfinished">Viestin allekirjoitus epäonnistui.</translation>
-    </message>
-    <message>
-        <source>Message signed.</source>
-        <translation type="unfinished">Viesti allekirjoitettu.</translation>
-    </message>
-    <message>
-        <source>The signature could not be decoded.</source>
-        <translation type="unfinished">Allekirjoitusta ei pystytty tulkitsemaan.</translation>
-    </message>
-    <message>
-        <source>Please check the signature and try again.</source>
-        <translation type="unfinished">Tarkista allekirjoitus ja yritä uudelleen.</translation>
-    </message>
-    <message>
-        <source>The signature did not match the message digest.</source>
-        <translation type="unfinished">Allekirjoitus ei täsmää viestin tiivisteeseen.</translation>
-    </message>
-    <message>
-        <source>Message verification failed.</source>
-        <translation type="unfinished">Viestin varmistus epäonnistui.</translation>
-    </message>
-    <message>
-        <source>Message verified.</source>
-        <translation type="unfinished">Viesti varmistettu.</translation>
     </message>
 </context>
 <context>
@@ -4088,10 +3820,6 @@ ilman, että käytetään mitään snapshot-tietoja. Ilmoita tästä tapauksesta
         <translation type="unfinished">Jaettu MIT -ohjelmistolisenssin alaisuudessa, katso mukana tuleva %s tiedosto tai %s</translation>
     </message>
     <message>
-        <source>Error: Dumpfile version is not supported. This version of bitcoin-wallet only supports version 1 dumpfiles. Got dumpfile with version %s</source>
-        <translation type="unfinished">Virhe: Dump-tiedoston versio ei ole tuettu. Tämä bitcoin-lompakon versio tukee vain version 1 dump-tiedostoja. Annetun dump-tiedoston versio %s</translation>
-    </message>
-    <message>
         <source>More than one onion bind address is provided. Using %s for the automatically created Tor onion service.</source>
         <translation type="unfinished">Useampi onion bind -osoite on tarjottu. Automaattisesti luotua Torin onion-palvelua varten käytetään %s.</translation>
     </message>
@@ -4162,18 +3890,6 @@ ilman, että käytetään mitään snapshot-tietoja. Ilmoita tästä tapauksesta
     <message>
         <source>Cannot set -peerblockfilters without -blockfilterindex.</source>
         <translation type="unfinished">-peerblockfiltersiä ei voida asettaa ilman -blockfilterindexiä.</translation>
-    </message>
-    <message>
-        <source>
-Unable to cleanup failed migration</source>
-        <translation type="unfinished">
-Epäonnistuneen migraation siivoaminen epäonnistui</translation>
-    </message>
-    <message>
-        <source>
-Unable to restore backup of wallet.</source>
-        <translation type="unfinished">
-Ei voinut palauttaa lompakon varmuuskopiota..</translation>
     </message>
     <message>
         <source>default wallet</source>
@@ -4274,18 +3990,6 @@ Ei voinut palauttaa lompakon varmuuskopiota..</translation>
     <message>
         <source>Error: No %s addresses available.</source>
         <translation type="unfinished">Virhe: Ei %s osoitteita saatavilla.</translation>
-    </message>
-    <message>
-        <source>Error: This wallet already uses SQLite</source>
-        <translation type="unfinished">Virhe: Tämä lompakko käyttää jo SQLite:ä</translation>
-    </message>
-    <message>
-        <source>Error: Unable to make a backup of your wallet</source>
-        <translation type="unfinished">Virhe: Lompakon varmuuskopion luominen epäonnistui</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read all records in the database</source>
-        <translation type="unfinished">Virhe: Kaikkien tietueiden lukeminen tietokannasta ei onnistunut</translation>
     </message>
     <message>
         <source>Error: Unable to write record to new wallet</source>
@@ -4564,24 +4268,8 @@ Ei voinut palauttaa lompakon varmuuskopiota..</translation>
         <translation type="unfinished">Tuntematon -lohkosuodatusindeksiarvo %s.</translation>
     </message>
     <message>
-        <source>Unknown address type '%s'</source>
-        <translation type="unfinished">Tuntematon osoitetyyppi '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown change type '%s'</source>
-        <translation type="unfinished">Tuntematon vaihtorahatyyppi '%s'</translation>
-    </message>
-    <message>
         <source>Unknown network specified in -onlynet: '%s'</source>
         <translation type="unfinished">Tuntematon verkko -onlynet parametrina: '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown new rules activated (versionbit %i)</source>
-        <translation type="unfinished">Tuntemattomia uusia sääntöjä aktivoitu (versiobitti %i)</translation>
-    </message>
-    <message>
-        <source>Wallet file creation failed: %s</source>
-        <translation type="unfinished">Lompakon luominen epäonnistui: %s</translation>
     </message>
     <message>
         <source>acceptstalefeeestimates is not supported on %s chain.</source>

@@ -319,14 +319,6 @@
         <translation type="unfinished">Зашыфраваць прыватныя ключы, якия належаць вашаму гаманцу</translation>
     </message>
     <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Падпісаць паведамленне з дапамогай Біткойн-адраса каб даказаць, што яно належыць вам</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">Спраўдзіць паведамленне з дапамогай Біткойн-адраса каб даказаць, што яно належыць вам</translation>
-    </message>
-    <message>
         <source>&amp;File</source>
         <translation type="unfinished">Ф&amp;айл</translation>
     </message>
@@ -870,13 +862,6 @@
     <message>
         <source>Message:</source>
         <translation type="unfinished">Паведамленне:</translation>
-    </message>
-    </context>
-<context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">Уставіць адрас з буферу абмена</translation>
     </message>
     </context>
 <context>

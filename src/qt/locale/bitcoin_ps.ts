@@ -58,12 +58,6 @@
         <translation type="unfinished">دا ستاسو د Bitcoin پتې دي د تادیاتو لپاره. تل د سکې لیږلو مخکې اندازه او د ترلاسه کوونکي پته وګورئ.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">دا ستاسو د بټکوین پته ده د تادیاتو ترلاسه کولو لپاره. د 'نوې ترلاسه کولو پته جوړه کړئ' تڼۍ په ترلاسه کولو ټب کې وکاروئ ترڅو نوي پته جوړ کړئ.
-لاسلیک یوازې د 'لیګسي' ډول پتو سره ممکن دی.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;او د پته کاپي</translation>
     </message>
@@ -469,22 +463,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">&amp;د پاسفریز بدلول…</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">لاسلیک او پیغام…</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">د خپلو بټ کوین پتې سره پیغامونه لاسلیک کړئ ترڅو دا ثابت کړئ چې تاسو یې لرئ</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;پیغام تایید کړئ…</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">پیغامونه تصدیق کړئ ترڅو ډاډ ترلاسه کړئ چې دوی د ټاکل شوو بټ کوین پته سره لاسلیک شوي دي</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">د فایل څخه PSBT بار کړئ…</translation>
     </message>
@@ -656,14 +634,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Close all wallets</source>
         <translation type="unfinished">ټولې بټوه بندې کړئ</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">والټ لیږدول</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">والټ لېږدول</translation>
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
@@ -1020,67 +990,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <source>Loading wallets…</source>
         <extracomment>Descriptive text of the load wallets progress window which indicates to the user that wallets are currently being loaded.</extracomment>
         <translation type="unfinished">والټونه لوډ کیږي…</translation>
-    </message>
-</context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate wallet</source>
-        <translation type="unfinished">د والټ انتقال</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to migrate the wallet &lt;i&gt;%1&lt;/i&gt;?</source>
-        <translation type="unfinished">آیا تاسو ډاډه یاست چې غواړئ والټ انتقال کړئ؟ &lt;i&gt;%1&lt;/i&gt;?</translation>
-    </message>
-    <message>
-        <source>Migrating the wallet will convert this wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">د والیټ کډوالۍ به دا والیټ یو یا زیات ډیسکرپټر والیټونو ته بدل کړي. یوه نوې والیټ بیک اپ باید جوړ شي."
-که چیرې دې بټوالټ کې کوم یوازې کتل کیدونکي سکریپټونه شامل وي، نو یو نوی بټوالټ به جوړ شي چې دغه یوازې کتل کیدونکي سکریپټونه پکې شامل وي
-که دې والټ کې کوم حل کیدونکي خو نه کتل شوي سکریپټونه شامل وي، نو یو بل او نوی والټ به جوړ شي چې هغه سکریپټونه پکې شامل وي."
-که دې والټ کې کوم حل کیدونکي خو نه کتل شوي سکریپټونه شامل وي، نو یو بل او نوی والټ به جوړ شي چې هغه سکریپټونه پکې شامل وي."
- &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak او دا د دې والټ لپاره په ډایرکټري کې موندل کیدی شي که چیرې مهاجرت ناسم ترسره شي، بیک اپ کولی شي د 'والټ بیا رغولو' فعالیت سره بېرته بحال شي."</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">والټ لیږدول</translation>
-    </message>
-    <message>
-        <source>Migrating Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <translation type="unfinished">د والټ لیږدول" &lt;b&gt;%1&lt;/b&gt;…</translation>
-    </message>
-    <message>
-        <source>The wallet '%1' was migrated successfully.</source>
-        <translation type="unfinished">والټ '%1' په بریالیتوب سره لیږدول شو.</translation>
-    </message>
-    <message>
-        <source>Watchonly scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">فقط کتل کیدونکي سکریپټونه د '%1' په نوم نوي والټ ته انتقال شوي دي."</translation>
-    </message>
-    <message>
-        <source>Solvable but not watched scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">حل کیدونکي خو نه لیدل شوي سکریپټونه یوې نوې بکسې ته انتقال شوي چې نوم یې '%1' دی."</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">والټ بېرته راګرځول</translation>
-    </message>
-    <message>
-        <source>Restoring Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <extracomment>Descriptive text of the restore wallets progress window which indicates to the user that wallets are currently being restored.</extracomment>
-        <translation type="unfinished">"والټ بیا راګرځول ..&lt;b&gt;%1&lt;/b&gt;…</translation>
-    </message>
-    <message>
-        <source>Migration failed</source>
-        <translation type="unfinished">هجرت ناکام شو</translation>
-    </message>
-    <message>
-        <source>Migration Successful</source>
-        <translation type="unfinished">انتقال بریالی شو</translation>
     </message>
 </context>
 <context>
@@ -1796,13 +1705,6 @@ The migration process will create a backup of the wallet before migrating. This 
 </context>
 <context>
     <name>SendCoinsEntry</name>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">د کلیپ بورډ څخه پته پیسټ کړئ</translation>
-    </message>
-    </context>
-<context>
-    <name>SignVerifyMessageDialog</name>
     <message>
         <source>Paste address from clipboard</source>
         <translation type="unfinished">د کلیپ بورډ څخه پته پیسټ کړئ</translation>

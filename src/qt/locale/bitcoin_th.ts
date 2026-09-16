@@ -58,11 +58,6 @@
         <translation type="unfinished">นี่คือลิงก์ที่อยู่ Bitcoin ของคุณสำหรับการส่งการชำระเงิน ควรตรวจสอบจำนวนเงินและที่อยู่ผู้รับก่อนการส่งเหรียญ</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">นี่คือที่อยู่บิตคอยน์ของคุณสำหรับรับการชำระเงิน ใช้ปุ่ม 'สร้างที่อยู่รับใหม่' ในแท็บรับเพื่อสร้างที่อยู่ใหม่ การลงนามทำได้เฉพาะกับที่อยู่ประเภท 'legacy'</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">ที่อยู่</translation>
     </message>
@@ -586,22 +581,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">เปลี่ยนรหัสผ่าน...</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">ป้าย &amp; ข้อความ…</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">ลงนามข้อความด้วยที่อยู่ Bitcoin ของคุณเพื่อพิสูจน์ว่าคุณเป็นเจ้าของ</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">ตรวจสอบข้อความ...</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">ตรวจสอบข้อความเพื่อให้แน่ใจว่าข้อความเหล่านั้นได้รับการลงชื่อด้วยที่อยู่ Bitcoin ที่ระบุไว้</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished"> &amp;โหลด PSBT จากไฟล์…</translation>
     </message>
@@ -760,14 +739,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Close all wallets</source>
         <translation type="unfinished">ปิดกระเป๋าทั้งหมด</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">ย้ายกระเป๋าเงิน</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">ย้ายกระเป๋าเงิน</translation>
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
@@ -1021,46 +992,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <source>Loading wallets…</source>
         <extracomment>Descriptive text of the load wallets progress window which indicates to the user that wallets are currently being loaded.</extracomment>
         <translation type="unfinished">กำลังโหลดกระเป๋าเงิน…</translation>
-    </message>
-</context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate wallet</source>
-        <translation type="unfinished">ย้ายกระเป๋าเงิน</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">ย้ายกระเป๋าเงิน</translation>
-    </message>
-    <message>
-        <source>Migrating Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <translation type="unfinished">กำลังย้ายกระเป๋าเงิน &lt;b&gt;%1&lt;/b&gt;…</translation>
-    </message>
-    <message>
-        <source>The wallet '%1' was migrated successfully.</source>
-        <translation type="unfinished">กระเป๋าเงิน '%1' ถูกย้ายเรียบร้อยแล้ว</translation>
-    </message>
-    <message>
-        <source>Watchonly scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">สคริปต์แบบดูเฉยๆ ถูกย้ายไปยังกระเป๋าใหม่ที่ชื่อว่า '%1'</translation>
-    </message>
-    <message>
-        <source>Solvable but not watched scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">สคริปต์ที่สามารถแก้ไขได้แต่ไม่ได้ติดตามได้ถูกย้ายไปยังกระเป๋าใหม่ที่ชื่อว่า '%1'</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">กู้กระเป๋าเงิน</translation>
-    </message>
-    <message>
-        <source>Migration failed</source>
-        <translation type="unfinished">การย้ายล้มเหลว</translation>
-    </message>
-    <message>
-        <source>Migration Successful</source>
-        <translation type="unfinished">การย้ายสำเร็จ</translation>
     </message>
 </context>
 <context>
@@ -2463,13 +2394,6 @@ If you are receiving this error you should request the merchant provide a BIP21 
 </context>
 <context>
     <name>SendCoinsEntry</name>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">วางที่อยู่จากคลิปบอร์ด</translation>
-    </message>
-    </context>
-<context>
-    <name>SignVerifyMessageDialog</name>
     <message>
         <source>Paste address from clipboard</source>
         <translation type="unfinished">วางที่อยู่จากคลิปบอร์ด</translation>

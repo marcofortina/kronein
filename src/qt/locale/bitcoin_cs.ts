@@ -58,11 +58,6 @@
         <translation type="unfinished">Tohle jsou tvé bitcoinové adresy pro posílání plateb. Před odesláním mincí si vždy zkontroluj částku a cílovou adresu.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">Tohle jsou tvé bitcoinové adresy pro přijetí plateb. Použij "Vytvoř novou přijimací adresu" pro vytvoření nových adres. Přihlašování je povoleno jen s adresami typu "Legacy"</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;Kopírovat Adresu</translation>
     </message>
@@ -495,22 +490,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">&amp;Změnit heslo...</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">Podepiš &amp;zprávu...</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Podepiš zprávy svými bitcoinovými adresami, čímž prokážeš, že jsi jejich vlastníkem</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;Ověř zprávu...</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">Ověř zprávy, aby ses ujistil, že byly podepsány danými bitcoinovými adresami</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">&amp;Načíst PSBT ze souboru...</translation>
     </message>
@@ -529,10 +508,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Close All Wallets…</source>
         <translation type="unfinished">Zavřít všechny peněženky...</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet File…</source>
-        <translation type="unfinished">Obnovení a migrace souboru peněženky...</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -681,14 +656,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">Zavřít všechny peněženky</translation>
     </message>
     <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Migrace peněženky</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">Migrace peněženky</translation>
-    </message>
-    <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
         <translation type="unfinished">Seznam argumentů Bitcoinu pro příkazovou řádku získáš v nápovědě %1</translation>
     </message>
@@ -731,15 +698,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Wallet name cannot be empty</source>
         <translation type="unfinished">Název peněženky nemůže být prázdný</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet Backup</source>
-        <translation type="unfinished">Obnovení a migrace zálohy peněženky</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet</source>
-        <extracomment>Title of pop-up window shown when the user is attempting to restore a wallet.</extracomment>
-        <translation type="unfinished">Obnovení a migrace peněženky</translation>
     </message>
     <message>
         <source>&amp;Window</source>
@@ -1053,91 +1011,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <source>Loading wallets…</source>
         <extracomment>Descriptive text of the load wallets progress window which indicates to the user that wallets are currently being loaded.</extracomment>
         <translation type="unfinished">Načítám peněženky...</translation>
-    </message>
-</context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate wallet</source>
-        <translation type="unfinished">Migrace peněženky</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to migrate the wallet &lt;i&gt;%1&lt;/i&gt;?</source>
-        <translation type="unfinished">Opravdu chcete migrovat peněženku &lt;i&gt;%1&lt;/i&gt;?</translation>
-    </message>
-    <message>
-        <source>Migrating the wallet will convert this wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">Migrace peněženky ji převede na jednu nebo více deskriptorových peněženek. Bude třeba vytvořit novou zálohu peněženky.
-Pokud tato peněženka obsahuje jakékoli skripty určené pouze ke sledování, bude vytvořena nová peněženka, která bude tyto skripty obsahovat.
-Pokud tato peněženka obsahuje jakékoli řešitelné, ale nesledované skripty, bude vytvořena další nová peněženka, která bude tyto skripty obsahovat.
-
-Proces migrace vytvoří zálohu peněženky před samotnou migrací. Tento záložní soubor se bude jmenovat &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak a bude umístěn v adresáři této peněženky. V případě chybné migrace lze zálohu obnovit pomocí funkce "Obnovit peněženku".</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Migrace peněženky</translation>
-    </message>
-    <message>
-        <source>Migrating Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <translation type="unfinished">Migruji peněženku &lt;b&gt;%1&lt;/b&gt;…</translation>
-    </message>
-    <message>
-        <source>The wallet '%1' was migrated successfully.</source>
-        <translation type="unfinished">Migrace peněženky '%1' byla úspěšná.</translation>
-    </message>
-    <message>
-        <source>Watchonly scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Skripty ke sledování byly migrovány do nové peněženky nazvané '%1'.</translation>
-    </message>
-    <message>
-        <source>Solvable but not watched scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Řešitelné, avšak nesledované skripty byly migrovány do nové peněženky nazvané '%1'.</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate wallet</source>
-        <translation type="unfinished">Obnovení a migrace peněženky</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to restore the wallet file &lt;i&gt;%1&lt;/i&gt; to &lt;i&gt;%2&lt;/i&gt; and migrate it?</source>
-        <translation type="unfinished">Opravdu chcete obnovit soubor peněženky &lt;i&gt;%1&lt;/i&gt; do &lt;i&gt;%2&lt;/i&gt; a migrovat jej?</translation>
-    </message>
-    <message>
-        <source>Restoring the wallet will copy the backup file to the wallets directory and place it in the standard wallet directory layout. The original file will not be modified.
-
-Migrating the wallet will convert the restored wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">Obnovení peněženky nakopíruje záložní soubor do jejího adresáře a umístí jej do standardního adresářového stromu. Původní soubor nebude pozměněn.
-
-Migrace peněženky převede obnovenou peněženku na jednu nebo více deskriptorových peněženek. Zároveň bude třeba vytvořit novou zálohu peněženky.
-Pokud obsahuje tato peněženka jakékoliv skripty určené pouze ke sledování, bude vytvořena nová peněženka, která bude tyto skripty obsahovat.
-Pokud tato peněženka obsahuje jakékoli řešitelné, ale nesledované skripty, bude vytvořena další nová peněženka, která bude tyto skripty obsahovat.
-
-Proces migrace vytvoří zálohu peněženky před samotnou migrací. Tento záložní soubor se bude jmenovat &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak a bude umístěn v adresáři této peněženky. V případě chybné migrace lze zálohu obnovit pomocí funkce "Obnovit peněženku".</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">Obnovit peněženku</translation>
-    </message>
-    <message>
-        <source>Restoring Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <extracomment>Descriptive text of the restore wallets progress window which indicates to the user that wallets are currently being restored.</extracomment>
-        <translation type="unfinished">Obnovuji peněženku &lt;b&gt;%1&lt;/b&gt; ...</translation>
-    </message>
-    <message>
-        <source>Migration failed</source>
-        <translation type="unfinished">Migrace se nezdařila</translation>
-    </message>
-    <message>
-        <source>Migration Successful</source>
-        <translation type="unfinished">Migrace byla úspěšná</translation>
     </message>
 </context>
 <context>
@@ -2342,32 +2215,8 @@ For more information on using this console, type %6.
         <translation type="unfinished">Zkopírovat &amp;částku</translation>
     </message>
     <message>
-        <source>Base58 (Legacy)</source>
-        <translation type="unfinished">Base58 (Zastaralé)</translation>
-    </message>
-    <message>
-        <source>Not recommended due to higher fees and less protection against typos.</source>
-        <translation type="unfinished">Není doporučeno kvůli vyšším poplatků a menší ochranou proti překlepům.</translation>
-    </message>
-    <message>
-        <source>Generates an address compatible with older wallets.</source>
-        <translation type="unfinished">Generuje adresu kompatibilní se staršími peněženkami.</translation>
-    </message>
-    <message>
-        <source>Generates a native segwit address (BIP-173). Some old wallets don't support it.</source>
-        <translation type="unfinished">Generuje nativní segwit adresu (BIP-173). Některé starší peněženky ji nepodporují.</translation>
-    </message>
-    <message>
-        <source>Bech32m (BIP-350) is an upgrade to Bech32, wallet support is still limited.</source>
-        <translation type="unfinished">Bech32m (BIP-350) je vylepšení Bech32, podpora peněženek je stále omezená.</translation>
-    </message>
-    <message>
         <source>Could not unlock wallet.</source>
         <translation type="unfinished">Nemohu odemknout peněženku.</translation>
-    </message>
-    <message>
-        <source>Could not generate new %1 address</source>
-        <translation type="unfinished">Nelze vygenerovat novou adresu %1</translation>
     </message>
 </context>
 <context>
@@ -2775,13 +2624,6 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">(bez označení)</translation>
     </message>
 </context>
-<context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Copy the current signature to the clipboard</source>
-        <translation type="unfinished">Zkopírovat aktuální podpis do schránky</translation>
-    </message>
-    </context>
 <context>
     <name>TransactionDesc</name>
     <message>
@@ -3287,20 +3129,8 @@ Ověřuji peněženku.</translation>
         <translation type="unfinished">Chyba při spuštění/ukončení procesu odebrání db txn pro transakce peněženky</translation>
     </message>
     <message>
-        <source>Error: Dumpfile format record is incorrect. Got "%s", expected "format".</source>
-        <translation type="unfinished">Chyba: záznam formátu souboru výpisu je nesprávný. Získáno "%s", očekáváno "format".</translation>
-    </message>
-    <message>
         <source>Error: Dumpfile identifier record is incorrect. Got "%s", expected "%s".</source>
         <translation type="unfinished">Chyba: záznam identifikátoru souboru výpisu je nesprávný. Získáno "%s", očekáváno "%s".</translation>
-    </message>
-    <message>
-        <source>Error: Dumpfile version is not supported. This version of bitcoin-wallet only supports version 1 dumpfiles. Got dumpfile with version %s</source>
-        <translation type="unfinished">Chyba: verze souboru výpisu není podporována. Tato verze peněženky Bitcoin podporuje pouze soubory výpisu verze 1. Získán soubor výpisu verze %s</translation>
-    </message>
-    <message>
-        <source>Error: Unable to produce descriptors for this legacy wallet. Make sure to provide the wallet's passphrase if it is encrypted.</source>
-        <translation type="unfinished">Chyba: Nelze vytvořit deskriptory pro tuto starší peněženku. Nezapomeňte zadat přístupové heslo peněženky, pokud je šifrované.</translation>
     </message>
     <message>
         <source>File %s already exists. If you are sure this is what you want, move it out of the way first.</source>
@@ -3383,10 +3213,6 @@ Ověřuji peněženku.</translation>
         <translation type="unfinished">Upozornění: Byly zjištěné soukromé klíče v peněžence {%s} se zakázanými soukromými klíči.</translation>
     </message>
     <message>
-        <source>Witness data for blocks after height %d requires validation. Please restart with -reindex.</source>
-        <translation type="unfinished">Svědecká data pro bloky po výšce %d vyžadují ověření.  Restartujte prosím pomocí -reindex.</translation>
-    </message>
-    <message>
         <source>You need to rebuild the database using -reindex to go back to unpruned mode.  This will redownload the entire blockchain</source>
         <translation type="unfinished">K návratu k neprořezávacímu režimu je potřeba přestavět databázi použitím -reindex.  Také se znovu stáhne celý blockchain</translation>
     </message>
@@ -3431,26 +3257,10 @@ Ověřuji peněženku.</translation>
         <translation type="unfinished">Nastala chyba při čtení souboru %s! Všechny klíče se přečetly správně, ale data o transakcích nebo záznamy v adresáři mohou chybět či být nesprávné.</translation>
     </message>
     <message>
-        <source>Error: Address book data in wallet cannot be identified to belong to migrated wallets</source>
-        <translation type="unfinished">Chyba: Data adres v peněžence není možné identifikovat jako data patřící k migrovaným peněženkám.</translation>
-    </message>
-    <message>
-        <source>Error: Duplicate descriptors created during migration. Your wallet may be corrupted.</source>
-        <translation type="unfinished">Chyba: Duplicitní popisovače vytvořené během migrace. Vaše peněženka může být poškozena.</translation>
-    </message>
-    <message>
-        <source>Error: Transaction %s in wallet cannot be identified to belong to migrated wallets</source>
-        <translation type="unfinished">Chyba: Transakce %s v peněžence nemůže být identifikována jako transakce patřící k migrovaným peněženkám.</translation>
-    </message>
-    <message>
         <source>Failed to remove snapshot chainstate dir (%s). Manually remove it before restarting.
 </source>
         <translation type="unfinished">Nepodařilo se odstranit adresář snímku stavu řetězce (%s). Před restartem jej ručně odstraňte.
 </translation>
-    </message>
-    <message>
-        <source>Failed to rename invalid peers.dat file. Please move or delete it and try again.</source>
-        <translation type="unfinished">Nelze přejmenovat neplatný peers.dat soubor. Prosím přesuňte jej, nebo odstraňte a zkuste znovu.</translation>
     </message>
     <message>
         <source>Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable %s.</source>
@@ -3479,10 +3289,6 @@ Ověřuji peněženku.</translation>
     <message>
         <source>Maximum transaction weight is too low, can not accommodate change output</source>
         <translation type="unfinished">Maximální váha transakce je příliš nízká, nelze zahrnout výstup na vrácení</translation>
-    </message>
-    <message>
-        <source>Option '-checkpoints' is set but checkpoints were removed. This option has no effect.</source>
-        <translation type="unfinished">Je nastavena volba '-checkpoints', ale kontrolní body byly odstraněny. Tato volba nemá žádný efekt.</translation>
     </message>
     <message>
         <source>Outbound connections restricted to CJDNS (-onlynet=cjdns) but -cjdnsreachable is not provided</source>
@@ -3533,30 +3339,8 @@ Ověřuji peněženku.</translation>
         <translation type="unfinished">Jsou dostupné nepotvrzené UTXO, ale jejich utracení vytvoří řetěz transakcí, které budou mempoolem odmítnuty.</translation>
     </message>
     <message>
-        <source>Unexpected legacy entry in descriptor wallet found. Loading wallet %s
-
-The wallet might have been tampered with or created with malicious intent.
-</source>
-        <translation type="unfinished">Nalezena neočekávaná starší položka v deskriptorové peněžence. Načítání peněženky %s 
-
-Peněženka mohla být zfalšována nebo vytvořena se zlým úmyslem.
-</translation>
-    </message>
-    <message>
         <source>Your computer's date and time appear to be more than %d minutes out of sync with the network, this may lead to consensus failure. After you've confirmed your computer's clock, this message should no longer appear when you restart your node. Without a restart, it should stop showing automatically after you've connected to a sufficient number of new outbound peers, which may take some time. You can inspect the `timeoffset` field of the `getpeerinfo` and `getnetworkinfo` RPC methods to get more info.</source>
         <translation type="unfinished">Datum a čas vašeho počítače se patrně rozcházejí o více než %d minut se síťovým časem, což může vést k selhání konsensu. Po ověření systémového času vašeho počítače a restartu vašeho uzlu by se toto hlášení již nemělo objevit. Bez restartu by se samo mělo přestat objevovat až poté, co se připojíte k dostatečnému počtu nových odchozích protějšků, což může trvat delší dobu. Pro více informací můžete prozkoumat parametr `timeoffset` u RPC metod `getpeerinfo` a `getnetworkinfo`.</translation>
-    </message>
-    <message>
-        <source>
-Unable to cleanup failed migration</source>
-        <translation type="unfinished">
-Nepodařilo se vyčistit nepovedenou migraci</translation>
-    </message>
-    <message>
-        <source>
-Unable to restore backup of wallet.</source>
-        <translation type="unfinished">
-Nelze obnovit zálohu peněženky.</translation>
     </message>
     <message>
         <source>default wallet</source>
@@ -3695,10 +3479,6 @@ Nelze obnovit zálohu peněženky.</translation>
         <translation type="unfinished">Chyba: kontrolní součet souboru výpisu se neshoduje. Vypočteno %s, očekáváno %s</translation>
     </message>
     <message>
-        <source>Error: Failed to create new watchonly wallet</source>
-        <translation type="unfinished">Chyba: Nelze vytvořit novou peněženku pouze pro čtení</translation>
-    </message>
-    <message>
         <source>Error: Got key that was not hex: %s</source>
         <translation type="unfinished">Chyba: obdržený klíč nebyl hexadecimální: %s</translation>
     </message>
@@ -3719,64 +3499,8 @@ Nelze obnovit zálohu peněženky.</translation>
         <translation type="unfinished">Chyba: Žádné %s adresy nejsou dostupné.</translation>
     </message>
     <message>
-        <source>Error: Not all address book records were migrated</source>
-        <translation type="unfinished">Chyba: Ne všechny záznamy v adresáři byly převedeny</translation>
-    </message>
-    <message>
-        <source>Error: Not all transaction records were migrated</source>
-        <translation type="unfinished">Chyba: Ne všechny transakční záznamy byly převedeny</translation>
-    </message>
-    <message>
-        <source>Error: This wallet already uses SQLite</source>
-        <translation type="unfinished">Chyba: Tato peněženka již používá SQLite</translation>
-    </message>
-    <message>
-        <source>Error: This wallet is already a descriptor wallet</source>
-        <translation type="unfinished">Chyba: Tato peněženka již je deskriptorová.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to begin reading all records in the database</source>
-        <translation type="unfinished">Chyba: Nelze zahájit čtení všech záznamů v databázi</translation>
-    </message>
-    <message>
-        <source>Error: Unable to make a backup of your wallet</source>
-        <translation type="unfinished">Chyba: Nelze vytvořit zálohu tvojí peněženky</translation>
-    </message>
-    <message>
-        <source>Error: Unable to parse version %u as a uint32_t</source>
-        <translation type="unfinished">Chyba: nelze zpracovat verzi %u jako uint32_t</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read all records in the database</source>
-        <translation type="unfinished">Chyba: Nelze přečíst všechny záznamy v databázi</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read wallet's best block locator record</source>
-        <translation type="unfinished">Chyba: Nelze přečíst záznam lokátoru nejlepšího bloku peněženky</translation>
-    </message>
-    <message>
-        <source>Error: Unable to remove watchonly address book data</source>
-        <translation type="unfinished">Chyba: Nelze odstranit data z adresáře pouze pro sledování</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write data to disk for wallet %s</source>
-        <translation type="unfinished">Chyba: Nepodařilo se zapsat data na disk pro peněženku %s</translation>
-    </message>
-    <message>
         <source>Error: Unable to write record to new wallet</source>
         <translation type="unfinished">Chyba: nelze zapsat záznam do nové peněženky</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write solvable wallet best block locator record</source>
-        <translation type="unfinished">Chyba: Nelze zapsat záznam lokátoru nejlepšího bloku řešitelné peněženky</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write watchonly wallet best block locator record</source>
-        <translation type="unfinished">Chyba: Nelze zapsat záznam lokátoru nejlepšího bloku peněženky pouze pro sledování</translation>
-    </message>
-    <message>
-        <source>Error: database transaction cannot be executed for wallet %s</source>
-        <translation type="unfinished">Chyba: databázovou transakci nelze provést pro peněženku %s</translation>
     </message>
     <message>
         <source>Failed to acquire rescan reserver during wallet initialization</source>
@@ -3883,10 +3607,6 @@ Nelze obnovit zálohu peněženky.</translation>
         <translation type="unfinished">Duplicitní nastavení vazby pro adresu %s. Zkontrolujte prosím nastavení -bind, -bind=...=onion a -whitebind.</translation>
     </message>
     <message>
-        <source>Error creating %s: Could not write version metadata.</source>
-        <translation type="unfinished">Chyba při vytváření %s: Nelze zapsat metadata verze.</translation>
-    </message>
-    <message>
         <source>Invalid amount for -%s=&lt;amount&gt;: '%s'</source>
         <translation type="unfinished">Neplatná částka pro -%s=&lt;amount&gt;: '%s'</translation>
     </message>
@@ -3949,14 +3669,6 @@ Nelze obnovit zálohu peněženky.</translation>
     <message>
         <source>Only direction was set, no permissions: '%s'</source>
         <translation type="unfinished">Byl určen pouze směr, žádná práva: '%s'</translation>
-    </message>
-    <message>
-        <source>Option '-limitancestorsize' is given but ancestor size limits have been replaced with cluster size limits (see -limitclustersize). This option has no effect.</source>
-        <translation type="unfinished">Parametr '-limitancestorsize' je sice zadán, avšak omezení velikosti předka byla nahrazena omezením velikosti klastru (ověřit -limitclustersize). Tento parametr tak nemá žádný efekt.</translation>
-    </message>
-    <message>
-        <source>Option '-limitdescendantsize' is given but descendant size limits have been replaced with cluster size limits (see -limitclustersize). This option has no effect.</source>
-        <translation type="unfinished">Parametr '-limitdescendantsize' je sice zadán, ale omezení velikosti potomka bylo nahrazeno omezením velikosti klastru (ověřit -limitclustersize). Tento parametr tak nemá žádný efekt.</translation>
     </message>
     <message>
         <source>Private broadcast of own transactions requested (-privatebroadcast) and -proxyrandomize is disabled. Tor circuits for private broadcast connections may be correlated to other connections over Tor. For maximum privacy set -proxyrandomize=1.</source>
@@ -4107,20 +3819,8 @@ Nelze obnovit zálohu peněženky.</translation>
         <translation type="unfinished">Neznámá -blockfilterindex hodnota %s.</translation>
     </message>
     <message>
-        <source>Unknown address type '%s'</source>
-        <translation type="unfinished">Neznámý typ adresy '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown change type '%s'</source>
-        <translation type="unfinished">Neznámý typ změny '%s'</translation>
-    </message>
-    <message>
         <source>Unknown network specified in -onlynet: '%s'</source>
         <translation type="unfinished">V -onlynet byla uvedena neznámá síť: '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown new rules activated (versionbit %i)</source>
-        <translation type="unfinished">Neznámá nová pravidla aktivována (verzový bit %i)</translation>
     </message>
     <message>
         <source>Unrecognised option "%s" provided in -test=&lt;option&gt;.</source>
@@ -4129,10 +3829,6 @@ Nelze obnovit zálohu peněženky.</translation>
     <message>
         <source>Unsupported global logging level %s=%s. Valid values: %s.</source>
         <translation type="unfinished">Nepodporovaná globální logovací úroveň %s=%s. Možné hodnoty: %s.</translation>
-    </message>
-    <message>
-        <source>Wallet file creation failed: %s</source>
-        <translation type="unfinished">Nepodařilo se vytvořit soubor peněženky: %s</translation>
     </message>
     <message>
         <source>Warning: Found invalid chain more than 6 blocks longer than our best chain. This could be due to database corruption or consensus incompatibility with peers.</source>
@@ -4145,14 +3841,6 @@ Nelze obnovit zálohu peněženky.</translation>
     <message>
         <source>Unsupported logging category %s=%s.</source>
         <translation type="unfinished">Nepodporovaná logovací kategorie %s=%s.</translation>
-    </message>
-    <message>
-        <source>Error loading %s: Wallet is a legacy wallet. Please migrate to a descriptor wallet using the migration tool (migratewallet RPC).</source>
-        <translation type="unfinished">Chyba při načítání %s: Zastaralý typ peněženky. Převeďte ji prosím na deskriptorovou peněženku pomocí migračního nástroje (migratewallet RPC).</translation>
-    </message>
-    <message>
-        <source>Error: Dumpfile specifies an unsupported database format (%s). Only sqlite database dumps are supported</source>
-        <translation type="unfinished">Chyba: Soubor s dumpem uvádí nepodporovaný formát databáze (%s). Podporovány jsou pouze dumpy databáze SQLite.</translation>
     </message>
     <message>
         <source>Failed to calculate bump fees, because unconfirmed UTXOs depend on an enormous cluster of unconfirmed transactions.</source>
@@ -4177,18 +3865,6 @@ Zkuste prosím spustit nejnovější verzi softwaru.
     <message>
         <source>Do you want to rebuild the databases now?</source>
         <translation type="unfinished">Chcete znovusestavit databázi nyní?</translation>
-    </message>
-    <message>
-        <source>Error: Could not add watchonly tx %s to watchonly wallet</source>
-        <translation type="unfinished">Chyba: Nelze přidat transakci %s jen ke sledování do peněženky jen ke sledování</translation>
-    </message>
-    <message>
-        <source>Error: Wallet does not exist</source>
-        <translation type="unfinished">Chyba: Peněženka neexistuje</translation>
-    </message>
-    <message>
-        <source>Error: cannot remove legacy wallet records</source>
-        <translation type="unfinished">Chyba: nepodařilo se odstranit záznamy o legacy peněžence</translation>
     </message>
     <message>
         <source>Failed to start indexes, shutting down…</source>

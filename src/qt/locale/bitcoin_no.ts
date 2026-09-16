@@ -58,11 +58,6 @@
         <translation type="unfinished">Dette er Bitcoin-adressene dine for å sende betalinger. Kontroller alltid beløpet og mottakeradressen før du sender mynter.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">Dette er Bitcoin-adressene dine for å motta betalinger. Bruk knappen ‘Opprett ny mottaksadresse’ i mottaksfanen for å opprette nye adresser.Signering er kun mulig med adresser av typen ‘legacy’.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;Kopier adresse</translation>
     </message>
@@ -456,22 +451,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">&amp;Endre Passord…</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">Signer &amp;melding…</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Signer meldinger med Bitcoin-adressene dine for å bevise at du eier dem</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;Verifiser melding…</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">Verifiser meldinger for å sikre at de ble signert med de spesifiserte Bitcoin-adressene</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">&amp;Last inn PSBT fra fil…</translation>
     </message>
@@ -639,14 +618,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Close all wallets</source>
         <translation type="unfinished">Lukk alle lommebøker</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Migrer Lommebok</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">Migrer en lommebok</translation>
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
@@ -931,18 +902,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>(no label)</source>
         <translation type="unfinished">(ingen etikett)</translation>
-    </message>
-    </context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Migrer Lommebok</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">Gjenopprett lommebok</translation>
     </message>
     </context>
 <context>

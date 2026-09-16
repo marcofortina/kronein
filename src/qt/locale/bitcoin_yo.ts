@@ -58,12 +58,6 @@
         <translation type="unfinished">Àwọn àdírẹ́sì Bitcoin rẹ fún fífi owó àpólà ránṣẹ́ ni wọ̀nyí. Máa ṣàyẹ̀wò iye owó àti àdírẹ́sì agbàwọlé dáadáa kí o tó ránṣẹ́.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">Àwọn àdírẹ́sì Bitcoin rẹ fún gbigba owó àpólà ni wọ̀nyí. Lo bọ́tìnì ‘Ṣẹ̀dá àdírẹ́sì agbàwọlé tuntun’ nínú taabu gbigba láti ṣẹ̀dá àwọn àdírẹ́sì tuntun
-Fífọwọ́sowọ́pọ̀ jẹ́ ẹni pé ó ṣeé ṣe pẹ̀lú àwọn àdírẹ́sì irú ‘legacy’ nìkan</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">Ṣàfọwọ́kọ Àdírẹ́sì</translation>
     </message>
@@ -417,10 +411,6 @@ Fífọwọ́sowọ́pọ̀ jẹ́ ẹni pé ó ṣeé ṣe pẹ̀lú àwọn à
     <message>
         <source>&amp;Options…</source>
         <translation type="unfinished">Àwọn àṣàyàn</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">Ṣàyẹ̀wò ìfiranṣẹ</translation>
     </message>
     <message>
         <source>Open &amp;URI…</source>

@@ -62,12 +62,6 @@
         <translation type="unfinished">Hetta eru goymdar Bitcoin adressur at senda til. Kanna altíð upphæddina og útgjaldsadressuna áðrenn hvørja flyting.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">Hetta eru tínar Bitcoin adressur at móttakað við. Vel 'Framleið nýggja inngjaldsadressu', undir Móttak-skiljiblaðnum fyri at útroknað nýggjar adressur.
-Undirritan, av boðum, er einans møgulig fyri 'legacy' (eldri) adressusløg.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;Avrita adressu</translation>
     </message>
@@ -545,22 +539,6 @@ Undirritan, av boðum, er einans møgulig fyri 'legacy' (eldri) adressusløg.</t
         <translation type="unfinished">B&amp;royt loyniorð…</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">&amp;Undirrita boð…</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Undirrita boðini við tíni Bitcoin-adressu fyri at prógva at tey eru tíni</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;Vátta boð…</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">Sannroyn boð fyri at tryggja at tey vóru undirritaði av ávísaru Bitcoin adressu</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">&amp;Innles PSBT frá fílu…</translation>
     </message>
@@ -579,10 +557,6 @@ Undirritan, av boðum, er einans møgulig fyri 'legacy' (eldri) adressusløg.</t
     <message>
         <source>Close All Wallets…</source>
         <translation type="unfinished">Lat allar mappur aftur…</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet File…</source>
-        <translation type="unfinished">Endurinnles og uppstiga mappufílu...</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -734,14 +708,6 @@ Undirritan, av boðum, er einans møgulig fyri 'legacy' (eldri) adressusløg.</t
         <translation type="unfinished">Lat allar mappur aftur</translation>
     </message>
     <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Uppstiga mappuforsnið</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">Uppstiga forsniðið á eini mappu</translation>
-    </message>
-    <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
         <translation type="unfinished">Vís %1 hjálpartekstin fyri ein lista við Bitcoin stýriboð-linju møgulleikum</translation>
     </message>
@@ -784,15 +750,6 @@ Undirritan, av boðum, er einans møgulig fyri 'legacy' (eldri) adressusløg.</t
     <message>
         <source>Wallet name cannot be empty</source>
         <translation type="unfinished">Mappunavn kann ikki vera tómt</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet Backup</source>
-        <translation type="unfinished">Endurinnles og uppstiga mapputrygdaravrit</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet</source>
-        <extracomment>Title of pop-up window shown when the user is attempting to restore a wallet.</extracomment>
-        <translation type="unfinished">Endurinnles og uppstiga mappu</translation>
     </message>
     <message>
         <source>&amp;Window</source>
@@ -1109,92 +1066,6 @@ Undirritan, av boðum, er einans møgulig fyri 'legacy' (eldri) adressusløg.</t
         <source>Loading wallets…</source>
         <extracomment>Descriptive text of the load wallets progress window which indicates to the user that wallets are currently being loaded.</extracomment>
         <translation type="unfinished">Innlesur mappur…</translation>
-    </message>
-</context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate wallet</source>
-        <translation type="unfinished">Uppstiga mappuforsnið</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to migrate the wallet &lt;i&gt;%1&lt;/i&gt;?</source>
-        <translation type="unfinished">Ynskir tú at uppstiga forsniðið á &lt;i&gt;%1&lt;/i&gt; mappuni?</translation>
-    </message>
-    <message>
-        <source>Migrating the wallet will convert this wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">Mappuupstigan formbroytur hesa mappuna til eina ella fleiri lyklalýsingar mappur. Ein nýggj mappa verður gjørd.
-Inniheldur mappan eygleiðingarscript, so verður ein nýggj mappa gjørd við teimum eygleiðingarscriptunum.
-Inniheldur mappan loysilig-script, ið ikki eru eygleiðingarscript, so verður ein nýggj mappa gjørd við teimum scriptunum.
-
-Uppstiganartilgongdin tekur eitt trygdaravrit, av mappuni, áðrenn uppstigan. Trygdaravritið verður kallað &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak og liggur í somu skjáttu sum hendan mappan. Í fall uppstiganin miseydnast, kann trygdaravritið verða endurinnlisið við "Endurinnles mappu" hentleikanum.</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Uppstiga mappuforsnið</translation>
-    </message>
-    <message>
-        <source>Migrating Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <translation type="unfinished">Uppstigar forsniðið tilhoyrandi mappu &lt;b&gt;%1&lt;/b&gt;…</translation>
-    </message>
-    <message>
-        <source>The wallet '%1' was migrated successfully.</source>
-        <translation type="unfinished">Tað eydnaðist at uppstiga forsniðið á '%1' mappuni.</translation>
-    </message>
-    <message>
-        <source>Watchonly scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Eygleiðingarscriptir eru uppstigaði til eina nýggja mappu kallað '%1'.</translation>
-    </message>
-    <message>
-        <source>Solvable but not watched scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Loysilig, men ikki eygleiðingar-, script eru uppstiga til nýggja mappu nevnd '%1'.</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate wallet</source>
-        <translation type="unfinished">Endurinnles og uppstiga mappu</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to restore the wallet file &lt;i&gt;%1&lt;/i&gt; to &lt;i&gt;%2&lt;/i&gt; and migrate it?</source>
-        <translation type="unfinished">Ynskir tú at endurinnlesa mappufíluna &lt;i&gt;%1&lt;/i&gt; til &lt;i&gt;%2&lt;/i&gt; og uppstiga forsnið mappunar?</translation>
-    </message>
-    <message>
-        <source>Restoring the wallet will copy the backup file to the wallets directory and place it in the standard wallet directory layout. The original file will not be modified.
-
-Migrating the wallet will convert the restored wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">Endurinnlesing av mappufílu avritar trygdaravritið til mappuskjáttuna. Upprunaliga fílin verður ikki broytt.
-
-Mappuupstigan formbroytur endurinnlisnu mappuna til eina ella fleiri lyklalýsingar mappur. Neyðugt verður at gera eitt nýtt mapputrygdaravrit.
-Inniheldur mappan eygleiðingarscript, so verður ein nýggj mappa gjørd við teimum eygleiðingarscriptunum.
-Inniheldur mappan loysilig-script, ið ikki eru eygleiðingarscript, so verður ein nýggj mappa gjørd við teimum scriptunum.
-
-Fyrst í uppstiganartilgongdini verður eitt trygdaravrit gjørt, av mappuni.
-Trygdaravritið verður kallað &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak og liggur í somu skjáttu sum hendan mappan. Í fall uppstiganin miseydnast, kann trygdaravritið verða endurinnlisið við "Endurinnles mappu" hentleikanum.</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">Endurinnles mappu</translation>
-    </message>
-    <message>
-        <source>Restoring Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <extracomment>Descriptive text of the restore wallets progress window which indicates to the user that wallets are currently being restored.</extracomment>
-        <translation type="unfinished">Endurinnlesur mappu &lt;b&gt;%1&lt;/b&gt;...</translation>
-    </message>
-    <message>
-        <source>Migration failed</source>
-        <translation type="unfinished">Uppstiganin miseydnaðist</translation>
-    </message>
-    <message>
-        <source>Migration Successful</source>
-        <translation type="unfinished">Uppstiganin eydnaðist</translation>
     </message>
 </context>
 <context>
@@ -2843,32 +2714,8 @@ Fyri meira upplýsingar um nýtslu av hesi stýristøð, skriva og send %6.
         <translation type="unfinished">Avrita &amp;upphædd</translation>
     </message>
     <message>
-        <source>Base58 (Legacy)</source>
-        <translation type="unfinished">Base58 (Legacy / Eldri)</translation>
-    </message>
-    <message>
-        <source>Not recommended due to higher fees and less protection against typos.</source>
-        <translation type="unfinished">Frámælt vegna høgum avgjøldum og verri verju móti tøppivillum.</translation>
-    </message>
-    <message>
-        <source>Generates an address compatible with older wallets.</source>
-        <translation type="unfinished">Framleiður eina adressu ið er sínamillumvirkin við eldri mappur.</translation>
-    </message>
-    <message>
-        <source>Generates a native segwit address (BIP-173). Some old wallets don't support it.</source>
-        <translation type="unfinished">Framleiður eina reina (native) segwit adressu (BIP-173). Ikki er vist, at eldri mappuritbúnaður hentleika, og kunnleika, til slíkar adressur.</translation>
-    </message>
-    <message>
-        <source>Bech32m (BIP-350) is an upgrade to Bech32, wallet support is still limited.</source>
-        <translation type="unfinished">Bech32m (BIP-350) er ein uppstigan frá Bech32, men funkan er enn bert í avmarkaðum mappuforritum.</translation>
-    </message>
-    <message>
         <source>Could not unlock wallet.</source>
         <translation type="unfinished">Til bar ikki at lata mappu upp.</translation>
-    </message>
-    <message>
-        <source>Could not generate new %1 address</source>
-        <translation type="unfinished">Bar ikki til at framleiða nýggja %1 adressu</translation>
     </message>
 </context>
 <context>
@@ -3393,157 +3240,6 @@ Gev gætur: Av tí at avgjaldið verður roknað fyri hvørt být, fer ein avgja
     <message>
         <source>Create Unsigned</source>
         <translation type="unfinished">Ger óundirritaða flyting</translation>
-    </message>
-</context>
-<context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Signatures - Sign / Verify a Message</source>
-        <translation type="unfinished">Undirskriftir - Undirrita / Vátta eini boð</translation>
-    </message>
-    <message>
-        <source>&amp;Sign Message</source>
-        <translation type="unfinished">&amp;Undirrita Boð</translation>
-    </message>
-    <message>
-        <source>You can sign messages/agreements with your legacy (P2PKH) addresses to prove you can receive bitcoins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation type="unfinished">Tú kann undirrita boð/sáttmálar við tínum legacy/eldru (P2PKH) adressum, fyri at prógva at tú kann móttaka bitcoins, sendar til tær. Ver ansin so tú ikki skrivar undir nakað ógreitt ella tilvildarligt, tí fysking-álop kunnu royna at snýta teg til at latað tín samleika til tey. Undirrita bert nágreiniligar útsagnir sum tú tekur undir við.</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address to sign the message with</source>
-        <translation type="unfinished">Bitcoin adressan at undirskriva boðini við</translation>
-    </message>
-    <message>
-        <source>Choose previously used address</source>
-        <translation type="unfinished">Brúka adressuna ið frammanundan var brúkt</translation>
-    </message>
-    <message>
-        <source>Alt+A</source>
-        <translation type="unfinished">ALT+A</translation>
-    </message>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">Innset adressu av setiborði</translation>
-    </message>
-    <message>
-        <source>Alt+P</source>
-        <translation type="unfinished">ALT+P</translation>
-    </message>
-    <message>
-        <source>Enter the message you want to sign here</source>
-        <translation type="unfinished">Inntøppa boðini, tú ynskir at undirrita, her</translation>
-    </message>
-    <message>
-        <source>Signature</source>
-        <translation type="unfinished">Undirskrift</translation>
-    </message>
-    <message>
-        <source>Copy the current signature to the clipboard</source>
-        <translation type="unfinished">Avrita undirskriftina á setiborðið</translation>
-    </message>
-    <message>
-        <source>Sign the message to prove you own this Bitcoin address</source>
-        <translation type="unfinished">Undirskriva boðini fyri at prógva at Bitcoin-adressan er tín</translation>
-    </message>
-    <message>
-        <source>Sign &amp;Message</source>
-        <translation type="unfinished">&amp;Undirrita boð</translation>
-    </message>
-    <message>
-        <source>Reset all sign message fields</source>
-        <translation type="unfinished">Tómstilla allar "undirrita boð"-teigar.</translation>
-    </message>
-    <message>
-        <source>Clear &amp;All</source>
-        <translation type="unfinished">Tómstilla &amp;alt</translation>
-    </message>
-    <message>
-        <source>&amp;Verify Message</source>
-        <translation type="unfinished">&amp;Vátta boð</translation>
-    </message>
-    <message>
-        <source>Enter the receiver's address, message (ensure you copy line breaks, spaces, tabs, etc. exactly) and signature below to verify the message. Be careful not to read more into the signature than what is in the signed message itself, to avoid being tricked by a man-in-the-middle attack. Note that this only proves the signing party receives with the address, it cannot prove sendership of any transaction!</source>
-        <translation type="unfinished">Inntøppa undirritara-adressuna, boðið (syrg fyri neyvari varðveitslu av reglubrotum, millumrúmum, teigarum, o.s.fr.), og undirskrift niðanfyri fyri at vátta boðið. Ver varin við ikki at lesa meira inn í boðið enn hvat neyvt stendur í tí, fyri at umgangast svik av einum sokallaðum "man-in-the-middle" álopi. Hav í huga at hetta prógvar bert at undirritarin kann móttakað við adressuni; tað kann ikki prógva sendaraskap av flytingum!</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address the message was signed with</source>
-        <translation type="unfinished">Bitcoin-adressan ið undirskrivaði boðini</translation>
-    </message>
-    <message>
-        <source>The signed message to verify</source>
-        <translation type="unfinished">Undirritað boð at vátta</translation>
-    </message>
-    <message>
-        <source>The signature given when the message was signed</source>
-        <translation type="unfinished">Givna undirskrift boðsins</translation>
-    </message>
-    <message>
-        <source>Verify the message to ensure it was signed with the specified Bitcoin address</source>
-        <translation type="unfinished">Vátta at boðini vóru undirritað av ásettu Bitcoin adressuni</translation>
-    </message>
-    <message>
-        <source>Verify &amp;Message</source>
-        <translation type="unfinished">Vátta &amp;boð</translation>
-    </message>
-    <message>
-        <source>Reset all verify message fields</source>
-        <translation type="unfinished">Tómstilla allar "Vátta boð"-teigar.</translation>
-    </message>
-    <message>
-        <source>Click "Sign Message" to generate signature</source>
-        <translation type="unfinished">Trýst á "Undirrita boð" fyri at gera eina undirskrift</translation>
-    </message>
-    <message>
-        <source>The entered address is invalid.</source>
-        <translation type="unfinished">Inntøppaða adressan er ógildig.</translation>
-    </message>
-    <message>
-        <source>Please check the address and try again.</source>
-        <translation type="unfinished">Vinaliga kanna adressuna og royn aftur.</translation>
-    </message>
-    <message>
-        <source>The entered address does not refer to a legacy (P2PKH) key. Message signing for SegWit and other non-P2PKH address types is not supported in this version of %1. Please check the address and try again.</source>
-        <translation type="unfinished">Inntøppaða adressan vísur ikki til ein legacy/eldri (P2PKH) lykil. Undirritan av boðum fyri SegWit og onnur ikki-P2PKH adressusløg er ikki møguligt við hesi útgávuni av %1. Vinaliga kanna adressuna og royn aftur.</translation>
-    </message>
-    <message>
-        <source>Wallet unlock was cancelled.</source>
-        <translation type="unfinished">Mappu-upplating varð avbrotin.</translation>
-    </message>
-    <message>
-        <source>No error</source>
-        <translation type="unfinished">Eingin villa</translation>
-    </message>
-    <message>
-        <source>Private key for the entered address is not available.</source>
-        <translation type="unfinished">Privati lykil adressunar er ikki tøkur.</translation>
-    </message>
-    <message>
-        <source>Message signing failed.</source>
-        <translation type="unfinished">Undirritan av boðum miseydnaðist.</translation>
-    </message>
-    <message>
-        <source>Message signed.</source>
-        <translation type="unfinished">Boð undirritað</translation>
-    </message>
-    <message>
-        <source>The signature could not be decoded.</source>
-        <translation type="unfinished">Bar ikki til at avkota undirskriftina.</translation>
-    </message>
-    <message>
-        <source>Please check the signature and try again.</source>
-        <translation type="unfinished">Vinaliga kanna undirskriftina og royn aftur.</translation>
-    </message>
-    <message>
-        <source>The signature did not match the message digest.</source>
-        <translation type="unfinished">Undirskriftin samsvaraði ikki við innihaldi í boðnum.</translation>
-    </message>
-    <message>
-        <source>Message verification failed.</source>
-        <translation type="unfinished">Miseydnaðist at váttað boðini.</translation>
-    </message>
-    <message>
-        <source>Message verified.</source>
-        <translation type="unfinished">Boð váttaði.</translation>
     </message>
 </context>
 <context>
@@ -4154,20 +3850,8 @@ Vel Fíla -&gt; Innles Mappu fyri at innlesa eina mappu.
         <translation type="unfinished">Villa undir dátugrunsger, sum lutur í tilgongd ið strikar flytingar tilhoyrandi mappuna</translation>
     </message>
     <message>
-        <source>Error: Dumpfile format record is incorrect. Got "%s", expected "format".</source>
-        <translation type="unfinished">Villa: Forsnið til teigarað, tilhoyrandi dumsfílu, er ikki rætt. Fekk "%s", væntaði "format".</translation>
-    </message>
-    <message>
         <source>Error: Dumpfile identifier record is incorrect. Got "%s", expected "%s".</source>
         <translation type="unfinished">Villa: Dátuheitis-dáta, tilhoyrandi dusmfílu, er ikki rætt. Fekk "%s", væntaði "%s".</translation>
-    </message>
-    <message>
-        <source>Error: Dumpfile version is not supported. This version of bitcoin-wallet only supports version 1 dumpfiles. Got dumpfile with version %s</source>
-        <translation type="unfinished">Villa: Hendan útgávan av bitcoin-mappuni kann bert innlesa útgávu 1 dumsufílur. Læs útgávu %s dumsufílu</translation>
-    </message>
-    <message>
-        <source>Error: Unable to produce descriptors for this legacy wallet. Make sure to provide the wallet's passphrase if it is encrypted.</source>
-        <translation type="unfinished">Villa: Bar ikki til at framleiða lyklalýsingar fyri hesa mappuna, ið er av eldra slagnum. Syrg fyri at veita loyniorðið, til mappuna, um hon er bronglað.</translation>
     </message>
     <message>
         <source>File %s already exists. If you are sure this is what you want, move it out of the way first.</source>
@@ -4254,10 +3938,6 @@ Vel Fíla -&gt; Innles Mappu fyri at innlesa eina mappu.
         <translation type="unfinished">Gev gætur: Privatir lyklar funnir í {%s} mappuni har privatir lyklar eru óvirktir.</translation>
     </message>
     <message>
-        <source>Witness data for blocks after height %d requires validation. Please restart with -reindex.</source>
-        <translation type="unfinished">Vitnidátur fyri blokkar, eftir hædd %d, tørva váttan. Vinaliga endurbyrja við -reindex ávirkinum.</translation>
-    </message>
-    <message>
         <source>You need to rebuild the database using -reindex to go back to unpruned mode.  This will redownload the entire blockchain</source>
         <translation type="unfinished">Tú noyðist at endurbyggja dátugrunnin við -reindex, fyri at fara aftur til óniðurskorna støðu. Øll blokkketan verður niðurtikin umaftur.</translation>
     </message>
@@ -4302,26 +3982,10 @@ Vel Fíla -&gt; Innles Mappu fyri at innlesa eina mappu.
         <translation type="unfinished">Villa við innlesing av %s! Allir lyklar vóru innlisnir rætt, men flytingardátur ella adressumetadátur kunnu vanta ella vera óeftirfarandi.</translation>
     </message>
     <message>
-        <source>Error: Address book data in wallet cannot be identified to belong to migrated wallets</source>
-        <translation type="unfinished">Villa: Bar ikki til at eyðmerkja adressubókdátur, í mappu, at hoyra til uppstigaðu mappu(r)</translation>
-    </message>
-    <message>
-        <source>Error: Duplicate descriptors created during migration. Your wallet may be corrupted.</source>
-        <translation type="unfinished">Villa: Endurtiknar lyklalýsingar framleiddar undir uppstigan. Tín mappa kann verða avskeplað.</translation>
-    </message>
-    <message>
-        <source>Error: Transaction %s in wallet cannot be identified to belong to migrated wallets</source>
-        <translation type="unfinished">Villa: Bar ikki til at tengja flytingina, %s,  í mappuni, at eini av uppstigaðu mappunum</translation>
-    </message>
-    <message>
         <source>Failed to remove snapshot chainstate dir (%s). Manually remove it before restarting.
 </source>
         <translation type="unfinished">Miseydnaðist at strika ketustøðu-løtumynd skjáttuna (%s). Strika hana fyri endurbyrjan.
 </translation>
-    </message>
-    <message>
-        <source>Failed to rename invalid peers.dat file. Please move or delete it and try again.</source>
-        <translation type="unfinished">Miseydnaðist at nýnevna ógildiga peers.dat fílu. Vinaliga flyt ella strika hana og royn aftur.</translation>
     </message>
     <message>
         <source>Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable %s.</source>
@@ -4350,10 +4014,6 @@ Vel Fíla -&gt; Innles Mappu fyri at innlesa eina mappu.
     <message>
         <source>Maximum transaction weight is too low, can not accommodate change output</source>
         <translation type="unfinished">Hámarkið, fyri flytingar-goymslustødd, er ov lágt, og pláss er tí ikki fyri vekslipeningaúttaki</translation>
-    </message>
-    <message>
-        <source>Option '-checkpoints' is set but checkpoints were removed. This option has no effect.</source>
-        <translation type="unfinished">Stillingin '-checkpoints' er virkja men checkpoint vóru strikaði. Stillingin hevur ongan virknað.</translation>
     </message>
     <message>
         <source>Outbound connections restricted to CJDNS (-onlynet=cjdns) but -cjdnsreachable is not provided</source>
@@ -4412,30 +4072,8 @@ Vel Fíla -&gt; Innles Mappu fyri at innlesa eina mappu.
         <translation type="unfinished">Óvattaði ónýtt flytingarúttøk eru tøk, men nýtsla av teimum elvur til eina røð av flytingum, ið minnispuljan vrakar</translation>
     </message>
     <message>
-        <source>Unexpected legacy entry in descriptor wallet found. Loading wallet %s
-
-The wallet might have been tampered with or created with malicious intent.
-</source>
-        <translation type="unfinished">Óvæntað skráseting, av eldri slagi, funnin undir innlesing av lyklalýsingar-mappuni %s
-
-Møguliga er lirka við mappuni ella er hon gjørd við illviljaðum endamáli.
-</translation>
-    </message>
-    <message>
         <source>Your computer's date and time appear to be more than %d minutes out of sync with the network, this may lead to consensus failure. After you've confirmed your computer's clock, this message should no longer appear when you restart your node. Without a restart, it should stop showing automatically after you've connected to a sufficient number of new outbound peers, which may take some time. You can inspect the `timeoffset` field of the `getpeerinfo` and `getnetworkinfo` RPC methods to get more info.</source>
         <translation type="unfinished">Dagfesting og klokkan, á tíni teldu, tykjast at víkja meira enn %d minuttir frá netinum; tað kann elva til semjuslit. Tú eigur at kanna, og, um hon er skeiv, rættað klokkuna á telduni og síðan endurbyrja knútin; hareftir skuldu hesi boðini ikki verið sjónlig. Endurbyrjar tú ikki, so hvørva boðinið sjálvvirkandi, eftir eitt nøktandi tal av útgangandi sambindingum, til aðrar javningar. Tú kann brúka `getpeerinfo` og `getnetworkinfo` RPC stýriboðini og kanna `timeoffset` virðið.</translation>
-    </message>
-    <message>
-        <source>
-Unable to cleanup failed migration</source>
-        <translation type="unfinished">
-Bar ikki til at rudda upp eftir miseydnaða uppstigan.</translation>
-    </message>
-    <message>
-        <source>
-Unable to restore backup of wallet.</source>
-        <translation type="unfinished">
-Bar ikki til at endurinnlesa mapputrygdaravrit.</translation>
     </message>
     <message>
         <source>default wallet</source>
@@ -4578,10 +4216,6 @@ Bar ikki til at endurinnlesa mapputrygdaravrit.</translation>
         <translation type="unfinished">Villa: Gátal á dumsfílu samsvarar ikki. Útroknaði %s, væntaði %s.</translation>
     </message>
     <message>
-        <source>Error: Failed to create new watchonly wallet</source>
-        <translation type="unfinished">Villa: Miseydnaðist at gera nýggja eygleiðingarmappu</translation>
-    </message>
-    <message>
         <source>Error: Got key that was not hex: %s</source>
         <translation type="unfinished">Villa: Fekk lykil ið ikki er sekstandatal: %s</translation>
     </message>
@@ -4602,64 +4236,8 @@ Bar ikki til at endurinnlesa mapputrygdaravrit.</translation>
         <translation type="unfinished">Villa: Ongar %s adressur tøkar.</translation>
     </message>
     <message>
-        <source>Error: Not all address book records were migrated</source>
-        <translation type="unfinished">Villa: Ikki øll adressubók-teigarøð vóru uppstigað</translation>
-    </message>
-    <message>
-        <source>Error: Not all transaction records were migrated</source>
-        <translation type="unfinished">Villa: Ikki øll flytingar-tegiarøð vóru uppstigað</translation>
-    </message>
-    <message>
-        <source>Error: This wallet already uses SQLite</source>
-        <translation type="unfinished">Villa: Mappan brúkar longu SQLite</translation>
-    </message>
-    <message>
-        <source>Error: This wallet is already a descriptor wallet</source>
-        <translation type="unfinished">Villa: Hendan mappan er longu ein lyklalýsingar-mappa</translation>
-    </message>
-    <message>
-        <source>Error: Unable to begin reading all records in the database</source>
-        <translation type="unfinished">Villa: Bar ikki til at fara undir innlesing av teigarøðum í dátugrunninum</translation>
-    </message>
-    <message>
-        <source>Error: Unable to make a backup of your wallet</source>
-        <translation type="unfinished">Villa: Bar ikki til at gera eitt trygdaravrit av tíni mappu</translation>
-    </message>
-    <message>
-        <source>Error: Unable to parse version %u as a uint32_t</source>
-        <translation type="unfinished">Villa: Bar ikki til at tulkað útgávu %u sum uint32_t</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read all records in the database</source>
-        <translation type="unfinished">Villa: Bar ikki til at innlesa øll teigarøð í dátugrunninum</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read wallet's best block locator record</source>
-        <translation type="unfinished">Villa: Bar ikki til at lesa bestablokkvísa mappunnar</translation>
-    </message>
-    <message>
-        <source>Error: Unable to remove watchonly address book data</source>
-        <translation type="unfinished">Villa: Bar ikki til at strika eygleiðingaradressur úr adressubókini</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write data to disk for wallet %s</source>
-        <translation type="unfinished">Villa: Bar ikki til at skriva dátur, tilhoyrandi mappu %s, til disk</translation>
-    </message>
-    <message>
         <source>Error: Unable to write record to new wallet</source>
         <translation type="unfinished">Villa: Bar ikki til at skriva teigarað til nýggja mappu</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write solvable wallet best block locator record</source>
-        <translation type="unfinished">Villa: Bar ikki til at skriva bestablokkvísa hjá loysiligu mappunni</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write watchonly wallet best block locator record</source>
-        <translation type="unfinished">Villa: Bar ikki til at skriva bestablokkvísa eygleiðingarmappunnar</translation>
-    </message>
-    <message>
-        <source>Error: database transaction cannot be executed for wallet %s</source>
-        <translation type="unfinished">Villa: Bar ikki til at fremja dátugrunsger fyri mappuna %s</translation>
     </message>
     <message>
         <source>Failed to acquire rescan reserver during wallet initialization</source>
@@ -4766,10 +4344,6 @@ Bar ikki til at endurinnlesa mapputrygdaravrit.</translation>
         <translation type="unfinished">Endurtikin bindingaruppsetan tilhoyrandi %s atsetrið. Vinnaliga kanna tíni -bind, -bind=...=onion og -whitebind ávirki.</translation>
     </message>
     <message>
-        <source>Error creating %s: Could not write version metadata.</source>
-        <translation type="unfinished">Villa undir ger av %s: Fekk ikki skriva útgávu metadáta.</translation>
-    </message>
-    <message>
         <source>Invalid amount for -%s=&lt;amount&gt;: '%s'</source>
         <translation type="unfinished">Ógildig upphædd ásett -%s=&lt;amount&gt;: '%s'</translation>
     </message>
@@ -4832,14 +4406,6 @@ Bar ikki til at endurinnlesa mapputrygdaravrit.</translation>
     <message>
         <source>Only direction was set, no permissions: '%s'</source>
         <translation type="unfinished">Einans kós var ásett, men eingi loyvir: '%s'</translation>
-    </message>
-    <message>
-        <source>Option '-limitancestorsize' is given but ancestor size limits have been replaced with cluster size limits (see -limitclustersize). This option has no effect.</source>
-        <translation type="unfinished">'-limitancestorsize' stillingin er ásett men hevur ongan virknað. Hon er skift út við -limitclustersize.</translation>
-    </message>
-    <message>
-        <source>Option '-limitdescendantsize' is given but descendant size limits have been replaced with cluster size limits (see -limitclustersize). This option has no effect.</source>
-        <translation type="unfinished">'-limitdescendantsize' stillingin er ásett men hevur ongan virknað. Hon er skift út við -limitclustersize.</translation>
     </message>
     <message>
         <source>Private broadcast of own transactions requested (-privatebroadcast) and -proxyrandomize is disabled. Tor circuits for private broadcast connections may be correlated to other connections over Tor. For maximum privacy set -proxyrandomize=1.</source>
@@ -5054,20 +4620,8 @@ Bar ikki til at endurinnlesa mapputrygdaravrit.</translation>
         <translation type="unfinished">Ókent -blockfilterindex virði %s.</translation>
     </message>
     <message>
-        <source>Unknown address type '%s'</source>
-        <translation type="unfinished">Ókent adressuslag '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown change type '%s'</source>
-        <translation type="unfinished">Ókent slag av vekslipeningi '%s'</translation>
-    </message>
-    <message>
         <source>Unknown network specified in -onlynet: '%s'</source>
         <translation type="unfinished">Ókent net tilskila í -onlynet: '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown new rules activated (versionbit %i)</source>
-        <translation type="unfinished">Ókend nýggj reglugerð virkt (versionbit %i)</translation>
     </message>
     <message>
         <source>Unrecognised option "%s" provided in -test=&lt;option&gt;.</source>
@@ -5076,10 +4630,6 @@ Bar ikki til at endurinnlesa mapputrygdaravrit.</translation>
     <message>
         <source>Unsupported global logging level %s=%s. Valid values: %s.</source>
         <translation type="unfinished">Ógildigur heiltøkugerðalistabólkur %s=%s. Gildigir bólkar: %s.</translation>
-    </message>
-    <message>
-        <source>Wallet file creation failed: %s</source>
-        <translation type="unfinished">Miseydnaðist at gera mappufílu: %s</translation>
     </message>
     <message>
         <source>Warning: Found invalid chain more than 6 blocks longer than our best chain. This could be due to database corruption or consensus incompatibility with peers.</source>
@@ -5092,14 +4642,6 @@ Bar ikki til at endurinnlesa mapputrygdaravrit.</translation>
     <message>
         <source>Unsupported logging category %s=%s.</source>
         <translation type="unfinished">Ógildigur gerðalistabólkur %s=%s.</translation>
-    </message>
-    <message>
-        <source>Error loading %s: Wallet is a legacy wallet. Please migrate to a descriptor wallet using the migration tool (migratewallet RPC).</source>
-        <translation type="unfinished">Villa undir innlesing av %s: Mappuforsniðið er av eldra slagnum. Vinaliga uppstiga til lyklalýsingar-mappu, við uppstiganaramboðnum (migratewallet RPC).</translation>
-    </message>
-    <message>
-        <source>Error: Dumpfile specifies an unsupported database format (%s). Only sqlite database dumps are supported</source>
-        <translation type="unfinished">Villa: Ókent dátugrunsforsnið (%s) í dumsfílu. Forritið hevur einans kunnleika til sqlite dátugrunnar</translation>
     </message>
     <message>
         <source>Failed to calculate bump fees, because unconfirmed UTXOs depend on an enormous cluster of unconfirmed transactions.</source>
@@ -5124,22 +4666,6 @@ Vinaliga royn við nýggjastu útgávu av forritinum.
     <message>
         <source>Do you want to rebuild the databases now?</source>
         <translation type="unfinished">Ynskir tú at endurbyggja dátugrunnin nú?</translation>
-    </message>
-    <message>
-        <source>Error: Could not add watchonly tx %s to watchonly wallet</source>
-        <translation type="unfinished">Villa: Bar ikki til at knýta eygleidda flyting %s til eygleiðingarmappu</translation>
-    </message>
-    <message>
-        <source>Error: Could not delete watchonly transactions. </source>
-        <translation type="unfinished">Villa: Bar ikki til at strikað eygleiddar flytingar.</translation>
-    </message>
-    <message>
-        <source>Error: Wallet does not exist</source>
-        <translation type="unfinished">Villa: Mappa finst ikki</translation>
-    </message>
-    <message>
-        <source>Error: cannot remove legacy wallet records</source>
-        <translation type="unfinished">Villa: Bar ikki til at strika teigarað tilhoyrandi eldri mappu</translation>
     </message>
     <message>
         <source>Failed to start indexes, shutting down…</source>

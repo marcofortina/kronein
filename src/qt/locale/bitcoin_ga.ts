@@ -62,12 +62,6 @@
         <translation type="unfinished">Seo iad do sheoltaí Bitcoin chun íocaíochtaí a sheoladh. Seiceáil i gcónaí an méid agus an seoladh glactha sula seoltar boinn.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">Seo iad do sheoltaí Bitcoin chun glacadh le híocaíochtaí. Úsáid an cnaipe ‘Cruthaigh seoladh glactha nua’ sa cluaisín glactha chun seoltaí nua a chruthú.
-Ní féidir síniú ach le seoltaí 'oidhreachta'.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;Cóipeáil Seoladh</translation>
     </message>
@@ -561,22 +555,6 @@ Ní féidir síniú ach le seoltaí 'oidhreachta'.</translation>
         <translation type="unfinished">&amp;Athraigh Pasfhocal…</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">Sínigh &amp;teachtaireacht…</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Sínigh teachtaireachtaí le do sheoltaí Bitcoin chun a chruthú gur leat iad</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;Fíoraigh teachtaireacht…</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">Teachtaireachtaí a fhíorú lena chinntiú go raibh siad sínithe le seoltaí sainithe Bitcoin</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">&amp;Lódáil PSBT ón gcomhad…</translation>
     </message>
@@ -595,10 +573,6 @@ Ní féidir síniú ach le seoltaí 'oidhreachta'.</translation>
     <message>
         <source>Close All Wallets…</source>
         <translation type="unfinished">Dún Gach Sparán…</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet File…</source>
-        <translation type="unfinished">Athchóirigh agus Imircigh Comhad Sparán…</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -751,14 +725,6 @@ Ní féidir síniú ach le seoltaí 'oidhreachta'.</translation>
         <translation type="unfinished">Dún gach sparán</translation>
     </message>
     <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Imirce Sparán</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">Imirce sparán</translation>
-    </message>
-    <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
         <translation type="unfinished">Taispeáin an %1 teachtaireacht chabhrach chun liosta a fháil de roghanna Bitcoin líne na n-orduithe féideartha</translation>
     </message>
@@ -801,15 +767,6 @@ Ní féidir síniú ach le seoltaí 'oidhreachta'.</translation>
     <message>
         <source>Wallet name cannot be empty</source>
         <translation type="unfinished">Ní féidir ainm an sparáin a fhágáil folamh</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet Backup</source>
-        <translation type="unfinished">Athchóirigh agus Imircigh Cúltaca Sparán</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet</source>
-        <extracomment>Title of pop-up window shown when the user is attempting to restore a wallet.</extracomment>
-        <translation type="unfinished">Athchóirigh agus Imirce Sparán</translation>
     </message>
     <message>
         <source>&amp;Window</source>
@@ -1127,91 +1084,6 @@ Ní féidir síniú ach le seoltaí 'oidhreachta'.</translation>
         <source>Loading wallets…</source>
         <extracomment>Descriptive text of the load wallets progress window which indicates to the user that wallets are currently being loaded.</extracomment>
         <translation type="unfinished">Sparán á lódáil…</translation>
-    </message>
-</context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate wallet</source>
-        <translation type="unfinished">Imirce sparán</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to migrate the wallet &lt;i&gt;%1&lt;/i&gt;?</source>
-        <translation type="unfinished">An bhfuil tú cinnte gur mian leat an sparán &lt;i&gt;%1 &lt;/i&gt;?</translation>
-    </message>
-    <message>
-        <source>Migrating the wallet will convert this wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">Má dhéantar an sparán a aistriú, déanfar an sparán seo a thiontú go sparán tuairisceora amháin nó níos mó. Beidh gá le cúltaca sparán nua.
-Má tá aon scripteanna faire amháin sa sparán seo, cruthófar sparán nua ina mbeidh na scripteanna faire amháin sin.
-Má tá aon scripteanna intuaslagtha ach nach bhfuil faire orthu sa sparán seo, cruthófar sparán difriúil agus nua ina mbeidh na scripteanna sin.
-
-Cruthóidh an próiseas imirce cúltaca den sparán roimh imirce. Ainmneofar an comhad cúltaca seo &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak agus is féidir é a fháil san eolaire don sparán seo. I gcás imirce mícheart, is féidir an cúltaca a chur ar ais leis an bhfeidhmiúlacht "Athchóirigh Sparán".</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Imirce Sparán</translation>
-    </message>
-    <message>
-        <source>Migrating Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <translation type="unfinished">Sparán á Ascnamh &lt;b&gt;%1&lt;/b&gt;…</translation>
-    </message>
-    <message>
-        <source>The wallet '%1' was migrated successfully.</source>
-        <translation type="unfinished">D'éirigh le haistriú an sparán '%1'.</translation>
-    </message>
-    <message>
-        <source>Watchonly scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Aistríodh scripteanna faire amháin go sparán nua darb ainm '%1'.</translation>
-    </message>
-    <message>
-        <source>Solvable but not watched scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Aistríodh scripteanna intuaslagtha ach nach bhfuiltear ag faire orthu go sparán nua darb ainm '%1'.</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate wallet</source>
-        <translation type="unfinished">Athchóirigh agus Imirce an sparán</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to restore the wallet file &lt;i&gt;%1&lt;/i&gt; to &lt;i&gt;%2&lt;/i&gt; and migrate it?</source>
-        <translation type="unfinished">An bhfuil tú cinnte gur mian leat an comhad sparán &lt;i&gt;%1&lt;/i&gt; a athchóiriú go &lt;i&gt;%2&lt;/i&gt; agus é a aistriú?</translation>
-    </message>
-    <message>
-        <source>Restoring the wallet will copy the backup file to the wallets directory and place it in the standard wallet directory layout. The original file will not be modified.
-
-Migrating the wallet will convert the restored wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">Má athbhunaítear an sparán, cóipeálfar an comhad cúltaca chuig an eolaire sparán agus cuirfear é i leagan amach caighdeánach an eolaire sparán. Ní dhéanfar an comhad bunaidh a mhodhnú.
-
-Má aistrítear an sparán, tiontófar an sparán athchóirithe go sparán tuairisciúil amháin nó níos mó. Beidh gá le cúltaca nua sparán a dhéanamh.
-Má tá aon scripteanna faire amháin sa sparán seo, cruthófar sparán nua ina mbeidh na scripteanna faire amháin sin.
-Má tá aon scripteanna inréitithe ach nach bhfuil faire orthu sa sparán seo, cruthófar sparán difriúil agus nua ina mbeidh na scripteanna sin.
-
-Cruthófar cúltaca den sparán le linn an phróisis imirce sula ndéantar an t-imirce. Tabharfar &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak ar an gcomhad cúltaca seo agus is féidir é a fháil san eolaire don sparán seo. I gcás imirce mhícheart, is féidir an cúltaca a athchóiriú leis an fheidhmiúlacht "Athchóirigh Sparán".</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">Athchóirigh Sparán</translation>
-    </message>
-    <message>
-        <source>Restoring Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <extracomment>Descriptive text of the restore wallets progress window which indicates to the user that wallets are currently being restored.</extracomment>
-        <translation type="unfinished">Sparán á Athchóiriú&lt;b&gt;%1&lt;/b&gt;…</translation>
-    </message>
-    <message>
-        <source>Migration failed</source>
-        <translation type="unfinished">Theip ar an imirce</translation>
-    </message>
-    <message>
-        <source>Migration Successful</source>
-        <translation type="unfinished">D'éirigh leis an Imirce</translation>
     </message>
 </context>
 <context>
@@ -2871,36 +2743,8 @@ Chun tuilleadh eolais a fháil faoin gconsól seo a úsáid, clóscríobh %6.
         <translation type="unfinished">Cóipeáil &amp; méid</translation>
     </message>
     <message>
-        <source>Base58 (Legacy)</source>
-        <translation type="unfinished">Bonn58 (Oidhreacht)</translation>
-    </message>
-    <message>
-        <source>Not recommended due to higher fees and less protection against typos.</source>
-        <translation type="unfinished">Ní mholtar mar gheall ar tháillí níos airde agus cosaint níos lú i gcoinne typos.</translation>
-    </message>
-    <message>
-        <source>Base58 (P2SH-SegWit)</source>
-        <translation type="unfinished">Base58 (P2SH- SegWit)</translation>
-    </message>
-    <message>
-        <source>Generates an address compatible with older wallets.</source>
-        <translation type="unfinished">Gineann seoladh atá comhoiriúnach le sparán níos sine.</translation>
-    </message>
-    <message>
-        <source>Generates a native segwit address (BIP-173). Some old wallets don't support it.</source>
-        <translation type="unfinished">Gineann sé seoladh segwit dúchais (BIP-173). Ní thacaíonn roinnt sean-sparán leis.</translation>
-    </message>
-    <message>
-        <source>Bech32m (BIP-350) is an upgrade to Bech32, wallet support is still limited.</source>
-        <translation type="unfinished">Is uasghrádú é Bech32m (BIP-350) go Bech32, tá tacaíocht sparán fós teoranta.</translation>
-    </message>
-    <message>
         <source>Could not unlock wallet.</source>
         <translation type="unfinished">Níorbh fhéidir sparán a dhíghlasáil.</translation>
-    </message>
-    <message>
-        <source>Could not generate new %1 address</source>
-        <translation type="unfinished">Níorbh fhéidir seoladh nua %1 a ghiniúint</translation>
     </message>
 </context>
 <context>
@@ -3416,149 +3260,6 @@ Nóta: Ós rud é go ríomhtar an táille ar bhonn in aghaidh an bheart, ní tha
     <message>
         <source>Create Unsigned</source>
         <translation type="unfinished">Cruthaigh Gan Sín</translation>
-    </message>
-</context>
-<context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Signatures - Sign / Verify a Message</source>
-        <translation type="unfinished">Sínithe - Sínigh / Dearbhaigh Teachtaireacht</translation>
-    </message>
-    <message>
-        <source>&amp;Sign Message</source>
-        <translation type="unfinished">&amp;Sínigh Teachtaireacht</translation>
-    </message>
-    <message>
-        <source>You can sign messages/agreements with your legacy (P2PKH) addresses to prove you can receive bitcoins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation type="unfinished">Is féidir leat teachtaireachtaí/comhaontuithe a shíniú le do sheoltaí oidhreachta (P2PKH) lena chruthú gur féidir leat bitcoins a sheoltar chucu a fháil. Bí cúramach gan aon rud doiléir nó randamach a shíniú, mar seans go ndéanfaidh ionsaithe fioscaireachta iarracht tú a mhealladh chun d'aitheantas a shíniú leo. Ná sínigh ach ráitis mhionsonraithe a n-aontaíonn tú leo.</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address to sign the message with</source>
-        <translation type="unfinished">An seoladh Bitcoin chun an teachtaireacht a shíniú le</translation>
-    </message>
-    <message>
-        <source>Choose previously used address</source>
-        <translation type="unfinished">Roghnaigh seoladh a úsáideadh roimhe seo</translation>
-    </message>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">Greamaigh seoladh ón gearrthaisce</translation>
-    </message>
-    <message>
-        <source>Enter the message you want to sign here</source>
-        <translation type="unfinished">Iontráil an teachtaireacht a theastaíonn uait a shíniú anseo</translation>
-    </message>
-    <message>
-        <source>Signature</source>
-        <translation type="unfinished">Síniú</translation>
-    </message>
-    <message>
-        <source>Copy the current signature to the clipboard</source>
-        <translation type="unfinished">Cóipeáil an síniú reatha chuig an ghearrthaisce</translation>
-    </message>
-    <message>
-        <source>Sign the message to prove you own this Bitcoin address</source>
-        <translation type="unfinished">Sínigh an teachtaireacht chun a chruthú gur leat an seoladh Bitcoin seo</translation>
-    </message>
-    <message>
-        <source>Sign &amp;Message</source>
-        <translation type="unfinished">Sínigh &amp;Teachtaireacht</translation>
-    </message>
-    <message>
-        <source>Reset all sign message fields</source>
-        <translation type="unfinished">Athshocraigh gach réimse sínigh teachtaireacht</translation>
-    </message>
-    <message>
-        <source>Clear &amp;All</source>
-        <translation type="unfinished">&amp;Glan Gach</translation>
-    </message>
-    <message>
-        <source>&amp;Verify Message</source>
-        <translation type="unfinished">&amp;Fíoraigh Teachtaireacht</translation>
-    </message>
-    <message>
-        <source>Enter the receiver's address, message (ensure you copy line breaks, spaces, tabs, etc. exactly) and signature below to verify the message. Be careful not to read more into the signature than what is in the signed message itself, to avoid being tricked by a man-in-the-middle attack. Note that this only proves the signing party receives with the address, it cannot prove sendership of any transaction!</source>
-        <translation type="unfinished">Cuir isteach seoladh an ghlacadóra, teachtaireacht  (déan cinnte go gcóipeálann tú bristeacha líne, spásanna, táib, srl. go díreach) agus sínigh thíos chun an teachtaireacht a fhíorú. Bí cúramach gan níos mó a léamh isteach sa síniú ná mar atá sa teachtaireacht sínithe féin, ionas nach dtarlóidh ionsaí socadáin duit. Tabhair faoi deara nach gcruthóidh sé seo ach go bhfaigheann an páirtí sínithe leis an seoladh, ní féidir leis seolta aon idirbhirt a chruthú!</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address the message was signed with</source>
-        <translation type="unfinished">An seoladh Bitcoin a síníodh an teachtaireacht leis</translation>
-    </message>
-    <message>
-        <source>The signed message to verify</source>
-        <translation type="unfinished">An teachtaireacht sínithe le fíorú</translation>
-    </message>
-    <message>
-        <source>The signature given when the message was signed</source>
-        <translation type="unfinished">An síniú a tugadh nuair a síníodh an teachtaireacht</translation>
-    </message>
-    <message>
-        <source>Verify the message to ensure it was signed with the specified Bitcoin address</source>
-        <translation type="unfinished">Fíoraigh an teachtaireacht lena chinntiú go raibh sí sínithe leis an seoladh Bitcoin sainithe </translation>
-    </message>
-    <message>
-        <source>Verify &amp;Message</source>
-        <translation type="unfinished">Fíoraigh &amp;Teachtaireacht</translation>
-    </message>
-    <message>
-        <source>Reset all verify message fields</source>
-        <translation type="unfinished">Athshocraigh gach réimse fíorú teachtaireacht</translation>
-    </message>
-    <message>
-        <source>Click "Sign Message" to generate signature</source>
-        <translation type="unfinished">Cliceáil "Sínigh Teachtaireacht" chun síniú a ghiniúint</translation>
-    </message>
-    <message>
-        <source>The entered address is invalid.</source>
-        <translation type="unfinished">Tá an seoladh a iontráladh neamhbhailí.</translation>
-    </message>
-    <message>
-        <source>Please check the address and try again.</source>
-        <translation type="unfinished">Seiceáil an seoladh le do thoil agus triail arís.</translation>
-    </message>
-    <message>
-        <source>The entered address does not refer to a legacy (P2PKH) key. Message signing for SegWit and other non-P2PKH address types is not supported in this version of %1. Please check the address and try again.</source>
-        <translation type="unfinished">Ní thagraíonn an seoladh isteach d'eochair leagáide (P2PKH). Ní thacaítear le síniú teachtaireachta do SegWit agus cineálacha seoltaí eile nach P2PKH iad sa leagan seo de %1. Seiceáil an seoladh agus bain triail eile as.</translation>
-    </message>
-    <message>
-        <source>Wallet unlock was cancelled.</source>
-        <translation type="unfinished">Cuireadh díghlasáil sparán ar ceal.</translation>
-    </message>
-    <message>
-        <source>No error</source>
-        <translation type="unfinished">Níl earráid</translation>
-    </message>
-    <message>
-        <source>Private key for the entered address is not available.</source>
-        <translation type="unfinished">Níl eochair phríobháideach don seoladh a iontráladh ar fáil.</translation>
-    </message>
-    <message>
-        <source>Message signing failed.</source>
-        <translation type="unfinished">Theip ar shíniú teachtaireachtaí.</translation>
-    </message>
-    <message>
-        <source>Message signed.</source>
-        <translation type="unfinished">Teachtaireacht sínithe.</translation>
-    </message>
-    <message>
-        <source>The signature could not be decoded.</source>
-        <translation type="unfinished">Ní fhéadfaí an síniú a dhíchódú.</translation>
-    </message>
-    <message>
-        <source>Please check the signature and try again.</source>
-        <translation type="unfinished">Seiceáil an síniú le do thoil agus triail arís.</translation>
-    </message>
-    <message>
-        <source>The signature did not match the message digest.</source>
-        <translation type="unfinished">Níor meaitseáil an síniú leis an aschur haisfheidhme.</translation>
-    </message>
-    <message>
-        <source>Message verification failed.</source>
-        <translation type="unfinished">Theip ar fhíorú teachtaireachta.</translation>
-    </message>
-    <message>
-        <source>Message verified.</source>
-        <translation type="unfinished">Teachtaireacht fíoraithe.</translation>
     </message>
 </context>
 <context>
@@ -4170,20 +3871,8 @@ Téigh go Comhad &gt; Oscail Sparán chun sparán a lódáil.
         <translation type="unfinished">Earráid ag tosú/ag déanamh db txn don phróiseas bainte idirbhearta sparán</translation>
     </message>
     <message>
-        <source>Error: Dumpfile format record is incorrect. Got "%s", expected "format".</source>
-        <translation type="unfinished">Earráid agus%s á léamh! Seans go bhfuil sonraí idirbhirt in easnamh nó mícheart. Sparán athscanadh.</translation>
-    </message>
-    <message>
         <source>Error: Dumpfile identifier record is incorrect. Got "%s", expected "%s".</source>
         <translation type="unfinished">Earráid: Tá taifead aitheantóra Dumpfile mícheart. Fuair ​​​​tú "%s", bhíothas ag súil le "%s".</translation>
-    </message>
-    <message>
-        <source>Error: Dumpfile version is not supported. This version of bitcoin-wallet only supports version 1 dumpfiles. Got dumpfile with version %s</source>
-        <translation type="unfinished">Earráid: Ní thacaítear leis an leagan Dumpfile. Ní thacaíonn an leagan seo de bitcoin-sparán ach le leagan 1 dumpfiles. Fuair ​​​​tú dumpfile le leagan %s</translation>
-    </message>
-    <message>
-        <source>Error: Unable to produce descriptors for this legacy wallet. Make sure to provide the wallet's passphrase if it is encrypted.</source>
-        <translation type="unfinished">Earráid: Ní féidir tuairisceoirí a tháirgeadh don sparán oidhreachta seo. Bí cinnte pasfhrása an sparán a sholáthar má tá sé criptithe.</translation>
     </message>
     <message>
         <source>File %s already exists. If you are sure this is what you want, move it out of the way first.</source>
@@ -4270,10 +3959,6 @@ Téigh go Comhad &gt; Oscail Sparán chun sparán a lódáil.
         <translation type="unfinished">Rabhadh: Eochracha príobháideacha braite i sparán {%s} le heochracha príobháideacha díchumasaithe</translation>
     </message>
     <message>
-        <source>Witness data for blocks after height %d requires validation. Please restart with -reindex.</source>
-        <translation type="unfinished">Teastaíonn bailíochtú sonraí finné maidir le bloic tar éis airde %d. Atosaigh le -reindex le do thoil.</translation>
-    </message>
-    <message>
         <source>You need to rebuild the database using -reindex to go back to unpruned mode.  This will redownload the entire blockchain</source>
         <translation type="unfinished">Ní mór duit an bunachar sonraí a atógáil ag baint úsáide as -reindex chun dul ar ais go mód neamhbhearrtha. Déanfaidh sé seo an blockchain iomlán a athlódáil</translation>
     </message>
@@ -4318,25 +4003,9 @@ Téigh go Comhad &gt; Oscail Sparán chun sparán a lódáil.
         <translation type="unfinished">Earráid agus %s á léamh! Léann na heochracha go léir i gceart, ach seans go bhfuil sonraí idirbhirt nó meiteashonraí seolta in easnamh nó mícheart.</translation>
     </message>
     <message>
-        <source>Error: Address book data in wallet cannot be identified to belong to migrated wallets</source>
-        <translation type="unfinished">Earráid: Ní féidir sonraí an leabhair seoltaí sa sparán a shainaithint mar go mbaineann siad le sparán aistrithe</translation>
-    </message>
-    <message>
-        <source>Error: Duplicate descriptors created during migration. Your wallet may be corrupted.</source>
-        <translation type="unfinished">Earráid: Tuairisceoirí dúblacha a cruthaíodh le linn imirce. Seans go bhfuil do sparán truaillithe.</translation>
-    </message>
-    <message>
-        <source>Error: Transaction %s in wallet cannot be identified to belong to migrated wallets</source>
-        <translation type="unfinished">Earráid: Ní féidir idirbheart %s sa sparán a aithint gur le sparán aistrithe é</translation>
-    </message>
-    <message>
         <source>Failed to remove snapshot chainstate dir (%s). Manually remove it before restarting.
 </source>
         <translation type="unfinished">Theip ar bhaint an tsainstáit seat seat (%s). Bain de láimh é roimh atosú.</translation>
-    </message>
-    <message>
-        <source>Failed to rename invalid peers.dat file. Please move or delete it and try again.</source>
-        <translation type="unfinished">Theip ar an gcomhad peers.dat neamhbhailí a athainmniú. Bog nó scrios é agus bain triail eile as.</translation>
     </message>
     <message>
         <source>Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable %s.</source>
@@ -4365,10 +4034,6 @@ Téigh go Comhad &gt; Oscail Sparán chun sparán a lódáil.
     <message>
         <source>Maximum transaction weight is too low, can not accommodate change output</source>
         <translation type="unfinished">Tá meáchan uasta idirbheart ró-íseal, ní féidir freastal ar aschur athraithe</translation>
-    </message>
-    <message>
-        <source>Option '-checkpoints' is set but checkpoints were removed. This option has no effect.</source>
-        <translation type="unfinished">Tá an rogha '-checkpoints' socraithe ach baineadh seicphointí. Níl aon éifeacht ag an rogha seo.</translation>
     </message>
     <message>
         <source>Outbound connections restricted to CJDNS (-onlynet=cjdns) but -cjdnsreachable is not provided</source>
@@ -4427,29 +4092,8 @@ Téigh go Comhad &gt; Oscail Sparán chun sparán a lódáil.
         <translation type="unfinished">Tá UTXOanna neamhdheimhnithe ar fáil, ach cruthaítear slabhra idirbheart a ndiúltóidh an mempool dóibh má dhéantar iad a chaitheamh</translation>
     </message>
     <message>
-        <source>Unexpected legacy entry in descriptor wallet found. Loading wallet %s
-
-The wallet might have been tampered with or created with malicious intent.
-</source>
-        <translation type="unfinished">Fuarthas iontráil oidhreachta gan choinne sa sparán tuairisceora. Sparán %s á lódáil
-
-Seans gur cuireadh isteach ar an sparán nó gur cruthaíodh é le hintinn mhailíseach.</translation>
-    </message>
-    <message>
         <source>Your computer's date and time appear to be more than %d minutes out of sync with the network, this may lead to consensus failure. After you've confirmed your computer's clock, this message should no longer appear when you restart your node. Without a restart, it should stop showing automatically after you've connected to a sufficient number of new outbound peers, which may take some time. You can inspect the `timeoffset` field of the `getpeerinfo` and `getnetworkinfo` RPC methods to get more info.</source>
         <translation type="unfinished">Is cosúil go bhfuil dáta agus am do ríomhaire níos mó ná %d nóiméad as sioncronú leis an líonra, seans go dteipfidh ar chomhdhearcadh dá bharr. Tar éis duit clog do ríomhaire a dheimhniú, níor cheart go mbeadh an teachtaireacht seo le feiceáil a thuilleadh nuair a atosóidh tú do nód. Gan atosú, ba cheart go stopfadh sé ag taispeáint go huathoibríoch tar éis duit nasc a dhéanamh le líon imleor piaraí nua amach, a d'fhéadfadh roinnt ama a ghlacadh. Is féidir leat an réimse `timeoffset` de na modhanna RPC `getpeerinfo` agus `getnetworkinfo` a iniúchadh chun tuilleadh faisnéise a fháil.</translation>
-    </message>
-    <message>
-        <source>
-Unable to cleanup failed migration</source>
-        <translation type="unfinished">
-Ní féidir an t-imirce theip a ghlanadh</translation>
-    </message>
-    <message>
-        <source>
-Unable to restore backup of wallet.</source>
-        <translation type="unfinished">
-Ní féidir cúltaca an sparán a chur ar ais.</translation>
     </message>
     <message>
         <source>default wallet</source>
@@ -4592,10 +4236,6 @@ Ní féidir cúltaca an sparán a chur ar ais.</translation>
         <translation type="unfinished">Earráid: Ní hionann seiceála Dumpfile. Ríomh %s, bhíothas ag súil le %s</translation>
     </message>
     <message>
-        <source>Error: Failed to create new watchonly wallet</source>
-        <translation type="unfinished">Earráid: Theip ar chruthú sparán faire amháin nua</translation>
-    </message>
-    <message>
         <source>Error: Got key that was not hex: %s</source>
         <translation type="unfinished">Earráid: Fuair ​​​​tú eochair nach heicsidheachúlach í: %s</translation>
     </message>
@@ -4616,64 +4256,8 @@ Ní féidir cúltaca an sparán a chur ar ais.</translation>
         <translation type="unfinished">Earráid: Níl seoladh %s ar fáil.</translation>
     </message>
     <message>
-        <source>Error: Not all address book records were migrated</source>
-        <translation type="unfinished">Earráid: Níor aistríodh gach taifead sa leabhar seoltaí</translation>
-    </message>
-    <message>
-        <source>Error: Not all transaction records were migrated</source>
-        <translation type="unfinished">Earráid: Níor aistríodh gach taifead idirbhirt</translation>
-    </message>
-    <message>
-        <source>Error: This wallet already uses SQLite</source>
-        <translation type="unfinished">Earráid: Úsáideann an sparán seo SQLite cheana féin</translation>
-    </message>
-    <message>
-        <source>Error: This wallet is already a descriptor wallet</source>
-        <translation type="unfinished">Earráid: Is sparán tuairisceora é an sparán seo cheana féin</translation>
-    </message>
-    <message>
-        <source>Error: Unable to begin reading all records in the database</source>
-        <translation type="unfinished">Earráid: Ní féidir tosú ag léamh gach taifead sa bhunachar sonraí</translation>
-    </message>
-    <message>
-        <source>Error: Unable to make a backup of your wallet</source>
-        <translation type="unfinished">Earráid: Ní féidir cúltaca a dhéanamh de do sparán</translation>
-    </message>
-    <message>
-        <source>Error: Unable to parse version %u as a uint32_t</source>
-        <translation type="unfinished">Earráid: Ní féidir leagan%u a pharsáil mar uint32_t</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read all records in the database</source>
-        <translation type="unfinished">Earráid: Ní féidir gach taifead sa bhunachar sonraí a léamh</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read wallet's best block locator record</source>
-        <translation type="unfinished">Earráid: Ní féidir an taifead aimsitheoir bloc is fearr sa sparán a léamh</translation>
-    </message>
-    <message>
-        <source>Error: Unable to remove watchonly address book data</source>
-        <translation type="unfinished">Earráid: Ní féidir sonraí leabhar seoltaí faire amháin a bhaint</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write data to disk for wallet %s</source>
-        <translation type="unfinished">Earráid: Ní féidir sonraí a scríobh chuig diosca don sparán %s</translation>
-    </message>
-    <message>
         <source>Error: Unable to write record to new wallet</source>
         <translation type="unfinished">Earráid: Ní féidir taifead a scríobh chuig an sparán nua</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write solvable wallet best block locator record</source>
-        <translation type="unfinished">Earráid: Ní féidir an taifead aimsitheoir bloc is fearr ar an sparán intuaslagtha a scríobh</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write watchonly wallet best block locator record</source>
-        <translation type="unfinished">Earráid: Ní féidir an taifead aimsitheoir bloc is fearr le sparán faire amháin a scríobh</translation>
-    </message>
-    <message>
-        <source>Error: database transaction cannot be executed for wallet %s</source>
-        <translation type="unfinished">Earráid: ní féidir idirbheart bunachar sonraí a chur i gcrích le haghaidh sparán %s</translation>
     </message>
     <message>
         <source>Failed to acquire rescan reserver during wallet initialization</source>
@@ -4780,10 +4364,6 @@ Ní féidir cúltaca an sparán a chur ar ais.</translation>
         <translation type="unfinished">Cumraíocht cheangail dhúblach don seoladh %s. Seiceáil do shocruithe -bind, -bind=...=onion agus -whitebind le do thoil.</translation>
     </message>
     <message>
-        <source>Error creating %s: Could not write version metadata.</source>
-        <translation type="unfinished">Earráid ag cruthú %s: Níorbh fhéidir meiteashonraí an leagain a scríobh.</translation>
-    </message>
-    <message>
         <source>Invalid amount for -%s=&lt;amount&gt;: '%s'</source>
         <translation type="unfinished">Suim neamhbhailí do -%s=&lt;amount&gt;: '%s'</translation>
     </message>
@@ -4846,14 +4426,6 @@ Ní féidir cúltaca an sparán a chur ar ais.</translation>
     <message>
         <source>Only direction was set, no permissions: '%s'</source>
         <translation type="unfinished">Níor socraíodh ach treo, gan cead: '%s'</translation>
-    </message>
-    <message>
-        <source>Option '-limitancestorsize' is given but ancestor size limits have been replaced with cluster size limits (see -limitclustersize). This option has no effect.</source>
-        <translation type="unfinished">Tugtar an rogha '-limitancestorsize' ach tá teorainneacha méide braisle curtha in ionad teorainneacha méide sinsear (féach -limitclustersize). Níl aon éifeacht ag an rogha seo.</translation>
-    </message>
-    <message>
-        <source>Option '-limitdescendantsize' is given but descendant size limits have been replaced with cluster size limits (see -limitclustersize). This option has no effect.</source>
-        <translation type="unfinished">Tugtar an rogha '-limitdescendantsize' ach tá teorainneacha méide braisle curtha in ionad teorainneacha méide an tsliochtaigh (féach -limitclustersize). Níl aon éifeacht ag an rogha seo.</translation>
     </message>
     <message>
         <source>Private broadcast of own transactions requested (-privatebroadcast) and -proxyrandomize is disabled. Tor circuits for private broadcast connections may be correlated to other connections over Tor. For maximum privacy set -proxyrandomize=1.</source>
@@ -5068,20 +4640,8 @@ Ní féidir cúltaca an sparán a chur ar ais.</translation>
         <translation type="unfinished">Luach -blockfilterindex %s anaithnid.</translation>
     </message>
     <message>
-        <source>Unknown address type '%s'</source>
-        <translation type="unfinished">Anaithnid cineál seoladh '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown change type '%s'</source>
-        <translation type="unfinished">Anaithnid cineál sóinseáil '%s'</translation>
-    </message>
-    <message>
         <source>Unknown network specified in -onlynet: '%s'</source>
         <translation type="unfinished">Líonra anaithnid sonraithe san -onlynet: '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown new rules activated (versionbit %i)</source>
-        <translation type="unfinished">Rialacha nua anaithnid curtha i ngníomh (leagan giotán %ii)</translation>
     </message>
     <message>
         <source>Unrecognised option "%s" provided in -test=&lt;option&gt;.</source>
@@ -5090,10 +4650,6 @@ Ní féidir cúltaca an sparán a chur ar ais.</translation>
     <message>
         <source>Unsupported global logging level %s=%s. Valid values: %s.</source>
         <translation type="unfinished">Leibhéal logála domhanda nach dtacaítear leis %s=%s. Luachanna bailí: %s.</translation>
-    </message>
-    <message>
-        <source>Wallet file creation failed: %s</source>
-        <translation type="unfinished">Theip ar chruthú comhaid sparán: %s</translation>
     </message>
     <message>
         <source>Warning: Found invalid chain more than 6 blocks longer than our best chain. This could be due to database corruption or consensus incompatibility with peers.</source>
@@ -5106,14 +4662,6 @@ Ní féidir cúltaca an sparán a chur ar ais.</translation>
     <message>
         <source>Unsupported logging category %s=%s.</source>
         <translation type="unfinished">Catagóir logáil gan tacaíocht %s=%s.</translation>
-    </message>
-    <message>
-        <source>Error loading %s: Wallet is a legacy wallet. Please migrate to a descriptor wallet using the migration tool (migratewallet RPC).</source>
-        <translation type="unfinished">Earráid ag luchtú %s: Is sparán oidhreachta é an sparán. Déan aistriú chuig sparán tuairisciúil ag baint úsáide as an uirlis imirce (migratewallet RPC).</translation>
-    </message>
-    <message>
-        <source>Error: Dumpfile specifies an unsupported database format (%s). Only sqlite database dumps are supported</source>
-        <translation type="unfinished">Earráid: Sonraíonn an comhad dumpála formáid bunachar sonraí nach dtacaítear leis (%s). Ní thacaítear ach le dumpaí bunachar sonraí sqlite.</translation>
     </message>
     <message>
         <source>Failed to calculate bump fees, because unconfirmed UTXOs depend on an enormous cluster of unconfirmed transactions.</source>
@@ -5138,22 +4686,6 @@ Déan iarracht an leagan bogearraí is déanaí a rith.
     <message>
         <source>Do you want to rebuild the databases now?</source>
         <translation type="unfinished">Ar mhaith leat na bunachair shonraí a atógáil anois?</translation>
-    </message>
-    <message>
-        <source>Error: Could not add watchonly tx %s to watchonly wallet</source>
-        <translation type="unfinished">Earráid: Níorbh fhéidir watch amháin tx %s a chur le sparán faire amháin</translation>
-    </message>
-    <message>
-        <source>Error: Could not delete watchonly transactions. </source>
-        <translation type="unfinished">Earráid: Níorbh fhéidir idirbhearta faire amháin a scriosadh.</translation>
-    </message>
-    <message>
-        <source>Error: Wallet does not exist</source>
-        <translation type="unfinished">Earráid: Níl Sparán ann</translation>
-    </message>
-    <message>
-        <source>Error: cannot remove legacy wallet records</source>
-        <translation type="unfinished">Earráid: ní féidir taifid sparán oidhreachta a bhaint</translation>
     </message>
     <message>
         <source>Failed to start indexes, shutting down…</source>

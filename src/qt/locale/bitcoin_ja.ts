@@ -63,11 +63,6 @@
         <translation type="unfinished">これらは、あなたが知っている送信先の Bitcoin アドレスです。コインを送る前に必ず、金額と受取用アドレスを確認してください。</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">これが支払いを受け取るためのあなたのビットコインアドレスです。新しいアドレスを作成するには、受信タブの「新しい受信アドレスを作成」ボタンを使用してください。署名は「レガシー」タイプのアドレスでのみ可能です。</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">アドレスをコピー(&amp;C)</translation>
     </message>
@@ -555,22 +550,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">パスフレーズを変更…(&amp;C)</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">メッセージを署名…(&amp;m)</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Bitcoin アドレスでメッセージに署名することで、そのアドレスの所有権を証明する</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">メッセージを検証…(&amp;V)</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">メッセージを検証して、指定された Bitcoin アドレスで署名されたことを確認する</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">PSBTをファイルから読む…(&amp;L)</translation>
     </message>
@@ -739,14 +718,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">全てのウォレットを閉じる</translation>
     </message>
     <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">ウォレットの移行</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">ウォレットの移行</translation>
-    </message>
-    <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
         <translation type="unfinished">%1 のヘルプ メッセージを表示し、使用可能な Bitcoin のコマンドラインオプション一覧を見る。</translation>
     </message>
@@ -789,15 +760,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Wallet name cannot be empty</source>
         <translation type="unfinished">ウォレット名は空にはできません</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet Backup</source>
-        <translation type="unfinished">ウォレットバックアップの復元と移行</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet</source>
-        <extracomment>Title of pop-up window shown when the user is attempting to restore a wallet.</extracomment>
-        <translation type="unfinished">ウォレットの復元と移行</translation>
     </message>
     <message>
         <source>&amp;Window</source>
@@ -1113,91 +1075,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <source>Loading wallets…</source>
         <extracomment>Descriptive text of the load wallets progress window which indicates to the user that wallets are currently being loaded.</extracomment>
         <translation type="unfinished">ウォレットの読み込み中…</translation>
-    </message>
-</context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate wallet</source>
-        <translation type="unfinished">ウォレットを移行する</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to migrate the wallet &lt;i&gt;%1&lt;/i&gt;?</source>
-        <translation type="unfinished">ウォレット &lt;i&gt;%1&lt;/i&gt; を移行してもよろしいですか？</translation>
-    </message>
-    <message>
-        <source>Migrating the wallet will convert this wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">ウォレットを移行すると、このウォレットが 1 つ以上のディスクリプターウォレットに変換されます。 新しいウォレットのバックアップを作成する必要があります。
-このウォレットに監視専用スクリプトが含まれている場合、それらの監視専用スクリプトを含む新しいウォレットが作成されます。
-このウォレットに解決可能だが監視されないスクリプトが含まれている場合、それらのスクリプトを含む別の新しいウォレットが作成されます。
-
-移行プロセスでは、移行前にウォレットのバックアップが作成されます。 このバックアップ ファイルの名前は &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak で、元のウォレットのディレクトリにあります。 間違った移行が発生した場合は、「ウォレットの復元」機能を使用してバックアップから復元できます。</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">ウォレットの移行</translation>
-    </message>
-    <message>
-        <source>Migrating Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <translation type="unfinished">ウォレット &lt;b&gt;%1&lt;/b&gt; を移行中…</translation>
-    </message>
-    <message>
-        <source>The wallet '%1' was migrated successfully.</source>
-        <translation type="unfinished">ウォレット '%1' の移行が完了しました。</translation>
-    </message>
-    <message>
-        <source>Watchonly scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">監視専用スクリプトは’%1’という名前の新しいウォレットに移行されました。</translation>
-    </message>
-    <message>
-        <source>Solvable but not watched scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">解決可能だが監視されないスクリプトは '%1' という名前の新しいウォレットに移行されました。</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate wallet</source>
-        <translation type="unfinished">ウォレットの復元と移行</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to restore the wallet file &lt;i&gt;%1&lt;/i&gt; to &lt;i&gt;%2&lt;/i&gt; and migrate it?</source>
-        <translation type="unfinished">ウォレットファイル&lt;i&gt;%1&lt;/i&gt;を復元し&lt;i&gt;%2&lt;/i&gt;に移行してもよろしいですか？</translation>
-    </message>
-    <message>
-        <source>Restoring the wallet will copy the backup file to the wallets directory and place it in the standard wallet directory layout. The original file will not be modified.
-
-Migrating the wallet will convert the restored wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">ウォレットの復元では、バックアップファイルをウォレットディレクトリにコピーし、標準のウォレットディレクトリレイアウトに配置します。元のファイルは変更されません。
-
-ウォレットの移行では、復元されたウォレットを１つ以上のディスクリプターウォレットに変換します。新しいウォレットバックアップを作成する必要があります。
-このウォレットに監視専用スクリプトが含まれている場合、それらの監視専用スクリプトを含む新しいウォレットが作成されます。
-このウォレットに解決可能だが非監視スクリプトが含まれている場合、それらのスクリプトを含む別の新しいウォレットが作成されます。
-
-移行プロセスでは、移行前にウォレットのバックアップが作成されます。このバックアップファイルの名前は&lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bakで、このウォレット用のディレクトリ内に保存されます。間違った移行が行われた場合、「ウォレットの復元」機能をしよいうしてバックアップを復元できます。</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">ウォレットを復元</translation>
-    </message>
-    <message>
-        <source>Restoring Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <extracomment>Descriptive text of the restore wallets progress window which indicates to the user that wallets are currently being restored.</extracomment>
-        <translation type="unfinished">ウォレット &lt;b&gt;%1&lt;/b&gt; を復元中...</translation>
-    </message>
-    <message>
-        <source>Migration failed</source>
-        <translation type="unfinished">移行に失敗しました</translation>
-    </message>
-    <message>
-        <source>Migration Successful</source>
-        <translation type="unfinished">移行に成功しました</translation>
     </message>
 </context>
 <context>
@@ -2841,28 +2718,8 @@ For more information on using this console, type %6.
         <translation type="unfinished">金額をコピー(&amp;a)</translation>
     </message>
     <message>
-        <source>Not recommended due to higher fees and less protection against typos.</source>
-        <translation type="unfinished">料金が高く、タイプミスに対する保護が弱いため、お勧めできません。</translation>
-    </message>
-    <message>
-        <source>Generates an address compatible with older wallets.</source>
-        <translation type="unfinished">古いウォレットでも使用可能なアドレスを生成します。</translation>
-    </message>
-    <message>
-        <source>Generates a native segwit address (BIP-173). Some old wallets don't support it.</source>
-        <translation type="unfinished">ネイティブSegwitアドレス(BIP-173)を生成します。古いウォレットではサポートされていません。</translation>
-    </message>
-    <message>
-        <source>Bech32m (BIP-350) is an upgrade to Bech32, wallet support is still limited.</source>
-        <translation type="unfinished">Bech32m (BIP-350) はBech32のアップグレード版です。サポートしているウォレットはまだ限定的です。</translation>
-    </message>
-    <message>
         <source>Could not unlock wallet.</source>
         <translation type="unfinished">ウォレットをアンロックできませんでした。</translation>
-    </message>
-    <message>
-        <source>Could not generate new %1 address</source>
-        <translation type="unfinished">新しい %1 アドレスを生成できませんでした</translation>
     </message>
 </context>
 <context>
@@ -3382,149 +3239,6 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     <message>
         <source>Create Unsigned</source>
         <translation type="unfinished">未署名で作成</translation>
-    </message>
-</context>
-<context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Signatures - Sign / Verify a Message</source>
-        <translation type="unfinished">署名 - メッセージの署名・検証</translation>
-    </message>
-    <message>
-        <source>&amp;Sign Message</source>
-        <translation type="unfinished">メッセージに署名(&amp;S)</translation>
-    </message>
-    <message>
-        <source>You can sign messages/agreements with your legacy (P2PKH) addresses to prove you can receive bitcoins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation type="unfinished">あなたの所有しているレガシー（P2PKH）アドレスによりメッセージや合意書に署名をすることで、それらアドレスに対して送られたビットコインを受け取ることができることを証明できます。フィッシング攻撃により不正にあなたの識別情報を署名させられてしまうことを防ぐために、不明確なものやランダムなものに対して署名しないよう注意してください。あなたが同意した、よく詳細の記された文言にのみ署名するようにしてください。</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address to sign the message with</source>
-        <translation type="unfinished">メッセージの署名に使用する Bitcoin アドレス</translation>
-    </message>
-    <message>
-        <source>Choose previously used address</source>
-        <translation type="unfinished">これまでに使用したことがあるアドレスから選択</translation>
-    </message>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">クリップボードからアドレスを貼り付け</translation>
-    </message>
-    <message>
-        <source>Enter the message you want to sign here</source>
-        <translation type="unfinished">署名するメッセージを入力</translation>
-    </message>
-    <message>
-        <source>Signature</source>
-        <translation type="unfinished">署名</translation>
-    </message>
-    <message>
-        <source>Copy the current signature to the clipboard</source>
-        <translation type="unfinished">この署名をクリップボードにコピー</translation>
-    </message>
-    <message>
-        <source>Sign the message to prove you own this Bitcoin address</source>
-        <translation type="unfinished">メッセージに署名してこの Bitcoin アドレスを所有していることを証明</translation>
-    </message>
-    <message>
-        <source>Sign &amp;Message</source>
-        <translation type="unfinished">メッセージに署名(&amp;M)</translation>
-    </message>
-    <message>
-        <source>Reset all sign message fields</source>
-        <translation type="unfinished">入力欄の内容を全て消去</translation>
-    </message>
-    <message>
-        <source>Clear &amp;All</source>
-        <translation type="unfinished">全てクリア(&amp;A)</translation>
-    </message>
-    <message>
-        <source>&amp;Verify Message</source>
-        <translation type="unfinished">メッセージを検証(&amp;V)</translation>
-    </message>
-    <message>
-        <source>Enter the receiver's address, message (ensure you copy line breaks, spaces, tabs, etc. exactly) and signature below to verify the message. Be careful not to read more into the signature than what is in the signed message itself, to avoid being tricked by a man-in-the-middle attack. Note that this only proves the signing party receives with the address, it cannot prove sendership of any transaction!</source>
-        <translation type="unfinished">送金先のアドレスと、メッセージ（改行やスペース、タブなども完全に一致させること）および署名を以下に入力し、メッセージを検証します。中間者攻撃により騙されるのを防ぐため、署名対象のメッセージから書かれていること以上の意味を読み取ろうとしないでください。また、これは署名作成者がこのアドレスで受け取れることを証明するだけであり、取引の送信権限を証明するものではありません！</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address the message was signed with</source>
-        <translation type="unfinished">メッセージの署名に使われた Bitcoin アドレス</translation>
-    </message>
-    <message>
-        <source>The signed message to verify</source>
-        <translation type="unfinished">検証したい署名済みメッセージ</translation>
-    </message>
-    <message>
-        <source>The signature given when the message was signed</source>
-        <translation type="unfinished">メッセージの署名時に生成された署名</translation>
-    </message>
-    <message>
-        <source>Verify the message to ensure it was signed with the specified Bitcoin address</source>
-        <translation type="unfinished">メッセージを検証して指定された Bitcoin アドレスで署名されたことを確認</translation>
-    </message>
-    <message>
-        <source>Verify &amp;Message</source>
-        <translation type="unfinished">メッセージを検証(&amp;M)</translation>
-    </message>
-    <message>
-        <source>Reset all verify message fields</source>
-        <translation type="unfinished">入力欄の内容を全て消去</translation>
-    </message>
-    <message>
-        <source>Click "Sign Message" to generate signature</source>
-        <translation type="unfinished">「メッセージに署名」をクリックして署名を生成</translation>
-    </message>
-    <message>
-        <source>The entered address is invalid.</source>
-        <translation type="unfinished">不正なアドレスが入力されました。</translation>
-    </message>
-    <message>
-        <source>Please check the address and try again.</source>
-        <translation type="unfinished">アドレスが正しいか確かめてから、もう一度試してください。</translation>
-    </message>
-    <message>
-        <source>The entered address does not refer to a legacy (P2PKH) key. Message signing for SegWit and other non-P2PKH address types is not supported in this version of %1. Please check the address and try again.</source>
-        <translation type="unfinished">入力されたアドレスはレガシー (P2PKH) 鍵を指していません。 SegWit およびその他の非 P2PKH アドレス タイプのメッセージ署名は、%1のバージョンではサポートされていません。アドレスを確認して、もう一度お試しください。</translation>
-    </message>
-    <message>
-        <source>Wallet unlock was cancelled.</source>
-        <translation type="unfinished">ウォレットのアンロックはキャンセルされました。</translation>
-    </message>
-    <message>
-        <source>No error</source>
-        <translation type="unfinished">エラーなし</translation>
-    </message>
-    <message>
-        <source>Private key for the entered address is not available.</source>
-        <translation type="unfinished">入力されたアドレスの秘密鍵は利用できません。</translation>
-    </message>
-    <message>
-        <source>Message signing failed.</source>
-        <translation type="unfinished">メッセージの署名に失敗しました。</translation>
-    </message>
-    <message>
-        <source>Message signed.</source>
-        <translation type="unfinished">メッセージに署名しました。</translation>
-    </message>
-    <message>
-        <source>The signature could not be decoded.</source>
-        <translation type="unfinished">署名が復号できませんでした。</translation>
-    </message>
-    <message>
-        <source>Please check the signature and try again.</source>
-        <translation type="unfinished">署名が正しいか確認してから、もう一度試してください。</translation>
-    </message>
-    <message>
-        <source>The signature did not match the message digest.</source>
-        <translation type="unfinished">署名がメッセージダイジェストと一致しませんでした。</translation>
-    </message>
-    <message>
-        <source>Message verification failed.</source>
-        <translation type="unfinished">メッセージの検証に失敗しました。</translation>
-    </message>
-    <message>
-        <source>Message verified.</source>
-        <translation type="unfinished">メッセージは検証されました。</translation>
     </message>
 </context>
 <context>
@@ -4137,20 +3851,8 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">ウォレットトランザクション削除プロセスのdb txnの開始/コミット中にエラーが発生しました</translation>
     </message>
     <message>
-        <source>Error: Dumpfile format record is incorrect. Got "%s", expected "format".</source>
-        <translation type="unfinished">エラー: ダンプファイルのフォーマットレコードが不正です。"%s"が得られましたが、期待値は"format"です。</translation>
-    </message>
-    <message>
         <source>Error: Dumpfile identifier record is incorrect. Got "%s", expected "%s".</source>
         <translation type="unfinished">エラー: ダンプファイルの識別子レコードが不正です。得られた値は"%s"で、期待値は"%s"です。</translation>
-    </message>
-    <message>
-        <source>Error: Dumpfile version is not supported. This version of bitcoin-wallet only supports version 1 dumpfiles. Got dumpfile with version %s</source>
-        <translation type="unfinished">エラー: ダンプファイルのバージョンがサポート外です。このバージョンの Bitcoin ウォレットは、バージョン 1 のダンプファイルのみをサポートします。バージョン%sのダンプファイルでした。</translation>
-    </message>
-    <message>
-        <source>Error: Unable to produce descriptors for this legacy wallet. Make sure to provide the wallet's passphrase if it is encrypted.</source>
-        <translation type="unfinished">エラー: このレガシー ウォレットのディスクリプターを生成できません。ウォレットが暗号化されている場合は、ウォレットのパスフレーズを必ず入力してください。</translation>
     </message>
     <message>
         <source>File %s already exists. If you are sure this is what you want, move it out of the way first.</source>
@@ -4237,10 +3939,6 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">警告: 秘密鍵が無効なウォレット {%s} で秘密鍵を検出しました</translation>
     </message>
     <message>
-        <source>Witness data for blocks after height %d requires validation. Please restart with -reindex.</source>
-        <translation type="unfinished">高さ%d以降のブロックのwitnessデータは検証が必要です。-reindexを付けて再起動してください。</translation>
-    </message>
-    <message>
         <source>You need to rebuild the database using -reindex to go back to unpruned mode.  This will redownload the entire blockchain</source>
         <translation type="unfinished">非剪定モードに戻るためには -reindex オプションを指定してデータベースを再構築する必要があります。 ブロックチェーン全体の再ダウンロードが必要となります</translation>
     </message>
@@ -4285,26 +3983,10 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">%s の読み取り中にエラーが発生しました！ すべてのキーは正しく読み取られますが、取引データまたはアドレス メタデータが欠落しているか、正しくない可能性があります。</translation>
     </message>
     <message>
-        <source>Error: Address book data in wallet cannot be identified to belong to migrated wallets</source>
-        <translation type="unfinished">エラー: ウォレット内のアドレス帳データが、移行されたウォレットに属しているのか識別できません</translation>
-    </message>
-    <message>
-        <source>Error: Duplicate descriptors created during migration. Your wallet may be corrupted.</source>
-        <translation type="unfinished">エラー: 移行中に作成された重複したディスクリプター。ウォレットが破損している可能性があります。</translation>
-    </message>
-    <message>
-        <source>Error: Transaction %s in wallet cannot be identified to belong to migrated wallets</source>
-        <translation type="unfinished">エラー: ウォレット内の取引%s は、移行されたウォレットに属しているのか識別できません</translation>
-    </message>
-    <message>
         <source>Failed to remove snapshot chainstate dir (%s). Manually remove it before restarting.
 </source>
         <translation type="unfinished">スナップショットのchainstateディレクトリ（%s）を削除できませんでした。再起動する前に手動で削除してください。
 </translation>
-    </message>
-    <message>
-        <source>Failed to rename invalid peers.dat file. Please move or delete it and try again.</source>
-        <translation type="unfinished">無効な peers.dat ファイルの名前を変更できませんでした。移動または削除してから、もう一度お試しください。</translation>
     </message>
     <message>
         <source>Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable %s.</source>
@@ -4333,10 +4015,6 @@ Go to File &gt; Open Wallet to load a wallet.
     <message>
         <source>Maximum transaction weight is too low, can not accommodate change output</source>
         <translation type="unfinished">最大トランザクションweightが低すぎるため、お釣り用のアウトプットに対応できません</translation>
-    </message>
-    <message>
-        <source>Option '-checkpoints' is set but checkpoints were removed. This option has no effect.</source>
-        <translation type="unfinished">オプション「-checkpoints」が設定されていますが、チェックポイントは削除されています。このオプションは効果がありません。</translation>
     </message>
     <message>
         <source>Outbound connections restricted to CJDNS (-onlynet=cjdns) but -cjdnsreachable is not provided</source>
@@ -4395,30 +4073,8 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">未承認の UTXO は利用可能ですが、それらを使用すると取引の連鎖が形成されるので、メモリプールによって拒否されます。</translation>
     </message>
     <message>
-        <source>Unexpected legacy entry in descriptor wallet found. Loading wallet %s
-
-The wallet might have been tampered with or created with malicious intent.
-</source>
-        <translation type="unfinished">ディスクリプターウォレットに予期しないレガシーエントリーが見つかりました。ウォレット%sを読み込んでいます。
-
-ウォレットが改竄されたか、悪意をもって作成されている可能性があります。
-</translation>
-    </message>
-    <message>
         <source>Your computer's date and time appear to be more than %d minutes out of sync with the network, this may lead to consensus failure. After you've confirmed your computer's clock, this message should no longer appear when you restart your node. Without a restart, it should stop showing automatically after you've connected to a sufficient number of new outbound peers, which may take some time. You can inspect the `timeoffset` field of the `getpeerinfo` and `getnetworkinfo` RPC methods to get more info.</source>
         <translation type="unfinished">コンピューターの日付と時間がネットワークと%d分以上ずれているようです。これはコンセンサスエラーにつながる可能性があります。コンピューターの時計を確認した後、ノードを再起動するとこのメッセージは表示されなくなります。再起動しない場合は、十分な数の新しいアウトバウンドピアに接続すると表示されなくなりますが、これには時間がかかる場合があります。`getpeerinfo` RPCおよび `getnetworkinfo` RPCメソッドの`timeoffset`フィールドを調べると詳細が得られます。</translation>
-    </message>
-    <message>
-        <source>
-Unable to cleanup failed migration</source>
-        <translation type="unfinished">
-失敗した移行をクリーンアップできません</translation>
-    </message>
-    <message>
-        <source>
-Unable to restore backup of wallet.</source>
-        <translation type="unfinished">
-ウォレットのバックアップを復元できません。</translation>
     </message>
     <message>
         <source>default wallet</source>
@@ -4549,10 +4205,6 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">エラー: ダンプファイルのチェックサムが合致しません。計算された値%s、期待される値%s</translation>
     </message>
     <message>
-        <source>Error: Failed to create new watchonly wallet</source>
-        <translation type="unfinished">エラー: 新しい監視専用ウォレットを作成できませんでした</translation>
-    </message>
-    <message>
         <source>Error: Got key that was not hex: %s</source>
         <translation type="unfinished">エラー:  16進ではない鍵を取得しました: %s</translation>
     </message>
@@ -4573,64 +4225,8 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">エラー:  %sアドレスは使えません。</translation>
     </message>
     <message>
-        <source>Error: Not all address book records were migrated</source>
-        <translation type="unfinished">エラー: すべてのアドレス帳レコードが移行されませんでした</translation>
-    </message>
-    <message>
-        <source>Error: Not all transaction records were migrated</source>
-        <translation type="unfinished">エラー: すべての取引記録が移行されませんでした</translation>
-    </message>
-    <message>
-        <source>Error: This wallet already uses SQLite</source>
-        <translation type="unfinished">エラー: このウォレットはすでに SQLite を使用しています</translation>
-    </message>
-    <message>
-        <source>Error: This wallet is already a descriptor wallet</source>
-        <translation type="unfinished">エラー: このウォレットはすでにディスクリプターウォレットです</translation>
-    </message>
-    <message>
-        <source>Error: Unable to begin reading all records in the database</source>
-        <translation type="unfinished">エラー: データベース内のすべてのレコードの読み取りを開始できません</translation>
-    </message>
-    <message>
-        <source>Error: Unable to make a backup of your wallet</source>
-        <translation type="unfinished">エラー: ウォレットのバックアップを作成できません</translation>
-    </message>
-    <message>
-        <source>Error: Unable to parse version %u as a uint32_t</source>
-        <translation type="unfinished">エラー: バージョン%uをuint32_tとしてパースできませんでした</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read all records in the database</source>
-        <translation type="unfinished">エラー: データベース内のすべてのレコードを読み取ることができません</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read wallet's best block locator record</source>
-        <translation type="unfinished">エラー：ウォレットのベストブロックロケーターレコードを読み込めません</translation>
-    </message>
-    <message>
-        <source>Error: Unable to remove watchonly address book data</source>
-        <translation type="unfinished">エラー:  監視専用アドレス帳データを削除できません</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write data to disk for wallet %s</source>
-        <translation type="unfinished">エラー: ウォレット%sに対してディスクにデータを書き込めません</translation>
-    </message>
-    <message>
         <source>Error: Unable to write record to new wallet</source>
         <translation type="unfinished">エラー: 新しいウォレットにレコードを書き込めません</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write solvable wallet best block locator record</source>
-        <translation type="unfinished">エラー：解決可能なウォレットのベストブロックロケーターレコードを書き込めません</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write watchonly wallet best block locator record</source>
-        <translation type="unfinished">エラー：監視専用ウォレットのベストブロックロケーターレコードを書き込めません</translation>
-    </message>
-    <message>
-        <source>Error: database transaction cannot be executed for wallet %s</source>
-        <translation type="unfinished">エラー: ウォレット%sに対してデータベーストランザクションを実行できません</translation>
     </message>
     <message>
         <source>Failed to acquire rescan reserver during wallet initialization</source>
@@ -4737,10 +4333,6 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">アドレス%sのバインド設定が重複しています。-bindおよび-bind=...=onion、-whitebindの設定を確認してください。</translation>
     </message>
     <message>
-        <source>Error creating %s: Could not write version metadata.</source>
-        <translation type="unfinished">%s作成エラー: バージョンメタデータを書き込めませんでした。</translation>
-    </message>
-    <message>
         <source>Invalid amount for -%s=&lt;amount&gt;: '%s'</source>
         <translation type="unfinished">-%s=&lt;amount&gt; オプションに対する不正な設定: '%s'</translation>
     </message>
@@ -4803,14 +4395,6 @@ Unable to restore backup of wallet.</source>
     <message>
         <source>Only direction was set, no permissions: '%s'</source>
         <translation type="unfinished">方向のみが設定されており、権限がありません: '%s'</translation>
-    </message>
-    <message>
-        <source>Option '-limitancestorsize' is given but ancestor size limits have been replaced with cluster size limits (see -limitclustersize). This option has no effect.</source>
-        <translation type="unfinished">「-limitancestorsize」オプションが指定されていますが、祖先サイズの制限はクラスターサイズの制限に置き換えられています（-limitclustersize を参照）。このオプションは効果がありません。</translation>
-    </message>
-    <message>
-        <source>Option '-limitdescendantsize' is given but descendant size limits have been replaced with cluster size limits (see -limitclustersize). This option has no effect.</source>
-        <translation type="unfinished">「-limitdescendantsize」オプションが指定されていますが、子孫サイズの制限はクラスターサイズの制限に置き換えられています（-limitclustersize を参照）。このオプションは効果がありません。</translation>
     </message>
     <message>
         <source>Private broadcast of own transactions requested (-privatebroadcast) and -proxyrandomize is disabled. Tor circuits for private broadcast connections may be correlated to other connections over Tor. For maximum privacy set -proxyrandomize=1.</source>
@@ -5017,20 +4601,8 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">不明な -blockfilterindex の値 %s。</translation>
     </message>
     <message>
-        <source>Unknown address type '%s'</source>
-        <translation type="unfinished">不明なアドレス形式 '%s' </translation>
-    </message>
-    <message>
-        <source>Unknown change type '%s'</source>
-        <translation type="unfinished">不明なお釣りのアドレス形式 '%s' </translation>
-    </message>
-    <message>
         <source>Unknown network specified in -onlynet: '%s'</source>
         <translation type="unfinished">-onlynet オプションに対する不明なネットワーク: '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown new rules activated (versionbit %i)</source>
-        <translation type="unfinished">不明な新ルールがアクティベートされました (versionbit %i)</translation>
     </message>
     <message>
         <source>Unrecognised option "%s" provided in -test=&lt;option&gt;.</source>
@@ -5039,10 +4611,6 @@ Unable to restore backup of wallet.</source>
     <message>
         <source>Unsupported global logging level %s=%s. Valid values: %s.</source>
         <translation type="unfinished">未サポートのログレベル %s=%s。 正しい値は: %s。</translation>
-    </message>
-    <message>
-        <source>Wallet file creation failed: %s</source>
-        <translation type="unfinished">ウォレットファイルの作成に失敗しました：%s</translation>
     </message>
     <message>
         <source>Warning: Found invalid chain more than 6 blocks longer than our best chain. This could be due to database corruption or consensus incompatibility with peers.</source>
@@ -5055,14 +4623,6 @@ Unable to restore backup of wallet.</source>
     <message>
         <source>Unsupported logging category %s=%s.</source>
         <translation type="unfinished">サポートされていないログカテゴリ %s=%s 。</translation>
-    </message>
-    <message>
-        <source>Error loading %s: Wallet is a legacy wallet. Please migrate to a descriptor wallet using the migration tool (migratewallet RPC).</source>
-        <translation type="unfinished">%sの読み込みエラー: ウォレットはレガシーウォレットです。移行ツール（migratewallet RPC）を使用して、ディスクリプターウォレットに移行してください。</translation>
-    </message>
-    <message>
-        <source>Error: Dumpfile specifies an unsupported database format (%s). Only sqlite database dumps are supported</source>
-        <translation type="unfinished">エラー: ダンプファイルはサポートされていないデータベース形式(%s)を指定しています。SQLiteデータベースのダンプのみがサポートされています。</translation>
     </message>
     <message>
         <source>Failed to calculate bump fees, because unconfirmed UTXOs depend on an enormous cluster of unconfirmed transactions.</source>
@@ -5087,22 +4647,6 @@ Please try running the latest software version.
     <message>
         <source>Do you want to rebuild the databases now?</source>
         <translation type="unfinished">データベースを今すぐ再構築しますか？</translation>
-    </message>
-    <message>
-        <source>Error: Could not add watchonly tx %s to watchonly wallet</source>
-        <translation type="unfinished">エラー:  監視対象取引%sを監視専用ウォレットに追加できませんでした</translation>
-    </message>
-    <message>
-        <source>Error: Could not delete watchonly transactions. </source>
-        <translation type="unfinished">エラー:  監視対象取引を削除できませんでした</translation>
-    </message>
-    <message>
-        <source>Error: Wallet does not exist</source>
-        <translation type="unfinished">エラー: ウォレットが存在しません</translation>
-    </message>
-    <message>
-        <source>Error: cannot remove legacy wallet records</source>
-        <translation type="unfinished">エラー: レガシーウォレットのレコードを削除できません</translation>
     </message>
     <message>
         <source>Failed to start indexes, shutting down…</source>

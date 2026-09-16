@@ -62,12 +62,6 @@
         <translation type="unfinished">Це ваші біткоїн-адреси для надсилання платежів. Завжди перевіряйте суму та адресу одержувача перед відправленням монет.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">Це ваші Біткоїн адреси для отримання платежів. Використовуйте кнопку "Створити нову адресу для отримання" на вкладці отримання, щоб створити нові адреси.
-Підпис можливий лише з адресами типу "legacy".</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">Копіювати &amp;адресу</translation>
     </message>
@@ -583,22 +577,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">Змінити парольну &amp;фразу…</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">&amp;Підписати повідомлення…</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Підтвердіть, що ви є власником повідомлення підписавши його вашою Bitcoin-адресою</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">П&amp;еревірити повідомлення…</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">Перевірте повідомлення для впевненості, що воно підписано вказаною Bitcoin-адресою</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">&amp;Завантажити PSBT-транзакцію з файлу…</translation>
     </message>
@@ -617,10 +595,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Close All Wallets…</source>
         <translation type="unfinished">Закрити Всі Гаманці…</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet File…</source>
-        <translation type="unfinished">Відновити та перенести файл гаманця…</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -773,14 +747,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">Закрити всі гаманці</translation>
     </message>
     <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Перенести гаманець</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">Перенести гаманець</translation>
-    </message>
-    <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
         <translation type="unfinished">Показати довідку %1 для отримання переліку можливих параметрів командного рядка.</translation>
     </message>
@@ -823,15 +789,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Wallet name cannot be empty</source>
         <translation type="unfinished">Назва гаманця не може бути порожньою</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet Backup</source>
-        <translation type="unfinished">Відновити та перенести резервну копію гаманця</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet</source>
-        <extracomment>Title of pop-up window shown when the user is attempting to restore a wallet.</extracomment>
-        <translation type="unfinished">Відновити та перенести гаманець</translation>
     </message>
     <message>
         <source>&amp;Window</source>
@@ -1149,90 +1106,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <source>Loading wallets…</source>
         <extracomment>Descriptive text of the load wallets progress window which indicates to the user that wallets are currently being loaded.</extracomment>
         <translation type="unfinished">Завантаження гаманців…</translation>
-    </message>
-</context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate wallet</source>
-        <translation type="unfinished">Перенести гаманець</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to migrate the wallet &lt;i&gt;%1&lt;/i&gt;?</source>
-        <translation type="unfinished">Ви впевнені, що бажаєте перенести гаманець &lt;i&gt;%1&lt;/i&gt;?</translation>
-    </message>
-    <message>
-        <source>Migrating the wallet will convert this wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">Під час перенесення гаманця він буде перетворено на один або кілька дескрипторних гаманців. Необхідно буде створити нову резервну копію гаманця.
-Якщо цей гаманець містить будь-які скрипти "тільки для перегляду", буде створено новий гаманець, що містить такі скрипти.
-Якщо цей гаманець містить будь-які спроможні скрипти, але не "тільки для перегляду", буде створено інший новий гаманець, що містить такі скрипти.
-Процес перенесення створить резервну копію гаманця перед початком. Цей файл резервної копії буде названий &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak і знаходитиметься в каталозі для цього гаманця. У випадку неправильного перенесення резервну копію можна відновити за допомогою функціоналу "Відновити гаманець".</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Перенести гаманець</translation>
-    </message>
-    <message>
-        <source>Migrating Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <translation type="unfinished">Перенесення гаманця &lt;b&gt;%1&lt;/b&gt;…</translation>
-    </message>
-    <message>
-        <source>The wallet '%1' was migrated successfully.</source>
-        <translation type="unfinished">Гаманець '%1' був успішно перенесений.</translation>
-    </message>
-    <message>
-        <source>Watchonly scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Скрипти "тільки для перегляду" були перенесені в новий гаманець під назвою  '%1'.</translation>
-    </message>
-    <message>
-        <source>Solvable but not watched scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Спроможні скрипти, але не "тільки для перегляду", були перенесені в новий гаманець під назвою '%1'.</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate wallet</source>
-        <translation type="unfinished">Відновити та перенести гаманець</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to restore the wallet file &lt;i&gt;%1&lt;/i&gt; to &lt;i&gt;%2&lt;/i&gt; and migrate it?</source>
-        <translation type="unfinished">Ви впевнені, що бажаєте відновити файл гаманця &lt;i&gt;%1&lt;/i&gt; в &lt;i&gt;%2&lt;/i&gt; та перенести його?</translation>
-    </message>
-    <message>
-        <source>Restoring the wallet will copy the backup file to the wallets directory and place it in the standard wallet directory layout. The original file will not be modified.
-
-Migrating the wallet will convert the restored wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">Відновлення гаманця скопіює файл резервної копії до каталогу гаманців та розмістить його відповідно до стандартної структури каталогів гаманця. Оригінальний файл не буде змінено.
-
-Під час перенесення гаманця він буде перетворено на один або кілька дескрипторних гаманців. Необхідно буде створити нову резервну копію гаманця.
-Якщо цей гаманець містить будь-які скрипти "тільки для перегляду", буде створено новий гаманець, що містить такі скрипти.
-Якщо цей гаманець містить будь-які спроможні скрипти, але не "тільки для перегляду", буде створено інший новий гаманець, що містить такі скрипти.
-
-Процес перенесення створить резервну копію гаманця перед початком. Цей файл резервної копії буде названий &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak і знаходитиметься в каталозі для цього гаманця. У випадку неправильного перенесення резервну копію можна відновити за допомогою функціоналу "Відновити гаманець".</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">Відновити гаманець</translation>
-    </message>
-    <message>
-        <source>Restoring Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <extracomment>Descriptive text of the restore wallets progress window which indicates to the user that wallets are currently being restored.</extracomment>
-        <translation type="unfinished">Відновлення гаманця &lt;b&gt;%1&lt;/b&gt;…</translation>
-    </message>
-    <message>
-        <source>Migration failed</source>
-        <translation type="unfinished">Перенесення не вдалося</translation>
-    </message>
-    <message>
-        <source>Migration Successful</source>
-        <translation type="unfinished">Перенесення завершилося успішно</translation>
     </message>
 </context>
 <context>
@@ -2909,32 +2782,8 @@ For more information on using this console, type %6.
         <translation type="unfinished">Копіювати &amp;суму</translation>
     </message>
     <message>
-        <source>Base58 (Legacy)</source>
-        <translation type="unfinished">Base58 (застаріле)</translation>
-    </message>
-    <message>
-        <source>Not recommended due to higher fees and less protection against typos.</source>
-        <translation type="unfinished">Не рекомендується через вищу комісію та менший захист від помилок при написанні.</translation>
-    </message>
-    <message>
-        <source>Generates an address compatible with older wallets.</source>
-        <translation type="unfinished">Створює адресу, яка сумісна зі старішими гаманцями.</translation>
-    </message>
-    <message>
-        <source>Generates a native segwit address (BIP-173). Some old wallets don't support it.</source>
-        <translation type="unfinished">Створює segwit-адресу (BIP-173). Деякі старі гаманці не підтримують її.</translation>
-    </message>
-    <message>
-        <source>Bech32m (BIP-350) is an upgrade to Bech32, wallet support is still limited.</source>
-        <translation type="unfinished">Bech32m (BIP-350) є оновленням Bech32, підтримка гаманцями все ще обмежена.</translation>
-    </message>
-    <message>
         <source>Could not unlock wallet.</source>
         <translation type="unfinished">Не вдалося розблокувати гаманець.</translation>
-    </message>
-    <message>
-        <source>Could not generate new %1 address</source>
-        <translation type="unfinished">Не вдалося згенерувати нову адресу %1</translation>
     </message>
 </context>
 <context>
@@ -3460,149 +3309,6 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     <message>
         <source>Create Unsigned</source>
         <translation type="unfinished">Створити без підпису</translation>
-    </message>
-</context>
-<context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Signatures - Sign / Verify a Message</source>
-        <translation type="unfinished">Підписи - Підпис / Перевірка повідомлення</translation>
-    </message>
-    <message>
-        <source>&amp;Sign Message</source>
-        <translation type="unfinished">&amp;Підписати повідомлення</translation>
-    </message>
-    <message>
-        <source>You can sign messages/agreements with your legacy (P2PKH) addresses to prove you can receive bitcoins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation type="unfinished">Ви можете підписувати повідомлення/угоди своїми старими (P2PKH) адресами, щоб підтвердити, що можете отримувати біткоїни, надіслані на них. Будьте обережні і не підписуйте нічого розпливчастого або випадкового, оскільки фішингові атаки можуть спробувати обдурити вас, щоб ви передали їм свої особисті дані. Підписуйте лише повністю деталізовані заяви, з якими ви згодні.</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address to sign the message with</source>
-        <translation type="unfinished">Біткоїн-адреса для підпису цього повідомлення</translation>
-    </message>
-    <message>
-        <source>Choose previously used address</source>
-        <translation type="unfinished">Обрати ранiш використовувану адресу</translation>
-    </message>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">Вставити адресу з буфера обміну</translation>
-    </message>
-    <message>
-        <source>Enter the message you want to sign here</source>
-        <translation type="unfinished">Введіть повідомлення, яке ви хочете підписати тут</translation>
-    </message>
-    <message>
-        <source>Signature</source>
-        <translation type="unfinished">Підпис</translation>
-    </message>
-    <message>
-        <source>Copy the current signature to the clipboard</source>
-        <translation type="unfinished">Скопіювати поточний підпис до буфера обміну</translation>
-    </message>
-    <message>
-        <source>Sign the message to prove you own this Bitcoin address</source>
-        <translation type="unfinished">Підпишіть повідомлення щоб довести, що ви є власником цієї адреси</translation>
-    </message>
-    <message>
-        <source>Sign &amp;Message</source>
-        <translation type="unfinished">&amp;Підписати повідомлення</translation>
-    </message>
-    <message>
-        <source>Reset all sign message fields</source>
-        <translation type="unfinished">Скинути всі поля підпису повідомлення</translation>
-    </message>
-    <message>
-        <source>Clear &amp;All</source>
-        <translation type="unfinished">Очистити &amp;все</translation>
-    </message>
-    <message>
-        <source>&amp;Verify Message</source>
-        <translation type="unfinished">П&amp;еревірити повідомлення</translation>
-    </message>
-    <message>
-        <source>Enter the receiver's address, message (ensure you copy line breaks, spaces, tabs, etc. exactly) and signature below to verify the message. Be careful not to read more into the signature than what is in the signed message itself, to avoid being tricked by a man-in-the-middle attack. Note that this only proves the signing party receives with the address, it cannot prove sendership of any transaction!</source>
-        <translation type="unfinished">Введіть нижче адресу отримувача, повідомлення (впевніться, що ви точно скопіювали символи завершення рядка, табуляцію, пробіли тощо) та підпис для перевірки повідомлення. Впевніться, що в підпис не було додано зайвих символів: це допоможе уникнути атак типу «людина посередині». Зауважте, що це лише засвідчує можливість отримання транзакцій підписувачем, але не в стані підтвердити джерело жодної транзакції!</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address the message was signed with</source>
-        <translation type="unfinished">Біткоїн-адреса, якою було підписано це повідомлення</translation>
-    </message>
-    <message>
-        <source>The signed message to verify</source>
-        <translation type="unfinished">Підписане повідомлення для підтвердження</translation>
-    </message>
-    <message>
-        <source>The signature given when the message was signed</source>
-        <translation type="unfinished">Підпис наданий при підписанні цього повідомлення</translation>
-    </message>
-    <message>
-        <source>Verify the message to ensure it was signed with the specified Bitcoin address</source>
-        <translation type="unfinished">Перевірте повідомлення для впевненості, що воно підписано вказаною біткоїн-адресою</translation>
-    </message>
-    <message>
-        <source>Verify &amp;Message</source>
-        <translation type="unfinished">Перевірити &amp;Повідомлення</translation>
-    </message>
-    <message>
-        <source>Reset all verify message fields</source>
-        <translation type="unfinished">Скинути всі поля перевірки повідомлення</translation>
-    </message>
-    <message>
-        <source>Click "Sign Message" to generate signature</source>
-        <translation type="unfinished">Для створення підпису натисніть кнопку "Підписати повідомлення"</translation>
-    </message>
-    <message>
-        <source>The entered address is invalid.</source>
-        <translation type="unfinished">Введена адреса є недійсною.</translation>
-    </message>
-    <message>
-        <source>Please check the address and try again.</source>
-        <translation type="unfinished">Перевірте адресу та спробуйте ще раз.</translation>
-    </message>
-    <message>
-        <source>The entered address does not refer to a legacy (P2PKH) key. Message signing for SegWit and other non-P2PKH address types is not supported in this version of %1. Please check the address and try again.</source>
-        <translation type="unfinished">Введена адреса не належить до застарілого типу (P2PKH). Підписування повідомлень для SegWit та інших типів адрес, відмінних від P2PKH, не підтримується у цій версії %1. Перевірте адресу та спробуйте ще раз.</translation>
-    </message>
-    <message>
-        <source>Wallet unlock was cancelled.</source>
-        <translation type="unfinished">Розблокування гаманця було скасоване.</translation>
-    </message>
-    <message>
-        <source>No error</source>
-        <translation type="unfinished">Без помилок</translation>
-    </message>
-    <message>
-        <source>Private key for the entered address is not available.</source>
-        <translation type="unfinished">Приватний ключ для введеної адреси недоступний.</translation>
-    </message>
-    <message>
-        <source>Message signing failed.</source>
-        <translation type="unfinished">Не вдалося підписати повідомлення.</translation>
-    </message>
-    <message>
-        <source>Message signed.</source>
-        <translation type="unfinished">Повідомлення підписано.</translation>
-    </message>
-    <message>
-        <source>The signature could not be decoded.</source>
-        <translation type="unfinished">Підпис не можливо декодувати.</translation>
-    </message>
-    <message>
-        <source>Please check the signature and try again.</source>
-        <translation type="unfinished">Перевірте підпис та спробуйте ще раз.</translation>
-    </message>
-    <message>
-        <source>The signature did not match the message digest.</source>
-        <translation type="unfinished">Підпис не збігається з хешем повідомлення.</translation>
-    </message>
-    <message>
-        <source>Message verification failed.</source>
-        <translation type="unfinished">Не вдалося перевірити повідомлення.</translation>
-    </message>
-    <message>
-        <source>Message verified.</source>
-        <translation type="unfinished">Повідомлення перевірено.</translation>
     </message>
 </context>
 <context>
@@ -4225,20 +3931,8 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">Помилка початку/фіксації транзакції БД під час видалення транзакцій гаманця</translation>
     </message>
     <message>
-        <source>Error: Dumpfile format record is incorrect. Got "%s", expected "format".</source>
-        <translation type="unfinished">Помилка: Неправильний запис формату файлу дампа. Отримано "%s", очікується "format".</translation>
-    </message>
-    <message>
         <source>Error: Dumpfile identifier record is incorrect. Got "%s", expected "%s".</source>
         <translation type="unfinished">Помилка: Неправильний запис ідентифікатора файлу дампа. Отримано "%s", очікується "%s".</translation>
-    </message>
-    <message>
-        <source>Error: Dumpfile version is not supported. This version of bitcoin-wallet only supports version 1 dumpfiles. Got dumpfile with version %s</source>
-        <translation type="unfinished">Помилка: Версія файлу дампа не підтримується. Ця версія bitcoin-wallet підтримує лише файли дампа версії 1. Отримано файл дампа версії %s</translation>
-    </message>
-    <message>
-        <source>Error: Unable to produce descriptors for this legacy wallet. Make sure to provide the wallet's passphrase if it is encrypted.</source>
-        <translation type="unfinished">Помилка: Не вдалося створити дескриптори для цього застарілого гаманця. Якщо гаманець зашифровано, обов'язково введіть його парольну фразу.</translation>
     </message>
     <message>
         <source>File %s already exists. If you are sure this is what you want, move it out of the way first.</source>
@@ -4325,10 +4019,6 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">Попередження: Приватні ключі виявлено в гаманці {%s} з відключеними приватними ключами</translation>
     </message>
     <message>
-        <source>Witness data for blocks after height %d requires validation. Please restart with -reindex.</source>
-        <translation type="unfinished">Дані witness для блоків з висотою більше %d потребують перевірки. Перезапустіть з -reindex.</translation>
-    </message>
-    <message>
         <source>You need to rebuild the database using -reindex to go back to unpruned mode.  This will redownload the entire blockchain</source>
         <translation type="unfinished">Вам необхідно перебудувати базу даних за допомогою -reindex, щоб повернутися до режиму нескороченого блокчейну. Це призведе до повторного завантаження всього блокчейну</translation>
     </message>
@@ -4373,26 +4063,10 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">Помилка читання %s! Всі записи вірно зчитані, але дані транзакцій або метадані адрес можуть бути відсутніми або неправильними.</translation>
     </message>
     <message>
-        <source>Error: Address book data in wallet cannot be identified to belong to migrated wallets</source>
-        <translation type="unfinished">Помилка:  Дані адресної книги в гаманці не можна ідентифікувати як належні до перенесених гаманців</translation>
-    </message>
-    <message>
-        <source>Error: Duplicate descriptors created during migration. Your wallet may be corrupted.</source>
-        <translation type="unfinished">Помилка: Ідентичні дескриптори створено під час перенесення. Можливо, гаманець пошкоджено.</translation>
-    </message>
-    <message>
-        <source>Error: Transaction %s in wallet cannot be identified to belong to migrated wallets</source>
-        <translation type="unfinished">Помилка: Транзакцію %s в гаманці не можна ідентифікувати як належну до перенесених гаманців</translation>
-    </message>
-    <message>
         <source>Failed to remove snapshot chainstate dir (%s). Manually remove it before restarting.
 </source>
         <translation type="unfinished">Не вдалося видалити каталог стану блокчейну знімка (%s). Видаліть його вручну перед перезапуском.
 </translation>
-    </message>
-    <message>
-        <source>Failed to rename invalid peers.dat file. Please move or delete it and try again.</source>
-        <translation type="unfinished">Не вдалося перейменувати недійсний файл peers.dat. Будь ласка, перемістіть його та повторіть спробу </translation>
     </message>
     <message>
         <source>Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable %s.</source>
@@ -4421,10 +4095,6 @@ Go to File &gt; Open Wallet to load a wallet.
     <message>
         <source>Maximum transaction weight is too low, can not accommodate change output</source>
         <translation type="unfinished">Максимальна вага транзакції занадто мала, неможливо вмістити вихід для решти</translation>
-    </message>
-    <message>
-        <source>Option '-checkpoints' is set but checkpoints were removed. This option has no effect.</source>
-        <translation type="unfinished">Опцію '-checkpoints' встановлено, але контрольні точки було вилучено. Ця опція не має жодного ефекту.</translation>
     </message>
     <message>
         <source>Outbound connections restricted to CJDNS (-onlynet=cjdns) but -cjdnsreachable is not provided</source>
@@ -4483,30 +4153,8 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">Доступні непідтверджені UTXO, але їх витрачання створює ланцюжок транзакцій, які будуть відхиленими пулом транзакцій.</translation>
     </message>
     <message>
-        <source>Unexpected legacy entry in descriptor wallet found. Loading wallet %s
-
-The wallet might have been tampered with or created with malicious intent.
-</source>
-        <translation type="unfinished">В дескрипторному гаманці виявлено неочікуваний запис, що не підтримується. Завантаження гаманця %s 
-
-Гаманець міг бути підроблений або створений зі злим умислом.
-</translation>
-    </message>
-    <message>
         <source>Your computer's date and time appear to be more than %d minutes out of sync with the network, this may lead to consensus failure. After you've confirmed your computer's clock, this message should no longer appear when you restart your node. Without a restart, it should stop showing automatically after you've connected to a sufficient number of new outbound peers, which may take some time. You can inspect the `timeoffset` field of the `getpeerinfo` and `getnetworkinfo` RPC methods to get more info.</source>
         <translation type="unfinished">Дата і час на вашому комп’ютері, схоже, відрізняються від мережі більш ніж на %d хвилин, що може призвести до порушення консенсусу. Після перевірки системного часу це повідомлення більше не з’являтиметься після перезапуску вузла. Без перезапуску воно має зникнути автоматично після підключення до достатньої кількості нових вихідних з'єднань, що може зайняти певний час. Додаткову інформацію можна отримати у полі `timeoffset` RPC методів `getpeerinfo` and `getnetworkinfo`.</translation>
-    </message>
-    <message>
-        <source>
-Unable to cleanup failed migration</source>
-        <translation type="unfinished">
-Не вдалося очистити помилкове перенесення</translation>
-    </message>
-    <message>
-        <source>
-Unable to restore backup of wallet.</source>
-        <translation type="unfinished">
-Не вдалося відновити резервну копію гаманця.</translation>
     </message>
     <message>
         <source>default wallet</source>
@@ -4649,10 +4297,6 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">Помилка: Контрольна сума файлу дампа не збігається. Обчислено %s, очікується %s</translation>
     </message>
     <message>
-        <source>Error: Failed to create new watchonly wallet</source>
-        <translation type="unfinished">Помилка: Не вдалося створити новий гаманець для спостереження</translation>
-    </message>
-    <message>
         <source>Error: Got key that was not hex: %s</source>
         <translation type="unfinished">Помилка: Отримано ключ, що не є hex: %s</translation>
     </message>
@@ -4673,64 +4317,8 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">Помилка:  Немає доступних %s адрес.</translation>
     </message>
     <message>
-        <source>Error: Not all address book records were migrated</source>
-        <translation type="unfinished">Помилка: Не всі записи адресної книги були перенесені</translation>
-    </message>
-    <message>
-        <source>Error: Not all transaction records were migrated</source>
-        <translation type="unfinished">Помилка: Не всі записи транзакцій були перенесені</translation>
-    </message>
-    <message>
-        <source>Error: This wallet already uses SQLite</source>
-        <translation type="unfinished">Помилка; Цей гаманець вже використовує SQLite</translation>
-    </message>
-    <message>
-        <source>Error: This wallet is already a descriptor wallet</source>
-        <translation type="unfinished">Помилка: Цей гаманець вже є дескрипторним гаманцем</translation>
-    </message>
-    <message>
-        <source>Error: Unable to begin reading all records in the database</source>
-        <translation type="unfinished">Помилка: Не вдалося розпочати зчитування всіх записів бази даних</translation>
-    </message>
-    <message>
-        <source>Error: Unable to make a backup of your wallet</source>
-        <translation type="unfinished">Помилка: Не вдалося зробити резервну копію гаманця.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to parse version %u as a uint32_t</source>
-        <translation type="unfinished">Помилка: Не вдалося проаналізувати версію %u як uint32_t</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read all records in the database</source>
-        <translation type="unfinished">Помилка: Не вдалося зчитати всі записи бази даних</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read wallet's best block locator record</source>
-        <translation type="unfinished">Помилка: Не вдалося прочитати запис гаманця про локатор найкращого блока</translation>
-    </message>
-    <message>
-        <source>Error: Unable to remove watchonly address book data</source>
-        <translation type="unfinished">Помилка: Не вдалося видалити дані "тільки для перегляду" з адресної книги</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write data to disk for wallet %s</source>
-        <translation type="unfinished">Помилка: Не вдалося записати дані на диск для гаманця %s</translation>
-    </message>
-    <message>
         <source>Error: Unable to write record to new wallet</source>
         <translation type="unfinished">Помилка: Не вдалося додати запис до нового гаманця</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write solvable wallet best block locator record</source>
-        <translation type="unfinished">Помилка: Не вдалося записати запис спроможного гаманця про локатор найкращого блока</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write watchonly wallet best block locator record</source>
-        <translation type="unfinished">Помилка: Не вдалося записати запис гаманця для спостереження про локатор найкращого блока</translation>
-    </message>
-    <message>
-        <source>Error: database transaction cannot be executed for wallet %s</source>
-        <translation type="unfinished">Помилка: транзакцію бази даних не вдалося виконати для гаманця %s</translation>
     </message>
     <message>
         <source>Failed to acquire rescan reserver during wallet initialization</source>
@@ -4837,10 +4425,6 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">Дубльована конфігурація прив'язки для адреси %s. Перевірте налаштування -bind, -bind=...=onion та -whitebind.</translation>
     </message>
     <message>
-        <source>Error creating %s: Could not write version metadata.</source>
-        <translation type="unfinished">Помилка створення %s: Не вдалося записати метадані версії.</translation>
-    </message>
-    <message>
         <source>Invalid amount for -%s=&lt;amount&gt;: '%s'</source>
         <translation type="unfinished">Неприпустима сума в %s=&lt;amount&gt;: '%s'</translation>
     </message>
@@ -4903,14 +4487,6 @@ Unable to restore backup of wallet.</source>
     <message>
         <source>Only direction was set, no permissions: '%s'</source>
         <translation type="unfinished">Встановлено лише напрямок, без дозволів: '%s'</translation>
-    </message>
-    <message>
-        <source>Option '-limitancestorsize' is given but ancestor size limits have been replaced with cluster size limits (see -limitclustersize). This option has no effect.</source>
-        <translation type="unfinished">Вказано параметр '-limitancestorsize', але обмеження розміру предків замінено на обмеження розміру кластера (див. -limitclustersize). Цей параметр не має ефекту.</translation>
-    </message>
-    <message>
-        <source>Option '-limitdescendantsize' is given but descendant size limits have been replaced with cluster size limits (see -limitclustersize). This option has no effect.</source>
-        <translation type="unfinished">Вказано параметр '-limitdescendantsize', але обмеження розміру нащадків замінено на обмеження розміру кластера (див. -limitclustersize). Цей параметр не має ефекту.</translation>
     </message>
     <message>
         <source>Private broadcast of own transactions requested (-privatebroadcast) and -proxyrandomize is disabled. Tor circuits for private broadcast connections may be correlated to other connections over Tor. For maximum privacy set -proxyrandomize=1.</source>
@@ -5125,20 +4701,8 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">Невідоме значення -blockfilterindex %s.</translation>
     </message>
     <message>
-        <source>Unknown address type '%s'</source>
-        <translation type="unfinished">Невідомий тип адреси '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown change type '%s'</source>
-        <translation type="unfinished">Невідомий тип решти '%s'</translation>
-    </message>
-    <message>
         <source>Unknown network specified in -onlynet: '%s'</source>
         <translation type="unfinished">Невідома мережа вказана в -onlynet: '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown new rules activated (versionbit %i)</source>
-        <translation type="unfinished">Активовані невідомі нові правила (versionbit %i)</translation>
     </message>
     <message>
         <source>Unrecognised option "%s" provided in -test=&lt;option&gt;.</source>
@@ -5147,10 +4711,6 @@ Unable to restore backup of wallet.</source>
     <message>
         <source>Unsupported global logging level %s=%s. Valid values: %s.</source>
         <translation type="unfinished">Непідтримуваний глобальний рівень журналювання %s=%s. Припустимі значення: %s.</translation>
-    </message>
-    <message>
-        <source>Wallet file creation failed: %s</source>
-        <translation type="unfinished">Помилка створення файлу гаманця: %s</translation>
     </message>
     <message>
         <source>Warning: Found invalid chain more than 6 blocks longer than our best chain. This could be due to database corruption or consensus incompatibility with peers.</source>
@@ -5163,14 +4723,6 @@ Unable to restore backup of wallet.</source>
     <message>
         <source>Unsupported logging category %s=%s.</source>
         <translation type="unfinished">Непідтримувана категорія ведення журналу %s=%s.</translation>
-    </message>
-    <message>
-        <source>Error loading %s: Wallet is a legacy wallet. Please migrate to a descriptor wallet using the migration tool (migratewallet RPC).</source>
-        <translation type="unfinished">Помилка завантаження %s: Гаманець є застарілим. Будь ласка, виконайте міграцію до дескрипторного гаманця за допомогою інструменту міграції (migratewallet RPC).</translation>
-    </message>
-    <message>
-        <source>Error: Dumpfile specifies an unsupported database format (%s). Only sqlite database dumps are supported</source>
-        <translation type="unfinished">Помилка: Файл дампа вказує на непідтримуваний формат бази даних (%s). Підтримуються лише дампи бази даних SQLite</translation>
     </message>
     <message>
         <source>Failed to calculate bump fees, because unconfirmed UTXOs depend on an enormous cluster of unconfirmed transactions.</source>
@@ -5195,22 +4747,6 @@ Please try running the latest software version.
     <message>
         <source>Do you want to rebuild the databases now?</source>
         <translation type="unfinished">Перебудувати бази даних зараз?</translation>
-    </message>
-    <message>
-        <source>Error: Could not add watchonly tx %s to watchonly wallet</source>
-        <translation type="unfinished">Помилка: Не вдалося додати транзакцію "тільки для перегляду" %s до гаманця для спостереження</translation>
-    </message>
-    <message>
-        <source>Error: Could not delete watchonly transactions. </source>
-        <translation type="unfinished">Помилка: Не вдалося видалити транзакції "тільки для перегляду".</translation>
-    </message>
-    <message>
-        <source>Error: Wallet does not exist</source>
-        <translation type="unfinished">Помилка: Гаманець не існує</translation>
-    </message>
-    <message>
-        <source>Error: cannot remove legacy wallet records</source>
-        <translation type="unfinished">Помилка: неможливо видалити записи застарілого гаманця</translation>
     </message>
     <message>
         <source>Failed to start indexes, shutting down…</source>

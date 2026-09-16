@@ -62,11 +62,6 @@
         <translation type="unfinished">ಕಾಣಿಕೆಗಳು ಕಳುಹಿಸಲು ನೀವು ಬಳಸಬಹುದಿರುವ ಬಿಟ್‌ಕಾಯಿನ್ ವಿಳಾಸಗಳು ಇವು. ನಾಣ್ಯದ ಹಣವನ್ನು ಕಳುಹಿಸುವ ಮುಂದೆ ಹಣದ ಮೊತ್ತವನ್ನು ಮತ್ತು ಪ್ರಾಪ್ತಿ ವಿಳಾಸವನ್ನು ಯಾವಾಗಲೂ ಪರಿಶೀಲಿಸಿ.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">ನೀವು ಪಡೆಯಲು ಬಯಸುವ ಪಾವತಿಗಳನ್ನು ಸೇರಿಸಲು ನಿಮ್ಮ ಬಿಟ್‌ಕಾಯಿನ್ ವಿಳಾಸಗಳು ಇವು. ಹೊಸ ವಿಳಾಸಗಳನ್ನು ರಚಿಸಲು ಪಡೆಯುವ ಉಪಕರಣವಾಗಿ 'ಪಡೆಯುವ' ಟ್ಯಾಬ್ ನಲ್ಲಿರುವ 'ಹೊಸ ಪಾವತಿಯನ್ನು ರಚಿಸಿ' ಬಟನ್ ಅನ್ನು ಬಳಸಿ. ಸಹಿ ಮಾಡುವುದು ಕೇವಲ 'ಲೆಗೆಸಿ' ವಿಳಾಸಗಳ ವರ್ಗಕ್ಕೆ ಸೇರಿದ ವಿಳಾಸಗಳೊಂದಿಗೆ ಮಾತ್ರ ಸಾಧ್ಯ.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;ವಿಳಾಸವನ್ನು ನಕಲಿಸಿ</translation>
     </message>
@@ -449,22 +444,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">&amp;ಪಾಸ್‌ಫ್ರೇಸ್ ಬದಲಾಯಿಸಿ...</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">ಸಹಿ &amp;ಸಂದೇಶ...</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">ನೀವು ಅವುಗಳನ್ನು ಹೊಂದಿದ್ದೀರಿ ಎಂದು ಸಾಬೀತುಪಡಿಸಲು ನಿಮ್ಮ ಬಿಟ್‌ಕಾಯಿನ್ ವಿಳಾಸಗಳೊಂದಿಗೆ ಸಂದೇಶಗಳಿಗೆ ಸಹಿ ಮಾಡಿ</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;ಸಂದೇಶವನ್ನು ಪರಿಶೀಲಿಸಿ...</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">ನಿರ್ದಿಷ್ಟಪಡಿಸಿದ ಬಿಟ್‌ಕಾಯಿನ್ ವಿಳಾಸಗಳೊಂದಿಗೆ ಸಹಿ ಮಾಡಿರುವುದನ್ನು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಲು ಸಂದೇಶಗಳನ್ನು ಪರಿಶೀಲಿಸಿ</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">&amp;ಫೈಲ್‌ನಿಂದ PSBT ಅನ್ನು ಲೋಡ್ ಮಾಡಿ...</translation>
     </message>
@@ -645,13 +624,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
 </context>
 <context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Copy the current signature to the clipboard</source>
-        <translation type="unfinished">ಪ್ರಸ್ತುತ ಸಹಿಯನ್ನು ಕ್ಲಿಪ್‌ಬೋರ್ಡ್‌ಗೆ ನಕಲಿಸಿ</translation>
-    </message>
-    </context>
-<context>
     <name>TransactionDesc</name>
     <message numerus="yes">
         <source>matures in %n more block(s)</source>
@@ -721,22 +693,10 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">ನೀವು ಸಾಮಾನ್ಯ ಫೀ ಬಗ್ಗೆ ಹೆಚ್ಚಿನ ಲಾಗಿನ ಸಂದರ್ಶನಕ್ಕಿಂತ ಪಾಂಡ್ರಹಿಸುವುದಕ್ಕಿಂತ ಭಾಗಶಃ ಖರೀದಿ ಟ್ರಾನ್ಸ್ಯಾಕ್ಷನ್ ಆಯ್ಕೆಯನ್ನು ಆಯ್ಕೆಮಾಡುವುದರ ಮೇಲೆ ಪ್ರಾಥಮಿಕತೆಯನ್ನು ಕೊಡುವುದಕ್ಕಾಗಿ ನೀವು ಅಧಿಕವಾದ ಟ್ರಾನ್ಸ್ಯಾಕ್ಷನ್ ಫೀ ಪಾವತಿಸುತ್ತೀರಿ.</translation>
     </message>
     <message>
-        <source>Error: Duplicate descriptors created during migration. Your wallet may be corrupted.</source>
-        <translation type="unfinished">ದೋಷ: ವರ್ಣನೆಗಳ ಪುನರ್ವಿನಿಮಯದ ಸಮಯದಲ್ಲಿ ನಕಲಿ ವರ್ಣನೆಗಳು ರಚಿಸಲಾಗಿವೆ. ನಿಮ್ಮ ಬಟ್ಟೆ ಹಾಕಿದ ಕಾರ್ಟೆಜ್ ಹಾಳಾಗಿರಬಹುದು.</translation>
-    </message>
-    <message>
-        <source>Failed to rename invalid peers.dat file. Please move or delete it and try again.</source>
-        <translation type="unfinished">ಅಮಾನ್ಯ ಸಹಾಯಕ ಫೈಲ್ peers.dat ಅನ್ನು ಹೆಸರು ಬದಲಾಯಿಸಲು ವಿಫಲವಾಗಿದೆ. ದಯವಿಟ್ಟು ಅದನ್ನು ತೆಗೆದುಹಾಕಿ ಅಥವಾ ಅದನ್ನು ಹೆಸರು ಬದಲಾಯಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.</translation>
-    </message>
-    <message>
         <source>Incompatible options: -dnsseed=1 was explicitly specified, but -onlynet forbids connections to IPv4/IPv6</source>
         <translation type="unfinished">ಅಸಮರ್ಥ ಆಯ್ಕೆಗಳು: -dnsseed=1 ದೃಷ್ಟಿಯಲ್ಲಿದ್ದರೂ, -onlynet ದ್ವಾರಾ IPv4/IPv6 ಸಂಪರ್ಕಗಳನ್ನು ನಿಷೇಧಿಸುತ್ತದೆ.
  
  </translation>
-    </message>
-    <message>
-        <source>Option '-checkpoints' is set but checkpoints were removed. This option has no effect.</source>
-        <translation type="unfinished">'-ಚೆಕ್‌ಪಾಯಿಂಟ್‌ಗಳು' ಆಯ್ಕೆಯನ್ನು ಹೊಂದಿಸಲಾಗಿದೆ ಆದರೆ ಚೆಕ್‌ಪಾಯಿಂಟ್‌ಗಳನ್ನು ತೆಗೆದುಹಾಕಲಾಗಿದೆ. ಈ ಆಯ್ಕೆಯು ಯಾವುದೇ ಪರಿಣಾಮವನ್ನು ಬೀರುವುದಿಲ್ಲ.</translation>
     </message>
     <message>
         <source>Outbound connections restricted to Tor (-onlynet=onion) but the proxy for reaching the Tor network is explicitly forbidden: -onion=0</source>
@@ -771,14 +731,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Could not top up scriptPubKeys</source>
         <translation type="unfinished">ಸ್ಕ್ರಿಪ್ಟ್‌ಪಬ್‌ಕೀಸ್‌ಗಳನ್ನು ಮರುಪೂರಣ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.</translation>
-    </message>
-    <message>
-        <source>Error: Not all address book records were migrated</source>
-        <translation type="unfinished">ದೋಷ: ಎಲ್ಲಾ ವಿಳಾಸ ಪುಸ್ತಕ ದಾಖಲೆಗಳನ್ನು ಸ್ಥಳಾಂತರಿಸಲಾಗಿಲ್ಲ.</translation>
-    </message>
-    <message>
-        <source>Error: Not all transaction records were migrated</source>
-        <translation type="unfinished">ದೋಷ: ಎಲ್ಲಾ ವಹಿವಾಟು ದಾಖಲೆಗಳನ್ನು ಸ್ಥಳಾಂತರಿಸಲಾಗಿಲ್ಲ.</translation>
     </message>
     <message>
         <source>Failed to acquire rescan reserver during wallet initialization</source>

@@ -58,12 +58,6 @@
         <translation type="unfinished">דאס זיינע אייער ביטקוין אדרעסן צו שיקן צאלונגען. אלעמאל איבערקוקן די סומעאון די באקומער אדרעס איידער איר שיקט די מאָנעס.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">די זענען אייער ביטקאָין־אַדרעסן פֿאַר באקומען צאָלונגען. ניצט דעם קנעפּל „שאַפֿן אַ נײַע באקומען־אַדרעס“ 
-אין די „באקומען“־טעב, צו שאַפֿן נײַעאַדרעסן.אונterschרייבן איז בלויז מעגלעך מיט אַדרעסן פון דעם טיפּ „לעגאַסי“.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;קאַפּי אַדרעס</translation>
     </message>
@@ -554,16 +548,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished"> די דאט און צייט פון אייער קאמפיוטער זענען מסתבר מער ווי %d מינוט ארויס פון טעמפו מיטן נעצווערק, וואס קען פירן צו א פאל פון קאנצעסוס. נאך וואס איר האט באשטעטיקט די קלאק פון אייער קאמפיוטער, זאָל דער היינטיקער מעלדונג נישט מער אויסקומען ווען איר רעבוטן אייער נוד. אן א רעבוט, וועט עס אָפּשטיין אוטאָמאַטיש נאך וואס איר וועט זיך פאַרבינדן מיט גענוג ניי אאוטבאונד פיערס, וואס קען נעמען א ביסל צייט. איר קענען אָפּשאַצן דעם timeoffset פעלד פון די getpeerinfo און getnetworkinfo RPC מעטאדן פאר מער אינפֿאָרמאַציע.</translation>
     </message>
     <message>
-        <source>
-Unable to cleanup failed migration</source>
-        <translation type="unfinished">נישט אפשר צו רייניקן אויוולע געדריט</translation>
-    </message>
-    <message>
-        <source>
-Unable to restore backup of wallet.</source>
-        <translation type="unfinished">קענען נישט צוריקשטעלן די באַקאַפּ פון די וואָלעט.</translation>
-    </message>
-    <message>
         <source>whitebind may only be used for incoming connections ("out" was passed)</source>
         <translation type="unfinished">ווײַסבינד קען נאָר פֿאַר קיבלן קאָנעקציעס גענוצט ווערן ("אויס" איז געווען פארבאטן)</translation>
     </message>
@@ -672,10 +656,6 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">טעות: דער טשעקזאַם פון דעם דאטעי איז נישט גלייך. רעכנט 1%s, ערווארטעט 1%s</translation>
     </message>
     <message>
-        <source>Error: Failed to create new watchonly wallet</source>
-        <translation type="unfinished">גרייַז: ניט געקאָנט שאַפֿן אַ נייַ וואַטשאָונלי וואָלעט</translation>
-    </message>
-    <message>
         <source>Error: Got key that was not hex: %s</source>
         <translation type="unfinished"> טעות: באקומען אַ שליסל וואָס איז נישט העקס: 1%s</translation>
     </message>
@@ -696,52 +676,8 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">טע mistake: קיין 1%s אַדרעסן ניט פארfügbar.</translation>
     </message>
     <message>
-        <source>Error: This wallet already uses SQLite</source>
-        <translation type="unfinished">ע"ראָר: די וואָלטעטּ שוין נוצט SQLite</translation>
-    </message>
-    <message>
-        <source>Error: This wallet is already a descriptor wallet</source>
-        <translation type="unfinished">אערראָר: דעם וואַלט איז שוין אַ דעסקрипטאָר וואַלט</translation>
-    </message>
-    <message>
-        <source>Error: Unable to begin reading all records in the database</source>
-        <translation type="unfinished">אַרור: ניט מעגליך צו אָנהייבן לייענען אַלע רעקאָרדס אין דער דאטאבאַזע</translation>
-    </message>
-    <message>
-        <source>Error: Unable to make a backup of your wallet</source>
-        <translation type="unfinished">אַרור: נישט קענען מאַכן אַ פֿאַרזיכערונג פון דיין וואַלט</translation>
-    </message>
-    <message>
-        <source>Error: Unable to parse version %u as a uint32_t</source>
-        <translation type="unfinished">אורור: נישט קענען פארשטיין ווערסיע %u אלס א uint32_t</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read all records in the database</source>
-        <translation type="unfinished">גרייַז: מען קען נישט לייענען אַלע רעקאָרדס אין דער דאטאַבייס</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read wallet's best block locator record</source>
-        <translation type="unfinished">גרייַז: אוממעגלעך צו לייענען דער בעסטער בלאָק לאָקאַטאָר רעקאָרד פון דעם וואָלעט</translation>
-    </message>
-    <message>
-        <source>Error: Unable to remove watchonly address book data</source>
-        <translation type="unfinished">טרוטה: אוממעגלעך צו אַוועקנעמען בלויז-זען אַדרעס בוך דאַטן</translation>
-    </message>
-    <message>
         <source>Error: Unable to write record to new wallet</source>
         <translation type="unfinished">טעות: קען נישט שרייבן רעקארד צו די נייע וואַלאַט</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write solvable wallet best block locator record</source>
-        <translation type="unfinished">טעות: מע קען נישט שרייבן דער לייזבארער געלטקעסטל בעסטער בלאָק לאָקאַטאָר רעקאָרד</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write watchonly wallet best block locator record</source>
-        <translation type="unfinished">טעות: נישט מעגלעך צו שרייבן דער בעסטער בלאָק לאַקאַטאָר רעקאָרד פון אַ וואַטשאָן-בלאָק פּאָרטעמאָנע</translation>
-    </message>
-    <message>
-        <source>Error: database transaction cannot be executed for wallet %s</source>
-        <translation type="unfinished">טעות: די דאטאבאזע טראַנזאַקשאַן קען נישט דורכגעפֿירט ווערן פֿאַר וואַלעט 1%s</translation>
     </message>
     <message>
         <source>Failed to disconnect block.</source>
@@ -1072,20 +1008,8 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">יידנט -בלאָקפֿילטער אינדעקס ווערט 1%s.</translation>
     </message>
     <message>
-        <source>Unknown address type '%s'</source>
-        <translation type="unfinished">אומדעוקט אדרעס טיפּ '1%s'</translation>
-    </message>
-    <message>
-        <source>Unknown change type '%s'</source>
-        <translation type="unfinished">יידישע: אנבעלשערט טייפל פון ענדערונג '1%s'</translation>
-    </message>
-    <message>
         <source>Unknown network specified in -onlynet: '%s'</source>
         <translation type="unfinished">אומפֿרידן נעץ איז צוגעגעבן אין -onlynet: '1%s'</translation>
-    </message>
-    <message>
-        <source>Unknown new rules activated (versionbit %i)</source>
-        <translation type="unfinished">נישט באקאנטע נייע רשימות אַקטיווי (װערסיעביט 1%i)</translation>
     </message>
     <message>
         <source>Unrecognised option "%s" provided in -test=&lt;option&gt;.</source>
@@ -1096,24 +1020,12 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">נישט געשטיצט גלאבאלע לאָגגינג מדרגה 1%s=1%s. גילטיקע ווערטן: 1%s.</translation>
     </message>
     <message>
-        <source>Wallet file creation failed: %s</source>
-        <translation type="unfinished">דער שאַפֿן וואָלעט טעקע איז פאַרפאַלן: 1%s</translation>
-    </message>
-    <message>
         <source>acceptstalefeeestimates is not supported on %s chain.</source>
         <translation type="unfinished">אַננעמען-שטערקייט-פֿאַרמעסטונגן איז נישט געשטיצט אויף %s קייט.</translation>
     </message>
     <message>
         <source>Unsupported logging category %s=%s.</source>
         <translation type="unfinished">נישט געשטיצט לאָגינג קאַטעגאָריע 1%s=1%s.</translation>
-    </message>
-    <message>
-        <source>Error: Could not add watchonly tx %s to watchonly wallet</source>
-        <translation type="unfinished">אַ טעות: קען נישט לייגען די וואָטשט-נאָר איבערגעשיקט 1%s אין דער וואָטשט-נאָר וואָלעט</translation>
-    </message>
-    <message>
-        <source>Error: Could not delete watchonly transactions. </source>
-        <translation type="unfinished">טעות: מע קען נישט אויסמעקן בלויז-ווייזן טראַנסאקציעס.</translation>
     </message>
     <message>
         <source>User Agent comment (%s) contains unsafe characters.</source>

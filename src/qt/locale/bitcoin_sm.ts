@@ -58,11 +58,6 @@
         <translation type="unfinished">O nei o au tuatusi Bitcoin mo le auina atu o totogi. Ia e siaki pea le aofa'i ma le tuatusi e talia ai tupe a'o le'i lafoina atu tupe.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">O nei o au tuatusi Bitcoin mo le talia o totogi. Fa'aaoga le fa'amau 'Fausia se tuatusi fou mo le talia' i le fa'amau talia e fa'atupu ai ni tuatusi fou. E mafai ona sainia na'o tuatusi o le ituaiga 'legacy'.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;Kopi le Tuatusi</translation>
     </message>
@@ -474,22 +469,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">&amp;Suia le Upu Fa‘alilolilo…</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">Saini &amp; feʻau...</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Saini feʻau i au tuatusi Bitcoin e fa'amaonia ai o oe e ona</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;Fa'amaonia le mesēga…</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">Fa'amaonia manatu e fa'amaonia ai na'o le 'alelesi fa'amaonia i tuatusi Bitcoin fa'amaonia</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">&amp;La'u mai le PSBT mai le faila...</translation>
     </message>
@@ -658,14 +637,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Close all wallets</source>
         <translation type="unfinished">Tapuni uma pusa o le tagata</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Felauaiga o le 'Upega</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">Maua se 'u'iga o se taga tupe</translation>
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
@@ -1013,67 +984,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <source>Loading wallets…</source>
         <extracomment>Descriptive text of the load wallets progress window which indicates to the user that wallets are currently being loaded.</extracomment>
         <translation type="unfinished">O lo’o utaina taga tupe…</translation>
-    </message>
-</context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate wallet</source>
-        <translation type="unfinished">Si’itia le atotupe</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to migrate the wallet &lt;i&gt;%1&lt;/i&gt;?</source>
-        <translation type="unfinished">E te mautinoa o lo'o manao e su'e le 'u'amea &lt;i&gt;%1&lt;/i&gt;?</translation>
-    </message>
-    <message>
-        <source>Migrating the wallet will convert this wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">O le suiga o le pusa tupe o le a suia ai lenei pusa tupe i se tasi po'o ni pusa tupe fa'amaoniga. O le a manaʻomia se su'esu'ega pusa tupe fou.
-Afai e aofia ai i lenei 'wallet' ni tusitusiga na'o le matamata, o le a fa'atufaina se 'wallet' fou o lo'o aofia ai tusitusiga na'o le matamata.
-Afai e aofia ai i lenei ato tupe ni fa'amaoniga e mafai ona fo'ia ae le'o va'aia, o le a faia se ato tupe fou ma le isi fa'amaoniga i totonu.
-
-O le fa'amaoniga o le malaga o le a fai se kopi o le 'aofa'i a'o le'i fa'aauau le malaga. O le faila kopi o le a ta'uina &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak ma e mafai ona maua i le directory mo lenei wallet. I le tulaga o se fa'amaoniga sese, e mafai ona toe fa'afo'i le backup fa'aaoga le "Restore Wallet" functionality.</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Felauaiga o le 'Upega</translation>
-    </message>
-    <message>
-        <source>Migrating Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <translation type="unfinished">Pōtū Vālea o le Fa'asalalau &lt;b&gt;%1&lt;/b&gt;…</translation>
-    </message>
-    <message>
-        <source>The wallet '%1' was migrated successfully.</source>
-        <translation type="unfinished">O le 'wallet' '%1' na mafai ona siitia ma le manuia.</translation>
-    </message>
-    <message>
-        <source>Watchonly scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">O tusitusiga mataʻitu naʻo leʻi siitia i se teutusi fou ua faʻaigoaina '%1'.</translation>
-    </message>
-    <message>
-        <source>Solvable but not watched scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">O tusitusiga e mafai ona foʻia ae leʻi mataʻituina ua siitia atu i se atotupe fou ua faaigoaina '%1'.</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">Toe fa'aleleia le Pusa O le 'Aumauga</translation>
-    </message>
-    <message>
-        <source>Restoring Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <extracomment>Descriptive text of the restore wallets progress window which indicates to the user that wallets are currently being restored.</extracomment>
-        <translation type="unfinished">Toe Faʻaleleia le ʻApefaʻamau &lt;b&gt;%1&lt;/b&gt;…</translation>
-    </message>
-    <message>
-        <source>Migration failed</source>
-        <translation type="unfinished">Ua le manuia le siʻitia.</translation>
-    </message>
-    <message>
-        <source>Migration Successful</source>
-        <translation type="unfinished">Ua Manuia le Faimalaga</translation>
     </message>
 </context>
 <context>
@@ -2027,13 +1937,6 @@ O le fa'amaoniga o le malaga o le a fai se kopi o le 'aofa'i a'o le'i fa'aauau l
 </context>
 <context>
     <name>SendCoinsEntry</name>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">Fa'amaonia le tu'usa'o mai le clipboard</translation>
-    </message>
-    </context>
-<context>
-    <name>SignVerifyMessageDialog</name>
     <message>
         <source>Paste address from clipboard</source>
         <translation type="unfinished">Fa'amaonia le tu'usa'o mai le clipboard</translation>

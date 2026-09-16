@@ -58,12 +58,6 @@
         <translation type="unfinished">ክፍያዎችን ለመላክ እነዚህ  የእርስዎ ቢትኮይን አድራሻዎች ናቸው። ሳንቲሞችን/ኮይኖች ከመላክዎ በፊት ሁል ጊዜ መጠኑን እና የተቀባዩን አድራሻ ያረጋግጡ።</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">እነኚህ የቢትኮይን አድራሻዎች የክፍያ መቀበያ አድራሻዎችዎ ናችው። "ተቀበል" በሚለው መደብ ውስጥ ያለውን "አዲስ የመቀበያ አድራሻ ይፍጠሩ" የሚለውን አዝራር ይጠቀሙ።
-መፈረም የሚቻለው "ሌጋሲ" በሚል ምድብ ስር በተመደቡ አድራሻዎች ብቻ ነው።</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;አድራሻ ቅዳ</translation>
     </message>
@@ -379,10 +373,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">&amp;የይለፍ ቃል ቀይር…</translation>
     </message>
     <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">በእርሶ የተያዙ መሆኑን ለማረጋገጥ በBitcoin አድራሻዎችዎ መልዕክቶችን ይፈርሙ</translation>
-    </message>
-    <message>
         <source>&amp;File</source>
         <translation type="unfinished">&amp;ፋይል</translation>
     </message>
@@ -424,14 +414,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Close wallet</source>
         <translation type="unfinished">ዋሌት ዝጋ</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">ዋሌትዎን ያዛውሩ</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">ዋሌትዎን ያዛውሩ</translation>
     </message>
     <message>
         <source>Wallet Name</source>
@@ -512,49 +494,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">(መለያ ስም የለም)</translation>
     </message>
     </context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate wallet</source>
-        <translation type="unfinished">ዋሌት ያዛውሩ</translation>
-    </message>
-    <message>
-        <source>Migrating the wallet will convert this wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">ዋሌትን ማዛወር ይህንን ዋሌት አንድ ወይም ከዚያ በላይ ወደሆነ ገላጭ ዋሌቶች ይቀይረዋል።አዲስ ዋሌት ማዘጋጀት ያስፈልጋል ።ይህ ዋሌት ምንም ዓይነት የመመልከት ብቻ ስክሪፕቶችን የያዘ ከሆነ፣እነዚያን የመመልከት ብቻ ስክሪፕቶችን የያዘ አዲስ ዋሌት ይፈጠራል።ይህ ዋሌት ሊፈቱ የሚችሉ ነገር ግን የመመልከት ብቻ ያልሆኑ ስክሪፕቶችን የያዘ ከሆነ ፣ እነዚህን የያዘ አዲስ እና ልዩ የሆነ ዋሌት ይፈጠራል ።የማዛወር ሂደቱ ማዘዋወር ከመፈጸሙ በፊት የነዚህን ዋሌቶች መጠባበቂያ ቅጂ ይይዛል።ይህ መጠባበቂያ ቅጂ 1-2 legacy.bak ተብሎ ተሰይሞ በዋሌቱ ማውጫ ውስጥ ይገኛል።የተሳሳተ ዝውውር በሚከሰትበት ጊዜየመጠባበቂያ ቅጂው በ ዋሌት መመለሻ መተግበሪያ ውስጥ ይከማቻል።</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">ዋሌትዎን ያዛውሩ</translation>
-    </message>
-    <message>
-        <source>Migrating Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <translation type="unfinished">ዋሌት ማዘዋወር &lt;b&gt;%1&lt;/b&gt;…</translation>
-    </message>
-    <message>
-        <source>The wallet '%1' was migrated successfully.</source>
-        <translation type="unfinished">ዋሌት '%1' በትክክል ተዛውሯል </translation>
-    </message>
-    <message>
-        <source>Watchonly scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">የመመልከት ብቻ ስክሪፕቶች'%1'.ወደ ተሰኘው ዋሌት ተዛውረዋል </translation>
-    </message>
-    <message>
-        <source>Solvable but not watched scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">ሊፈቱ የሚችሉ ነገር ግን የማይታዩ ስክሪፕቶች ወደ አዲስ ዋሌት ተዛውረዋል '%1'።</translation>
-    </message>
-    <message>
-        <source>Migration failed</source>
-        <translation type="unfinished">ዝውውሩ አልተሳካም </translation>
-    </message>
-    <message>
-        <source>Migration Successful</source>
-        <translation type="unfinished">ዝውውር ተሳክቷል </translation>
-    </message>
-</context>
 <context>
     <name>OpenWalletActivity</name>
     <message>
@@ -825,17 +764,6 @@ The migration process will create a backup of the wallet before migrating. This 
         <translation type="unfinished">(መለያ ስም የለም)</translation>
     </message>
 </context>
-<context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>You can sign messages/agreements with your legacy (P2PKH) addresses to prove you can receive bitcoins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation type="unfinished">ወደ እነርሱ የተላኩ ቢትኮይን መቀበል እንደሚችሉ ለማረጋገጥ ከርስዎ (P2PKH) አድራሻዎች ጋር መልዕክቶችን/ስምምነቶችን መፈረም ይችላሉ። የማስገር ጥቃቶች እርስዎን ማንነትዎን በእነሱ ላይ እንዲፈርሙ ሊያታልሉዎት ስለሚችሉ ግልጽ ያልሆነ ወይም በዘፈቀደ ላለመፈረም ይጠንቀቁ። የተስማሙባቸውን ሙሉ ዝርዝር መግለጫዎች ብቻ ይፈርሙ።</translation>
-    </message>
-    <message>
-        <source>The entered address does not refer to a legacy (P2PKH) key. Message signing for SegWit and other non-P2PKH address types is not supported in this version of %1. Please check the address and try again.</source>
-        <translation type="unfinished">የገባው አድራሻ የቅርስ (P2PKH) ቁልፍን አያመለክትም። ለሴግዊት እና ሌሎች P2PKH ላልሆኑ የአድራሻ አይነቶች የመልዕክት መፈረም በዚህ የ%1 ስሪት ውስጥ አይደገፍም። እባክዎ አድራሻውን ያረጋግጡ እና እንደገና ይሞክሩ።</translation>
-    </message>
-    </context>
 <context>
     <name>TransactionDesc</name>
     <message>

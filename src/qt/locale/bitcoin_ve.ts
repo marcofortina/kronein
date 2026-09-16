@@ -58,11 +58,6 @@
         <translation type="unfinished">Hedzi ndi ḓiresi dzaṋu dza Bitcoin dza u rumela mbadelo. Tshifhinga tshoṱhe ṱolani tshelede na ḓiresi ine na ḓo i ṱanganedza musi ni sa athu rumela tshelede ya tsimbi.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">Hedzi ndi ḓiresi dzaṋu dza Bitcoin dza u ṱanganedza mbadelo. Shumisani butoni ya 'Sika ḓiresi ntswa ya u ṱanganedza' kha thebu ya u ṱanganedza u sika ḓiresi ntswa.U saina zwi konadzea fhedzi nga ḓiresi dza lushaka lwa 'legacy'.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;Khophisa Ḓiresi</translation>
     </message>
@@ -443,22 +438,6 @@ Faela ya zwishumiswa %1 i nga vha yo tshinyala kana i sa shumi.</translation>
         <translation type="unfinished">&amp;Shandukisa Mubulo wa Phasi...</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">Saina &amp;mulaedza...</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Saini milaedza nga ḓiresi dzaṋu dza Bitcoin u sumbedza uri ndi vhaṋe vhayo .</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;Kha vha khwaṱhisedze mulaedza...</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">Kha vha khwaṱhisedze milaedza u vhona uri yo sainiwa nga ḓiresi dzo bulwaho dza Bitcoin </translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">&amp;Load PSBT ubva kha faila...</translation>
     </message>
@@ -651,13 +630,6 @@ U ṱanganya ṱhoho (%1%)...</translation>
         <source>A&amp;mount:</source>
         <translation type="unfinished">Tshivhalo:</translation>
     </message>
-    <message>
-        <source>Choose previously used address</source>
-        <translation type="unfinished">Khethani ḓiresi ye ya shumiswa kale</translation>
-    </message>
-    </context>
-<context>
-    <name>SignVerifyMessageDialog</name>
     <message>
         <source>Choose previously used address</source>
         <translation type="unfinished">Khethani ḓiresi ye ya shumiswa kale</translation>

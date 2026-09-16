@@ -62,12 +62,6 @@
         <translation type="unfinished">ទាំងនេះ​គឺជាអាសយដ្ឋាន Bitcoin របស់អ្នកសម្រាប់ធ្វើការផ្ញើការបង់ប្រាក់។ តែងតែពិនិត្យមើលចំនួនប្រាក់ និងអាសយដ្ឋានដែលទទួល មុនពេលផ្ញើប្រាក់។</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">ទាំងនេះគឺជាអាសយដ្ឋាន Bitcoin របស់អ្នកសម្រាប់ការទទួលការទូទាត់។ ប្រើប៊ូតុង 'បង្កើតអាសយដ្ឋានទទួលថ្មី' នៅក្នុងផ្ទាំងទទួល ដើម្បីបង្កើតអាសយដ្ឋានថ្មី។ 
-ការចុះហត្ថលេខាគឺអាចធ្វើទៅបានតែជាមួយអាសយដ្ឋាននៃប្រភេទ 'legacy' ប៉ុណ្ណោះ។</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">ចម្លងអាសយដ្ឋាន(&amp;C)</translation>
     </message>
@@ -507,22 +501,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">ការផ្លាស់ប្តូរឃ្លាសម្ងាត់</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">ចុះហត្ថលេខាសារ…</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">ចុះហត្ថលេខាលើសារ អាសយដ្ឋានប៊ីតខញរបស់អ្នក ដើម្បីបញ្ចាក់ថាអ្នកជាម្ចាស់</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">ផ្ទៀងផ្ទាត់សារ…</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">ធ្វើការបញ្ចាក់សារ ដើម្បីធានាថាសារទាំំងនោះបានចុះហត្ថលេខា ជាមួយអាសយដ្ខានប៊ីតខញ</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">ផ្ទុក PSBT ពីឯកសារ…</translation>
     </message>
@@ -670,10 +648,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Close all wallets</source>
         <translation type="unfinished">បិទកាបូបអេឡិចត្រូនិចទាំងអស់</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">កាបូបMigrate</translation>
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
@@ -986,35 +960,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <source>Loading wallets…</source>
         <extracomment>Descriptive text of the load wallets progress window which indicates to the user that wallets are currently being loaded.</extracomment>
         <translation type="unfinished">កំពុងទាញកាបូប...</translation>
-    </message>
-</context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">កាបូបMigrate</translation>
-    </message>
-    <message>
-        <source>Migrating Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <translation type="unfinished">អន្ដោប្រវេសន៍កាបូប&lt;b&gt;%1&lt;/b&gt;…</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">ស្តារកាបូប</translation>
-    </message>
-    <message>
-        <source>Restoring Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <extracomment>Descriptive text of the restore wallets progress window which indicates to the user that wallets are currently being restored.</extracomment>
-        <translation type="unfinished">កំពុងស្ដារកាបូប&lt;b&gt;%1&lt;/b&gt;…</translation>
-    </message>
-    <message>
-        <source>Migration failed</source>
-        <translation type="unfinished">អន្ដោប្រវេសន៍បរាជ័យ</translation>
-    </message>
-    <message>
-        <source>Migration Successful</source>
-        <translation type="unfinished">អន្ដោប្រវេសន៍ជោគជ័យ</translation>
     </message>
 </context>
 <context>
@@ -2141,16 +2086,8 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished">ចម្លង &amp; ចំនួន</translation>
     </message>
     <message>
-        <source>Base58 (Legacy)</source>
-        <translation type="unfinished">Base58 (កេរដំណែល)</translation>
-    </message>
-    <message>
         <source>Could not unlock wallet.</source>
         <translation type="unfinished">មិនអាចបើកសោរ កាបូបអេឡិចត្រូនិចបាន។</translation>
-    </message>
-    <message>
-        <source>Could not generate new %1 address</source>
-        <translation type="unfinished">មិនអាចបង្កើតអាសយដ្ឋាន%1ថ្មី</translation>
     </message>
 </context>
 <context>
@@ -2535,125 +2472,6 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">បញ្ចូន</translation>
     </message>
     </context>
-<context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Signatures - Sign / Verify a Message</source>
-        <translation type="unfinished">ហត្ថលេខា ចុះហត្ថលេខា ឬ ផ្ទៀងផ្ទាត់សារមួយ</translation>
-    </message>
-    <message>
-        <source>&amp;Sign Message</source>
-        <translation type="unfinished">&amp;ចុះហត្ថលេខា សារ</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address to sign the message with</source>
-        <translation type="unfinished">អាសយដ្ឋានប៊ីតខញនេះ ចុះហត្ថលេខានៅលើសារ</translation>
-    </message>
-    <message>
-        <source>Choose previously used address</source>
-        <translation type="unfinished">ជ្រើសរើសអាសយដ្ឋានដែលបានប្រើពីមុន</translation>
-    </message>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">ថតចម្លងអាសយដ្ឋាណពីក្ដារតម្រៀប</translation>
-    </message>
-    <message>
-        <source>Enter the message you want to sign here</source>
-        <translation type="unfinished">សូមបញ្ចូលពាក្យដែលអ្នកចង់បញ្ចូលនៅទីនេះ</translation>
-    </message>
-    <message>
-        <source>Signature</source>
-        <translation type="unfinished">ហត្ថលេខា</translation>
-    </message>
-    <message>
-        <source>Sign the message to prove you own this Bitcoin address</source>
-        <translation type="unfinished">ចុះហត្ថលេខាលើសារនេះដើម្បីបង្ហាញថាលោកអ្នកជាម្ចាស់អាសយដ្ឋានប៊ីតខញ</translation>
-    </message>
-    <message>
-        <source>Sign &amp;Message</source>
-        <translation type="unfinished">ហត្ថលេខា &amp; សារ</translation>
-    </message>
-    <message>
-        <source>Reset all sign message fields</source>
-        <translation type="unfinished">កែសម្រួលឡើងវិញគ្រប់សារហត្ថលេខាទាំងអស់ឡើងវិញ</translation>
-    </message>
-    <message>
-        <source>Clear &amp;All</source>
-        <translation type="unfinished">សម្អាត &amp;ទាំងអស់</translation>
-    </message>
-    <message>
-        <source>&amp;Verify Message</source>
-        <translation type="unfinished">&amp;ផ្ទៀងផ្ទាត់សារ</translation>
-    </message>
-    <message>
-        <source>The signed message to verify</source>
-        <translation type="unfinished">សារដែលបានចុះហត្ថលេខា ដើម្បីបញ្ចាក់</translation>
-    </message>
-    <message>
-        <source>The signature given when the message was signed</source>
-        <translation type="unfinished">ហត្ថលេខាត្រូវបានផ្តល់នៅពេលដែលសារត្រូវបានចុះហត្ថលេខា</translation>
-    </message>
-    <message>
-        <source>Verify the message to ensure it was signed with the specified Bitcoin address</source>
-        <translation type="unfinished">ផ្ទៀងផ្ទាត់សារដើម្បីធានាថាវាត្រូវបានចុះហត្ថលេខាជាមួយនឹងអាសយដ្ឋានប៊ីតខញជាក់លាក់។</translation>
-    </message>
-    <message>
-        <source>Verify &amp;Message</source>
-        <translation type="unfinished">ផ្ទៀងផ្ទាត់&amp;សារ</translation>
-    </message>
-    <message>
-        <source>Reset all verify message fields</source>
-        <translation type="unfinished">កែសម្រួលឡើងវិញគ្រប់សារផ្ទៀងផ្ទាត់ទាំងអស់</translation>
-    </message>
-    <message>
-        <source>Click "Sign Message" to generate signature</source>
-        <translation type="unfinished">ចុច ៉ហត្ថលេខា​ លើសារ​ ​ ៉​ដើម្បីបង្កើតហត្ថលេខា</translation>
-    </message>
-    <message>
-        <source>The entered address is invalid.</source>
-        <translation type="unfinished">អាសយដ្ឋានដែលបានបញ្ចូល មិនត្រឹមត្រូវ។</translation>
-    </message>
-    <message>
-        <source>Please check the address and try again.</source>
-        <translation type="unfinished">សូមពិនិត្យអាសយដ្ឋាននេះឡើងវិញ រួចហើយព្យាយាមម្តងទៀត។</translation>
-    </message>
-    <message>
-        <source>Wallet unlock was cancelled.</source>
-        <translation type="unfinished">បោះបង់ចោល ការដោះសោរកាបូបអេឡិចត្រូនិច។</translation>
-    </message>
-    <message>
-        <source>No error</source>
-        <translation type="unfinished">មិនមានបញ្ហា</translation>
-    </message>
-    <message>
-        <source>Message signing failed.</source>
-        <translation type="unfinished">ការចុះហត្ថលេខាលើសារមិនជោគជ័យ។</translation>
-    </message>
-    <message>
-        <source>Message signed.</source>
-        <translation type="unfinished">សារបានចុះហត្ថលេខា។</translation>
-    </message>
-    <message>
-        <source>The signature could not be decoded.</source>
-        <translation type="unfinished">ការចុះហត្ថលេខានេះមិនគួរត្រូវបានបម្លែងទៅជាភាសាកុំព្យូទ័រទេ។</translation>
-    </message>
-    <message>
-        <source>Please check the signature and try again.</source>
-        <translation type="unfinished">សូមពិនិត្យការចុះហត្ថលេខានេះឡើងវិញ រូចហើយព្យាយាមម្តងទៀត។</translation>
-    </message>
-    <message>
-        <source>The signature did not match the message digest.</source>
-        <translation type="unfinished">ហត្ថលេខានេះមិនត្រូវទៅនឹងសារដែលបានបំលែងរួច។</translation>
-    </message>
-    <message>
-        <source>Message verification failed.</source>
-        <translation type="unfinished">សារបញ្ចាក់ មិនត្រឹមត្រូវ។</translation>
-    </message>
-    <message>
-        <source>Message verified.</source>
-        <translation type="unfinished">សារត្រូវបានផ្ទៀងផ្ទាត់។</translation>
-    </message>
-</context>
 <context>
     <name>SplashScreen</name>
     <message>

@@ -58,13 +58,6 @@
         <translation type="unfinished">यी भुक्तानी गर्नका लागि तपाइका बिट्कोइन ठेगानाहरू हुन्। सिक्काहरू पठाउनुअघि रकम र प्राप्त गर्ने ठेगाना जाँच गर्नुहोस।</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">यी तपाईंका भुक्तानी प्राप्त गर्ने बिटकोईन ठेगानाहरू हुन्। नयाँ ठेगाना बनाउनको लागि, 'प्राप्त' ट्याबमा रहेको 'नयाँ प्राप्त गर्ने ठेगाना सिर्जना गर्नुहोस्' बटनको प्रयोग गर्नुहोस्। 
-हस्ताक्षर केवल 'लेगेसी' प्रकारका ठेगानाहरूमा मात्र सम्भव छ।
- </translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">ठेगाना कपी गर्नुहोस्</translation>
     </message>
@@ -458,14 +451,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>&amp;Change Passphrase…</source>
         <translation type="unfinished">&amp;पासफ्रेज परिवर्तन गर्नुहोस्</translation>
-    </message>
-    <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">हस्ताक्षर &amp;सन्देश...</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;प्रमाणित सन्देश...</translation>
     </message>
     <message>
         <source>Close Wallet…</source>
@@ -907,17 +892,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">बिटकोइनमा संलग्न गरिएको सन्देश: तपाईंको मध्यस्थको लागि कारोबारको साथमा भण्डारण गरिने URI । नोट: यो सन्देश बिटकोइन नेटवर्क मार्फत पठाइने छैन ।</translation>
     </message>
 </context>
-<context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Choose previously used address</source>
-        <translation type="unfinished">पहिला प्रयोग गरिएको ठेगाना प्रयोग गर्नुहोस्</translation>
-    </message>
-    <message>
-        <source>Enter the receiver's address, message (ensure you copy line breaks, spaces, tabs, etc. exactly) and signature below to verify the message. Be careful not to read more into the signature than what is in the signed message itself, to avoid being tricked by a man-in-the-middle attack. Note that this only proves the signing party receives with the address, it cannot prove sendership of any transaction!</source>
-        <translation type="unfinished">सन्देश प्रमाणित गर्न, तल दिइएको स्थानमा प्राप्तकर्ता ठेगाना, सन्देश (लाइन ब्रेक, स्पेस, ट्याब, आदि उस्तै गरी कपी गर्ने कुरा सुनिश्चित गर्नुहोस्) र हस्ताक्षर &amp;apos;s प्रविष्ट गर्नुहोस् । बीचमा-मानिसको-आक्रमणबाट बच्न हस्ताक्षर पढ्दा हस्ताक्षर गरिएको सन्देशमा जे छ त्यो भन्दा धेरै कुरामा ध्यान नदिनुहोस् । यो कार्यले हस्ताक्षर गर्ने पक्षले मात्र यो ठेगानाले प्राप्त गर्छ भन्ने कुरा प्रमाणित गर्छ, यसले कुनै पनि कारोबारको प्रेषककर्तालाई प्रमाणित गर्न सक्दैन भन्ने कुरा याद गर्नुहोस्!</translation>
-    </message>
-    </context>
 <context>
     <name>TransactionDesc</name>
     <message>

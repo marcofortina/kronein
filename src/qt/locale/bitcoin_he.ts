@@ -58,12 +58,6 @@
         <translation type="unfinished">אלה כתובות הביטקוין שלך לשליחת תשלומים. חשוב לבדוק את הסכום ואת הכתובת המקבלת לפני שליחת מטבעות.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">אלה כתובת הביטקוין שלך לקבלת תשלומים. ניתן להשתמש בכפתור „יצירת כתובת קבלה חדשה” בלשונית הקבלה ליצירת כתובות חדשות.
-חתימה אפשרית רק עבור כתובות מסוג „legacy”.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;העתקת כתובת</translation>
     </message>
@@ -515,22 +509,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">ה&amp;חלפת מילת צופן…</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">&amp;חתימה על הודעה…</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">חתום על הודעות עם כתובות הביטקוין שלך כדי להוכיח שהן בבעלותך</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;אשר הודעה</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">אמת הודעות כדי להבטיח שהן נחתמו עם כתובת ביטקוין מסוימות</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">&amp;טעינת PBST מקובץ…</translation>
     </message>
@@ -698,14 +676,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Close all wallets</source>
         <translation type="unfinished">סגירת כל הארנקים</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">הסבת ארנק</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">הסבת ארנק לביטקוין</translation>
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
@@ -1027,18 +997,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">נמצאו יותר מדי חותמים חיצוניים</translation>
     </message>
 </context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">הסבת ארנק</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">שחזור ארנק</translation>
-    </message>
-    </context>
 <context>
     <name>OpenWalletActivity</name>
     <message>
@@ -2290,10 +2248,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <source>Could not unlock wallet.</source>
         <translation type="unfinished">לא ניתן לשחרר את הארנק.</translation>
     </message>
-    <message>
-        <source>Could not generate new %1 address</source>
-        <translation type="unfinished">לא ניתן לייצר כתובת %1 חדשה</translation>
-    </message>
 </context>
 <context>
     <name>ReceiveRequestDialog</name>
@@ -2706,137 +2660,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Create Unsigned</source>
         <translation type="unfinished">יצירת לא חתומה</translation>
-    </message>
-</context>
-<context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Signatures - Sign / Verify a Message</source>
-        <translation type="unfinished">חתימות - חתימה או אימות של הודעה</translation>
-    </message>
-    <message>
-        <source>&amp;Sign Message</source>
-        <translation type="unfinished">חתימה על הו&amp;דעה</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address to sign the message with</source>
-        <translation type="unfinished">כתובת הביטקוין איתה לחתום את ההודעה</translation>
-    </message>
-    <message>
-        <source>Choose previously used address</source>
-        <translation type="unfinished">בחירת כתובת שהייתה בשימוש</translation>
-    </message>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">הדבקת כתובת מלוח הגזירים</translation>
-    </message>
-    <message>
-        <source>Enter the message you want to sign here</source>
-        <translation type="unfinished">נא לספק את ההודעה עליה ברצונך לחתום כאן</translation>
-    </message>
-    <message>
-        <source>Signature</source>
-        <translation type="unfinished">חתימה</translation>
-    </message>
-    <message>
-        <source>Sign the message to prove you own this Bitcoin address</source>
-        <translation type="unfinished">ניתן לחתום על ההודעה כדי להוכיח שכתובת ביטקוין זו בבעלותך</translation>
-    </message>
-    <message>
-        <source>Sign &amp;Message</source>
-        <translation type="unfinished">&amp;חתימה על הודעה</translation>
-    </message>
-    <message>
-        <source>Reset all sign message fields</source>
-        <translation type="unfinished">איפוס כל שדות החתימה על הודעה</translation>
-    </message>
-    <message>
-        <source>Clear &amp;All</source>
-        <translation type="unfinished">&amp;ניקוי הכול</translation>
-    </message>
-    <message>
-        <source>&amp;Verify Message</source>
-        <translation type="unfinished">&amp;אימות הודעה</translation>
-    </message>
-    <message>
-        <source>Enter the receiver's address, message (ensure you copy line breaks, spaces, tabs, etc. exactly) and signature below to verify the message. Be careful not to read more into the signature than what is in the signed message itself, to avoid being tricked by a man-in-the-middle attack. Note that this only proves the signing party receives with the address, it cannot prove sendership of any transaction!</source>
-        <translation type="unfinished">יש להזין את כתובת הנמען, ההודעה (נא לוודא שהעתקת במדויק את תווי קפיצות השורה, רווחים, טאבים וכדומה). והחתימה מתחת אשר מאמתת את ההודעה. יש להיזהר שלא לקרוא לתוך החתימה יותר מאשר בהודעה החתומה עצמה, כדי להימנע מניצול לרעה של המתווך שבדרך. יש לשים לב שהדבר רק מוכיח שהצד החותם מקבל עם הכתובת. הדבר אינו מוכיח משלוח כלשהו של עסקה!</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address the message was signed with</source>
-        <translation type="unfinished">כתובת הביטקוין שאיתה נחתמה ההודעה</translation>
-    </message>
-    <message>
-        <source>The signed message to verify</source>
-        <translation type="unfinished">ההודעה החתומה לאימות</translation>
-    </message>
-    <message>
-        <source>The signature given when the message was signed</source>
-        <translation type="unfinished">החתימה שניתנת כאשר ההודעה נחתמה</translation>
-    </message>
-    <message>
-        <source>Verify the message to ensure it was signed with the specified Bitcoin address</source>
-        <translation type="unfinished">ניתן לאמת את ההודעה כדי להבטיח שהיא נחתמה עם כתובת הביטקוין הנתונה</translation>
-    </message>
-    <message>
-        <source>Verify &amp;Message</source>
-        <translation type="unfinished">&amp;אימות הודעה</translation>
-    </message>
-    <message>
-        <source>Reset all verify message fields</source>
-        <translation type="unfinished">איפוס כל שדות אימות ההודעה</translation>
-    </message>
-    <message>
-        <source>Click "Sign Message" to generate signature</source>
-        <translation type="unfinished">יש ללחוץ על „חתימת ההודעה“ כדי לייצר חתימה</translation>
-    </message>
-    <message>
-        <source>The entered address is invalid.</source>
-        <translation type="unfinished">הכתובת שסיפקת שגויה.</translation>
-    </message>
-    <message>
-        <source>Please check the address and try again.</source>
-        <translation type="unfinished">נא לבדוק את הכתובת ולנסות שוב.</translation>
-    </message>
-    <message>
-        <source>Wallet unlock was cancelled.</source>
-        <translation type="unfinished">שחרור הארנק בוטל.</translation>
-    </message>
-    <message>
-        <source>No error</source>
-        <translation type="unfinished">אין שגיאה</translation>
-    </message>
-    <message>
-        <source>Private key for the entered address is not available.</source>
-        <translation type="unfinished">המפתח הפרטי לכתובת שסיפקת אינו זמין.</translation>
-    </message>
-    <message>
-        <source>Message signing failed.</source>
-        <translation type="unfinished">חתימת ההודעה נכשלה.</translation>
-    </message>
-    <message>
-        <source>Message signed.</source>
-        <translation type="unfinished">ההודעה נחתמה.</translation>
-    </message>
-    <message>
-        <source>The signature could not be decoded.</source>
-        <translation type="unfinished">לא ניתן לפענח את החתימה.</translation>
-    </message>
-    <message>
-        <source>Please check the signature and try again.</source>
-        <translation type="unfinished">נא לבדוק את החתימה ולנסות שוב.</translation>
-    </message>
-    <message>
-        <source>The signature did not match the message digest.</source>
-        <translation type="unfinished">החתימה לא תואמת את תקציר ההודעה.</translation>
-    </message>
-    <message>
-        <source>Message verification failed.</source>
-        <translation type="unfinished">וידוא ההודעה נכשל.</translation>
-    </message>
-    <message>
-        <source>Message verified.</source>
-        <translation type="unfinished">ההודעה עברה וידוא.</translation>
     </message>
 </context>
 <context>
@@ -3627,14 +3450,6 @@ Go to File &gt; Open Wallet to load a wallet.
     <message>
         <source>Unknown -blockfilterindex value %s.</source>
         <translation type="unfinished">ערך -blockfilterindex   %s לא ידוע.</translation>
-    </message>
-    <message>
-        <source>Unknown address type '%s'</source>
-        <translation type="unfinished">כתובת לא ידועה מסוג "%s"</translation>
-    </message>
-    <message>
-        <source>Unknown change type '%s'</source>
-        <translation type="unfinished">סוג שינוי לא ידוע: "%s"</translation>
     </message>
     <message>
         <source>Unknown network specified in -onlynet: '%s'</source>

@@ -58,11 +58,6 @@
         <translation type="unfinished">Ова се вашите Bitcoin-адреси за испраќање плаќања. Секогаш проверувајте ја количината и адресите за примање пред да испраќате монети.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">Ова се вашите биткоин-адреси за примање плаќања. Користете го копчето „Создавање нови адреси“ во јазичето за примање за да создадете нови адреси. Потпишувањето е можно само со „наследни“ адреси.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">Копирај адреса</translation>
     </message>
@@ -474,22 +469,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">&amp;Промени лозинка...</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">Потпиши &amp;порака...</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Напишете пораки со вашата биткоин-адреса за да докажете дека е ваша.</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;Потврди порака...</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">Потврдување на пораките за да се знае дека се напишани со дадените биткоин-адреси.</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">&amp;Вчитај PSBT од датотека…</translation>
     </message>
@@ -885,14 +864,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>(no label)</source>
         <translation type="unfinished">(без етикета)</translation>
-    </message>
-    </context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">Обновување на паричникот</translation>
     </message>
     </context>
 <context>

@@ -349,14 +349,6 @@
         <translation type="unfinished">sulitkan kata laluan milik peribadi anda</translation>
     </message>
     <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">sahkan mesej bersama alamat bitcoin anda untuk menunjukkan alamat ini anda punya</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">Sahkan mesej untuk memastikan mereka telah ditandatangani dengan alamat Bitcoin yang ditentukan</translation>
-    </message>
-    <message>
         <source>&amp;File</source>
         <translation type="unfinished">fail</translation>
     </message>
@@ -426,14 +418,6 @@
         <source>Restore a wallet from a backup file</source>
         <extracomment>Status tip for Restore Wallet menu item</extracomment>
         <translation type="unfinished">Pulihkan dompet dari fail sandaran.</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Pindah Dompet</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">Pindah satu Dompet</translation>
     </message>
     <message>
         <source>Load Wallet Backup</source>
@@ -512,37 +496,6 @@
         <translation type="unfinished">Memuat dompets...</translation>
     </message>
 </context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate wallet</source>
-        <translation type="unfinished">Pindah Dompet</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to migrate the wallet &lt;i&gt;%1&lt;/i&gt;?</source>
-        <translation type="unfinished">Anda pasti anda mahu pindah dompet &lt;i&gt;%1&lt;/i&gt;?</translation>
-    </message>
-    <message>
-        <source>Migrating the wallet will convert this wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">Memindah dompet akan menukarkan dompet ini kepada satu atau lebih dompet dinyahskrip. Satu dompet sandaran perlu dibuat.
-Jika dompet ini mengandungi sebarang skrip hanya-tonton, satu dompet baharu akan dicipta yang mengandungi skrip hanya-tonton tersebut.
-Jika dompet ini mengandungi sebarang skrip yang boleh diselesaikan tetapi tidak diperhatikan, satu dompet baharu dan berbeza akan dicipta yang mengandungi skrip tersebut.
- Proses pemindahan akan mencipta salinan pendua dompet sebelum pemindahan berlaku. Fail pendua ini akan dinamakan &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak dan boleh ditemui dalam direktori bagi dompet ini. Sekiranya berlaku pemindahan yang tidak betul, salinan pendua boleh dipulihkan dengan menggunakan fungsi "Pulihkan Dompet".</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Pindah Dompet</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">Pulih Dompet</translation>
-    </message>
-    </context>
 <context>
     <name>OpenWalletActivity</name>
     <message>

@@ -58,12 +58,6 @@
         <translation type="unfinished">ეს არის თქვენი ბიტკოინ-მისამართები გადარიცხვებისათვის. კოინების გადარიცხვამდე აუცილებლად შეამოწმეთ მითითებული თანხა და მიმღები მისამართი.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">ეს თქვენი ბიტკოინის მიმღები მიმსამართებია. ისარგებლეთ ღილაკით "შექმენით ახალი მიმღები მისამართები", როემლიც მოცემულია მიმღების ჩანართში ახალი მისამართების შესაქმნელად.
-ხელმოწერა მხოლოდ "მემკვიდრეობის" ტიპის მისამართებთანაა შესაძლებელი.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;მისამართის კოპირება</translation>
     </message>
@@ -495,22 +489,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>&amp;Change Passphrase…</source>
         <translation type="unfinished"> &amp;შეცვალეთ პაროლის ფრაზა…</translation>
-    </message>
-    <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">ხელმოწერა &amp;შეტყობინება…</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">მესიჯებზე ხელმოწერა თქვენი Bitcoin-მისამართებით იმის დასტურად, რომ ის თქვენია</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished"> &amp;შეტყობინების შემოწმება…</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">შეამოწმეთ, რომ მესიჯები ხელმოწერილია მითითებული Bitcoin-მისამართით</translation>
     </message>
     <message>
         <source>&amp;Load PSBT from file…</source>
@@ -964,14 +942,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">იტვირთება საფულეები...</translation>
     </message>
 </context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">საფულის აღდგენა</translation>
-    </message>
-    </context>
 <context>
     <name>OpenWalletActivity</name>
     <message>
@@ -2302,113 +2272,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Create Unsigned</source>
         <translation type="unfinished">შექმენით ხელმოუწერელი</translation>
-    </message>
-</context>
-<context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Signatures - Sign / Verify a Message</source>
-        <translation type="unfinished">ხელმოწერები - მესიჯის ხელმოწერა/ვერიფიკაცია</translation>
-    </message>
-    <message>
-        <source>&amp;Sign Message</source>
-        <translation type="unfinished">მე&amp;სიჯის ხელმოწერა</translation>
-    </message>
-    <message>
-        <source>Choose previously used address</source>
-        <translation type="unfinished">აირჩიეთ ადრე გამოყენებული მისამართი</translation>
-    </message>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">მისამართის ჩასმა კლიპბორდიდან</translation>
-    </message>
-    <message>
-        <source>Enter the message you want to sign here</source>
-        <translation type="unfinished">აკრიფეთ ხელმოსაწერი მესიჯი</translation>
-    </message>
-    <message>
-        <source>Signature</source>
-        <translation type="unfinished">ხელმოწერა</translation>
-    </message>
-    <message>
-        <source>Sign the message to prove you own this Bitcoin address</source>
-        <translation type="unfinished">მოაწერეთ ხელი იმის დასადასტურებლად, რომ ეს მისამართი თქვენია</translation>
-    </message>
-    <message>
-        <source>Sign &amp;Message</source>
-        <translation type="unfinished">&amp;მესიჯის ხელმოწერა</translation>
-    </message>
-    <message>
-        <source>Reset all sign message fields</source>
-        <translation type="unfinished">ხელმოწერის ყველა ველის წაშლა</translation>
-    </message>
-    <message>
-        <source>Clear &amp;All</source>
-        <translation type="unfinished">გ&amp;ასუფთავება</translation>
-    </message>
-    <message>
-        <source>&amp;Verify Message</source>
-        <translation type="unfinished">მესიჯის &amp;ვერიფიკაცია</translation>
-    </message>
-    <message>
-        <source>Verify the message to ensure it was signed with the specified Bitcoin address</source>
-        <translation type="unfinished">შეამოწმეთ, რომ მესიჯი ხელმოწერილია მითითებული Bitcoin-მისამართით</translation>
-    </message>
-    <message>
-        <source>Verify &amp;Message</source>
-        <translation type="unfinished">&amp;მესიჯის ვერიფიკაცია</translation>
-    </message>
-    <message>
-        <source>Reset all verify message fields</source>
-        <translation type="unfinished">ვერიფიკაციის ყველა ველის წაშლა</translation>
-    </message>
-    <message>
-        <source>Click "Sign Message" to generate signature</source>
-        <translation type="unfinished">ხელმოწერის გენერირებისათვის დააჭირეთ "მესიჯის ხელმოწერა"-ს</translation>
-    </message>
-    <message>
-        <source>The entered address is invalid.</source>
-        <translation type="unfinished">შეყვანილი მისამართი არასწორია.</translation>
-    </message>
-    <message>
-        <source>Please check the address and try again.</source>
-        <translation type="unfinished">შეამოწმეთ მისამართი და სცადეთ ხელახლა.</translation>
-    </message>
-    <message>
-        <source>Wallet unlock was cancelled.</source>
-        <translation type="unfinished">საფულის განბლოკვა შეწყვეტილია.</translation>
-    </message>
-    <message>
-        <source>Private key for the entered address is not available.</source>
-        <translation type="unfinished">ამ მისამართისათვის პირადი გასაღები მიუწვდომელია.</translation>
-    </message>
-    <message>
-        <source>Message signing failed.</source>
-        <translation type="unfinished">ვერ მოხერხდა მესიჯის ხელმოწერა.</translation>
-    </message>
-    <message>
-        <source>Message signed.</source>
-        <translation type="unfinished">მესიჯი ხელმოწერილია.</translation>
-    </message>
-    <message>
-        <source>The signature could not be decoded.</source>
-        <translation type="unfinished">ხელმოწერის დეკოდირება ვერ ხერხდება.</translation>
-    </message>
-    <message>
-        <source>Please check the signature and try again.</source>
-        <translation type="unfinished">შეამოწმეთ ხელმოწერა და სცადეთ ხელახლა.</translation>
-    </message>
-    <message>
-        <source>The signature did not match the message digest.</source>
-        <translation type="unfinished">ხელმოწერა არ შეესაბამება მესიჯის დაიჯესტს.</translation>
-    </message>
-    <message>
-        <source>Message verification failed.</source>
-        <translation type="unfinished">მესიჯის ვერიფიკაცია ვერ მოხერხდა.</translation>
-    </message>
-    <message>
-        <source>Message verified.</source>
-        <translation type="unfinished">მესიჯი ვერიფიცირებულია.</translation>
     </message>
 </context>
 <context>

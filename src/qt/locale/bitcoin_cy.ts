@@ -58,11 +58,6 @@
         <translation type="unfinished">Rhain ydi eich cyfeiriadau Bitcoin ar gyfer gyrru taliadau. Gwnewch yn sicr o'r swm a'r cyfeiriad derbyn cyn gyrru arian.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">Dyma'ch cyfeiriadau Bitcoin ar gyfer derbyn taliadau. Defnyddiwch y botwm 'Creu cyfeiriad derbyn newydd' yn y tab derbyn i greu cyfeiriadau newydd. Dim ond gyda chyfeiriadau o'r math 'etifeddol' y mae llofnodi yn bosibl.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;Copïo Cyfeiriad</translation>
     </message>
@@ -474,22 +469,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">&amp;Newid Geiriau Pas…</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">Llofnodi &amp;neges…</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Arwyddo negeseuon gyda eich cyfeiriadau Bitcoin i brofi mae chi sy'n berchen arnynt</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;Gwirio neges…</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">Gwirio negeseuon i sicrhau eu bod wedi eu harwyddo gyda cyfeiriadau Bitcoin penodol</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">&amp;Llwytho PSBT o ffeil…</translation>
     </message>
@@ -660,14 +639,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Close all wallets</source>
         <translation type="unfinished">Cau pob waled</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Mudo Waled</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">Mudo waled</translation>
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
@@ -994,45 +965,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">Methu â rhestru llofnodwyr</translation>
     </message>
     </context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrating the wallet will convert this wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">Bydd mudo'r waled yn trosi'r waled hon i un neu fwy o waledi disgrifydd. Bydd angen gwneud copi wrth gefn waled newydd.
-Os yw'r waled hon yn cynnwys unrhyw sgriptiau gwylio yn unig, bydd waled newydd yn cael ei chreu sy'n cynnwys y sgriptiau gwylio yn unig hynny.
-Os yw'r waled hon yn cynnwys unrhyw sgriptiau solvable ond heb eu gwylio, bydd waled gwahanol a newydd yn cael ei chreu sy'n cynnwys y sgriptiau hynny.
-Bydd y broses fudo yn creu copi wrth gefn o'r waled cyn mudo. Bydd y ffeil wrth gefn hon yn cael ei henwi&lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak a gellir ei ddarganfod yn y cyfeiriadur ar gyfer y waled hon. Mewn achos o ymfudiad anghywir, gellir adfer y copi wrth gefn gyda'r swyddogaeth "Adfer Waled".</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Mudo Waled</translation>
-    </message>
-    <message>
-        <source>The wallet '%1' was migrated successfully.</source>
-        <translation type="unfinished">Y waled'%1' ymfudodd yn llwyddiannus.</translation>
-    </message>
-    <message>
-        <source>Watchonly scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Mae sgriptiau gwylio yn unig wedi'u symud i waled newydd o'r enw '%1'.</translation>
-    </message>
-    <message>
-        <source>Solvable but not watched scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Mae sgriptiau hydoddadwy ond heb eu gwylio wedi'u symud i waled newydd o'r enw '%1'.</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">Ail-adfer Waled</translation>
-    </message>
-    <message>
-        <source>Migration Successful</source>
-        <translation type="unfinished">Mudo yn Llwyddiannus</translation>
-    </message>
-</context>
 <context>
     <name>OpenWalletActivity</name>
     <message>
@@ -1725,13 +1657,6 @@ Bydd y broses fudo yn creu copi wrth gefn o'r waled cyn mudo. Bydd y ffeil wrth 
     </message>
     </context>
 <context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">Gludo cyfeiriad o'r glipfwrdd</translation>
-    </message>
-    </context>
-<context>
     <name>TransactionDesc</name>
     <message>
         <source>Date</source>
@@ -1908,20 +1833,8 @@ Bydd y broses fudo yn creu copi wrth gefn o'r waled cyn mudo. Bydd y ffeil wrth 
         <translation type="unfinished">Gwerth -blockfilterindex anhysbys%s.</translation>
     </message>
     <message>
-        <source>Unknown address type '%s'</source>
-        <translation type="unfinished">Math cyfeiriad anhysbys '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown change type '%s'</source>
-        <translation type="unfinished">Math newid anhysbys '%s'</translation>
-    </message>
-    <message>
         <source>Unknown network specified in -onlynet: '%s'</source>
         <translation type="unfinished">Rhyngrwyd anhysbys wedi'i bennu yn -onlynet: '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown new rules activated (versionbit %i)</source>
-        <translation type="unfinished">Reolau newydd anhysbys wedi'u gweithredu (versionbit%i)</translation>
     </message>
     <message>
         <source>Unrecognised option "%s" provided in -test=&lt;option&gt;.</source>
@@ -1932,24 +1845,12 @@ Bydd y broses fudo yn creu copi wrth gefn o'r waled cyn mudo. Bydd y ffeil wrth 
         <translation type="unfinished">Llefel logio global nad yw'n cael ei gefnogi%s=%s.Gwerthoedd dilys:%s.</translation>
     </message>
     <message>
-        <source>Wallet file creation failed: %s</source>
-        <translation type="unfinished">Methwyd creu ffeil y waled:%s</translation>
-    </message>
-    <message>
         <source>acceptstalefeeestimates is not supported on %s chain.</source>
         <translation type="unfinished">nid yw acceptstalefeeestimates yn cael ei gefnogi ar%scadwyn.</translation>
     </message>
     <message>
         <source>Unsupported logging category %s=%s.</source>
         <translation type="unfinished">Categori logio nad yw'n cael ei gefnogi%s=%s.</translation>
-    </message>
-    <message>
-        <source>Error: Could not add watchonly tx %s to watchonly wallet</source>
-        <translation type="unfinished">Gwall: Ni allwyd ychwanegu tx gwylio'n unig%si waled gwylio'n unig</translation>
-    </message>
-    <message>
-        <source>Error: Could not delete watchonly transactions. </source>
-        <translation type="unfinished">Gwall: Ni allwyd dileu trafodion gwylio'n unig.</translation>
     </message>
     <message>
         <source>User Agent comment (%s) contains unsafe characters.</source>

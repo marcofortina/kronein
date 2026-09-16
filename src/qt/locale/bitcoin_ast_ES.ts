@@ -58,12 +58,6 @@
         <translation type="unfinished">Estes son les tuyes direcciones de Bitcoin pa mandar pagos. Siempre revisa la cantidá y la dirección de recibimientu antes de mandar los coins.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">Estes son les tuyes direcciones de Bitcoin pa recibir pagos. Usa el botón 'Crear nueva dirección de recibimientu' na solapa de recibir pa crear nueves direcciones.
-La firma ye possible solamentu con direcciones del tipu 'legacy'.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;Copiar Dirección</translation>
     </message>
@@ -439,22 +433,6 @@ La firma ye possible solamentu con direcciones del tipu 'legacy'.</translation>
         <translation type="unfinished">&amp;Cambiar la frase de seguridá…</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">Firmar &amp;mensaje…</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Firmar mensajes con les tuyas direcciones de Bitcoin pa probar que les tienes</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;Verificar mensaje…</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">Verificar los mensajes pa asegurar que fueron firmados con les direcciones de Bitcoin especificaes</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">&amp;Cargar PSBT dende el ficheru…</translation>
     </message>
@@ -619,14 +597,6 @@ La firma ye possible solamentu con direcciones del tipu 'legacy'.</translation>
         <translation type="unfinished">Cerrrar toles carteres</translation>
     </message>
     <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Migrar cartera</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">Migrar una cartera</translation>
-    </message>
-    <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
         <translation type="unfinished">Amosar el mensaxe d’ayuda de %1 pa ver una llista de les posibles opciones de la llinia de comandos de Bitcoin</translation>
     </message>
@@ -735,18 +705,6 @@ La firma ye possible solamentu con direcciones del tipu 'legacy'.</translation>
     <message>
         <source>(no label)</source>
         <translation type="unfinished">(sin etiqueta)</translation>
-    </message>
-    </context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Migrar cartera</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">Restaurar cartera</translation>
     </message>
     </context>
 <context>

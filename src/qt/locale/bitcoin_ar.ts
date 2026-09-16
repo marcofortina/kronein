@@ -42,11 +42,6 @@
         <translation type="unfinished">هذه هي عناوين بيتكوين الخاصة بك لإرسال المدفوعات. تأكد دائمًا من المبلغ وعنوان الاستلام قبل إرسال العملات.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">هذه هي العناوين الخاصة بها بك. استخدم زر "إنشاء عنوان استقبال جديد" في علامة استلام البريد الإلكتروني عناوين جديدة.التوقيع ممكن فقط مع عناوين نوع "إرث" .</translation>
-    </message>
-    <message>
         <source>Receiving addresses - %1</source>
         <translation type="unfinished">عناوين الاستلام - %1</translation>
     </message>
@@ -365,22 +360,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">وتغيير العبارات...</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">علامة ورسالة...</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">وقَع الرسائل بواسطة ال: Bitcoin الخاص بك لإثبات امتلاكك لهم</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp; تحقق من الرسالة</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">تحقق من الرسائل للتأكد من أنَها وُقعت برسائل Bitcoin محدَدة</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">وتحميل PSBT من ملف...</translation>
     </message>
@@ -399,10 +378,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Close All Wallets…</source>
         <translation type="unfinished">اغلاق جميع المحافظ</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet File…</source>
-        <translation type="unfinished">استعادة ملف المحفظة وترحيله...</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -1683,13 +1658,6 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
 </context>
 <context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Copy the current signature to the clipboard</source>
-        <translation type="unfinished">امضای فعلی را در کلیپ بورد کپی کنید</translation>
-    </message>
-    </context>
-<context>
     <name>TransactionDesc</name>
     <message>
         <source>own address</source>
@@ -1772,10 +1740,6 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished">الحد الأقصى لوزن المعاملة منخفض جدًا، ولا يمكنه استيعاب مخرجات التغيير</translation>
     </message>
     <message>
-        <source>Option '-checkpoints' is set but checkpoints were removed. This option has no effect.</source>
-        <translation type="unfinished">گزینه «-checkpoints» تنظیم شده است اما Checkpointها حذف شده‌اند. این گزینه هیچ تاثیری ندارد.</translation>
-    </message>
-    <message>
         <source>Prune: last wallet synchronisation goes beyond pruned data. You need to -reindex (download the whole blockchain again in case of a pruned node)</source>
         <translation type="unfinished">الو: آخرینکیف پولهمگام‌سازی فراتر از هر استداده‌هاتو باید -فهرست‌بندی مجدد(دانلودکلبلاکچیندوباره در هرس شدن)</translation>
     </message>
@@ -1836,18 +1800,6 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished">خطأ قراءة السجل التالي من قاعدة بيانات المحفظة</translation>
     </message>
     <message>
-        <source>Error: Not all address book records were migrated</source>
-        <translation type="unfinished">خطأ: لم يتم ترحيل جميع سجلات دفتر العناوين</translation>
-    </message>
-    <message>
-        <source>Error: Not all transaction records were migrated</source>
-        <translation type="unfinished">خطأ: لم يتم ترحيل جميع سجلات المعاملات</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write data to disk for wallet %s</source>
-        <translation type="unfinished">خطأ: غير قادر على كتابة البيانات إلى القرص الخاص بالمحفظة %s</translation>
-    </message>
-    <message>
         <source>Failed to acquire rescan reserver during wallet initialization</source>
         <translation type="unfinished">فشل في الحصول على احتياطي إعادة المسح أثناء تهيئة المحفظة</translation>
     </message>
@@ -1866,14 +1818,6 @@ If you are receiving this error you should request the merchant provide a BIP21 
     <message>
         <source>The transactions removal process can only be executed within a db txn</source>
         <translation type="unfinished">لا يمكن تنفيذ عملية إزالة المعاملات إلا داخل DB TXN</translation>
-    </message>
-    <message>
-        <source>Error loading %s: Wallet is a legacy wallet. Please migrate to a descriptor wallet using the migration tool (migratewallet RPC).</source>
-        <translation type="unfinished">حدث خطأ أثناء التحميل %s : المحفظة قديمة. يُرجى الانتقال إلى محفظة وصفية باستخدام أداة الترحيل (محفظة الهجرة RPC).</translation>
-    </message>
-    <message>
-        <source>Error: Dumpfile specifies an unsupported database format (%s). Only sqlite database dumps are supported</source>
-        <translation type="unfinished">خطأ: يُحدد ملف التفريغ تنسيق قاعدة بيانات غير مدعوم (%s). تفريغات قواعد بيانات SQLite فقط مدعومة.</translation>
     </message>
     <message>
         <source>Failed to calculate bump fees, because unconfirmed UTXOs depend on an enormous cluster of unconfirmed transactions.</source>
@@ -1898,22 +1842,6 @@ Please try running the latest software version.
     <message>
         <source>Do you want to rebuild the databases now?</source>
         <translation type="unfinished">هل تريد إعادة بناء قواعد البيانات الآن؟</translation>
-    </message>
-    <message>
-        <source>Error: Could not add watchonly tx %s to watchonly wallet</source>
-        <translation type="unfinished">خطأ: تعذّر إضافة المعاملة المراقبة فقط %s إلى المحفظة المراقبة فقط</translation>
-    </message>
-    <message>
-        <source>Error: Could not delete watchonly transactions. </source>
-        <translation type="unfinished">خطأ: تعذّر حذف المعاملات المراقبة فقط.</translation>
-    </message>
-    <message>
-        <source>Error: Wallet does not exist</source>
-        <translation type="unfinished">خطأ: محفظة غير موجودة</translation>
-    </message>
-    <message>
-        <source>Error: cannot remove legacy wallet records</source>
-        <translation type="unfinished">خطأ: لا يمكن إزالة سجلات المحفظة القديمة</translation>
     </message>
     <message>
         <source>Failed to start indexes, shutting down…</source>

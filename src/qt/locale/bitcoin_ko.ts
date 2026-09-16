@@ -62,12 +62,6 @@
         <translation type="unfinished">비트코인을 보내는 계좌 주소입니다. 코인을 보내기 전에 금액과 받는 주소를 항상 확인하십시오.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">비트코인을 받는 계좌 주소입니다. 신규 주소를 만들려면 수신 탭의 '새 수신 주소를 생성하기' 버튼을 사용하십시오.
-서명은 '레거시' 타입의 주소만 가능합니다.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">주소 복사(&amp;C)</translation>
     </message>
@@ -554,22 +548,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">암호문 변경(&amp;C)</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">메시지 서명(&amp;M)</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">지갑 주소가 본인 소유인지 증명하기 위해 메시지를 서명합니다.</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">메시지 검증(&amp;V)</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">해당 비트코인 주소로 서명되었는지 확인하기 위해 메시지를 검증합니다.</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">파일에서 PSBT 불러오기(&amp;L)</translation>
     </message>
@@ -740,14 +718,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Close all wallets</source>
         <translation type="unfinished">모든 지갑 닫기</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">지갑 이동</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">지갑 이동</translation>
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
@@ -1099,65 +1069,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <source>Loading wallets…</source>
         <extracomment>Descriptive text of the load wallets progress window which indicates to the user that wallets are currently being loaded.</extracomment>
         <translation type="unfinished">지갑 불러오는 중...</translation>
-    </message>
-</context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate wallet</source>
-        <translation type="unfinished">지갑 이동</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to migrate the wallet &lt;i&gt;%1&lt;/i&gt;?</source>
-        <translation type="unfinished">정말 지갑&lt;i&gt;%1&lt;/i&gt;을 마이그레이션하시겠습니까?</translation>
-    </message>
-    <message>
-        <source>Migrating the wallet will convert this wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">지갑을 마이그레이션하면 이 지갑은 하나 이상의 설명자 지갑으로 변환됩니다. 새로운 지갑 백업이 필요합니다. 이 지갑에 watchonly 스크립트가 포함되어 있으면, 해당 watchonly 스크립트를 포함하는 새로운 지갑이 생성됩니다. 해결 가능하지만 관찰되지 않은 스크립트가 포함되어 있으면, 해당 스크립트를 포함하는 다른 새로운 지갑이 생성됩니다.
-
-마이그레이션 과정은 마이그레이션 전에 지갑 백업을 생성합니다. 이 백업 파일은 -.legacy.bak로 명명되며 이 지갑의 디렉토리에서 찾을 수 있습니다. 마이그레이션이 잘못될 경우, '지갑 복원' 기능을 통해 백업을 복원할 수 있습니다.</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">지갑 이동</translation>
-    </message>
-    <message>
-        <source>Migrating Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <translation type="unfinished">지갑 &lt;b&gt;%1&lt;/b&gt;을 마이그레이션 하는중입니다...</translation>
-    </message>
-    <message>
-        <source>The wallet '%1' was migrated successfully.</source>
-        <translation type="unfinished">'%1'지갑은 성공적으로 마이그레이션이 되었습니다. </translation>
-    </message>
-    <message>
-        <source>Watchonly scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Watch-only 스크립트가 새 지갑 '%1'으로 마이그레이션 되었습니다:</translation>
-    </message>
-    <message>
-        <source>Solvable but not watched scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">해결 가능 상태(Solvable )이긴 하지만 ‘watch-only’로 표시되지 않은 스크립트들은 새로운 지갑 ‘%1’로 마이그레이션되었습니다.</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">지갑 복원하기</translation>
-    </message>
-    <message>
-        <source>Restoring Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <extracomment>Descriptive text of the restore wallets progress window which indicates to the user that wallets are currently being restored.</extracomment>
-        <translation type="unfinished">지갑 복구 중 &lt;b&gt;%1&lt;/b&gt;...</translation>
-    </message>
-    <message>
-        <source>Migration failed</source>
-        <translation type="unfinished">이전 실패</translation>
-    </message>
-    <message>
-        <source>Migration Successful</source>
-        <translation type="unfinished">이전 성공</translation>
     </message>
 </context>
 <context>
@@ -2803,28 +2714,8 @@ For more information on using this console, type %6.
         <translation type="unfinished">복사 &amp; 금액</translation>
     </message>
     <message>
-        <source>Not recommended due to higher fees and less protection against typos.</source>
-        <translation type="unfinished">높은 수수료와 낮은 오타 방지 보호 기능 때문에 권장되지 않습니다.</translation>
-    </message>
-    <message>
-        <source>Generates an address compatible with older wallets.</source>
-        <translation type="unfinished">구형 지갑과 호환되는 주소를 생성합니다.</translation>
-    </message>
-    <message>
-        <source>Generates a native segwit address (BIP-173). Some old wallets don't support it.</source>
-        <translation type="unfinished">네이티브 세그윗 주소(BIP-173)를 생성합니다. 일부 오래된 지갑은 이를 지원하지 않습니다</translation>
-    </message>
-    <message>
-        <source>Bech32m (BIP-350) is an upgrade to Bech32, wallet support is still limited.</source>
-        <translation type="unfinished">Bech32m(BIP-350)은 Bech32의 업그레이드며, 지갑 지원은 아직 제한적입니다.</translation>
-    </message>
-    <message>
         <source>Could not unlock wallet.</source>
         <translation type="unfinished">지갑을 잠금해제 할 수 없습니다.</translation>
-    </message>
-    <message>
-        <source>Could not generate new %1 address</source>
-        <translation type="unfinished">새로운 %1 주소를 생성 할 수 없습니다.</translation>
     </message>
 </context>
 <context>
@@ -3339,149 +3230,6 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     <message>
         <source>Create Unsigned</source>
         <translation type="unfinished">서명되지 않은 것을 생성</translation>
-    </message>
-</context>
-<context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Signatures - Sign / Verify a Message</source>
-        <translation type="unfinished">서명 - 싸인 / 메시지 검증</translation>
-    </message>
-    <message>
-        <source>&amp;Sign Message</source>
-        <translation type="unfinished">메시지 서명(&amp;S)</translation>
-    </message>
-    <message>
-        <source>You can sign messages/agreements with your legacy (P2PKH) addresses to prove you can receive bitcoins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation type="unfinished">레거시(P2PKH) 주소를 사용하여 메시지 혹은 동의서에 서명하면 해당 주소로 비트코인을 받을 수 있다는 사실을 증명할 수 있습니다. 다만, 모호하거나 무작위적인 내용에는 피싱 공격자가 사용자의 신원을 넘겨받도록 속이려 할 수 있기 때문에 서명을 하는것에 주의하세요. 반드시 당신이 동의하는 완전한 문구에만 서명하세요.</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address to sign the message with</source>
-        <translation type="unfinished">메세지를 서명할 비트코인 주소</translation>
-    </message>
-    <message>
-        <source>Choose previously used address</source>
-        <translation type="unfinished">이전에 사용한 주소를 선택하기</translation>
-    </message>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">클립보드로 부터 주소 붙여넣기</translation>
-    </message>
-    <message>
-        <source>Enter the message you want to sign here</source>
-        <translation type="unfinished">여기에 서명할 메시지를 입력하세요</translation>
-    </message>
-    <message>
-        <source>Signature</source>
-        <translation type="unfinished">서명</translation>
-    </message>
-    <message>
-        <source>Copy the current signature to the clipboard</source>
-        <translation type="unfinished">현재 서명을 클립보드에 복사</translation>
-    </message>
-    <message>
-        <source>Sign the message to prove you own this Bitcoin address</source>
-        <translation type="unfinished">당신이 이 비트코인 주소를 소유한다는 증명을 위해 메시지를 서명합니다</translation>
-    </message>
-    <message>
-        <source>Sign &amp;Message</source>
-        <translation type="unfinished">메시지 서명(&amp;M)</translation>
-    </message>
-    <message>
-        <source>Reset all sign message fields</source>
-        <translation type="unfinished">모든 입력항목을 초기화합니다</translation>
-    </message>
-    <message>
-        <source>Clear &amp;All</source>
-        <translation type="unfinished">모두 지우기(&amp;A)</translation>
-    </message>
-    <message>
-        <source>&amp;Verify Message</source>
-        <translation type="unfinished">메시지 검증(&amp;V)</translation>
-    </message>
-    <message>
-        <source>Enter the receiver's address, message (ensure you copy line breaks, spaces, tabs, etc. exactly) and signature below to verify the message. Be careful not to read more into the signature than what is in the signed message itself, to avoid being tricked by a man-in-the-middle attack. Note that this only proves the signing party receives with the address, it cannot prove sendership of any transaction!</source>
-        <translation type="unfinished">메시지를 검증하기 위해 아래 칸에 각각 지갑 주소와 메시지, 서명을 입력하세요 (메시지 원본의 띄어쓰기, 들여쓰기, 행 나눔 등이 정확하게 입력되어야 하므로 원본을 복사해서 입력하세요). 네트워크 침입자의 속임수에 넘어가지 않도록 서명된 메시지 내용 이외의 내용은 참고하지 않도록 유의하세요. 이 기능은 단순히 서명한 쪽에서 해당 주소로 송금을 받을 수 있다는 것을 증명하는 것 뿐이며 그 이상은 어떤 것도 보증하지 않습니다.</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address the message was signed with</source>
-        <translation type="unfinished">메세지의 서명에 사용된 비트코인 주소</translation>
-    </message>
-    <message>
-        <source>The signed message to verify</source>
-        <translation type="unfinished">검증할 서명된 메세지</translation>
-    </message>
-    <message>
-        <source>The signature given when the message was signed</source>
-        <translation type="unfinished">메세지의 서명되었을 때의 시그니처</translation>
-    </message>
-    <message>
-        <source>Verify the message to ensure it was signed with the specified Bitcoin address</source>
-        <translation type="unfinished">입력된 비트코인 주소로 메시지가 서명되었는지 검증합니다</translation>
-    </message>
-    <message>
-        <source>Verify &amp;Message</source>
-        <translation type="unfinished">메시지 검증(&amp;M)</translation>
-    </message>
-    <message>
-        <source>Reset all verify message fields</source>
-        <translation type="unfinished">모든 입력 항목을 초기화합니다</translation>
-    </message>
-    <message>
-        <source>Click "Sign Message" to generate signature</source>
-        <translation type="unfinished">서명을 만들려면 "메시지 서명"을 클릭하세요</translation>
-    </message>
-    <message>
-        <source>The entered address is invalid.</source>
-        <translation type="unfinished">입력한 주소가 잘못되었습니다.</translation>
-    </message>
-    <message>
-        <source>Please check the address and try again.</source>
-        <translation type="unfinished">주소를 확인하고 다시 시도하십시오.</translation>
-    </message>
-    <message>
-        <source>The entered address does not refer to a legacy (P2PKH) key. Message signing for SegWit and other non-P2PKH address types is not supported in this version of %1. Please check the address and try again.</source>
-        <translation type="unfinished">입력한 주소는 레거시(P2PKH) 키를 참조하지 않습니다. 세그윗(SegWit) 및 기타 비 P2PKH 주소 유형에 대한 메시지 서명 기능은 %1 버전에서 지원되지 않습니다. 주소를 확인한 후 다시 시도하십시오.</translation>
-    </message>
-    <message>
-        <source>Wallet unlock was cancelled.</source>
-        <translation type="unfinished">지갑 잠금 해제를 취소했습니다.</translation>
-    </message>
-    <message>
-        <source>No error</source>
-        <translation type="unfinished">오류 없음</translation>
-    </message>
-    <message>
-        <source>Private key for the entered address is not available.</source>
-        <translation type="unfinished">입력한 주소에 대한 개인키가 없습니다.</translation>
-    </message>
-    <message>
-        <source>Message signing failed.</source>
-        <translation type="unfinished">메시지 서명에 실패했습니다.</translation>
-    </message>
-    <message>
-        <source>Message signed.</source>
-        <translation type="unfinished">메시지를 서명했습니다.</translation>
-    </message>
-    <message>
-        <source>The signature could not be decoded.</source>
-        <translation type="unfinished">서명을 해독할 수 없습니다.</translation>
-    </message>
-    <message>
-        <source>Please check the signature and try again.</source>
-        <translation type="unfinished">서명을 확인하고 다시 시도하십시오.</translation>
-    </message>
-    <message>
-        <source>The signature did not match the message digest.</source>
-        <translation type="unfinished">메시지 다이제스트와 서명이 일치하지 않습니다.</translation>
-    </message>
-    <message>
-        <source>Message verification failed.</source>
-        <translation type="unfinished">메시지 검증에 실패했습니다.</translation>
-    </message>
-    <message>
-        <source>Message verified.</source>
-        <translation type="unfinished">메시지가 검증되었습니다.</translation>
     </message>
 </context>
 <context>
@@ -4095,20 +3843,8 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">오류: 지갑의 거래 내역을 제거하는 과정에서 데이터베이스 트랜잭션(db txn)을 시작하거나 커밋하는 데 실패했습니다.</translation>
     </message>
     <message>
-        <source>Error: Dumpfile format record is incorrect. Got "%s", expected "format".</source>
-        <translation type="unfinished">오류 : 덤프파일 포맷 기록이 잘못되었습니다. "포맷"이 아니라 "%s"를 얻었습니다.</translation>
-    </message>
-    <message>
         <source>Error: Dumpfile identifier record is incorrect. Got "%s", expected "%s".</source>
         <translation type="unfinished">오류 : 덤프파일 식별자 기록이 잘못되었습니다. "%s"이 아닌 "%s"를 얻었습니다.</translation>
-    </message>
-    <message>
-        <source>Error: Dumpfile version is not supported. This version of bitcoin-wallet only supports version 1 dumpfiles. Got dumpfile with version %s</source>
-        <translation type="unfinished">오류 : 덤프파일 버젼이 지원되지 않습니다. 이 비트코인 지갑 버젼은 오직 버젼1의 덤프파일을 지원합니다. %s버젼의 덤프파일을 얻었습니다.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to produce descriptors for this legacy wallet. Make sure to provide the wallet's passphrase if it is encrypted.</source>
-        <translation type="unfinished">오류: 이 레거시 지갑에 대해 디스크립터를 생성할 수 없습니다. 지갑이 암호화되어 있다면, 암호 구문(passphrase)을 제공했는지 확인하십시오.</translation>
     </message>
     <message>
         <source>File %s already exists. If you are sure this is what you want, move it out of the way first.</source>
@@ -4195,10 +3931,6 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">경고: 비활성화된 개인키 지갑 {%s} 에서 개인키들이 발견되었습니다</translation>
     </message>
     <message>
-        <source>Witness data for blocks after height %d requires validation. Please restart with -reindex.</source>
-        <translation type="unfinished">블록 높이%d 이후의 증인(witness) 데이터가 검증을 필요로 합니다. -reindex 옵션을 사용하여 다시 시작해 주십시오.</translation>
-    </message>
-    <message>
         <source>You need to rebuild the database using -reindex to go back to unpruned mode.  This will redownload the entire blockchain</source>
         <translation type="unfinished">블록 축소 모드를 해제하려면 데이터베이스를 재구성하기 위해 -reindex를 사용해야 합니다. 이 명령은 전체 블록체인을 다시 다운로드합니다.</translation>
     </message>
@@ -4243,26 +3975,10 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">%s오류를 읽고있습니다! 모든 키는 올바르게 읽혔지만, 트랜잭션 데이터나 주소 메타데이터가 누락되었거나 잘못되었을 수 있습니다.</translation>
     </message>
     <message>
-        <source>Error: Address book data in wallet cannot be identified to belong to migrated wallets</source>
-        <translation type="unfinished">오류: 지갑의 주소록 데이터가 마이그레이션된 지갑에 속하는 것으로 식별될 수 없습니다.</translation>
-    </message>
-    <message>
-        <source>Error: Duplicate descriptors created during migration. Your wallet may be corrupted.</source>
-        <translation type="unfinished">오류: 마이그레이션을 하는 동안 중복된 디스크립터가 생성이 되었습니다. 당신의 지갑에 손상이 되었을 수 있습니다.</translation>
-    </message>
-    <message>
-        <source>Error: Transaction %s in wallet cannot be identified to belong to migrated wallets</source>
-        <translation type="unfinished">오류: 지갑에 있는 %s 트랜잭션을 마이그레이션된 지갑에 포함된 것으로 식별할 수 없습니다.</translation>
-    </message>
-    <message>
         <source>Failed to remove snapshot chainstate dir (%s). Manually remove it before restarting.
 </source>
         <translation type="unfinished">스냅샷 체인스테이트 디렉터리(%s)를 삭제하지 못했습니다. 다시 시작하기 전에 수동으로 해당 디렉터리를 제거해 주십시오.
 </translation>
-    </message>
-    <message>
-        <source>Failed to rename invalid peers.dat file. Please move or delete it and try again.</source>
-        <translation type="unfinished">유효하지 않은 peers.dat 파일의 이름을 변경하지 못했습니다. 해당 파일을 이동하거나 삭제한 뒤 다시 시도해 주십시오.</translation>
     </message>
     <message>
         <source>Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable %s.</source>
@@ -4291,10 +4007,6 @@ Go to File &gt; Open Wallet to load a wallet.
     <message>
         <source>Maximum transaction weight is too low, can not accommodate change output</source>
         <translation type="unfinished">최대 트랜잭션 가중치가 너무 낮아 거스름돈 출력을 포함할 수 없습니다.</translation>
-    </message>
-    <message>
-        <source>Option '-checkpoints' is set but checkpoints were removed. This option has no effect.</source>
-        <translation type="unfinished">‘-checkpoints’ 옵션이 설정되어 있지만 체크포인트 기능은 제거되었습니다. 이 옵션은 더 이상 아무 효과가 없습니다</translation>
     </message>
     <message>
         <source>Outbound connections restricted to CJDNS (-onlynet=cjdns) but -cjdnsreachable is not provided</source>
@@ -4356,30 +4068,8 @@ Tor 네트워크에 연결하기 위한 프록시 설정이 제공되지 않았�
         <translation type="unfinished">미확인 UTXOs의 사용이 가능하지만 , 그러한 UTXOs를 사용하여 소비하면 트랜잭션 체인이 형성되고 메모풀에 의해 거부될 것입니다.</translation>
     </message>
     <message>
-        <source>Unexpected legacy entry in descriptor wallet found. Loading wallet %s
-
-The wallet might have been tampered with or created with malicious intent.
-</source>
-        <translation type="unfinished">디스크립터 지갑에서 예상치 못한 레거시 항목이 발견되었습니다. 지갑 %s을 불러옵니다.
-
-이 지갑은 변조되었거나 악의적인 의도로 생성되었을 가능성이 있습니다.
-</translation>
-    </message>
-    <message>
         <source>Your computer's date and time appear to be more than %d minutes out of sync with the network, this may lead to consensus failure. After you've confirmed your computer's clock, this message should no longer appear when you restart your node. Without a restart, it should stop showing automatically after you've connected to a sufficient number of new outbound peers, which may take some time. You can inspect the `timeoffset` field of the `getpeerinfo` and `getnetworkinfo` RPC methods to get more info.</source>
         <translation type="unfinished">당신의 컴퓨터 날짜, 시간이 네트워크와 %d분 이상 동기화되지 않은 것으로 보이며 이는 합의 실패로 이어질 수 있습니다. 컴퓨터의 시계를 확인하고 수정한 후 노드를 다시 시작하면 이 메시지는 더 이상 표시되지 않을 것입니다. 재시작을 하지 않는 경우에는 충분한 수의 새로운 아웃바운드 피어로 연결된 뒤에 자동으로 표시가 중단되는데, 이 과정에서 시간이 조금 걸릴 수 있습니다. 추가 정보는 'getpeerinfo', 'getnetworkinfo' RPC 메서드의 'timeoffset' 필드를 확인해보면 알수 있습니다.</translation>
-    </message>
-    <message>
-        <source>
-Unable to cleanup failed migration</source>
-        <translation type="unfinished">
-실패한 마이그레이션을 정리하지 못했습니다.</translation>
-    </message>
-    <message>
-        <source>
-Unable to restore backup of wallet.</source>
-        <translation type="unfinished">
-지갑 백업을 복원할 수 없습니다.</translation>
     </message>
     <message>
         <source>default wallet</source>
@@ -4510,10 +4200,6 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">오류 : 덤프파일 체크썸이 일치하지 않습니다. "%s"이 아닌 "%s"로 계산되었습니다.</translation>
     </message>
     <message>
-        <source>Error: Failed to create new watchonly wallet</source>
-        <translation type="unfinished">오류: 새로운 watch-only 지갑을 생성하지 못했습니다.</translation>
-    </message>
-    <message>
         <source>Error: Got key that was not hex: %s</source>
         <translation type="unfinished">오류: 16진수(hex) 형식이 아닌 다음의 키를 받았습니다 : %s</translation>
     </message>
@@ -4534,64 +4220,8 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">오류: %s 주소 사용 불가</translation>
     </message>
     <message>
-        <source>Error: Not all address book records were migrated</source>
-        <translation type="unfinished">오류: 모든 주소록(Address Book) 기록이 마이그레이션되지 않았습니다.</translation>
-    </message>
-    <message>
-        <source>Error: Not all transaction records were migrated</source>
-        <translation type="unfinished">오류: 모든 트랜잭션 기록이 마이그레이션되지 않았습니다.</translation>
-    </message>
-    <message>
-        <source>Error: This wallet already uses SQLite</source>
-        <translation type="unfinished">오류: 이 지갑은 이미 SQLite를 사용하고 있음</translation>
-    </message>
-    <message>
-        <source>Error: This wallet is already a descriptor wallet</source>
-        <translation type="unfinished">오류: 이 지갑은 이미 디스크립터 지갑입니다.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to begin reading all records in the database</source>
-        <translation type="unfinished">오류: 데이터베이스에서의 모든 레코드 읽기를 시작할 수 없습니다.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to make a backup of your wallet</source>
-        <translation type="unfinished">오류: 지갑의 백업을 만들 수 없습니다.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to parse version %u as a uint32_t</source>
-        <translation type="unfinished">오류: 버전%u을 uint32_t로 파싱 할 수 없습니다.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read all records in the database</source>
-        <translation type="unfinished">오류: 데이터베이스에 있는 모든 기록들을 읽을 수 없습니다.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read wallet's best block locator record</source>
-        <translation type="unfinished">오류: 지갑의 최신 블록 위치 기록(best block locator) 레코드를 읽을 수 없습니다.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to remove watchonly address book data</source>
-        <translation type="unfinished">오류: watch-only 주소록 데이터를 제거할 수 없습니다.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write data to disk for wallet %s</source>
-        <translation type="unfinished">오류: 지갑 %s의 데이터를 디스크에 쓸 수 없습니다.</translation>
-    </message>
-    <message>
         <source>Error: Unable to write record to new wallet</source>
         <translation type="unfinished">오류: 새로운 지갑에 기록하지 못했습니다.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write solvable wallet best block locator record</source>
-        <translation type="unfinished">오류: solvable 지갑의 최신 블록 위치 (best block locator) 기록을 저장할 수 없습니다.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write watchonly wallet best block locator record</source>
-        <translation type="unfinished">오류: watch-only 지갑의 최신 블록 위치(best block locator) 기록을 저장할 수 없습니다.</translation>
-    </message>
-    <message>
-        <source>Error: database transaction cannot be executed for wallet %s</source>
-        <translation type="unfinished">오류: 지갑 %s에 대해 데이터베이스 트랜잭션을 실행할 수 없습니다.</translation>
     </message>
     <message>
         <source>Failed to acquire rescan reserver during wallet initialization</source>
@@ -4942,20 +4572,8 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">알 수 없는 -blockfileterindex 값 %s.</translation>
     </message>
     <message>
-        <source>Unknown address type '%s'</source>
-        <translation type="unfinished">알 수 없는 주소 형식 '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown change type '%s'</source>
-        <translation type="unfinished">알 수 없는 변경 형식 '%s'</translation>
-    </message>
-    <message>
         <source>Unknown network specified in -onlynet: '%s'</source>
         <translation type="unfinished">-onlynet: '%s' 에 알수없는 네트워크가 지정되었습니다</translation>
-    </message>
-    <message>
-        <source>Unknown new rules activated (versionbit %i)</source>
-        <translation type="unfinished">알 수 없는 새로운 규칙이 활성화 되었습니다. (versionbit %i)</translation>
     </message>
     <message>
         <source>Unrecognised option "%s" provided in -test=&lt;option&gt;.</source>
@@ -4966,26 +4584,12 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">지원되지 않는 전역 로깅 레벨 %s=%s입니다. 유효한 값은 다음과 같습니다: %s.</translation>
     </message>
     <message>
-        <source>Wallet file creation failed: %s</source>
-        <translation type="unfinished">다음 지갑 파일 생성에 실패했습니다. :%s</translation>
-    </message>
-    <message>
         <source>acceptstalefeeestimates is not supported on %s chain.</source>
         <translation type="unfinished">acceptstalefeeestimates 는 %s 체인에서 지원되지 않습니다.</translation>
     </message>
     <message>
         <source>Unsupported logging category %s=%s.</source>
         <translation type="unfinished">지원되지 않는 로깅 카테고리 %s = %s.</translation>
-    </message>
-    <message>
-        <source>Error loading %s: Wallet is a legacy wallet. Please migrate to a descriptor wallet using the migration tool (migratewallet RPC).</source>
-        <translation type="unfinished">%s을 불러오는 중 오류: 해당 지갑은 ‘레거시(legacy) 지갑’입니다. migratewallet RPC를 사용하여 디스크립터(Descriptor) 지갑으로 마이그레이션 하세요.
-
- </translation>
-    </message>
-    <message>
-        <source>Error: Dumpfile specifies an unsupported database format (%s). Only sqlite database dumps are supported</source>
-        <translation type="unfinished">오류: 덤프파일은 지원되지 않는 데이터베이스 형식(%s)지정하고 있습니다. 오직 SQLite 데이터베이스 덤프만 지원됩니다.</translation>
     </message>
     <message>
         <source>Failed to calculate bump fees, because unconfirmed UTXOs depend on an enormous cluster of unconfirmed transactions.</source>
@@ -5007,22 +4611,6 @@ Please try running the latest software version.
     <message>
         <source>Do you want to rebuild the databases now?</source>
         <translation type="unfinished">지금 데이터베이스를 다시 빌드하시겠습니까?</translation>
-    </message>
-    <message>
-        <source>Error: Could not add watchonly tx %s to watchonly wallet</source>
-        <translation type="unfinished">오류: 보기 전용 트랜잭션%s을 보기 전용 지갑에 추가할 수 없습니다.</translation>
-    </message>
-    <message>
-        <source>Error: Could not delete watchonly transactions. </source>
-        <translation type="unfinished">오류: 보기전용 트랜젝션을 제거할 수 없습니다.</translation>
-    </message>
-    <message>
-        <source>Error: Wallet does not exist</source>
-        <translation type="unfinished">오류: 지갑이 존재하지 않습니다</translation>
-    </message>
-    <message>
-        <source>Error: cannot remove legacy wallet records</source>
-        <translation type="unfinished">오류: 기존 지갑 기록을 삭제할 수 없습니다</translation>
     </message>
     <message>
         <source>Failed to start indexes, shutting down…</source>

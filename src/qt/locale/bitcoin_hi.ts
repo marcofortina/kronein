@@ -58,12 +58,6 @@
         <translation type="unfinished">भुगतान भेजने के लिए ये आपके बिटकॉइन पते हैं। कॉइन्स भेजने से पहले हमेशा राशि और प्राप्त करने वाले पते की जांच करें।</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">भुगतान प्राप्त करने के लिए ये आपके बिटकॉइन पते हैं। नए पते बनाने के लिए रिसिव टैब में 'नया प्राप्तकर्ता पता बनाएं' बटन का उपयोग करें।
-हस्ताक्षर केवल 'लेगसी' प्रकार के पते के साथ ही संभव है।</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;पता कॉपी करें</translation>
     </message>
@@ -479,22 +473,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">&amp;पासफ्रेज़ बदलें…</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">हस्ताक्षर &amp;संदेश</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">यह साबित करने के लिए कि आप उनके मालिक हैं, अपने बिटकॉइन पतों के साथ संदेशों पर हस्ताक्षर करें</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;संदेश सत्यापित करें…</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">संदेशों को सत्यापित करें ताकि यह सुनिश्चित हो सके कि उन पर निर्दिष्ट बिटकॉइन पतों से हस्ताक्षर किए गए थे</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">&amp;फ़ाइल से PSBT लोड करें…</translation>
     </message>
@@ -590,14 +568,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <source>Restore a wallet from a backup file</source>
         <extracomment>Status tip for Restore Wallet menu item</extracomment>
         <translation type="unfinished">बैकअप फ़ाइल से एक वॉलेट पुनर्स्थापित करें</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">वॉलेट माइग्रेट करें</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">कोई वॉलेट माइग्रेट करें</translation>
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
@@ -761,39 +731,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <source>Loading wallets…</source>
         <extracomment>Descriptive text of the load wallets progress window which indicates to the user that wallets are currently being loaded.</extracomment>
         <translation type="unfinished">वॉलेट लोड हो रहा है...</translation>
-    </message>
-</context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate wallet</source>
-        <translation type="unfinished">वॉलेट माइग्रेट करें</translation>
-    </message>
-    <message>
-        <source>Migrating the wallet will convert this wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">वॉलेट को माइग्रेट करने से यह एक या अधिक डिस्क्रिप्टर वॉलेट्स में बदल जाएगा। एक नया वॉलेट बैकअप बनाना आवश्यक होगा।
-यदि इस वॉलेट में कोई वॉच-ओनली स्क्रिप्ट्स हैं, तो एक नया वॉलेट बनाया जाएगा जिसमें वे वॉच-ओनली स्क्रिप्ट्स शामिल होंगी।यदि इस वॉलेट में कोई सॉल्वेबल लेकिन नॉन-वॉच्ड स्क्रिप्ट्स हैं, तो एक अलग और नया वॉलेट बनाया जाएगा जिसमें वे स्क्रिप्ट्स शामिल होंगी।
-माइग्रेशन प्रक्रिया वॉलेट का बैकअप बनाने के बाद ही पूरी होगी। यह बैकअप फाइल {1}-{2} . legacy.bak नाम से इस वॉलेट की डायरेक्टरी में मिलेगी। यदि माइग्रेशन में कोई गलती होती है, तो इस बैकअप को "Restore Wallet" फ़ंक्शन के जरिए पुनः बहाल किया जा सकता है।</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">वॉलेट माइग्रेट करें</translation>
-    </message>
-    <message>
-        <source>Watchonly scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">केवल-दृष्टि स्क्रिप्ट्स को एक नए वॉलेट में माइग्रेट कर दिया गया है जिसका नाम '%1' है।</translation>
-    </message>
-    <message>
-        <source>Migration failed</source>
-        <translation type="unfinished">माइग्रेशन नहीं हो पाया</translation>
-    </message>
-    <message>
-        <source>Migration Successful</source>
-        <translation type="unfinished">माइग्रेशन हो गया</translation>
     </message>
 </context>
 <context>
@@ -1486,26 +1423,6 @@ For more information on using this console, type %6.
         <source>Copy &amp;message</source>
         <translation type="unfinished">कॉपी  &amp;मेसेज</translation>
     </message>
-    <message>
-        <source>Not recommended due to higher fees and less protection against typos.</source>
-        <translation type="unfinished">उच्च शुल्क और टाइपिंग त्रुटियों के प्रति कम सुरक्षा के कारण इसकी अनुशंसा नहीं की जाती।</translation>
-    </message>
-    <message>
-        <source>Generates an address compatible with older wallets.</source>
-        <translation type="unfinished">पुराने वॉलेट के साथ संगत पता बनाता है।</translation>
-    </message>
-    <message>
-        <source>Generates a native segwit address (BIP-173). Some old wallets don't support it.</source>
-        <translation type="unfinished">एक मूल सेगविट पता (BIP-173) उत्पन्न करता है। कुछ पुराने वॉलेट इसका समर्थन नहीं करते हैं।</translation>
-    </message>
-    <message>
-        <source>Bech32m (BIP-350) is an upgrade to Bech32, wallet support is still limited.</source>
-        <translation type="unfinished">Bech32m (BIP-350) Bech32 का अपग्रेड है, वॉलेट समर्थन अभी भी सीमित है।</translation>
-    </message>
-    <message>
-        <source>Could not generate new %1 address</source>
-        <translation type="unfinished">नया पता उत्पन्न नहीं कर सका %1 </translation>
-    </message>
 </context>
 <context>
     <name>ReceiveRequestDialog</name>
@@ -1987,154 +1904,6 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
 </context>
 <context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Signatures - Sign / Verify a Message</source>
-        <translation type="unfinished">हस्ताक्षर - एक संदेश पर हस्ताक्षर करें / सत्यापित करें</translation>
-    </message>
-    <message>
-        <source>&amp;Sign Message</source>
-        <translation type="unfinished">&amp;संदेश पर हस्ताक्षर करें</translation>
-    </message>
-    <message>
-        <source>You can sign messages/agreements with your legacy (P2PKH) addresses to prove you can receive bitcoins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation type="unfinished">आप अपने विरासत (P2PKH) पतों के साथ संदेश/समझौते पर हस्ताक्षर करके यह साबित कर सकते हैं कि आप उन्हें भेजे गए बिटकॉइन प्राप्त कर सकते हैं। सावधान रहें कि किसी भी अस्पष्ट या यादृच्छिक चीज़ पर हस्ताक्षर न करें, क्योंकि फ़िशिंग हमले आपको धोखा देकर अपनी पहचान उन्हें सौंपने की कोशिश कर सकते हैं। केवल पूरी तरह से विस्तृत कथनों पर हस्ताक्षर करें जिनसे आप सहमत हैं।</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address to sign the message with</source>
-        <translation type="unfinished">संदेश पर हस्ताक्षर करने के लिए बिटकॉइन पता</translation>
-    </message>
-    <message>
-        <source>Choose previously used address</source>
-        <translation type="unfinished">पहले इस्तेमाल किया गया पता चुनें</translation>
-    </message>
-    <message>
-        <source>Alt+A</source>
-        <translation type="unfinished">Alt+A </translation>
-    </message>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">क्लिपबोर्ड से पता चिपकाएं</translation>
-    </message>
-    <message>
-        <source>Alt+P</source>
-        <translation type="unfinished">Alt+P </translation>
-    </message>
-    <message>
-        <source>Enter the message you want to sign here</source>
-        <translation type="unfinished">वह संदेश दर्ज करें जिस पर आप हस्ताक्षर करना चाहते हैं</translation>
-    </message>
-    <message>
-        <source>Signature</source>
-        <translation type="unfinished">हस्ताक्षर</translation>
-    </message>
-    <message>
-        <source>Sign the message to prove you own this Bitcoin address</source>
-        <translation type="unfinished">यह साबित करने के लिए संदेश पर हस्ताक्षर करें कि आप इस बिटकॉइन पते के स्वामी हैं</translation>
-    </message>
-    <message>
-        <source>Sign &amp;Message</source>
-        <translation type="unfinished">साइन &amp; मैसेज</translation>
-    </message>
-    <message>
-        <source>Reset all sign message fields</source>
-        <translation type="unfinished">सभी साइन संदेश फ़ील्ड रीसेट करें</translation>
-    </message>
-    <message>
-        <source>Clear &amp;All</source>
-        <translation type="unfinished">&amp;सभी साफ करें</translation>
-    </message>
-    <message>
-        <source>&amp;Verify Message</source>
-        <translation type="unfinished">&amp;संदेश सत्यापित करें</translation>
-    </message>
-    <message>
-        <source>Enter the receiver's address, message (ensure you copy line breaks, spaces, tabs, etc. exactly) and signature below to verify the message. Be careful not to read more into the signature than what is in the signed message itself, to avoid being tricked by a man-in-the-middle attack. Note that this only proves the signing party receives with the address, it cannot prove sendership of any transaction!</source>
-        <translation type="unfinished">संदेश को सत्यापित करने के लिए नीचे प्राप्तकर्ता का पता, संदेश (सुनिश्चित करें कि आप लाइन ब्रेक, रिक्त स्थान, टैब आदि की प्रतिलिपि बनाते हैं) और हस्ताक्षर दर्ज करें। सावधान रहें कि हस्ताक्षरित संदेश में जो लिखा है, उससे अधिक हस्ताक्षर में न पढ़ें, ताकि बीच-बीच में किसी व्यक्ति द्वारा छल किए जाने से बचा जा सके। ध्यान दें कि यह केवल यह साबित करता है कि हस्ताक्षर करने वाला पक्ष पते के साथ प्राप्त करता है, यह किसी भी लेनदेन की प्रेषकता साबित नहीं कर सकता है!</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address the message was signed with</source>
-        <translation type="unfinished">संदेश के साथ हस्ताक्षर किए गए बिटकॉइन पते</translation>
-    </message>
-    <message>
-        <source>The signed message to verify</source>
-        <translation type="unfinished">सत्यापित करने के लिए हस्ताक्षरित संदेश</translation>
-    </message>
-    <message>
-        <source>The signature given when the message was signed</source>
-        <translation type="unfinished">संदेश पर हस्ताक्षर किए जाने पर दिए गए हस्ताक्षर</translation>
-    </message>
-    <message>
-        <source>Verify the message to ensure it was signed with the specified Bitcoin address</source>
-        <translation type="unfinished">यह सुनिश्चित करने के लिए संदेश सत्यापित करें कि यह निर्दिष्ट बिटकॉइन पते के साथ हस्ताक्षरित था</translation>
-    </message>
-    <message>
-        <source>Verify &amp;Message</source>
-        <translation type="unfinished">सत्यापित करें और संदेश</translation>
-    </message>
-    <message>
-        <source>Reset all verify message fields</source>
-        <translation type="unfinished">सभी सत्यापित संदेश फ़ील्ड रीसेट करें</translation>
-    </message>
-    <message>
-        <source>Click "Sign Message" to generate signature</source>
-        <translation type="unfinished">हस्ताक्षर उत्पन्न करने के लिए "साईन मेसेज" पर क्लिक करें</translation>
-    </message>
-    <message>
-        <source>The entered address is invalid.</source>
-        <translation type="unfinished">दर्ज किया गया पता अमान्य है।</translation>
-    </message>
-    <message>
-        <source>Please check the address and try again.</source>
-        <translation type="unfinished">कृपया पते की जांच करें और पुनः प्रयास करें।</translation>
-    </message>
-    <message>
-        <source>The entered address does not refer to a legacy (P2PKH) key. Message signing for SegWit and other non-P2PKH address types is not supported in this version of %1. Please check the address and try again.</source>
-        <translation type="unfinished">दर्ज किया गया पता किसी लीगेसी (P2PKH) कुंजी को संदर्भित नहीं करता है। SegWit और अन्य गैर-P2PKH पता प्रकारों के लिए संदेश हस्ताक्षर %1 के इस संस्करण में समर्थित नहीं है | कृपया पते की जांच करें और पुनः प्रयास करें।</translation>
-    </message>
-    <message>
-        <source>Wallet unlock was cancelled.</source>
-        <translation type="unfinished">वॉलेट अनलॉक रद्द कर दिया गया था।
- </translation>
-    </message>
-    <message>
-        <source>No error</source>
-        <translation type="unfinished">कोई त्रुटि नहीं</translation>
-    </message>
-    <message>
-        <source>Private key for the entered address is not available.</source>
-        <translation type="unfinished">दर्ज पते के लिए निजी कुंजी उपलब्ध नहीं है।</translation>
-    </message>
-    <message>
-        <source>Message signing failed.</source>
-        <translation type="unfinished">संदेश हस्ताक्षर विफल।</translation>
-    </message>
-    <message>
-        <source>Message signed.</source>
-        <translation type="unfinished">संदेश पर हस्ताक्षर किए।</translation>
-    </message>
-    <message>
-        <source>The signature could not be decoded.</source>
-        <translation type="unfinished">हस्ताक्षर को डिकोड नहीं किया जा सका।</translation>
-    </message>
-    <message>
-        <source>Please check the signature and try again.</source>
-        <translation type="unfinished">कृपया हस्ताक्षर जांचें और पुन: प्रयास करें।</translation>
-    </message>
-    <message>
-        <source>The signature did not match the message digest.</source>
-        <translation type="unfinished">हस्ताक्षर संदेश डाइजेस्ट से मेल नहीं खाते।</translation>
-    </message>
-    <message>
-        <source>Message verification failed.</source>
-        <translation type="unfinished">संदेश सत्यापन विफल।</translation>
-    </message>
-    <message>
-        <source>Message verified.</source>
-        <translation type="unfinished">संदेश सत्यापित।</translation>
-    </message>
-</context>
-<context>
     <name>SplashScreen</name>
     <message>
         <source>(press q to shutdown and continue later)</source>
@@ -2544,10 +2313,6 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">वॉलेट लेन-देन हटाने की प्रक्रिया के लिए डेटाबेस लेनदेन शुरू करने/सौंपने में त्रुटि</translation>
     </message>
     <message>
-        <source>Error: Unable to produce descriptors for this legacy wallet. Make sure to provide the wallet's passphrase if it is encrypted.</source>
-        <translation type="unfinished">त्रुटि: इस लीगेसी वॉलेट के लिए वर्णनकर्ता बनाने में असमर्थ। यदि बटुए का पासफ़्रेज़ एन्क्रिप्ट किया गया है, तो उसे प्रदान करना सुनिश्चित करें।</translation>
-    </message>
-    <message>
         <source>Invalid value detected for '-wallet' or '-nowallet'. '-wallet' requires a string value, while '-nowallet' accepts only '1' to disable all wallets</source>
         <translation type="unfinished">'-wallet' या '-nowallet' के लिए अमान्य मान पाया गया। '-wallet' को स्ट्रिंग मान की आवश्यकता होती है, जबकि '-nowallet' सभी वॉलेट को अक्षम करने के लिए केवल '1' स्वीकार करता है</translation>
     </message>
@@ -2630,15 +2395,6 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">अपुष्ट UTXO उपलब्ध हैं, लेकिन उन्हें खर्च करने से लेनदेन की एक श्रृंखला बनती है जिसे मेमपूल द्वारा अस्वीकार कर दिया जाएगा</translation>
     </message>
     <message>
-        <source>Unexpected legacy entry in descriptor wallet found. Loading wallet %s
-
-The wallet might have been tampered with or created with malicious intent.
-</source>
-        <translation type="unfinished">डिस्क्रिप्टर वॉलेट में अप्रत्याशित विरासत प्रविष्टि मिली। %s बटुआ लोड हो रहा है
-
-हो सकता है कि वॉलेट से छेड़छाड़ की गई हो या दुर्भावनापूर्ण इरादे से बनाया गया हो।</translation>
-    </message>
-    <message>
         <source>Your computer's date and time appear to be more than %d minutes out of sync with the network, this may lead to consensus failure. After you've confirmed your computer's clock, this message should no longer appear when you restart your node. Without a restart, it should stop showing automatically after you've connected to a sufficient number of new outbound peers, which may take some time. You can inspect the `timeoffset` field of the `getpeerinfo` and `getnetworkinfo` RPC methods to get more info.</source>
         <translation type="unfinished">आपके कंप्यूटर की तिथि और समय नेटवर्क के साथ %d मिनट से अधिक समय तक सिंक से बाहर प्रतीत है, इससे सहमति विफलता हो सकती है। आपके द्वारा अपने कंप्यूटर की घड़ी की पुष्टि करने के बाद, जब आप अपना नोड restart करेंगे तो यह संदेश दिखाई नहीं देना चाहिए। Restart किए बिना, जब आप पर्याप्त संख्या में नए outbound peers से कनेक्ट हो जाते हैं, तो यह स्वचालित रूप से दिखना बंद हो जाना चाहिए, जिसमें कुछ समय लग सकता है। अधिक जानकारी प्राप्त करने के लिए आप `getpeerinfo` और `getnetworkinfo` RPC विधियों के `timeoffset` फ़ील्ड का निरीक्षण कर सकते हैं।</translation>
     </message>
@@ -2681,22 +2437,6 @@ The wallet might have been tampered with or created with malicious intent.
     <message>
         <source>Error: Cannot extract destination from the generated scriptpubkey</source>
         <translation type="unfinished">त्रुटि: जनरेट की गई scriptpubkey से गंतव्य निकाला नहीं जा सकता</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read wallet's best block locator record</source>
-        <translation type="unfinished">Error: वॉलेट का best ब्लॉक लोकेटर रिकॉर्ड पढ़ने में असमर्थ</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write solvable wallet best block locator record</source>
-        <translation type="unfinished">Error: सॉल्वेबल वॉलेट best ब्लॉक लोकेटर रिकॉर्ड लिखने में असमर्थ</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write watchonly wallet best block locator record</source>
-        <translation type="unfinished">Error: watchonly वॉलेट best  ब्लॉक लोकेटर रिकॉर्ड लिखने में असमर्थ</translation>
-    </message>
-    <message>
-        <source>Error: database transaction cannot be executed for wallet %s</source>
-        <translation type="unfinished">Error: वॉलेट %s के लिए डेटाबेस लेनदेन निष्पादित नहीं किया जा सकता</translation>
     </message>
     <message>
         <source>Failed to disconnect block.</source>
@@ -2779,32 +2519,12 @@ The wallet might have been tampered with or created with malicious intent.
         <translation type="unfinished">लेन-देन %s इस वॉलेट से संबंधित नहीं है</translation>
     </message>
     <message>
-        <source>Wallet file creation failed: %s</source>
-        <translation type="unfinished">वॉलेट फ़ाइल निर्माण विफल: %s</translation>
-    </message>
-    <message>
         <source>acceptstalefeeestimates is not supported on %s chain.</source>
         <translation type="unfinished">%s चेन पर acceptstalefeeestimates समर्थित नहीं है |</translation>
     </message>
     <message>
         <source>Do you want to rebuild the databases now?</source>
         <translation type="unfinished">क्या आप अब डेटाबेस का पुनर्निर्माण करना चाहते हैं?</translation>
-    </message>
-    <message>
-        <source>Error: Could not add watchonly tx %s to watchonly wallet</source>
-        <translation type="unfinished">Error: watchonly लेन-देन %s को watchonly वॉलेट में नहीं जोड़ा जा सका</translation>
-    </message>
-    <message>
-        <source>Error: Could not delete watchonly transactions. </source>
-        <translation type="unfinished">Error: केवल watchonly लेनदेन को हटाया नहीं जा सका |</translation>
-    </message>
-    <message>
-        <source>Error: Wallet does not exist</source>
-        <translation type="unfinished">Error: वॉलेट मौजूद नहीं है</translation>
-    </message>
-    <message>
-        <source>Error: cannot remove legacy wallet records</source>
-        <translation type="unfinished">Error: leagcy वॉलेट रिकॉर्ड को हटाया नहीं जा सकता है</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

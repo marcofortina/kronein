@@ -62,12 +62,6 @@
         <translation type="unfinished">Hauek dira ordainketak egiteko zure Bitcoin helbideak. Txanponak bidali aurretik, beti egiaztatu zenbatekoa eta hartzailearen helbidea.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">Hauek dira ordainketak jasotzeko zure Bitcoin helbideak. Helbide berriak sortzeko, erabili 'Jasotzeko helbide berria sortu' botoia "jasotzea" fitxan.
-Sinatzea soilik posible da 'legacy' motako helbideekin.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;Kopiatu helbidea</translation>
     </message>
@@ -551,22 +545,6 @@ Sinatzea soilik posible da 'legacy' motako helbideekin.</translation>
         <translation type="unfinished">&amp;Aldatu Pasahitza</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">sinatu &amp;mezua</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Sinatu mezuak zure Bitcoin helbideekin haien jabetza duzula frogatzeko.</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">Mezua &amp;balioztatu...</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">Egiaztatu mezuak zehaztutako Bitcoin helbideekin sinatu direla ziurtatzeko.</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">&amp;kargatu PSBT fitxategitik...</translation>
     </message>
@@ -736,14 +714,6 @@ Sinatzea soilik posible da 'legacy' motako helbideekin.</translation>
         <translation type="unfinished">Zorro guztiak itxi</translation>
     </message>
     <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Migra ezazu zorroa</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">Zorroren bat migratu</translation>
-    </message>
-    <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
         <translation type="unfinished">Erakutsi %1(r)en laguntza-mezua Bitcoin-en komando-lerroko aukera posibleen zerrenda lortzeko.</translation>
     </message>
@@ -786,15 +756,6 @@ Sinatzea soilik posible da 'legacy' motako helbideekin.</translation>
     <message>
         <source>Wallet name cannot be empty</source>
         <translation type="unfinished">Zorroaren izena ezin da hutsik egon</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet Backup</source>
-        <translation type="unfinished">Zorroaren segurtasun kopia berreskuratu eta migratu</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet</source>
-        <extracomment>Title of pop-up window shown when the user is attempting to restore a wallet.</extracomment>
-        <translation type="unfinished">Zorroa berreskuratu eta migratu</translation>
     </message>
     <message>
         <source>&amp;Window</source>
@@ -1111,91 +1072,6 @@ Sinatzea soilik posible da 'legacy' motako helbideekin.</translation>
         <source>Loading wallets…</source>
         <extracomment>Descriptive text of the load wallets progress window which indicates to the user that wallets are currently being loaded.</extracomment>
         <translation type="unfinished">Zorroak kargatzen...</translation>
-    </message>
-</context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate wallet</source>
-        <translation type="unfinished">Zorroa migratu</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to migrate the wallet &lt;i&gt;%1&lt;/i&gt;?</source>
-        <translation type="unfinished">Zihur zaude zorroa  &lt;i&gt;%1&lt;/i&gt;migratu nahi duzula?</translation>
-    </message>
-    <message>
-        <source>Migrating the wallet will convert this wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">Zorroa migratzean, zorro hau deskribatzaile-zorro batean edo gehiagotan bihurtuko da. Zorroaren babeskopia berri bat egin beharko da.
-Zorro honek watch-only script-ak baditu, script horiek dituen zorro berri bat sortuko da.
-Zorro honek ebazgarriak baina ez zaindutakoak diren script-ak baditu, script horiek dituen beste zorro berri bat sortuko da.
-
-Migrazio-prozesuak zorroaren segurtasun-kopia bat sortuko du migratu aurretik. Segurtasun-kopia hori &lt;wallet name&gt;-&lt;timestamp&gt; .legacy.bak izendatuko da eta zorro honen direktorioan aurkituko da. Migrazioa okerra bada, segurtasun-kopia hori berreskuratu daiteke "Zorroa Berreskuratu" funtzionalitatearen bidez.</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Migra ezazu zorroa</translation>
-    </message>
-    <message>
-        <source>Migrating Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <translation type="unfinished">Zorroa migratzen &lt;b&gt;%1&lt;/b&gt; …</translation>
-    </message>
-    <message>
-        <source>The wallet '%1' was migrated successfully.</source>
-        <translation type="unfinished">'%1' zorroa arrakastaz migratu da.</translation>
-    </message>
-    <message>
-        <source>Watchonly scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Ikusmen-soil scriptak '%1' izeneko zorro berri batera migratu dira.</translation>
-    </message>
-    <message>
-        <source>Solvable but not watched scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Ebatz daitezkeen baina ez diren ikusi scriptak '%1' izeneko diru-zorro berri batera migratu dira.</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate wallet</source>
-        <translation type="unfinished">Zorroa berreskuratu eta migratu</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to restore the wallet file &lt;i&gt;%1&lt;/i&gt; to &lt;i&gt;%2&lt;/i&gt; and migrate it?</source>
-        <translation type="unfinished">Ziur zaude &lt;i&gt;%1&lt;/i&gt; zorro fitxategia &lt;i&gt;%2&lt;/i&gt;ra berreskuratu eta migratu nahi duzula?</translation>
-    </message>
-    <message>
-        <source>Restoring the wallet will copy the backup file to the wallets directory and place it in the standard wallet directory layout. The original file will not be modified.
-
-Migrating the wallet will convert the restored wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">Zorroa berreskuratzeak segurtasun-kopiako fitxategia zorroen direktoriora kopiatuko du eta ohiko zorro-diren egituran kokatuko du. Jatorrizko fitxategia ez da aldatuko.
-
-Zorroa migratzeak berreskuratuta dagoen zorroa deskriptore-zorro batean edo gehiagotan bihurtuko du. Zorroaren segurtasun-kopia berria sortu beharko da.
-Zorro honek behaketa-soilik diren skripteren bat badu, skriptu horiek jasoko dituen zorro berri bat sortuko da.
-Zorro honek konpon daitezkeen baina behatzen ez diren skripteren bat badu, skriptu horiek jasoko dituen beste zorro berri eta desberdin bat sortuko da.
-
-Migrazio-prozesuak zorroaren segurtasun-kopia bat sortuko du migratu aurretik. Segurtasun-kopia hori &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak izendatuko da, eta zorro horren direktorioan aurkituko da. Migrazio okerren bat gertatuz gero, segurtasun kopia “Zorroa Berreskuratu” funtzionalitatearekin lehenera daiteke.</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">Diruzorroa berreskuratu</translation>
-    </message>
-    <message>
-        <source>Restoring Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <extracomment>Descriptive text of the restore wallets progress window which indicates to the user that wallets are currently being restored.</extracomment>
-        <translation type="unfinished">Diruzorroa berritzen  &lt;b&gt;%1&lt;/b&gt;…</translation>
-    </message>
-    <message>
-        <source>Migration failed</source>
-        <translation type="unfinished">Migrazioa huts egin da</translation>
-    </message>
-    <message>
-        <source>Migration Successful</source>
-        <translation type="unfinished">Migrazioa arrakastatsua izan da</translation>
     </message>
 </context>
 <context>
@@ -2857,28 +2733,8 @@ Kontsola hau erabiltzeko informazio gehiago nahi izanez gero, idatzi .
         <translation type="unfinished">Kopiatu kopurua</translation>
     </message>
     <message>
-        <source>Not recommended due to higher fees and less protection against typos.</source>
-        <translation type="unfinished">Ez da gomendagarria kuota handiagoengatik eta akats tipografikoen aurkako babes txikiagoagatik.</translation>
-    </message>
-    <message>
-        <source>Generates an address compatible with older wallets.</source>
-        <translation type="unfinished">Zorro zaharrekin bateragarria den helbide bat sortzen du.</translation>
-    </message>
-    <message>
-        <source>Generates a native segwit address (BIP-173). Some old wallets don't support it.</source>
-        <translation type="unfinished">Segwit jatorrizko helbidea sortzen du (BIP-173). Zorro zahar batzuek ez dute onartzen.</translation>
-    </message>
-    <message>
-        <source>Bech32m (BIP-350) is an upgrade to Bech32, wallet support is still limited.</source>
-        <translation type="unfinished">Bech32m (BIP-350) Bech32ren bertsio hobetu bat da; hala ere, zorroen euskarria oraindik mugatua da.</translation>
-    </message>
-    <message>
         <source>Could not unlock wallet.</source>
         <translation type="unfinished">Ezin izan da zorroa desblokeatu.</translation>
-    </message>
-    <message>
-        <source>Could not generate new %1 address</source>
-        <translation type="unfinished">Ezin izan da %1 helbide berria sortu.</translation>
     </message>
 </context>
 <context>
@@ -3400,149 +3256,6 @@ Mesedez, berrikusi zure transakzioa. Transakzio hau sor eta bidali dezakezu, edo
     <message>
         <source>Create Unsigned</source>
         <translation type="unfinished">Sortu sinatu gabea</translation>
-    </message>
-</context>
-<context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Signatures - Sign / Verify a Message</source>
-        <translation type="unfinished">Sinadurak - Mezu bat Sinatu / Egiaztatu</translation>
-    </message>
-    <message>
-        <source>&amp;Sign Message</source>
-        <translation type="unfinished">&amp;Sinatu Mezua</translation>
-    </message>
-    <message>
-        <source>You can sign messages/agreements with your legacy (P2PKH) addresses to prove you can receive bitcoins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation type="unfinished">Mezuak edo akordioak sinatu ditzakezu zure jatorrizko (P2PKH) helbideekin, helbide horietara bidalitako bitcoinak jasotzeko gaitasuna duzula frogatzeko. Kontuz ibili mezu lauso edo ausazkoak sinatzean, phishing erasoei esker zure identitatea lapurtu nahi dizuten iruzurrezko eskaerak izan baitaitezke. Sinatu soilik xehetasun osoak dituzten eta ados zauden adierazpenak.</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address to sign the message with</source>
-        <translation type="unfinished">Mezua sinatzeko erabiliko den Bitcoin helbidea</translation>
-    </message>
-    <message>
-        <source>Choose previously used address</source>
-        <translation type="unfinished">Aukeratu lehenago aukeraturiko helbidea</translation>
-    </message>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">Arbeletik helbidea itsatsi</translation>
-    </message>
-    <message>
-        <source>Enter the message you want to sign here</source>
-        <translation type="unfinished">Sartu sinatu nahi duzun mezua hemen</translation>
-    </message>
-    <message>
-        <source>Signature</source>
-        <translation type="unfinished">Sinadura</translation>
-    </message>
-    <message>
-        <source>Copy the current signature to the clipboard</source>
-        <translation type="unfinished">Kopiatu uneko sinadura arbelean</translation>
-    </message>
-    <message>
-        <source>Sign the message to prove you own this Bitcoin address</source>
-        <translation type="unfinished">Sinatu mezua Bitcoin helbide horren jabe zarela frogatzeko</translation>
-    </message>
-    <message>
-        <source>Sign &amp;Message</source>
-        <translation type="unfinished">Sinatu &amp;Mezua</translation>
-    </message>
-    <message>
-        <source>Reset all sign message fields</source>
-        <translation type="unfinished">Berrezarri sinatzeko mezuaren eremu guztiak</translation>
-    </message>
-    <message>
-        <source>Clear &amp;All</source>
-        <translation type="unfinished">Garbitu &amp;Denak</translation>
-    </message>
-    <message>
-        <source>&amp;Verify Message</source>
-        <translation type="unfinished">&amp;Egiaztatu mezua</translation>
-    </message>
-    <message>
-        <source>Enter the receiver's address, message (ensure you copy line breaks, spaces, tabs, etc. exactly) and signature below to verify the message. Be careful not to read more into the signature than what is in the signed message itself, to avoid being tricked by a man-in-the-middle attack. Note that this only proves the signing party receives with the address, it cannot prove sendership of any transaction!</source>
-        <translation type="unfinished">Sartu hartzailearen helbidea, mezua (ziurtatu lerro-jauziak, zuriuneak, tabulazioak eta abar zehatz-mehatz kopiatzen dituzula) eta sinadura behean, mezua egiaztatzeko. Kontuz ibili sinadurari sinatutako mezuan agertzen ez diren esanahi gehigarririk ematen ez diogula, erdiko gizonaren (man-in-the-middle) eraso baten biktima ez izateko. Kontuan izan honek soilik frogatzen duela sinatzaileak helbide horrekin jasotzen duela; ez du transakziorik bidali duenik frogatzen!</translation>
-    </message>
-    <message>
-        <source>The Bitcoin address the message was signed with</source>
-        <translation type="unfinished">Mezua sinatzeko erabili zen Bitcoin helbidea</translation>
-    </message>
-    <message>
-        <source>The signed message to verify</source>
-        <translation type="unfinished">Egiaztatu beharreko sinatutako mezua</translation>
-    </message>
-    <message>
-        <source>The signature given when the message was signed</source>
-        <translation type="unfinished">Mezua sinatzean emandako sinadura</translation>
-    </message>
-    <message>
-        <source>Verify the message to ensure it was signed with the specified Bitcoin address</source>
-        <translation type="unfinished">Egiaztatu mezua, zehaztutako Bitcoin helbidearekin sinatua izan zela bermatzeko</translation>
-    </message>
-    <message>
-        <source>Verify &amp;Message</source>
-        <translation type="unfinished">&amp;Egiaztatu Mezua</translation>
-    </message>
-    <message>
-        <source>Reset all verify message fields</source>
-        <translation type="unfinished">Berrezarri mezuaren egiaztapeneko eremu guztiak</translation>
-    </message>
-    <message>
-        <source>Click "Sign Message" to generate signature</source>
-        <translation type="unfinished">Egin klik "Sinatu mezua" botoian sinadura sortzeko</translation>
-    </message>
-    <message>
-        <source>The entered address is invalid.</source>
-        <translation type="unfinished">Sartutako helbidea ez da baliozkoa.</translation>
-    </message>
-    <message>
-        <source>Please check the address and try again.</source>
-        <translation type="unfinished">Mesedez, egiaztatu helbidea eta saiatu berriro.</translation>
-    </message>
-    <message>
-        <source>The entered address does not refer to a legacy (P2PKH) key. Message signing for SegWit and other non-P2PKH address types is not supported in this version of %1. Please check the address and try again.</source>
-        <translation type="unfinished">Sartutako helbidea ez dagokio jatorrizko (P2PKH) gako bati. Mezuen sinadura SegWit eta beste P2PKH ez diren helbide mota batzuetarako ez dago onartuta %1 bertsio honetan. Mesedez, egiaztatu helbidea eta saiatu berriro.</translation>
-    </message>
-    <message>
-        <source>Wallet unlock was cancelled.</source>
-        <translation type="unfinished">Zorroaren desblokeoa bertan behera utzi da.</translation>
-    </message>
-    <message>
-        <source>No error</source>
-        <translation type="unfinished">Ez dago errorerik</translation>
-    </message>
-    <message>
-        <source>Private key for the entered address is not available.</source>
-        <translation type="unfinished">Sartutako helbidearen gako pribatua ez dago eskuragarri.</translation>
-    </message>
-    <message>
-        <source>Message signing failed.</source>
-        <translation type="unfinished">Errorea mezua sinatzean</translation>
-    </message>
-    <message>
-        <source>Message signed.</source>
-        <translation type="unfinished">Mezua sinatuta.</translation>
-    </message>
-    <message>
-        <source>The signature could not be decoded.</source>
-        <translation type="unfinished">Sinadura dekodetu ezin da.</translation>
-    </message>
-    <message>
-        <source>Please check the signature and try again.</source>
-        <translation type="unfinished">Mesedez, begiratu sinadura eta saiatu berriro.</translation>
-    </message>
-    <message>
-        <source>The signature did not match the message digest.</source>
-        <translation type="unfinished">Sinadura ez dator bat mezuaren laburpenarekin.</translation>
-    </message>
-    <message>
-        <source>Message verification failed.</source>
-        <translation type="unfinished">Mezuen egiaztatzeak huts egin du</translation>
-    </message>
-    <message>
-        <source>Message verified.</source>
-        <translation type="unfinished">Mezua egiaztatua.</translation>
     </message>
 </context>
 <context>
@@ -4149,20 +3862,8 @@ Joan Fitxategia &gt; Ireki Zorro menura zorro bat kargatzeko.
         <translation type="unfinished">Errorea: ezin izan da datu-baseko transakzioa hasi edo berretsi zorroko transakzioak kentzeko prozesuan</translation>
     </message>
     <message>
-        <source>Error: Dumpfile format record is incorrect. Got "%s", expected "format".</source>
-        <translation type="unfinished">Errorea: Dumpfile formatu erregistroa okerra da. Lortu "%s", espero zen "format".</translation>
-    </message>
-    <message>
         <source>Error: Dumpfile identifier record is incorrect. Got "%s", expected "%s".</source>
         <translation type="unfinished">Errorea: Dumpfile identifikatzaile erregistroa okerra da. Lortu "%s", espero zen "%s".</translation>
-    </message>
-    <message>
-        <source>Error: Dumpfile version is not supported. This version of bitcoin-wallet only supports version 1 dumpfiles. Got dumpfile with version %s</source>
-        <translation type="unfinished">Errorea: Dump fitxategiaren bertsioa ez da onartzen. Bitcoin-wallet honen bertsio honek soilik 1. bertsioko dump fitxategiak onartzen ditu. Jasotako dump fitxategiak %s bertsioa du.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to produce descriptors for this legacy wallet. Make sure to provide the wallet's passphrase if it is encrypted.</source>
-        <translation type="unfinished">Errorea: Ezin izan dira deskribatzaileak sortu jatorrizko zorro honetarako. Ziurtatu zorroa enkriptatuta badago, haren pasahitza eman duzula.</translation>
     </message>
     <message>
         <source>File %s already exists. If you are sure this is what you want, move it out of the way first.</source>
@@ -4249,10 +3950,6 @@ Joan Fitxategia &gt; Ireki Zorro menura zorro bat kargatzeko.
         <translation type="unfinished">Abisua: gako pribatuak detektatu dira {%s} zorroan, gako pribatuak desgaituta daudenean.</translation>
     </message>
     <message>
-        <source>Witness data for blocks after height %d requires validation. Please restart with -reindex.</source>
-        <translation type="unfinished">%daltueratik gorako blokeetako lekuko datuak baliozkotu behar dira. Mesedez, berrabiarazi -reindex aukerarekin.</translation>
-    </message>
-    <message>
         <source>You need to rebuild the database using -reindex to go back to unpruned mode.  This will redownload the entire blockchain</source>
         <translation type="unfinished">Datu-basea berreraiki behar duzu -reindex aukera erabiliz moztu gabeko modura itzultzeko. Horrek blockchain osoa berriro deskargatuko du.</translation>
     </message>
@@ -4297,26 +3994,10 @@ Joan Fitxategia &gt; Ireki Zorro menura zorro bat kargatzeko.
         <translation type="unfinished">Errorea irakurtzean %s! Gako guztiak ongi irakurri dira, baina transakzio-datuak edo helbide-metadatuak falta daitezke edo okerrak izan daitezke.</translation>
     </message>
     <message>
-        <source>Error: Address book data in wallet cannot be identified to belong to migrated wallets</source>
-        <translation type="unfinished">Errorea: Zorroko helbide liburuko datuak ezin dira migrazioa egin zaien zorrotik datozen gisa identifikatu</translation>
-    </message>
-    <message>
-        <source>Error: Duplicate descriptors created during migration. Your wallet may be corrupted.</source>
-        <translation type="unfinished">Errorea: Deskribatzaile bikoiztuak sortu dira migrazioan zehar. Zure zorroa hondatuta egon daiteke.</translation>
-    </message>
-    <message>
-        <source>Error: Transaction %s in wallet cannot be identified to belong to migrated wallets</source>
-        <translation type="unfinished">Errorea: %stransakzioa ezin da identifikatu migratutako zorroei dagokiola</translation>
-    </message>
-    <message>
         <source>Failed to remove snapshot chainstate dir (%s). Manually remove it before restarting.
 </source>
         <translation type="unfinished">Snapshot chainstate direktorioa (%s) ezabatzea huts egin du. Ezabatu eskuz berrabiarazi aurretik.
 </translation>
-    </message>
-    <message>
-        <source>Failed to rename invalid peers.dat file. Please move or delete it and try again.</source>
-        <translation type="unfinished">Ezin izan da baliogabeko peers.dat fitxategia berrizendatu. Mugitu edo ezabatu eta saiatu berriro.</translation>
     </message>
     <message>
         <source>Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable %s.</source>
@@ -4345,10 +4026,6 @@ Joan Fitxategia &gt; Ireki Zorro menura zorro bat kargatzeko.
     <message>
         <source>Maximum transaction weight is too low, can not accommodate change output</source>
         <translation type="unfinished">Transakzioaren gehieneko pisua txikiegia da, eta ez da aldaketaren irteera gehitu ahal</translation>
-    </message>
-    <message>
-        <source>Option '-checkpoints' is set but checkpoints were removed. This option has no effect.</source>
-        <translation type="unfinished">'-checkpoints' aukera ezarrita dago baina kontrolpuntuak kendu egin dira. Aukera honek ez du eraginik.</translation>
     </message>
     <message>
         <source>Outbound connections restricted to CJDNS (-onlynet=cjdns) but -cjdnsreachable is not provided</source>
@@ -4407,30 +4084,8 @@ Joan Fitxategia &gt; Ireki Zorro menura zorro bat kargatzeko.
         <translation type="unfinished">Konfirmatu gabeko UTXOak daude, baina horiek gastatzeak transakzio kate bat sortuko du mempool-ak baztertuko duena.</translation>
     </message>
     <message>
-        <source>Unexpected legacy entry in descriptor wallet found. Loading wallet %s
-
-The wallet might have been tampered with or created with malicious intent.
-</source>
-        <translation type="unfinished">Descriptor motako zorroan espero ez zen sarrera zaharkitu bat aurkitu da. Zorroa kargatzen %s
-
-Zorroa manipulatua izan daiteke edo asmo gaiztoarekin sortua.
-</translation>
-    </message>
-    <message>
         <source>Your computer's date and time appear to be more than %d minutes out of sync with the network, this may lead to consensus failure. After you've confirmed your computer's clock, this message should no longer appear when you restart your node. Without a restart, it should stop showing automatically after you've connected to a sufficient number of new outbound peers, which may take some time. You can inspect the `timeoffset` field of the `getpeerinfo` and `getnetworkinfo` RPC methods to get more info.</source>
         <translation type="unfinished">Zure ordenagailuaren data eta ordua sarearekiko %d minutu baino gehiago desinkronizatuta daudela dirudi, eta horrek adostasunaren porrota eragin dezake. Zure ordenagailuaren erlojua egokia dela baieztatu ondoren, mezu hau ez litzateke berriro agertu behar nodoa berrabiarazten duzunean. Berrabiarazi gabe, mezuak automatikoki desagertu beharko luke irteerako pareko nahikoa konektatzen dituzunean, baina horrek denbora pixka bat har dezake. Informazio gehiago lortzeko, ikus getpeerinfo eta getnetworkinfo RPC metodoetako timeoffset eremua.</translation>
-    </message>
-    <message>
-        <source>
-Unable to cleanup failed migration</source>
-        <translation type="unfinished">
-Ezin da huts egindako migrazioa garbitu</translation>
-    </message>
-    <message>
-        <source>
-Unable to restore backup of wallet.</source>
-        <translation type="unfinished">
-Ezin izan da zorroaren babeskopia berreskuratu</translation>
     </message>
     <message>
         <source>default wallet</source>
@@ -4565,10 +4220,6 @@ Ezin izan da zorroaren babeskopia berreskuratu</translation>
         <translation type="unfinished">Errorea: Dumpfitxategiaren bat-datorrenik ez. Kalkulatutakoa , %sespero zena%s </translation>
     </message>
     <message>
-        <source>Error: Failed to create new watchonly wallet</source>
-        <translation type="unfinished">Errorea: Watch-only zorro berria sortzea huts egin da.</translation>
-    </message>
-    <message>
         <source>Error: Got key that was not hex: %s</source>
         <translation type="unfinished">Errorea: Hexadezimala ez den gakoa jaso da: %s</translation>
     </message>
@@ -4589,64 +4240,8 @@ Ezin izan da zorroaren babeskopia berreskuratu</translation>
         <translation type="unfinished">Errorea: Ez dago %s helbiderik erabilgarri.</translation>
     </message>
     <message>
-        <source>Error: Not all address book records were migrated</source>
-        <translation type="unfinished">Errorea: ez dira helbide-liburuko erregistro guztiak migratu</translation>
-    </message>
-    <message>
-        <source>Error: Not all transaction records were migrated</source>
-        <translation type="unfinished">Errorea: ez dira transakzio-erregistro guztiak migratu</translation>
-    </message>
-    <message>
-        <source>Error: This wallet already uses SQLite</source>
-        <translation type="unfinished">Errorea: Zorro honek jadanik SQLite erabiltzen du.</translation>
-    </message>
-    <message>
-        <source>Error: This wallet is already a descriptor wallet</source>
-        <translation type="unfinished">Errorea: Zorro hau jadanik deskribatzaile zorroa da.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to begin reading all records in the database</source>
-        <translation type="unfinished">Errorea: Datu-baseko erregistro guztiak irakurtzen hasteko ezin izan da.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to make a backup of your wallet</source>
-        <translation type="unfinished">Errorea: Zure zorroaren babeskopia egin ezin izan da.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to parse version %u as a uint32_t</source>
-        <translation type="unfinished">Errorea: Ezin izan da %ubertsioa uint32_t gisa analizatu</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read all records in the database</source>
-        <translation type="unfinished">Errorea: Datu-baseko erregistro guztiak irakurri ezin izan dira.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read wallet's best block locator record</source>
-        <translation type="unfinished">Errorea: Zorroaren blokeko kokatzaile onena irakurri ezin izan da.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to remove watchonly address book data</source>
-        <translation type="unfinished">Errorea: Watch-only helbide-liburuaren datuak ezabatu ezin izan dira.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write data to disk for wallet %s</source>
-        <translation type="unfinished">Errorea: Ezin izan da daturik idatzi diskoan diru-zorroarentzat %s</translation>
-    </message>
-    <message>
         <source>Error: Unable to write record to new wallet</source>
         <translation type="unfinished">Errorea: Erregistroa zorro berriari idaztea ezin izan da.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write solvable wallet best block locator record</source>
-        <translation type="unfinished">Errorea: Ezin da zorro ebatigarriaren blokearen kokatzaile erregistroa idatzi</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write watchonly wallet best block locator record</source>
-        <translation type="unfinished">Errorea: Watch-only zorroaren blokeko kokatzaile onena idaztea ezin izan da.</translation>
-    </message>
-    <message>
-        <source>Error: database transaction cannot be executed for wallet %s</source>
-        <translation type="unfinished">Errorea: datu-baseko transakzioa ezin da exekutatu %szorrorako</translation>
     </message>
     <message>
         <source>Failed to acquire rescan reserver during wallet initialization</source>
@@ -4753,10 +4348,6 @@ Ezin izan da zorroaren babeskopia berreskuratu</translation>
         <translation type="unfinished">%s helbiderako lotura-konfigurazio bikoiztua. Mesedez, egiaztatu zure -bind, -bind=...=onion eta -whitebind ezarpenak.</translation>
     </message>
     <message>
-        <source>Error creating %s: Could not write version metadata.</source>
-        <translation type="unfinished">Errorea %s sortzean: ezin izan da bertsioaren metadatua idatzi.</translation>
-    </message>
-    <message>
         <source>Invalid amount for -%s=&lt;amount&gt;: '%s'</source>
         <translation type="unfinished">-%s=&lt;amount&gt; baliorako kopuru baliogabea: '%s'</translation>
     </message>
@@ -4819,14 +4410,6 @@ Ezin izan da zorroaren babeskopia berreskuratu</translation>
     <message>
         <source>Only direction was set, no permissions: '%s'</source>
         <translation type="unfinished">Norabidea soilik ezarri da, baimenik gabe: '%s'</translation>
-    </message>
-    <message>
-        <source>Option '-limitancestorsize' is given but ancestor size limits have been replaced with cluster size limits (see -limitclustersize). This option has no effect.</source>
-        <translation type="unfinished">'-limitancestorsize' aukera eman da, baina arbasoen tamainaren muga ordezkatu egin da multzoen tamainaren mugarekin (ikusi -limitclustersize). Aukera honek ez du eraginik.</translation>
-    </message>
-    <message>
-        <source>Option '-limitdescendantsize' is given but descendant size limits have been replaced with cluster size limits (see -limitclustersize). This option has no effect.</source>
-        <translation type="unfinished">'-limitdescendantsize' aukera eman da, baina ondorengoen tamainaren muga ordezkatu egin da multzoen tamainaren mugarekin (ikusi -limitclustersize). Aukera honek ez du eraginik.</translation>
     </message>
     <message>
         <source>Private broadcast of own transactions requested (-privatebroadcast) and -proxyrandomize is disabled. Tor circuits for private broadcast connections may be correlated to other connections over Tor. For maximum privacy set -proxyrandomize=1.</source>
@@ -5033,20 +4616,8 @@ Ezin izan da zorroaren babeskopia berreskuratu</translation>
         <translation type="unfinished">-blockfilterindex balio %s ezezaguna .</translation>
     </message>
     <message>
-        <source>Unknown address type '%s'</source>
-        <translation type="unfinished">Helbide mota ezezaguna '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown change type '%s'</source>
-        <translation type="unfinished">Aldaketa mota ezezaguna '%s'</translation>
-    </message>
-    <message>
         <source>Unknown network specified in -onlynet: '%s'</source>
         <translation type="unfinished">Sare ezezaguna zehaztuta -onlynet-en: '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown new rules activated (versionbit %i)</source>
-        <translation type="unfinished">Arau berri ezezagunak aktibatu dira (versionbit%i )</translation>
     </message>
     <message>
         <source>Unrecognised option "%s" provided in -test=&lt;option&gt;.</source>
@@ -5055,10 +4626,6 @@ Ezin izan da zorroaren babeskopia berreskuratu</translation>
     <message>
         <source>Unsupported global logging level %s=%s. Valid values: %s.</source>
         <translation type="unfinished">Ez da onartzen erabilitako erregistro maila orokorra %s =%s. Balio egokiak: %s.</translation>
-    </message>
-    <message>
-        <source>Wallet file creation failed: %s</source>
-        <translation type="unfinished">Zorro fitxategia sortzeak huts egin du:%s</translation>
     </message>
     <message>
         <source>Warning: Found invalid chain more than 6 blocks longer than our best chain. This could be due to database corruption or consensus incompatibility with peers.</source>
@@ -5071,14 +4638,6 @@ Ezin izan da zorroaren babeskopia berreskuratu</translation>
     <message>
         <source>Unsupported logging category %s=%s.</source>
         <translation type="unfinished">Onartzen ez den erregistro kategoria%s =%s.</translation>
-    </message>
-    <message>
-        <source>Error loading %s: Wallet is a legacy wallet. Please migrate to a descriptor wallet using the migration tool (migratewallet RPC).</source>
-        <translation type="unfinished">Errorea %s kargatzean: zorroa jatorrizko (legacy) zorro bat da. Mesedez, migratu deskribatzaile-zorro batera migrazio-tresna erabiliz (migratewallet RPC).</translation>
-    </message>
-    <message>
-        <source>Error: Dumpfile specifies an unsupported database format (%s). Only sqlite database dumps are supported</source>
-        <translation type="unfinished">Errorea: Dumpfile-k onartzen ez den datu-base formatua (%s) zehazten du. SQLite datu-base dump-ak baino ez dira onartzen</translation>
     </message>
     <message>
         <source>Failed to calculate bump fees, because unconfirmed UTXOs depend on an enormous cluster of unconfirmed transactions.</source>
@@ -5103,22 +4662,6 @@ Mesedez, saiatu softwarearen azken bertsioa exekutatzen.
     <message>
         <source>Do you want to rebuild the databases now?</source>
         <translation type="unfinished">Datu-baseak berreraiki nahi dituzu orain?</translation>
-    </message>
-    <message>
-        <source>Error: Could not add watchonly tx %s to watchonly wallet</source>
-        <translation type="unfinished">Errorea: Ezin izan da ikuspegi-soileko %s transakzioa gehitu ikuspegi-soileko zorroan.</translation>
-    </message>
-    <message>
-        <source>Error: Could not delete watchonly transactions. </source>
-        <translation type="unfinished">Errorea: ezin izan dira begiratze-soileko transakzioak ezabatu.</translation>
-    </message>
-    <message>
-        <source>Error: Wallet does not exist</source>
-        <translation type="unfinished">Errorea: zorroa ez da existitzen.</translation>
-    </message>
-    <message>
-        <source>Error: cannot remove legacy wallet records</source>
-        <translation type="unfinished">Errorea: ezin dira ondarezko zorroaren erregistroak ezabatu.</translation>
     </message>
     <message>
         <source>Failed to start indexes, shutting down…</source>

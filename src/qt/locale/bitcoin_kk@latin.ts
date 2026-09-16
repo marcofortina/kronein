@@ -387,22 +387,6 @@
         <translation type="unfinished">&amp;Құпиясөйлемді өзгерту…</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">Хатқа &amp;қол қою…</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Хатқа Bitcoin мекенжайларын қосып, олар сізге тиесілі екенін дәлелдеу</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;Хат тексеру…</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">Хат тексеріп, берілген Bitcoin мекенжайлары қосылғанына көз жеткізу</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">&amp;Файлдан PSBT жүктеу…</translation>
     </message>
@@ -767,17 +751,6 @@
     <message>
         <source>A&amp;mount:</source>
         <translation type="unfinished">Саны</translation>
-    </message>
-    </context>
-<context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Verify &amp;Message</source>
-        <translation type="unfinished">Хат &amp;тексеру</translation>
-    </message>
-    <message>
-        <source>Message verification failed.</source>
-        <translation type="unfinished">Хат тексерілмеді</translation>
     </message>
     </context>
 <context>

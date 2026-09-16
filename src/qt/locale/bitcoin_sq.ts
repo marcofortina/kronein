@@ -58,11 +58,6 @@
         <translation type="unfinished">Këto janë Bitcoin adresat e juaja për të dërguar pagesa. Gjithmon kontrolloni shumën dhe adresën pranuese para se të dërgoni monedha.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">Këto janë adresat tuaja të Bitcoin për të marrë pagesa. Përdorni butonin 'Krijo adresë të re marrëse' në skedën e marrjes për të krijuar adresa të reja. Nënshkrimi është i mundur vetëm me adresa të tipit 'trashëgimi'.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;Kopjo adresen</translation>
     </message>
@@ -674,13 +669,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <source>&amp;Label:</source>
         <translation type="unfinished">&amp;Etiketë:</translation>
     </message>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">Ngjit nga memorja e sistemit</translation>
-    </message>
-    </context>
-<context>
-    <name>SignVerifyMessageDialog</name>
     <message>
         <source>Paste address from clipboard</source>
         <translation type="unfinished">Ngjit nga memorja e sistemit</translation>

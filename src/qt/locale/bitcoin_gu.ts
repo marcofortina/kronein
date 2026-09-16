@@ -58,12 +58,6 @@
         <translation type="unfinished">આ તમારા ચુકવણી કરવા માટે ના સરનામાં છે, હંમેશા કિંમત અને મોકલવાના ના સરનામાં ચકાસી લેવા સિક્કા આપતા પહેલા.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">આ તમારુ ચૂકવણું લેવા માટે નું સરનામા છે. નવું સરનામું બનાવા માટે "મેળવવા" માટે ની ટેબ માં "ચૂકવણું લેવા માટે નવું સરનામુ બનાવો" બટન વાપરો.
-ડિજિટલી સહી કરવા માટે 'legacy એટલેકે જુના પ્રકાર નુ' પ્રકાર નું સરનામું હોવું જરૂરી છે.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp; સરનામુ નકલ કરો</translation>
     </message>
@@ -534,22 +528,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">&amp;પાસફ્રેઝ &amp;બદલો...</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">સહી&amp;સંદેશ...</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">તમારા બિટકોઈન સરનામાંઓ સાથે તમે તેમના માલિક છો તે સાબિત કરવા માટે સંદેશાઓ પર સહી કરો</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;સંદેશ ચકાસો...</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">સંદેશાઓની ખાતરી કરવા માટે કે તેઓ નિર્દિષ્ટ Bitcoin સરનામાંઓ સાથે સહી કરેલ છે તેની ખાતરી કરો</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">&amp;ફાઇલમાંથી PSBT લોડ કરો...</translation>
     </message>
@@ -717,14 +695,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Close all wallets</source>
         <translation type="unfinished">બધા પાકીટ બંધ કરો</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">વૉલેટ સ્થાનાંતરિત કરો</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">વૉલેટ સ્થાનાંતરિત કરો</translation>
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
@@ -1077,67 +1047,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <source>Loading wallets…</source>
         <extracomment>Descriptive text of the load wallets progress window which indicates to the user that wallets are currently being loaded.</extracomment>
         <translation type="unfinished">પાકીટ લોડ થઈ રહ્યું છે...</translation>
-    </message>
-</context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate wallet</source>
-        <translation type="unfinished">વૉલેટ સ્થાનાંતરિત કરો</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to migrate the wallet &lt;i&gt;%1&lt;/i&gt;?</source>
-        <translation type="unfinished">શું તમે ખરેખર વૉલેટને સ્થાનાંતરિત કરવા માંગો છો&lt;i&gt;%1&lt;/i&gt;?</translation>
-    </message>
-    <message>
-        <source>Migrating the wallet will convert this wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">વૉલેટનું સ્થાનાંતરણ આ વૉલેટને એક અથવા વધુ વર્ણનકર્તા વૉલેટમાં રૂપાંતરિત કરશે. નવું વૉલેટ બેકઅપ લેવાની જરૂર પડશે.
-જો આ વૉલેટમાં કોઈ માત્ર વૉચનલી સ્ક્રિપ્ટ્સ હોય, તો એક નવું વૉલેટ બનાવવામાં આવશે જેમાં તે માત્ર વૉચનલી સ્ક્રિપ્ટ્સ હશે.
-જો આ વૉલેટમાં કોઈ ઉકેલી શકાય તેવી પરંતુ જોઈ ન હોય તેવી સ્ક્રિપ્ટો હોય, તો એક અલગ અને નવું વૉલેટ બનાવવામાં આવશે જેમાં તે સ્ક્રિપ્ટો હશે.
-
-સ્થળાંતર પ્રક્રિયા સ્થળાંતર કરતા પહેલા વૉલેટનો બેકઅપ બનાવશે. આ બેકઅપ ફાઇલને &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak નામ આપવામાં આવશે અને આ વૉલેટ માટેની ડિરેક્ટરીમાં મળી શકશે. અયોગ્ય સ્થાનાંતરણની ઘટનામાં, બેકઅપને "રીસ્ટોર વોલેટ" કાર્યક્ષમતા સાથે પુનઃસ્થાપિત કરી શકાય છે.</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">વૉલેટ સ્થાનાંતરિત કરો</translation>
-    </message>
-    <message>
-        <source>Migrating Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <translation type="unfinished">વૉલેટ સ્થાનાંતરિત કરી રહ્યાં છીએ&lt;b&gt;%1&lt;/b&gt;…</translation>
-    </message>
-    <message>
-        <source>The wallet '%1' was migrated successfully.</source>
-        <translation type="unfinished">વૉલેટ '%1' સફળતાપૂર્વક સ્થાનાંતરિત થયું.</translation>
-    </message>
-    <message>
-        <source>Watchonly scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">વોચઓનલી સ્ક્રિપ્ટોને '%1' નામના નવા વૉલેટમાં સ્થાનાંતરિત કરવામાં આવી છે.</translation>
-    </message>
-    <message>
-        <source>Solvable but not watched scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">ઉકેલી શકાય તેવી પરંતુ જોયેલી સ્ક્રિપ્ટો '%1' નામના નવા વૉલેટમાં સ્થાનાંતરિત કરવામાં આવી છે.</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">વૉલેટ પુનઃસ્થાપિત કરો</translation>
-    </message>
-    <message>
-        <source>Restoring Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <extracomment>Descriptive text of the restore wallets progress window which indicates to the user that wallets are currently being restored.</extracomment>
-        <translation type="unfinished">વૉલેટ પુનઃસ્થાપિત કરી રહ્યાં છીએ &lt;b&gt;%1&lt;/b&gt;...</translation>
-    </message>
-    <message>
-        <source>Migration failed</source>
-        <translation type="unfinished">સ્થળાંતર નિષ્ફળ થયું</translation>
-    </message>
-    <message>
-        <source>Migration Successful</source>
-        <translation type="unfinished">સ્થળાંતર સફળ</translation>
     </message>
 </context>
 <context>
@@ -2799,18 +2708,6 @@ For more information on using this console, type %6.
         <translation type="unfinished">નકલ  &amp;રકમ</translation>
     </message>
     <message>
-        <source>Not recommended due to higher fees and less protection against typos.</source>
-        <translation type="unfinished">વધુ ફી અને ટાઇપો સામે ઓછા રક્ષણને કારણે ભલામણ કરવામાં આવતી નથી.</translation>
-    </message>
-    <message>
-        <source>Generates an address compatible with older wallets.</source>
-        <translation type="unfinished">જૂના પાકીટ સાથે સુસંગત સરનામું જનરેટ કરે છે.</translation>
-    </message>
-    <message>
-        <source>Generates a native segwit address (BIP-173). Some old wallets don't support it.</source>
-        <translation type="unfinished">મૂળ સેગવિટ સરનામું (BIP-173) જનરેટ કરે છે. કેટલાક જૂના વોલેટ તેને સપોર્ટ કરતા નથી.</translation>
-    </message>
-    <message>
         <source>Could not unlock wallet.</source>
         <translation type="unfinished">વૉલેટ અનલૉક કરી શકાયું નથી.</translation>
     </message>
@@ -2962,13 +2859,6 @@ For more information on using this console, type %6.
         <source>&amp;Label:</source>
         <translation type="unfinished">&amp;લેબલ:</translation>
     </message>
-    <message>
-        <source>Paste address from clipboard</source>
-        <translation type="unfinished">ક્લિપબોર્ડમાંથી સરનામું પેસ્ટ કરો</translation>
-    </message>
-    </context>
-<context>
-    <name>SignVerifyMessageDialog</name>
     <message>
         <source>Paste address from clipboard</source>
         <translation type="unfinished">ક્લિપબોર્ડમાંથી સરનામું પેસ્ટ કરો</translation>

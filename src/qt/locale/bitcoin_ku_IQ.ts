@@ -58,12 +58,6 @@
         <translation type="unfinished">ئەمانە ناونیشانی بیتکۆبیتەکانی تۆنە بۆ ناردنی پارەدانەکان. هەمیشە بڕی و ناونیشانی وەرگرەکان بپشکنە پێش ناردنی دراوەکان.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">ئەمانە ناونیشانی بیتکۆبیتەکانی تۆنە بۆ وەرگرتنی پارەدانەکان. دوگمەی 'دروستکردنیناونیشانی وەرگرتنی نوێ' لە تابی وەرگرتندا بۆ دروستکردنی ناونیشانی نوێ بەکاربێنە.
-واژووکردن تەنها دەکرێت لەگەڵ ناونیشانەکانی جۆری 'میرات'.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;ڕوونووسکردن ناوونیشان</translation>
     </message>
@@ -684,25 +678,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Message:</source>
         <translation type="unfinished">پەیام:</translation>
-    </message>
-    </context>
-<context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Enter the receiver's address, message (ensure you copy line breaks, spaces, tabs, etc. exactly) and signature below to verify the message. Be careful not to read more into the signature than what is in the signed message itself, to avoid being tricked by a man-in-the-middle attack. Note that this only proves the signing party receives with the address, it cannot prove sendership of any transaction!</source>
-        <translation type="unfinished">ناونیشانی وەرگرەکە بنووسە، نامە (دڵنیابە لەوەی کە جیاکەرەوەکانی هێڵ، مەوداکان، تابەکان، و هتد بە تەواوی کۆپی بکە) و لە خوارەوە واژووی بکە بۆ سەلماندنی نامەکە. وریابە لەوەی کە زیاتر نەیخوێنیتەوە بۆ ناو واژووەکە لەوەی کە لە خودی پەیامە واژووەکەدایە، بۆ ئەوەی خۆت بەدوور بگریت لە فێڵکردن لە هێرشی پیاوان لە ناوەنددا. سەرنج بدە کە ئەمە تەنیا لایەنی واژووکردن بە ناونیشانەکە وەربگرە، ناتوانێت نێرەری هیچ مامەڵەیەک بسەلمێنێت!</translation>
-    </message>
-    <message>
-        <source>Click "Sign Message" to generate signature</source>
-        <translation type="unfinished">کرتە بکە لەسەر "نامەی واژوو" بۆ دروستکردنی واژوو</translation>
-    </message>
-    <message>
-        <source>Please check the address and try again.</source>
-        <translation type="unfinished">تکایە ناونیشانەکە بپشکنە و دووبارە هەوڵ دەوە.</translation>
-    </message>
-    <message>
-        <source>Please check the signature and try again.</source>
-        <translation type="unfinished">تکایە واژووەکە بپشکنە و دووبارە هەوڵ دەوە.</translation>
     </message>
     </context>
 <context>

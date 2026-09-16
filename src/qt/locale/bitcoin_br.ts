@@ -58,12 +58,6 @@
         <translation type="unfinished">Ho adresoù Bitcoin evit kas paeamantoù int. Gwirekaat ar sammad hag an adres a resev bewezh a-raok kas gwenneien.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">Ho adresoù Bitcoin evit resev paeamantoù eo. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;Eilañ Adres</translation>
     </message>
@@ -827,17 +821,6 @@ Signing is only possible with addresses of the type 'legacy'.</translation>
     </message>
     </context>
 <context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Signature</source>
-        <translation type="unfinished">Sinadur</translation>
-    </message>
-    <message>
-        <source>No error</source>
-        <translation type="unfinished">Fazi ebet</translation>
-    </message>
-    </context>
-<context>
     <name>TransactionDesc</name>
     <message>
         <source>Date</source>
@@ -963,18 +946,6 @@ Signing is only possible with addresses of the type 'legacy'.</translation>
 <context>
     <name>bitcoin-core</name>
     <message>
-        <source>Error: Address book data in wallet cannot be identified to belong to migrated wallets</source>
-        <translation type="unfinished">Fazi: Address book data in wallet cannot be identified to belong to migrated wallets</translation>
-    </message>
-    <message>
-        <source>Error: Duplicate descriptors created during migration. Your wallet may be corrupted.</source>
-        <translation type="unfinished">Fazi: Duplicate descriptors created during migration. Your wallet may be corrupted.</translation>
-    </message>
-    <message>
-        <source>Error: Transaction %s in wallet cannot be identified to belong to migrated wallets</source>
-        <translation type="unfinished">Fazi: Transaction %s in wallet cannot be identified to belong to migrated wallets</translation>
-    </message>
-    <message>
         <source>Error: Cannot extract destination from the generated scriptpubkey</source>
         <translation type="unfinished">Fazi: Cannot extract destination from the generated scriptpubkey</translation>
     </message>
@@ -991,28 +962,12 @@ Signing is only possible with addresses of the type 'legacy'.</translation>
         <translation type="unfinished">Fazi: Dumpfile checksum does not match. Computed %s, expected %s</translation>
     </message>
     <message>
-        <source>Error: Failed to create new watchonly wallet</source>
-        <translation type="unfinished">Fazi: Failed to create new watchonly wallet</translation>
-    </message>
-    <message>
         <source>Error: Missing checksum</source>
         <translation type="unfinished">Fazi: Sammad-gwiriañ o vankout</translation>
     </message>
     <message>
         <source>Error: No %s addresses available.</source>
         <translation type="unfinished">Fazi: Adres %s hegerz ebet.</translation>
-    </message>
-    <message>
-        <source>Error: This wallet already uses SQLite</source>
-        <translation type="unfinished">Fazi: Implijet eo dija SQLite gant an doug-moneiz-mañ</translation>
-    </message>
-    <message>
-        <source>Error: Unable to remove watchonly address book data</source>
-        <translation type="unfinished">Fazi: Unable to remove watchonly address book data</translation>
-    </message>
-    <message>
-        <source>Error: Could not add watchonly tx %s to watchonly wallet</source>
-        <translation type="unfinished">Fazi: Could not add watchonly tx %s to watchonly wallet</translation>
     </message>
     </context>
 </TS>

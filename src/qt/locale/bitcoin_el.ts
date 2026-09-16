@@ -62,12 +62,6 @@
         <translation type="unfinished">Αυτές είναι οι Bitcoin διευθύνσεις σας για να στέλνετε πληρωμές. Να ελέγχετε πάντα το ποσό, καθώς και τη διεύθυνση παραλήπτη πριν στείλετε νομίσματα.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">Αυτές είναι οι Bitcoin διευθύνσεις για τη λήψη πληρωμών. Χρησιμοποιήστε το κουμπί  'Δημιουργία νέας διεύθυνσης λήψεων' στο παράθυρο λήψεων για τη δημιουργία νέας διεύθυνσης.
-Η υπογραφή είναι διαθέσιμη μόνο σε διευθύνσεις 'παλαιού τύπου'.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;Αντιγραφή διεύθυνσης</translation>
     </message>
@@ -501,22 +495,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">Αλλαγή φράσης &amp;πρόσβασης…</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">Υπογραφή &amp;μηνύματος...</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Υπογράψτε μηνύματα με τις διευθύνσεις Bitcoin σας για να αποδείξετε ότι σας ανήκουν</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;Επιβεβαίωση μηνύματος...</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">Επαληθεύστε μηνύματα για να βεβαιωθείτε ότι υπογράφηκαν με τις καθορισμένες διευθύνσεις Bitcoin</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">&amp;Φόρτωση PSBT από αρχείο...</translation>
     </message>
@@ -680,14 +658,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Close all wallets</source>
         <translation type="unfinished">Κλείσιμο όλων των πορτοφολιών</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Μετεγκατάσταση Πορτοφολιού</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">Μετεγκατάσταση ενός πορτοφολιού</translation>
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
@@ -1028,57 +998,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <source>Loading wallets…</source>
         <extracomment>Descriptive text of the load wallets progress window which indicates to the user that wallets are currently being loaded.</extracomment>
         <translation type="unfinished">Φόρτωση πορτοφολιών...</translation>
-    </message>
-</context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate wallet</source>
-        <translation type="unfinished">Μετεγκατάσταση πορτοφολιού</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to migrate the wallet &lt;i&gt;%1&lt;/i&gt;?</source>
-        <translation type="unfinished">Είστε σίγουροι ότι θέλετε να μετεγκαταστήσετε το πορτοφόλι &lt;i&gt;%1&lt;/i&gt;;</translation>
-    </message>
-    <message>
-        <source>Migrating the wallet will convert this wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">Η μετεγκατάσταση του πορτοφολιού θα μετατρέψει αυτό το πορτοφόλι σε ένα ή περισσότερα πορτοφόλια descriptor. Θα χρειαστεί να δημιουργηθεί ένα νέο αντίγραφο ασφαλείας πορτοφολιού.
-Εάν αυτό το πορτοφόλι περιέχει scripts μόνο για παρακολούθηση, θα δημιουργηθεί ένα νέο πορτοφόλι το οποίο περιέχει αυτά τα script παρακολούθησης.
-Εάν αυτό το πορτοφόλι περιέχει διαχειρίσιμα αλλά όχι για scripts παρακολούθησης, θα δημιουργηθεί ένα διαφορετικό και νέο πορτοφόλι που περιέχει αυτά τα scripts.
-
-Η διαδικασία μετεγκατάστασης θα δημιουργήσει ένα αντίγραφο ασφαλείας του πορτοφολιού πριν από τη μετεγκατάσταση. Αυτό το αρχείο αντιγράφου ασφαλείας θα ονομάζεται &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak και μπορεί να βρεθεί στον φάκελο αυτού του πορτοφολιού. Σε περίπτωση εσφαλμένης μετεγκατάστασης, το αντίγραφο ασφαλείας μπορεί να επαναφερθεί με τη λειτουργία "Επαναφορά Πορτοφολιού".</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Μετεγκατάσταση Πορτοφολιού</translation>
-    </message>
-    <message>
-        <source>Migrating Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <translation type="unfinished">Μετεγκατάσταση Πορτοφολιού &lt;b&gt;%1&lt;/b&gt;…</translation>
-    </message>
-    <message>
-        <source>The wallet '%1' was migrated successfully.</source>
-        <translation type="unfinished">Το πορτοφόλι '%1' μετεγκαταστάθηκε επιτυχώς.</translation>
-    </message>
-    <message>
-        <source>Watchonly scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Τα scripts παρακολούθησης μετεγκαταστάθηκαν σε νέο πορτοφόλι ονόματι '%1'.</translation>
-    </message>
-    <message>
-        <source>Solvable but not watched scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Τα διαχειρίσιμα scripts αλλά όχι παρακολούθησης μετεγκαταστάθηκαν σε νέο πορτοφόλι ονόματι '%1'.</translation>
-    </message>
-    <message>
-        <source>Migration failed</source>
-        <translation type="unfinished">Αποτυχία μετεγκατάστασης</translation>
-    </message>
-    <message>
-        <source>Migration Successful</source>
-        <translation type="unfinished">Επιτυχής Μετεγκατάσταση</translation>
     </message>
 </context>
 <context>
@@ -2278,32 +2197,8 @@ For more information on using this console, type %6.
         <translation type="unfinished">Αντιγραφή &amp;ποσού</translation>
     </message>
     <message>
-        <source>Base58 (Legacy)</source>
-        <translation type="unfinished">Base58 (Παλαιού τύπου)</translation>
-    </message>
-    <message>
-        <source>Not recommended due to higher fees and less protection against typos.</source>
-        <translation type="unfinished">Δεν συνιστάται λόγω υψηλότερων χρεώσεων και μικρότερης προστασίας έναντι τυπογραφικών σφαλμάτων.</translation>
-    </message>
-    <message>
-        <source>Generates an address compatible with older wallets.</source>
-        <translation type="unfinished">Δημιουργεί μια διεύθυνση συμβατή με παλαιότερα πορτοφόλια.</translation>
-    </message>
-    <message>
-        <source>Generates a native segwit address (BIP-173). Some old wallets don't support it.</source>
-        <translation type="unfinished">Δημιουργεί μια εγγενή διεύθυνση segwit (BIP-173). Ορισμένα παλιά πορτοφόλια δεν το υποστηρίζουν.</translation>
-    </message>
-    <message>
-        <source>Bech32m (BIP-350) is an upgrade to Bech32, wallet support is still limited.</source>
-        <translation type="unfinished">Το Bech32m (BIP-350) είναι μια αναβάθμιση στο Bech32, η υποστήριξη πορτοφολιού εξακολουθεί να είναι περιορισμένη.</translation>
-    </message>
-    <message>
         <source>Could not unlock wallet.</source>
         <translation type="unfinished">Δεν είναι δυνατό το ξεκλείδωμα του πορτοφολιού.</translation>
-    </message>
-    <message>
-        <source>Could not generate new %1 address</source>
-        <translation type="unfinished">Δεν πραγματοποιήθηκε παραγωγή νέας %1 διεύθυνσης </translation>
     </message>
 </context>
 <context>
@@ -2691,21 +2586,6 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     </context>
 <context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>You can sign messages/agreements with your legacy (P2PKH) addresses to prove you can receive bitcoins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation type="unfinished">Μπορείτε να υπογράψετε μηνύματα/συμφωνίες με τις παλαιότερες (P2PKH) διευθύνσεις σας για να αποδείξετε ότι μπορείτε να λαμβάνετε bitcoin που αποστέλλονται σε αυτές. Προσέξτε να μην υπογράψετε τίποτα αόριστο ή τυχαίο, καθώς οι επιθέσεις ηλεκτρονικού "ψαρέματος" (phishing) ενδέχεται να προσπαθήσουν να σας ξεγελάσουν ώστε να τους υπογράψετε την ταυτότητά σας. Υπογράφετε μόνο πλήρως λεπτομερείς δηλώσεις με τις οποίες συμφωνείτε.</translation>
-    </message>
-    <message>
-        <source>Copy the current signature to the clipboard</source>
-        <translation type="unfinished">Αντιγραφή της επιλεγμένης υπογραφής στο πρόχειρο</translation>
-    </message>
-    <message>
-        <source>The entered address does not refer to a legacy (P2PKH) key. Message signing for SegWit and other non-P2PKH address types is not supported in this version of %1. Please check the address and try again.</source>
-        <translation type="unfinished">Η καταχωρημένη διεύθυνση δεν αναφέρεται σε παλαιότερο (P2PKH) κλειδί. Η υπογραφή μηνυμάτων για SegWit και άλλων τύπων διευθύνσεων που δεν είναι P2PKH δεν υποστηρίζεται σε αυτήν την έκδοση του %1. Ελέγξτε τη διεύθυνση και προσπαθήστε ξανά.</translation>
-    </message>
-    </context>
-<context>
     <name>TransactionDesc</name>
     <message>
         <source>0/unconfirmed, in memory pool</source>
@@ -3071,14 +2951,6 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">Σφάλμα ανάγνωσης %s! Τα δεδομένα της συναλλαγής ενδέχεται να είναι ελλειπή ή λανθασμένα. Επανεξέταση πορτοφολιού.</translation>
     </message>
     <message>
-        <source>Error: Dumpfile format record is incorrect. Got "%s", expected "format".</source>
-        <translation type="unfinished">Σφάλμα: Η καταγραφή του φορμά του αρχείου dump είναι εσφαλμένη. Ελήφθη: «%s», αναμενόταν: «φορμά».</translation>
-    </message>
-    <message>
-        <source>Error: Dumpfile version is not supported. This version of bitcoin-wallet only supports version 1 dumpfiles. Got dumpfile with version %s</source>
-        <translation type="unfinished">Σφάλμα: Η έκδοση του αρχείου dump δεν υποστηρίζεται. Αυτή η έκδοση του bitcoin-wallet υποστηρίζει αρχεία dump μόνο της έκδοσης 1. Δόθηκε αρχείο dump έκδοσης %s.</translation>
-    </message>
-    <message>
         <source>File %s already exists. If you are sure this is what you want, move it out of the way first.</source>
         <translation type="unfinished">Το αρχείο %s υπάρχει ήδη. Αν είστε σίγουροι ότι αυτό θέλετε, βγάλτε το πρώτα από τη μέση.</translation>
     </message>
@@ -3205,18 +3077,6 @@ Go to File &gt; Open Wallet to load a wallet.
     <message>
         <source>Your computer's date and time appear to be more than %d minutes out of sync with the network, this may lead to consensus failure. After you've confirmed your computer's clock, this message should no longer appear when you restart your node. Without a restart, it should stop showing automatically after you've connected to a sufficient number of new outbound peers, which may take some time. You can inspect the `timeoffset` field of the `getpeerinfo` and `getnetworkinfo` RPC methods to get more info.</source>
         <translation type="unfinished">Η ημερομηνία και ώρα του υπολογιστή σας φαίνεται να αποκλίνει περισσότερο από %d λεπτά από το δίκτυο, κάτι που μπορεί να οδηγήσει σε αποτυχία συναίνεσης / consensus. Αφού συγχρονίσετε το ρολόι του υπολογιστή σας, αυτό το μήνυμα δεν θα εμφανίζεται πλέον όταν επανεκκινήσετε τον κόμβο σας. Χωρίς επανεκκίνηση, θα σταματήσει να εμφανίζεται αυτόματα αφού συνδεθείτε σε επαρκή αριθμό νέων εξερχόμενων peers, κάτι που μπορεί να πάρει κάποιο χρόνο. Μπορείτε να ελέγξετε το πεδίο `timeoffset` των RPC μεθόδων `getpeerinfo` και `getnetworkinfo` για περισσότερες πληροφορίες.</translation>
-    </message>
-    <message>
-        <source>
-Unable to cleanup failed migration</source>
-        <translation type="unfinished">
-Δεν ήταν δυνατή η εκκαθάριση της αποτυχημένης μετανάστευσης</translation>
-    </message>
-    <message>
-        <source>
-Unable to restore backup of wallet.</source>
-        <translation type="unfinished">
-Δεν είναι δυνατή η αποκατάσταση αντιγράφων ασφαλείας του πορτοφολιού.</translation>
     </message>
     <message>
         <source>default wallet</source>
@@ -3555,24 +3415,8 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished"> Άγνωστη -blockfilterindex τιμή %s.</translation>
     </message>
     <message>
-        <source>Unknown address type '%s'</source>
-        <translation type="unfinished">Άγνωστος τύπος διεύθυνσης '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown change type '%s'</source>
-        <translation type="unfinished"> Άγνωστος τύπος αλλαγής '%s'</translation>
-    </message>
-    <message>
         <source>Unknown network specified in -onlynet: '%s'</source>
         <translation type="unfinished">Έχει οριστεί άγνωστo δίκτυο στο -onlynet: '%s'</translation>
-    </message>
-    <message>
-        <source>Unknown new rules activated (versionbit %i)</source>
-        <translation type="unfinished">Ενεργοποιήθηκαν άγνωστοι νέοι κανόνες (bit έκδοσης %i)</translation>
-    </message>
-    <message>
-        <source>Wallet file creation failed: %s</source>
-        <translation type="unfinished">Αποτυχία δημιουργίας αρχείου πορτοφολιού: %s</translation>
     </message>
     <message>
         <source>Unsupported logging category %s=%s.</source>
@@ -3581,10 +3425,6 @@ Unable to restore backup of wallet.</source>
     <message>
         <source>Do you want to rebuild the databases now?</source>
         <translation type="unfinished">Θέλετε να επαναδημιουργήσετε τις βάσεις δεδομένων τώρα;</translation>
-    </message>
-    <message>
-        <source>Error: Wallet does not exist</source>
-        <translation type="unfinished">Σφάλμα: Το πορτοφόλι δεν υπάρχει</translation>
     </message>
     <message>
         <source>Failed to start indexes, shutting down…</source>

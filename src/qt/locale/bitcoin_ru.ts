@@ -62,12 +62,6 @@
         <translation type="unfinished">Это ваши биткоин-адреса для отправки платежей. Всегда проверяйте сумму и адрес получателя перед отправкой перевода.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">Это ваши Биткойн адреса для получения платежей. Используйте кнопку «Создать новый адрес для получения» на вкладке Получить, чтобы создать новые адреса.
-Подписание возможно только с адресами типа "наследие".</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;Копировать адрес</translation>
     </message>
@@ -533,22 +527,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">&amp;Изменить пароль...</translation>
     </message>
     <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">Подписать &amp;сообщение...</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Подписать сообщения своими Биткоин кошельками, что-бы доказать, что вы ими владеете</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;Проверить сообщение</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">Проверяйте сообщения, чтобы убедиться, что они подписаны конкретными биткоин-адресами</translation>
-    </message>
-    <message>
         <source>&amp;Load PSBT from file…</source>
         <translation type="unfinished">&amp;Загрузить PSBT из файла...</translation>
     </message>
@@ -719,14 +697,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">Закрыть все кошельки</translation>
     </message>
     <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Перенести кошелек</translation>
-    </message>
-    <message>
-        <source>Migrate a wallet</source>
-        <translation type="unfinished">Перенос кошелька</translation>
-    </message>
-    <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
         <translation type="unfinished">Показать справку %1 со списком доступных параметров командной строки</translation>
     </message>
@@ -769,15 +739,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Wallet name cannot be empty</source>
         <translation type="unfinished">Название кошелька не может быть пустым</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet Backup</source>
-        <translation type="unfinished">Восстановить и Перенести резервную копию кошелька</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate Wallet</source>
-        <extracomment>Title of pop-up window shown when the user is attempting to restore a wallet.</extracomment>
-        <translation type="unfinished">Восстановить или Перенести кошелек</translation>
     </message>
     <message>
         <source>&amp;Window</source>
@@ -1079,71 +1040,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <source>Loading wallets…</source>
         <extracomment>Descriptive text of the load wallets progress window which indicates to the user that wallets are currently being loaded.</extracomment>
         <translation type="unfinished">Загрузка кошельков…</translation>
-    </message>
-</context>
-<context>
-    <name>MigrateWalletActivity</name>
-    <message>
-        <source>Migrate wallet</source>
-        <translation type="unfinished">Перенести кошелек</translation>
-    </message>
-    <message>
-        <source>Are you sure you wish to migrate the wallet &lt;i&gt;%1&lt;/i&gt;?</source>
-        <translation type="unfinished">Вы уверены, что хотите перенести кошелек &lt;i&gt;%1&lt;/i&gt;?</translation>
-    </message>
-    <message>
-        <source>Migrating the wallet will convert this wallet to one or more descriptor wallets. A new wallet backup will need to be made.
-If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
-If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
-
-The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
-        <translation type="unfinished">Миграция кошелька преобразует этот кошелек в один или несколько дескрипторных кошельков. Необходимо создать новую резервную копию кошелька.
-Если этот кошелек содержит какие-либо скрипты только для просмотра, будет создан новый кошелек, который содержит эти скрипты только для просмотра.
-Если этот кошелек содержит какие-либо решаемые, но не отслеживаемые скрипты, будет создан другой и новый кошелек, который содержит эти скрипты.
-
-В процессе миграции будет создана резервная копия кошелька. Файл резервной копии будет называться &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak и может быть найден в каталоге для этого кошелька. В случае неправильной миграции резервная копия может быть восстановлена с помощью функциональности "Восстановить кошелек".</translation>
-    </message>
-    <message>
-        <source>Migrate Wallet</source>
-        <translation type="unfinished">Перенести кошелек</translation>
-    </message>
-    <message>
-        <source>Migrating Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <translation type="unfinished">Перенос кошелька &lt;b&gt;%1&lt;/b&gt;…</translation>
-    </message>
-    <message>
-        <source>The wallet '%1' was migrated successfully.</source>
-        <translation type="unfinished">Кошелек '%1' был успешно перенесён.</translation>
-    </message>
-    <message>
-        <source>Watchonly scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Скрипты только для наблюдения были перемещены в новый кошелек с именем '%1'.</translation>
-    </message>
-    <message>
-        <source>Solvable but not watched scripts have been migrated to a new wallet named '%1'.</source>
-        <translation type="unfinished">Решаемые, но не отслеживаемые скрипты были перемещены в новый кошелек с именем '%1'.</translation>
-    </message>
-    <message>
-        <source>Restore and Migrate wallet</source>
-        <translation type="unfinished">Восстановить или Перенести кошелек</translation>
-    </message>
-    <message>
-        <source>Restore Wallet</source>
-        <extracomment>Title of progress window which is displayed when wallets are being restored.</extracomment>
-        <translation type="unfinished">Восстановление кошелька</translation>
-    </message>
-    <message>
-        <source>Restoring Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
-        <extracomment>Descriptive text of the restore wallets progress window which indicates to the user that wallets are currently being restored.</extracomment>
-        <translation type="unfinished">Восстановление кошелька &lt;b&gt;%1&lt;/b&gt;…</translation>
-    </message>
-    <message>
-        <source>Migration failed</source>
-        <translation type="unfinished">Перенос не удался</translation>
-    </message>
-    <message>
-        <source>Migration Successful</source>
-        <translation type="unfinished">Перенос успешно завершен</translation>
     </message>
 </context>
 <context>
@@ -2128,21 +2024,6 @@ The migration process will create a backup of the wallet before migrating. This 
     </message>
 </context>
 <context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>You can sign messages/agreements with your legacy (P2PKH) addresses to prove you can receive bitcoins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation type="unfinished">Вы можете подписывать сообщения/соглашения своими устаревшими (P2PKH) адресами, чтобы доказать, что вы можете получать биткоины на них. Будьте осторожны и не подписывайте непонятные или случайные сообщения, так как мошенники могут таким образом пытаться присвоить вашу личность. Подписывайте только такие сообщения, с которыми вы согласны вплоть до мелочей.</translation>
-    </message>
-    <message>
-        <source>Copy the current signature to the clipboard</source>
-        <translation type="unfinished">Скопировать текущую подпись в буфер обмена</translation>
-    </message>
-    <message>
-        <source>The entered address does not refer to a legacy (P2PKH) key. Message signing for SegWit and other non-P2PKH address types is not supported in this version of %1. Please check the address and try again.</source>
-        <translation type="unfinished">Введенный адрес не относится к устаревшему (P2PKH) ключу. Подписывание сообщений для SegWit и других не--P2PKH типов адресов не поддерживается в этой версии %1. Пожалуйста, проверьте адрес и попробуйте ещё раз.</translation>
-    </message>
-    </context>
-<context>
     <name>TransactionDesc</name>
     <message numerus="yes">
         <source>matures in %n more block(s)</source>
@@ -2297,10 +2178,6 @@ The migration process will create a backup of the wallet before migrating. This 
         <translation type="unfinished">Предупреждение: приватные ключи обнаружены в кошельке {%s} с отключенными приватными ключами</translation>
     </message>
     <message>
-        <source>Witness data for blocks after height %d requires validation. Please restart with -reindex.</source>
-        <translation type="unfinished">Для свидетельских данных в блоках после %d необходима проверка. Пожалуйста, перезапустите клиент с параметром -reindex.</translation>
-    </message>
-    <message>
         <source>You need to rebuild the database using -reindex to go back to unpruned mode.  This will redownload the entire blockchain</source>
         <translation type="unfinished">Вам необходимо пересобрать базу данных с помощью -reindex, чтобы вернуться к полному режиму. Это приведёт к повторному скачиванию всей цепочки блоков</translation>
     </message>
@@ -2341,26 +2218,10 @@ The migration process will create a backup of the wallet before migrating. This 
         <translation type="unfinished">Ошибка при чтении %s! Все ключи прочитаны правильно, но данные транзакции или метаданные адреса могут отсутствовать или быть неверными.</translation>
     </message>
     <message>
-        <source>Error: Address book data in wallet cannot be identified to belong to migrated wallets</source>
-        <translation type="unfinished">Ошибка: адресная книга в кошельке не принадлежит к мигрируемым кошелькам</translation>
-    </message>
-    <message>
-        <source>Error: Duplicate descriptors created during migration. Your wallet may be corrupted.</source>
-        <translation type="unfinished">Ошибка: при миграции были созданы дублирующиеся дескрипторы. Возможно, ваш кошелёк повреждён.</translation>
-    </message>
-    <message>
-        <source>Error: Transaction %s in wallet cannot be identified to belong to migrated wallets</source>
-        <translation type="unfinished">Ошибка: транзакция %s не принадлежит к мигрируемым кошелькам</translation>
-    </message>
-    <message>
         <source>Failed to remove snapshot chainstate dir (%s). Manually remove it before restarting.
 </source>
         <translation type="unfinished">Не удалось удалить каталог состояния снимка цепочки блоков (%s). Необходимо удалить его вручную перед перезапуском.
 </translation>
-    </message>
-    <message>
-        <source>Failed to rename invalid peers.dat file. Please move or delete it and try again.</source>
-        <translation type="unfinished">Не удалось переименовать файл peers.dat. Пожалуйста, переместите или удалите его и попробуйте снова.</translation>
     </message>
     <message>
         <source>Flushing block file to disk failed. This is likely the result of an I/O error.</source>
@@ -2385,10 +2246,6 @@ The migration process will create a backup of the wallet before migrating. This 
     <message>
         <source>Maximum transaction weight is too low, can not accommodate change output</source>
         <translation type="unfinished">Максимальный вес транзакции слишком низкий, не может вместить выход сдачи.</translation>
-    </message>
-    <message>
-        <source>Option '-checkpoints' is set but checkpoints were removed. This option has no effect.</source>
-        <translation type="unfinished">Параметр '-checkpoints' установлен, но контрольные точки были удалены. Этот параметр не оказывает никакого эффекта.</translation>
     </message>
     <message>
         <source>Outbound connections restricted to CJDNS (-onlynet=cjdns) but -cjdnsreachable is not provided</source>
@@ -2539,10 +2396,6 @@ The migration process will create a backup of the wallet before migrating. This 
         <translation type="unfinished">Ошибка: на диске недостаточно места для %s</translation>
     </message>
     <message>
-        <source>Error: Failed to create new watchonly wallet</source>
-        <translation type="unfinished">Ошибка: не удалось создать кошелёк только на просмотр</translation>
-    </message>
-    <message>
         <source>Error: Got key that was not hex: %s</source>
         <translation type="unfinished">Ошибка: получен ключ, не являющийся шестнадцатеричным: %s</translation>
     </message>
@@ -2561,54 +2414,6 @@ The migration process will create a backup of the wallet before migrating. This 
     <message>
         <source>Error: No %s addresses available.</source>
         <translation type="unfinished">Ошибка: нет %s доступных адресов.</translation>
-    </message>
-    <message>
-        <source>Error: Not all address book records were migrated</source>
-        <translation type="unfinished">Ошибка: не все записи адресной книги были перенесены.</translation>
-    </message>
-    <message>
-        <source>Error: Not all transaction records were migrated</source>
-        <translation type="unfinished">Ошибка: не все записи транзакций были перенесены.</translation>
-    </message>
-    <message>
-        <source>Error: This wallet already uses SQLite</source>
-        <translation type="unfinished">Ошибка: этот кошелёк уже использует SQLite</translation>
-    </message>
-    <message>
-        <source>Error: This wallet is already a descriptor wallet</source>
-        <translation type="unfinished">Ошибка: этот кошелёк уже является дескрипторным</translation>
-    </message>
-    <message>
-        <source>Error: Unable to begin reading all records in the database</source>
-        <translation type="unfinished">Ошибка: не удалось начать читать все записи из базе данных</translation>
-    </message>
-    <message>
-        <source>Error: Unable to make a backup of your wallet</source>
-        <translation type="unfinished">Ошибка: не удалось создать резервную копию кошелька</translation>
-    </message>
-    <message>
-        <source>Error: Unable to parse version %u as a uint32_t</source>
-        <translation type="unfinished">Ошибка: невозможно разобрать версию %u как uint32_t</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read all records in the database</source>
-        <translation type="unfinished">Ошибка: не удалось прочитать все записи из базе данных</translation>
-    </message>
-    <message>
-        <source>Error: Unable to read wallet's best block locator record</source>
-        <translation type="unfinished">Ошибка: Не удается прочитать запись локатора лучшего блока кошелька.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write solvable wallet best block locator record</source>
-        <translation type="unfinished">Ошибка: Не удается записать разрешимый локатор лучшего блока кошелька.</translation>
-    </message>
-    <message>
-        <source>Error: Unable to write watchonly wallet best block locator record</source>
-        <translation type="unfinished">Ошибка: Не удается записать локатор лучшего блока кошелька только для наблюдения</translation>
-    </message>
-    <message>
-        <source>Error: database transaction cannot be executed for wallet %s</source>
-        <translation type="unfinished">Ошибка: не удалось выполнить транзакцию базы данных для кошелька %s</translation>
     </message>
     <message>
         <source>Failed to acquire rescan reserver during wallet initialization</source>
@@ -2655,20 +2460,12 @@ The migration process will create a backup of the wallet before migrating. This 
         <translation type="unfinished">Двойное связывание с адресом %s. Пожалуйста проверьте ваши настройки: -bind, -bind=...=onion and -whitebind.</translation>
     </message>
     <message>
-        <source>Error creating %s: Could not write version metadata.</source>
-        <translation type="unfinished">Ошибка создания %s: Не могу записать версию метаданных.</translation>
-    </message>
-    <message>
         <source>Maximum transaction weight must be between %d and %d</source>
         <translation type="unfinished">Максимальный вес транзакции должен быть между %d и %d</translation>
     </message>
     <message>
         <source>Only direction was set, no permissions: '%s'</source>
         <translation type="unfinished">Было задано только направление, без разрешений: '%s'</translation>
-    </message>
-    <message>
-        <source>Option '-limitancestorsize' is given but ancestor size limits have been replaced with cluster size limits (see -limitclustersize). This option has no effect.</source>
-        <translation type="unfinished">Option '-limitancestorsize' is given but ancestor size limits have been replaced with cluster size limits (see -limitclustersize). Эта настройка не имеет эффекта.</translation>
     </message>
     <message>
         <source>Private broadcast of own transactions requested (-privatebroadcast) and -proxyrandomize is disabled. Tor circuits for private broadcast connections may be correlated to other connections over Tor. For maximum privacy set -proxyrandomize=1.</source>
@@ -2723,18 +2520,6 @@ The migration process will create a backup of the wallet before migrating. This 
         <translation type="unfinished">Нераспознанная опция "%s" указанная в -test=&lt;option&gt;</translation>
     </message>
     <message>
-        <source>Wallet file creation failed: %s</source>
-        <translation type="unfinished">Не удалось создать кошелёк 1%s</translation>
-    </message>
-    <message>
-        <source>Error loading %s: Wallet is a legacy wallet. Please migrate to a descriptor wallet using the migration tool (migratewallet RPC).</source>
-        <translation type="unfinished"> Ошибка загрузки %s: кошелек является устаревшим. Пожалуйста, перейдите на дескрипторный кошелек с помощью инструмента миграции (migratewallet RPC).</translation>
-    </message>
-    <message>
-        <source>Error: Dumpfile specifies an unsupported database format (%s). Only sqlite database dumps are supported</source>
-        <translation type="unfinished">Ошибка: Dumpfile указывает неподдерживаемый формат базы данных (%s). Поддерживаются только дампы баз данных sqlite</translation>
-    </message>
-    <message>
         <source>Failed to calculate bump fees, because unconfirmed UTXOs depend on an enormous cluster of unconfirmed transactions.</source>
         <translation type="unfinished">Не удалось рассчитать комиссионные за бамп, поскольку неподтвержденные UTXO зависят от огромного скопления неподтвержденных транзакций.</translation>
     </message>
@@ -2753,14 +2538,6 @@ Please try running the latest software version.
 Возможно, кошелек был создан в более новой версии.
 Попробуйте запустить последнюю версию программного обеспечения.
 </translation>
-    </message>
-    <message>
-        <source>Error: Could not add watchonly tx %s to watchonly wallet</source>
-        <translation type="unfinished">Ошибка: не удалось добавить транзакцию только для наблюдения(watchonly) %s  в  кошелек только для наблюдения (watchonly)</translation>
-    </message>
-    <message>
-        <source>Error: Could not delete watchonly transactions. </source>
-        <translation type="unfinished">Ошибка: не удалось удалить  транзакции только для наблюдения .</translation>
     </message>
     <message>
         <source>Failed to start indexes, shutting down…</source>

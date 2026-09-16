@@ -58,11 +58,6 @@
         <translation type="unfinished">Þetta eru Bitcoin veskin sem senda greiðslur. Skoðið ævinlega vel upphæðina og veskin sem þiggja greiðslur áður en rafmynt er send.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
-Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation type="unfinished">Þetta eru Bitcoin heimilisföngin þín til að taka á móti greiðslum. Notaðu hnappinn „Búa til nýtt móttökuheimilisfang“ á móttökuflipanum til að búa til ný heimilisföng. Undirskrift er aðeins möguleg með heimilisföngum af gerðinni „arfleifð“.</translation>
-    </message>
-    <message>
         <source>&amp;Copy Address</source>
         <translation type="unfinished">&amp;Afrita færslugildi</translation>
     </message>
@@ -441,22 +436,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>&amp;Change Passphrase…</source>
         <translation type="unfinished">&amp;Breyta lykilorði...</translation>
-    </message>
-    <message>
-        <source>Sign &amp;message…</source>
-        <translation type="unfinished">Skrifaðu undir &amp;skilaboð...</translation>
-    </message>
-    <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Kvitta undir skilaboð með Bitcoin færslugildunum þínum til að sanna að þú eigir þau</translation>
-    </message>
-    <message>
-        <source>&amp;Verify message…</source>
-        <translation type="unfinished">&amp;Staðfestu skilaboð...</translation>
-    </message>
-    <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation type="unfinished">Yfirfara skilaboð til að tryggja að kvittað hafi verið fyrir þau með tilteknum Bitcoin færslugildum</translation>
     </message>
     <message>
         <source>&amp;Load PSBT from file…</source>
@@ -1089,13 +1068,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     </context>
 <context>
-    <name>SignVerifyMessageDialog</name>
-    <message>
-        <source>Enter the receiver's address, message (ensure you copy line breaks, spaces, tabs, etc. exactly) and signature below to verify the message. Be careful not to read more into the signature than what is in the signed message itself, to avoid being tricked by a man-in-the-middle attack. Note that this only proves the signing party receives with the address, it cannot prove sendership of any transaction!</source>
-        <translation type="unfinished">Sláðu inn heimilisfang viðtakanda, skilaboð (passaðu að þú afritar línuskil, bil, flipa osfrv. nákvæmlega) og undirskrift hér að neðan til að staðfesta skilaboðin. Gættu þess að lesa ekki meira inn í undirskriftina en það sem er í undirrituðu skilaboðunum sjálfum, til að forðast að láta blekkjast af mann-í-miðju árás. Athugaðu að þetta sannar aðeins að undirritaður aðili fær með heimilisfanginu, það getur ekki sannað sendanda á neinni færslu!</translation>
-    </message>
-    </context>
-<context>
     <name>TransactionDesc</name>
     <message numerus="yes">
         <source>matures in %n more block(s)</source>
@@ -1208,10 +1180,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">Villa við að hlaða veski. Veski krefst þess að kubbum sé hlaðið niður og hugbúnaður styður ekki hleðslu veski eins og er á meðan verið er að hlaða niður kubbum úr röð þegar assumeutxo skyndimyndir eru notaðar. Veski ætti að geta hlaðið upp eftir að hnútsamstilling nær hæð %s</translation>
     </message>
     <message>
-        <source>Error: Dumpfile format record is incorrect. Got "%s", expected "format".</source>
-        <translation type="unfinished">Villa: Skráning á sorpskráarsniði er röng. Fékk "%s", búist við "sniði".</translation>
-    </message>
-    <message>
         <source>Error: Dumpfile identifier record is incorrect. Got "%s", expected "%s".</source>
         <translation type="unfinished">Villa: Auðkennisskrá dumpfile er röng. Fékk "%s", bjóst við "%s".</translation>
     </message>
@@ -1246,10 +1214,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Unsupported category-specific logging level %1$s=%2$s. Expected %1$s=&lt;category&gt;:&lt;loglevel&gt;. Valid categories: %3$s. Valid loglevels: %4$s.</source>
         <translation type="unfinished">Óstudd flokkasértæk skráningarstig %1$s=%2$s. Búist var við %1$s=:. Gildir flokkar: %3$s. Gild logstig: %4$s.</translation>
-    </message>
-    <message>
-        <source>Witness data for blocks after height %d requires validation. Please restart with -reindex.</source>
-        <translation type="unfinished">Vitnisgögn fyrir blokkir eftir hæð %d krefjast staðfestingar. Vinsamlegast endurræstu með -reindex.</translation>
     </message>
     <message>
         <source>You need to rebuild the database using -reindex to go back to unpruned mode.  This will redownload the entire blockchain</source>
