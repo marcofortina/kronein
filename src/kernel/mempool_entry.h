@@ -9,7 +9,6 @@
 #include <consensus/validation.h>
 #include <core_memusage.h>
 #include <policy/policy.h>
-#include <policy/settings.h>
 #include <primitives/transaction.h>
 #include <txgraph.h>
 #include <util/overflow.h>
@@ -109,9 +108,9 @@ public:
     const CAmount& GetFee() const { return nFee; }
     int32_t GetTxSize() const
     {
-        return GetVirtualTransactionSize(nTxWeight, sigOpCost, ::nBytesPerSigOp);
+        return GetVirtualTransactionSize(nTxWeight);
     }
-    int32_t GetAdjustedWeight() const { return GetSigOpsAdjustedWeight(nTxWeight, sigOpCost, ::nBytesPerSigOp); }
+    int32_t GetAdjustedWeight() const { return nTxWeight; }
     int32_t GetTxWeight() const { return nTxWeight; }
     std::chrono::seconds GetTime() const { return std::chrono::seconds{nTime}; }
     unsigned int GetHeight() const { return entryHeight; }

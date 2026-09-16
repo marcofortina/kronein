@@ -45,14 +45,9 @@ public:
         return bech32::Encode(bech32::Encoding::BECH32M, m_params.Bech32HRP(), data);
     }
 
-    std::string operator()(const WitnessUnknown& witness) const
-    {
-        return EncodeWitness(witness.GetWitnessVersion(), witness.GetWitnessProgram());
-    }
-
     std::string operator()(const PayToAnchor& anchor) const
     {
-        return (*this)(static_cast<const WitnessUnknown&>(anchor));
+        return EncodeWitness(anchor.GetWitnessVersion(), anchor.GetWitnessProgram());
     }
 
     template <typename T>
@@ -95,7 +90,8 @@ CTxDestination DecodeDestination(const std::string& str, const CChainParams& par
                 error_str = strprintf("Invalid Bech32m address program size (%d bytes)", data.size());
                 return CNoDestination();
             }
-            return WitnessUnknown{version, data};
+            error_str = "Only Taproot and pay-to-anchor Bech32m addresses are supported";
+            return CNoDestination();
         } else {
             error_str = "Invalid padding in Bech32m data section";
             return CNoDestination();

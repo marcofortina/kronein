@@ -37,7 +37,6 @@ add_library(bitcoinkernel
   ../policy/packages.cpp
   ../policy/policy.cpp
   ../policy/rbf.cpp
-  ../policy/settings.cpp
   ../pow.cpp
   ../primitives/block.cpp
   ../primitives/transaction.cpp

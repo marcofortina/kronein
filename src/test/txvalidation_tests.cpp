@@ -25,7 +25,7 @@ BOOST_AUTO_TEST_SUITE(txvalidation_tests)
  */
 BOOST_FIXTURE_TEST_CASE(tx_mempool_reject_coinbase, TestChain100Setup)
 {
-    CScript scriptPubKey = CScript() << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
+    CScript scriptPubKey = CScript() << OP_1 << std::vector<unsigned char>(32, 1);
     CMutableTransaction coinbaseTx;
 
     coinbaseTx.version = 1;
@@ -74,17 +74,16 @@ static inline std::vector<CPubKey> random_keys(size_t num_keys) {
 }
 
 // Creates a placeholder tx (not valid) with 25 outputs. Specify the version and the inputs.
-static inline CTransactionRef make_tx(const std::vector<COutPoint>& inputs, int32_t version)
+static inline CTransactionRef make_tx(const std::vector<COutPoint>& inputs)
 {
     CMutableTransaction mtx = CMutableTransaction{};
-    mtx.version = version;
     mtx.vin.resize(inputs.size());
     mtx.vout.resize(25);
     for (size_t i{0}; i < inputs.size(); ++i) {
         mtx.vin[i].prevout = inputs[i];
     }
     for (auto i{0}; i < 25; ++i) {
-        mtx.vout[i].scriptPubKey = CScript() << OP_TRUE;
+        mtx.vout[i].scriptPubKey = CScript() << OP_1 << std::vector<unsigned char>(32, 1);
         mtx.vout[i].nValue = 10000;
     }
     return MakeTransactionRef(mtx);
@@ -94,17 +93,16 @@ static constexpr auto NUM_EPHEMERAL_TX_OUTPUTS = 3;
 static constexpr auto EPHEMERAL_DUST_INDEX = NUM_EPHEMERAL_TX_OUTPUTS - 1;
 
 // Same as make_tx but adds 2 normal outputs and 0-value dust to end of vout
-static inline CTransactionRef make_ephemeral_tx(const std::vector<COutPoint>& inputs, int32_t version)
+static inline CTransactionRef make_ephemeral_tx(const std::vector<COutPoint>& inputs)
 {
     CMutableTransaction mtx = CMutableTransaction{};
-    mtx.version = version;
     mtx.vin.resize(inputs.size());
     for (size_t i{0}; i < inputs.size(); ++i) {
         mtx.vin[i].prevout = inputs[i];
     }
     mtx.vout.resize(NUM_EPHEMERAL_TX_OUTPUTS);
     for (auto i{0}; i < NUM_EPHEMERAL_TX_OUTPUTS; ++i) {
-        mtx.vout[i].scriptPubKey = CScript() << OP_TRUE;
+        mtx.vout[i].scriptPubKey = CScript() << OP_1 << std::vector<unsigned char>(32, 1);
         mtx.vout[i].nValue = (i == EPHEMERAL_DUST_INDEX) ? 0 : 10000;
     }
     return MakeTransactionRef(mtx);
@@ -123,11 +121,11 @@ BOOST_FIXTURE_TEST_CASE(ephemeral_tests, RegTestingSetup)
     CFeeRate dustrelay(DUST_RELAY_TX_FEE);
 
     // Basic transaction with dust
-    auto grandparent_tx_1 = make_ephemeral_tx(random_outpoints(1), /*version=*/2);
+    auto grandparent_tx_1 = make_ephemeral_tx(random_outpoints(1));
     const auto dust_txid = grandparent_tx_1->GetHash();
 
     // Child transaction spending dust
-    auto dust_spend = make_tx({COutPoint{dust_txid, EPHEMERAL_DUST_INDEX}}, /*version=*/2);
+    auto dust_spend = make_tx({COutPoint{dust_txid, EPHEMERAL_DUST_INDEX}});
 
     // We first start with nothing "in the mempool", using package checks
 
@@ -149,7 +147,7 @@ BOOST_FIXTURE_TEST_CASE(ephemeral_tests, RegTestingSetup)
     BOOST_CHECK(child_state.IsValid());
     BOOST_CHECK_EQUAL(child_wtxid, Wtxid());
 
-    auto dust_non_spend = make_tx({COutPoint{dust_txid, EPHEMERAL_DUST_INDEX - 1}}, /*version=*/2);
+    auto dust_non_spend = make_tx({COutPoint{dust_txid, EPHEMERAL_DUST_INDEX - 1}});
 
     // Child spending non-dust only from parent should be disallowed even if dust otherwise spent
     const auto dust_non_spend_wtxid{dust_non_spend->GetWitnessHash()};
@@ -171,7 +169,7 @@ BOOST_FIXTURE_TEST_CASE(ephemeral_tests, RegTestingSetup)
     child_state = TxValidationState();
     child_wtxid = Wtxid();
 
-    auto grandparent_tx_2 = make_ephemeral_tx(random_outpoints(1), /*version=*/2);
+    auto grandparent_tx_2 = make_ephemeral_tx(random_outpoints(1));
     const auto dust_txid_2 = grandparent_tx_2->GetHash();
 
     // Spend dust from one but not another is ok, as long as second grandparent has no child
@@ -179,7 +177,7 @@ BOOST_FIXTURE_TEST_CASE(ephemeral_tests, RegTestingSetup)
     BOOST_CHECK(child_state.IsValid());
     BOOST_CHECK_EQUAL(child_wtxid, Wtxid());
 
-    auto dust_non_spend_both_parents = make_tx({COutPoint{dust_txid, EPHEMERAL_DUST_INDEX}, COutPoint{dust_txid_2, EPHEMERAL_DUST_INDEX - 1}}, /*version=*/2);
+    auto dust_non_spend_both_parents = make_tx({COutPoint{dust_txid, EPHEMERAL_DUST_INDEX}, COutPoint{dust_txid_2, EPHEMERAL_DUST_INDEX - 1}});
     // But if we spend from the parent, it must spend dust
     BOOST_CHECK(!CheckEphemeralSpends({grandparent_tx_1, grandparent_tx_2, dust_non_spend_both_parents}, dustrelay, pool, child_state, child_wtxid));
     BOOST_CHECK(!child_state.IsValid());
@@ -187,7 +185,7 @@ BOOST_FIXTURE_TEST_CASE(ephemeral_tests, RegTestingSetup)
     child_state = TxValidationState();
     child_wtxid = Wtxid();
 
-    auto dust_spend_both_parents = make_tx({COutPoint{dust_txid, EPHEMERAL_DUST_INDEX}, COutPoint{dust_txid_2, EPHEMERAL_DUST_INDEX}}, /*version=*/2);
+    auto dust_spend_both_parents = make_tx({COutPoint{dust_txid, EPHEMERAL_DUST_INDEX}, COutPoint{dust_txid_2, EPHEMERAL_DUST_INDEX}});
     BOOST_CHECK(CheckEphemeralSpends({grandparent_tx_1, grandparent_tx_2, dust_spend_both_parents}, dustrelay, pool, child_state, child_wtxid));
     BOOST_CHECK(child_state.IsValid());
     BOOST_CHECK_EQUAL(child_wtxid, Wtxid());
@@ -195,24 +193,24 @@ BOOST_FIXTURE_TEST_CASE(ephemeral_tests, RegTestingSetup)
     // Spending other outputs is also correct, as long as the dusty one is spent
     const std::vector<COutPoint> all_outpoints{COutPoint(dust_txid, 0), COutPoint(dust_txid, 1), COutPoint(dust_txid, 2),
         COutPoint(dust_txid_2, 0), COutPoint(dust_txid_2, 1), COutPoint(dust_txid_2, 2)};
-    auto dust_spend_all_outpoints = make_tx(all_outpoints, /*version=*/2);
+    auto dust_spend_all_outpoints = make_tx(all_outpoints);
     BOOST_CHECK(CheckEphemeralSpends({grandparent_tx_1, grandparent_tx_2, dust_spend_all_outpoints}, dustrelay, pool, child_state, child_wtxid));
     BOOST_CHECK(child_state.IsValid());
     BOOST_CHECK_EQUAL(child_wtxid, Wtxid());
 
     // 2 grandparents with dust <- 1 dust-spending parent with dust <- child with no dust
-    auto parent_with_dust = make_ephemeral_tx({COutPoint{dust_txid, EPHEMERAL_DUST_INDEX}, COutPoint{dust_txid_2, EPHEMERAL_DUST_INDEX}}, /*version=*/2);
+    auto parent_with_dust = make_ephemeral_tx({COutPoint{dust_txid, EPHEMERAL_DUST_INDEX}, COutPoint{dust_txid_2, EPHEMERAL_DUST_INDEX}});
     // Ok for parent to have dust
     BOOST_CHECK(CheckEphemeralSpends({grandparent_tx_1, grandparent_tx_2, parent_with_dust}, dustrelay, pool, child_state, child_wtxid));
     BOOST_CHECK(child_state.IsValid());
     BOOST_CHECK_EQUAL(child_wtxid, Wtxid());
-    auto child_no_dust = make_tx({COutPoint{parent_with_dust->GetHash(), EPHEMERAL_DUST_INDEX}}, /*version=*/2);
+    auto child_no_dust = make_tx({COutPoint{parent_with_dust->GetHash(), EPHEMERAL_DUST_INDEX}});
     BOOST_CHECK(CheckEphemeralSpends({grandparent_tx_1, grandparent_tx_2, parent_with_dust, child_no_dust}, dustrelay, pool, child_state, child_wtxid));
     BOOST_CHECK(child_state.IsValid());
     BOOST_CHECK_EQUAL(child_wtxid, Wtxid());
 
     // 2 grandparents with dust <- 1 dust-spending parent with dust <- child with dust
-    auto child_with_dust = make_ephemeral_tx({COutPoint{parent_with_dust->GetHash(), EPHEMERAL_DUST_INDEX}}, /*version=*/2);
+    auto child_with_dust = make_ephemeral_tx({COutPoint{parent_with_dust->GetHash(), EPHEMERAL_DUST_INDEX}});
     BOOST_CHECK(CheckEphemeralSpends({grandparent_tx_1, grandparent_tx_2, parent_with_dust, child_with_dust}, dustrelay, pool, child_state, child_wtxid));
     BOOST_CHECK(child_state.IsValid());
     BOOST_CHECK_EQUAL(child_wtxid, Wtxid());

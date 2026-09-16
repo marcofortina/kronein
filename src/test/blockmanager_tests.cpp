@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <addresstype.h>
 #include <chain.h>
 #include <chainparams.h>
 #include <clientversion.h>
@@ -66,7 +67,7 @@ BOOST_FIXTURE_TEST_CASE(blockmanager_scan_unlink_already_pruned_files, TestChain
     auto& blockman{chainman.m_blockman};
     const CBlockIndex* old_tip{WITH_LOCK(chainman.GetMutex(), return chainman.ActiveChain().Tip())};
     WITH_LOCK(chainman.GetMutex(), blockman.GetBlockFileInfo(old_tip->GetBlockPos().nFile)->nSize = MAX_BLOCKFILE_SIZE);
-    CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+    CreateAndProcessBlock({}, GetScriptForDestination(WitnessV1Taproot{XOnlyPubKey{coinbaseKey.GetPubKey()}}));
 
     // Prune the older block file, but don't unlink it
     int file_number;

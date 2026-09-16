@@ -52,19 +52,22 @@ class SignRawTransactionWithWalletTest(BitcoinTestFramework):
         assert_raises_rpc_error(-8, "'all' is not a valid sighash parameter.", self.nodes[0].signrawtransactionwithwallet, hexstring=self.raw_tx, sighashtype="all")
 
     def script_verification_error_test(self):
-        """Create and sign a raw transaction with valid (vin 0), invalid (vin 1) and one missing (vin 2) input script.
+        """Create and sign a raw transaction with three unavailable native inputs.
 
         Expected results:
 
         3) The transaction has no complete set of signatures
-        4) Two script verification errors occurred
+        4) Three script verification errors occurred
         5) Script verification errors have certain properties ("txid", "vout", "scriptSig", "sequence", "error")
-        6) The verification errors refer to the invalid (vin 1) and missing input (vin 2)"""
+        6) The verification errors refer to every input"""
         self.log.info("Test script verification errors")
         privKeys = ['cUeKHd5orzT3mz8P9pxyREHfsWtVfgsfDjiZZBcjUBAaGk1BTj7N']
+        descriptor = self.nodes[0].getdescriptorinfo(f"rawtr({privKeys[0]})")["descriptor"]
+        address = self.nodes[0].deriveaddresses(descriptor)[0]
+        taproot_script = self.nodes[0].getaddressinfo(address)["scriptPubKey"]
 
         inputs = [
-            # Valid pay-to-pubkey script
+            # Valid Taproot output
             {'txid': '9b907ef1e3c26fc71fe4a4b3580bc75264112f95050014157059c736f0202e71', 'vout': 0},
             # Invalid script
             {'txid': '5b8673686910442c644b1f4993d8f7753c7c8fcb5c87ee40d56eaeef25204547', 'vout': 7},
@@ -73,17 +76,16 @@ class SignRawTransactionWithWalletTest(BitcoinTestFramework):
         ]
 
         scripts = [
-            # Valid pay-to-pubkey script
             {'txid': '9b907ef1e3c26fc71fe4a4b3580bc75264112f95050014157059c736f0202e71', 'vout': 0,
-             'scriptPubKey': '76a91460baa0f494b38ce3c940dea67f3804dc52d1fb9488ac'},
-            # Invalid script
+             'scriptPubKey': taproot_script, 'amount': 1},
+            # A native output for which no signing key is available.
             {'txid': '5b8673686910442c644b1f4993d8f7753c7c8fcb5c87ee40d56eaeef25204547', 'vout': 7,
-             'scriptPubKey': 'badbadbadbad'}
+             'scriptPubKey': '5120' + ('00' * 32), 'amount': 1},
         ]
 
         outputs = {self.nodes[0].getnewaddress(): 0.1}
 
-        rawTx = self.nodes[0].createrawtransaction(inputs, outputs)
+        rawTx = self.nodes[0].createrawtransaction(inputs, [{key: value} for key, value in outputs.items()])
 
         # Make sure decoderawtransaction is at least marginally sane
         decodedRawTx = self.nodes[0].decoderawtransaction(rawTx)
@@ -99,9 +101,9 @@ class SignRawTransactionWithWalletTest(BitcoinTestFramework):
         # 3) The transaction has no complete set of signatures
         assert not rawTxSigned['complete']
 
-        # 4) Two script verification errors occurred
+        # 4) Every unavailable input has a verification error.
         assert 'errors' in rawTxSigned
-        assert_equal(len(rawTxSigned['errors']), 2)
+        assert_equal(len(rawTxSigned['errors']), 3)
 
         # 5) Script verification errors have certain properties
         assert 'txid' in rawTxSigned['errors'][0]
@@ -111,18 +113,17 @@ class SignRawTransactionWithWalletTest(BitcoinTestFramework):
         assert 'sequence' in rawTxSigned['errors'][0]
         assert 'error' in rawTxSigned['errors'][0]
 
-        # 6) The verification errors refer to the invalid (vin 1) and missing input (vin 2)
-        assert_equal(rawTxSigned['errors'][0]['txid'], inputs[1]['txid'])
-        assert_equal(rawTxSigned['errors'][0]['vout'], inputs[1]['vout'])
-        assert_equal(rawTxSigned['errors'][1]['txid'], inputs[2]['txid'])
-        assert_equal(rawTxSigned['errors'][1]['vout'], inputs[2]['vout'])
+        # 6) The verification errors refer to all three inputs.
+        for error, txin in zip(rawTxSigned['errors'], inputs):
+            assert_equal(error['txid'], txin['txid'])
+            assert_equal(error['vout'], txin['vout'])
         assert not rawTxSigned['errors'][0]['witness']
 
         # Now test signing failure for a native transaction with a non-empty
         # witness on one of its unknown inputs.
         witness_tx = self.nodes[0].createrawtransaction(
             inputs[1:],
-            {self.nodes[0].getnewaddress(): 0.1},
+            [{self.nodes[0].getnewaddress(): 0.1}],
         )
         witness_ctx = tx_from_hex(witness_tx)
         witness_ctx.wit.vtxinwit[1].scriptWitness.stack = [b"existing", b"witness"]
@@ -159,32 +160,6 @@ class SignRawTransactionWithWalletTest(BitcoinTestFramework):
         assert_equal(signedtx2["complete"], True)
         assert_equal(signedtx["hex"], signedtx2["hex"])
         self.nodes[0].walletlock()
-
-    def OP_1NEGATE_test(self):
-        self.log.info("Test OP_1NEGATE (0x4f) satisfies BIP62 minimal push standardness rule")
-        hex_str = self.nodes[0].createrawtransaction(
-            [{
-                "txid": "ff" * 32,
-                "vout": 0,
-                "sequence": 0xfffffffd,
-            }],
-            {self.nodes[0].getnewaddress(): 1},
-            222,
-        )
-        ctx = tx_from_hex(hex_str)
-        ctx.vin[0].scriptSig = CScript(bytes.fromhex("4f024f9c"))
-        hex_str = ctx.serialize_with_witness().hex()
-        prev_txs = [
-            {
-                "txid": "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
-                "vout": 0,
-                "scriptPubKey": "A914AE44AB6E9AA0B71F1CD2B453B69340E9BFBAEF6087",
-                "redeemScript": "4F9C",
-                "amount": 1,
-            }
-        ]
-        txn = self.nodes[0].signrawtransactionwithwallet(hex_str, prev_txs)
-        assert txn["complete"]
 
     def create_taproot_script_output(self, script):
         taproot_info = taproot_construct((1).to_bytes(32, "big"), [("only-path", script)])
@@ -258,7 +233,7 @@ class SignRawTransactionWithWalletTest(BitcoinTestFramework):
         pubkey = self.nodes[0].getaddressinfo(addr)["scriptPubKey"]
         inputs = [{'txid': txid, 'vout': 3, 'sequence': 1000}]
         outputs = {self.nodes[0].getnewaddress(): 1}
-        rawtx = self.nodes[0].createrawtransaction(inputs, outputs)
+        rawtx = self.nodes[0].createrawtransaction(inputs, [{key: value} for key, value in outputs.items()])
 
         prevtx = dict(txid=txid, scriptPubKey=pubkey, vout=3, amount=1)
         assert self.nodes[0].signrawtransactionwithwallet(rawtx, [prevtx])["complete"]
@@ -287,10 +262,9 @@ class SignRawTransactionWithWalletTest(BitcoinTestFramework):
     def run_test(self):
         self.raw_tx = self.nodes[0].createrawtransaction(
             [{"txid": "01" * 32, "vout": 0}],
-            {self.nodes[0].getnewaddress(): 0.1},
+            [{self.nodes[0].getnewaddress(): 0.1}],
         )
         self.script_verification_error_test()
-        self.OP_1NEGATE_test()
         self.test_with_lock_outputs()
         self.test_with_invalid_sighashtype()
         self.test_fully_signed_tx()

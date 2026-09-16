@@ -15,28 +15,28 @@ BOOST_FIXTURE_TEST_SUITE(coinselection_tests, TestingSetup)
 static int next_lock_time = 0;
 static FastRandomContext default_rand;
 
-static const int P2WPKH_INPUT_VSIZE = 68;
-static const int P2WPKH_OUTPUT_VSIZE = 31;
+static const int P2TR_INPUT_VSIZE = 58;
+static const int P2TR_OUTPUT_VSIZE = 43;
 
 /** Default coin selection parameters (dcsp) allow us to only explicitly set
  * parameters when a diverging value is relevant in the context of a test.
- * We use P2WPKH input and output weights for the change weights. */
+ * We use Taproot key-path input and output sizes for the change weights. */
 static CoinSelectionParams init_default_params()
 {
     CoinSelectionParams dcsp{
         /*rng_fast=*/default_rand,
-        /*change_output_size=*/P2WPKH_OUTPUT_VSIZE,
-        /*change_spend_size=*/P2WPKH_INPUT_VSIZE,
+        /*change_output_size=*/P2TR_OUTPUT_VSIZE,
+        /*change_spend_size=*/P2TR_INPUT_VSIZE,
         /*min_change_target=*/50'000,
         /*effective_feerate=*/CFeeRate(5000),
         /*long_term_feerate=*/CFeeRate(10'000),
         /*discard_feerate=*/CFeeRate(3000),
-        /*tx_noinputs_size=*/11 + P2WPKH_OUTPUT_VSIZE, //static header size + output size
+        /*tx_noinputs_size=*/11 + P2TR_OUTPUT_VSIZE, // static header size + output size
         /*avoid_partial=*/false,
     };
-    dcsp.m_change_fee = /*155 sats=*/dcsp.m_effective_feerate.GetFee(dcsp.change_output_size);
-    dcsp.min_viable_change = /*204 sats=*/dcsp.m_discard_feerate.GetFee(dcsp.change_spend_size);
-    dcsp.m_cost_of_change = /*204 + 155 sats=*/dcsp.min_viable_change + dcsp.m_change_fee;
+    dcsp.m_change_fee = /*215 sats=*/dcsp.m_effective_feerate.GetFee(dcsp.change_output_size);
+    dcsp.min_viable_change = /*174 sats=*/dcsp.m_discard_feerate.GetFee(dcsp.change_spend_size);
+    dcsp.m_cost_of_change = /*174 + 215 sats=*/dcsp.min_viable_change + dcsp.m_change_fee;
     dcsp.m_subtract_fee_outputs = false;
     return dcsp;
 }
@@ -44,7 +44,7 @@ static CoinSelectionParams init_default_params()
 static const CoinSelectionParams default_cs_params = init_default_params();
 
 /** Make one OutputGroup with a single UTXO that either has a given effective value (default) or a given amount (`is_eff_value = false`). */
-static OutputGroup MakeCoin(const CAmount& amount, bool is_eff_value = true, CoinSelectionParams cs_params = default_cs_params, int custom_spending_vsize = P2WPKH_INPUT_VSIZE)
+static OutputGroup MakeCoin(const CAmount& amount, bool is_eff_value = true, CoinSelectionParams cs_params = default_cs_params, int custom_spending_vsize = P2TR_INPUT_VSIZE)
 {
     // Always assume that we only have one input
     CMutableTransaction tx;
@@ -96,7 +96,7 @@ static std::string InputAmountsToString(const SelectionResult& selection)
     return "[" + util::Join(selection.GetInputSet(), " ", [](const auto& input){ return util::ToString(input->txout.nValue);}) + "]";
 }
 
-static void TestBnBSuccess(std::string test_title, std::vector<OutputGroup>& utxo_pool, const CAmount& selection_target, const std::vector<CAmount>& expected_input_amounts, const CoinSelectionParams& cs_params = default_cs_params, const int custom_spending_vsize = P2WPKH_INPUT_VSIZE, const int max_selection_weight = MAX_STANDARD_TX_WEIGHT)
+static void TestBnBSuccess(std::string test_title, std::vector<OutputGroup>& utxo_pool, const CAmount& selection_target, const std::vector<CAmount>& expected_input_amounts, const CoinSelectionParams& cs_params = default_cs_params, const int custom_spending_vsize = P2TR_INPUT_VSIZE, const int max_selection_weight = MAX_STANDARD_TX_WEIGHT)
 {
     SelectionResult expected_result(CAmount(0), SelectionAlgorithm::BNB);
     CAmount expected_amount = 0;
@@ -148,9 +148,9 @@ BOOST_AUTO_TEST_CASE(bnb_test)
         // BnB fails to find changeless solution when overshooting by cost_of_change + 1 sat
         TestBnBFail("Overshoot upper bound", utxo_pool, /*selection_target=*/4 * CENT - default_cs_params.m_cost_of_change - 1);
 
-        TestBnBSuccess("Select max weight", utxo_pool, /*selection_target=*/4 * CENT, /*expected_input_amounts=*/{1 * CENT, 3 * CENT}, cs_params, /*custom_spending_vsize=*/P2WPKH_INPUT_VSIZE, /*max_selection_weight=*/4 * 2 * P2WPKH_INPUT_VSIZE);
+        TestBnBSuccess("Select max weight", utxo_pool, /*selection_target=*/4 * CENT, /*expected_input_amounts=*/{1 * CENT, 3 * CENT}, cs_params, /*custom_spending_vsize=*/P2TR_INPUT_VSIZE, /*max_selection_weight=*/4 * 2 * P2TR_INPUT_VSIZE);
 
-        TestBnBFail("Exceed max weight", utxo_pool, /*selection_target=*/4 * CENT, /*max_selection_weight=*/4 * 2 * P2WPKH_INPUT_VSIZE - 1, /*expect_max_weight_exceeded=*/true);
+        TestBnBFail("Exceed max weight", utxo_pool, /*selection_target=*/4 * CENT, /*max_selection_weight=*/4 * 2 * P2TR_INPUT_VSIZE - 1, /*expect_max_weight_exceeded=*/true);
 
         // Simple cases without BnB solution
         TestBnBFail("Smallest combination too big", utxo_pool, /*selection_target=*/0.5 * CENT);
@@ -170,7 +170,7 @@ BOOST_AUTO_TEST_CASE(bnb_test)
          * multiple UTXOs that have matching amount and cost, combinations with equivalent input sets are skipped. The
          * UTXO pool for this test is specifically crafted to create as much branching as possible. The selection target
          * is 8 CENT while all UTXOs are slightly bigger than 1 CENT. The smallest eight are 100,000…100,007 sats, while
-         * the larger nine are 100,368…100,375 (i.e., 100,008…100,016 sats plus cost_of_change (359 sats)).
+         * the larger nine are 100,398…100,405 (i.e., 100,008…100,016 sats plus cost_of_change (389 sats)).
          *
          * Because BnB will only select input sets that fall between selection_target and selection_target +
          * cost_of_change, and the search traverses the UTXO pool from large to small amounts, the search will visit

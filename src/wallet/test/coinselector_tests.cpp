@@ -178,8 +178,8 @@ BOOST_AUTO_TEST_CASE(bnb_search_test)
     // Make sure that effective value is working in AttemptSelection when BnB is used
     CoinSelectionParams coin_selection_params_bnb{
         rand,
-        /*change_output_size=*/ 31,
-        /*change_spend_size=*/ 68,
+        /*change_output_size=*/ 43,
+        /*change_spend_size=*/ 58,
         /*min_change_target=*/ 0,
         /*effective_feerate=*/ CFeeRate(3000),
         /*long_term_feerate=*/ CFeeRate(1000),
@@ -302,8 +302,8 @@ BOOST_AUTO_TEST_CASE(bnb_sffo_restriction)
     FastRandomContext rand{};
     CoinSelectionParams params{
             rand,
-            /*change_output_size=*/ 31,  // unused value, p2wpkh output size (wallet default change type)
-            /*change_spend_size=*/ 68,   // unused value, p2wpkh input size (high-r signature)
+            /*change_output_size=*/ 43,  // unused Taproot output size
+            /*change_spend_size=*/ 58,   // unused Taproot key-path input size
             /*min_change_target=*/ 0,    // dummy, set later
             /*effective_feerate=*/ CFeeRate(3000),
             /*long_term_feerate=*/ CFeeRate(1000),
@@ -957,13 +957,13 @@ BOOST_AUTO_TEST_CASE(coin_grinder_tests)
     FastRandomContext rand;
     CoinSelectionParams dummy_params{ // Only used to provide the 'avoid_partial' flag.
             rand,
-            /*change_output_size=*/34,
-            /*change_spend_size=*/68,
+            /*change_output_size=*/43,
+            /*change_spend_size=*/58,
             /*min_change_target=*/CENT,
             /*effective_feerate=*/CFeeRate(5000),
             /*long_term_feerate=*/CFeeRate(2000),
             /*discard_feerate=*/CFeeRate(1000),
-            /*tx_noinputs_size=*/10 + 34, // static header size + output size
+            /*tx_noinputs_size=*/10 + 43, // static header size + output size
             /*avoid_partial=*/false,
     };
 
@@ -1206,13 +1206,13 @@ BOOST_AUTO_TEST_CASE(srd_tests)
     FastRandomContext rand;
     CoinSelectionParams dummy_params{ // Only used to provide the 'avoid_partial' flag.
             rand,
-            /*change_output_size=*/34,
-            /*change_spend_size=*/68,
+            /*change_output_size=*/43,
+            /*change_spend_size=*/58,
             /*min_change_target=*/CENT,
             /*effective_feerate=*/CFeeRate(0),
             /*long_term_feerate=*/CFeeRate(0),
             /*discard_feerate=*/CFeeRate(0),
-            /*tx_noinputs_size=*/10 + 34, // static header size + output size
+            /*tx_noinputs_size=*/10 + 43, // static header size + output size
             /*avoid_partial=*/false,
     };
 
@@ -1401,7 +1401,7 @@ BOOST_AUTO_TEST_CASE(SelectCoins_effective_value_test)
     CoinsResult available_coins;
     {
         std::unique_ptr<CWallet> dummyWallet = NewWallet(m_node, /*wallet_name=*/"dummy");
-        add_coin(available_coins, *dummyWallet, 100000); // 0.001 BTC
+        add_coin(available_coins, *dummyWallet, 100000, CFeeRate(0), 6 * 24, false, 0, true); // 0.001 BTC
     }
 
     CAmount target{99900}; // 0.000999 BTC

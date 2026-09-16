@@ -7,6 +7,7 @@
 
 #include <coins.h>
 #include <consensus/amount.h>
+#include <consensus/tx_check.h>
 #include <core_io.h>
 #include <key_io.h>
 #include <policy/policy.h>
@@ -77,23 +78,16 @@ UniValue NormalizeOutputs(const UniValue& outputs_in)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, output argument must be non-null");
     }
 
-    const bool outputs_is_obj = outputs_in.isObject();
-    UniValue outputs = outputs_is_obj ? outputs_in.get_obj() : outputs_in.get_array();
-
-    if (!outputs_is_obj) {
-        // Translate array of key-value pairs into dict
-        UniValue outputs_dict = UniValue(UniValue::VOBJ);
-        for (size_t i = 0; i < outputs.size(); ++i) {
-            const UniValue& output = outputs[i];
-            if (!output.isObject()) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, key-value pair not an object as expected");
-            }
-            if (output.size() != 1) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, key-value pair must contain exactly one key");
-            }
-            outputs_dict.pushKVs(output);
+    const UniValue& output_array = outputs_in.get_array();
+    UniValue outputs{UniValue::VOBJ};
+    for (const UniValue& output : output_array.getValues()) {
+        if (!output.isObject()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, key-value pair not an object as expected");
         }
-        outputs = std::move(outputs_dict);
+        if (output.size() != 1) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, key-value pair must contain exactly one key");
+        }
+        outputs.pushKVs(output);
     }
     return outputs;
 }
@@ -119,6 +113,9 @@ std::vector<std::pair<CTxDestination, CAmount>> ParseOutputs(const UniValue& out
             CAmount amount{AmountFromValue(outputs[name_])};
             if (!IsValidDestination(destination)) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Bitcoin address: ") + name_);
+            }
+            if (!IsNativeOutputScript(GetScriptForDestination(destination))) {
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Only Taproot addresses are supported: ") + name_);
             }
 
             if (!destinations.insert(destination).second) {
@@ -214,6 +211,9 @@ void ParsePrevouts(const UniValue& prevTxsUnival, FlatSigningProvider* keystore,
             COutPoint out(txid, nOut);
             std::vector<unsigned char> pkData(ParseHexO(prevOut, "scriptPubKey"));
             CScript scriptPubKey(pkData.begin(), pkData.end());
+            if (!IsNativeOutputScript(scriptPubKey)) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Previous output must be Taproot or pay-to-anchor");
+            }
 
             {
                 auto coin = coins.find(out);
@@ -233,75 +233,6 @@ void ParsePrevouts(const UniValue& prevTxsUnival, FlatSigningProvider* keystore,
                 coins[out] = std::move(newcoin);
             }
 
-            // if redeemScript and private keys were given, add redeemScript to the keystore so it can be signed
-            const bool is_p2sh = scriptPubKey.IsPayToScriptHash();
-            const bool is_p2wsh = scriptPubKey.IsPayToWitnessScriptHash();
-            if (keystore && (is_p2sh || is_p2wsh)) {
-                RPCTypeCheckObj(prevOut,
-                    {
-                        {"redeemScript", UniValueType(UniValue::VSTR)},
-                        {"witnessScript", UniValueType(UniValue::VSTR)},
-                    }, true);
-                const UniValue& rs{prevOut.find_value("redeemScript")};
-                const UniValue& ws{prevOut.find_value("witnessScript")};
-                if (rs.isNull() && ws.isNull()) {
-                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Missing redeemScript/witnessScript");
-                }
-
-                // work from witnessScript when possible
-                std::vector<unsigned char> scriptData(!ws.isNull() ? ParseHexV(ws, "witnessScript") : ParseHexV(rs, "redeemScript"));
-                CScript script(scriptData.begin(), scriptData.end());
-                keystore->scripts.emplace(CScriptID(script), script);
-                // Automatically also add the P2WSH wrapped version of the script (to deal with P2SH-P2WSH).
-                // This is done for redeemScript only for compatibility, it is encouraged to use the explicit witnessScript field instead.
-                CScript witness_output_script{GetScriptForDestination(WitnessV0ScriptHash(script))};
-                keystore->scripts.emplace(CScriptID(witness_output_script), witness_output_script);
-
-                if (!ws.isNull() && !rs.isNull()) {
-                    // if both witnessScript and redeemScript are provided,
-                    // they should either be the same (for backwards compat),
-                    // or the redeemScript should be the encoded form of
-                    // the witnessScript (ie, for p2sh-p2wsh)
-                    if (ws.get_str() != rs.get_str()) {
-                        std::vector<unsigned char> redeemScriptData(ParseHexV(rs, "redeemScript"));
-                        CScript redeemScript(redeemScriptData.begin(), redeemScriptData.end());
-                        if (redeemScript != witness_output_script) {
-                            throw JSONRPCError(RPC_INVALID_PARAMETER, "redeemScript does not correspond to witnessScript");
-                        }
-                    }
-                }
-
-                if (is_p2sh) {
-                    const CTxDestination p2sh{ScriptHash(script)};
-                    const CTxDestination p2sh_p2wsh{ScriptHash(witness_output_script)};
-                    if (scriptPubKey == GetScriptForDestination(p2sh)) {
-                        // traditional p2sh; arguably an error if
-                        // we got here with rs.IsNull(), because
-                        // that means the p2sh script was specified
-                        // via witnessScript param, but for now
-                        // we'll just quietly accept it
-                    } else if (scriptPubKey == GetScriptForDestination(p2sh_p2wsh)) {
-                        // p2wsh encoded as p2sh; ideally the witness
-                        // script was specified in the witnessScript
-                        // param, but also support specifying it via
-                        // redeemScript param for backwards compat
-                        // (in which case ws.IsNull() == true)
-                    } else {
-                        // otherwise, can't generate scriptPubKey from
-                        // either script, so we got unusable parameters
-                        throw JSONRPCError(RPC_INVALID_PARAMETER, "redeemScript/witnessScript does not match scriptPubKey");
-                    }
-                } else if (is_p2wsh) {
-                    // plain p2wsh; could throw an error if script
-                    // was specified by redeemScript rather than
-                    // witnessScript (ie, ws.IsNull() == true), but
-                    // accept it for backwards compat
-                    const CTxDestination p2wsh{WitnessV0ScriptHash(script)};
-                    if (scriptPubKey != GetScriptForDestination(p2wsh)) {
-                        throw JSONRPCError(RPC_INVALID_PARAMETER, "redeemScript/witnessScript does not match scriptPubKey");
-                    }
-                }
-            }
         }
     }
 }

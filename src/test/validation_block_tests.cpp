@@ -7,9 +7,11 @@
 #include <chainparams.h>
 #include <consensus/merkle.h>
 #include <consensus/validation.h>
+#include <key_io.h>
 #include <node/miner.h>
 #include <pow.h>
 #include <random.h>
+#include <script/signingprovider.h>
 #include <test/util/common.h>
 #include <test/util/random.h>
 #include <test/util/script.h>
@@ -24,6 +26,26 @@ using kernel::ChainstateRole;
 using node::BlockAssembler;
 
 namespace validation_block_tests {
+struct TaprootAnyoneCanSpend {
+    CScript leaf{CScript{} << OP_TRUE};
+    TaprootBuilder tree;
+    CScript output;
+    std::vector<unsigned char> control_block;
+
+    TaprootAnyoneCanSpend()
+    {
+        tree.Add(0, leaf, TAPROOT_LEAF_TAPSCRIPT).Finalize(XOnlyPubKey::NUMS_H);
+        output = GetScriptForDestination(tree.GetOutput());
+        control_block = *tree.GetSpendData().scripts.begin()->second.begin();
+    }
+};
+
+const TaprootAnyoneCanSpend& AnyoneCanSpend()
+{
+    static const TaprootAnyoneCanSpend script;
+    return script;
+}
+
 struct MinerTestingSetup : public RegTestingSetup {
     std::shared_ptr<CBlock> Block(const uint256& prev_hash);
     std::shared_ptr<const CBlock> GoodBlock(const uint256& prev_hash);
@@ -68,7 +90,9 @@ std::shared_ptr<CBlock> MinerTestingSetup::Block(const uint256& prev_hash)
     static uint64_t time = Params().GenesisBlock().nTime;
 
     BlockAssembler::Options options;
-    options.coinbase_output_script = CScript{} << i++ << OP_TRUE;
+    std::vector<unsigned char> unique_program(32);
+    unique_program[0] = static_cast<unsigned char>(i++);
+    options.coinbase_output_script = CScript{} << OP_1 << unique_program;
     options.include_dummy_extranonce = true;
     auto ptemplate = BlockAssembler{m_node.chainman->ActiveChainstate(), m_node.mempool.get(), options}.CreateNewBlock();
     auto pblock = std::make_shared<CBlock>(ptemplate->block);
@@ -76,11 +100,11 @@ std::shared_ptr<CBlock> MinerTestingSetup::Block(const uint256& prev_hash)
     pblock->nTime = ++time;
 
     // Make the coinbase transaction with two outputs:
-    // One zero-value one that has a unique pubkey to make sure that blocks at the same height can have a different hash
-    // Another one that has the coinbase reward in a P2WSH with OP_TRUE as witness program to make it easy to spend
+    // One zero-value output with a unique Taproot program makes blocks at the
+    // same height distinct. The reward uses an anyone-can-spend Tapscript.
     CMutableTransaction txCoinbase(*pblock->vtx[0]);
     txCoinbase.vout.resize(2);
-    txCoinbase.vout[1].scriptPubKey = P2WSH_OP_TRUE;
+    txCoinbase.vout[1].scriptPubKey = AnyoneCanSpend().output;
     txCoinbase.vout[1].nValue = txCoinbase.vout[0].nValue;
     txCoinbase.vout[0].nValue = 0;
     txCoinbase.vin[0].scriptWitness.SetNull();
@@ -254,7 +278,8 @@ BOOST_AUTO_TEST_CASE(mempool_locks_reorg)
         for (int num_txs = 22; num_txs > 0; --num_txs) {
             CMutableTransaction mtx;
             mtx.vin.emplace_back(COutPoint{last_mined->vtx[0]->GetHash(), 1}, CScript{});
-            mtx.vin[0].scriptWitness.stack.push_back(WITNESS_STACK_ELEM_OP_TRUE);
+            mtx.vin[0].scriptWitness.stack.emplace_back(AnyoneCanSpend().leaf.begin(), AnyoneCanSpend().leaf.end());
+            mtx.vin[0].scriptWitness.stack.push_back(AnyoneCanSpend().control_block);
             mtx.vout.push_back(last_mined->vtx[0]->vout[1]);
             mtx.vout[0].nValue -= 1000;
             txs.push_back(MakeTransactionRef(mtx));
@@ -334,10 +359,8 @@ BOOST_AUTO_TEST_CASE(mempool_locks_reorg)
 BOOST_AUTO_TEST_CASE(witness_commitment_index)
 {
     LOCK(Assert(m_node.chainman)->GetMutex());
-    CScript pubKey;
-    pubKey << 1 << OP_TRUE;
     BlockAssembler::Options options;
-    options.coinbase_output_script = pubKey;
+    options.coinbase_output_script = P2TR_DUMMY;
     options.include_dummy_extranonce = true;
     auto ptemplate = BlockAssembler{m_node.chainman->ActiveChainstate(), m_node.mempool.get(), options}.CreateNewBlock();
     CBlock pblock = ptemplate->block;

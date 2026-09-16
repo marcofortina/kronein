@@ -98,9 +98,7 @@ static std::vector<RPCArg> CreateTxDoc()
         },
         {"outputs", RPCArg::Type::ARR, RPCArg::Optional::NO, "The outputs specified as key-value pairs.\n"
                 "Each key may only appear once, i.e. there can only be one 'data' output, and no address may be duplicated.\n"
-                "At least one output of either type must be specified.\n"
-                "For compatibility reasons, a dictionary, which holds the key-value pairs directly, is also\n"
-                "                             accepted as second parameter.",
+                "At least one output of either type must be specified.",
             {
                 {"", RPCArg::Type::OBJ_USER_KEYS, RPCArg::Optional::OMITTED, "",
                     {
@@ -113,7 +111,7 @@ static std::vector<RPCArg> CreateTxDoc()
                     },
                 },
             },
-         RPCArgOptions{.skip_type_check = true}},
+        },
         {"locktime", RPCArg::Type::NUM, RPCArg::Default{0}, "Raw locktime. Non-0 value also locktime-activates inputs"},
         {"replaceable", RPCArg::Type::BOOL, RPCArg::Default{true}, "Marks this transaction as BIP125-replaceable.\n"
                 "Allows this transaction to be replaced by a transaction with higher fees. If provided, it is an error if explicit sequence numbers are incompatible."},
@@ -582,9 +580,7 @@ static RPCHelpMan signrawtransactionwithkey()
                                     {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The transaction id"},
                                     {"vout", RPCArg::Type::NUM, RPCArg::Optional::NO, "The output number"},
                                     {"scriptPubKey", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "output script"},
-                                    {"redeemScript", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "(required for P2SH) redeem script"},
-                                    {"witnessScript", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "(required for P2WSH or P2SH-P2WSH) witness script"},
-                                    {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "(required for Segwit inputs) the amount spent"},
+                                    {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "The amount spent"},
                                 },
                                 },
                         },

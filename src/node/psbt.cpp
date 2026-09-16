@@ -4,10 +4,8 @@
 
 #include <coins.h>
 #include <consensus/amount.h>
-#include <consensus/tx_verify.h>
 #include <node/psbt.h>
 #include <policy/policy.h>
-#include <policy/settings.h>
 #include <tinyformat.h>
 
 #include <numeric>
@@ -116,28 +114,24 @@ PSBTAnalysis AnalyzePSBT(PartiallySignedTransaction psbtx)
 
         // Estimate the size
         CMutableTransaction mtx(*psbtx.tx);
-        CCoinsView view_dummy;
-        CCoinsViewCache view(&view_dummy);
         bool success = true;
 
         for (unsigned int i = 0; i < psbtx.tx->vin.size(); ++i) {
             PSBTInput& input = psbtx.inputs[i];
-            Coin newcoin;
+            CTxOut prevout;
 
-            if (SignPSBTInput(DUMMY_SIGNING_PROVIDER, psbtx, i, nullptr, std::nullopt) != PSBTError::OK || !psbtx.GetInputUTXO(newcoin.out, i)) {
+            if (SignPSBTInput(DUMMY_SIGNING_PROVIDER, psbtx, i, nullptr, std::nullopt) != PSBTError::OK || !psbtx.GetInputUTXO(prevout, i)) {
                 success = false;
                 break;
             } else {
                 mtx.vin[i].scriptSig = input.final_script_sig;
                 mtx.vin[i].scriptWitness = input.final_script_witness;
-                newcoin.nHeight = 1;
-                view.AddCoin(psbtx.tx->vin[i].prevout, std::move(newcoin), true);
             }
         }
 
         if (success) {
             CTransaction ctx = CTransaction(mtx);
-            size_t size(GetVirtualTransactionSize(ctx, GetTransactionSigOpCost(ctx, view, STANDARD_SCRIPT_VERIFY_FLAGS), ::nBytesPerSigOp));
+            size_t size(GetVirtualTransactionSize(ctx));
             result.estimated_vsize = size;
             // Estimate fee rate
             CFeeRate feerate(fee, size);

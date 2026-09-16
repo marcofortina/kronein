@@ -27,20 +27,10 @@ BOOST_FIXTURE_TEST_CASE(txospenderindex_initial_sync, TestChain100Setup)
         spent[i] = COutPoint(coinbase_tx->GetHash(), 0);
 
         // Spending tx
-        spender[i].version = 1;
-        spender[i].vin.resize(1);
-        spender[i].vin[0].prevout.hash = spent[i].hash;
-        spender[i].vin[0].prevout.n = spent[i].n;
-        spender[i].vout.resize(1);
-        spender[i].vout[0].nValue = coinbase_tx->GetValueOut();
-        spender[i].vout[0].scriptPubKey = coinbase_script;
-
-        // Sign
-        std::vector<unsigned char> vchSig;
-        const uint256 hash = SignatureHash(coinbase_script, spender[i], 0, SIGHASH_ALL, 0, SigVersion::BASE);
-        BOOST_REQUIRE(coinbaseKey.Sign(hash, vchSig));
-        vchSig.push_back((unsigned char)SIGHASH_ALL);
-        spender[i].vin[0].scriptSig << vchSig;
+        spender[i] = CreateValidMempoolTransaction(coinbase_tx, /*input_vout=*/0,
+                                                   /*input_height=*/0, coinbaseKey,
+                                                   coinbase_script, coinbase_tx->GetValueOut(),
+                                                   /*submit=*/false);
     }
 
     // Generate and ensure block has been fully processed

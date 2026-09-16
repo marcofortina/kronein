@@ -30,7 +30,7 @@ static void FundTaprootWallet(TestChain100Setup& setup, int count)
         const auto funding{setup.CreateValidMempoolTransaction(
             setup.m_coinbase_txns.at(i), 0, i + 1, setup.coinbaseKey,
             TaprootScript(setup.coinbaseKey), 50 * COIN, /*submit=*/false)};
-        setup.CreateAndProcessBlock({funding}, GetScriptForRawPubKey(setup.coinbaseKey.GetPubKey()));
+        setup.CreateAndProcessBlock({funding}, GetScriptForDestination(WitnessV1Taproot{XOnlyPubKey{setup.coinbaseKey.GetPubKey()}}));
     }
 }
 

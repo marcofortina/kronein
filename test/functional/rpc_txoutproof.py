@@ -69,7 +69,7 @@ class MerkleBlockTest(BitcoinTestFramework):
         # We can't get the proof if we specify a non-existent block
         assert_raises_rpc_error(-5, "Block not found", self.nodes[0].gettxoutproof, [txid_spent], "0000000000000000000000000000000000000000000000000000000000000000")
         # We can't get the proof if we only have the header of the specified block
-        block = self.generateblock(self.nodes[0], output="raw(55)", transactions=[], submit=False)
+        block = self.generateblock(self.nodes[0], output="rawtr(50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0)", transactions=[], submit=False)
         self.nodes[0].submitheader(block["hex"])
         assert_raises_rpc_error(-1, "Block not available (not fully downloaded)", self.nodes[0].gettxoutproof, [txid_spent], block['hash'])
         # We can get the proof if the transaction is unspent

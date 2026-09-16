@@ -88,7 +88,7 @@ class WalletChangeAddressTest(BitcoinTestFramework):
 
         # The avoid partial spends wallet will always create a change output
         node = self.nodes[2]
-        res = w2.send({sendTo1: "1.0", sendTo2: "1.0", sendTo3: "0.9999"}, options={"change_position": 0})
+        res = w2.send([{sendTo1: "1.0"}, {sendTo2: "1.0"}, {sendTo3: "0.9999"}], options={"change_position": 0})
         tx = node.getrawtransaction(res["txid"], True)
         self.assert_change_pos(w2, tx, 0)
 
@@ -96,7 +96,7 @@ class WalletChangeAddressTest(BitcoinTestFramework):
         # then create a second candidate using APS that requires a change output.
         # Ensure that the user-configured change position is kept
         node = self.nodes[1]
-        res = w1.send({sendTo1: "1.0", sendTo2: "1.0", sendTo3: "0.9999"}, options={"change_position": 0})
+        res = w1.send([{sendTo1: "1.0"}, {sendTo2: "1.0"}, {sendTo3: "0.9999"}], options={"change_position": 0})
         tx = node.getrawtransaction(res["txid"], True)
         # If the wallet ignores the user's change_position there is still a 25%
         # that the random change position passes the test

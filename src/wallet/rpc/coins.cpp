@@ -489,8 +489,6 @@ RPCHelpMan listunspent()
                             {RPCResult::Type::NUM, "ancestorcount", /*optional=*/true, "The number of in-mempool ancestor transactions, including this one (if transaction is in the mempool)"},
                             {RPCResult::Type::NUM, "ancestorsize", /*optional=*/true, "The virtual transaction size of in-mempool ancestors, including this one (if transaction is in the mempool)"},
                             {RPCResult::Type::STR_AMOUNT, "ancestorfees", /*optional=*/true, "The total fees of in-mempool ancestors (including this one) with fee deltas used for mining priority in " + CURRENCY_ATOM + " (if transaction is in the mempool)"},
-                            {RPCResult::Type::STR_HEX, "redeemScript", /*optional=*/true, "The redeem script if the output script is P2SH"},
-                            {RPCResult::Type::STR, "witnessScript", /*optional=*/true, "witness script if the output script is P2WSH or P2SH-P2WSH"},
                             {RPCResult::Type::BOOL, "solvable", "Whether we know how to spend this output, ignoring the lack of keys"},
                             {RPCResult::Type::BOOL, "reused", /*optional=*/true, "(only present if avoid_reuse is set) Whether this output is reused/dirty (sent to an address that was previously spent from)"},
                             {RPCResult::Type::STR, "desc", /*optional=*/true, "(only when solvable) A descriptor for spending this output"},
@@ -619,36 +617,6 @@ RPCHelpMan listunspent()
                 entry.pushKV("label", address_book_entry->GetLabel());
             }
 
-            std::unique_ptr<SigningProvider> provider = pwallet->GetSolvingProvider(scriptPubKey);
-            if (provider) {
-                if (scriptPubKey.IsPayToScriptHash()) {
-                    const CScriptID hash = ToScriptID(std::get<ScriptHash>(address));
-                    CScript redeemScript;
-                    if (provider->GetCScript(hash, redeemScript)) {
-                        entry.pushKV("redeemScript", HexStr(redeemScript));
-                        // Now check if the redeemScript is actually a P2WSH script
-                        CTxDestination witness_destination;
-                        if (redeemScript.IsPayToWitnessScriptHash()) {
-                            bool extracted = ExtractDestination(redeemScript, witness_destination);
-                            CHECK_NONFATAL(extracted);
-                            // Also return the witness script
-                            const WitnessV0ScriptHash& whash = std::get<WitnessV0ScriptHash>(witness_destination);
-                            CScriptID id{RIPEMD160(whash)};
-                            CScript witnessScript;
-                            if (provider->GetCScript(id, witnessScript)) {
-                                entry.pushKV("witnessScript", HexStr(witnessScript));
-                            }
-                        }
-                    }
-                } else if (scriptPubKey.IsPayToWitnessScriptHash()) {
-                    const WitnessV0ScriptHash& whash = std::get<WitnessV0ScriptHash>(address);
-                    CScriptID id{RIPEMD160(whash)};
-                    CScript witnessScript;
-                    if (provider->GetCScript(id, witnessScript)) {
-                        entry.pushKV("witnessScript", HexStr(witnessScript));
-                    }
-                }
-            }
         }
 
         entry.pushKV("scriptPubKey", HexStr(scriptPubKey));

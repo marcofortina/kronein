@@ -132,7 +132,7 @@ class WalletSignerTest(BitcoinTestFramework):
         assert_equal(result[1], {'success': True})
         assert_equal(mock_wallet.getwalletinfo()["txcount"], 1)
         dest = self.nodes[0].getnewaddress()
-        mock_psbt = mock_wallet.walletcreatefundedpsbt([], {dest:0.5}, 0, {'replaceable': True}, True)['psbt']
+        mock_psbt = mock_wallet.walletcreatefundedpsbt([], [{dest:0.5}], 0, {'replaceable': True}, True)['psbt']
         mock_psbt_signed = mock_wallet.walletprocesspsbt(psbt=mock_psbt, sign=True, sighashtype="ALL", bip32derivs=True)
         mock_tx = mock_psbt_signed["hex"]
         assert mock_wallet.testmempoolaccept([mock_tx])[0]["allowed"]
@@ -147,7 +147,7 @@ class WalletSignerTest(BitcoinTestFramework):
         self.log.info('Test send using hww1')
 
         # Don't broadcast transaction yet so the RPC returns the raw hex
-        res = hww.send(outputs={dest:0.5},add_to_wallet=False)
+        res = hww.send(outputs=[{dest:0.5}],add_to_wallet=False)
         assert res["complete"]
         assert_equal(res["hex"], mock_tx)
 

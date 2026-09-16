@@ -12,7 +12,6 @@
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
 #include <policy/policy.h>
-#include <policy/settings.h>
 #include <random.h>
 #include <tinyformat.h>
 #include <util/check.h>
@@ -1014,7 +1013,7 @@ CTxMemPool::ChangeSet::TxHandle CTxMemPool::ChangeSet::StageAddition(const CTran
     CAmount delta{0};
     m_pool->ApplyDelta(tx->GetHash(), delta);
 
-    FeePerWeight feerate(fee, GetSigOpsAdjustedWeight(GetTransactionWeight(*tx), sigops_cost, ::nBytesPerSigOp));
+    FeePerWeight feerate(fee, GetTransactionWeight(*tx));
     auto newit = m_to_add.emplace(tx, fee, time, entry_height, entry_sequence, spends_coinbase, sigops_cost, lp).first;
     m_pool->m_txgraph->AddTransaction(const_cast<CTxMemPoolEntry&>(*newit), feerate);
     if (delta) {

@@ -18,7 +18,7 @@ from test_framework.util import (
 )
 
 BECH32M_VALID_TAPROOT = ADDRESS_BCRT1_UNSPENDABLE
-BECH32M_VALID_UNKNOWN_WITNESS = program_to_witness(2, bytes.fromhex("0123456789abcdef"))
+BECH32M_UNSUPPORTED_WITNESS = program_to_witness(2, bytes.fromhex("0123456789abcdef"))
 BECH32M_VALID_CAPITALS = BECH32M_VALID_TAPROOT.upper()
 BECH32M_VALID_ANCHOR = p2a()
 
@@ -78,7 +78,7 @@ class InvalidAddressErrorMessageTest(BitcoinTestFramework):
         self.check_invalid(BECH32_WRONG_VERSION, 'Invalid Bech32 checksum', [5])
 
         self.check_valid(BECH32M_VALID_TAPROOT)
-        self.check_valid(BECH32M_VALID_UNKNOWN_WITNESS)
+        self.check_invalid(BECH32M_UNSUPPORTED_WITNESS, 'Only Taproot and pay-to-anchor Bech32m addresses are supported')
         self.check_valid(BECH32M_VALID_CAPITALS)
         self.check_valid(BECH32M_VALID_ANCHOR)
 
@@ -101,7 +101,7 @@ class InvalidAddressErrorMessageTest(BitcoinTestFramework):
         assert_raises_rpc_error(-5, "Invalid Bech32m address program size (41 bytes)", node.getaddressinfo, BECH32_INVALID_SIZE)
         assert_raises_rpc_error(-5, "Invalid prefix for Bech32m address (expected bcrt, got bc).", node.getaddressinfo, BECH32_INVALID_PREFIX)
         assert_raises_rpc_error(-5, "Invalid separator position", node.getaddressinfo, INVALID_ADDRESS)
-        assert "isscript" not in node.getaddressinfo(BECH32M_VALID_UNKNOWN_WITNESS)
+        assert_raises_rpc_error(-5, "Only Taproot and pay-to-anchor Bech32m addresses are supported", node.getaddressinfo, BECH32M_UNSUPPORTED_WITNESS)
 
     def run_test(self):
         self.test_validateaddress()

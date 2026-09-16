@@ -33,18 +33,12 @@ from test_framework.script import (
     OP_0,
     OP_HASH160,
     OP_RETURN,
-    OP_TRUE,
-    SIGHASH_ALL,
-    sign_input_legacy,
 )
 from test_framework.script_util import (
     DUMMY_MIN_OP_RETURN_SCRIPT,
-    keys_to_multisig_script,
     MIN_PADDING,
     MIN_STANDARD_TX_NONWITNESS_SIZE,
     PAY_TO_ANCHOR,
-    script_to_p2sh_script,
-    script_to_p2wsh_script,
 )
 from test_framework.util import (
     assert_equal,
@@ -53,15 +47,12 @@ from test_framework.util import (
     sync_txindex,
 )
 from test_framework.wallet import MiniWallet
-from test_framework.wallet_util import generate_keypair
 
 
 class MempoolAcceptanceTest(BitcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
-        self.extra_args = [[
-            '-txindex','-permitbaremultisig=0',
-        ]] * self.num_nodes
+        self.extra_args = [['-txindex']] * self.num_nodes
         self.supports_cli = False
 
     def check_mempool_result(self, result_expected, *args, **kwargs):
@@ -81,8 +72,6 @@ class MempoolAcceptanceTest(BitcoinTestFramework):
     def run_test(self):
         node = self.nodes[0]
         self.wallet = MiniWallet(node)
-
-        assert_equal(node.getmempoolinfo()['permitbaremultisig'], False)
 
         self.log.info('Start with empty mempool, and 200 blocks')
         self.mempool_size = 0
@@ -301,42 +290,42 @@ class MempoolAcceptanceTest(BitcoinTestFramework):
         tx = tx_from_hex(raw_tx_reference)
         tx.vout[0].scriptPubKey = CScript([OP_0])  # Some non-standard script
         self.check_mempool_result(
-            result_expected=[{'txid': tx.txid_hex, 'allowed': False, 'reject-reason': 'scriptpubkey'}],
+            result_expected=[{'txid': tx.txid_hex, 'allowed': False, 'reject-reason': 'bad-txns-non-native-output'}],
             rawtxs=[tx.serialize().hex()],
         )
         tx = tx_from_hex(raw_tx_reference)
-        _, pubkey = generate_keypair()
-        tx.vout[0].scriptPubKey = keys_to_multisig_script([pubkey] * 3, k=2)  # Some bare multisig script (2-of-3)
+        tx.vout[0].scriptPubKey = CScript([OP_HASH160])
         self.check_mempool_result(
-            result_expected=[{'txid': tx.txid_hex, 'allowed': False, 'reject-reason': 'bare-multisig'}],
+            result_expected=[{'txid': tx.txid_hex, 'allowed': False, 'reject-reason': 'bad-txns-non-native-output'}],
             rawtxs=[tx.serialize().hex()],
         )
         tx = tx_from_hex(raw_tx_reference)
         tx.vin[0].scriptSig = CScript([OP_HASH160])  # Some not-pushonly scriptSig
         self.check_mempool_result(
-            result_expected=[{'txid': tx.txid_hex, 'allowed': False, 'reject-reason': 'scriptsig-not-pushonly'}],
+            result_expected=[{'txid': tx.txid_hex, 'allowed': False, 'reject-reason': 'bad-txns-scriptsig-not-empty'}],
             rawtxs=[tx.serialize().hex()],
         )
         tx = tx_from_hex(raw_tx_reference)
         tx.vin[0].scriptSig = CScript([b'a' * 1648]) # Some too large scriptSig (>1650 bytes)
         self.check_mempool_result(
-            result_expected=[{'txid': tx.txid_hex, 'allowed': False, 'reject-reason': 'scriptsig-size'}],
+            result_expected=[{'txid': tx.txid_hex, 'allowed': False, 'reject-reason': 'bad-txns-scriptsig-not-empty'}],
             rawtxs=[tx.serialize().hex()],
         )
         tx = tx_from_hex(raw_tx_reference)
-        output_p2sh_burn = CTxOut(nValue=540, scriptPubKey=script_to_p2sh_script(b'burn'))
-        num_scripts = 100000 // len(output_p2sh_burn.serialize())  # Use enough outputs to make the tx too large for our policy
-        tx.vout = [output_p2sh_burn] * num_scripts
+        native_output = CTxOut(nValue=540, scriptPubKey=self.wallet.get_output_script())
+        num_scripts = 100000 // len(native_output.serialize())  # Use enough outputs to make the tx too large for our policy
+        tx.vout = [native_output] * num_scripts
         self.check_mempool_result(
             result_expected=[{'txid': tx.txid_hex, 'allowed': False, 'reject-reason': 'tx-size'}],
             rawtxs=[tx.serialize().hex()],
         )
         tx = tx_from_hex(raw_tx_reference)
-        tx.vout[0] = output_p2sh_burn
-        tx.vout[0].nValue -= 1  # Make output smaller, such that it is dust for our policy
+        tx.vout[0] = native_output
+        tx.vout[0].nValue = 1
         self.check_mempool_result(
             result_expected=[{'txid': tx.txid_hex, 'allowed': False, 'reject-reason': 'dust'}],
             rawtxs=[tx.serialize().hex()],
+            maxfeerate=0,
         )
 
         # OP_RETURN followed by non-push
@@ -405,15 +394,14 @@ class MempoolAcceptanceTest(BitcoinTestFramework):
             maxfeerate=0,
         )
 
-        # Prep for tiny-tx tests with wsh(OP_TRUE) output
-        seed_tx = self.wallet.send_to(from_node=node, scriptPubKey=script_to_p2wsh_script(CScript([OP_TRUE])), amount=COIN)
+        # Prep for tiny-transaction tests with a native Taproot output.
+        seed_tx = self.wallet.send_to(from_node=node, scriptPubKey=self.wallet.get_output_script(), amount=COIN)
         self.generate(node, 1)
 
         self.log.info('A tiny transaction(in non-witness bytes) that is disallowed')
         tx = CTransaction()
         tx.vin.append(CTxIn(COutPoint(int(seed_tx["txid"], 16), seed_tx["sent_vout"]), b"", SEQUENCE_FINAL))
-        tx.wit.vtxinwit = [CTxInWitness()]
-        tx.wit.vtxinwit[0].scriptWitness.stack = [CScript([OP_TRUE])]
+        self.wallet.sign_tx(tx)
         tx.vout.append(CTxOut(0, CScript([OP_RETURN] + ([OP_0] * (MIN_PADDING - 2)))))
         # Note it's only non-witness size that matters!
         assert_equal(len(tx.serialize_without_witness()), 64)
@@ -443,7 +431,7 @@ class MempoolAcceptanceTest(BitcoinTestFramework):
         # First spend has non-empty witness, will be rejected to prevent third party wtxid malleability
         anchor_nonempty_wit_spend = CTransaction()
         anchor_nonempty_wit_spend.vin.append(CTxIn(COutPoint(int(create_anchor_tx["txid"], 16), create_anchor_tx["sent_vout"]), b""))
-        anchor_nonempty_wit_spend.vout.append(CTxOut(anchor_value - int(fee*COIN), script_to_p2wsh_script(CScript([OP_TRUE]))))
+        anchor_nonempty_wit_spend.vout.append(CTxOut(anchor_value - int(fee*COIN), self.wallet.get_output_script()))
         anchor_nonempty_wit_spend.wit.vtxinwit.append(CTxInWitness())
         anchor_nonempty_wit_spend.wit.vtxinwit[0].scriptWitness.stack.append(b"f")
 
@@ -462,7 +450,7 @@ class MempoolAcceptanceTest(BitcoinTestFramework):
 
         anchor_spend = CTransaction()
         anchor_spend.vin.append(CTxIn(COutPoint(int(create_anchor_tx["txid"], 16), create_anchor_tx["sent_vout"]), b""))
-        anchor_spend.vout.append(CTxOut(anchor_value - int(fee*COIN), script_to_p2wsh_script(CScript([OP_TRUE]))))
+        anchor_spend.vout.append(CTxOut(anchor_value - int(fee*COIN), self.wallet.get_output_script()))
         anchor_spend.wit.vtxinwit.append(CTxInWitness())
         # Native serialization keeps the witness and base identifier domains
         # distinct even when every witness stack is empty.
@@ -471,41 +459,6 @@ class MempoolAcceptanceTest(BitcoinTestFramework):
         self.check_mempool_result(
             result_expected=[{'txid': anchor_spend.txid_hex, 'allowed': True, 'vsize': anchor_spend.get_vsize(), 'fees': { 'base': Decimal('0.00000700')}}],
             rawtxs=[anchor_spend.serialize().hex()],
-            maxfeerate=0,
-        )
-
-        self.log.info('But cannot be spent if nested sh()')
-        nested_anchor_tx = self.wallet.create_self_transfer(sequence=SEQUENCE_FINAL)['tx']
-        nested_anchor_tx.vout[0].scriptPubKey = script_to_p2sh_script(PAY_TO_ANCHOR)
-        self.generateblock(node, self.wallet.get_address(), [nested_anchor_tx.serialize().hex()])
-
-        nested_anchor_spend = CTransaction()
-        nested_anchor_spend.vin.append(CTxIn(COutPoint(nested_anchor_tx.txid_int, 0), b""))
-        nested_anchor_spend.vin[0].scriptSig = CScript([bytes(PAY_TO_ANCHOR)])
-        nested_anchor_spend.vout.append(CTxOut(nested_anchor_tx.vout[0].nValue - int(fee*COIN), script_to_p2wsh_script(CScript([OP_TRUE]))))
-
-        self.check_mempool_result(
-            result_expected=[{'txid': nested_anchor_spend.txid_hex, 'allowed': False, 'reject-reason': 'mempool-script-verify-flag-failed (Witness version reserved for soft-fork upgrades)'}],
-            rawtxs=[nested_anchor_spend.serialize().hex()],
-            maxfeerate=0,
-        )
-        # but is consensus-legal
-        self.generateblock(node, self.wallet.get_address(), [nested_anchor_spend.serialize().hex()])
-
-        self.log.info('Spending a confirmed bare multisig is okay')
-        address = self.wallet.get_address()
-        tx = tx_from_hex(raw_tx_reference)
-        privkey, pubkey = generate_keypair()
-        tx.vout[0].scriptPubKey = keys_to_multisig_script([pubkey] * 3, k=1)  # Some bare multisig script (1-of-3)
-        self.generateblock(node, address, [tx.serialize().hex()])
-        tx_spend = CTransaction()
-        tx_spend.vin.append(CTxIn(COutPoint(tx.txid_int, 0), b""))
-        tx_spend.vout.append(CTxOut(tx.vout[0].nValue - int(fee*COIN), script_to_p2wsh_script(CScript([OP_TRUE]))))
-        sign_input_legacy(tx_spend, 0, tx.vout[0].scriptPubKey, privkey, sighash_type=SIGHASH_ALL)
-        tx_spend.vin[0].scriptSig = bytes(CScript([OP_0])) + tx_spend.vin[0].scriptSig
-        self.check_mempool_result(
-            result_expected=[{'txid': tx_spend.txid_hex, 'allowed': True, 'vsize': tx_spend.get_vsize(), 'fees': { 'base': Decimal('0.00000700')}}],
-            rawtxs=[tx_spend.serialize().hex()],
             maxfeerate=0,
         )
 

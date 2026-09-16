@@ -29,7 +29,7 @@ class TxnMallTest(BitcoinTestFramework):
 
     def spend_utxo(self, utxo, outputs):
         inputs = [utxo]
-        tx = self.nodes[0].createrawtransaction(inputs, outputs)
+        tx = self.nodes[0].createrawtransaction(inputs, [{key: value} for key, value in outputs.items()])
         tx = self.nodes[0].fundrawtransaction(tx)
         tx = self.nodes[0].signrawtransactionwithwallet(tx['hex'])
         return self.nodes[0].sendrawtransaction(tx['hex'])
@@ -43,7 +43,7 @@ class TxnMallTest(BitcoinTestFramework):
         # blockchain sync later in the test when nodes are connected, due to
         # timing issues.
         for n in self.nodes:
-            assert n.getblockchaininfo()["initialblockdownload"] == False
+            assert not n.getblockchaininfo()["initialblockdownload"]
 
         for i in range(3):
             assert_equal(self.nodes[i].getbalance(), starting_balance)
@@ -72,7 +72,7 @@ class TxnMallTest(BitcoinTestFramework):
         outputs = {}
         outputs[node1_address] = 1240
         outputs[change_address] = 1248 - 1240 + doublespend_fee
-        rawtx = self.nodes[0].createrawtransaction(inputs, outputs)
+        rawtx = self.nodes[0].createrawtransaction(inputs, [{key: value} for key, value in outputs.items()])
         doublespend = self.nodes[0].signrawtransactionwithwallet(rawtx)
         assert_equal(doublespend["complete"], True)
 

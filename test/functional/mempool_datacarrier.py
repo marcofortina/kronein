@@ -51,9 +51,6 @@ class DataCarrierTest(BitcoinTestFramework):
     def run_test(self):
         self.wallet = MiniWallet(self.nodes[0])
 
-        # Test that bare multisig is allowed by default. Do it here rather than create a new test for it.
-        assert_equal(self.nodes[0].getmempoolinfo()["permitbaremultisig"], True)
-
         assert_equal(self.nodes[0].getmempoolinfo()["maxdatacarriersize"], MAX_OP_RETURN_RELAY)
         assert_equal(self.nodes[1].getmempoolinfo()["maxdatacarriersize"], 0)
         assert_equal(self.nodes[2].getmempoolinfo()["maxdatacarriersize"], CUSTOM_DATACARRIER_ARG)

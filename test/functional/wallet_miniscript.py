@@ -34,121 +34,29 @@ PUBKEYS = [
     "0211c7b2e18b6fd330f322de087da62da92ae2ae3d0b7cec7e616479cce175f183",
 ]
 
-P2WSH_MINISCRIPTS = [
+TAP_MINISCRIPTS = [
     # One of two keys
     f"or_b(pk({TPUBS[0]}/*),s:pk({TPUBS[1]}/*))",
     # A script similar (same spending policy) to BOLT3's offered HTLC (with anchor outputs)
     f"or_d(pk({TPUBS[0]}/*),and_v(and_v(v:pk({TPUBS[1]}/*),or_c(pk({TPUBS[2]}/*),v:hash160(7f999c905d5e35cefd0a37673f746eb13fba3640))),older(1)))",
     # A Revault Unvault policy with the older() replaced by an after()
-    f"andor(multi(2,{TPUBS[0]}/*,{TPUBS[1]}/*),and_v(v:multi(4,{PUBKEYS[0]},{PUBKEYS[1]},{PUBKEYS[2]},{PUBKEYS[3]}),after(424242)),thresh(4,pkh({TPUBS[2]}/*),a:pkh({TPUBS[3]}/*),a:pkh({TPUBS[4]}/*),a:pkh({TPUBS[5]}/*)))",
+    f"andor(multi_a(2,{TPUBS[0]}/*,{TPUBS[1]}/*),and_v(v:multi_a(4,{PUBKEYS[0]},{PUBKEYS[1]},{PUBKEYS[2]},{PUBKEYS[3]}),after(424242)),thresh(4,pkh({TPUBS[2]}/*),a:pkh({TPUBS[3]}/*),a:pkh({TPUBS[4]}/*),a:pkh({TPUBS[5]}/*)))",
     # Liquid-like federated pegin with emergency recovery keys
     f"or_i(and_b(pk({PUBKEYS[0]}),a:and_b(pk({PUBKEYS[1]}),a:and_b(pk({PUBKEYS[2]}),a:and_b(pk({PUBKEYS[3]}),s:pk({PUBKEYS[4]}))))),and_v(v:thresh(2,pkh({TPUBS[0]}/*),a:pkh({PUBKEYS[5]}),a:pkh({PUBKEYS[6]})),older(4209713)))",
 ]
 
 DESCS = [
-    *[f"wsh({ms})" for ms in P2WSH_MINISCRIPTS],
     # A Taproot with one of the above scripts as the single script path.
-    f"tr(4d54bb9928a0683b7e383de72943b214b0716f58aa54c7ba6bcea2328bc9c768,{P2WSH_MINISCRIPTS[0]})",
+    f"tr(4d54bb9928a0683b7e383de72943b214b0716f58aa54c7ba6bcea2328bc9c768,{TAP_MINISCRIPTS[0]})",
     # A Taproot with two script paths among the above scripts.
-    f"tr(4d54bb9928a0683b7e383de72943b214b0716f58aa54c7ba6bcea2328bc9c768,{{{P2WSH_MINISCRIPTS[0]},{P2WSH_MINISCRIPTS[1]}}})",
+    f"tr(4d54bb9928a0683b7e383de72943b214b0716f58aa54c7ba6bcea2328bc9c768,{{{TAP_MINISCRIPTS[0]},{TAP_MINISCRIPTS[1]}}})",
     # A Taproot with three script paths among the above scripts.
-    f"tr(4d54bb9928a0683b7e383de72943b214b0716f58aa54c7ba6bcea2328bc9c768,{{{{{P2WSH_MINISCRIPTS[0]},{P2WSH_MINISCRIPTS[1]}}},{P2WSH_MINISCRIPTS[2].replace('multi', 'multi_a')}}})",
+    f"tr(4d54bb9928a0683b7e383de72943b214b0716f58aa54c7ba6bcea2328bc9c768,{{{{{TAP_MINISCRIPTS[0]},{TAP_MINISCRIPTS[1]}}},{TAP_MINISCRIPTS[2]}}})",
     # A Taproot with all above scripts in its tree.
-    f"tr(4d54bb9928a0683b7e383de72943b214b0716f58aa54c7ba6bcea2328bc9c768,{{{{{P2WSH_MINISCRIPTS[0]},{P2WSH_MINISCRIPTS[1]}}},{{{P2WSH_MINISCRIPTS[2].replace('multi', 'multi_a')},{P2WSH_MINISCRIPTS[3]}}}}})",
+    f"tr(4d54bb9928a0683b7e383de72943b214b0716f58aa54c7ba6bcea2328bc9c768,{{{{{TAP_MINISCRIPTS[0]},{TAP_MINISCRIPTS[1]}}},{{{TAP_MINISCRIPTS[2]},{TAP_MINISCRIPTS[3]}}}}})",
 ]
 
 DESCS_PRIV = [
-    # One of two keys, of which one private key is known
-    {
-        "desc": f"wsh(or_i(pk({TPRVS[0]}/*),pk({TPUBS[0]}/*)))",
-        "sequence": None,
-        "locktime": None,
-        "sigs_count": 1,
-        "stack_size": 3,
-    },
-    # A more complex policy, that can't be satisfied through the first branch (need for a preimage)
-    {
-        "desc": f"wsh(andor(ndv:older(2),and_v(v:pk({TPRVS[0]}),sha256(2a8ce30189b2ec3200b47aeb4feaac8fcad7c0ba170389729f4898b0b7933bcb)),and_v(v:pkh({TPRVS[1]}),pk({TPRVS[2]}/*))))",
-        "sequence": 2,
-        "locktime": None,
-        "sigs_count": 3,
-        "stack_size": 5,
-    },
-    # The same policy but we provide the preimage. This path will be chosen as it's a smaller witness.
-    {
-        "desc": f"wsh(andor(ndv:older(2),and_v(v:pk({TPRVS[0]}),sha256(61e33e9dbfefc45f6a194187684d278f789fd4d5e207a357e79971b6519a8b12)),and_v(v:pkh({TPRVS[1]}),pk({TPRVS[2]}/*))))",
-        "sequence": 2,
-        "locktime": None,
-        "sigs_count": 3,
-        "stack_size": 4,
-        "sha256_preimages": {
-            "61e33e9dbfefc45f6a194187684d278f789fd4d5e207a357e79971b6519a8b12": "e8774f330f5f330c23e8bbefc5595cb87009ddb7ac3b8deaaa8e9e41702d919c"
-        },
-    },
-    # Signature with a relative timelock
-    {
-        "desc": f"wsh(and_v(v:older(2),pk({TPRVS[0]}/*)))",
-        "sequence": 2,
-        "locktime": None,
-        "sigs_count": 1,
-        "stack_size": 2,
-    },
-    # Signature with an absolute timelock
-    {
-        "desc": f"wsh(and_v(v:after(20),pk({TPRVS[0]}/*)))",
-        "sequence": None,
-        "locktime": 20,
-        "sigs_count": 1,
-        "stack_size": 2,
-    },
-    # Signature with both
-    {
-        "desc": f"wsh(and_v(v:older(4),and_v(v:after(30),pk({TPRVS[0]}/*))))",
-        "sequence": 4,
-        "locktime": 30,
-        "sigs_count": 1,
-        "stack_size": 2,
-    },
-    # We have one key on each branch; Core signs both (can't finalize)
-    {
-        "desc": f"wsh(c:andor(pk({TPRVS[0]}/*),pk_k({TPUBS[0]}),and_v(v:pk({TPRVS[1]}),pk_k({TPUBS[1]}))))",
-        "sequence": None,
-        "locktime": None,
-        "sigs_count": 2,
-        "stack_size": None,
-    },
-    # We have all the keys, wallet selects the timeout path to sign since it's smaller and sequence is set
-    {
-        "desc": f"wsh(andor(pk({TPRVS[0]}/*),pk({TPRVS[2]}),and_v(v:pk({TPRVS[1]}),older(10))))",
-        "sequence": 10,
-        "locktime": None,
-        "sigs_count": 3,
-        "stack_size": 3,
-    },
-    # We have all the keys, wallet selects the primary path to sign unconditionally since nsequence wasn't set to be valid for timeout path
-    {
-        "desc": f"wsh(andor(pk({TPRVS[0]}/*),pk({TPRVS[2]}),and_v(v:pkh({TPRVS[1]}),older(10))))",
-        "sequence": None,
-        "locktime": None,
-        "sigs_count": 3,
-        "stack_size": 3,
-    },
-    # Finalizes to the smallest valid witness, regardless of sequence
-    {
-        "desc": f"wsh(or_d(pk({TPRVS[0]}/*),and_v(v:pk({TPRVS[1]}),and_v(v:pk({TPRVS[2]}),older(10)))))",
-        "sequence": 12,
-        "locktime": None,
-        "sigs_count": 3,
-        "stack_size": 2,
-    },
-    # Liquid-like federated pegin with emergency recovery privkeys
-    {
-        "desc": f"wsh(or_i(and_b(pk({TPUBS[0]}/*),a:and_b(pk({TPUBS[1]}),a:and_b(pk({TPUBS[2]}),a:and_b(pk({TPUBS[3]}),s:pk({PUBKEYS[0]}))))),and_v(v:thresh(2,pkh({TPRVS[0]}),a:pkh({TPRVS[1]}),a:pkh({TPUBS[4]})),older(42))))",
-        "sequence": 42,
-        "locktime": None,
-        "sigs_count": 2,
-        "stack_size": 8,
-    },
     # Each leaf needs two sigs. We've got one key on each. Will sign both but can't finalize.
     {
         "desc": f"tr({TPUBS[0]}/*,{{and_v(v:pk({TPRVS[0]}/*),pk({TPUBS[1]})),and_v(v:pk({TPRVS[1]}/*),pk({TPUBS[2]}))}})",
@@ -331,7 +239,7 @@ class WalletMiniscriptTest(BitcoinTestFramework):
             [
                 {
                     "desc": descsum_create(
-                        "wsh(and_b(ripemd160(1fd9b55a054a2b3f658d97e6b84cf3ee00be429a),a:1))"
+                        f"tr({PUBKEYS[0]},and_b(ripemd160(1fd9b55a054a2b3f658d97e6b84cf3ee00be429a),a:1))"
                     ),
                     "active": False,
                     "timestamp": "now",
@@ -345,7 +253,7 @@ class WalletMiniscriptTest(BitcoinTestFramework):
         res = self.ms_wo_wallet.importdescriptors(
             [
                 {
-                    "desc": descsum_create("wsh(0)"),
+                    "desc": descsum_create(f"tr({PUBKEYS[0]},0)"),
                     "active": False,
                     "timestamp": "now",
                 }
@@ -354,11 +262,11 @@ class WalletMiniscriptTest(BitcoinTestFramework):
         assert not res["success"] and "is not satisfiable" in res["error"]["message"]
 
         # Native wallets track Miniscript through Taproot script paths.
-        for desc in (desc for desc in DESCS if desc.startswith("tr(")):
+        for desc in DESCS:
             self.watchonly_test(desc)
 
         # Test signing Taproot Miniscript policies.
-        for desc in (desc for desc in DESCS_PRIV if desc["desc"].startswith("tr(")):
+        for desc in DESCS_PRIV:
             self.signing_test(
                 desc["desc"],
                 desc["sequence"],

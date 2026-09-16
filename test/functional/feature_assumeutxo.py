@@ -18,6 +18,7 @@ from test_framework.blocktools import (
     create_block,
     create_coinbase
 )
+from test_framework.key import H_POINT
 from test_framework.compressor import (
     compress_amount,
 )
@@ -430,7 +431,7 @@ class AssumeutxoTest(BitcoinTestFramework):
                 # Create a stale block that forks off the main chain before the snapshot.
                 temp_invalid = n0.getbestblockhash()
                 n0.invalidateblock(temp_invalid)
-                stale_hash = self.generateblock(n0, output="raw(aaaa)", transactions=[], sync_fun=self.no_op)["hash"]
+                stale_hash = self.generateblock(n0, output=f"rawtr({H_POINT})", transactions=[], sync_fun=self.no_op)["hash"]
                 n0.invalidateblock(stale_hash)
                 n0.reconsiderblock(temp_invalid)
                 stale_block = n0.getblock(stale_hash, 0)
@@ -632,7 +633,7 @@ class AssumeutxoTest(BitcoinTestFramework):
         internal_pubkey, _ = compute_xonly_pubkey(internal_privkey)
         taproot_privkey = tweak_add_privkey(internal_privkey, TaggedHash("TapTweak", internal_pubkey))
 
-        raw_tx = n1.createrawtransaction([prevout], {getnewdestination()[2]: 24.99})
+        raw_tx = n1.createrawtransaction([prevout], [{getnewdestination()[2]: 24.99}])
         signed = n1.signrawtransactionwithkey(raw_tx, [bytes_to_wif(taproot_privkey)], [prevout])
         assert_equal(signed['complete'], True)
         signed_tx = signed['hex']

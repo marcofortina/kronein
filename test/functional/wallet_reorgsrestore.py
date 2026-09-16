@@ -171,8 +171,8 @@ class ReorgsRestoreTest(BitcoinTestFramework):
         # Create a conflicted tx broadcast on node0 chain and conflicting tx broadcast on node1 chain. Both spend from txid_conflict_from
         outputs_1[self.nodes[0].getnewaddress()] = Decimal("9.99998")
         outputs_2[self.nodes[0].getnewaddress()] = Decimal("9.99998")
-        conflicted = self.nodes[0].signrawtransactionwithwallet(self.nodes[0].createrawtransaction(inputs, outputs_1))
-        conflicting = self.nodes[0].signrawtransactionwithwallet(self.nodes[0].createrawtransaction(inputs, outputs_2))
+        conflicted = self.nodes[0].signrawtransactionwithwallet(self.nodes[0].createrawtransaction(inputs, [{key: value} for key, value in outputs_1.items()]))
+        conflicting = self.nodes[0].signrawtransactionwithwallet(self.nodes[0].createrawtransaction(inputs, [{key: value} for key, value in outputs_2.items()]))
 
         conflicted_txid = self.nodes[0].sendrawtransaction(conflicted["hex"])
         self.generate(self.nodes[0], 1, sync_fun=self.no_op)

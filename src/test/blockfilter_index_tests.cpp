@@ -165,8 +165,8 @@ BOOST_FIXTURE_TEST_CASE(blockfilter_index_initial_sync, BuildChainTestingSetup)
     }
     CKey coinbase_key_A = GenerateRandomKey();
     CKey coinbase_key_B = GenerateRandomKey();
-    CScript coinbase_script_pub_key_A = GetScriptForDestination(PKHash(coinbase_key_A.GetPubKey()));
-    CScript coinbase_script_pub_key_B = GetScriptForDestination(PKHash(coinbase_key_B.GetPubKey()));
+    CScript coinbase_script_pub_key_A = GetScriptForDestination(WitnessV1Taproot{XOnlyPubKey{coinbase_key_A.GetPubKey()}});
+    CScript coinbase_script_pub_key_B = GetScriptForDestination(WitnessV1Taproot{XOnlyPubKey{coinbase_key_B.GetPubKey()}});
     std::vector<std::shared_ptr<CBlock>> chainA, chainB;
     BOOST_REQUIRE(BuildChain(tip, coinbase_script_pub_key_A, 10, chainA));
     BOOST_REQUIRE(BuildChain(tip, coinbase_script_pub_key_B, 10, chainB));
@@ -371,7 +371,8 @@ BOOST_FIXTURE_TEST_CASE(index_reorg_crash, BuildChainTestingSetup)
     // Create a fork to trigger the reorg
     std::vector<std::shared_ptr<CBlock>> fork;
     const CBlockIndex* prev_tip = WITH_LOCK(cs_main, return m_node.chainman->ActiveChain().Tip()->pprev);
-    BOOST_REQUIRE(BuildChain(prev_tip, GetScriptForDestination(PKHash(GenerateRandomKey().GetPubKey())), 3, fork));
+    const CKey fork_key{GenerateRandomKey()};
+    BOOST_REQUIRE(BuildChain(prev_tip, GetScriptForDestination(WitnessV1Taproot{XOnlyPubKey{fork_key.GetPubKey()}}), 3, fork));
 
     for (const auto& block : fork) {
         BOOST_REQUIRE(m_node.chainman->ProcessNewBlock(block, /*force_processing=*/true, /*min_pow_checked=*/true, nullptr));

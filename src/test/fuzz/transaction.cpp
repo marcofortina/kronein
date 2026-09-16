@@ -10,7 +10,6 @@
 #include <core_io.h>
 #include <core_memusage.h>
 #include <policy/policy.h>
-#include <policy/settings.h>
 #include <primitives/transaction.h>
 #include <streams.h>
 #include <test/fuzz/fuzz.h>
@@ -60,11 +59,7 @@ FUZZ_TARGET(transaction, .init = initialize_transaction)
 
     const CFeeRate dust_relay_fee{DUST_RELAY_TX_FEE};
     std::string reason;
-    const bool is_standard_with_permit_bare_multisig = IsStandardTx(tx, std::nullopt, /* permit_bare_multisig= */ true, dust_relay_fee, reason);
-    const bool is_standard_without_permit_bare_multisig = IsStandardTx(tx, std::nullopt, /* permit_bare_multisig= */ false, dust_relay_fee, reason);
-    if (is_standard_without_permit_bare_multisig) {
-        assert(is_standard_with_permit_bare_multisig);
-    }
+    (void)IsStandardTx(tx, std::nullopt, dust_relay_fee, reason);
 
     (void)tx.GetHash();
     (void)tx.ComputeTotalSize();

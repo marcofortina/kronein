@@ -8,6 +8,7 @@
 
 #include <consensus/amount.h>
 #include <consensus/consensus.h>
+#include <consensus/validation.h>
 #include <primitives/transaction.h>
 #include <script/interpreter.h>
 #include <script/solver.h>
@@ -37,28 +38,15 @@ static constexpr unsigned int DEFAULT_BLOCK_MIN_TX_FEE{1};
 static constexpr int32_t MAX_STANDARD_TX_WEIGHT{400000};
 /** The minimum non-witness size for transactions we're willing to relay/mine: one larger than 64  */
 static constexpr unsigned int MIN_STANDARD_TX_NONWITNESS_SIZE{65};
-/** Maximum number of signature check operations in an IsStandard() P2SH script */
-static constexpr unsigned int MAX_P2SH_SIGOPS{15};
 /** The maximum number of sigops we're willing to relay/mine in a single tx */
 static constexpr unsigned int MAX_STANDARD_TX_SIGOPS_COST{MAX_BLOCK_SIGOPS_COST/5};
-/** The maximum number of potentially executed legacy signature operations in a single standard tx */
-static constexpr unsigned int MAX_TX_LEGACY_SIGOPS{2'500};
 /** Default for -incrementalrelayfee, which sets the minimum feerate increase for mempool limiting or replacement **/
 static constexpr unsigned int DEFAULT_INCREMENTAL_RELAY_FEE{100};
-/** Default for -bytespersigop */
-static constexpr unsigned int DEFAULT_BYTES_PER_SIGOP{20};
-/** Default for -permitbaremultisig */
-static constexpr bool DEFAULT_PERMIT_BAREMULTISIG{true};
-/** The maximum number of witness stack items in a standard P2WSH script */
+/** Limits retained for parsing Miniscript descriptors. Witness-v0 outputs are not native chain outputs. */
 static constexpr unsigned int MAX_STANDARD_P2WSH_STACK_ITEMS{100};
-/** The maximum size in bytes of each witness stack item in a standard P2WSH script */
-static constexpr unsigned int MAX_STANDARD_P2WSH_STACK_ITEM_SIZE{80};
+static constexpr unsigned int MAX_STANDARD_P2WSH_SCRIPT_SIZE{3600};
 /** The maximum size in bytes of each witness stack item in a standard BIP 342 script (Taproot, leaf version 0xc0) */
 static constexpr unsigned int MAX_STANDARD_TAPSCRIPT_STACK_ITEM_SIZE{80};
-/** The maximum size in bytes of a standard witnessScript */
-static constexpr unsigned int MAX_STANDARD_P2WSH_SCRIPT_SIZE{3600};
-/** The maximum size of a standard ScriptSig */
-static constexpr unsigned int MAX_STANDARD_SCRIPTSIG_SIZE{1650};
 /** Min feerate for defining dust.
  * Changing the dust limit changes which transactions are
  * standard and should be done with care and ideally rarely. It makes sense to
@@ -106,10 +94,7 @@ static constexpr script_verify_flags MANDATORY_SCRIPT_VERIFY_FLAGS{SCRIPT_VERIFY
                                                              SCRIPT_VERIFY_TAPROOT};
 
 /**
- * Standard script verification flags that standard transactions will comply
- * with. However we do not ban/disconnect nodes that forward txs violating
- * the additional (non-mandatory) rules here, to improve forwards and
- * backwards compatibility.
+ * Standard script verification flags that relayed transactions must comply with.
  */
 static constexpr script_verify_flags STANDARD_SCRIPT_VERIFY_FLAGS{MANDATORY_SCRIPT_VERIFY_FLAGS |
                                                              SCRIPT_VERIFY_STRICTENC |
@@ -145,7 +130,7 @@ std::vector<uint32_t> GetDust(const CTransaction& tx, CFeeRate dust_relay_rate);
 * Check for standard transaction types
 * @return True if all outputs (scriptPubKeys) use only standard transaction forms
 */
-bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_datacarrier_bytes, bool permit_bare_multisig, const CFeeRate& dust_relay_fee, std::string& reason);
+bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_datacarrier_bytes, const CFeeRate& dust_relay_fee, std::string& reason);
 /**
 * Check for standard transaction types
 * @param[in] mapInputs       Map of previous transactions that have outputs we're spending
@@ -153,11 +138,7 @@ bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_dat
 */
 bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs);
 /**
-* Check if the transaction is over standard P2WSH resources limit:
-* 3600bytes witnessScript size, 80bytes per witness stack element, 100 witness stack elements
-* These limits are adequate for multisignatures up to n-of-100 using OP_CHECKSIG, OP_ADD, and OP_EQUAL.
-*
-* Also enforce a maximum stack item size limit and no annexes for tapscript spends.
+ * Enforce the Taproot stack-item size limit and disallow annexes.
 */
 bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs);
 /**
@@ -167,21 +148,17 @@ bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
 bool SpendsNonAnchorWitnessProg(const CTransaction& tx, const CCoinsViewCache& prevouts);
 
 /** Compute the virtual transaction size (weight reinterpreted as bytes). */
-int64_t GetVirtualTransactionSize(int64_t nWeight, int64_t nSigOpCost, unsigned int bytes_per_sigop);
-int64_t GetVirtualTransactionSize(const CTransaction& tx, int64_t nSigOpCost, unsigned int bytes_per_sigop);
-int64_t GetVirtualTransactionInputSize(const CTxIn& tx, int64_t nSigOpCost, unsigned int bytes_per_sigop);
+int64_t GetVirtualTransactionSize(int64_t weight);
 
 static inline int64_t GetVirtualTransactionSize(const CTransaction& tx)
 {
-    return GetVirtualTransactionSize(tx, 0, 0);
+    return GetVirtualTransactionSize(GetTransactionWeight(tx));
 }
 
 static inline int64_t GetVirtualTransactionInputSize(const CTxIn& tx)
 {
-    return GetVirtualTransactionInputSize(tx, 0, 0);
+    return GetVirtualTransactionSize(GetTransactionInputWeight(tx));
 }
-
-int64_t GetSigOpsAdjustedWeight(int64_t weight, int64_t sigop_cost, unsigned int bytes_per_sigop);
 
 static inline FeePerVSize ToFeePerVSize(FeePerWeight feerate) { return {feerate.fee, (feerate.size + WITNESS_SCALE_FACTOR - 1) / WITNESS_SCALE_FACTOR}; }
 

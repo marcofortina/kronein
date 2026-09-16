@@ -122,6 +122,13 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock()
 {
     const auto time_start{SteadyClock::now()};
 
+    int witness_version;
+    std::vector<unsigned char> witness_program;
+    if (!m_options.coinbase_output_script.IsWitnessProgram(witness_version, witness_program) ||
+        witness_version != 1 || witness_program.size() != WITNESS_V1_TAPROOT_SIZE) {
+        throw std::runtime_error("Coinbase payout must be Taproot");
+    }
+
     resetBlock();
 
     pblocktemplate.reset(new CBlockTemplate());

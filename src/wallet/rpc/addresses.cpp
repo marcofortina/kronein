@@ -236,114 +236,6 @@ RPCHelpMan keypoolrefill()
     };
 }
 
-class DescribeWalletAddressVisitor
-{
-public:
-    const SigningProvider * const provider;
-
-    // NOLINTNEXTLINE(misc-no-recursion)
-    void ProcessSubScript(const CScript& subscript, UniValue& obj) const
-    {
-        // Always present: script type and redeemscript
-        std::vector<std::vector<unsigned char>> solutions_data;
-        TxoutType which_type = Solver(subscript, solutions_data);
-        obj.pushKV("script", GetTxnOutputType(which_type));
-        obj.pushKV("hex", HexStr(subscript));
-
-        CTxDestination embedded;
-        if (ExtractDestination(subscript, embedded)) {
-            // Only when the script corresponds to an address.
-            UniValue subobj(UniValue::VOBJ);
-            UniValue detail = DescribeAddress(embedded);
-            subobj.pushKVs(std::move(detail));
-            UniValue wallet_detail = std::visit(*this, embedded);
-            subobj.pushKVs(std::move(wallet_detail));
-            subobj.pushKV("address", EncodeDestination(embedded));
-            subobj.pushKV("scriptPubKey", HexStr(subscript));
-            // Always report the pubkey at the top level, so that `getnewaddress()['pubkey']` always works.
-            if (subobj.exists("pubkey")) obj.pushKV("pubkey", subobj["pubkey"]);
-            obj.pushKV("embedded", std::move(subobj));
-        } else if (which_type == TxoutType::MULTISIG) {
-            // Also report some information on multisig scripts (which do not have a corresponding address).
-            obj.pushKV("sigsrequired", solutions_data[0][0]);
-            UniValue pubkeys(UniValue::VARR);
-            for (size_t i = 1; i < solutions_data.size() - 1; ++i) {
-                CPubKey key(solutions_data[i].begin(), solutions_data[i].end());
-                pubkeys.push_back(HexStr(key));
-            }
-            obj.pushKV("pubkeys", std::move(pubkeys));
-        }
-    }
-
-    explicit DescribeWalletAddressVisitor(const SigningProvider* _provider) : provider(_provider) {}
-
-    UniValue operator()(const CNoDestination& dest) const { return UniValue(UniValue::VOBJ); }
-    UniValue operator()(const PubKeyDestination& dest) const { return UniValue(UniValue::VOBJ); }
-
-    UniValue operator()(const PKHash& pkhash) const
-    {
-        CKeyID keyID{ToKeyID(pkhash)};
-        UniValue obj(UniValue::VOBJ);
-        CPubKey vchPubKey;
-        if (provider && provider->GetPubKey(keyID, vchPubKey)) {
-            obj.pushKV("pubkey", HexStr(vchPubKey));
-            obj.pushKV("iscompressed", vchPubKey.IsCompressed());
-        }
-        return obj;
-    }
-
-    // NOLINTNEXTLINE(misc-no-recursion)
-    UniValue operator()(const ScriptHash& scripthash) const
-    {
-        UniValue obj(UniValue::VOBJ);
-        CScript subscript;
-        if (provider && provider->GetCScript(ToScriptID(scripthash), subscript)) {
-            ProcessSubScript(subscript, obj);
-        }
-        return obj;
-    }
-
-    UniValue operator()(const WitnessV0KeyHash& id) const
-    {
-        UniValue obj(UniValue::VOBJ);
-        CPubKey pubkey;
-        if (provider && provider->GetPubKey(ToKeyID(id), pubkey)) {
-            obj.pushKV("pubkey", HexStr(pubkey));
-        }
-        return obj;
-    }
-
-    // NOLINTNEXTLINE(misc-no-recursion)
-    UniValue operator()(const WitnessV0ScriptHash& id) const
-    {
-        UniValue obj(UniValue::VOBJ);
-        CScript subscript;
-        CRIPEMD160 hasher;
-        uint160 hash;
-        hasher.Write(id.begin(), 32).Finalize(hash.begin());
-        if (provider && provider->GetCScript(CScriptID(hash), subscript)) {
-            ProcessSubScript(subscript, obj);
-        }
-        return obj;
-    }
-
-    UniValue operator()(const WitnessV1Taproot& id) const { return UniValue(UniValue::VOBJ); }
-    UniValue operator()(const PayToAnchor& id) const { return UniValue(UniValue::VOBJ); }
-    UniValue operator()(const WitnessUnknown& id) const { return UniValue(UniValue::VOBJ); }
-};
-
-static UniValue DescribeWalletAddress(const CWallet& wallet, const CTxDestination& dest)
-{
-    UniValue ret(UniValue::VOBJ);
-    UniValue detail = DescribeAddress(dest);
-    CScript script = GetScriptForDestination(dest);
-    std::unique_ptr<SigningProvider> provider = nullptr;
-    provider = wallet.GetSolvingProvider(script);
-    ret.pushKVs(std::move(detail));
-    ret.pushKVs(std::visit(DescribeWalletAddressVisitor(provider.get()), dest));
-    return ret;
-}
-
 RPCHelpMan getaddressinfo()
 {
     return RPCHelpMan{
@@ -367,22 +259,6 @@ RPCHelpMan getaddressinfo()
                         {RPCResult::Type::BOOL, "iswitness", "If the address is a witness address."},
                         {RPCResult::Type::NUM, "witness_version", /*optional=*/true, "The version number of the witness program."},
                         {RPCResult::Type::STR_HEX, "witness_program", /*optional=*/true, "The hex value of the witness program."},
-                        {RPCResult::Type::STR, "script", /*optional=*/true, "The output script type. Only if isscript is true and the redeemscript is known. Possible\n"
-                                                                     "types: nonstandard, pubkey, pubkeyhash, scripthash, multisig, nulldata, witness_v0_keyhash,\n"
-                            "witness_v0_scripthash, witness_unknown."},
-                        {RPCResult::Type::STR_HEX, "hex", /*optional=*/true, "The redeemscript for the p2sh address."},
-                        {RPCResult::Type::ARR, "pubkeys", /*optional=*/true, "Array of pubkeys associated with the known redeemscript (only if script is multisig).",
-                        {
-                            {RPCResult::Type::STR, "pubkey", ""},
-                        }},
-                        {RPCResult::Type::NUM, "sigsrequired", /*optional=*/true, "The number of signatures required to spend multisig output (only if script is multisig)."},
-                        {RPCResult::Type::STR_HEX, "pubkey", /*optional=*/true, "The hex value of the raw public key for single-key addresses (possibly embedded in P2SH or P2WSH)."},
-                        {RPCResult::Type::OBJ, "embedded", /*optional=*/true, "Information about the address embedded in P2SH or P2WSH, if relevant and known.",
-                        {
-                            {RPCResult::Type::ELISION, "", "Includes all getaddressinfo output fields for the embedded address, excluding metadata (timestamp, hdkeypath, hdmasterfingerprint)\n"
-                            "and relation to the wallet (ismine)."},
-                        }},
-                        {RPCResult::Type::BOOL, "iscompressed", /*optional=*/true, "If the pubkey is compressed."},
                         {RPCResult::Type::NUM_TIME, "timestamp", /*optional=*/true, "The creation time of the key, if available, expressed in " + UNIX_EPOCH_TIME + "."},
                         {RPCResult::Type::STR, "hdkeypath", /*optional=*/true, "The HD keypath, if the key is HD and available."},
                         {RPCResult::Type::STR_HEX, "hdmasterfingerprint", /*optional=*/true, "The fingerprint of the master key."},
@@ -452,7 +328,7 @@ RPCHelpMan getaddressinfo()
         }
     }
 
-    UniValue detail = DescribeWalletAddress(*pwallet, dest);
+    UniValue detail = DescribeAddress(dest);
     ret.pushKVs(std::move(detail));
 
     ret.pushKV("ischange", ScriptIsChange(*pwallet, scriptPubKey));

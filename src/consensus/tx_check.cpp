@@ -7,6 +7,37 @@
 #include <consensus/amount.h>
 #include <primitives/transaction.h>
 #include <consensus/validation.h>
+#include <script/interpreter.h>
+#include <script/script.h>
+
+bool IsNativeOutputScript(const CScript& script_pub_key)
+{
+    if (script_pub_key.IsUnspendable() || script_pub_key.IsPayToAnchor()) return true;
+
+    int witness_version;
+    std::vector<unsigned char> witness_program;
+    return script_pub_key.IsWitnessProgram(witness_version, witness_program) &&
+           witness_version == 1 && witness_program.size() == WITNESS_V1_TAPROOT_SIZE;
+}
+
+bool CheckNativeTransaction(const CTransaction& tx, TxValidationState& state)
+{
+    if (!tx.IsCoinBase()) {
+        for (const auto& txin : tx.vin) {
+            if (!txin.scriptSig.empty()) {
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-scriptsig-not-empty");
+            }
+        }
+    }
+
+    for (const auto& txout : tx.vout) {
+        if (!IsNativeOutputScript(txout.scriptPubKey)) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-non-native-output");
+        }
+    }
+
+    return true;
+}
 
 bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
 {

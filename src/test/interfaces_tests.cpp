@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <addresstype.h>
 #include <chainparams.h>
 #include <consensus/validation.h>
 #include <interfaces/chain.h>
@@ -108,7 +109,7 @@ BOOST_AUTO_TEST_CASE(findCommonAncestor)
     BOOST_CHECK_EQUAL(active.Height(), orig_tip->nHeight - 10);
     coinbaseKey.MakeNewKey(true);
     for (int i = 0; i < 20; ++i) {
-        CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+        CreateAndProcessBlock({}, GetScriptForDestination(WitnessV1Taproot{XOnlyPubKey{coinbaseKey.GetPubKey()}}));
     }
     BOOST_CHECK_EQUAL(active.Height(), orig_tip->nHeight + 10);
     uint256 fork_hash;

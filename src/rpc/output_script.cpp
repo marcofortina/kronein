@@ -4,6 +4,8 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <key_io.h>
+#include <consensus/tx_check.h>
+#include <outputtype.h>
 #include <rpc/protocol.h>
 #include <rpc/request.h>
 #include <rpc/server.h>
@@ -15,6 +17,7 @@
 #include <util/check.h>
 #include <util/strencodings.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -22,6 +25,30 @@
 #include <string_view>
 #include <tuple>
 #include <vector>
+
+namespace {
+
+bool IsNativeDescriptor(const Descriptor& descriptor, const FlatSigningProvider& provider)
+{
+    FlatSigningProvider expanded_provider;
+    std::vector<CScript> scripts;
+    if (descriptor.Expand(/*pos=*/0, provider, scripts, expanded_provider)) {
+        return std::ranges::all_of(scripts, IsNativeOutputScript);
+    }
+
+    // A ranged Taproot descriptor can require private keys to derive a hardened
+    // child at position zero. Its outer output type is nevertheless definitive.
+    return descriptor.GetOutputType() == OutputType::BECH32M;
+}
+
+void EnsureNativeDescriptors(const std::vector<std::unique_ptr<Descriptor>>& descriptors, const FlatSigningProvider& provider)
+{
+    if (!std::ranges::all_of(descriptors, [&](const auto& descriptor) { return IsNativeDescriptor(*descriptor, provider); })) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Descriptor produces a non-native output");
+    }
+}
+
+} // namespace
 
 static RPCHelpMan validateaddress()
 {
@@ -120,6 +147,7 @@ static RPCHelpMan getdescriptorinfo()
             if (descs.empty()) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, error);
             }
+            EnsureNativeDescriptors(descs, provider);
 
             UniValue result(UniValue::VOBJ);
             result.pushKV("descriptor", descs.at(0)->ToString());
@@ -237,6 +265,7 @@ static RPCHelpMan deriveaddresses()
             if (descs.empty()) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, error);
             }
+            EnsureNativeDescriptors(descs, key_provider);
             auto& desc = descs.at(0);
             if (!desc->IsRange() && request.params.size() > 1) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Range should not be specified for an un-ranged descriptor");

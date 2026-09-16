@@ -37,12 +37,11 @@ from .script import (
     CScriptOp,
     OP_0,
     OP_RETURN,
-    OP_TRUE,
 )
 from .script_util import (
-    key_to_p2pk_script,
     key_to_p2wpkh_script,
     keys_to_multisig_script,
+    output_key_to_p2tr_script,
     script_to_p2wsh_script,
 )
 from .util import assert_equal
@@ -73,6 +72,7 @@ REGTEST_RETARGET_PERIOD = 150
 
 REGTEST_N_BITS = 0x207fffff  # difficulty retargeting is disabled in REGTEST chainparams"
 REGTEST_TARGET = 0x7fffff0000000000000000000000000000000000000000000000000000000000
+NATIVE_DUMMY_KEY = bytes.fromhex("50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0")
 assert_equal(uint256_from_compact(REGTEST_N_BITS), REGTEST_TARGET)
 
 DIFF_1_N_BITS = 0x1d00ffff
@@ -172,8 +172,8 @@ def script_BIP34_coinbase_height(height):
 def create_coinbase(height, pubkey=None, *, script_pubkey=None, extra_output_script=None, fees=0, nValue=50, halving_period=REGTEST_RETARGET_PERIOD):
     """Create a coinbase transaction.
 
-    If pubkey is passed in, the coinbase output will be a P2PK output;
-    otherwise an anyone-can-spend output.
+    If pubkey is passed in, its x-only form is used for a Taproot output;
+    otherwise a fixed Taproot output is used.
 
     If extra_output_script is given, make a 0-value output to that
     script. This is useful to pad block weight/sigops as needed. """
@@ -187,11 +187,11 @@ def create_coinbase(height, pubkey=None, *, script_pubkey=None, extra_output_scr
         coinbaseoutput.nValue >>= halvings
         coinbaseoutput.nValue += fees
     if pubkey is not None:
-        coinbaseoutput.scriptPubKey = key_to_p2pk_script(pubkey)
+        coinbaseoutput.scriptPubKey = output_key_to_p2tr_script(pubkey[1:])
     elif script_pubkey is not None:
         coinbaseoutput.scriptPubKey = script_pubkey
     else:
-        coinbaseoutput.scriptPubKey = CScript([OP_TRUE])
+        coinbaseoutput.scriptPubKey = output_key_to_p2tr_script(NATIVE_DUMMY_KEY)
     coinbase.vout = [coinbaseoutput]
     if extra_output_script is not None:
         coinbaseoutput2 = CTxOut()
@@ -255,7 +255,7 @@ def create_witness_tx(node, use_p2wsh, utxo, pubkey, encode_p2sh, amount):
         addr = key_to_p2sh_p2wpkh(pubkey) if encode_p2sh else key_to_p2wpkh(pubkey)
     if not encode_p2sh:
         assert_equal(address_to_scriptpubkey(addr).hex(), witness_script(use_p2wsh, pubkey))
-    return node.createrawtransaction([utxo], {addr: amount})
+    return node.createrawtransaction([utxo], [{addr: amount}])
 
 def send_to_witness(use_p2wsh, node, utxo, pubkey, encode_p2sh, amount, sign=True, insert_redeem_script=""):
     """Create a transaction spending a given utxo to a segwit output.

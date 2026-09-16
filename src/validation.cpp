@@ -34,7 +34,6 @@
 #include <policy/ephemeral_policy.h>
 #include <policy/policy.h>
 #include <policy/rbf.h>
-#include <policy/settings.h>
 #include <pow.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
@@ -789,9 +788,13 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     if (tx.IsCoinBase())
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "coinbase");
 
+    if (!CheckNativeTransaction(tx, state)) {
+        return false;
+    }
+
     // Rather not work on nonstandard transactions (unless -testnet/-regtest)
     std::string reason;
-    if (m_pool.m_opts.require_standard && !IsStandardTx(tx, m_pool.m_opts.max_datacarrier_bytes, m_pool.m_opts.permit_bare_multisig, m_pool.m_opts.dust_relay_feerate, reason)) {
+    if (m_pool.m_opts.require_standard && !IsStandardTx(tx, m_pool.m_opts.max_datacarrier_bytes, m_pool.m_opts.dust_relay_feerate, reason)) {
         return state.Invalid(TxValidationResult::TX_NOT_STANDARD, reason);
     }
 
@@ -3798,9 +3801,10 @@ bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensu
 
     // Check transactions
     // Must check for duplicate inputs (see CVE-2018-17144)
+    const bool is_genesis{block.GetHash() == consensusParams.hashGenesisBlock};
     for (const auto& tx : block.vtx) {
         TxValidationState tx_state;
-        if (!CheckTransaction(*tx, tx_state)) {
+        if (!CheckTransaction(*tx, tx_state) || (!is_genesis && !CheckNativeTransaction(*tx, tx_state))) {
             // CheckBlock() does context-free validation checks. The only
             // possible failures are consensus failures.
             assert(tx_state.GetResult() == TxValidationResult::TX_CONSENSUS);

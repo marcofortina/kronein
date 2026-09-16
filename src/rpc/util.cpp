@@ -7,6 +7,7 @@
 #include <common/messages.h>
 #include <common/types.h>
 #include <consensus/amount.h>
+#include <consensus/tx_check.h>
 #include <core_io.h>
 #include <key_io.h>
 #include <node/types.h>
@@ -1319,6 +1320,9 @@ std::vector<CScript> EvalDescriptorStringOrObject(const UniValue& scanobject, Fl
             std::vector<CScript> scripts;
             if (!desc->Expand(i, provider, scripts, provider)) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, strprintf("Cannot derive script without private keys: '%s'", desc_str));
+            }
+            if (!std::ranges::all_of(scripts, IsNativeOutputScript)) {
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Descriptor produces a non-native output");
             }
             if (expand_priv) {
                 desc->ExpandPrivate(/*pos=*/i, provider, /*out=*/provider);

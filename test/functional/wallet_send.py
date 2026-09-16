@@ -109,11 +109,11 @@ class WalletSendTest(BitcoinTestFramework):
             expect_sign = expect_sign and all(["weight" not in i for i in inputs])
 
         if expect_error is None:
-            res = from_wallet.send(outputs=outputs, conf_target=arg_conf_target, estimate_mode=arg_estimate_mode, fee_rate=arg_fee_rate, options=options)
+            res = from_wallet.send(outputs=[{key: value} for key, value in outputs.items()], conf_target=arg_conf_target, estimate_mode=arg_estimate_mode, fee_rate=arg_fee_rate, options=options)
         else:
             try:
                 assert_raises_rpc_error(expect_error[0], expect_error[1], from_wallet.send,
-                    outputs=outputs, conf_target=arg_conf_target, estimate_mode=arg_estimate_mode, fee_rate=arg_fee_rate, options=options)
+                    outputs=[{key: value} for key, value in outputs.items()], conf_target=arg_conf_target, estimate_mode=arg_estimate_mode, fee_rate=arg_fee_rate, options=options)
             except AssertionError:
                 # Provide debug info if the test fails
                 self.log.error("Unexpected successful result:")
@@ -121,7 +121,7 @@ class WalletSendTest(BitcoinTestFramework):
                 self.log.error(arg_estimate_mode)
                 self.log.error(arg_fee_rate)
                 self.log.error(options)
-                res = from_wallet.send(outputs=outputs, conf_target=arg_conf_target, estimate_mode=arg_estimate_mode, fee_rate=arg_fee_rate, options=options)
+                res = from_wallet.send(outputs=[{key: value} for key, value in outputs.items()], conf_target=arg_conf_target, estimate_mode=arg_estimate_mode, fee_rate=arg_fee_rate, options=options)
                 self.log.error(res)
                 if "txid" in res and add_to_wallet:
                     self.log.error("Transaction details:")
@@ -298,9 +298,9 @@ class WalletSendTest(BitcoinTestFramework):
         self.test_send(from_wallet=w0, to_wallet=w1, amount=1, arg_fee_rate=1, fee_rate=1, add_to_wallet=False,
                        expect_error=(-8, "Pass the fee_rate either as an argument, or in the options object, but not both"))
 
-        assert_raises_rpc_error(-8, "Use fee_rate (sat/vB) instead of feeRate", w0.send, {w1.getnewaddress(): 1}, 6, "conservative", 1, {"feeRate": 0.01})
+        assert_raises_rpc_error(-8, "Use fee_rate (sat/vB) instead of feeRate", w0.send, [{w1.getnewaddress(): 1}], 6, "conservative", 1, {"feeRate": 0.01})
 
-        assert_raises_rpc_error(-3, "Unexpected key totalFee", w0.send, {w1.getnewaddress(): 1}, 6, "conservative", 1, {"totalFee": 0.01})
+        assert_raises_rpc_error(-3, "Unexpected key totalFee", w0.send, [{w1.getnewaddress(): 1}], 6, "conservative", 1, {"totalFee": 0.01})
 
         for target, mode in product([-1, 0, 1009], ["economical", "conservative"]):
             self.test_send(from_wallet=w0, to_wallet=w1, amount=1, conf_target=target, estimate_mode=mode,
@@ -311,7 +311,7 @@ class WalletSendTest(BitcoinTestFramework):
         for mode in ["", "foo", Decimal("3.141592")]:
             self.test_send(from_wallet=w0, to_wallet=w1, amount=1, conf_target=0.1, estimate_mode=mode, expect_error=(-8, msg))
             self.test_send(from_wallet=w0, to_wallet=w1, amount=1, arg_conf_target=0.1, arg_estimate_mode=mode, expect_error=(-8, msg))
-            assert_raises_rpc_error(-8, msg, w0.send, {w1.getnewaddress(): 1}, 0.1, mode)
+            assert_raises_rpc_error(-8, msg, w0.send, [{w1.getnewaddress(): 1}], 0.1, mode)
 
         for mode in ["economical", "conservative"]:
             for k, v in {"string": "true", "bool": True, "object": {"foo": "bar"}}.items():

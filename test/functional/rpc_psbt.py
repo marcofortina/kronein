@@ -154,7 +154,7 @@ class PSBTTest(BitcoinTestFramework):
 
         self.log.info("Crafting PSBT using an unconfirmed input")
         target_address = self.nodes[1].getnewaddress()
-        psbtx1 = wallet.walletcreatefundedpsbt([], {target_address: 0.1}, 0, {'fee_rate': 1, 'maxconf': 0})['psbt']
+        psbtx1 = wallet.walletcreatefundedpsbt([], [{target_address: 0.1}], 0, {'fee_rate': 1, 'maxconf': 0})['psbt']
 
         # Make sure we only had the one input
         tx1_inputs = self.nodes[0].decodepsbt(psbtx1)['tx']['vin']
@@ -170,18 +170,18 @@ class PSBTTest(BitcoinTestFramework):
         assert txid1 in mempool
 
         self.log.info("Fail to craft a new PSBT that sends more funds with add_inputs = False")
-        assert_raises_rpc_error(-4, "The preselected coins total amount does not cover the transaction target. Please allow other inputs to be automatically selected or include more coins manually", wallet.walletcreatefundedpsbt, [{'txid': utxo1['txid'], 'vout': utxo1['vout']}], {target_address: 1}, 0, {'add_inputs': False})
+        assert_raises_rpc_error(-4, "The preselected coins total amount does not cover the transaction target. Please allow other inputs to be automatically selected or include more coins manually", wallet.walletcreatefundedpsbt, [{'txid': utxo1['txid'], 'vout': utxo1['vout']}], [{target_address: 1}], 0, {'add_inputs': False})
 
         self.log.info("Fail to craft a new PSBT with minconf above highest one")
-        assert_raises_rpc_error(-4, "Insufficient funds", wallet.walletcreatefundedpsbt, [{'txid': utxo1['txid'], 'vout': utxo1['vout']}], {target_address: 1}, 0, {'add_inputs': True, 'minconf': 3, 'fee_rate': 10})
+        assert_raises_rpc_error(-4, "Insufficient funds", wallet.walletcreatefundedpsbt, [{'txid': utxo1['txid'], 'vout': utxo1['vout']}], [{target_address: 1}], 0, {'add_inputs': True, 'minconf': 3, 'fee_rate': 10})
 
         self.log.info("Fail to broadcast a new PSBT with maxconf 0 due to BIP125 rules to verify it actually chose unconfirmed outputs")
-        psbt_invalid = wallet.walletcreatefundedpsbt([{'txid': utxo1['txid'], 'vout': utxo1['vout']}], {target_address: 1}, 0, {'add_inputs': True, 'maxconf': 0, 'fee_rate': 10})['psbt']
+        psbt_invalid = wallet.walletcreatefundedpsbt([{'txid': utxo1['txid'], 'vout': utxo1['vout']}], [{target_address: 1}], 0, {'add_inputs': True, 'maxconf': 0, 'fee_rate': 10})['psbt']
         signed_invalid = wallet.walletprocesspsbt(psbt_invalid)
         assert_raises_rpc_error(-26, "bad-txns-spends-conflicting-tx", self.nodes[0].sendrawtransaction, signed_invalid['hex'])
 
         self.log.info("Craft a replacement adding inputs with highest confs possible")
-        psbtx2 = wallet.walletcreatefundedpsbt([{'txid': utxo1['txid'], 'vout': utxo1['vout']}], {target_address: 1}, 0, {'add_inputs': True, 'minconf': 2, 'fee_rate': 10})['psbt']
+        psbtx2 = wallet.walletcreatefundedpsbt([{'txid': utxo1['txid'], 'vout': utxo1['vout']}], [{target_address: 1}], 0, {'add_inputs': True, 'minconf': 2, 'fee_rate': 10})['psbt']
         tx2_inputs = self.nodes[0].decodepsbt(psbtx2)['tx']['vin']
         assert_greater_than_or_equal(len(tx2_inputs), 2)
         for vin in tx2_inputs:
@@ -396,7 +396,7 @@ class PSBTTest(BitcoinTestFramework):
 
     def run_test(self):
         # Create and fund a raw tx for sending 10 BTC
-        psbtx1 = self.nodes[0].walletcreatefundedpsbt([], {self.nodes[2].getnewaddress():10})['psbt']
+        psbtx1 = self.nodes[0].walletcreatefundedpsbt([], [{self.nodes[2].getnewaddress():10}])['psbt']
 
         self.log.info("Test for invalid maximum transaction weights")
         dest_arg = [{self.nodes[0].getnewaddress(): 1}]
@@ -442,13 +442,13 @@ class PSBTTest(BitcoinTestFramework):
         utxo1 = self.nodes[0].listunspent()[0]
         assert_raises_rpc_error(-4, "The preselected coins total amount does not cover the transaction target. "
                                     "Please allow other inputs to be automatically selected or include more coins manually",
-                                self.nodes[0].walletcreatefundedpsbt, [{"txid": utxo1['txid'], "vout": utxo1['vout']}], {self.nodes[2].getnewaddress():90})
+                                self.nodes[0].walletcreatefundedpsbt, [{"txid": utxo1['txid'], "vout": utxo1['vout']}], [{self.nodes[2].getnewaddress():90}])
 
-        psbtx1 = self.nodes[0].walletcreatefundedpsbt([{"txid": utxo1['txid'], "vout": utxo1['vout']}], {self.nodes[2].getnewaddress():90}, 0, {"add_inputs": True})['psbt']
+        psbtx1 = self.nodes[0].walletcreatefundedpsbt([{"txid": utxo1['txid'], "vout": utxo1['vout']}], [{self.nodes[2].getnewaddress():90}], 0, {"add_inputs": True})['psbt']
         assert_equal(len(self.nodes[0].decodepsbt(psbtx1)['tx']['vin']), 2)
 
         # Inputs argument can be null
-        self.nodes[0].walletcreatefundedpsbt(None, {self.nodes[2].getnewaddress():10})
+        self.nodes[0].walletcreatefundedpsbt(None, [{self.nodes[2].getnewaddress():10}])
 
         # Node 1 should not be able to add anything to it but still return the psbtx same as before
         psbtx = self.nodes[1].walletprocesspsbt(psbtx1)['psbt']
@@ -483,20 +483,20 @@ class PSBTTest(BitcoinTestFramework):
         # Manually selected inputs can be locked:
         assert_equal(len(self.nodes[0].listlockunspent()), 0)
         utxo1 = self.nodes[0].listunspent()[0]
-        psbtx1 = self.nodes[0].walletcreatefundedpsbt([{"txid": utxo1['txid'], "vout": utxo1['vout']}], {self.nodes[2].getnewaddress():1}, 0,{"lockUnspents": True})["psbt"]
+        psbtx1 = self.nodes[0].walletcreatefundedpsbt([{"txid": utxo1['txid'], "vout": utxo1['vout']}], [{self.nodes[2].getnewaddress():1}], 0,{"lockUnspents": True})["psbt"]
         assert_equal(len(self.nodes[0].listlockunspent()), 1)
 
         # Locks are ignored for manually selected inputs
-        self.nodes[0].walletcreatefundedpsbt([{"txid": utxo1['txid'], "vout": utxo1['vout']}], {self.nodes[2].getnewaddress():1}, 0)
+        self.nodes[0].walletcreatefundedpsbt([{"txid": utxo1['txid'], "vout": utxo1['vout']}], [{self.nodes[2].getnewaddress():1}], 0)
 
         # Native Taproot PSBT behavior is covered by the remaining tests below.
 
         # check that walletprocesspsbt fails to decode a non-psbt
-        rawtx = self.nodes[1].createrawtransaction([], {self.nodes[1].getnewaddress(): 1})
+        rawtx = self.nodes[1].createrawtransaction([], [{self.nodes[1].getnewaddress(): 1}])
         assert_raises_rpc_error(-22, "TX decode failed", self.nodes[1].walletprocesspsbt, rawtx)
 
         # Convert a non-psbt to psbt and make sure we can decode it
-        rawtx = self.nodes[0].createrawtransaction([], {self.nodes[1].getnewaddress():10})
+        rawtx = self.nodes[0].createrawtransaction([], [{self.nodes[1].getnewaddress():10}])
         rawtx = self.nodes[0].fundrawtransaction(rawtx)
         new_psbt = self.nodes[0].converttopsbt(rawtx['hex'])
         self.nodes[0].decodepsbt(new_psbt)
@@ -523,7 +523,7 @@ class PSBTTest(BitcoinTestFramework):
         self.generate(self.nodes[0], 6)[0]
 
         # Create a psbt spending outputs from nodes 1 and 2
-        psbt_orig = self.nodes[0].createpsbt([utxo1, utxo2], {self.nodes[0].getnewaddress():25.999})
+        psbt_orig = self.nodes[0].createpsbt([utxo1, utxo2], [{self.nodes[0].getnewaddress():25.999}])
 
         # Update psbts, should only have data for one input and not the other
         psbt1 = self.nodes[1].walletprocesspsbt(psbt_orig, sign=False)['psbt']
@@ -737,7 +737,7 @@ class PSBTTest(BitcoinTestFramework):
         utxo = self.create_outpoints(self.nodes[0], outputs=[{address: 1}])[0]
         self.sync_all()
 
-        psbt = self.nodes[2].createpsbt([utxo], {self.nodes[0].getnewaddress(): 0.99999})
+        psbt = self.nodes[2].createpsbt([utxo], [{self.nodes[0].getnewaddress(): 0.99999}])
         decoded = self.nodes[2].decodepsbt(psbt)
         test_psbt_input_keys(decoded['inputs'][0], [])
 

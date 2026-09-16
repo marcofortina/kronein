@@ -177,7 +177,7 @@ BOOST_FIXTURE_TEST_CASE(handle_missing_inputs, TestChain100Setup)
     // Transactions with missing inputs are treated differently depending on how much we know about
     // their parents.
     CKey wallet_key = GenerateRandomKey();
-    CScript destination = GetScriptForDestination(PKHash(wallet_key.GetPubKey()));
+    CScript destination = GetScriptForDestination(WitnessV1Taproot{XOnlyPubKey{wallet_key.GetPubKey()}});
     // Amount for spending coinbase in a 1-in-1-out tx, at depth n, each time deducting 1000 from the amount as fees.
     CAmount amount_depth_1{50 * COIN - 1000};
     CAmount amount_depth_2{amount_depth_1 - 1000};

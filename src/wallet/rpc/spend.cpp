@@ -682,8 +682,7 @@ RPCHelpMan fundrawtransaction()
                 "or signrawtransactionwithwallet for that.\n"
                 "All existing inputs must either have their previous output transaction be in the wallet\n"
                 "or be in the UTXO set. Solving data must be provided for non-wallet inputs.\n"
-                "Note that all inputs selected must be of standard form and P2SH scripts must be\n"
-                "in the wallet using importdescriptors (to calculate fees).\n"
+                "All selected inputs must spend Taproot or pay-to-anchor outputs.\n"
                 "You can see whether this is the case by checking the \"solvable\" field in the listunspent output.\n"
                 "Note that if specifying an exact fee rate, the resulting transaction may have a higher fee rate\n"
                 "if the transaction has unconfirmed inputs. This is because the wallet will attempt to make the\n"
@@ -811,9 +810,7 @@ RPCHelpMan signrawtransactionwithwallet()
                                     {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The transaction id"},
                                     {"vout", RPCArg::Type::NUM, RPCArg::Optional::NO, "The output number"},
                                     {"scriptPubKey", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The output script"},
-                                    {"redeemScript", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "(required for P2SH) redeem script"},
-                                    {"witnessScript", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "(required for P2WSH or P2SH-P2WSH) witness script"},
-                                    {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "(required for Segwit inputs) the amount spent"},
+                                    {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "The amount spent (required for external Taproot inputs)"},
                                 },
                             },
                         },
@@ -1122,10 +1119,9 @@ RPCHelpMan send()
         {
             {"outputs", RPCArg::Type::ARR, RPCArg::Optional::NO, "The outputs specified as key-value pairs.\n"
                     "Each key may only appear once, i.e. there can only be one 'data' output, and no address may be duplicated.\n"
-                    "At least one output of either type must be specified.\n"
-                    "For convenience, a dictionary, which holds the key-value pairs directly, is also accepted.",
+                    "At least one output of either type must be specified.",
                 OutputsDoc(),
-                RPCArgOptions{.skip_type_check = true}},
+                },
             {"conf_target", RPCArg::Type::NUM, RPCArg::DefaultHint{"wallet -txconfirmtarget"}, "Confirmation target in blocks"},
             {"estimate_mode", RPCArg::Type::STR, RPCArg::Default{"unset"}, "The fee estimate mode, must be one of (case insensitive):\n"
               + FeeModesDetail(std::string("economical mode is used if the transaction is replaceable;\notherwise, conservative mode is used"))},
@@ -1603,11 +1599,9 @@ RPCHelpMan walletcreatefundedpsbt()
                         },
                     {"outputs", RPCArg::Type::ARR, RPCArg::Optional::NO, "The outputs specified as key-value pairs.\n"
                             "Each key may only appear once, i.e. there can only be one 'data' output, and no address may be duplicated.\n"
-                            "At least one output of either type must be specified.\n"
-                            "For compatibility reasons, a dictionary, which holds the key-value pairs directly, is also\n"
-                            "accepted as second parameter.",
+                            "At least one output of either type must be specified.",
                         OutputsDoc(),
-                        RPCArgOptions{.skip_type_check = true}},
+                        },
                     {"locktime", RPCArg::Type::NUM, RPCArg::Default{0}, "Raw locktime. Non-0 value also locktime-activates inputs"},
                     {"options", RPCArg::Type::OBJ_NAMED_PARAMS, RPCArg::Optional::OMITTED, "",
                         Cat<std::vector<RPCArg>>(

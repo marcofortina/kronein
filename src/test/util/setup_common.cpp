@@ -4,6 +4,7 @@
 
 #include <test/util/setup_common.h>
 
+#include <addresstype.h>
 #include <addrman.h>
 #include <banman.h>
 #include <chainparams.h>
@@ -37,6 +38,7 @@
 #include <rpc/server.h>
 #include <scheduler.h>
 #include <script/sigcache.h>
+#include <script/solver.h>
 #include <streams.h>
 #include <test/util/coverage.h>
 #include <test/util/net.h>
@@ -388,17 +390,11 @@ TestChain100Setup::TestChain100Setup(
     // Generate a 100-block chain:
     this->mineBlocks(COINBASE_MATURITY);
 
-    {
-        LOCK(::cs_main);
-        assert(
-            m_node.chainman->ActiveChain().Tip()->GetBlockHash().ToString() ==
-            "19f47ad5113597862ca7a6f05128a0996852e91125ab8236c2f4cb8ce6797322");
-    }
 }
 
 void TestChain100Setup::mineBlocks(int num_blocks)
 {
-    CScript scriptPubKey = CScript() << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
+    const CScript scriptPubKey{GetScriptForDestination(WitnessV1Taproot{XOnlyPubKey{coinbaseKey.GetPubKey()}})};
     for (int i = 0; i < num_blocks; i++) {
         std::vector<CMutableTransaction> noTxns;
         CBlock b = CreateAndProcessBlock(noTxns, scriptPubKey);

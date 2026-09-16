@@ -247,7 +247,7 @@ class ListSinceBlockTest(BitcoinTestFramework):
         }]
         txid1 = self.nodes[1].sendrawtransaction(
             self.nodes[1].signrawtransactionwithwallet(
-                self.nodes[1].createrawtransaction(utxo_dicts, recipient_dict))['hex'])
+                self.nodes[1].createrawtransaction(utxo_dicts, [{key: value} for key, value in recipient_dict.items()]))['hex'])
 
         # send from nodes[2] using utxo to nodes[3]
         recipient_dict2 = {
@@ -256,7 +256,7 @@ class ListSinceBlockTest(BitcoinTestFramework):
         }
         self.nodes[2].sendrawtransaction(
             self.nodes[2].signrawtransactionwithwallet(
-                self.nodes[2].createrawtransaction(utxo_dicts, recipient_dict2))['hex'])
+                self.nodes[2].createrawtransaction(utxo_dicts, [{key: value} for key, value in recipient_dict2.items()]))['hex'])
 
         # generate on both sides
         lastblockhash = self.generate(self.nodes[1], 3, sync_fun=self.no_op)[2]
@@ -322,7 +322,7 @@ class ListSinceBlockTest(BitcoinTestFramework):
             'vout': utxo['vout'],
         }]
         signedtxres = self.nodes[2].signrawtransactionwithwallet(
-            self.nodes[2].createrawtransaction(utxo_dicts, recipient_dict))
+            self.nodes[2].createrawtransaction(utxo_dicts, [{key: value} for key, value in recipient_dict.items()]))
         assert signedtxres['complete']
 
         signedtx = signedtxres['hex']
@@ -378,8 +378,10 @@ class ListSinceBlockTest(BitcoinTestFramework):
         tx_input = dict(
             sequence=MAX_BIP125_RBF_SEQUENCE, **next(u for u in spending_node.listunspent()))
         rawtx = spending_node.createrawtransaction(
-            [tx_input], {dest_address: tx_input["amount"] - Decimal("0.00051000"),
-                         spending_node.getrawchangeaddress(): Decimal("0.00050000")})
+            [tx_input], [
+                {dest_address: tx_input["amount"] - Decimal("0.00051000")},
+                {spending_node.getrawchangeaddress(): Decimal("0.00050000")},
+            ])
         signedtx = spending_node.signrawtransactionwithwallet(rawtx)
         orig_tx_id = spending_node.sendrawtransaction(signedtx["hex"])
         original_tx = spending_node.gettransaction(orig_tx_id)

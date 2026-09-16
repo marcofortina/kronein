@@ -17,7 +17,6 @@
 #include <node/context.h>
 #include <node/protocol_version.h>
 #include <node/warnings.h>
-#include <policy/settings.h>
 #include <protocol.h>
 #include <rpc/blockchain.h>
 #include <rpc/protocol.h>

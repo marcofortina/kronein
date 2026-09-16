@@ -12,17 +12,10 @@ from test_framework.messages import (
 from test_framework.script import (
     CScript,
     OP_RETURN,
-    OP_TRUE,
 )
 from test_framework.script_util import (
-    key_to_p2pk_script,
-    key_to_p2pkh_script,
-    key_to_p2wpkh_script,
-    keys_to_multisig_script,
     output_key_to_p2tr_script,
-    program_to_witness_script,
-    script_to_p2sh_script,
-    script_to_p2wsh_script,
+    PAY_TO_ANCHOR,
 )
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.test_node import TestNode
@@ -40,7 +33,6 @@ DUST_RELAY_TX_FEE = 3000  # default setting [sat/kvB]
 class DustRelayFeeTest(BitcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
-        self.extra_args = [['-permitbaremultisig']]
 
     def test_dust_output(self, node: TestNode, dust_relay_fee: Decimal,
                          output_script: CScript, type_desc: str) -> None:
@@ -49,7 +41,8 @@ class DustRelayFeeTest(BitcoinTestFramework):
             dust_threshold = 0
         else:
             tx_size = len(CTxOut(nValue=0, scriptPubKey=output_script).serialize())
-            tx_size += 67 if output_script.IsWitnessProgram() else 148
+            # Outpoint, empty scriptSig, sequence and discounted Taproot key-path witness.
+            tx_size += 32 + 4 + 1 + 66 // 4 + 4
             dust_threshold = int(get_fee(tx_size, dust_relay_fee) * COIN)
         self.log.info(f"-> Test {type_desc} output (size {len(output_script)}, limit {dust_threshold})")
 
@@ -104,24 +97,13 @@ class DustRelayFeeTest(BitcoinTestFramework):
 
         self.test_dustrelay()
 
-        # prepare output scripts of each standard type
-        _, uncompressed_pubkey = generate_keypair(compressed=False)
+        # Prepare each native standard output type.
         _, pubkey = generate_keypair(compressed=True)
 
         output_scripts = (
-            (key_to_p2pk_script(uncompressed_pubkey),          "P2PK (uncompressed)"),
-            (key_to_p2pk_script(pubkey),                       "P2PK (compressed)"),
-            (key_to_p2pkh_script(pubkey),                      "P2PKH"),
-            (script_to_p2sh_script(CScript([OP_TRUE])),        "P2SH"),
-            (key_to_p2wpkh_script(pubkey),                     "P2WPKH"),
-            (script_to_p2wsh_script(CScript([OP_TRUE])),       "P2WSH"),
-            (output_key_to_p2tr_script(pubkey[1:]),            "P2TR"),
-            # witness programs for segwitv2+ can be between 2 and 40 bytes
-            (program_to_witness_script(2,  b'\x66' * 2),       "P2?? (future witness version 2)"),
-            (program_to_witness_script(16, b'\x77' * 40),      "P2?? (future witness version 16)"),
-            # largest possible output script considered standard
-            (keys_to_multisig_script([uncompressed_pubkey]*3), "bare multisig (m-of-3)"),
-            (CScript([OP_RETURN, b'superimportanthash']),      "null data (OP_RETURN)"),
+            (output_key_to_p2tr_script(pubkey[1:]),       "P2TR"),
+            (PAY_TO_ANCHOR,                                "pay-to-anchor"),
+            (CScript([OP_RETURN, b'superimportanthash']), "null data (OP_RETURN)"),
         )
 
         # test default (no parameter), disabled (=0) and a bunch of arbitrary dust fee rates [sat/kvB]
@@ -132,7 +114,7 @@ class DustRelayFeeTest(BitcoinTestFramework):
             else:
                 dust_parameter = f"-dustrelayfee={dustfee_btc_kvb:.8f}"
                 self.log.info(f"Test dust limit setting {dust_parameter} ({dustfee_sat_kvb} sat/kvB)...")
-                self.restart_node(0, extra_args=[dust_parameter, "-permitbaremultisig"])
+                self.restart_node(0, extra_args=[dust_parameter])
 
             for output_script, description in output_scripts:
                 self.test_dust_output(self.nodes[0], dustfee_btc_kvb, output_script, description)

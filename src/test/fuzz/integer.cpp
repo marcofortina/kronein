@@ -15,7 +15,6 @@
 #include <memusage.h>
 #include <netbase.h>
 #include <policy/policy.h>
-#include <policy/settings.h>
 #include <pow.h>
 #include <protocol.h>
 #include <pubkey.h>
@@ -30,7 +29,6 @@
 #include <util/chaintype.h>
 #include <util/check.h>
 #include <util/moneystr.h>
-#include <util/overflow.h>
 #include <util/strencodings.h>
 #include <util/string.h>
 
@@ -90,9 +88,7 @@ FUZZ_TARGET(integer, .init = initialize_integer)
     }
     (void)GetSizeOfCompactSize(u64);
     (void)GetSpecialScriptSize(u32);
-    if (!MultiplicationOverflow(i64, static_cast<int64_t>(u32)) && !AdditionOverflow(i64, static_cast<int64_t>(4)) && !AdditionOverflow(i64 * u32, static_cast<int64_t>(4))) {
-        (void)GetVirtualTransactionSize(i64, i64, u32);
-    }
+    (void)GetVirtualTransactionSize(i64);
     (void)HexDigit(ch);
     (void)MoneyRange(i64);
     (void)ToString(i64);

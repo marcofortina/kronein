@@ -2110,22 +2110,17 @@ static const auto scan_result_status_some = RPCResult{
 
 static RPCHelpMan scantxoutset()
 {
-    // raw() descriptor corresponding to mainnet address 12cbQLTFMXRnSzktFkuoG3eHoMeFtpTu3S
-    const std::string EXAMPLE_DESCRIPTOR_RAW = "raw(76a91411b366edfc0a8b66feebae5c2e25a7b6a5d1cf3188ac)#fm24fxxy";
+    const std::string EXAMPLE_DESCRIPTOR_RAW = "raw(512050929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0)";
 
     return RPCHelpMan{
         "scantxoutset",
         "Scans the unspent transaction output set for entries that match certain output descriptors.\n"
         "Examples of output descriptors are:\n"
-        "    addr(<address>)                      Outputs whose output script corresponds to the specified address (does not include P2PK)\n"
-        "    raw(<hex script>)                    Outputs whose output script equals the specified hex-encoded bytes\n"
-        "    combo(<pubkey>)                      P2PK, P2PKH, P2WPKH, and P2SH-P2WPKH outputs for the given pubkey\n"
-        "    pkh(<pubkey>)                        P2PKH outputs for the given pubkey\n"
-        "    sh(multi(<n>,<pubkey>,<pubkey>,...)) P2SH-multisig outputs for the given threshold and pubkeys\n"
-        "    tr(<pubkey>)                         P2TR\n"
-        "    tr(<pubkey>,{pk(<pubkey>)})          P2TR with single fallback pubkey in tapscript\n"
-        "    rawtr(<pubkey>)                      P2TR with the specified key as output key rather than inner\n"
-        "    wsh(and_v(v:pk(<pubkey>),after(2)))  P2WSH miniscript with mandatory pubkey and a timelock\n"
+        "    addr(<address>)                     Taproot or pay-to-anchor output for the specified address\n"
+        "    raw(<hex script>)                   Native output script or OP_RETURN data output\n"
+        "    tr(<pubkey>)                        P2TR\n"
+        "    tr(<pubkey>,{pk(<pubkey>)})         P2TR with single fallback pubkey in tapscript\n"
+        "    rawtr(<pubkey>)                     P2TR with the specified key as output key rather than inner\n"
         "\nIn the above, <pubkey> either refers to a fixed public key in hexadecimal notation, or to an xpub/xprv optionally followed by one\n"
         "or more path elements separated by \"/\", and optionally ending in \"/*\" (unhardened), or \"/*'\" or \"/*h\" (hardened) to specify all\n"
         "unhardened or hardened child keys.\n"

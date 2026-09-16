@@ -167,10 +167,10 @@ class ListTransactionsTest(BitcoinTestFramework):
                     "vout": input_1["vout"],
                 },
             ],
-            outputs={
-                self.nodes[0].getnewaddress(): 0.123,
-                self.nodes[1].getnewaddress(): 0.123,
-            },
+            outputs=[
+                {self.nodes[0].getnewaddress(): 0.123},
+                {self.nodes[1].getnewaddress(): 0.123},
+            ],
         )
         raw_hex = self.nodes[0].signrawtransactionwithwallet(raw_hex)["hex"]
         raw_hex = self.nodes[1].signrawtransactionwithwallet(raw_hex)["hex"]

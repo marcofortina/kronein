@@ -4302,7 +4302,7 @@ Go to File &gt; Open Wallet to load a wallet.
         <context-group purpose="location"><context context-type="linenumber">125</context></context-group>
       </trans-unit>
       <trans-unit id="_msg933">
-        <source xml:space="preserve">Only Taproot and native Bech32m descriptors are supported</source>
+        <source xml:space="preserve">Only Taproot and pay-to-anchor descriptors are supported</source>
         <context-group purpose="location"><context context-type="linenumber">129</context></context-group>
       </trans-unit>
       <trans-unit id="_msg934">

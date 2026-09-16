@@ -53,7 +53,7 @@ class SignRawTransactionWithKeyTest(BitcoinTestFramework):
         }
         spending_tx = self.nodes[0].createrawtransaction(
             [{"txid": txid, "vout": vout}],
-            {getnewdestination()[2]: Decimal("9.999")},
+            [{getnewdestination()[2]: Decimal("9.999")}],
         )
         signed_tx = self.nodes[0].signrawtransactionwithkey(spending_tx, [private_key], [prevout])
         self.assert_signing_completed_successfully(signed_tx)
@@ -64,7 +64,7 @@ class SignRawTransactionWithKeyTest(BitcoinTestFramework):
         txid, vout = self.send_to_address(p2a(), 49.999)
         spending_tx = self.nodes[0].createrawtransaction(
             [{"txid": txid, "vout": vout}],
-            {getnewdestination()[2]: Decimal("49.998")},
+            [{getnewdestination()[2]: Decimal("49.998")}],
         )
         signed_tx = self.nodes[0].signrawtransactionwithkey(spending_tx, [], [])
         self.assert_signing_completed_successfully(signed_tx)
@@ -74,7 +74,7 @@ class SignRawTransactionWithKeyTest(BitcoinTestFramework):
     def invalid_arguments_test(self):
         tx = self.nodes[0].createrawtransaction(
             [{"txid": "01" * 32, "vout": 0}],
-            {getnewdestination()[2]: Decimal("0.1")},
+            [{getnewdestination()[2]: Decimal("0.1")}],
         )
         private_key = self.nodes[0].get_deterministic_priv_key().key
 

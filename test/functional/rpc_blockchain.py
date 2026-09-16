@@ -45,7 +45,7 @@ from test_framework.messages import (
     msg_block,
 )
 from test_framework.p2p import P2PInterface
-from test_framework.script import hash256, OP_TRUE
+from test_framework.script import hash256
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
@@ -210,7 +210,7 @@ class BlockchainTest(BitcoinTestFramework):
         assert_equal(1, self.nodes[0].getblockchaininfo()["verificationprogress"])
 
         self.log.info("Check that verificationprogress is less than 1 as soon as a new header comes in")
-        self.nodes[0].submitheader(self.generateblock(self.nodes[0], output="raw(55)", transactions=[], submit=False, sync_fun=self.no_op)["hex"])
+        self.nodes[0].submitheader(self.generateblock(self.nodes[0], output="rawtr(50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0)", transactions=[], submit=False, sync_fun=self.no_op)["hex"])
         assert_greater_than(1, self.nodes[0].getblockchaininfo()["verificationprogress"])
 
     def _test_y2106(self):
@@ -671,7 +671,12 @@ class BlockchainTest(BitcoinTestFramework):
 
         self.log.info("Test getblock when block data is available but undo data isn't")
         # Submits a block building on the header-only block, so it can't be connected and has no undo data
-        tx = create_tx_with_script(block.vtx[0], 0, script_sig=bytes([OP_TRUE]), amount=50 * COIN)
+        tx = create_tx_with_script(
+            block.vtx[0],
+            0,
+            amount=50 * COIN,
+            output_script=self.wallet.get_output_script(),
+        )
         block_noundo = create_block(block.hash_int, create_coinbase(current_height + 2, nValue=100), block_time + 1, txlist=[tx])
         block_noundo.solve()
         node.submitblock(block_noundo.serialize().hex())

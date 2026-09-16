@@ -58,7 +58,7 @@ struct BlockCreateOptions {
     size_t coinbase_output_max_additional_sigops{DEFAULT_COINBASE_OUTPUT_MAX_ADDITIONAL_SIGOPS};
     /**
      * Script to put in the coinbase transaction. The default is an
-     * anyone-can-spend dummy.
+     * Taproot dummy.
      *
      * Should only be used for tests, when the default doesn't suffice.
      *
@@ -71,7 +71,7 @@ struct BlockCreateOptions {
      * The size and sigops are not checked against
      * coinbase_max_additional_weight and coinbase_output_max_additional_sigops.
      */
-    CScript coinbase_output_script{CScript() << OP_TRUE};
+    CScript coinbase_output_script{CScript() << OP_1 << std::vector<unsigned char>(32)};
     /**
      * Whether to include an OP_0 as a dummy extraNonce in the template's coinbase
      */

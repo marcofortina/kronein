@@ -73,7 +73,7 @@ class AbandonConflictTest(BitcoinTestFramework):
 
         outputs[alice.getnewaddress()] = Decimal("14.99998")
         outputs[bob.getnewaddress()] = Decimal("5")
-        signed = alice.signrawtransactionwithwallet(alice.createrawtransaction(inputs, outputs))
+        signed = alice.signrawtransactionwithwallet(alice.createrawtransaction(inputs, [{key: value} for key, value in outputs.items()]))
         txAB1 = self.nodes[0].sendrawtransaction(signed["hex"])
 
         # Identify the 14.99998btc output
@@ -85,14 +85,14 @@ class AbandonConflictTest(BitcoinTestFramework):
         inputs.append({"txid": txC, "vout": nC})
         outputs = {}
         outputs[alice.getnewaddress()] = Decimal("24.9996")
-        signed2 = alice.signrawtransactionwithwallet(alice.createrawtransaction(inputs, outputs))
+        signed2 = alice.signrawtransactionwithwallet(alice.createrawtransaction(inputs, [{key: value} for key, value in outputs.items()]))
         txABC2 = self.nodes[0].sendrawtransaction(signed2["hex"])
 
         # Create a child tx spending ABC2
         signed3_change = Decimal("24.999")
         inputs = [{"txid": txABC2, "vout": 0}]
         outputs = {alice.getnewaddress(): signed3_change}
-        signed3 = alice.signrawtransactionwithwallet(alice.createrawtransaction(inputs, outputs))
+        signed3 = alice.signrawtransactionwithwallet(alice.createrawtransaction(inputs, [{key: value} for key, value in outputs.items()]))
         # note tx is never directly referenced, only abandoned as a child of the above
         self.nodes[0].sendrawtransaction(signed3["hex"])
 
@@ -180,7 +180,7 @@ class AbandonConflictTest(BitcoinTestFramework):
         outputs = {}
         outputs[self.nodes[1].getnewaddress()] = Decimal("3.9999")
         outputs[bob.getnewaddress()] = Decimal("5.9999")
-        tx = alice.createrawtransaction(inputs, outputs)
+        tx = alice.createrawtransaction(inputs, [{key: value} for key, value in outputs.items()])
         signed = alice.signrawtransactionwithwallet(tx)
         double_spend_txid = self.nodes[1].sendrawtransaction(signed["hex"])
         self.connect_nodes(0, 1)

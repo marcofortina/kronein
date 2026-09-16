@@ -126,7 +126,7 @@ QT_TRANSLATE_NOOP("bitcoin-core", "No dump file provided. To use dump, -dumpfile
 QT_TRANSLATE_NOOP("bitcoin-core", "Not enough file descriptors available. %d available, %d required."),
 QT_TRANSLATE_NOOP("bitcoin-core", "Not found pre-selected input %s"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Not solvable pre-selected input %s"),
-QT_TRANSLATE_NOOP("bitcoin-core", "Only Taproot and native Bech32m descriptors are supported"),
+QT_TRANSLATE_NOOP("bitcoin-core", "Only Taproot and pay-to-anchor descriptors are supported"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Only direction was set, no permissions: '%s'"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Outbound connections restricted to CJDNS (-onlynet=cjdns) but -cjdnsreachable is not provided"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Outbound connections restricted to Tor (-onlynet=onion) but the proxy for reaching the Tor network is explicitly forbidden: -onion=0"),

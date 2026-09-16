@@ -58,7 +58,7 @@ class GetblockstatsTest(BitcoinTestFramework):
         self.fee_rate=300
         wallet.sendtoaddress(address=address, amount=1, subtractfeefromamount=True, fee_rate=self.fee_rate)
         # Send to OP_RETURN output to test its exclusion from statistics
-        wallet.send(outputs={"data": "21"}, fee_rate=self.fee_rate)
+        wallet.send(outputs=[{"data": "21"}], fee_rate=self.fee_rate)
         self.sync_all()
         self.generate(self.nodes[0], 1)
 
@@ -185,7 +185,7 @@ class GetblockstatsTest(BitcoinTestFramework):
         assert_equal(tip_stats["utxo_size_inc_actual"], 336)
 
         self.log.info("Test when only header is known")
-        block = self.generateblock(self.nodes[0], output="raw(55)", transactions=[], submit=False)
+        block = self.generateblock(self.nodes[0], output="rawtr(50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0)", transactions=[], submit=False)
         self.nodes[0].submitheader(block["hex"])
         assert_raises_rpc_error(-1, "Block not available (not fully downloaded)", lambda: self.nodes[0].getblockstats(block['hash']))
 

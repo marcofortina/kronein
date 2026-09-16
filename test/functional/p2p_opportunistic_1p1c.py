@@ -48,7 +48,6 @@ from test_framework.util import (
 )
 from test_framework.wallet import (
     MiniWallet,
-    MiniWalletMode,
 )
 
 # 1sat/vB feerate denominated in BTC/KvB
@@ -247,7 +246,7 @@ class PackageRelayTest(BitcoinTestFramework):
         coin = low_fee_parent["new_utxo"]
         address = node.get_deterministic_priv_key().address
         # Create raw transaction spending the parent, but with no signature (a consensus error).
-        hex_orphan_no_sig = node.createrawtransaction([{"txid": coin["txid"], "vout": coin["vout"]}], {address : coin["value"] - Decimal("0.0001")})
+        hex_orphan_no_sig = node.createrawtransaction([{"txid": coin["txid"], "vout": coin["vout"]}], [{address : coin["value"] - Decimal("0.0001")}])
         tx_orphan_bad_wit = tx_from_hex(hex_orphan_no_sig)
         tx_orphan_bad_wit.wit.vtxinwit.append(CTxInWitness())
         tx_orphan_bad_wit.wit.vtxinwit[0].scriptWitness.stack = [b'garbage']
@@ -345,9 +344,9 @@ class PackageRelayTest(BitcoinTestFramework):
         node.setmocktime(int(time.time()))
 
         # 2-parent-1-child package where both parents are below mempool min feerate
-        parent_low_1 = self.create_tx_below_mempoolminfee(self.wallet_nonsegwit)
-        parent_low_2 = self.create_tx_below_mempoolminfee(self.wallet_nonsegwit)
-        child_bumping = self.wallet_nonsegwit.create_self_transfer_multi(
+        parent_low_1 = self.create_tx_below_mempoolminfee(self.wallet)
+        parent_low_2 = self.create_tx_below_mempoolminfee(self.wallet)
+        child_bumping = self.wallet.create_self_transfer_multi(
             utxos_to_spend=[parent_low_1["new_utxo"], parent_low_2["new_utxo"]],
             fee_per_output=999*parent_low_1["tx"].get_vsize(),
         )
@@ -614,26 +613,18 @@ class PackageRelayTest(BitcoinTestFramework):
         self.sequence = MAX_BIP125_RBF_SEQUENCE
 
         self.wallet = MiniWallet(node)
-        self.wallet_nonsegwit = MiniWallet(node, mode=MiniWalletMode.RAW_P2PK)
-        self.generate(self.wallet_nonsegwit, 10)
-        self.generate(self.wallet, 20)
+        self.generate(self.wallet, 30)
 
         fill_mempool(self, node)
 
         self.log.info("Check opportunistic 1p1c logic when parent (txid != wtxid) is received before child")
         self.test_basic_parent_then_child(self.wallet)
 
-        self.log.info("Check opportunistic 1p1c logic when parent (txid == wtxid) is received before child")
-        self.test_basic_parent_then_child(self.wallet_nonsegwit)
-
         self.log.info("Check opportunistic 1p1c logic when child is received before parent")
         self.test_basic_child_then_parent()
 
         self.log.info("Check opportunistic 1p1c logic when 2 candidate children exist (parent txid != wtxid)")
         self.test_low_and_high_child(self.wallet)
-
-        self.log.info("Check opportunistic 1p1c logic when 2 candidate children exist (parent txid == wtxid)")
-        self.test_low_and_high_child(self.wallet_nonsegwit)
 
         self.test_orphan_consensus_failure()
         self.test_parent_consensus_failure()

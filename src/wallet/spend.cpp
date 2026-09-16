@@ -7,6 +7,7 @@
 #include <common/messages.h>
 #include <common/system.h>
 #include <consensus/amount.h>
+#include <consensus/tx_check.h>
 #include <consensus/validation.h>
 #include <interfaces/chain.h>
 #include <node/types.h>
@@ -44,38 +45,17 @@ TRACEPOINT_SEMAPHORE(coin_selection, aps_create_tx_internal);
 namespace wallet {
 static constexpr size_t OUTPUT_GROUP_MAX_ENTRIES{100};
 
-/** Whether the descriptor represents, directly or not, a witness program. */
-static bool IsSegwit(const Descriptor& desc) {
-    if (const auto typ = desc.GetOutputType()) return *typ != OutputType::LEGACY;
-    return false;
-}
-
-/** Whether to assume ECDSA signatures' will be high-r. */
-static bool UseMaxSig(const std::optional<CTxIn>& txin, const CCoinControl* coin_control) {
-    // Use max sig if watch only inputs were used or if this particular input is an external input
-    // to ensure a sufficient fee is attained for the requested feerate.
-    return coin_control && txin && coin_control->IsExternalSelected(txin->prevout);
-}
-
 /** Get the size of an input (in witness units) once it's signed.
  *
  * @param desc The output script descriptor of the coin spent by this input.
- * @param txin Optionally the txin to estimate the size of. Used to determine the size of ECDSA signatures.
- * @param coin_control Information about the context to determine the size of ECDSA signatures.
- * @param can_grind_r Whether the signer will be able to grind the R of the signature.
  */
-static std::optional<int64_t> MaxInputWeight(const Descriptor& desc, const std::optional<CTxIn>& txin,
-                                             const CCoinControl* coin_control, const bool can_grind_r) {
-    if (const auto sat_weight = desc.MaxSatisfactionWeight(!can_grind_r || UseMaxSig(txin, coin_control))) {
+static std::optional<int64_t> MaxInputWeight(const Descriptor& desc) {
+    if (const auto sat_weight = desc.MaxSatisfactionWeight(/*use_max_sig=*/false)) {
         if (const auto elems_count = desc.MaxSatisfactionElems()) {
-            const bool is_segwit = IsSegwit(desc);
             // Account for the size of the scriptsig and the number of elements on the witness stack.
-            // Native transaction serialization includes a witness stack for every input.
-            // NOTE: this also works in case of mixed scriptsig-and-witness such as in p2sh-wrapped segwit v0
-            // outputs. In this case the size of the scriptsig length will always be one (since the redeemScript
-            // is always a push of the witness program in this case, which is smaller than 253 bytes).
-            const int64_t scriptsig_len = is_segwit ? 1 : GetSizeOfCompactSize(*sat_weight / WITNESS_SCALE_FACTOR);
-            const int64_t witstack_len = is_segwit ? GetSizeOfCompactSize(*elems_count) : 1;
+            // Native inputs always have an empty scriptSig and a witness stack.
+            const int64_t scriptsig_len = 1;
+            const int64_t witstack_len = GetSizeOfCompactSize(*elems_count);
             // previous txid + previous vout + sequence + scriptsig len + witstack size + scriptsig or witness
             // NOTE: sat_weight already accounts for the witness discount accordingly.
             return (32 + 4 + 4 + scriptsig_len) * WITNESS_SCALE_FACTOR + witstack_len + *sat_weight;
@@ -85,13 +65,13 @@ static std::optional<int64_t> MaxInputWeight(const Descriptor& desc, const std::
     return {};
 }
 
-int CalculateMaximumSignedInputSize(const CTxOut& txout, const COutPoint outpoint, const SigningProvider* provider, bool can_grind_r, const CCoinControl* coin_control)
+int CalculateMaximumSignedInputSize(const CTxOut& txout, const COutPoint /*outpoint*/, const SigningProvider* provider, bool /*can_grind_r*/, const CCoinControl* /*coin_control*/)
 {
     if (!provider) return -1;
 
     if (const auto desc = InferDescriptor(txout.scriptPubKey, *provider)) {
-        if (const auto weight = MaxInputWeight(*desc, CTxIn{outpoint}, coin_control, can_grind_r)) {
-            return static_cast<int>(GetVirtualTransactionSize(*weight, 0, 0));
+        if (const auto weight = MaxInputWeight(*desc)) {
+            return static_cast<int>(GetVirtualTransactionSize(*weight));
         }
     }
 
@@ -120,7 +100,7 @@ static std::unique_ptr<Descriptor> GetDescriptor(const CWallet* wallet, const CC
 
 /** Infer the maximum size of this input after it will be signed. */
 static std::optional<int64_t> GetSignedTxinWeight(const CWallet* wallet, const CCoinControl* coin_control,
-                                                  const CTxIn& txin, const CTxOut& txo, const bool can_grind_r)
+                                                  const CTxIn& txin, const CTxOut& txo)
 {
     // If weight was provided, use that.
     std::optional<int64_t> weight;
@@ -130,7 +110,7 @@ static std::optional<int64_t> GetSignedTxinWeight(const CWallet* wallet, const C
 
     // Otherwise, use the maximum satisfaction size provided by the descriptor.
     std::unique_ptr<Descriptor> desc{GetDescriptor(wallet, coin_control, txo.scriptPubKey)};
-    if (desc) return MaxInputWeight(*desc, {txin}, coin_control, can_grind_r);
+    if (desc) return MaxInputWeight(*desc);
 
     return {};
 }
@@ -145,14 +125,14 @@ TxSize CalculateMaximumSignedTxSize(const CTransaction &tx, const CWallet *walle
 
     // Add the size of the transaction inputs as if they were signed.
     for (uint32_t i = 0; i < txouts.size(); i++) {
-        const auto txin_weight = GetSignedTxinWeight(wallet, coin_control, tx.vin[i], txouts[i], wallet->CanGrindR());
+        const auto txin_weight = GetSignedTxinWeight(wallet, coin_control, tx.vin[i], txouts[i]);
         if (!txin_weight) return TxSize{-1, -1};
         assert(*txin_weight > -1);
         weight += *txin_weight;
     }
 
     // It's ok to use 0 as the number of sigops since we never create any pathological transaction.
-    return TxSize{GetVirtualTransactionSize(weight, 0, 0), weight};
+    return TxSize{GetVirtualTransactionSize(weight), weight};
 }
 
 TxSize CalculateMaximumSignedTxSize(const CTransaction &tx, const CWallet *wallet, const CCoinControl* coin_control)
@@ -232,21 +212,9 @@ void CoinsResult::Add(OutputType type, const COutput& out)
     }
 }
 
-static OutputType GetOutputType(TxoutType type, bool is_from_p2sh)
+static OutputType GetOutputType(TxoutType type)
 {
-    switch (type) {
-        case TxoutType::WITNESS_V1_TAPROOT:
-            return OutputType::BECH32M;
-        case TxoutType::WITNESS_V0_KEYHASH:
-        case TxoutType::WITNESS_V0_SCRIPTHASH:
-            if (is_from_p2sh) return OutputType::P2SH_SEGWIT;
-            else return OutputType::BECH32;
-        case TxoutType::SCRIPTHASH:
-        case TxoutType::PUBKEYHASH:
-            return OutputType::LEGACY;
-        default:
-            return OutputType::UNKNOWN;
-    }
+    return type == TxoutType::WITNESS_V1_TAPROOT ? OutputType::BECH32M : OutputType::UNKNOWN;
 }
 
 // Fetch and validate the coin control selected inputs.
@@ -260,7 +228,7 @@ util::Result<CoinsResult> FetchSelectedInputs(const CWallet& wallet, const CCoin
     for (const COutPoint& outpoint : coin_control.ListSelected()) {
         int64_t input_bytes = coin_control.GetInputWeight(outpoint).value_or(-1);
         if (input_bytes != -1) {
-            input_bytes = GetVirtualTransactionSize(input_bytes, 0, 0);
+            input_bytes = GetVirtualTransactionSize(input_bytes);
         }
         CTxOut txout;
         if (auto txo = wallet.GetTXO(outpoint)) {
@@ -276,6 +244,10 @@ util::Result<CoinsResult> FetchSelectedInputs(const CWallet& wallet, const CCoin
             }
 
             txout = *out;
+        }
+
+        if (!IsNativeOutputScript(txout.scriptPubKey)) {
+            return util::Error{strprintf(_("Pre-selected input %s is not Taproot or pay-to-anchor"), outpoint.ToString())};
         }
 
         if (input_bytes == -1) {
@@ -390,6 +362,8 @@ CoinsResult AvailableCoins(const CWallet& wallet,
         if (output.nValue < params.min_amount || output.nValue > params.max_amount)
             continue;
 
+        if (!IsNativeOutputScript(output.scriptPubKey)) continue;
+
         // Skip manually selected coins (the caller can fetch them directly)
         if (coinControl && coinControl->HasSelected() && coinControl->IsSelected(outpoint))
             continue;
@@ -417,19 +391,7 @@ CoinsResult AvailableCoins(const CWallet& wallet,
         std::vector<std::vector<uint8_t>> script_solutions;
         TxoutType type = Solver(output.scriptPubKey, script_solutions);
 
-        // If the output is P2SH and solvable, we want to know if it is
-        // a P2SH (legacy) or one of P2SH-P2WPKH, P2SH-P2WSH (P2SH-Segwit). We can determine
-        // this from the redeemScript. If the output is not solvable, it will be classified
-        // as a P2SH (legacy), since we have no way of knowing otherwise without the redeemScript
-        bool is_from_p2sh{false};
-        if (type == TxoutType::SCRIPTHASH && solvable) {
-            CScript script;
-            if (!provider->GetCScript(CScriptID(uint160(script_solutions[0])), script)) continue;
-            type = Solver(script, script_solutions);
-            is_from_p2sh = true;
-        }
-
-        auto available_output_type = GetOutputType(type, is_from_p2sh);
+        auto available_output_type = GetOutputType(type);
         auto available_output = COutput(outpoint, output, nDepth, input_bytes, solvable, tx_safe, wtx.GetTxTime(), tx_from_me, feerate);
         result.Add(available_output_type, available_output);
 
@@ -492,14 +454,7 @@ std::map<CTxDestination, std::vector<COutput>> ListCoins(const CWallet& wallet)
     coins_params.skip_locked = false;
     for (const COutput& coin : AvailableCoins(wallet, &coin_control, /*feerate=*/std::nullopt, coins_params).All()) {
         CTxDestination address;
-        if (!ExtractDestination(FindNonChangeParentOutput(wallet, coin.outpoint).scriptPubKey, address)) {
-            // For backwards compatibility, we convert P2PK output scripts into PKHash destinations
-            if (auto pk_dest = std::get_if<PubKeyDestination>(&address)) {
-                address = PKHash(pk_dest->GetPubKey());
-            } else {
-                continue;
-            }
-        }
+        if (!ExtractDestination(FindNonChangeParentOutput(wallet, coin.outpoint).scriptPubKey, address)) continue;
         result[address].emplace_back(coin);
     }
     return result;

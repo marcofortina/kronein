@@ -467,8 +467,8 @@ class ReplaceByFeeTest(BitcoinTestFramework):
         us0 = self.wallet.get_utxo()
         ins = [us0]
         outs = {ADDRESS_BCRT1_UNSPENDABLE: Decimal(1.0000000)}
-        rawtx0 = self.nodes[0].createrawtransaction(ins, outs, 0, True)
-        rawtx1 = self.nodes[0].createrawtransaction(ins, outs, 0, False)
+        rawtx0 = self.nodes[0].createrawtransaction(ins, [{key: value} for key, value in outs.items()], 0, True)
+        rawtx1 = self.nodes[0].createrawtransaction(ins, [{key: value} for key, value in outs.items()], 0, False)
         json0 = self.nodes[0].decoderawtransaction(rawtx0)
         json1 = self.nodes[0].decoderawtransaction(rawtx1)
         assert_equal(json0["vin"][0]["sequence"], 4294967293)
@@ -476,7 +476,7 @@ class ReplaceByFeeTest(BitcoinTestFramework):
 
         if self.is_wallet_compiled():
             self.init_wallet(node=0)
-            rawtx2 = self.nodes[0].createrawtransaction([], outs)
+            rawtx2 = self.nodes[0].createrawtransaction([], [{key: value} for key, value in outs.items()])
             frawtx2a = self.nodes[0].fundrawtransaction(rawtx2, {"replaceable": True})
             frawtx2b = self.nodes[0].fundrawtransaction(rawtx2, {"replaceable": False})
 

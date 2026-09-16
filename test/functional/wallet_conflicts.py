@@ -59,7 +59,7 @@ class TxConflicts(BitcoinTestFramework):
         # | tx2 |  ----->  |                |         |               |
         #
         inputs_tx_AB_parent = [{"txid": txid_conflict_from_1, "vout": output_A}, {"txid": txid_conflict_from_2, "vout": output_B}]
-        tx_AB_parent = self.nodes[0].signrawtransactionwithwallet(self.nodes[0].createrawtransaction(inputs_tx_AB_parent, {self.nodes[0].getnewaddress(): Decimal("19.99998")}))
+        tx_AB_parent = self.nodes[0].signrawtransactionwithwallet(self.nodes[0].createrawtransaction(inputs_tx_AB_parent, [{self.nodes[0].getnewaddress(): Decimal("19.99998")}]))
 
         # Secondly, create two transactions: One consuming output_A, and another one consuming output_B
         #
@@ -69,8 +69,8 @@ class TxConflicts(BitcoinTestFramework):
         #
         inputs_tx_A_1 = [{"txid": txid_conflict_from_1, "vout": output_A}]
         inputs_tx_B_1 = [{"txid": txid_conflict_from_2, "vout": output_B}]
-        tx_A_1 = self.nodes[0].signrawtransactionwithwallet(self.nodes[0].createrawtransaction(inputs_tx_A_1, {self.nodes[0].getnewaddress(): Decimal("9.99998")}))
-        tx_B_1 = self.nodes[0].signrawtransactionwithwallet(self.nodes[0].createrawtransaction(inputs_tx_B_1, {self.nodes[0].getnewaddress(): Decimal("9.99998")}))
+        tx_A_1 = self.nodes[0].signrawtransactionwithwallet(self.nodes[0].createrawtransaction(inputs_tx_A_1, [{self.nodes[0].getnewaddress(): Decimal("9.99998")}]))
+        tx_B_1 = self.nodes[0].signrawtransactionwithwallet(self.nodes[0].createrawtransaction(inputs_tx_B_1, [{self.nodes[0].getnewaddress(): Decimal("9.99998")}]))
 
         self.log.info("Broadcast conflicted transaction")
         txid_AB_parent = self.nodes[0].sendrawtransaction(tx_AB_parent["hex"])
@@ -80,7 +80,7 @@ class TxConflicts(BitcoinTestFramework):
         output_c = self.get_utxo_of_value(from_tx_id=txid_AB_parent, search_value=19.99998)
         inputs_tx_C_child = [({"txid": txid_AB_parent, "vout": output_c})]
 
-        tx_C_child = self.nodes[0].signrawtransactionwithwallet(self.nodes[0].createrawtransaction(inputs_tx_C_child, {self.nodes[0].getnewaddress() : Decimal("19.99996")}))
+        tx_C_child = self.nodes[0].signrawtransactionwithwallet(self.nodes[0].createrawtransaction(inputs_tx_C_child, [{self.nodes[0].getnewaddress() : Decimal("19.99996")}]))
         tx_C_child_txid = self.nodes[0].sendrawtransaction(tx_C_child["hex"])
         self.generate(self.nodes[0], 1, sync_fun=self.no_op)
 

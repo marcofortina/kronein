@@ -3450,8 +3450,6 @@ std::optional<bool> CWallet::IsInternalScriptPubKeyMan(ScriptPubKeyMan* spk_man)
 
 static bool IsNativeDescriptor(const WalletDescriptor& desc, const FlatSigningProvider& signing_provider)
 {
-    if (desc.descriptor->GetOutputType() == OutputType::BECH32M) return true;
-
     std::vector<CScript> scripts;
     FlatSigningProvider expanded;
     if (!desc.descriptor->Expand(0, signing_provider, scripts, expanded) || scripts.empty()) return false;
@@ -3459,7 +3457,9 @@ static bool IsNativeDescriptor(const WalletDescriptor& desc, const FlatSigningPr
     return std::ranges::all_of(scripts, [](const CScript& script) {
         int witness_version;
         std::vector<unsigned char> witness_program;
-        return script.IsWitnessProgram(witness_version, witness_program) && witness_version > 0;
+        return script.IsWitnessProgram(witness_version, witness_program) &&
+               ((witness_version == 1 && witness_program.size() == WITNESS_V1_TAPROOT_SIZE) ||
+                script.IsPayToAnchor(witness_version, witness_program));
     });
 }
 
@@ -3468,7 +3468,7 @@ util::Result<std::reference_wrapper<DescriptorScriptPubKeyMan>> CWallet::AddWall
     AssertLockHeld(cs_wallet);
 
     if (!IsNativeDescriptor(desc, signing_provider)) {
-        return util::Error{_("Only Taproot and native Bech32m descriptors are supported")};
+        return util::Error{_("Only Taproot and pay-to-anchor descriptors are supported")};
     }
 
     auto spk_man = GetDescriptorScriptPubKeyMan(desc);

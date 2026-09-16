@@ -5093,7 +5093,7 @@ Go to File &gt; Open Wallet to load a wallet.
     </message>
     <message>
         <location line="+4"/>
-        <source>Only Taproot and native Bech32m descriptors are supported</source>
+        <source>Only Taproot and pay-to-anchor descriptors are supported</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
