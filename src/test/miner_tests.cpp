@@ -815,7 +815,7 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
         if (current_height % 2 == 0) {
             BOOST_REQUIRE(Assert(m_node.chainman)->ProcessNewBlock(shared_pblock, /*force_processing=*/true, /*min_pow_checked=*/true, nullptr));
         } else {
-            BOOST_REQUIRE(block_template->submitSolution(block.nVersion, block.nTime, block.nNonce, MakeTransactionRef(txCoinbase)));
+            BOOST_REQUIRE(block_template->submitSolution(block.nTime, block.nNonce, MakeTransactionRef(txCoinbase)));
         }
         {
             LOCK(cs_main);

@@ -346,25 +346,14 @@ class IPCMiningTest(BitcoinTestFramework):
                 coinbase.vout[0].nValue = COIN
                 block.vtx[0] = coinbase
                 block.hashMerkleRoot = block.calc_merkle_root()
-                original_version = block.nVersion
-
                 self.log.debug("Submit solution that can't be deserialized")
                 try:
-                    await template.submitSolution(ctx, 0, 0, 0, b"")
+                    await template.submitSolution(ctx, 0, 0, b"")
                     raise AssertionError("submitSolution unexpectedly succeeded")
                 except capnp.lib.capnp.KjException as e:
                     assert_capnp_failed(e, "remote exception: std::exception: SpanReader::read(): end of data:")
 
-                self.log.debug("Submit a block with a bad version")
-                block.nVersion = 0
-                block.solve()
-                check = await mining.checkBlock(ctx, block.serialize(), check_opts)
-                assert_equal(check.result, False)
-                assert_equal(check.reason, "bad-version(0x00000000)")
-                submitted = (await template.submitSolution(ctx, block.nVersion, block.nTime, block.nNonce, coinbase.serialize())).result
-                assert_equal(submitted, False)
                 self.log.debug("Submit a valid block")
-                block.nVersion = original_version
                 block.solve()
 
                 self.log.debug("First call checkBlock()")
@@ -372,7 +361,7 @@ class IPCMiningTest(BitcoinTestFramework):
                 assert_equal(block_valid, True)
 
                 self.log.debug("Submit the native coinbase transaction")
-                submitted = (await template.submitSolution(ctx, block.nVersion, block.nTime, block.nNonce, coinbase.serialize())).result
+                submitted = (await template.submitSolution(ctx, block.nTime, block.nNonce, coinbase.serialize())).result
                 assert_equal(submitted, True)
 
             self.log.debug("Block should propagate")
