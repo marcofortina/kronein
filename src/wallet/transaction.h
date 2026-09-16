@@ -12,11 +12,8 @@
 #include <uint256.h>
 #include <util/check.h>
 #include <util/overloaded.h>
-#include <util/strencodings.h>
-#include <util/string.h>
 #include <wallet/types.h>
 
-#include <bitset>
 #include <cstdint>
 #include <map>
 #include <utility>
@@ -167,29 +164,8 @@ struct CachableAmount
 typedef std::map<std::string, std::string> mapValue_t;
 
 
-/** Legacy class used for deserializing vtxPrev for backwards compatibility.
- * vtxPrev was removed in commit 93a18a3650292afbb441a47d1fa1b94aeb0164e3,
- * but old wallet.dat files may still contain vtxPrev vectors of CMerkleTxs.
- * These need to get deserialized for field alignment when deserializing
- * a CWalletTx, but the deserialized values are discarded.**/
-class CMerkleTx
-{
-public:
-    template<typename Stream>
-    void Unserialize(Stream& s)
-    {
-        CTransactionRef tx;
-        uint256 hashBlock;
-        std::vector<uint256> vMerkleBranch;
-        int nIndex;
-
-        s >> TX_WITH_WITNESS(tx) >> hashBlock >> vMerkleBranch >> nIndex;
-    }
-};
-
 /**
  * A transaction with a bunch of additional info that only the owner cares about.
- * It includes any unrecorded transactions needed to link it back to the block chain.
  */
 class CWalletTx
 {
@@ -206,18 +182,6 @@ public:
      *                         bumpfee on transaction created by bumpfee
      *     "replaced_by_txid" - txid (as HexStr) of transaction created by
      *                         bumpfee on transaction replaced by bumpfee
-     *     "from", "message" - obsolete fields that could be set in UI prior to
-     *                         2011 (removed in commit 4d9b223)
-     *
-     * The following keys are serialized in the wallet database, but shouldn't
-     * be read or written through the map (they will be temporarily added and
-     * removed from the map during serialization):
-     *
-     *     "fromaccount"     - serialized strFromAccount value
-     *     "n"               - serialized nOrderPos value
-     *     "timesmart"       - serialized nTimeSmart value
-     *     "spent"           - serialized vfSpent value that existed prior to
-     *                         2014 (removed in commit 93a18a3)
      */
     mapValue_t mapValue;
     std::vector<std::pair<std::string, std::string> > vOrderForm;
@@ -280,23 +244,9 @@ public:
     template<typename Stream>
     void Serialize(Stream& s) const
     {
-        mapValue_t mapValueCopy = mapValue;
-
-        mapValueCopy["fromaccount"] = "";
-        if (nOrderPos != -1) {
-            mapValueCopy["n"] = util::ToString(nOrderPos);
-        }
-        if (nTimeSmart) {
-            mapValueCopy["timesmart"] = strprintf("%u", nTimeSmart);
-        }
-
-        std::vector<uint8_t> dummy_vector1; //!< Used to be vMerkleBranch
-        std::vector<uint8_t> dummy_vector2; //!< Used to be vtxPrev
-        bool dummy_bool = false; //!< Used to be fFromMe, and fSpent
-        uint32_t dummy_int = 0; // Used to be fTimeReceivedIsTxTime
         uint256 serializedHash = TxStateSerializedBlockHash(m_state);
         int serializedIndex = TxStateSerializedIndex(m_state);
-        s << TX_WITH_WITNESS(tx) << serializedHash << dummy_vector1 << serializedIndex << dummy_vector2 << mapValueCopy << vOrderForm << dummy_int << nTimeReceived << dummy_bool << dummy_bool;
+        s << TX_WITH_WITNESS(tx) << serializedHash << serializedIndex << mapValue << vOrderForm << nTimeReceived << nTimeSmart << nOrderPos;
     }
 
     template<typename Stream>
@@ -304,25 +254,11 @@ public:
     {
         Init();
 
-        std::vector<uint256> dummy_vector1; //!< Used to be vMerkleBranch
-        std::vector<CMerkleTx> dummy_vector2; //!< Used to be vtxPrev
-        bool dummy_bool; //! Used to be fFromMe, and fSpent
-        uint32_t dummy_int; // Used to be fTimeReceivedIsTxTime
         uint256 serialized_block_hash;
         int serializedIndex;
-        s >> TX_WITH_WITNESS(tx) >> serialized_block_hash >> dummy_vector1 >> serializedIndex >> dummy_vector2 >> mapValue >> vOrderForm >> dummy_int >> nTimeReceived >> dummy_bool >> dummy_bool;
+        s >> TX_WITH_WITNESS(tx) >> serialized_block_hash >> serializedIndex >> mapValue >> vOrderForm >> nTimeReceived >> nTimeSmart >> nOrderPos;
 
         m_state = TxStateInterpretSerialized({serialized_block_hash, serializedIndex});
-
-        const auto it_op = mapValue.find("n");
-        nOrderPos = (it_op != mapValue.end()) ? LocaleIndependentAtoi<int64_t>(it_op->second) : -1;
-        const auto it_ts = mapValue.find("timesmart");
-        nTimeSmart = (it_ts != mapValue.end()) ? static_cast<unsigned int>(LocaleIndependentAtoi<int64_t>(it_ts->second)) : 0;
-
-        mapValue.erase("fromaccount");
-        mapValue.erase("spent");
-        mapValue.erase("n");
-        mapValue.erase("timesmart");
     }
 
     void SetTx(CTransactionRef arg)
