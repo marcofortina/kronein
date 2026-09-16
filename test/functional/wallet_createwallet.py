@@ -49,7 +49,7 @@ class CreateWalletTest(BitcoinTestFramework):
 
         self.log.info('Test that private keys cannot be imported')
         privkey, pubkey = generate_keypair(wif=True)
-        result = w1.importdescriptors([{'desc': descsum_create('wpkh(' + privkey + ')'), 'timestamp': 'now'}])
+        result = w1.importdescriptors([{'desc': descsum_create('tr(' + privkey + ')'), 'timestamp': 'now'}])
         assert not result[0]['success']
         assert 'warnings' not in result[0]
         assert_equal(result[0]['error']['code'], -4)
