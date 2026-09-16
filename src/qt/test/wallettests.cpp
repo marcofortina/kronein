@@ -461,8 +461,7 @@ void TestGUI(interfaces::Node& node)
     const std::shared_ptr<CWallet>& desc_wallet = SetupDescriptorsWallet(node, test);
     TestGUI(node, desc_wallet);
 
-    // Legacy watch-only wallet test
-    // Verify PSBT creation.
+    // Verify PSBT creation with a watch-only taproot wallet.
     TestGUIWatchOnly(node, test);
 }
 

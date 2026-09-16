@@ -130,7 +130,7 @@ BOOST_AUTO_TEST_CASE(db_cursor_prefix_byte_test)
     for (const auto& database : TestDatabases(m_path_root)) {
         std::unique_ptr<DatabaseBatch> batch = database->MakeBatch();
 
-        // Write elements to it if not berkeleyro
+        // Write elements to the database.
         for (const auto& [k, v] : {e, p, ps, f, fs, ff, ffs}) {
             batch->Write(std::span{k}, std::span{v});
         }
