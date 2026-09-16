@@ -32,7 +32,6 @@ private:
     static CBlock DummyBlock()
     {
         CBlock block;
-        block.nVersion = 5;
         block.hashPrevBlock.SetNull();
         block.hashMerkleRoot.SetNull();
         block.nTime = 1231006505;

@@ -45,7 +45,7 @@ public:
 
     void SetNull()
     {
-        nVersion = 0;
+        nVersion = CURRENT_VERSION;
         hashPrevBlock.SetNull();
         hashMerkleRoot.SetNull();
         nTime = 0;

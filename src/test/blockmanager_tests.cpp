@@ -247,11 +247,11 @@ BOOST_AUTO_TEST_CASE(blockmanager_flush_block_file)
 
     // Test blocks with no transactions, not even a coinbase
     CBlock block1;
-    block1.nVersion = 1;
+    block1.nNonce = 1;
     CBlock block2;
-    block2.nVersion = 2;
+    block2.nNonce = 2;
     CBlock block3;
-    block3.nVersion = 3;
+    block3.nNonce = 3;
 
     // They are 80 bytes header + 1 byte 0x00 for vtx length
     constexpr int TEST_BLOCK_SIZE{81};
@@ -271,16 +271,17 @@ BOOST_AUTO_TEST_CASE(blockmanager_flush_block_file)
     // First two blocks are written as expected
     // Errors are expected because block data is junk, thrown AFTER successful read
     CBlock read_block;
-    BOOST_CHECK_EQUAL(read_block.nVersion, 0);
+    BOOST_CHECK_EQUAL(read_block.nVersion, CBlockHeader::CURRENT_VERSION);
+    BOOST_CHECK_EQUAL(read_block.nNonce, 0);
     {
         ASSERT_DEBUG_LOG("Errors in block header");
         BOOST_CHECK(!blockman.ReadBlock(read_block, pos1, {}));
-        BOOST_CHECK_EQUAL(read_block.nVersion, 1);
+        BOOST_CHECK_EQUAL(read_block.nNonce, 1);
     }
     {
         ASSERT_DEBUG_LOG("Errors in block header");
         BOOST_CHECK(!blockman.ReadBlock(read_block, pos2, {}));
-        BOOST_CHECK_EQUAL(read_block.nVersion, 2);
+        BOOST_CHECK_EQUAL(read_block.nNonce, 2);
     }
 
     // During reindex, the flat file block storage will not be written to.
@@ -297,7 +298,7 @@ BOOST_AUTO_TEST_CASE(blockmanager_flush_block_file)
 
     // Block 2 was not overwritten:
     BOOST_CHECK(!blockman.ReadBlock(read_block, pos2, {}));
-    BOOST_CHECK_EQUAL(read_block.nVersion, 2);
+    BOOST_CHECK_EQUAL(read_block.nNonce, 2);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
