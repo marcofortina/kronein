@@ -421,20 +421,16 @@ class CInv:
 
 
 class CBlockLocator:
-    __slots__ = ("nVersion", "vHave")
+    __slots__ = ("vHave",)
 
     def __init__(self):
         self.vHave = []
 
     def deserialize(self, f):
-        int.from_bytes(f.read(4), "little", signed=True)  # Ignore version field.
         self.vHave = deser_uint256_vector(f)
 
     def serialize(self):
-        r = b""
-        r += (0).to_bytes(4, "little", signed=True)  # Bitcoin Core ignores the version field. Set it to 0.
-        r += ser_uint256_vector(self.vHave)
-        return r
+        return ser_uint256_vector(self.vHave)
 
     def __repr__(self):
         return "CBlockLocator(vHave=%s)" % (repr(self.vHave))
