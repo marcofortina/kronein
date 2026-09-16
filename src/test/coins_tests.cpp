@@ -522,25 +522,25 @@ BOOST_FIXTURE_TEST_CASE(updatecoins_simulation_test, UpdateTest)
 
 BOOST_AUTO_TEST_CASE(ccoins_serialization)
 {
-    // Good example
+    // P2TR example
     Coin cc1;
-    SpanReader{"97f23c835800816115944e077fe7c803cfa57f29b36bf87c1d35"_hex} >> cc1;
+    SpanReader{"97f23c835800816115944e077fe7c803cfa57f29b36bf87c1d35000102030405060708090a0b"_hex} >> cc1;
     BOOST_CHECK_EQUAL(cc1.fCoinBase, false);
     BOOST_CHECK_EQUAL(cc1.nHeight, 203998U);
     BOOST_CHECK_EQUAL(cc1.out.nValue, CAmount{60000000000});
-    BOOST_CHECK_EQUAL(HexStr(cc1.out.scriptPubKey), HexStr(GetScriptForDestination(PKHash(uint160("816115944e077fe7c803cfa57f29b36bf87c1d35"_hex_u8)))));
+    BOOST_CHECK_EQUAL(HexStr(cc1.out.scriptPubKey), HexStr(CScript{} << OP_1 << "816115944e077fe7c803cfa57f29b36bf87c1d35000102030405060708090a0b"_hex));
 
-    // Good example
+    // P2TR coinbase example
     Coin cc2;
-    SpanReader{"8ddf77bbd123008c988f1a4a4de2161e0f50aac7f17e7f9555caa4"_hex} >> cc2;
+    SpanReader{"8ddf77bbd123008c988f1a4a4de2161e0f50aac7f17e7f9555caa40c0d0e0f1011121314151617"_hex} >> cc2;
     BOOST_CHECK_EQUAL(cc2.fCoinBase, true);
     BOOST_CHECK_EQUAL(cc2.nHeight, 120891U);
     BOOST_CHECK_EQUAL(cc2.out.nValue, 110397);
-    BOOST_CHECK_EQUAL(HexStr(cc2.out.scriptPubKey), HexStr(GetScriptForDestination(PKHash(uint160("8c988f1a4a4de2161e0f50aac7f17e7f9555caa4"_hex_u8)))));
+    BOOST_CHECK_EQUAL(HexStr(cc2.out.scriptPubKey), HexStr(CScript{} << OP_1 << "8c988f1a4a4de2161e0f50aac7f17e7f9555caa40c0d0e0f1011121314151617"_hex));
 
     // Smallest possible example
     Coin cc3;
-    SpanReader{"000006"_hex} >> cc3;
+    SpanReader{"000002"_hex} >> cc3;
     BOOST_CHECK_EQUAL(cc3.fCoinBase, false);
     BOOST_CHECK_EQUAL(cc3.nHeight, 0U);
     BOOST_CHECK_EQUAL(cc3.out.nValue, 0);
@@ -549,7 +549,7 @@ BOOST_AUTO_TEST_CASE(ccoins_serialization)
     // scriptPubKey that ends beyond the end of the stream
     try {
         Coin cc4;
-        SpanReader{"000007"_hex} >> cc4;
+        SpanReader{"000003"_hex} >> cc4;
         BOOST_CHECK_MESSAGE(false, "We should have thrown");
     } catch (const std::ios_base::failure&) {
     }
@@ -570,13 +570,13 @@ BOOST_AUTO_TEST_CASE(ccoins_serialization)
 BOOST_AUTO_TEST_CASE(txundo_serialization)
 {
     Coin coin;
-    SpanReader{"97f23c835800816115944e077fe7c803cfa57f29b36bf87c1d35"_hex} >> coin;
+    SpanReader{"97f23c835800816115944e077fe7c803cfa57f29b36bf87c1d35000102030405060708090a0b"_hex} >> coin;
 
     CTxUndo undo;
     undo.vprevout.push_back(coin);
     DataStream stream;
     stream << undo;
-    BOOST_CHECK_EQUAL(HexStr(stream), "0197f23c835800816115944e077fe7c803cfa57f29b36bf87c1d35");
+    BOOST_CHECK_EQUAL(HexStr(stream), "0197f23c835800816115944e077fe7c803cfa57f29b36bf87c1d35000102030405060708090a0b");
 
     CTxUndo decoded;
     stream >> decoded;

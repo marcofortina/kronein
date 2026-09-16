@@ -17,8 +17,7 @@
  * and deserializing compressed scripts.
  *
  * This prevector size is determined by the largest .resize() in the
- * CompressScript function. The largest compressed script format is a
- * compressed public key, which is 33 bytes.
+ * CompressScript function. A compressed P2TR script uses 33 bytes.
  */
 using CompressedScript = prevector<33, unsigned char>;
 
@@ -42,24 +41,16 @@ uint64_t DecompressAmount(uint64_t nAmount);
 
 /** Compact serializer for scripts.
  *
- *  It detects common cases and encodes them much more efficiently.
- *  3 special cases are defined:
- *  * Pay to pubkey hash (encoded as 21 bytes)
- *  * Pay to script hash (encoded as 21 bytes)
- *  * Pay to pubkey starting with 0x02, 0x03 or 0x04 (encoded as 33 bytes)
+ *  Native output scripts use compact special encodings:
+ *  * P2TR is encoded as a type byte followed by its 32-byte witness program.
+ *  * P2A is encoded as a type byte without a payload.
  *
- *  Other scripts up to 121 bytes require 1 byte + script length. Above
- *  that, scripts up to 16505 bytes require 2 bytes + script length.
+ *  Other scripts are encoded as their size plus the number of special types,
+ *  followed by the script bytes.
  */
 struct ScriptCompression
 {
-    /**
-     * make this static for now (there are only 6 special scripts defined)
-     * this can potentially be extended together with a new version for
-     * transactions, in which case this value becomes dependent on version
-     * and nHeight of the enclosing transaction.
-     */
-    static const unsigned int nSpecialScripts = 6;
+    static constexpr unsigned int nSpecialScripts{2};
 
     template<typename Stream>
     void Ser(Stream &s, const CScript& script) {

@@ -185,7 +185,7 @@ class CoinStatsIndexTest(BitcoinTestFramework):
         # Create a coinbase that does not claim full subsidy and also
         # has two outputs
         cb = create_coinbase(109, nValue=35)
-        cb.vout.append(CTxOut(5 * COIN, CScript([OP_FALSE])))
+        cb.vout.append(CTxOut(5 * COIN, self.wallet.get_output_script()))
 
         # Generate a block that includes previous coinbase
         tip = self.nodes[0].getbestblockhash()
