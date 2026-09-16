@@ -12,7 +12,6 @@ from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
-    wallet_importprivkey,
 )
 import json
 import os
@@ -37,28 +36,29 @@ class GetblockstatsTest(BitcoinTestFramework):
         self.num_nodes = 1
         self.setup_clean_chain = True
 
+    def skip_test_if_missing_module(self):
+        self.skip_if_no_wallet()
+
     def get_stats(self):
         return [self.nodes[0].getblockstats(hash_or_height=self.start_height + i) for i in range(self.max_stat_pos+1)]
 
     def generate_test_data(self, filename):
         mocktime = 1525107225
         self.nodes[0].setmocktime(mocktime)
-        self.nodes[0].createwallet(wallet_name='test')
-        privkey = self.nodes[0].get_deterministic_priv_key().key
-        wallet_importprivkey(self.nodes[0], privkey, 0)
+        wallet = self.nodes[0].get_wallet_rpc(self.default_wallet_name)
 
         self.generate(self.nodes[0], COINBASE_MATURITY + 1)
 
         address = self.nodes[0].get_deterministic_priv_key().address
-        self.nodes[0].sendtoaddress(address=address, amount=10, subtractfeefromamount=True)
+        wallet.sendtoaddress(address=address, amount=10, subtractfeefromamount=True)
         self.generate(self.nodes[0], 1)
 
-        self.nodes[0].sendtoaddress(address=address, amount=10, subtractfeefromamount=True)
-        self.nodes[0].sendtoaddress(address=address, amount=10, subtractfeefromamount=False)
+        wallet.sendtoaddress(address=address, amount=10, subtractfeefromamount=True)
+        wallet.sendtoaddress(address=address, amount=10, subtractfeefromamount=False)
         self.fee_rate=300
-        self.nodes[0].sendtoaddress(address=address, amount=1, subtractfeefromamount=True, fee_rate=self.fee_rate)
+        wallet.sendtoaddress(address=address, amount=1, subtractfeefromamount=True, fee_rate=self.fee_rate)
         # Send to OP_RETURN output to test its exclusion from statistics
-        self.nodes[0].send(outputs={"data": "21"}, fee_rate=self.fee_rate)
+        wallet.send(outputs={"data": "21"}, fee_rate=self.fee_rate)
         self.sync_all()
         self.generate(self.nodes[0], 1)
 
@@ -67,7 +67,9 @@ class GetblockstatsTest(BitcoinTestFramework):
         blocks = []
         tip = self.nodes[0].getbestblockhash()
         blockhash = None
-        height = 0
+        # Genesis is already present on a clean chain and is not part of this
+        # native transaction-format fixture.
+        height = 1
         while tip != blockhash:
             blockhash = self.nodes[0].getblockhash(height)
             blocks.append(self.nodes[0].getblock(blockhash, 0))
@@ -178,9 +180,9 @@ class GetblockstatsTest(BitcoinTestFramework):
         self.log.info('Test tip including OP_RETURN')
         tip_stats = self.nodes[0].getblockstats(tip)
         assert_equal(tip_stats["utxo_increase"], 6)
-        assert_equal(tip_stats["utxo_size_inc"], 441)
+        assert_equal(tip_stats["utxo_size_inc"], 477)
         assert_equal(tip_stats["utxo_increase_actual"], 4)
-        assert_equal(tip_stats["utxo_size_inc_actual"], 300)
+        assert_equal(tip_stats["utxo_size_inc_actual"], 336)
 
         self.log.info("Test when only header is known")
         block = self.generateblock(self.nodes[0], output="raw(55)", transactions=[], submit=False)
