@@ -136,6 +136,9 @@ void AddOutputs(CMutableTransaction& rawTx, const UniValue& outputs_in)
     outputs = NormalizeOutputs(outputs_in);
 
     std::vector<std::pair<CTxDestination, CAmount>> parsed_outputs = ParseOutputs(outputs);
+    if (parsed_outputs.empty()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, outputs cannot be empty");
+    }
     for (const auto& [destination, nAmount] : parsed_outputs) {
         CScript scriptPubKey = GetScriptForDestination(destination);
 

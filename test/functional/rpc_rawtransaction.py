@@ -283,8 +283,8 @@ class RawTransactionsTest(BitcoinTestFramework):
         # Test `createrawtransaction` invalid `outputs`
         address = getnewdestination()[2]
         assert_raises_rpc_error(-3, "JSON value of type string is not of expected type array", self.nodes[0].createrawtransaction, [], 'foo')
-        self.nodes[0].createrawtransaction(inputs=[], outputs={})  # Should not throw for backwards compatibility
-        self.nodes[0].createrawtransaction(inputs=[], outputs=[])
+        assert_raises_rpc_error(-8, "Invalid parameter, outputs cannot be empty", self.nodes[0].createrawtransaction, [], {})
+        assert_raises_rpc_error(-8, "Invalid parameter, outputs cannot be empty", self.nodes[0].createrawtransaction, [], [])
         assert_raises_rpc_error(-8, "Data must be hexadecimal string", self.nodes[0].createrawtransaction, [], {'data': 'foo'})
         assert_raises_rpc_error(-5, "Invalid Bitcoin address", self.nodes[0].createrawtransaction, [], {'foo': 0})
         assert_raises_rpc_error(-3, "Invalid amount", self.nodes[0].createrawtransaction, [], {address: 'foo'})
@@ -298,7 +298,7 @@ class RawTransactionsTest(BitcoinTestFramework):
 
         # Test `createrawtransaction` mismatch between sequence number(s) and `replaceable` option
         assert_raises_rpc_error(-8, "Invalid parameter combination: Sequence number(s) contradict replaceable option",
-                                self.nodes[0].createrawtransaction, [{'txid': TXID, 'vout': 0, 'sequence': MAX_BIP125_RBF_SEQUENCE+1}], {}, 0, True)
+                                self.nodes[0].createrawtransaction, [{'txid': TXID, 'vout': 0, 'sequence': MAX_BIP125_RBF_SEQUENCE+1}], {'data': '00'}, 0, True)
 
         # Test `createrawtransaction` invalid `locktime`
         assert_raises_rpc_error(-3, "JSON value of type string is not of expected type number", self.nodes[0].createrawtransaction, [], {}, 'foo')
