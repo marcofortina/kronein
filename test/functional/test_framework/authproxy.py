@@ -131,29 +131,16 @@ class AuthServiceProxy():
     def __call__(self, *args, **argsn):
         postdata = self._json_dumps(self.get_request(*args, **argsn))
         response, status = self._request('POST', self.__url.path, postdata.encode('utf-8'))
-        # For backwards compatibility tests, accept JSON RPC 1.1 responses
-        if 'jsonrpc' not in response:
-            if response['error'] is not None:
-                raise JSONRPCException(response['error'], status)
-            elif 'result' not in response:
-                raise JSONRPCException({
-                    'code': -343, 'message': 'missing JSON-RPC result'}, status)
-            elif status != HTTPStatus.OK:
-                raise JSONRPCException({
-                    'code': -342, 'message': 'non-200 HTTP status code but no JSON-RPC error'}, status)
-            else:
-                return response['result']
-        else:
-            assert response['jsonrpc'] == '2.0'
-            if status != HTTPStatus.OK:
-                raise JSONRPCException({
-                    'code': -342, 'message': 'non-200 HTTP status code'}, status)
-            if 'error' in response:
-                raise JSONRPCException(response['error'], status)
-            elif 'result' not in response:
-                raise JSONRPCException({
-                    'code': -343, 'message': 'missing JSON-RPC 2.0 result and error'}, status)
-            return response['result']
+        assert response['jsonrpc'] == '2.0'
+        if status != HTTPStatus.OK:
+            raise JSONRPCException({
+                'code': -342, 'message': 'non-200 HTTP status code'}, status)
+        if 'error' in response:
+            raise JSONRPCException(response['error'], status)
+        elif 'result' not in response:
+            raise JSONRPCException({
+                'code': -343, 'message': 'missing JSON-RPC 2.0 result and error'}, status)
+        return response['result']
 
     def batch(self, rpc_call_list):
         postdata = self._json_dumps(list(rpc_call_list))

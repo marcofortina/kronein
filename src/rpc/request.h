@@ -13,14 +13,9 @@
 #include <univalue.h>
 #include <util/fs.h>
 
-enum class JSONRPCVersion {
-    V1_LEGACY,
-    V2
-};
-
-/** JSON-RPC 2.0 request, only used in bitcoin-cli **/
+/** JSON-RPC 2.0 request, only used in bitcoin-cli. */
 UniValue JSONRPCRequestObj(const std::string& strMethod, const UniValue& params, const UniValue& id);
-UniValue JSONRPCReplyObj(UniValue result, UniValue error, std::optional<UniValue> id, JSONRPCVersion jsonrpc_version);
+UniValue JSONRPCReplyObj(UniValue result, UniValue error, std::optional<UniValue> id);
 UniValue JSONRPCError(int code, const std::string& message);
 
 enum class GenerateAuthCookieResult : uint8_t {
@@ -60,10 +55,8 @@ public:
     std::string authUser;
     std::string peerAddr;
     std::any context;
-    JSONRPCVersion m_json_version = JSONRPCVersion::V1_LEGACY;
-
     void parse(const UniValue& valRequest);
-    [[nodiscard]] bool IsNotification() const { return !id.has_value() && m_json_version == JSONRPCVersion::V2; };
+    [[nodiscard]] bool IsNotification() const { return !id.has_value(); };
 };
 
 #endif // BITCOIN_RPC_REQUEST_H

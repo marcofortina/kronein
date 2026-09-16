@@ -336,22 +336,18 @@ bool RPCIsInWarmup(std::string *outStatus)
     return fRPCInWarmup;
 }
 
-UniValue JSONRPCExec(const JSONRPCRequest& jreq, bool catch_errors)
+UniValue JSONRPCExec(const JSONRPCRequest& jreq)
 {
     UniValue result;
-    if (catch_errors) {
-        try {
-            result = tableRPC.execute(jreq);
-        } catch (UniValue& e) {
-            return JSONRPCReplyObj(NullUniValue, std::move(e), jreq.id, jreq.m_json_version);
-        } catch (const std::exception& e) {
-            return JSONRPCReplyObj(NullUniValue, JSONRPCError(RPC_MISC_ERROR, e.what()), jreq.id, jreq.m_json_version);
-        }
-    } else {
+    try {
         result = tableRPC.execute(jreq);
+    } catch (UniValue& e) {
+        return JSONRPCReplyObj(NullUniValue, std::move(e), jreq.id);
+    } catch (const std::exception& e) {
+        return JSONRPCReplyObj(NullUniValue, JSONRPCError(RPC_MISC_ERROR, e.what()), jreq.id);
     }
 
-    return JSONRPCReplyObj(std::move(result), NullUniValue, jreq.id, jreq.m_json_version);
+    return JSONRPCReplyObj(std::move(result), NullUniValue, jreq.id);
 }
 
 /**

@@ -11,6 +11,7 @@ from test_framework.util import (
     str_to_b64str,
 )
 import http.client
+import json
 import urllib.parse
 
 
@@ -19,7 +20,8 @@ def rpccall(node, user, method):
     headers = {"Authorization": "Basic " + str_to_b64str('{}:{}'.format(user[0], user[3]))}
     conn = http.client.HTTPConnection(url.hostname, url.port)
     conn.connect()
-    conn.request('POST', '/', '{"method": "' + method + '"}', headers)
+    body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": method})
+    conn.request('POST', '/', body, headers)
     resp = conn.getresponse()
     conn.close()
     return resp

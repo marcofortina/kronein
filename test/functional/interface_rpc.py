@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import assert_equal, assert_greater_than_or_equal
 from threading import Thread
-from typing import Optional
 import subprocess
 
 
@@ -22,41 +21,22 @@ RPC_PARSE_ERROR            = -32700
 
 @dataclass
 class BatchOptions:
-    version: Optional[int] = None
     notification: bool = False
-    request_fields: Optional[dict] = None
-    response_fields: Optional[dict] = None
 
 
 def format_request(options, idx, fields):
-    request = {}
-    if options.version == 1:
-        request.update(version="1.1")
-    elif options.version == 2:
-        request.update(jsonrpc="2.0")
-    elif options.version is not None:
-        raise NotImplementedError(f"Unknown JSONRPC version {options.version}")
+    request = {"jsonrpc": "2.0"}
     if not options.notification:
         request.update(id=idx)
     request.update(fields)
-    if options.request_fields:
-        request.update(options.request_fields)
     return request
 
 
 def format_response(options, idx, fields):
-    if options.version == 2 and options.notification:
+    if options.notification:
         return None
-    response = {}
-    if not options.notification:
-        response.update(id=idx)
-    if options.version == 2:
-        response.update(jsonrpc="2.0")
-    else:
-        response.update(result=None, error=None)
+    response = {"jsonrpc": "2.0", "id": idx}
     response.update(fields)
-    if options.response_fields:
-        response.update(options.response_fields)
     return response
 
 
@@ -69,8 +49,8 @@ def send_json_rpc(node, body: object) -> tuple[object, int]:
     return send_raw_rpc(node, raw)
 
 
-def expect_http_rpc_status(expected_http_status, expected_rpc_error_code, node, method, params, version=1, notification=False):
-    req = format_request(BatchOptions(version, notification), 0, {"method": method, "params": params})
+def expect_http_rpc_status(expected_http_status, expected_rpc_error_code, node, method, params, notification=False):
+    req = format_request(BatchOptions(notification), 0, {"method": method, "params": params})
     response, status = send_json_rpc(node, req)
 
     if expected_rpc_error_code is not None:
@@ -145,84 +125,82 @@ class RPCInterfaceTest(BitcoinTestFramework):
 
     def test_batch_requests(self):
         self.log.info("Testing empty batch request...")
-        self.test_batch_request(lambda idx: None)
+        response, status = send_json_rpc(self.nodes[0], [])
+        assert_equal(response, {"jsonrpc": "2.0", "id": None, "error": {"code": RPC_INVALID_REQUEST, "message": "Invalid Request"}})
+        assert_equal(status, 200)
 
         self.log.info("Testing basic JSON-RPC 2.0 batch request...")
-        self.test_batch_request(lambda idx: BatchOptions(version=2))
-
-        self.log.info("Testing JSON-RPC 2.0 batch with notifications...")
-        self.test_batch_request(lambda idx: BatchOptions(version=2, notification=idx < 2))
-
-        self.log.info("Testing JSON-RPC 2.0 batch of ALL notifications...")
-        self.test_batch_request(lambda idx: BatchOptions(version=2, notification=True))
-
-        # JSONRPC 1.1 does not support batch requests, but test them for backwards compatibility.
-        self.log.info("Testing nonstandard JSON-RPC 1.1 batch request...")
-        self.test_batch_request(lambda idx: BatchOptions(version=1))
-
-        self.log.info("Testing nonstandard mixed JSON-RPC 1.1/2.0 batch request...")
-        self.test_batch_request(lambda idx: BatchOptions(version=2 if idx % 2 else 1))
-
-        self.log.info("Testing nonstandard batch request without version numbers...")
         self.test_batch_request(lambda idx: BatchOptions())
 
-        self.log.info("Testing nonstandard batch request without version numbers or ids...")
-        self.test_batch_request(lambda idx: BatchOptions(notification=True))
+        self.log.info("Testing JSON-RPC 2.0 batch with notifications...")
+        self.test_batch_request(lambda idx: BatchOptions(notification=idx < 2))
 
-        self.log.info("Testing nonstandard jsonrpc 1.0 version number is accepted...")
-        self.test_batch_request(lambda idx: BatchOptions(request_fields={"jsonrpc": "1.0"}))
+        self.log.info("Testing JSON-RPC 2.0 batch of all valid notifications...")
+        response, status = send_json_rpc(self.nodes[0], [
+            {"jsonrpc": "2.0", "method": "getblockcount"},
+            {"jsonrpc": "2.0", "method": "getblockhash", "params": [0]},
+        ])
+        assert_equal(response, None)
+        assert_equal(status, 204)
 
-        self.log.info("Testing unrecognized jsonrpc version number is rejected...")
-        self.test_batch_request(lambda idx: BatchOptions(
-            request_fields={"jsonrpc": "2.1"},
-            response_fields={"result": None, "error": {"code": RPC_INVALID_REQUEST, "message": "JSON-RPC version not supported"}}))
+        self.log.info("Testing invalid JSON-RPC 2.0 batch entries...")
+        response, status = send_json_rpc(self.nodes[0], [
+            {"jsonrpc": "2.0", "id": 1, "method": "getblockcount"},
+            {"id": 2, "method": "getblockcount"},
+            42,
+        ])
+        assert_equal(response, [
+            {"jsonrpc": "2.0", "id": 1, "result": 0},
+            {"jsonrpc": "2.0", "id": 2, "error": {"code": RPC_INVALID_REQUEST, "message": "Missing JSON-RPC 2.0 version marker"}},
+            {"jsonrpc": "2.0", "id": None, "error": {"code": RPC_INVALID_REQUEST, "message": "Invalid Request object"}},
+        ])
+        assert_equal(status, 200)
 
     def test_http_status_codes(self):
-        self.log.info("Testing HTTP status codes for JSON-RPC 1.1 requests...")
-        # OK
-        expect_http_rpc_status(200, None,                  self.nodes[0], "getblockhash", [0])
-        # Errors
-        expect_http_rpc_status(404, RPC_METHOD_NOT_FOUND,  self.nodes[0], "invalidmethod", [])
-        expect_http_rpc_status(500, RPC_INVALID_PARAMETER, self.nodes[0], "getblockhash", [42])
-        # force-send empty request
-        response, status = send_raw_rpc(self.nodes[0], b"")
-        assert_equal(response, {"id": None, "result": None, "error": {"code": RPC_PARSE_ERROR, "message": "Parse error"}})
-        assert_equal(status, 500)
-        # force-send invalidly formatted request
-        response, status = send_raw_rpc(self.nodes[0], b"this is bad")
-        assert_equal(response, {"id": None, "result": None, "error": {"code": RPC_PARSE_ERROR, "message": "Parse error"}})
-        assert_equal(status, 500)
-
         self.log.info("Testing HTTP status codes for JSON-RPC 2.0 requests...")
         # OK
-        expect_http_rpc_status(200, None,                   self.nodes[0], "getblockhash", [0],  2, False)
-        # RPC errors but not HTTP errors
-        expect_http_rpc_status(200, RPC_METHOD_NOT_FOUND,   self.nodes[0], "invalidmethod", [],  2, False)
-        expect_http_rpc_status(200, RPC_INVALID_PARAMETER,  self.nodes[0], "getblockhash", [42], 2, False)
-        # force-send invalidly formatted requests
+        expect_http_rpc_status(200, None,                  self.nodes[0], "getblockhash", [0])
+        # RPC errors are returned with HTTP success.
+        expect_http_rpc_status(200, RPC_METHOD_NOT_FOUND,  self.nodes[0], "invalidmethod", [])
+        expect_http_rpc_status(200, RPC_INVALID_PARAMETER, self.nodes[0], "getblockhash", [42])
+        # force-send empty request
+        response, status = send_raw_rpc(self.nodes[0], b"")
+        assert_equal(response, {"jsonrpc": "2.0", "id": None, "error": {"code": RPC_PARSE_ERROR, "message": "Parse error"}})
+        assert_equal(status, 200)
+        # force-send invalidly formatted request
+        response, status = send_raw_rpc(self.nodes[0], b"this is bad")
+        assert_equal(response, {"jsonrpc": "2.0", "id": None, "error": {"code": RPC_PARSE_ERROR, "message": "Parse error"}})
+        assert_equal(status, 200)
+        response, status = send_json_rpc(self.nodes[0], 42)
+        assert_equal(response, {"jsonrpc": "2.0", "id": None, "error": {"code": RPC_INVALID_REQUEST, "message": "Invalid Request"}})
+        assert_equal(status, 200)
+
+        self.log.info("Testing rejection of requests that are not JSON-RPC 2.0...")
         response, status = send_json_rpc(self.nodes[0], {"jsonrpc": 2, "method": "getblockcount"})
-        assert_equal(response, {"result": None, "error": {"code": RPC_INVALID_REQUEST, "message": "jsonrpc field must be a string"}})
-        assert_equal(status, 400)
+        assert_equal(response, {"jsonrpc": "2.0", "id": None, "error": {"code": RPC_INVALID_REQUEST, "message": "jsonrpc field must be a string"}})
+        assert_equal(status, 200)
         response, status = send_json_rpc(self.nodes[0], {"jsonrpc": "3.0", "method": "getblockcount"})
-        assert_equal(response, {"result": None, "error": {"code": RPC_INVALID_REQUEST, "message": "JSON-RPC version not supported"}})
-        assert_equal(status, 400)
+        assert_equal(response, {"jsonrpc": "2.0", "id": None, "error": {"code": RPC_INVALID_REQUEST, "message": "JSON-RPC version not supported"}})
+        assert_equal(status, 200)
+        response, status = send_json_rpc(self.nodes[0], {"version": "1.1", "id": 1, "method": "getblockcount"})
+        assert_equal(response, {"jsonrpc": "2.0", "id": 1, "error": {"code": RPC_INVALID_REQUEST, "message": "Missing JSON-RPC 2.0 version marker"}})
+        assert_equal(status, 200)
 
         self.log.info("Testing HTTP status codes for JSON-RPC 2.0 notifications...")
         # Not notification: id exists
         response, status = send_json_rpc(self.nodes[0], {"jsonrpc": "2.0", "id": None, "method": "getblockcount"})
         assert_equal(response["result"], 0)
         assert_equal(status, 200)
-        # Not notification: JSON 1.1
-        expect_http_rpc_status(200, None,                   self.nodes[0], "getblockcount", [],  1)
         # Not notification: has "id" field
-        expect_http_rpc_status(200, None,                   self.nodes[0], "getblockcount", [],  2, False)
+        expect_http_rpc_status(200, None, self.nodes[0], "getblockcount", [])
         block_count = self.nodes[0].getblockcount()
+        mining_address = self.nodes[0].decodescript("5120" + "00" * 32)["address"]
         # Notification response status code: HTTP_NO_CONTENT
-        expect_http_rpc_status(204, None,                   self.nodes[0], "generatetoaddress", [1, "bcrt1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqdku202"],  2, True)
+        expect_http_rpc_status(204, None, self.nodes[0], "generatetoaddress", [1, mining_address], notification=True)
         # The command worked even though there was no response
         assert_equal(block_count + 1, self.nodes[0].getblockcount())
         # No error response for notifications even if they are invalid
-        expect_http_rpc_status(204, None, self.nodes[0], "generatetoaddress", [1, "invalid_address"], 2, True)
+        expect_http_rpc_status(204, None, self.nodes[0], "generatetoaddress", [1, "invalid_address"], notification=True)
         # Sanity check: command was not executed
         assert_equal(block_count + 1, self.nodes[0].getblockcount())
 

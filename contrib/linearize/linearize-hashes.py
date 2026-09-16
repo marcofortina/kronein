@@ -45,7 +45,7 @@ class BitcoinRPC:
 
     @staticmethod
     def build_request(idx, method, params):
-        obj = { 'version' : '1.1',
+        obj = { 'jsonrpc' : '2.0',
             'method' : method,
             'id' : idx }
         if params is None:

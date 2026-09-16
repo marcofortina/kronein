@@ -74,21 +74,15 @@ The version tuple can be retrieved by e.g. the `getnetworkinfo` RPC in
 Superseded RPC behavior is removed directly. There are no runtime compatibility
 switches for old RPC formats, so consumers must be updated with the node.
 
-## JSON-RPC 1.1 vs 2.0
+## JSON-RPC 2.0
 
-The server recognizes [JSON-RPC v2.0](https://www.jsonrpc.org/specification) requests
-and responds accordingly. A 2.0 request is identified by the presence of
-`"jsonrpc": "2.0"` in the request body. If that key + value is not present in a request,
-the legacy JSON-RPC v1.1 protocol is followed instead, which was the only available
-protocol in v27.0 and prior releases.
+The server accepts only [JSON-RPC 2.0](https://www.jsonrpc.org/specification).
+Every request must contain `"jsonrpc": "2.0"`, and every response contains the
+same marker. RPC errors are returned with HTTP status `200`; HTTP error codes
+are reserved for failures of the HTTP transport, endpoint, or authentication.
 
-|| 1.1 | 2.0 |
-|-|-|-|
-| Request marker | `"version": "1.1"` (or none) | `"jsonrpc": "2.0"` |
-| Response marker | (none) | `"jsonrpc": "2.0"` |
-| `"error"` and `"result"` fields in response | both present | only one is present |
-| HTTP codes in response | `200` unless there is any kind of RPC error (invalid parameters, method not found, etc) | Always `200` unless there is an actual HTTP server error (request parsing error, endpoint not found, etc) |
-| Notifications: requests that get no reply | (not supported) | Supported for requests that exclude the "id" field. Returns HTTP status `204` "No Content" |
+Requests without an `id` are notifications and receive no response. Named
+parameters and batch requests are supported.
 
 ## Security
 

@@ -40,22 +40,10 @@ static bool g_rpc_whitelist_default = false;
 
 static void JSONErrorReply(HTTPRequest* req, UniValue objError, const JSONRPCRequest& jreq)
 {
-    // Sending HTTP errors is a legacy JSON-RPC behavior.
-    Assume(jreq.m_json_version != JSONRPCVersion::V2);
-
-    // Send error reply from json-rpc error object
-    int nStatus = HTTP_INTERNAL_SERVER_ERROR;
-    int code = objError.find_value("code").getInt<int>();
-
-    if (code == RPC_INVALID_REQUEST)
-        nStatus = HTTP_BAD_REQUEST;
-    else if (code == RPC_METHOD_NOT_FOUND)
-        nStatus = HTTP_NOT_FOUND;
-
-    std::string strReply = JSONRPCReplyObj(NullUniValue, std::move(objError), jreq.id, jreq.m_json_version).write() + "\n";
+    std::string strReply = JSONRPCReplyObj(NullUniValue, std::move(objError), jreq.id.value_or(NullUniValue)).write() + "\n";
 
     req->WriteHeader("Content-Type", "application/json");
-    req->WriteReply(nStatus, strReply);
+    req->WriteReply(HTTP_OK, strReply);
 }
 
 //This function checks username and password against -rpcauth
@@ -157,18 +145,16 @@ static bool HTTPReq_JSONRPC(const std::any& context, HTTPRequest* req)
                 return false;
             }
 
-            // Legacy 1.0/1.1 behavior is for failed requests to throw
-            // exceptions which return HTTP errors and RPC errors to the client.
-            // 2.0 behavior is to catch exceptions and return HTTP success with
-            // RPC errors, as long as there is not an actual HTTP server error.
-            const bool catch_errors{jreq.m_json_version == JSONRPCVersion::V2};
-            reply = JSONRPCExec(jreq, catch_errors);
+            reply = JSONRPCExec(jreq);
 
             if (jreq.IsNotification()) {
                 // Even though we do execute notifications, we do not respond to them
                 req->WriteReply(HTTP_NO_CONTENT);
                 return true;
             }
+
+        } else if (valRequest.isArray() && valRequest.size() == 0) {
+            reply = JSONRPCReplyObj(NullUniValue, JSONRPCError(RPC_INVALID_REQUEST, "Invalid Request"), NullUniValue);
 
         // array of requests
         } else if (valRequest.isArray()) {
@@ -196,34 +182,27 @@ static bool HTTPReq_JSONRPC(const std::any& context, HTTPRequest* req)
                 // Batches never throw HTTP errors, they are always just included
                 // in "HTTP OK" responses. Notifications never get any response.
                 UniValue response;
+                bool parsed{false};
                 try {
                     jreq.parse(valRequest[i]);
-                    response = JSONRPCExec(jreq, /*catch_errors=*/true);
+                    parsed = true;
+                    response = JSONRPCExec(jreq);
                 } catch (UniValue& e) {
-                    response = JSONRPCReplyObj(NullUniValue, std::move(e), jreq.id, jreq.m_json_version);
+                    response = JSONRPCReplyObj(NullUniValue, std::move(e), jreq.id.value_or(NullUniValue));
                 } catch (const std::exception& e) {
-                    response = JSONRPCReplyObj(NullUniValue, JSONRPCError(RPC_PARSE_ERROR, e.what()), jreq.id, jreq.m_json_version);
+                    response = JSONRPCReplyObj(NullUniValue, JSONRPCError(RPC_PARSE_ERROR, e.what()), jreq.id.value_or(NullUniValue));
                 }
-                if (!jreq.IsNotification()) {
+                if (!parsed || !jreq.IsNotification()) {
                     reply.push_back(std::move(response));
                 }
             }
-            // Return no response for an all-notification batch, but only if the
-            // batch request is non-empty. Technically according to the JSON-RPC
-            // 2.0 spec, an empty batch request should also return no response,
-            // However, if the batch request is empty, it means the request did
-            // not contain any JSON-RPC version numbers, so returning an empty
-            // response could break backwards compatibility with old RPC clients
-            // relying on previous behavior. Return an empty array instead of an
-            // empty response in this case to favor being backwards compatible
-            // over complying with the JSON-RPC 2.0 spec in this case.
-            if (reply.size() == 0 && valRequest.size() > 0) {
+            if (reply.size() == 0) {
                 req->WriteReply(HTTP_NO_CONTENT);
                 return true;
             }
         }
         else
-            throw JSONRPCError(RPC_PARSE_ERROR, "Top-level object parse error");
+            throw JSONRPCError(RPC_INVALID_REQUEST, "Invalid Request");
 
         req->WriteHeader("Content-Type", "application/json");
         req->WriteReply(HTTP_OK, reply.write() + "\n");

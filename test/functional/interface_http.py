@@ -8,8 +8,17 @@ from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import assert_equal, str_to_b64str
 
 import http.client
+import json
 import time
 import urllib.parse
+
+
+def rpc_body(method, params=None):
+    request = {"jsonrpc": "2.0", "id": 1, "method": method}
+    if params is not None:
+        request["params"] = params
+    return json.dumps(request)
+
 
 class HTTPBasicsTest (BitcoinTestFramework):
     def set_test_params(self):
@@ -30,15 +39,17 @@ class HTTPBasicsTest (BitcoinTestFramework):
 
         conn = http.client.HTTPConnection(url.hostname, url.port)
         conn.connect()
-        conn.request('POST', '/', '{"method": "getbestblockhash"}', headers)
+        conn.request('POST', '/', rpc_body("getbestblockhash"), headers)
         out1 = conn.getresponse().read()
-        assert b'"error":null' in out1
+        assert b'"jsonrpc":"2.0"' in out1
+        assert b'"result":' in out1
         assert conn.sock is not None  #according to http/1.1 connection must still be open!
 
         #send 2nd request without closing connection
-        conn.request('POST', '/', '{"method": "getchaintips"}', headers)
+        conn.request('POST', '/', rpc_body("getchaintips"), headers)
         out1 = conn.getresponse().read()
-        assert b'"error":null' in out1  #must also response with a correct json-rpc message
+        assert b'"jsonrpc":"2.0"' in out1
+        assert b'"result":' in out1
         assert conn.sock is not None  #according to http/1.1 connection must still be open!
         conn.close()
 
@@ -47,15 +58,17 @@ class HTTPBasicsTest (BitcoinTestFramework):
 
         conn = http.client.HTTPConnection(url.hostname, url.port)
         conn.connect()
-        conn.request('POST', '/', '{"method": "getbestblockhash"}', headers)
+        conn.request('POST', '/', rpc_body("getbestblockhash"), headers)
         out1 = conn.getresponse().read()
-        assert b'"error":null' in out1
+        assert b'"jsonrpc":"2.0"' in out1
+        assert b'"result":' in out1
         assert conn.sock is not None  #according to http/1.1 connection must still be open!
 
         #send 2nd request without closing connection
-        conn.request('POST', '/', '{"method": "getchaintips"}', headers)
+        conn.request('POST', '/', rpc_body("getchaintips"), headers)
         out1 = conn.getresponse().read()
-        assert b'"error":null' in out1  #must also response with a correct json-rpc message
+        assert b'"jsonrpc":"2.0"' in out1
+        assert b'"result":' in out1
         assert conn.sock is not None  #according to http/1.1 connection must still be open!
         conn.close()
 
@@ -64,9 +77,10 @@ class HTTPBasicsTest (BitcoinTestFramework):
 
         conn = http.client.HTTPConnection(url.hostname, url.port)
         conn.connect()
-        conn.request('POST', '/', '{"method": "getbestblockhash"}', headers)
+        conn.request('POST', '/', rpc_body("getbestblockhash"), headers)
         out1 = conn.getresponse().read()
-        assert b'"error":null' in out1
+        assert b'"jsonrpc":"2.0"' in out1
+        assert b'"result":' in out1
         assert conn.sock is None  #now the connection must be closed after the response
 
         #node1 (2nd node) is running with disabled keep-alive option
@@ -76,9 +90,10 @@ class HTTPBasicsTest (BitcoinTestFramework):
 
         conn = http.client.HTTPConnection(urlNode1.hostname, urlNode1.port)
         conn.connect()
-        conn.request('POST', '/', '{"method": "getbestblockhash"}', headers)
+        conn.request('POST', '/', rpc_body("getbestblockhash"), headers)
         out1 = conn.getresponse().read()
-        assert b'"error":null' in out1
+        assert b'"jsonrpc":"2.0"' in out1
+        assert b'"result":' in out1
 
         #node2 (third node) is running with standard keep-alive parameters which means keep-alive is on
         urlNode2 = urllib.parse.urlparse(self.nodes[2].url)
@@ -87,9 +102,10 @@ class HTTPBasicsTest (BitcoinTestFramework):
 
         conn = http.client.HTTPConnection(urlNode2.hostname, urlNode2.port)
         conn.connect()
-        conn.request('POST', '/', '{"method": "getbestblockhash"}', headers)
+        conn.request('POST', '/', rpc_body("getbestblockhash"), headers)
         out1 = conn.getresponse().read()
-        assert b'"error":null' in out1
+        assert b'"jsonrpc":"2.0"' in out1
+        assert b'"result":' in out1
         assert conn.sock is not None  #connection must be closed because bitcoind should use keep-alive by default
 
         # Check excessive request size
@@ -115,13 +131,13 @@ class HTTPBasicsTest (BitcoinTestFramework):
         req += f'Authorization: Basic {str_to_b64str(authpair)}\r\n'
 
         # First request will take a long time to process
-        body1 = f'{{"method": "waitforblockheight", "params": [{tip_height + 1}]}}'
+        body1 = rpc_body("waitforblockheight", [tip_height + 1])
         req1 = req
         req1 += f'Content-Length: {len(body1)}\r\n\r\n'
         req1 += body1
 
         # Second request will process very fast
-        body2 = '{"method": "getblockcount"}'
+        body2 = rpc_body("getblockcount")
         req2 = req
         req2 += f'Content-Length: {len(body2)}\r\n\r\n'
         req2 += body2
@@ -160,7 +176,7 @@ class HTTPBasicsTest (BitcoinTestFramework):
         headers_chunked = headers.copy()
         headers_chunked.update({"Transfer-encoding": "chunked"})
         body_chunked = [
-            b'{"method": "submitblock", "params": ["',
+            b'{"jsonrpc":"2.0","id":1,"method":"submitblock","params":["',
             b'0' * 1000000,
             b'1' * 1000000,
             b'2' * 1000000,
@@ -176,7 +192,7 @@ class HTTPBasicsTest (BitcoinTestFramework):
             headers=headers_chunked,
             encode_chunked=True)
         out1 = conn.getresponse().read()
-        assert_equal(out1, b'{"result":"high-hash","error":null}\n')
+        assert_equal(out1, b'{"jsonrpc":"2.0","result":"high-hash","id":1}\n')
 
 
         self.log.info("Check -rpcservertimeout")
