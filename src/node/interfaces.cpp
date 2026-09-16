@@ -705,14 +705,11 @@ public:
         }
         return MiniMiner(*m_node.mempool, outpoints).CalculateTotalBumpFees(target_feerate);
     }
-    void getPackageLimits(unsigned int& limit_ancestor_count, unsigned int& limit_descendant_count) override
+    unsigned int getClusterLimit() override
     {
         const CTxMemPool::Limits default_limits{};
-
         const CTxMemPool::Limits& limits{m_node.mempool ? m_node.mempool->m_opts.limits : default_limits};
-
-        limit_ancestor_count = limits.ancestor_count;
-        limit_descendant_count = limits.descendant_count;
+        return limits.cluster_count;
     }
     util::Result<void> checkChainLimits(const CTransactionRef& tx) override
     {

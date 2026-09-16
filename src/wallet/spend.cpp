@@ -807,16 +807,11 @@ util::Result<SelectionResult> SelectCoins(const CWallet& wallet, CoinsResult& av
 
 util::Result<SelectionResult> AutomaticCoinSelection(const CWallet& wallet, CoinsResult& available_coins, const CAmount& value_to_select, const CoinSelectionParams& coin_selection_params)
 {
-    // Try to enforce a mixture of cluster limits and ancestor/descendant limits on transactions we create by limiting
-    // the ancestors and the maximum cluster count of any UTXO we use. We use the ancestor/descendant limits, which are
-    // lower than the cluster limits, to avoid exceeding any ancestor/descendant limits of legacy nodes. This filter is safe
-    // because a transaction's ancestor or descendant count cannot be larger than its cluster count.
-    // TODO: these limits can be relaxed in the future, and we can replace the ancestor filter with a cluster equivalent.
-    unsigned int limit_ancestor_count = 0;
-    unsigned int limit_descendant_count = 0;
-    wallet.chain().getPackageLimits(limit_ancestor_count, limit_descendant_count);
-    const size_t max_ancestors = (size_t)std::max<int64_t>(1, limit_ancestor_count);
-    const size_t max_cluster_count = (size_t)std::max<int64_t>(1, limit_descendant_count);
+    // Limit both the aggregated ancestors and maximum cluster count of selected
+    // UTXOs using the node's cluster policy. A transaction's ancestor count
+    // cannot exceed its cluster count.
+    const size_t max_cluster_count{std::max<unsigned int>(1, wallet.chain().getClusterLimit())};
+    const size_t max_ancestors{max_cluster_count};
     const bool fRejectLongChains = gArgs.GetBoolArg("-walletrejectlongchains", DEFAULT_WALLET_REJECT_LONG_CHAINS);
 
     // Cases where we have 101+ outputs all pointing to the same destination may result in
@@ -837,12 +832,20 @@ util::Result<SelectionResult> AutomaticCoinSelection(const CWallet& wallet, Coin
                 {CoinEligibilityFilter(1, 6, 0), /*allow_mixed_output_types=*/false},
                 {CoinEligibilityFilter(1, 1, 0)},
         };
+        const auto add_filter = [&ordered_filters](CoinEligibilityFilter filter) {
+            const auto same_filter = [&filter](const SelectionFilter& candidate) {
+                return !(filter < candidate.filter) && !(candidate.filter < filter);
+            };
+            if (std::none_of(ordered_filters.begin(), ordered_filters.end(), same_filter)) {
+                ordered_filters.push_back({filter});
+            }
+        };
         // Fall back to using zero confirmation change (but with as few ancestors in the mempool as
         // possible) if we cannot fund the transaction otherwise.
         if (wallet.m_spend_zero_conf_change) {
-            ordered_filters.push_back({CoinEligibilityFilter(0, 1, 2)});
-            ordered_filters.push_back({CoinEligibilityFilter(0, 1, std::min(size_t{4}, max_ancestors/3), std::min(size_t{4}, max_cluster_count/3))});
-            ordered_filters.push_back({CoinEligibilityFilter(0, 1, max_ancestors/2, max_cluster_count/2)});
+            add_filter(CoinEligibilityFilter(0, 1, 2));
+            add_filter(CoinEligibilityFilter(0, 1, std::min(size_t{4}, max_ancestors/3), std::min(size_t{4}, max_cluster_count/3)));
+            add_filter(CoinEligibilityFilter(0, 1, max_ancestors/2, max_cluster_count/2));
             // If partial groups are allowed, relax the requirement of spending OutputGroups (groups
             // of UTXOs sent to the same address, which are obviously controlled by a single wallet)
             // in their entirety.
@@ -853,9 +856,8 @@ util::Result<SelectionResult> AutomaticCoinSelection(const CWallet& wallet, Coin
                 ordered_filters.push_back({CoinEligibilityFilter(/*conf_mine=*/0, /*conf_theirs=*/0, max_ancestors-1, max_cluster_count-1, /*include_partial=*/true)});
             }
             // Try with unlimited ancestors/clusters. The transaction will still need to meet
-            // local mempool policy (i.e. cluster limits) to be accepted to mempool and broadcasted, and
-            // limits of other nodes (e.g. ancestor/descendant limits) to propagate, but OutputGroups
-            // use heuristics that may overestimate.
+            // local mempool cluster policy to be accepted and broadcast, but
+            // OutputGroups use heuristics that may overestimate.
             if (!fRejectLongChains) {
                 ordered_filters.push_back({CoinEligibilityFilter(0, 1, std::numeric_limits<uint64_t>::max(),
                                                                    std::numeric_limits<uint64_t>::max(),
