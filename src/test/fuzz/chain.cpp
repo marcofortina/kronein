@@ -40,7 +40,6 @@ FUZZ_TARGET(chain)
     LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 10000) {
         const BlockStatus block_status = fuzzed_data_provider.PickValueInArray({
             BlockStatus::BLOCK_VALID_UNKNOWN,
-            BlockStatus::BLOCK_VALID_RESERVED,
             BlockStatus::BLOCK_VALID_TREE,
             BlockStatus::BLOCK_VALID_TRANSACTIONS,
             BlockStatus::BLOCK_VALID_CHAIN,

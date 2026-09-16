@@ -43,9 +43,6 @@ enum BlockStatus : uint32_t {
     //! Unused.
     BLOCK_VALID_UNKNOWN      =    0,
 
-    //! Reserved (was BLOCK_VALID_HEADER).
-    BLOCK_VALID_RESERVED     =    1,
-
     //! All parent headers found, difficulty matches, timestamp >= median previous. Implies all parents
     //! are also at least TREE.
     BLOCK_VALID_TREE         =    2,
@@ -69,17 +66,14 @@ enum BlockStatus : uint32_t {
     BLOCK_VALID_SCRIPTS      =    5,
 
     //! All validity bits.
-    BLOCK_VALID_MASK         =   BLOCK_VALID_RESERVED | BLOCK_VALID_TREE | BLOCK_VALID_TRANSACTIONS |
-                                 BLOCK_VALID_CHAIN | BLOCK_VALID_SCRIPTS,
+    BLOCK_VALID_MASK         =   BLOCK_VALID_TREE | BLOCK_VALID_TRANSACTIONS | BLOCK_VALID_CHAIN |
+                                 BLOCK_VALID_SCRIPTS,
 
     BLOCK_HAVE_DATA          =    8, //!< full block available in blk*.dat
     BLOCK_HAVE_UNDO          =   16, //!< undo data available in rev*.dat
     BLOCK_HAVE_MASK          =   BLOCK_HAVE_DATA | BLOCK_HAVE_UNDO,
 
     BLOCK_FAILED_VALID       =   32, //!< stage after last reached validness failed
-
-    BLOCK_STATUS_RESERVED    =   256, //!< Unused flag that was previously set on assumeutxo snapshot blocks and their
-                                      //!< ancestors before they were validated, and unset when they were validated.
 };
 
 /** The block chain is a tree shaped structure starting with the
