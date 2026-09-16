@@ -18,6 +18,7 @@
 
 #include <key.h>
 #include <key_io.h>
+#include <script/signingprovider.h>
 #include <wallet/wallet.h>
 #include <wallet/test/util.h>
 #include <walletinitinterface.h>
@@ -38,6 +39,13 @@ using wallet::WalletContext;
 
 namespace
 {
+
+CTxDestination DestinationForKey(const CKey& key)
+{
+    TaprootBuilder builder;
+    builder.Finalize(XOnlyPubKey{key.GetPubKey()});
+    return builder.GetOutput();
+}
 
 /**
  * Fill the edit address dialog box with data, submit it, and ensure that
@@ -82,7 +90,7 @@ void TestAddAddressesToSendBook(interfaces::Node& node)
     }
 
     auto build_address{[]() {
-        const WitnessV0KeyHash dest{GenerateRandomKey().GetPubKey()};
+        const CTxDestination dest{DestinationForKey(GenerateRandomKey())};
         return std::make_pair(dest, QString::fromStdString(EncodeDestination(dest)));
     }};
 

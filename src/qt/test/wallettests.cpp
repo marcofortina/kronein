@@ -222,7 +222,11 @@ std::shared_ptr<CWallet> SetupDescriptorsWallet(interfaces::Node& node, TestChai
     Assert(wallet->AddWalletDescriptor(w_desc, provider, "", false));
     const CTxDestination dest{DestinationForKey(test.coinbaseKey)};
     wallet->SetAddressBook(dest, "", wallet::AddressPurpose::RECEIVE);
-    wallet->SetLastBlockProcessed(105, WITH_LOCK(node.context()->chainman->GetMutex(), return node.context()->chainman->ActiveChain().Tip()->GetBlockHash()));
+    const auto [tip_height, tip_hash] = WITH_LOCK(node.context()->chainman->GetMutex(), return std::make_pair(
+        node.context()->chainman->ActiveChain().Height(),
+        node.context()->chainman->ActiveChain().Tip()->GetBlockHash()
+    ));
+    wallet->SetLastBlockProcessed(tip_height, tip_hash);
     SyncUpWallet(wallet, node);
     wallet->SetBroadcastTransactions(true);
     return wallet;
@@ -443,9 +447,10 @@ void TestGUIWatchOnly(interfaces::Node& node, TestChain100Setup& test)
 
 void TestGUI(interfaces::Node& node)
 {
-    // Set up wallet and chain with 105 blocks (5 mature blocks for spending).
+    // Extend the fixture with 105 native taproot coinbases. The first five are
+    // mature and spendable after the remaining 100 blocks are mined.
     TestChain100Setup test;
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 105; ++i) {
         test.CreateAndProcessBlock({}, GetScriptForDestination(DestinationForKey(test.coinbaseKey)));
     }
     auto wallet_loader = interfaces::MakeWalletLoader(*test.m_node.chain, *Assert(test.m_node.args));
