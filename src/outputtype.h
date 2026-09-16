@@ -11,7 +11,6 @@
 #include <array>
 #include <optional>
 #include <string>
-#include <string_view>
 
 enum class OutputType {
     LEGACY,
@@ -28,9 +27,7 @@ static constexpr auto OUTPUT_TYPES = std::array{
     OutputType::BECH32M,
 };
 
-std::optional<OutputType> ParseOutputType(std::string_view str);
 const std::string& FormatOutputType(OutputType type);
-std::string FormatAllOutputTypes();
 
 /** Get the OutputType for a CTxDestination */
 std::optional<OutputType> OutputTypeFromDestination(const CTxDestination& dest);

@@ -10,7 +10,6 @@
 #include <common/system.h>
 #include <common/url.h>
 #include <netbase.h>
-#include <outputtype.h>
 #include <rpc/client.h>
 #include <rpc/request.h>
 #include <rpc/server.h>
@@ -73,7 +72,6 @@ FUZZ_TARGET(string)
     const common::Settings settings;
     (void)OnlyHasDefaultSectionSetting(settings, random_string_1, random_string_2);
     (void)ParseNetwork(random_string_1);
-    (void)ParseOutputType(random_string_1);
     (void)RemovePrefix(random_string_1, random_string_2);
     (void)ResolveErrMsg(random_string_1, random_string_2);
     try {
