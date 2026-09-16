@@ -277,10 +277,6 @@ public:
     // BlockConflicted.
     std::set<Txid> mempool_conflicts;
 
-    // Track v3 mempool tx that spends from this tx
-    // so that we don't try to create another unconfirmed child
-    std::optional<Txid> truc_child_in_mempool;
-
     template<typename Stream>
     void Serialize(Stream& s) const
     {

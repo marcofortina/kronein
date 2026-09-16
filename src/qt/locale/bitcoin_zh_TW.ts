@@ -4293,14 +4293,6 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">區塊驗證已中斷</translation>
     </message>
     <message>
-        <source>Can't spend unconfirmed version %d pre-selected input with a version 3 tx</source>
-        <translation type="unfinished">无法使用版本3交易花费未确认版本1%d的预选输入。</translation>
-    </message>
-    <message>
-        <source>Can't spend unconfirmed version 3 pre-selected input with a version %d tx</source>
-        <translation type="unfinished">无法使用版本1%d交易花费未确认版本3的预选输入。</translation>
-    </message>
-    <message>
         <source>Cannot write to directory '%s'; check permissions.</source>
         <translation type="unfinished">无法写入目录“%s”；请检查权限。</translation>
     </message>

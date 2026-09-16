@@ -5806,16 +5806,6 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>Can&apos;t spend unconfirmed version %d pre-selected input with a version 3 tx</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Can&apos;t spend unconfirmed version 3 pre-selected input with a version %d tx</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location line="+6"/>
         <source>Cannot write to directory &apos;%s&apos;; check permissions.</source>
         <translation type="unfinished"></translation>

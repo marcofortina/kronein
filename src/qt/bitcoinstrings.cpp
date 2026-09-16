@@ -18,8 +18,6 @@ QT_TRANSLATE_NOOP("bitcoin-core", "A %zu MiB dbcache may be too large for a syst
 QT_TRANSLATE_NOOP("bitcoin-core", "A fatal internal error occurred, see debug.log for details: "),
 QT_TRANSLATE_NOOP("bitcoin-core", "Assumeutxo data not found for the given blockhash '%s'."),
 QT_TRANSLATE_NOOP("bitcoin-core", "Block verification was interrupted"),
-QT_TRANSLATE_NOOP("bitcoin-core", "Can't spend unconfirmed version %d pre-selected input with a version 3 tx"),
-QT_TRANSLATE_NOOP("bitcoin-core", "Can't spend unconfirmed version 3 pre-selected input with a version %d tx"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Cannot obtain a lock on directory %s. %s is probably already running."),
 QT_TRANSLATE_NOOP("bitcoin-core", "Cannot provide specific connections and have addrman find outgoing connections at the same time."),
 QT_TRANSLATE_NOOP("bitcoin-core", "Cannot resolve -%s address: '%s'"),

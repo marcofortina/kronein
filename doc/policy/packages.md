@@ -50,9 +50,8 @@ The following rules are enforced for all packages:
 
    - *Rationale*: Basic support for package RBF can be used by wallets
      by making chains of no longer than two, then directly conflicting
-     those chains when needed. Combined with TRUC transactions this can
-     result in more robust fee bumping. More general package RBF may be
-     enabled in the future.
+     those chains when needed. More general package RBF may be enabled
+     in the future.
 
 The following rules are only enforced for packages to be submitted to the mempool (not
 enforced for test accepts):

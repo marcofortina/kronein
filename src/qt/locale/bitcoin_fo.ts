@@ -4458,14 +4458,6 @@ Bar ikki til at endurinnlesa mapputrygdaravrit.</translation>
         <translation type="unfinished">Váttan av blokkum varð avbrotin</translation>
     </message>
     <message>
-        <source>Can't spend unconfirmed version %d pre-selected input with a version 3 tx</source>
-        <translation type="unfinished">Óváttaði útgávu %d undanvald inntøk kunnu ikki nýtast í eini útgávu 3 flyting</translation>
-    </message>
-    <message>
-        <source>Can't spend unconfirmed version 3 pre-selected input with a version %d tx</source>
-        <translation type="unfinished">Óváttaði útgávu 3 undanvald inntøk kunnu ikki nýtast í eini útgávu %d flyting</translation>
-    </message>
-    <message>
         <source>Cannot write to directory '%s'; check permissions.</source>
         <translation type="unfinished">Bar ikki til at skriva til skjáttuna '%s'; kanna rættindi.</translation>
     </message>

@@ -4472,14 +4472,6 @@ Ní féidir cúltaca an sparán a chur ar ais.</translation>
         <translation type="unfinished">Cuireadh isteach ar an bhfíorú blocála</translation>
     </message>
     <message>
-        <source>Can't spend unconfirmed version %d pre-selected input with a version 3 tx</source>
-        <translation type="unfinished">Ní féidir leagan %d ionchur réamhroghnaithe neamhdheimhnithe a chaitheamh le haistriú leagan 3</translation>
-    </message>
-    <message>
-        <source>Can't spend unconfirmed version 3 pre-selected input with a version %d tx</source>
-        <translation type="unfinished">Ní féidir ionchur réamhroghnaithe neamhdheimhnithe leagan 3 a chaitheamh le leagan %d tx</translation>
-    </message>
-    <message>
         <source>Cannot write to directory '%s'; check permissions.</source>
         <translation type="unfinished">Ní féidir scríobh chuig eolaire '%s'; ceadanna a sheiceáil.</translation>
     </message>

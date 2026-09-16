@@ -590,7 +590,6 @@ RPCHelpMan listunspent()
         cctl.m_min_depth = nMinDepth;
         cctl.m_max_depth = nMaxDepth;
         cctl.m_include_unsafe_inputs = include_unsafe;
-        filter_coins.check_version_trucness = false;
         LOCK(pwallet->cs_wallet);
         vecOutputs = AvailableCoins(*pwallet, &cctl, /*feerate=*/std::nullopt, filter_coins).All();
     }

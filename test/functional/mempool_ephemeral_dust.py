@@ -84,16 +84,15 @@ class EphemeralDustTest(BitcoinTestFramework):
         self.test_fee_having_parent()
         self.test_multidust()
         self.test_nonzero_dust()
-        self.test_non_truc()
         self.test_unspent_ephemeral()
         self.test_reorgs()
         self.test_no_minrelay_fee()
 
     def test_normal_dust(self):
-        self.log.info("Create 0-value dusty output, show that it works inside truc when spent in package")
+        self.log.info("Create 0-value ephemeral dust and spend it in a package")
 
         assert_equal(self.nodes[0].getrawmempool(), [])
-        dusty_tx, sweep_tx = self.create_ephemeral_dust_package(tx_version=3)
+        dusty_tx, sweep_tx = self.create_ephemeral_dust_package(tx_version=1)
 
         # Test doesn't work because lack of package feerates
         test_res = self.nodes[0].testmempoolaccept([dusty_tx["hex"], sweep_tx["hex"]])
@@ -129,7 +128,7 @@ class EphemeralDustTest(BitcoinTestFramework):
         self.log.info("Test that an ephemeral package is rejected on restart due to individual evaluation")
 
         assert_equal(self.nodes[0].getrawmempool(), [])
-        dusty_tx, sweep_tx = self.create_ephemeral_dust_package(tx_version=3)
+        dusty_tx, sweep_tx = self.create_ephemeral_dust_package(tx_version=1)
 
         res = self.nodes[0].submitpackage([dusty_tx["hex"], sweep_tx["hex"]])
         assert_equal(res["package_msg"], "success")
@@ -150,7 +149,7 @@ class EphemeralDustTest(BitcoinTestFramework):
         assert_equal(self.nodes[0].getrawmempool(), [])
 
         sats_fee = 1
-        dusty_tx, sweep_tx = self.create_ephemeral_dust_package(tx_version=3, dust_tx_fee=sats_fee)
+        dusty_tx, sweep_tx = self.create_ephemeral_dust_package(tx_version=1, dust_tx_fee=sats_fee)
         assert_equal(int(COIN * dusty_tx["fee"]), sats_fee) # has fees
         assert_greater_than(dusty_tx["tx"].vout[0].nValue, 330) # main output is not dust
         assert_equal(dusty_tx["tx"].vout[1].nValue, 0) # added one is dust
@@ -168,7 +167,7 @@ class EphemeralDustTest(BitcoinTestFramework):
         assert_equal(res["tx-results"][dusty_tx["wtxid"]]["error"], "dust, tx with dust output must be 0-fee")
 
         # Will not be accepted if base fee is 0 with modified fee of non-0
-        dusty_tx, sweep_tx = self.create_ephemeral_dust_package(tx_version=3)
+        dusty_tx, sweep_tx = self.create_ephemeral_dust_package(tx_version=1)
 
         self.nodes[0].prioritisetransaction(txid=dusty_tx["txid"], dummy=0, fee_delta=1000)
         self.nodes[1].prioritisetransaction(txid=dusty_tx["txid"], dummy=0, fee_delta=1000)
@@ -189,7 +188,7 @@ class EphemeralDustTest(BitcoinTestFramework):
         self.log.info("Test that a transaction with multiple ephemeral dusts is not allowed")
 
         assert_mempool_contents(self, self.nodes[0], expected=[])
-        dusty_tx, sweep_tx = self.create_ephemeral_dust_package(tx_version=3, num_dust_outputs=2)
+        dusty_tx, sweep_tx = self.create_ephemeral_dust_package(tx_version=1, num_dust_outputs=2)
 
         res = self.nodes[0].submitpackage([dusty_tx["hex"], sweep_tx["hex"]])
         assert_equal(res["package_msg"], "transaction failed")
@@ -207,7 +206,7 @@ class EphemeralDustTest(BitcoinTestFramework):
         # 330 is dust threshold for taproot outputs
         for value in [1, 329, 330]:
             assert_equal(self.nodes[0].getrawmempool(), [])
-            dusty_tx, _ = self.create_ephemeral_dust_package(tx_version=3, dust_value=value)
+            dusty_tx, _ = self.create_ephemeral_dust_package(tx_version=1, dust_value=value)
             test_res = self.nodes[0].testmempoolaccept([dusty_tx["hex"]])
             assert test_res[0]["allowed"]
 
@@ -216,29 +215,18 @@ class EphemeralDustTest(BitcoinTestFramework):
         self.connect_nodes(0, 1)
         assert_mempool_contents(self, self.nodes[0], expected=[])
 
-    def test_non_truc(self):
-        self.log.info("Test that v2 dust-having transaction is also accepted if spent")
-
-        assert_equal(self.nodes[0].getrawmempool(), [])
-        dusty_tx, sweep_tx = self.create_ephemeral_dust_package(tx_version=2)
-
-        res = self.nodes[0].submitpackage([dusty_tx["hex"], sweep_tx["hex"]])
-        assert_equal(res["package_msg"], "success")
-        assert_mempool_contents(self, self.nodes[0], expected=[dusty_tx["tx"], sweep_tx["tx"]])
-        self.generate(self.nodes[0], 1)
-
     def test_unspent_ephemeral(self):
         self.log.info("Test that spending from a tx with ephemeral outputs is only allowed if dust is spent as well")
 
         assert_equal(self.nodes[0].getrawmempool(), [])
-        dusty_tx, sweep_tx = self.create_ephemeral_dust_package(tx_version=3, dust_value=329)
+        dusty_tx, sweep_tx = self.create_ephemeral_dust_package(tx_version=1, dust_value=329)
 
         # Valid sweep we will RBF incorrectly by not spending dust as well
         self.nodes[0].submitpackage([dusty_tx["hex"], sweep_tx["hex"]])
         assert_mempool_contents(self, self.nodes[0], expected=[dusty_tx["tx"], sweep_tx["tx"]])
 
         # Doesn't spend in-mempool dust output from parent
-        unspent_sweep_tx = self.wallet.create_self_transfer_multi(fee_per_output=2000, utxos_to_spend=[dusty_tx["new_utxos"][0]], version=3)
+        unspent_sweep_tx = self.wallet.create_self_transfer_multi(fee_per_output=2000, utxos_to_spend=[dusty_tx["new_utxos"][0]], version=1)
         assert_greater_than(unspent_sweep_tx["fee"], sweep_tx["fee"])
         res = self.nodes[0].submitpackage([dusty_tx["hex"], unspent_sweep_tx["hex"]])
         assert_equal(res["tx-results"][unspent_sweep_tx["wtxid"]]["error"], f"missing-ephemeral-spends, tx {unspent_sweep_tx['txid']} (wtxid={unspent_sweep_tx['wtxid']}) did not spend parent's ephemeral dust")
@@ -246,7 +234,7 @@ class EphemeralDustTest(BitcoinTestFramework):
         assert_mempool_contents(self, self.nodes[0], expected=[dusty_tx["tx"], sweep_tx["tx"]])
 
         # Spend works with dust spent
-        sweep_tx_2 = self.wallet.create_self_transfer_multi(fee_per_output=2000, utxos_to_spend=dusty_tx["new_utxos"], version=3)
+        sweep_tx_2 = self.wallet.create_self_transfer_multi(fee_per_output=2000, utxos_to_spend=dusty_tx["new_utxos"], version=1)
         assert_not_equal(sweep_tx["hex"], sweep_tx_2["hex"])
         res = self.nodes[0].submitpackage([dusty_tx["hex"], sweep_tx_2["hex"]])
         assert_equal(res["package_msg"], "success")
@@ -255,10 +243,10 @@ class EphemeralDustTest(BitcoinTestFramework):
         self.generate(self.nodes[0], 1)
         assert_equal(self.nodes[0].getrawmempool(), [])
 
-        dusty_tx, _ = self.create_ephemeral_dust_package(tx_version=3, dust_value=329)
+        dusty_tx, _ = self.create_ephemeral_dust_package(tx_version=1, dust_value=329)
 
         # Spend non-dust only
-        unspent_sweep_tx = self.wallet.create_self_transfer_multi(utxos_to_spend=[dusty_tx["new_utxos"][0]], version=3)
+        unspent_sweep_tx = self.wallet.create_self_transfer_multi(utxos_to_spend=[dusty_tx["new_utxos"][0]], version=1)
 
         res = self.nodes[0].submitpackage([dusty_tx["hex"], unspent_sweep_tx["hex"]])
         assert_equal(res["package_msg"], "unspent-dust")
@@ -267,7 +255,7 @@ class EphemeralDustTest(BitcoinTestFramework):
 
         # Now spend dust only which should work
         second_coin = self.wallet.get_utxo() # another fee-bringing coin
-        sweep_tx = self.wallet.create_self_transfer_multi(utxos_to_spend=[dusty_tx["new_utxos"][1], second_coin], version=3)
+        sweep_tx = self.wallet.create_self_transfer_multi(utxos_to_spend=[dusty_tx["new_utxos"][1], second_coin], version=1)
 
         res = self.nodes[0].submitpackage([dusty_tx["hex"], sweep_tx["hex"]])
         assert_equal(res["package_msg"], "success")
@@ -282,7 +270,7 @@ class EphemeralDustTest(BitcoinTestFramework):
         assert_equal(self.nodes[0].getrawmempool(), [])
         sponsor_coin = self.wallet.get_utxo()
         # Bring "fee" input that can be double-spend separately
-        dusty_tx, sweep_tx = self.create_ephemeral_dust_package(tx_version=3, extra_sponsors=[sponsor_coin])
+        dusty_tx, sweep_tx = self.create_ephemeral_dust_package(tx_version=1, extra_sponsors=[sponsor_coin])
 
         res = self.nodes[0].submitpackage([dusty_tx["hex"], sweep_tx["hex"]])
         assert_equal(res["package_msg"], "success")
@@ -295,7 +283,7 @@ class EphemeralDustTest(BitcoinTestFramework):
             utxos_to_spend=[sponsor_coin],
             num_outputs=1,
             fee_per_output=2000,
-            version=3
+            version=1
         )
         self.nodes[0].sendrawtransaction(unsponsor_tx["hex"])
 
@@ -311,7 +299,7 @@ class EphemeralDustTest(BitcoinTestFramework):
         assert_mempool_contents(self, self.nodes[0], expected=[dusty_tx["tx"]])
 
         # Create sweep that doesn't spend conflicting sponsor coin
-        sweep_tx = self.wallet.create_self_transfer_multi(utxos_to_spend=dusty_tx["new_utxos"], version=3)
+        sweep_tx = self.wallet.create_self_transfer_multi(utxos_to_spend=dusty_tx["new_utxos"], version=1)
 
         # Can resweep
         self.nodes[0].sendrawtransaction(sweep_tx["hex"])
@@ -334,7 +322,7 @@ class EphemeralDustTest(BitcoinTestFramework):
         # Prep for fork with empty blocks
         fork_blocks = create_empty_fork(self.nodes[0])
 
-        dusty_tx, _ = self.create_ephemeral_dust_package(tx_version=3)
+        dusty_tx, _ = self.create_ephemeral_dust_package(tx_version=1)
         assert_raises_rpc_error(-26, "min relay fee not met", self.nodes[0].sendrawtransaction, dusty_tx["hex"])
 
         self.generateblock(self.nodes[0], self.wallet.get_address(), [dusty_tx["hex"]], sync_fun=self.no_op)
@@ -342,7 +330,7 @@ class EphemeralDustTest(BitcoinTestFramework):
         assert_mempool_contents(self, self.nodes[0], expected=[dusty_tx["tx"]], sync=False)
 
         # Create a sweep that has dust of its own and leaves dusty_tx's dust unspent
-        sweep_tx = self.wallet.create_self_transfer_multi(fee_per_output=0, utxos_to_spend=[dusty_tx["new_utxos"][0]], version=3)
+        sweep_tx = self.wallet.create_self_transfer_multi(fee_per_output=0, utxos_to_spend=[dusty_tx["new_utxos"][0]], version=1)
         self.add_output_to_create_multi_result(sweep_tx)
         assert_raises_rpc_error(-26, "min relay fee not met", self.nodes[0].sendrawtransaction, sweep_tx["hex"])
 
@@ -361,8 +349,8 @@ class EphemeralDustTest(BitcoinTestFramework):
         fork_blocks = create_empty_fork(self.nodes[0])
         self.generateblock(self.nodes[0], self.wallet.get_address(), [dusty_tx["hex"]], sync_fun=self.no_op)
         utxo = self.wallet.get_utxo()
-        # No in-mempool deps, use version=2 and chain off of it
-        second_sweep_tx = self.wallet.send_self_transfer_multi(from_node=self.nodes[0], utxos_to_spend=[dusty_tx["new_utxos"][1], utxo], version=2)
+        # With no in-mempool dependencies, chain off this transaction
+        second_sweep_tx = self.wallet.send_self_transfer_multi(from_node=self.nodes[0], utxos_to_spend=[dusty_tx["new_utxos"][1], utxo], version=1)
         child_chain = self.wallet.send_self_transfer_chain(from_node=self.nodes[0], chain_length=10, utxo_to_spend=second_sweep_tx["new_utxos"][0])
 
         # Everything but parent in pool
@@ -379,7 +367,7 @@ class EphemeralDustTest(BitcoinTestFramework):
         assert_equal(self.nodes[0].getrawmempool(), [])
 
         self.log.info("Test that ephemeral dust tx with fees or multi dust don't enter mempool via reorg")
-        multi_dusty_tx, _ = self.create_ephemeral_dust_package(tx_version=3, num_dust_outputs=2)
+        multi_dusty_tx, _ = self.create_ephemeral_dust_package(tx_version=1, num_dust_outputs=2)
 
         # Prep for fork with empty blocks
         fork_blocks = create_empty_fork(self.nodes[0])
@@ -389,7 +377,7 @@ class EphemeralDustTest(BitcoinTestFramework):
         assert_equal(self.nodes[0].getrawmempool(), [])
 
         # With fee and one dust
-        dusty_fee_tx, _ = self.create_ephemeral_dust_package(tx_version=3, dust_tx_fee=1)
+        dusty_fee_tx, _ = self.create_ephemeral_dust_package(tx_version=1, dust_tx_fee=1)
 
         # Prep for fork with empty blocks
         fork_blocks = create_empty_fork(self.nodes[0])
@@ -404,7 +392,7 @@ class EphemeralDustTest(BitcoinTestFramework):
 
     # N.B. this extra_args can be removed post cluster mempool
     def test_no_minrelay_fee(self):
-        self.log.info("Test that ephemeral dust works in non-TRUC contexts when there's no minrelay requirement")
+        self.log.info("Test that ephemeral dust works when there's no minrelay requirement")
 
         # Note: since minrelay is 0, it is not testing 1P1C relay
         self.restart_node(0, extra_args=["-minrelaytxfee=0"])
@@ -412,7 +400,7 @@ class EphemeralDustTest(BitcoinTestFramework):
         self.connect_nodes(0, 1)
 
         assert_equal(self.nodes[0].getrawmempool(), [])
-        dusty_tx, sweep_tx = self.create_ephemeral_dust_package(tx_version=2)
+        dusty_tx, sweep_tx = self.create_ephemeral_dust_package(tx_version=1)
 
         self.nodes[0].submitpackage([dusty_tx["hex"], sweep_tx["hex"]])
 
@@ -422,55 +410,6 @@ class EphemeralDustTest(BitcoinTestFramework):
         self.generate(self.nodes[0], 1)
         self.wallet.rescan_utxos()
         assert_equal(self.nodes[0].getrawmempool(), [])
-
-        self.log.info("Test batched ephemeral dust sweep")
-        dusty_txs = []
-        for _ in range(24):
-            dusty_txs.append(self.wallet.create_self_transfer_multi(fee_per_output=0, version=2))
-            self.add_output_to_create_multi_result(dusty_txs[-1])
-
-        all_parent_utxos = [utxo for tx in dusty_txs for utxo in tx["new_utxos"]]
-
-        # Missing one dust spend from a single parent, child rejected
-        insufficient_sweep_tx = self.wallet.create_self_transfer_multi(fee_per_output=25000, utxos_to_spend=all_parent_utxos[:-1], version=2)
-
-        res = self.nodes[0].submitpackage([dusty_tx["hex"] for dusty_tx in dusty_txs] + [insufficient_sweep_tx["hex"]])
-        assert_equal(res['package_msg'], "transaction failed")
-        assert_equal(res['tx-results'][insufficient_sweep_tx['wtxid']]['error'], f"missing-ephemeral-spends, tx {insufficient_sweep_tx['txid']} (wtxid={insufficient_sweep_tx['wtxid']}) did not spend parent's ephemeral dust")
-        # Everything got in except for insufficient spend
-        assert_mempool_contents(self, self.nodes[0], expected=[dusty_tx["tx"] for dusty_tx in dusty_txs])
-
-        # Next put some parents in mempool, but not others, and test unspent dust again with all parents spent
-        B_coin = self.wallet.get_utxo() # coin to cycle out CPFP
-        sweep_all_but_one_tx = self.wallet.create_self_transfer_multi(fee_per_output=20000, utxos_to_spend=all_parent_utxos[:-2] + [B_coin], version=2)
-        res = self.nodes[0].submitpackage([dusty_tx["hex"] for dusty_tx in dusty_txs[:-1]] + [sweep_all_but_one_tx["hex"]])
-        assert_equal(res['package_msg'], "success")
-        assert_mempool_contents(self, self.nodes[0], expected=[dusty_tx["tx"] for dusty_tx in dusty_txs] + [sweep_all_but_one_tx["tx"]])
-
-        res = self.nodes[0].submitpackage([dusty_tx["hex"] for dusty_tx in dusty_txs] + [insufficient_sweep_tx["hex"]])
-        assert_equal(res['package_msg'], "transaction failed")
-        assert_equal(res['tx-results'][insufficient_sweep_tx["wtxid"]]["error"], f"missing-ephemeral-spends, tx {insufficient_sweep_tx['txid']} (wtxid={insufficient_sweep_tx['wtxid']}) did not spend parent's ephemeral dust")
-        assert_mempool_contents(self, self.nodes[0], expected=[dusty_tx["tx"] for dusty_tx in dusty_txs] + [sweep_all_but_one_tx["tx"]])
-
-        # Cycle out the partial sweep to avoid triggering package RBF behavior which limits package to no in-mempool ancestors
-        cancel_sweep = self.wallet.create_self_transfer_multi(fee_per_output=21000, utxos_to_spend=[B_coin], version=2)
-        self.nodes[0].sendrawtransaction(cancel_sweep["hex"])
-        assert_mempool_contents(self, self.nodes[0], expected=[dusty_tx["tx"] for dusty_tx in dusty_txs] + [cancel_sweep["tx"]])
-
-        # Sweeps all dust, where all dusty txs are already in-mempool
-        sweep_tx = self.wallet.create_self_transfer_multi(fee_per_output=25000, utxos_to_spend=all_parent_utxos, version=2)
-
-        # N.B. Since we have multiple parents these are not propagating via 1P1C relay.
-        # minrelay being zero allows them to propagate on their own.
-        res = self.nodes[0].submitpackage([dusty_tx["hex"] for dusty_tx in dusty_txs] + [sweep_tx["hex"]])
-        assert_equal(res['package_msg'], "success")
-        assert_mempool_contents(self, self.nodes[0], expected=[dusty_tx["tx"] for dusty_tx in dusty_txs] + [sweep_tx["tx"], cancel_sweep["tx"]])
-
-        self.generate(self.nodes[0], 1)
-        self.wallet.rescan_utxos()
-        assert_equal(self.nodes[0].getrawmempool(), [])
-
-        # Other topology tests (e.g., grandparents and parents both with dust) require relaxation of submitpackage topology
 
         self.restart_node(0, extra_args=[])
         self.restart_node(1, extra_args=[])

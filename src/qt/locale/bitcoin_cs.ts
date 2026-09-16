@@ -3579,14 +3579,6 @@ Nelze obnovit zálohu peněženky.</translation>
         <translation type="unfinished">Ověření bloku bylo přerušeno</translation>
     </message>
     <message>
-        <source>Can't spend unconfirmed version %d pre-selected input with a version 3 tx</source>
-        <translation type="unfinished">Nelze utratit nepotvrzený předvybraný vstup verze %d s transakcí verze 3</translation>
-    </message>
-    <message>
-        <source>Can't spend unconfirmed version 3 pre-selected input with a version %d tx</source>
-        <translation type="unfinished">Nelze utratit nepotvrzený předvybraný vstup verze 3 pomocí transakce verze %d</translation>
-    </message>
-    <message>
         <source>Cannot write to directory '%s'; check permissions.</source>
         <translation type="unfinished">Nejde zapisovat do adresáře '%s'; zkontrolujte oprávnění.</translation>
     </message>

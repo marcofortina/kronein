@@ -8,7 +8,6 @@
 #include <key_io.h>
 #include <node/types.h>
 #include <policy/policy.h>
-#include <policy/truc_policy.h>
 #include <rpc/rawtransaction_util.h>
 #include <rpc/util.h>
 #include <script/script.h>
@@ -642,12 +641,6 @@ CreatedTransactionResult FundTransaction(CWallet& wallet, const CMutableTransact
 
     if (options.exists("max_tx_weight")) {
         coinControl.m_max_tx_weight = options["max_tx_weight"].getInt<int>();
-    }
-
-    if (tx.version == TRUC_VERSION) {
-        if (!coinControl.m_max_tx_weight.has_value() || coinControl.m_max_tx_weight.value() > TRUC_MAX_WEIGHT) {
-            coinControl.m_max_tx_weight = TRUC_MAX_WEIGHT;
-        }
     }
 
     if (recipients.empty())
@@ -1375,11 +1368,7 @@ RPCHelpMan sendall()
                 coin_control.m_version = options["version"].getInt<decltype(coin_control.m_version)>();
             }
 
-            if (coin_control.m_version == TRUC_VERSION) {
-                coin_control.m_max_tx_weight = TRUC_MAX_WEIGHT;
-            } else {
-                coin_control.m_max_tx_weight = MAX_STANDARD_TX_WEIGHT;
-            }
+            coin_control.m_max_tx_weight = MAX_STANDARD_TX_WEIGHT;
 
             const bool rbf{options.exists("replaceable") ? options["replaceable"].get_bool() : pwallet->m_signal_rbf};
 
@@ -1413,13 +1402,6 @@ RPCHelpMan sendall()
                     if (!tx || input.prevout.n >= tx->tx->vout.size() || !pwallet->IsMine(tx->tx->vout[input.prevout.n])) {
                         throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Input not found. UTXO (%s:%d) is not part of wallet.", input.prevout.hash.ToString(), input.prevout.n));
                     }
-                    if (pwallet->GetTxDepthInMainChain(*tx) == 0) {
-                        if (tx->tx->version == TRUC_VERSION && coin_control.m_version != TRUC_VERSION) {
-                            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Can't spend unconfirmed version 3 pre-selected input with a version %d tx", coin_control.m_version));
-                        } else if (coin_control.m_version == TRUC_VERSION && tx->tx->version != TRUC_VERSION) {
-                            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Can't spend unconfirmed version %d pre-selected input with a version 3 tx", tx->tx->version));
-                        }
-                    }
                     total_input_value += tx->tx->vout[input.prevout.n].nValue;
                 }
             } else {
@@ -1428,10 +1410,6 @@ RPCHelpMan sendall()
                 for (const COutput& output : AvailableCoins(*pwallet, &coin_control, fee_rate, coins_params).All()) {
                     if (send_max && fee_rate.GetFee(output.input_bytes) > output.txout.nValue) {
                         continue;
-                    }
-                    // we are spending an unconfirmed TRUC transaction, so lower max weight
-                    if (output.depth == 0 && coin_control.m_version == TRUC_VERSION) {
-                        coin_control.m_max_tx_weight = TRUC_CHILD_MAX_WEIGHT;
                     }
                     CTxIn input(output.outpoint.hash, output.outpoint.n, CScript(), rbf ? MAX_BIP125_RBF_SEQUENCE : CTxIn::SEQUENCE_FINAL);
                     rawTx.vin.push_back(input);

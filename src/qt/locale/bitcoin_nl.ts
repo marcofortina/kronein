@@ -3348,10 +3348,6 @@ Kan mislukte migratie niet opschonen</translation>
         <translation type="unfinished">Blokverificatie is onderbroken</translation>
     </message>
     <message>
-        <source>Can't spend unconfirmed version %d pre-selected input with a version 3 tx</source>
-        <translation type="unfinished">kan niet uitgeven onbevestigde versie  %d voorgeselecteerde inpunt met een versie 3 tx</translation>
-    </message>
-    <message>
         <source>Cannot write to directory '%s'; check permissions.</source>
         <translation type="unfinished">Kan niet schrijven naar map '%s'; controleer rechten.</translation>
     </message>

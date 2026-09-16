@@ -4396,14 +4396,6 @@ Impossible de restaurer la sauvegarde du portefeuille</translation>
         <translation type="unfinished">La vérification des blocs a été interrompue</translation>
     </message>
     <message>
-        <source>Can't spend unconfirmed version %d pre-selected input with a version 3 tx</source>
-        <translation type="unfinished">Impossible de dépenser une entrée présélectionnée non confirmée de version %d avec une transaction de version 3</translation>
-    </message>
-    <message>
-        <source>Can't spend unconfirmed version 3 pre-selected input with a version %d tx</source>
-        <translation type="unfinished">Impossible de dépenser une entrée présélectionnée non confirmée de version 3 avec une transaction de version %d</translation>
-    </message>
-    <message>
         <source>Cannot write to directory '%s'; check permissions.</source>
         <translation type="unfinished">Impossible d’écrire dans le dossier « %s » ; vérifiez les droits.</translation>
     </message>

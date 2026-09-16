@@ -4355,14 +4355,6 @@ No se puede restaurar la copia de seguridad del monedero.</translation>
         <translation type="unfinished">Se interrumpió la verificación de bloques</translation>
     </message>
     <message>
-        <source>Can't spend unconfirmed version %d pre-selected input with a version 3 tx</source>
-        <translation type="unfinished">No se puede gastar una entrada preseleccionada de versión %d sin confirmar con una transacción de versión 3</translation>
-    </message>
-    <message>
-        <source>Can't spend unconfirmed version 3 pre-selected input with a version %d tx</source>
-        <translation type="unfinished">No se puede gastar una entrada preseleccionada de versión 3 sin confirmar con una transacción de version %d</translation>
-    </message>
-    <message>
         <source>Cannot write to directory '%s'; check permissions.</source>
         <translation type="unfinished">No se puede escribir en el directorio "%s"; comprueba los permisos.</translation>
     </message>

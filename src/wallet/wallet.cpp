@@ -29,7 +29,6 @@
 #include <node/types.h>
 #include <outputtype.h>
 #include <policy/feerate.h>
-#include <policy/truc_policy.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
 #include <psbt.h>
@@ -1224,23 +1223,6 @@ bool CWallet::TransactionCanBeAbandoned(const Txid& hashTx) const
     return wtx && !wtx->isAbandoned() && GetTxDepthInMainChain(*wtx) == 0 && !wtx->InMempool();
 }
 
-void CWallet::UpdateTrucSiblingConflicts(const CWalletTx& parent_wtx, const Txid& child_txid, bool add_conflict) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet)
-{
-    // Find all other txs in our wallet that spend utxos from this parent
-    // so that we can mark them as mempool-conflicted by this new tx.
-    for (long unsigned int i = 0; i < parent_wtx.tx->vout.size(); i++) {
-        for (auto range = mapTxSpends.equal_range(COutPoint(parent_wtx.tx->GetHash(), i)); range.first != range.second; range.first++) {
-            const Txid& sibling_txid = range.first->second;
-            // Skip the child_tx itself
-            if (sibling_txid == child_txid) continue;
-            RecursiveUpdateTxState(/*batch=*/nullptr, sibling_txid, [&child_txid, add_conflict](CWalletTx& wtx) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet) {
-                return add_conflict ? (wtx.mempool_conflicts.insert(child_txid).second ? TxUpdate::CHANGED : TxUpdate::UNCHANGED)
-                                    : (wtx.mempool_conflicts.erase(child_txid) ? TxUpdate::CHANGED : TxUpdate::UNCHANGED);
-            });
-        }
-    }
-}
-
 void CWallet::MarkInputsDirty(const CTransactionRef& tx)
 {
     for (const CTxIn& txin : tx->vin) {
@@ -1399,23 +1381,6 @@ void CWallet::transactionAddedToMempool(const CTransactionRef& tx) {
 
     }
 
-    if (tx->version == TRUC_VERSION) {
-        // Unconfirmed TRUC transactions are only allowed a 1-parent-1-child topology.
-        // For any unconfirmed v3 parents (there should be a maximum of 1 except in reorgs),
-        // record this child so the wallet doesn't try to spend any other outputs
-        for (const CTxIn& tx_in : tx->vin) {
-            auto parent_it = mapWallet.find(tx_in.prevout.hash);
-            if (parent_it != mapWallet.end()) {
-                CWalletTx& parent_wtx = parent_it->second;
-                if (parent_wtx.isUnconfirmed()) {
-                    parent_wtx.truc_child_in_mempool = tx->GetHash();
-                    // Even though these siblings do not spend the same utxos, they can't
-                    // be present in the mempool at the same time because of TRUC policy rules
-                    UpdateTrucSiblingConflicts(parent_wtx, txid, /*add_conflict=*/true);
-                }
-            }
-        }
-    }
 }
 
 void CWallet::transactionRemovedFromMempool(const CTransactionRef& tx, MemPoolRemovalReason reason) {
@@ -1469,22 +1434,6 @@ void CWallet::transactionRemovedFromMempool(const CTransactionRef& tx, MemPoolRe
         }
     }
 
-    if (tx->version == TRUC_VERSION) {
-        // If this tx has a parent, unset its truc_child_in_mempool to make it possible
-        // to spend from the parent again. If this tx was replaced by another
-        // child of the same parent, transactionAddedToMempool
-        // will update truc_child_in_mempool
-        for (const CTxIn& tx_in : tx->vin) {
-            auto parent_it = mapWallet.find(tx_in.prevout.hash);
-            if (parent_it != mapWallet.end()) {
-                CWalletTx& parent_wtx = parent_it->second;
-                if (parent_wtx.truc_child_in_mempool == tx->GetHash()) {
-                    parent_wtx.truc_child_in_mempool = std::nullopt;
-                    UpdateTrucSiblingConflicts(parent_wtx, txid, /*add_conflict=*/false);
-                }
-            }
-        }
-    }
 }
 
 void CWallet::blockConnected(const ChainstateRole& role, const interfaces::BlockInfo& block)

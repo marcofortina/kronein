@@ -35,7 +35,6 @@
 #include <policy/policy.h>
 #include <policy/rbf.h>
 #include <policy/settings.h>
-#include <policy/truc_policy.h>
 #include <pow.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
@@ -343,8 +342,6 @@ void Chainstate::MaybeUpdateMempoolForReorg(
     // Also updates valid entries' cached LockPoints if needed.
     // If false, the tx is still valid and its lockpoints are updated.
     // If true, the tx would be invalid in the next block; remove this entry and all of its descendants.
-    // Note that TRUC rules are not applied here, so reorgs may cause violations of TRUC inheritance or
-    // topology restrictions.
     const auto filter_final_and_mature = [&](CTxMemPool::txiter it)
         EXCLUSIVE_LOCKS_REQUIRED(m_mempool->cs, ::cs_main) {
         AssertLockHeld(m_mempool->cs);
@@ -470,8 +467,6 @@ public:
          * any transaction spending the same inputs as a transaction in the mempool is considered
          * a conflict. */
         const bool m_allow_replacement;
-        /** When true, allow sibling eviction. This only occurs in single transaction package settings. */
-        const bool m_allow_sibling_eviction;
         /** Used to skip the LimitMempoolSize() call within AcceptSingleTransaction(). This should be used when multiple
          * AcceptSubPackage calls are expected and the mempool will be trimmed at the end of AcceptPackage(). */
         const bool m_package_submission;
@@ -495,7 +490,6 @@ public:
                             /*coins_to_uncache=*/ coins_to_uncache,
                             /*test_accept=*/ test_accept,
                             /*allow_replacement=*/ true,
-                            /*allow_sibling_eviction=*/ true,
                             /*package_submission=*/ false,
                             /*package_feerates=*/ false,
                             /*client_maxfeerate=*/ {}, // checked by caller
@@ -511,7 +505,6 @@ public:
                             /*coins_to_uncache=*/ coins_to_uncache,
                             /*test_accept=*/ true,
                             /*allow_replacement=*/ false,
-                            /*allow_sibling_eviction=*/ false,
                             /*package_submission=*/ false, // not submitting to mempool
                             /*package_feerates=*/ false,
                             /*client_maxfeerate=*/ {}, // checked by caller
@@ -527,7 +520,6 @@ public:
                             /*coins_to_uncache=*/ coins_to_uncache,
                             /*test_accept=*/ false,
                             /*allow_replacement=*/ true,
-                            /*allow_sibling_eviction=*/ false,
                             /*package_submission=*/ true,
                             /*package_feerates=*/ true,
                             /*client_maxfeerate=*/ client_maxfeerate,
@@ -542,7 +534,6 @@ public:
                             /*coins_to_uncache=*/ package_args.m_coins_to_uncache,
                             /*test_accept=*/ package_args.m_test_accept,
                             /*allow_replacement=*/ true,
-                            /*allow_sibling_eviction=*/ true,
                             /*package_submission=*/ true, // trim at the end of AcceptPackage()
                             /*package_feerates=*/ false, // only 1 transaction
                             /*client_maxfeerate=*/ package_args.m_client_maxfeerate,
@@ -558,7 +549,6 @@ public:
                  std::vector<COutPoint>& coins_to_uncache,
                  bool test_accept,
                  bool allow_replacement,
-                 bool allow_sibling_eviction,
                  bool package_submission,
                  bool package_feerates,
                  std::optional<CFeeRate> client_maxfeerate)
@@ -568,18 +558,14 @@ public:
               m_coins_to_uncache{coins_to_uncache},
               m_test_accept{test_accept},
               m_allow_replacement{allow_replacement},
-              m_allow_sibling_eviction{allow_sibling_eviction},
               m_package_submission{package_submission},
               m_package_feerates{package_feerates},
               m_client_maxfeerate{client_maxfeerate}
         {
             // If we are using package feerates, we must be doing package submission.
-            // It also means sibling eviction is not permitted.
             if (m_package_feerates) {
                 Assume(m_package_submission);
-                Assume(!m_allow_sibling_eviction);
             }
-            if (m_allow_sibling_eviction) Assume(m_allow_replacement);
         }
     };
 
@@ -610,9 +596,8 @@ public:
 
     /**
      * Submission of a subpackage.
-     * If subpackage size == 1, calls AcceptSingleTransaction() with adjusted ATMPArgs to
-     * enable sibling eviction and creates a PackageMempoolAcceptResult
-     * wrapping the result.
+     * If subpackage size == 1, calls AcceptSingleTransaction() and creates a
+     * PackageMempoolAcceptResult wrapping the result.
      *
      * If subpackage size > 1, calls AcceptMultipleTransactions() with the provided ATMPArgs.
      *
@@ -632,20 +617,14 @@ private:
     // of checking a given transaction.
     struct Workspace {
         explicit Workspace(const CTransactionRef& ptx) : m_ptx(ptx), m_hash(ptx->GetHash()) {}
-        /** Txids of mempool transactions that this transaction directly conflicts with or may
-         * replace via sibling eviction. */
+        /** Txids of mempool transactions that this transaction directly conflicts with. */
         std::set<Txid> m_conflicts;
-        /** Iterators to mempool entries that this transaction directly conflicts with or may
-         * replace via sibling eviction. */
+        /** Iterators to mempool entries that this transaction directly conflicts with. */
         CTxMemPool::setEntries m_iters_conflicting;
         /** All mempool parents of this transaction. */
         std::vector<CTxMemPoolEntry::CTxMemPoolEntryRef> m_parents;
         /* Handle to the tx in the changeset */
         CTxMemPool::ChangeSet::TxHandle m_tx_handle;
-        /** Whether RBF-related data structures (m_conflicts, m_iters_conflicting,
-         * m_replaced_transactions) include a sibling in addition to txns with conflicting inputs. */
-        bool m_sibling_eviction{false};
-
         /** Virtual size of the transaction as used by the mempool, calculated using serialized size
          * of the transaction and sigops. */
         int64_t m_vsize;
@@ -955,31 +934,6 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
 
     ws.m_parents = m_pool.GetParents(*ws.m_tx_handle);
 
-    if (!args.m_bypass_limits) {
-        // Perform the TRUC checks, using the in-mempool parents.
-        if (const auto err{SingleTRUCChecks(m_pool, ws.m_ptx, ws.m_parents, ws.m_conflicts, ws.m_vsize)}) {
-            // Single transaction contexts only.
-            if (args.m_allow_sibling_eviction && err->second != nullptr) {
-                // We should only be considering where replacement is considered valid as well.
-                Assume(args.m_allow_replacement);
-                // Potential sibling eviction. Add the sibling to our list of mempool conflicts to be
-                // included in RBF checks.
-                ws.m_conflicts.insert(err->second->GetHash());
-                // Adding the sibling to m_iters_conflicting here means that it doesn't count towards
-                // RBF Carve Out above. This is correct, since removing to-be-replaced transactions from
-                // the descendant count is done separately in SingleTRUCChecks for TRUC transactions.
-                ws.m_iters_conflicting.insert(m_pool.GetIter(err->second->GetHash()).value());
-                ws.m_sibling_eviction = true;
-                // The sibling will be treated as part of the to-be-replaced set in ReplacementChecks.
-                // Note that we are not checking whether it opts in to replaceability via BIP125 or TRUC
-                // (which is normally done in PreChecks). However, the only way a TRUC transaction can
-                // have a non-TRUC and non-BIP125 descendant is due to a reorg.
-            } else {
-                return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "TRUC-violation", err->first);
-            }
-        }
-    }
-
     // We want to detect conflicts in any tx in a package to trigger package RBF logic
     m_subpackage.m_rbf |= !ws.m_conflicts.empty();
     return true;
@@ -1000,8 +954,7 @@ bool MemPoolAccept::ReplacementChecks(Workspace& ws)
 
     // Calculate all conflicting entries and enforce Rule #5.
     if (const auto err_string{GetEntriesForConflicts(tx, m_pool, ws.m_iters_conflicting, all_conflicts)}) {
-        return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY,
-                             strprintf("too many potential replacements%s", ws.m_sibling_eviction ? " (including sibling eviction)" : ""), *err_string);
+        return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "too many potential replacements", *err_string);
     }
 
     // Check if it's economically rational to mine this transaction rather than the ones it
@@ -1014,8 +967,7 @@ bool MemPoolAccept::ReplacementChecks(Workspace& ws)
     if (const auto err_string{PaysForRBF(m_subpackage.m_conflicting_fees, ws.m_modified_fees, ws.m_vsize,
                                          m_pool.m_opts.incremental_relay_feerate, hash)}) {
         // Result may change in a package context
-        return state.Invalid(TxValidationResult::TX_RECONSIDERABLE,
-                             strprintf("insufficient fee%s", ws.m_sibling_eviction ? " (including sibling eviction)" : ""), *err_string);
+        return state.Invalid(TxValidationResult::TX_RECONSIDERABLE, "insufficient fee", *err_string);
     }
 
     // Add all the to-be-removed transactions to the changeset.
@@ -1474,15 +1426,6 @@ PackageMempoolAcceptResult MemPoolAccept::AcceptMultipleTransactionsInternal(con
         // same package spending the same in-mempool outpoints. This needs to be revisited for general
         // package RBF.
         m_viewmempool.PackageAddTransaction(ws.m_ptx);
-    }
-
-    // At this point we have all in-mempool parents, and we know every transaction's vsize.
-    // Run the TRUC checks on the package.
-    for (Workspace& ws : workspaces) {
-        if (auto err{PackageTRUCChecks(m_pool, ws.m_ptx, ws.m_vsize, txns, ws.m_parents)}) {
-            package_state.Invalid(PackageValidationResult::PCKG_POLICY, "TRUC-violation", err.value());
-            return PackageMempoolAcceptResult(package_state, {});
-        }
     }
 
     // Transactions must meet two minimum feerates: the mempool minimum fee and min relay fee.

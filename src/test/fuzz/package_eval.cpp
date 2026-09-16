@@ -6,7 +6,6 @@
 #include <node/context.h>
 #include <node/mempool_args.h>
 #include <node/miner.h>
-#include <policy/truc_policy.h>
 #include <test/fuzz/FuzzedDataProvider.h>
 #include <test/fuzz/fuzz.h>
 #include <test/fuzz/util.h>
@@ -151,7 +150,7 @@ std::unique_ptr<CTxMemPool> MakeEphemeralMempool(const NodeContext& node)
     // Require standardness rules otherwise ephemeral dust is no-op
     mempool_opts.require_standard = true;
 
-    // And set minrelay to 0 to allow ephemeral parent tx even with non-TRUC
+    // Set minrelay to 0 to allow the ephemeral parent transaction.
     mempool_opts.min_relay_feerate = CFeeRate(0);
 
     bilingual_str error;
@@ -383,7 +382,7 @@ FUZZ_TARGET(tx_package_eval, .init = initialize_tx_pool)
             // Create transaction to add to the mempool
             txs.emplace_back([&] {
                 CMutableTransaction tx_mut;
-                tx_mut.version = fuzzed_data_provider.ConsumeBool() ? TRUC_VERSION : CTransaction::CURRENT_VERSION;
+                tx_mut.version = CTransaction::CURRENT_VERSION;
                 tx_mut.nLockTime = fuzzed_data_provider.ConsumeBool() ? 0 : fuzzed_data_provider.ConsumeIntegral<uint32_t>();
                 // Last transaction in a package needs to be a child of parents to get further in validation
                 // so the last transaction to be generated(in a >1 package) must spend all package-made outputs
@@ -432,7 +431,7 @@ FUZZ_TARGET(tx_package_eval, .init = initialize_tx_pool)
                     tx_mut.vin.emplace_back();
                 }
 
-                // Make a p2pk output to make sigops adjusted vsize to violate TRUC rules, potentially, which is never spent
+                // Make an unspent p2pk output to exercise sigops-adjusted virtual size.
                 if (last_tx && amount_in > 1000 && fuzzed_data_provider.ConsumeBool()) {
                     tx_mut.vout.emplace_back(1000, CScript() << std::vector<unsigned char>(33, 0x02) << OP_CHECKSIG);
                     // Don't add any other outputs.
@@ -525,8 +524,6 @@ FUZZ_TARGET(tx_package_eval, .init = initialize_tx_pool)
             // This is empty if it fails early checks, or "full" if transactions are looked at deeper
             Assert(result_package.m_tx_results.size() == txs.size() || result_package.m_tx_results.empty());
         }
-
-        CheckMempoolTRUCInvariants(tx_pool);
 
         // Dust checks only make sense when dust is enforced
         if (tx_pool.m_opts.require_standard) {

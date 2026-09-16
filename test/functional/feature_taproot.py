@@ -19,7 +19,7 @@ from test_framework.messages import (
     CTxOut,
     SEQUENCE_FINAL,
     tx_from_hex,
-    TX_MAX_STANDARD_VERSION,
+    TX_STANDARD_VERSION,
     WITNESS_SCALE_FACTOR,
 )
 from test_framework.script import (
@@ -79,6 +79,7 @@ from test_framework.script import (
     SIGHASH_NONE,
     SIGHASH_SINGLE,
     SIGHASH_ANYONECANPAY,
+    SEQUENCE_LOCKTIME_DISABLE_FLAG,
     SegwitV0SignatureMsg,
     TaggedHash,
     TaprootSignatureMsg,
@@ -667,9 +668,6 @@ SIG_ADD_ZERO = {"failure": {"sign": zero_appender(default_sign)}}
 
 DUST_LIMIT = 600
 MIN_FEE = 50000
-
-TX_STANDARD_VERSIONS = [1, 2, TX_MAX_STANDARD_VERSION]
-TRUC_MAX_VSIZE = 10000 # test doesn't cover in-mempool spends, so only this limit is hit
 
 # === Actual test cases ===
 
@@ -1536,10 +1534,11 @@ class TaprootTest(BitcoinTestFramework):
 
         left = done
         while left:
-            # Construct CTransaction with random version, nLocktime
+            # Construct a native transaction with a random nLocktime.
             tx = CTransaction()
-            tx.version = random.choice(TX_STANDARD_VERSIONS + [0, TX_MAX_STANDARD_VERSION + 1, random.getrandbits(32)])
-            min_sequence = (tx.version != 1 and tx.version != 0) * 0x80000000  # The minimum sequence number to disable relative locktime
+            tx.version = TX_STANDARD_VERSION
+            # Relative locktime has native v1 semantics, so disable it for these randomized inputs.
+            min_sequence = SEQUENCE_LOCKTIME_DISABLE_FLAG
             if random.choice([True, False]):
                 tx.nLockTime = random.randrange(LOCKTIME_THRESHOLD, self.lastblocktime - 7200)  # all absolute locktimes in the past
             else:
@@ -1630,8 +1629,6 @@ class TaprootTest(BitcoinTestFramework):
                 is_standard_tx = (
                     fail_input is None  # Must be valid to be standard
                     and (all(utxo.spender.is_standard for utxo in input_utxos))  # All inputs must be standard
-                    and tx.version in TX_STANDARD_VERSIONS # The tx version must be standard
-                    and not (tx.version == 3 and tx.get_vsize() > TRUC_MAX_VSIZE)  # Topological standardness rules must be followed
                 )
                 msg = ','.join(utxo.spender.comment + ("*" if n == fail_input else "") for n, utxo in enumerate(input_utxos))
                 if is_standard_tx:
@@ -1804,7 +1801,7 @@ class TaprootTest(BitcoinTestFramework):
 
         # Construct a deterministic transaction spending all outputs created above.
         tx = CTransaction()
-        tx.version = 2
+        tx.version = TX_STANDARD_VERSION
         tx.vin = []
         inputs = []
         input_spks = [tap_spks[0], tap_spks[1], old_spks[0], tap_spks[2], tap_spks[5], old_spks[2], tap_spks[6], tap_spks[3], tap_spks[4]]
@@ -1871,7 +1868,7 @@ class TaprootTest(BitcoinTestFramework):
         aux = tx_test.setdefault("auxiliary", {})
         aux['fullySignedTx'] = tx.serialize().hex()
         keypath_tests.append(tx_test)
-        assert_equal(hashlib.sha256(tx.serialize()).hexdigest(), "24bab662cb55a7f3bae29b559f651674c62bcc1cd442d44715c0133939107b38")
+        assert_equal(hashlib.sha256(tx.serialize()).hexdigest(), "368505613478c88f5be84b03da4236161eee141dfca8a3c1ce12d10f8b637c31")
         # Mine the spending transaction
         self.block_submit(self.nodes[0], [tx], "Spending txn", None, sigops_weight=10000, accept=True, witness=True)
 

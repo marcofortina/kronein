@@ -8,7 +8,6 @@
 #include <node/context.h>
 #include <node/mempool_args.h>
 #include <policy/rbf.h>
-#include <policy/truc_policy.h>
 #include <txmempool.h>
 #include <test/util/transaction_utils.h>
 #include <util/check.h>
@@ -176,39 +175,6 @@ void CheckMempoolEphemeralInvariants(const CTxMemPool& tx_pool)
         Assert(std::any_of(only_child.vin.begin(), only_child.vin.end(), [&dust_outpoint](const CTxIn& txin) {
             return txin.prevout == dust_outpoint;
             }));
-    }
-}
-
-void CheckMempoolTRUCInvariants(const CTxMemPool& tx_pool)
-{
-    LOCK(tx_pool.cs);
-    for (const auto& tx_info : tx_pool.infoAll()) {
-        const auto& entry = *Assert(tx_pool.GetEntry(tx_info.tx->GetHash()));
-        auto [desc_count, desc_size, desc_fees] = tx_pool.CalculateDescendantData(entry);
-        auto [anc_count, anc_size, anc_fees] = tx_pool.CalculateAncestorData(entry);
-
-        if (tx_info.tx->version == TRUC_VERSION) {
-            // Check that special maximum virtual size is respected
-            Assert(entry.GetTxSize() <= TRUC_MAX_VSIZE);
-
-            // Check that special TRUC ancestor/descendant limits and rules are always respected
-            Assert(desc_count <= TRUC_DESCENDANT_LIMIT);
-            Assert(anc_count <= TRUC_ANCESTOR_LIMIT);
-            Assert(desc_size <= TRUC_MAX_VSIZE + TRUC_CHILD_MAX_VSIZE);
-            Assert(anc_size <= TRUC_MAX_VSIZE + TRUC_CHILD_MAX_VSIZE);
-            // If this transaction has at least 1 ancestor, it's a "child" and has restricted weight.
-            if (anc_count > 1) {
-                Assert(entry.GetTxSize() <= TRUC_CHILD_MAX_VSIZE);
-                // All TRUC transactions must only have TRUC unconfirmed parents.
-                const auto& parents = tx_pool.GetParents(entry);
-                Assert(parents.begin()->get().GetSharedTx()->version == TRUC_VERSION);
-            }
-        } else if (anc_count > 1) {
-            // All non-TRUC transactions must only have non-TRUC unconfirmed parents.
-            for (const auto& parent : tx_pool.GetParents(entry)) {
-                Assert(parent.get().GetSharedTx()->version != TRUC_VERSION);
-            }
-        }
     }
 }
 

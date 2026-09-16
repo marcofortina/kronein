@@ -1796,14 +1796,6 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished">‫محفظة افتراضية‬</translation>
     </message>
     <message>
-        <source>Can't spend unconfirmed version %d pre-selected input with a version 3 tx</source>
-        <translation type="unfinished">لا يمكن إنفاق إدخال مُحدد مسبقًا غير مؤكد من الإصدار %d باستخدام معاملة من الإصدار 3</translation>
-    </message>
-    <message>
-        <source>Can't spend unconfirmed version 3 pre-selected input with a version %d tx</source>
-        <translation type="unfinished">لا يمكن إنفاق إدخال مُحدد مسبقًا غير مؤكد من الإصدار 3 باستخدام معاملة من الإصدار %d</translation>
-    </message>
-    <message>
         <source>Cannot write to directory '%s'; check permissions.</source>
         <translation type="unfinished">لا يمكن الكتابة إلى الدليل '%s'; تحقق من الصلاحيات.</translation>
     </message>

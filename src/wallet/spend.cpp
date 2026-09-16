@@ -12,7 +12,6 @@
 #include <node/types.h>
 #include <numeric>
 #include <policy/policy.h>
-#include <policy/truc_policy.h>
 #include <primitives/transaction.h>
 #include <primitives/transaction_identifier.h>
 #include <script/script.h>
@@ -269,14 +268,6 @@ util::Result<CoinsResult> FetchSelectedInputs(const CWallet& wallet, const CCoin
             if (input_bytes == -1) {
                 input_bytes = CalculateMaximumSignedInputSize(txout, &wallet, &coin_control);
             }
-            const CWalletTx& parent_tx = txo->GetWalletTx();
-            if (wallet.GetTxDepthInMainChain(parent_tx) == 0) {
-                if (parent_tx.tx->version == TRUC_VERSION && coin_control.m_version != TRUC_VERSION) {
-                    return util::Error{strprintf(_("Can't spend unconfirmed version 3 pre-selected input with a version %d tx"), coin_control.m_version)};
-                } else if (coin_control.m_version == TRUC_VERSION && parent_tx.tx->version != TRUC_VERSION) {
-                    return util::Error{strprintf(_("Can't spend unconfirmed version %d pre-selected input with a version 3 tx"), parent_tx.tx->version)};
-                }
-            }
         } else {
             // The input is external. We did not find the tx in mapWallet.
             const auto out{coin_control.GetExternalOutput(outpoint)};
@@ -311,9 +302,6 @@ CoinsResult AvailableCoins(const CWallet& wallet,
     AssertLockHeld(wallet.cs_wallet);
 
     CoinsResult result;
-    // track unconfirmed truc outputs separately if we are tracking trucness
-    std::vector<std::pair<OutputType, COutput>> unconfirmed_truc_coins;
-    std::unordered_map<Txid, CAmount, SaltedTxidHasher> truc_txid_by_value;
     // Either the WALLET_FLAG_AVOID_REUSE flag is not set (in which case we always allow), or we default to avoiding, and only in the case where
     // a coin control object is provided, and has the avoid address reuse flag set to false, do we allow already used addresses
     bool allow_used_addresses = !wallet.IsWalletFlagSet(WALLET_FLAG_AVOID_REUSE) || (coinControl && !coinControl->m_avoid_address_reuse);
@@ -384,21 +372,6 @@ CoinsResult AvailableCoins(const CWallet& wallet,
                 safeTx = false;
             }
 
-            if (nDepth == 0 && params.check_version_trucness) {
-                if (coinControl->m_version == TRUC_VERSION) {
-                    if (wtx.tx->version != TRUC_VERSION) continue;
-                    // this unconfirmed v3 transaction already has a child
-                    if (wtx.truc_child_in_mempool.has_value()) continue;
-
-                    // this unconfirmed v3 transaction has a parent: spending would create a third generation
-                    size_t ancestors, unused_cluster_count;
-                    wallet.chain().getTransactionAncestry(wtx.tx->GetHash(), ancestors, unused_cluster_count);
-                    if (ancestors > 1) continue;
-                } else {
-                    if (wtx.tx->version == TRUC_VERSION) continue;
-                }
-            }
-
             if (only_safe && !safeTx) {
                 continue;
             }
@@ -458,13 +431,7 @@ CoinsResult AvailableCoins(const CWallet& wallet,
 
         auto available_output_type = GetOutputType(type, is_from_p2sh);
         auto available_output = COutput(outpoint, output, nDepth, input_bytes, solvable, tx_safe, wtx.GetTxTime(), tx_from_me, feerate);
-        if (wtx.tx->version == TRUC_VERSION && nDepth == 0 && params.check_version_trucness) {
-            unconfirmed_truc_coins.emplace_back(available_output_type, available_output);
-            auto [it, _] = truc_txid_by_value.try_emplace(wtx.tx->GetHash(), 0);
-            it->second += output.nValue;
-        } else {
-            result.Add(available_output_type, available_output);
-        }
+        result.Add(available_output_type, available_output);
 
         outpoints.push_back(outpoint);
 
@@ -478,23 +445,6 @@ CoinsResult AvailableCoins(const CWallet& wallet,
         // Checks the maximum number of UTXO's.
         if (params.max_count > 0 && result.Size() >= params.max_count) {
             return result;
-        }
-    }
-
-    // Return all the coins from one TRUC transaction, that have the highest value.
-    // This could be improved in the future by encoding these restrictions in
-    // the coin selection itself so that we don't have to filter out
-    // other unconfirmed TRUC coins beforehand.
-    if (params.check_version_trucness && unconfirmed_truc_coins.size() > 0) {
-        auto highest_value_truc_tx = std::max_element(truc_txid_by_value.begin(), truc_txid_by_value.end(), [](const auto& tx1, const auto& tx2){
-                return tx1.second < tx2.second;
-                });
-
-        const Txid& truc_txid = highest_value_truc_tx->first;
-        for (const auto& [type, output] : unconfirmed_truc_coins) {
-            if (output.outpoint.hash == truc_txid) {
-                    result.Add(type, output);
-            }
         }
     }
 
@@ -941,11 +891,6 @@ util::Result<SelectionResult> AutomaticCoinSelection(const CWallet& wallet, Coin
         for (const auto& select_filter : ordered_filters) {
             auto it = filtered_groups.find(select_filter.filter);
             if (it == filtered_groups.end()) continue;
-            if (updated_selection_params.m_version == TRUC_VERSION && (select_filter.filter.conf_mine == 0 || select_filter.filter.conf_theirs == 0)) {
-                if (updated_selection_params.m_max_tx_weight > (TRUC_CHILD_MAX_WEIGHT)) {
-                    updated_selection_params.m_max_tx_weight = TRUC_CHILD_MAX_WEIGHT;
-                }
-            }
             if (auto res{AttemptSelection(wallet.chain(), value_to_select, it->second,
                                           updated_selection_params, select_filter.allow_mixed_output_types)}) {
                 return res; // result found

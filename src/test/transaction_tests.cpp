@@ -810,14 +810,11 @@ BOOST_AUTO_TEST_CASE(test_IsStandard)
     t.version = 0;
     CheckIsNotStandard(t, "version");
 
-    t.version = TX_MAX_STANDARD_VERSION + 1;
+    t.version = CTransaction::CURRENT_VERSION + 1;
     CheckIsNotStandard(t, "version");
 
     // Allowed version
     t.version = 1;
-    CheckIsStandard(t);
-
-    t.version = 2;
     CheckIsStandard(t);
 
     // Check dust with odd relay fee to verify rounding:

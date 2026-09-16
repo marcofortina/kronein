@@ -2451,14 +2451,6 @@ The migration process will create a backup of the wallet before migrating. This 
         <translation type="unfinished">Проверка блоков прервана</translation>
     </message>
     <message>
-        <source>Can't spend unconfirmed version %d pre-selected input with a version 3 tx</source>
-        <translation type="unfinished">Нельзя потратить неподтвержденную версию 1%d предварительно выбранного входа с транзакцией версии 3</translation>
-    </message>
-    <message>
-        <source>Can't spend unconfirmed version 3 pre-selected input with a version %d tx</source>
-        <translation type="unfinished">Нельзя потратить неподтвержденную версию 3 предварительно выбранного входа с транзакцией версии 1%d</translation>
-    </message>
-    <message>
         <source>Config setting for %s only applied on %s network when in [%s] section.</source>
         <translation type="unfinished">Настройка конфигурации %s применяется для сети %s только если находится в разделе [%s].</translation>
     </message>

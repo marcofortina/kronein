@@ -36,8 +36,6 @@ DEFAULT_INCREMENTAL_RELAY_FEE = 100
 DEFAULT_CLUSTER_LIMIT = 64
 DEFAULT_CLUSTER_SIZE_LIMIT_KVB = 101
 
-TRUC_MAX_VSIZE = 10000
-TRUC_CHILD_MAX_VSIZE = 1000
 
 def assert_mempool_contents(test_framework, node, expected=None, sync=True):
     """Assert that all transactions in expected are in the mempool,

@@ -4529,14 +4529,6 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">Перевірка блоків перервана</translation>
     </message>
     <message>
-        <source>Can't spend unconfirmed version %d pre-selected input with a version 3 tx</source>
-        <translation type="unfinished">Неможливо витратити непідтверджений попередньо вибраний вхід версії %d у транзакції версії 3</translation>
-    </message>
-    <message>
-        <source>Can't spend unconfirmed version 3 pre-selected input with a version %d tx</source>
-        <translation type="unfinished">Неможливо витратити непідтверджений попередньо вибраний вхід версії 3 у транзакції версії %d</translation>
-    </message>
-    <message>
         <source>Cannot write to directory '%s'; check permissions.</source>
         <translation type="unfinished">Неможливо записати до каталогу '%s'; перевірте дозволи.</translation>
     </message>

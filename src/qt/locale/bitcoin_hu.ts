@@ -4386,14 +4386,6 @@ A tárca biztonsági mentésének visszaállítása sikertelen.</translation>
         <translation type="unfinished">Blokkok ellenőrzése megszakítva</translation>
     </message>
     <message>
-        <source>Can't spend unconfirmed version %d pre-selected input with a version 3 tx</source>
-        <translation type="unfinished">Nem lehet megerősítetlen, %d verziójú, előre kiválasztott bemenetet elkölteni egy 3-as verziójú tranzakcióval</translation>
-    </message>
-    <message>
-        <source>Can't spend unconfirmed version 3 pre-selected input with a version %d tx</source>
-        <translation type="unfinished">Nem lehet megerősítetlen, 3-as verziójú, előre kiválasztott bemenetet elkölteni egy %d verziójú tranzakcióval</translation>
-    </message>
-    <message>
         <source>Cannot write to directory '%s'; check permissions.</source>
         <translation type="unfinished">Nem tudok írni a '%s' könyvtárba, ellenőrizd a jogosultságokat.</translation>
     </message>

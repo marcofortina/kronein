@@ -4405,14 +4405,6 @@ Não foi possível restaurar a cópia de segurança da carteira.</translation>
         <translation type="unfinished">A verificação do bloco foi interrompida</translation>
     </message>
     <message>
-        <source>Can't spend unconfirmed version %d pre-selected input with a version 3 tx</source>
-        <translation type="unfinished">Não é possível gastar a entrada pré-selecionada da versão %d não confirmada com uma versão 3 tx</translation>
-    </message>
-    <message>
-        <source>Can't spend unconfirmed version 3 pre-selected input with a version %d tx</source>
-        <translation type="unfinished">Não é possível gastar a entrada pré-selecionada da versão 3 não confirmada com uma versão %d tx</translation>
-    </message>
-    <message>
         <source>Cannot write to directory '%s'; check permissions.</source>
         <translation type="unfinished">Não é possível escrever no diretório '%s'; verifique as permissões.</translation>
     </message>

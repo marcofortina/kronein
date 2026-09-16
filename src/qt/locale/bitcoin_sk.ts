@@ -4376,14 +4376,6 @@ Nepodarilo sa obnoviť zálohu peňaženky.</translation>
         <translation type="unfinished">Overovanie blokov bolo prerušené</translation>
     </message>
     <message>
-        <source>Can't spend unconfirmed version %d pre-selected input with a version 3 tx</source>
-        <translation type="unfinished">Nemožno minúť nepotvrdený vstup verzie %d vopred vybraný s verziou 3 tx</translation>
-    </message>
-    <message>
-        <source>Can't spend unconfirmed version 3 pre-selected input with a version %d tx</source>
-        <translation type="unfinished">Nemožno minúť nepotvrdený predvolený vstup verzie 3 s verziou %d tx</translation>
-    </message>
-    <message>
         <source>Cannot write to directory '%s'; check permissions.</source>
         <translation type="unfinished">Nemôžem zapisovať do priečinka '%s'; skontrolujte oprávnenia.</translation>
     </message>

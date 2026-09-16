@@ -4402,14 +4402,6 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">블록 검증이 중단되었음</translation>
     </message>
     <message>
-        <source>Can't spend unconfirmed version %d pre-selected input with a version 3 tx</source>
-        <translation type="unfinished">버전 %d의 확인되지 않은 사전 선택 입력은 버전 3 트랜잭션에서 사용할 수 없습니다.</translation>
-    </message>
-    <message>
-        <source>Can't spend unconfirmed version 3 pre-selected input with a version %d tx</source>
-        <translation type="unfinished">버전 3의 사전 선택된 입력이 아직 컨펌되지 않은 상태일 때 해당 입력을 버전 %d 트랜잭션으로는 사용할 수 없습니다.</translation>
-    </message>
-    <message>
         <source>Cannot write to directory '%s'; check permissions.</source>
         <translation type="unfinished">디렉터리 ‘%s’에 쓸 수 없습니다; 권한을 확인하세요.</translation>
     </message>

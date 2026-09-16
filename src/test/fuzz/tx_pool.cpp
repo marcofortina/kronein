@@ -6,7 +6,6 @@
 #include <node/context.h>
 #include <node/mempool_args.h>
 #include <node/miner.h>
-#include <policy/truc_policy.h>
 #include <test/fuzz/FuzzedDataProvider.h>
 #include <test/fuzz/fuzz.h>
 #include <test/fuzz/util.h>
@@ -263,7 +262,7 @@ FUZZ_TARGET(tx_pool_standard, .init = initialize_tx_pool)
         // Create transaction to add to the mempool
         const CTransactionRef tx = [&] {
             CMutableTransaction tx_mut;
-            tx_mut.version = fuzzed_data_provider.ConsumeBool() ? TRUC_VERSION : CTransaction::CURRENT_VERSION;
+            tx_mut.version = CTransaction::CURRENT_VERSION;
             tx_mut.nLockTime = fuzzed_data_provider.ConsumeBool() ? 0 : fuzzed_data_provider.ConsumeIntegral<uint32_t>();
             const auto num_in = fuzzed_data_provider.ConsumeIntegralInRange<int>(1, outpoints_rbf.size());
             const auto num_out = fuzzed_data_provider.ConsumeIntegralInRange<int>(1, outpoints_rbf.size() * 2);
@@ -357,7 +356,6 @@ FUZZ_TARGET(tx_pool_standard, .init = initialize_tx_pool)
         if (accepted) {
             Assert(added.size() == 1); // For now, no package acceptance
             Assert(tx == *added.begin());
-            CheckMempoolTRUCInvariants(tx_pool);
         } else {
             // Do not consider rejected transaction removed
             removed.erase(tx);
@@ -427,9 +425,6 @@ FUZZ_TARGET(tx_pool, .init = initialize_tx_pool)
 
     chainstate.SetMempool(&tx_pool);
 
-    // If we ever bypass limits, do not do TRUC invariants checks
-    bool ever_bypassed_limits{false};
-
     LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 300)
     {
         const auto mut_tx = ConsumeTransaction(fuzzed_data_provider, txids);
@@ -449,16 +444,11 @@ FUZZ_TARGET(tx_pool, .init = initialize_tx_pool)
         }
 
         const bool bypass_limits{fuzzed_data_provider.ConsumeBool()};
-        ever_bypassed_limits |= bypass_limits;
-
         const auto tx = MakeTransactionRef(mut_tx);
         const auto res = WITH_LOCK(::cs_main, return AcceptToMemoryPool(chainstate, tx, GetTime(), bypass_limits, /*test_accept=*/false));
         const bool accepted = res.m_result_type == MempoolAcceptResult::ResultType::VALID;
         if (accepted) {
             txids.push_back(tx->GetHash());
-            if (!ever_bypassed_limits) {
-                CheckMempoolTRUCInvariants(tx_pool);
-            }
         }
     }
     Finish(fuzzed_data_provider, tx_pool, chainstate);

@@ -4306,14 +4306,6 @@ Die Sicherung der Wallet kann nicht wiederhergestellt werden.</translation>
         <translation type="unfinished">Blocküberprüfung wurde unterbrochen</translation>
     </message>
     <message>
-        <source>Can't spend unconfirmed version %d pre-selected input with a version 3 tx</source>
-        <translation type="unfinished">Unbestätigter, vorab ausgewählter Input der Version %d kann nicht mit einer Version-3-Transaktion ausgegeben werden</translation>
-    </message>
-    <message>
-        <source>Can't spend unconfirmed version 3 pre-selected input with a version %d tx</source>
-        <translation type="unfinished">Unbestätigter, vorab ausgewählter Input der Version 3 kann nicht mit einer Version %d Transaktion ausgegeben werden</translation>
-    </message>
-    <message>
         <source>Cannot write to directory '%s'; check permissions.</source>
         <translation type="unfinished">Es kann nicht in das Verzeichnis '%s' geschrieben werden. Überprüfen Sie die Berechtigungen.</translation>
     </message>

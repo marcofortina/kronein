@@ -4884,14 +4884,6 @@ Unable to restore backup of wallet.</source>
         <source xml:space="preserve">Block verification was interrupted</source>
         <context-group purpose="location"><context context-type="linenumber">20</context></context-group>
       </trans-unit>
-      <trans-unit id="_msg1070">
-        <source xml:space="preserve">Can&apos;t spend unconfirmed version %d pre-selected input with a version 3 tx</source>
-        <context-group purpose="location"><context context-type="linenumber">21</context></context-group>
-      </trans-unit>
-      <trans-unit id="_msg1071">
-        <source xml:space="preserve">Can&apos;t spend unconfirmed version 3 pre-selected input with a version %d tx</source>
-        <context-group purpose="location"><context context-type="linenumber">22</context></context-group>
-      </trans-unit>
       <trans-unit id="_msg1072">
         <source xml:space="preserve">Cannot write to directory &apos;%s&apos;; check permissions.</source>
         <context-group purpose="location"><context context-type="linenumber">28</context></context-group>

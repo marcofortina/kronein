@@ -4453,14 +4453,6 @@ Ezin izan da zorroaren babeskopia berreskuratu</translation>
         <translation type="unfinished">Bloke berifikazioa eten da</translation>
     </message>
     <message>
-        <source>Can't spend unconfirmed version %d pre-selected input with a version 3 tx</source>
-        <translation type="unfinished">Ezin da baieztatu %dgabeko bertsioaren aurrez hautatutako sarrera bat gastatu 3. bertsioaren transakzio batekin</translation>
-    </message>
-    <message>
-        <source>Can't spend unconfirmed version 3 pre-selected input with a version %d tx</source>
-        <translation type="unfinished">%dEzin da baieztatu gabeko 3. bertsioaren aurrez hautatutako sarrera bat gastatu bertsioaren transakzio batekin</translation>
-    </message>
-    <message>
         <source>Cannot write to directory '%s'; check permissions.</source>
         <translation type="unfinished">Ezin da '%s' direktorioan idatzi; egiaztatu baimenak.</translation>
     </message>
