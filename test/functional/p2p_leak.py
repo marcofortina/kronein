@@ -4,8 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test message sending before handshake completion.
 
-Before receiving a VERACK, a node should not send anything but VERSION/VERACK
-and the SENDADDRV2 feature negotiation message.
+Before receiving a VERACK, a node should not send anything but VERSION/VERACK.
 
 This test connects to a node and sends it a few messages, trying to entice it
 into sending us something it shouldn't."""
@@ -37,7 +36,6 @@ class LazyPeer(P2PInterface):
         super().__init__()
         self.unexpected_msg = False
         self.ever_connected = False
-        self.got_sendaddrv2 = False
 
     def bad_message(self, message):
         self.unexpected_msg = True
@@ -50,7 +48,7 @@ class LazyPeer(P2PInterface):
     def on_version(self, message): self.bad_message(message)
     def on_verack(self, message): self.bad_message(message)
     def on_inv(self, message): self.bad_message(message)
-    def on_addr(self, message): self.bad_message(message)
+    def on_addrv2(self, message): self.bad_message(message)
     def on_getdata(self, message): self.bad_message(message)
     def on_getblocks(self, message): self.bad_message(message)
     def on_tx(self, message): self.bad_message(message)
@@ -67,7 +65,6 @@ class LazyPeer(P2PInterface):
     def on_cmpctblock(self, message): self.bad_message(message)
     def on_getblocktxn(self, message): self.bad_message(message)
     def on_blocktxn(self, message): self.bad_message(message)
-    def on_sendaddrv2(self, message): self.got_sendaddrv2 = True
 
 
 # Peer that sends a version but not a verack.
@@ -134,10 +131,8 @@ class P2PLeakTest(BitcoinTestFramework):
 
         # Make sure only expected messages came in
         assert not no_version_idle_peer.unexpected_msg
-        assert not no_version_idle_peer.got_sendaddrv2
 
         assert not no_verack_idle_peer.unexpected_msg
-        assert no_verack_idle_peer.got_sendaddrv2
 
         # Expect peers to be disconnected due to timeout
         assert not no_version_idle_peer.is_connected
@@ -150,7 +145,7 @@ class P2PLeakTest(BitcoinTestFramework):
         assert_greater_than_or_equal(ver.nTime, time.time() - 3600)
         assert_greater_than_or_equal(time.time() + 3600, ver.nTime)
         assert_equal(ver.addrFrom.port, 0)
-        assert_equal(ver.addrFrom.ip, '0.0.0.0')
+        assert_equal(ver.addrFrom.ip, '::')
         assert_equal(ver.nStartingHeight, 201)
         assert_equal(ver.relay, 1)
 

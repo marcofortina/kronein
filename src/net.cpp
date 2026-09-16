@@ -722,7 +722,7 @@ namespace {
  */
 const std::array<std::string, 33> V2_MESSAGE_IDS = {
     "", // 12 bytes follow encoding the message type
-    NetMsgType::ADDR,
+    "", // Legacy addr was removed
     NetMsgType::BLOCK,
     NetMsgType::BLOCKTXN,
     NetMsgType::CMPCTBLOCK,

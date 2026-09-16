@@ -326,40 +326,6 @@ BOOST_AUTO_TEST_CASE(cnetaddr_tostring_canonical_ipv6)
     }
 }
 
-BOOST_AUTO_TEST_CASE(cnetaddr_serialize_v1)
-{
-    CNetAddr addr;
-    DataStream s{};
-    const auto ser_params{CAddress::V1_NETWORK};
-
-    s << ser_params(addr);
-    BOOST_CHECK_EQUAL(HexStr(s), "00000000000000000000000000000000");
-    s.clear();
-
-    addr = LookupHost("1.2.3.4", false).value();
-    s << ser_params(addr);
-    BOOST_CHECK_EQUAL(HexStr(s), "00000000000000000000ffff01020304");
-    s.clear();
-
-    addr = LookupHost("1a1b:2a2b:3a3b:4a4b:5a5b:6a6b:7a7b:8a8b", false).value();
-    s << ser_params(addr);
-    BOOST_CHECK_EQUAL(HexStr(s), "1a1b2a2b3a3b4a4b5a5b6a6b7a7b8a8b");
-    s.clear();
-
-    // TORv2, no longer supported
-    BOOST_CHECK(!addr.SetSpecial("6hzph5hv6337r6p2.onion"));
-
-    BOOST_REQUIRE(addr.SetSpecial("pg6mmjiyjmcrsslvykfwnntlaru7p5svn6y2ymmju6nubxndf4pscryd.onion"));
-    s << ser_params(addr);
-    BOOST_CHECK_EQUAL(HexStr(s), "00000000000000000000000000000000");
-    s.clear();
-
-    addr.SetInternal("a");
-    s << ser_params(addr);
-    BOOST_CHECK_EQUAL(HexStr(s), "fd6b88c08724ca978112ca1bbdcafac2");
-    s.clear();
-}
-
 BOOST_AUTO_TEST_CASE(cnetaddr_serialize_v2)
 {
     CNetAddr addr;
@@ -853,7 +819,7 @@ BOOST_AUTO_TEST_CASE(initial_advertise_from_version_message)
     connman.FlushSendBuffer(peer); // Drop sent version message
 
     auto msg_version_receive =
-        NetMsg::Make(NetMsgType::VERSION, PROTOCOL_VERSION, services, time, services, CAddress::V1_NETWORK(peer_us));
+        NetMsg::Make(NetMsgType::VERSION, PROTOCOL_VERSION, services, time, services, CNetAddr::V2(peer_us));
     Assert(connman.ReceiveMsgFrom(peer, std::move(msg_version_receive)));
     peer.fPauseSend = false;
     bool more_work{connman.ProcessMessagesOnce(peer)};
@@ -877,10 +843,10 @@ BOOST_AUTO_TEST_CASE(initial_advertise_from_version_message)
                                         const std::string& msg_type,
                                         std::span<const unsigned char> data,
                                         bool is_incoming) -> void {
-        if (!is_incoming && msg_type == "addr") {
+        if (!is_incoming && msg_type == "addrv2") {
             std::vector<CAddress> addresses;
 
-            SpanReader{data} >> CAddress::V1_NETWORK(addresses);
+            SpanReader{data} >> CAddress::V2_NETWORK(addresses);
 
             for (const auto& addr : addresses) {
                 if (addr == expected) {

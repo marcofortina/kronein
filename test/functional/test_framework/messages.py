@@ -319,36 +319,15 @@ class CAddress:
     def __eq__(self, other):
         return self.net == other.net and self.ip == other.ip and self.nServices == other.nServices and self.port == other.port and self.time == other.time
 
-    def deserialize(self, f, *, with_time=True):
-        """Deserialize from addrv1 format (pre-BIP155)"""
-        if with_time:
-            # VERSION messages serialize CAddress objects without time
-            self.time = int.from_bytes(f.read(4), "little")
-        self.nServices = int.from_bytes(f.read(8), "little")
-        # We only support IPv4 which means skip 12 bytes and read the next 4 as IPv4 address.
-        f.read(12)
-        self.net = self.NET_IPV4
-        self.ip = socket.inet_ntoa(f.read(4))
-        self.port = int.from_bytes(f.read(2), "big")
-
-    def serialize(self, *, with_time=True):
-        """Serialize in addrv1 format (pre-BIP155)"""
-        assert self.net == self.NET_IPV4
-        r = b""
-        if with_time:
-            # VERSION messages serialize CAddress objects without time
-            r += self.time.to_bytes(4, "little")
-        r += self.nServices.to_bytes(8, "little")
-        r += b"\x00" * 10 + b"\xff" * 2
-        r += socket.inet_aton(self.ip)
-        r += self.port.to_bytes(2, "big")
-        return r
-
-    def deserialize_v2(self, f):
+    def deserialize_v2(self, f, *, with_time=True, compact_services=True):
         """Deserialize from addrv2 format (BIP155)"""
-        self.time = int.from_bytes(f.read(4), "little")
+        if with_time:
+            self.time = int.from_bytes(f.read(4), "little")
 
-        self.nServices = deser_compact_size(f)
+        if compact_services:
+            self.nServices = deser_compact_size(f)
+        else:
+            self.nServices = int.from_bytes(f.read(8), "little")
 
         self.net = int.from_bytes(f.read(1), "little")
         assert self.net in self.ADDRV2_NET_NAME
@@ -375,12 +354,16 @@ class CAddress:
 
         self.port = int.from_bytes(f.read(2), "big")
 
-    def serialize_v2(self):
+    def serialize_v2(self, *, with_time=True, compact_services=True):
         """Serialize in addrv2 format (BIP155)"""
         assert self.net in self.ADDRV2_NET_NAME
         r = b""
-        r += self.time.to_bytes(4, "little")
-        r += ser_compact_size(self.nServices)
+        if with_time:
+            r += self.time.to_bytes(4, "little")
+        if compact_services:
+            r += ser_compact_size(self.nServices)
+        else:
+            r += self.nServices.to_bytes(8, "little")
         r += self.net.to_bytes(1, "little")
         r += ser_compact_size(self.ADDRV2_ADDRESS_LENGTH[self.net])
         if self.net == self.NET_IPV4:
@@ -1099,10 +1082,10 @@ class msg_version:
         self.nServices = int.from_bytes(f.read(8), "little")
         self.nTime = int.from_bytes(f.read(8), "little", signed=True)
         self.addrTo = CAddress()
-        self.addrTo.deserialize(f, with_time=False)
+        self.addrTo.deserialize_v2(f, with_time=False, compact_services=False)
 
         self.addrFrom = CAddress()
-        self.addrFrom.deserialize(f, with_time=False)
+        self.addrFrom.deserialize_v2(f, with_time=False, compact_services=False)
         self.nNonce = int.from_bytes(f.read(8), "little")
         self.strSubVer = deser_string(f).decode('utf-8')
 
@@ -1117,8 +1100,8 @@ class msg_version:
         r += self.nVersion.to_bytes(4, "little", signed=True)
         r += self.nServices.to_bytes(8, "little")
         r += self.nTime.to_bytes(8, "little", signed=True)
-        r += self.addrTo.serialize(with_time=False)
-        r += self.addrFrom.serialize(with_time=False)
+        r += self.addrTo.serialize_v2(with_time=False, compact_services=False)
+        r += self.addrFrom.serialize_v2(with_time=False, compact_services=False)
         r += self.nNonce.to_bytes(8, "little")
         r += ser_string(self.strSubVer.encode('utf-8'))
         r += self.nStartingHeight.to_bytes(4, "little", signed=True)
@@ -1149,23 +1132,6 @@ class msg_verack:
         return "msg_verack()"
 
 
-class msg_addr:
-    __slots__ = ("addrs",)
-    msgtype = b"addr"
-
-    def __init__(self):
-        self.addrs = []
-
-    def deserialize(self, f):
-        self.addrs = deser_vector(f, CAddress)
-
-    def serialize(self):
-        return ser_vector(self.addrs)
-
-    def __repr__(self):
-        return "msg_addr(addrs=%s)" % (repr(self.addrs))
-
-
 class msg_addrv2:
     __slots__ = ("addrs",)
     msgtype = b"addrv2"
@@ -1181,23 +1147,6 @@ class msg_addrv2:
 
     def __repr__(self):
         return "msg_addrv2(addrs=%s)" % (repr(self.addrs))
-
-
-class msg_sendaddrv2:
-    __slots__ = ()
-    msgtype = b"sendaddrv2"
-
-    def __init__(self):
-        pass
-
-    def deserialize(self, f):
-        pass
-
-    def serialize(self):
-        return b""
-
-    def __repr__(self):
-        return "msg_sendaddrv2()"
 
 
 class msg_inv:

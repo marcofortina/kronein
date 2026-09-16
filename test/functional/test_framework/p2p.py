@@ -33,7 +33,6 @@ import threading
 from test_framework.messages import (
     CBlockHeader,
     MAX_HEADERS_RESULTS,
-    msg_addr,
     msg_addrv2,
     msg_block,
     MSG_BLOCK,
@@ -57,7 +56,6 @@ from test_framework.messages import (
     msg_notfound,
     msg_ping,
     msg_pong,
-    msg_sendaddrv2,
     msg_sendcmpct,
     msg_sendheaders,
     msg_sendtxrcncl,
@@ -106,7 +104,6 @@ OVERLOADED_PEER_TX_DELAY = 2
 GETDATA_TX_INTERVAL = 60
 
 MESSAGEMAP = {
-    b"addr": msg_addr,
     b"addrv2": msg_addrv2,
     b"block": msg_block,
     b"blocktxn": msg_blocktxn,
@@ -129,7 +126,6 @@ MESSAGEMAP = {
     b"notfound": msg_notfound,
     b"ping": msg_ping,
     b"pong": msg_pong,
-    b"sendaddrv2": msg_sendaddrv2,
     b"sendcmpct": msg_sendcmpct,
     b"sendheaders": msg_sendheaders,
     b"sendtxrcncl": msg_sendtxrcncl,
@@ -392,7 +388,7 @@ class P2PInterface(P2PConnection):
 
     Individual testcases should subclass this and override the on_* methods
     if they want to alter message handling behaviour."""
-    def __init__(self, support_addrv2=False):
+    def __init__(self):
         super().__init__()
 
         # Track number of messages of each type received.
@@ -409,8 +405,6 @@ class P2PInterface(P2PConnection):
 
         # The network services received from the peer
         self.nServices = 0
-
-        self.support_addrv2 = support_addrv2
 
     def peer_connect_send_version(self, services):
         # Send a version msg
@@ -465,7 +459,6 @@ class P2PInterface(P2PConnection):
     def on_close(self):
         pass
 
-    def on_addr(self, message): pass
     def on_addrv2(self, message): pass
     def on_block(self, message): pass
     def on_blocktxn(self, message): pass
@@ -487,7 +480,6 @@ class P2PInterface(P2PConnection):
     def on_merkleblock(self, message): pass
     def on_notfound(self, message): pass
     def on_pong(self, message): pass
-    def on_sendaddrv2(self, message): pass
     def on_sendcmpct(self, message): pass
     def on_sendheaders(self, message): pass
     def on_sendtxrcncl(self, message): pass
@@ -512,8 +504,6 @@ class P2PInterface(P2PConnection):
         # For inbound connections, reply to version with our version message.
         if not self.p2p_connected_to_node:
             self.send_version()
-        if self.support_addrv2:
-            self.send_without_ping(msg_sendaddrv2())
         self.send_without_ping(msg_verack())
         self.nServices = message.nServices
         self.relay = message.relay

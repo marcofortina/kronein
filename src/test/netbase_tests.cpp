@@ -519,26 +519,6 @@ static const std::vector<CAddress> fixture_addresses({
     },
 });
 
-// fixture_addresses should equal to this when serialized in V1 format.
-// When this is unserialized from V1 format it should equal to fixture_addresses.
-static constexpr const char* stream_addrv1_hex =
-    "03" // number of entries
-
-    "61bc6649"                         // time, Fri Jan  9 02:54:25 UTC 2009
-    "0000000000000000"                 // service flags, NODE_NONE
-    "00000000000000000000000000000001" // address, fixed 16 bytes (IPv4 embedded in IPv6)
-    "0000"                             // port
-
-    "79627683"                         // time, Tue Nov 22 11:22:33 UTC 2039
-    "0100000000000000"                 // service flags, NODE_NETWORK
-    "00000000000000000000000000000001" // address, fixed 16 bytes (IPv6)
-    "00f1"                             // port
-
-    "ffffffff"                         // time, Sun Feb  7 06:28:15 UTC 2106
-    "4004000000000000"                 // service flags, NODE_COMPACT_FILTERS | NODE_NETWORK_LIMITED
-    "00000000000000000000000000000001" // address, fixed 16 bytes (IPv6)
-    "f1f2";                            // port
-
 // fixture_addresses should equal to this when serialized in V2 format.
 // When this is unserialized from V2 format it should equal to fixture_addresses.
 static constexpr const char* stream_addrv2_hex =
@@ -564,22 +544,6 @@ static constexpr const char* stream_addrv2_hex =
     "10"                               // address length, COMPACTSIZE(16)
     "00000000000000000000000000000001" // address
     "f1f2";                            // port
-
-BOOST_AUTO_TEST_CASE(caddress_serialize_v1)
-{
-    DataStream s{};
-
-    s << CAddress::V1_NETWORK(fixture_addresses);
-    BOOST_CHECK_EQUAL(HexStr(s), stream_addrv1_hex);
-}
-
-BOOST_AUTO_TEST_CASE(caddress_unserialize_v1)
-{
-    std::vector<CAddress> addresses_unserialized;
-
-    SpanReader{ParseHex(stream_addrv1_hex)} >> CAddress::V1_NETWORK(addresses_unserialized);
-    BOOST_CHECK(fixture_addresses == addresses_unserialized);
-}
 
 BOOST_AUTO_TEST_CASE(caddress_serialize_v2)
 {

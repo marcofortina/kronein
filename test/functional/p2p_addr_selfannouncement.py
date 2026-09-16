@@ -32,12 +32,9 @@ class SelfAnnouncementReceiver(P2PInterface):
     addr_messages_received = 0
 
     expected = None
-    addrv2_test = False
-
-    def __init__(self, *, expected, addrv2):
-        super().__init__(support_addrv2=addrv2)
+    def __init__(self, *, expected):
+        super().__init__()
         self.expected = expected
-        self.addrv2_test = addrv2
 
     def handle_addr_message(self, message):
         self.addr_messages_received += 1
@@ -47,18 +44,13 @@ class SelfAnnouncementReceiver(P2PInterface):
                 self.self_announcements_received += 1
                 if self.self_announcements_received == 1:
                     # If it's the first self-announcement, check that it is
-                    # in the first addr message we receive, and that this message
+                    # in the first addrv2 message we receive, and that this message
                     # only contains one address. This also implies that it is
                     # the first address we receive.
                     assert_equal(self.addr_messages_received, 1)
                     assert_equal(len(message.addrs), 1)
 
     def on_addrv2(self, message):
-        assert (self.addrv2_test)
-        self.handle_addr_message(message)
-
-    def on_addr(self, message):
-        assert (not self.addrv2_test)
         self.handle_addr_message(message)
 
 
@@ -73,15 +65,13 @@ class AddrSelfAnnouncementTest(BitcoinTestFramework):
             a = f"{1 + i}.{i}.1.1"
             self.nodes[0].addpeeraddress(a, 8333)
 
-        self.self_announcement_test(outbound=False, addrv2=False)
-        self.self_announcement_test(outbound=False, addrv2=True)
-        self.self_announcement_test(outbound=True, addrv2=False)
-        self.self_announcement_test(outbound=True, addrv2=True)
+        self.self_announcement_test(outbound=False)
+        self.self_announcement_test(outbound=True)
 
     @staticmethod
     def inbound_connection_open_assertions(addr_receiver):
         # In response to a GETADDR, we expect a message with the self-announcement
-        # and an addr message containing the GETADDR response.
+        # and an addrv2 message containing the GETADDR response.
         assert_equal(addr_receiver.self_announcements_received, 1)
         assert_equal(addr_receiver.addr_messages_received, 2)
         assert_greater_than(addr_receiver.addresses_received, 1)
@@ -93,10 +83,9 @@ class AddrSelfAnnouncementTest(BitcoinTestFramework):
         assert_equal(addr_receiver.addr_messages_received, 1)
         assert_equal(addr_receiver.addresses_received, 1)
 
-    def self_announcement_test(self, *, outbound, addrv2):
+    def self_announcement_test(self, *, outbound):
         connection_type = "outbound" if outbound else "inbound"
-        addr_version = "addrv2" if addrv2 else "addrv1"
-        self.log.info(f"Test that the node does an address self-announcement to {connection_type} connections ({addr_version})")
+        self.log.info(f"Test that the node does an ADDRv2 self-announcement to {connection_type} connections")
 
         # We only self-announce after initial block download is done
         assert (not self.nodes[0].getblockchaininfo()["initialblockdownload"])
@@ -113,11 +102,11 @@ class AddrSelfAnnouncementTest(BitcoinTestFramework):
 
         with self.nodes[0].assert_debug_log([f'Advertising address {IP_TO_ANNOUNCE}:{port}']):
             if outbound:
-                self.log.info(f"Check that we get an initial self-announcement on an outbound connection from the node ({connection_type}, {addr_version})")
-                addr_receiver = self.nodes[0].add_outbound_p2p_connection(SelfAnnouncementReceiver(expected=expected, addrv2=addrv2), p2p_idx=0, connection_type="outbound-full-relay")
+                self.log.info("Check the initial self-announcement on an outbound connection")
+                addr_receiver = self.nodes[0].add_outbound_p2p_connection(SelfAnnouncementReceiver(expected=expected), p2p_idx=0, connection_type="outbound-full-relay")
             else:
-                self.log.info(f"Check that we get an initial self-announcement when connecting to a node and sending a GETADDR ({connection_type}, {addr_version})")
-                addr_receiver = self.nodes[0].add_p2p_connection(SelfAnnouncementReceiver(expected=expected, addrv2=addrv2))
+                self.log.info("Check the initial self-announcement after sending GETADDR")
+                addr_receiver = self.nodes[0].add_p2p_connection(SelfAnnouncementReceiver(expected=expected))
             addr_receiver.sync_with_ping()
 
         if outbound:
@@ -130,7 +119,7 @@ class AddrSelfAnnouncementTest(BitcoinTestFramework):
             tip_header = from_hex(CBlockHeader(), self.nodes[0].getblockheader(self.nodes[0].getbestblockhash(), False))
             addr_receiver.send_and_ping(msg_headers([tip_header]))
 
-        self.log.info(f"Check that we get more self-announcements sometime later ({connection_type}, {addr_version})")
+        self.log.info(f"Check that we get more self-announcements later ({connection_type})")
         for _ in range(5):
             last_self_announcements_received = addr_receiver.self_announcements_received
             last_addr_messages_received = addr_receiver.addr_messages_received

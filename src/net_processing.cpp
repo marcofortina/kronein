@@ -184,7 +184,7 @@ static constexpr uint32_t MAX_GETCFILTERS_SIZE = 1000;
 static constexpr uint32_t MAX_GETCFHEADERS_SIZE = 2000;
 /** the maximum percentage of addresses from our addrman to return in response to a getaddr message. */
 static constexpr size_t MAX_PCT_ADDR_TO_SEND = 23;
-/** The maximum number of address records permitted in an ADDR message. */
+/** The maximum number of address records permitted in an ADDRv2 message. */
 static constexpr size_t MAX_ADDR_TO_SEND{1000};
 /** The maximum rate of address records we're willing to process on average. Can be bypassed using
  *  the NetPermissionFlags::Addr permission. */
@@ -328,12 +328,12 @@ struct Peer {
 
     /** A vector of addresses to send to the peer, limited to MAX_ADDR_TO_SEND. */
     std::vector<CAddress> m_addrs_to_send GUARDED_BY(NetEventsInterface::g_msgproc_mutex);
-    /** Probabilistic filter to track recent addr messages relayed with this
+    /** Probabilistic filter to track recent addrv2 messages relayed with this
      *  peer. Used to avoid relaying redundant addresses to this peer.
      *
      *  We initialize this filter for outbound peers (other than
      *  block-relay-only connections) or when an inbound peer sends us an
-     *  address related message (ADDR, ADDRV2, GETADDR).
+     *  address related message (ADDRV2, GETADDR).
      *
      *  Presence of this filter must correlate with m_addr_relay_enabled.
      **/
@@ -342,10 +342,10 @@ struct Peer {
      *
      *  We set this bool to true for outbound peers (other than
      *  block-relay-only connections), or when an inbound peer sends us an
-     *  address related message (ADDR, ADDRV2, GETADDR).
+     *  address related message (ADDRV2, GETADDR).
      *
      *  We use this bool to decide whether a peer is eligible for gossiping
-     *  addr messages. This avoids relaying to peers that are unlikely to
+     *  addrv2 messages. This avoids relaying to peers that are unlikely to
      *  forward them, effectively blackholing self announcements. Reasons
      *  peers might support addr relay on the link include that they connected
      *  to us as a block-relay-only peer or they are a light client.
@@ -357,13 +357,10 @@ struct Peer {
     bool m_getaddr_sent GUARDED_BY(NetEventsInterface::g_msgproc_mutex){false};
     /** Guards address sending timers. */
     mutable Mutex m_addr_send_times_mutex;
-    /** Time point to send the next ADDR message to this peer. */
+    /** Time point to send the next ADDRv2 message to this peer. */
     std::chrono::microseconds m_next_addr_send GUARDED_BY(m_addr_send_times_mutex){0};
     /** Time point to possibly re-announce our local address to this peer. */
     std::chrono::microseconds m_next_local_addr_send GUARDED_BY(m_addr_send_times_mutex){0};
-    /** Whether the peer has signaled support for receiving ADDRv2 (BIP155)
-     *  messages, indicating a preference to receive ADDRv2 instead of ADDR ones. */
-    std::atomic_bool m_wants_addrv2{false};
     /** Whether this peer has already sent us a getaddr message. */
     bool m_getaddr_recvd GUARDED_BY(NetEventsInterface::g_msgproc_mutex){false};
     /** Number of addresses that can be processed from this peer. Start at 1 to
@@ -1091,16 +1088,6 @@ CNodeState* PeerManagerImpl::State(NodeId pnode)
     return const_cast<CNodeState*>(std::as_const(*this).State(pnode));
 }
 
-/**
- * Whether the peer supports the address. For example, a peer that does not
- * implement BIP155 cannot receive Tor v3 addresses because it requires
- * ADDRv2 (BIP155) encoding.
- */
-static bool IsAddrCompatible(const Peer& peer, const CAddress& addr)
-{
-    return peer.m_wants_addrv2 || addr.IsAddrV1Compatible();
-}
-
 void PeerManagerImpl::AddAddressKnown(Peer& peer, const CAddress& addr)
 {
     assert(peer.m_addr_known);
@@ -1113,7 +1100,7 @@ void PeerManagerImpl::PushAddress(Peer& peer, const CAddress& addr)
     // Before sending, we'll filter it again for known addresses that were
     // added after addresses were pushed.
     assert(peer.m_addr_known);
-    if (addr.IsValid() && !peer.m_addr_known->contains(addr.GetKey()) && IsAddrCompatible(peer, addr)) {
+    if (addr.IsValid() && !peer.m_addr_known->contains(addr.GetKey())) {
         if (peer.m_addrs_to_send.size() >= MAX_ADDR_TO_SEND) {
             peer.m_addrs_to_send[m_rng.randrange(peer.m_addrs_to_send.size())] = addr;
         } else {
@@ -1538,7 +1525,7 @@ void PeerManagerImpl::PushNodeVersion(CNode& pnode, const Peer& peer)
         my_services = peer.m_our_services;
         my_time = count_seconds(GetTime<std::chrono::seconds>());
         your_services = addr.nServices;
-        your_addr = addr.IsRoutable() && !IsProxy(addr) && addr.IsAddrV1Compatible() ? CService{addr} : CService{};
+        your_addr = addr.IsRoutable() && !IsProxy(addr) ? CService{addr} : CService{};
         my_user_agent = strSubVersion;
         my_height = m_best_height;
         my_tx_relay = !RejectIncomingTxs(pnode);
@@ -1550,10 +1537,8 @@ void PeerManagerImpl::PushNodeVersion(CNode& pnode, const Peer& peer)
         PROTOCOL_VERSION,
         my_services,
         my_time,
-        // your_services + CNetAddr::V1(your_addr) is the pre-version-31402 serialization of your_addr (without nTime)
-        your_services, CNetAddr::V1(your_addr),
-        // same, for a dummy address
-        my_services, CNetAddr::V1(CService{}),
+        your_services, CNetAddr::V2(your_addr),
+        my_services, CNetAddr::V2(CService{}),
         pnode.GetLocalNonce(),
         my_user_agent,
         my_height,
@@ -2267,7 +2252,7 @@ void PeerManagerImpl::RelayAddress(NodeId originator,
     LOCK(m_peer_mutex);
 
     for (auto& [id, peer] : m_peer_map) {
-        if (peer->m_addr_relay_enabled && id != originator && IsAddrCompatible(*peer, addr)) {
+        if (peer->m_addr_relay_enabled && id != originator) {
             uint64_t hashKey = CSipHasher(hasher).Write(id).Finalize();
             for (unsigned int i = 0; i < nRelayNodes; i++) {
                  if (hashKey > best[i].first) {
@@ -3521,11 +3506,11 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
             nTime = 0;
         }
         vRecv.ignore(8); // Ignore the addrMe service bits sent by the peer
-        vRecv >> CNetAddr::V1(addrMe);
+        vRecv >> CNetAddr::V2(addrMe);
         if (!pfrom.IsInboundConn() && !pfrom.IsPrivateBroadcastConn())
         {
             // Overwrites potentially existing services. In contrast to this,
-            // unvalidated services received via gossip relay in ADDR/ADDRV2
+            // unvalidated services received via ADDRV2 gossip relay
             // messages are only ever added but cannot replace existing ones.
             m_addrman.SetServices(pfrom.addr, nServices);
         }
@@ -3548,11 +3533,10 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
 
         if (!vRecv.empty()) {
             // The version message includes information about the sending node which we don't use:
-            //   - 8 bytes (service bits)
-            //   - 16 bytes (ipv6 address)
-            //   - 2 bytes (port)
-            vRecv.ignore(26);
-            vRecv >> nNonce;
+            // service bits followed by an ADDRv2-encoded address.
+            uint64_t ignored_services;
+            CService ignored_addr;
+            vRecv >> ignored_services >> CNetAddr::V2(ignored_addr) >> nNonce;
         }
         if (!vRecv.empty()) {
             std::string strSubVer;
@@ -3623,15 +3607,6 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
                 pfrom.fDisconnect = true;
             }
             return;
-        }
-
-        // Signal ADDRv2 support (BIP155).
-        if (greatest_common_version >= 70016) {
-            // BIP155 defines addrv2 and sendaddrv2 for all protocol versions, but some
-            // implementations reject messages they don't know. As a courtesy, don't send
-            // it to nodes with a version before 70016, as no software is known to support
-            // BIP155 that doesn't announce at least that protocol version number.
-            MakeAndPushMessage(pfrom, NetMsgType::SENDADDRV2);
         }
 
         if (m_txreconciliation) {
@@ -3824,19 +3799,6 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
         return;
     }
 
-    // BIP155 defines feature negotiation of addrv2 and sendaddrv2, which must happen
-    // between VERSION and VERACK.
-    if (msg_type == NetMsgType::SENDADDRV2) {
-        if (pfrom.fSuccessfullyConnected) {
-            // Disconnect peers that send a SENDADDRV2 message after VERACK.
-            LogDebug(BCLog::NET, "sendaddrv2 received after verack, %s\n", pfrom.DisconnectMsg(fLogIPs));
-            pfrom.fDisconnect = true;
-            return;
-        }
-        peer.m_wants_addrv2 = true;
-        return;
-    }
-
     // Received from a peer demonstrating readiness to announce transactions via reconciliations.
     // This feature negotiation must happen between VERSION and VERACK to avoid relay problems
     // from switching announcement protocols after the connection is up.
@@ -3902,18 +3864,9 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
         }
     }
 
-    if (msg_type == NetMsgType::ADDR || msg_type == NetMsgType::ADDRV2) {
-        const auto ser_params{
-            msg_type == NetMsgType::ADDRV2 ?
-            // Set V2 param so that the CNetAddr and CAddress
-            // unserialize methods know that an address in v2 format is coming.
-            CAddress::V2_NETWORK :
-            CAddress::V1_NETWORK,
-        };
-
+    if (msg_type == NetMsgType::ADDRV2) {
         std::vector<CAddress> vAddr;
-
-        vRecv >> ser_params(vAddr);
+        vRecv >> CAddress::V2_NETWORK(vAddr);
 
         if (!SetupAddressRelay(pfrom, peer)) {
             LogDebug(BCLog::NET, "ignoring %s message from %s peer=%d\n", msg_type, pfrom.ConnectionTypeAsString(), pfrom.GetId());
@@ -3985,7 +3938,7 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
         }
         peer.m_addr_processed += num_proc;
         peer.m_addr_rate_limited += num_rate_limit;
-        LogDebug(BCLog::NET, "Received addr: %u addresses (%u processed, %u rate-limited) from peer=%d\n",
+        LogDebug(BCLog::NET, "Received addrv2: %u addresses (%u processed, %u rate-limited) from peer=%d\n",
                  vAddr.size(), num_proc, num_rate_limit, pfrom.GetId());
 
         m_addrman.Add(vAddrOk, pfrom.addr, /*time_penalty=*/2h);
@@ -5335,14 +5288,8 @@ void PeerManagerImpl::MaybeSendAddr(CNode& node, Peer& peer, std::chrono::micros
                 // Send the initial self-announcement in its own message. This makes sure
                 // rate-limiting with limited start-tokens doesn't ignore it if the first
                 // message ends up containing multiple addresses.
-                if (IsAddrCompatible(peer, local_addr)) {
-                    std::vector<CAddress> self_announcement{local_addr};
-                    if (peer.m_wants_addrv2) {
-                        MakeAndPushMessage(node, NetMsgType::ADDRV2, CAddress::V2_NETWORK(self_announcement));
-                    } else {
-                        MakeAndPushMessage(node, NetMsgType::ADDR, CAddress::V1_NETWORK(self_announcement));
-                    }
-                }
+                std::vector<CAddress> self_announcement{local_addr};
+                MakeAndPushMessage(node, NetMsgType::ADDRV2, CAddress::V2_NETWORK(self_announcement));
             } else {
                 // All later self-announcements are sent together with the other addresses.
                 PushAddress(peer, local_addr);
@@ -5351,7 +5298,7 @@ void PeerManagerImpl::MaybeSendAddr(CNode& node, Peer& peer, std::chrono::micros
         peer.m_next_local_addr_send = current_time + m_rng.rand_exp_duration(AVG_LOCAL_ADDRESS_BROADCAST_INTERVAL);
     }
 
-    // We sent an `addr` message to this peer recently. Nothing more to do.
+    // We sent an `addrv2` message to this peer recently. Nothing more to do.
     if (current_time <= peer.m_next_addr_send) return;
 
     peer.m_next_addr_send = current_time + m_rng.rand_exp_duration(AVG_ADDRESS_BROADCAST_INTERVAL);
@@ -5372,17 +5319,13 @@ void PeerManagerImpl::MaybeSendAddr(CNode& node, Peer& peer, std::chrono::micros
     peer.m_addrs_to_send.erase(std::remove_if(peer.m_addrs_to_send.begin(), peer.m_addrs_to_send.end(), addr_already_known),
                            peer.m_addrs_to_send.end());
 
-    // No addr messages to send
+    // No addrv2 messages to send
     if (peer.m_addrs_to_send.empty()) return;
 
-    if (peer.m_wants_addrv2) {
-        MakeAndPushMessage(node, NetMsgType::ADDRV2, CAddress::V2_NETWORK(peer.m_addrs_to_send));
-    } else {
-        MakeAndPushMessage(node, NetMsgType::ADDR, CAddress::V1_NETWORK(peer.m_addrs_to_send));
-    }
+    MakeAndPushMessage(node, NetMsgType::ADDRV2, CAddress::V2_NETWORK(peer.m_addrs_to_send));
     peer.m_addrs_to_send.clear();
 
-    // we only send the big addr message once
+    // We only send the large addrv2 message once.
     if (peer.m_addrs_to_send.capacity() > 40) {
         peer.m_addrs_to_send.shrink_to_fit();
     }

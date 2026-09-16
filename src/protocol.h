@@ -69,22 +69,10 @@ inline constexpr const char* VERSION{"version"};
  */
 inline constexpr const char* VERACK{"verack"};
 /**
- * The addr (IP address) message relays connection information for peers on the
- * network.
- */
-inline constexpr const char* ADDR{"addr"};
-/**
- * The addrv2 message relays connection information for peers on the network just
- * like the addr message, but is extended to allow gossiping of longer node
- * addresses (see BIP155).
+ * The addrv2 message relays connection information for peers on the network,
+ * including non-IP node addresses (see BIP155).
  */
 inline constexpr const char* ADDRV2{"addrv2"};
-/**
- * The sendaddrv2 message signals support for receiving ADDRV2 messages (BIP155).
- * It also implies that its sender can encode as ADDRV2 and would send ADDRV2
- * instead of ADDR to a peer that has signaled ADDRV2 support by sending SENDADDRV2.
- */
-inline constexpr const char* SENDADDRV2{"sendaddrv2"};
 /**
  * The inv message (inventory message) transmits one or more inventories of
  * objects known to the transmitting peer.
@@ -120,7 +108,7 @@ inline constexpr const char* HEADERS{"headers"};
  */
 inline constexpr const char* BLOCK{"block"};
 /**
- * The getaddr message requests an addr message from the receiving node,
+ * The getaddr message requests an addrv2 message from the receiving node,
  * preferably one with lots of IP addresses of other receiving nodes.
  */
 inline constexpr const char* GETADDR{"getaddr"};
@@ -238,9 +226,7 @@ inline constexpr const char* SENDTXRCNCL{"sendtxrcncl"};
 inline const std::array ALL_NET_MESSAGE_TYPES{std::to_array<std::string>({
     NetMsgType::VERSION,
     NetMsgType::VERACK,
-    NetMsgType::ADDR,
     NetMsgType::ADDRV2,
-    NetMsgType::SENDADDRV2,
     NetMsgType::INV,
     NetMsgType::GETDATA,
     NetMsgType::GETBLOCKS,
@@ -360,7 +346,6 @@ public:
         const Format fmt;
         SER_PARAMS_OPFUNC
     };
-    static constexpr SerParams V1_NETWORK{{CNetAddr::Encoding::V1}, Format::Network};
     static constexpr SerParams V2_NETWORK{{CNetAddr::Encoding::V2}, Format::Network};
     static constexpr SerParams V1_DISK{{CNetAddr::Encoding::V1}, Format::Disk};
     static constexpr SerParams V2_DISK{{CNetAddr::Encoding::V2}, Format::Disk};
@@ -387,10 +372,10 @@ public:
             }
         } else {
             assert(params.fmt == Format::Network);
-            // In the network serialization format, the encoding (v1 or v2) is determined directly by
-            // the value of enc in the stream params, as no explicitly encoded version
-            // exists in the stream.
-            use_v2 = params.enc == Encoding::V2;
+            if (params.enc != Encoding::V2) {
+                throw std::ios_base::failure("ADDRv1 network serialization is not supported");
+            }
+            use_v2 = true;
         }
 
         READWRITE(Using<LossyChronoFormatter<uint32_t>>(obj.nTime));

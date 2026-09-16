@@ -267,19 +267,16 @@ FUZZ_TARGET(address_deserialize, .init = initialize_deserialize)
     const auto maybe_a{ConsumeDeserializable<CAddress>(fdp, ser_enc)};
     if (!maybe_a) return;
     const CAddress& a{*maybe_a};
-    // A CAddress in V1 mode will roundtrip
-    // in all 4 formats (v1/v2, network/disk)
+    // A CAddress in V1 mode will roundtrip in both disk formats and V2 network format.
     if (ser_enc.enc == CNetAddr::Encoding::V1) {
-        AssertEqualAfterSerializeDeserialize(a, CAddress::V1_NETWORK);
         AssertEqualAfterSerializeDeserialize(a, CAddress::V1_DISK);
         AssertEqualAfterSerializeDeserialize(a, CAddress::V2_NETWORK);
         AssertEqualAfterSerializeDeserialize(a, CAddress::V2_DISK);
     } else {
-        // A CAddress in V2 mode will roundtrip in both V2 formats, and also in the V1 formats
-        // if it's V1 compatible.
+        // A CAddress in V2 mode will roundtrip in both V2 formats, and also in the V1 disk format
+        // if it is V1 compatible.
         if (a.IsAddrV1Compatible()) {
             AssertEqualAfterSerializeDeserialize(a, CAddress::V1_DISK);
-            AssertEqualAfterSerializeDeserialize(a, CAddress::V1_NETWORK);
         }
         AssertEqualAfterSerializeDeserialize(a, CAddress::V2_NETWORK);
         AssertEqualAfterSerializeDeserialize(a, CAddress::V2_DISK);

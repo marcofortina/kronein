@@ -10,7 +10,7 @@ import time
 
 from test_framework.messages import (
     CAddress,
-    msg_addr,
+    msg_addrv2,
 )
 from test_framework.p2p import (
     P2PInterface,
@@ -55,12 +55,12 @@ class P2PAddrFetch(BitcoinTestFramework):
 
         self.log.info("Check that answering the getaddr with a single address does not lead to disconnect")
         # This prevents disconnecting on self-announcements
-        msg = msg_addr()
+        msg = msg_addrv2()
         msg.addrs = [ADDR]
         peer.send_and_ping(msg)
         self.assert_getpeerinfo(peer_ids=[peer_id])
 
-        self.log.info("Check that answering with larger addr messages leads to disconnect")
+        self.log.info("Check that answering with larger addrv2 messages leads to disconnect")
         msg.addrs = [ADDR] * 2
         peer.send_without_ping(msg)
         peer.wait_for_disconnect(timeout=5)

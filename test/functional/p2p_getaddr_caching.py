@@ -32,7 +32,7 @@ class AddrReceiver(P2PInterface):
         with p2p_lock:
             return self.received_addrs
 
-    def on_addr(self, message):
+    def on_addrv2(self, message):
         self.received_addrs = []
         for addr in message.addrs:
             self.received_addrs.append(addr.ip)
