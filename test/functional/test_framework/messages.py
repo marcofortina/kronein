@@ -1354,23 +1354,6 @@ class msg_notfound:
         return "msg_notfound(vec=%s)" % (repr(self.vec))
 
 
-class msg_sendheaders:
-    __slots__ = ()
-    msgtype = b"sendheaders"
-
-    def __init__(self):
-        pass
-
-    def deserialize(self, f):
-        pass
-
-    def serialize(self):
-        return b""
-
-    def __repr__(self):
-        return "msg_sendheaders()"
-
-
 # getheaders message has
 # number of entries
 # vector of hashes

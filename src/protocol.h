@@ -136,12 +136,6 @@ inline constexpr const char* PONG{"pong"};
  */
 inline constexpr const char* NOTFOUND{"notfound"};
 /**
- * Indicates that a node prefers to receive new block announcements via a
- * "headers" message rather than an "inv".
- * @since protocol version 70012 as described by BIP130.
- */
-inline constexpr const char* SENDHEADERS{"sendheaders"};
-/**
  * The feefilter message tells the receiving peer not to inv us any txs
  * which do not meet the specified min fee rate.
  * @since protocol version 70013 as described by BIP133
@@ -239,7 +233,6 @@ inline const std::array ALL_NET_MESSAGE_TYPES{std::to_array<std::string>({
     NetMsgType::PING,
     NetMsgType::PONG,
     NetMsgType::NOTFOUND,
-    NetMsgType::SENDHEADERS,
     NetMsgType::FEEFILTER,
     NetMsgType::SENDCMPCT,
     NetMsgType::CMPCTBLOCK,

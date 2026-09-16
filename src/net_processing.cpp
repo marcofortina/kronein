@@ -390,14 +390,8 @@ struct Peer {
      * reorgs) **/
     std::unique_ptr<HeadersSyncState> m_headers_sync PT_GUARDED_BY(m_headers_sync_mutex) GUARDED_BY(m_headers_sync_mutex) {};
 
-    /** Whether we've sent our peer a sendheaders message. **/
-    std::atomic<bool> m_sent_sendheaders{false};
-
     /** When to potentially disconnect peer for stalling headers download */
     std::chrono::microseconds m_headers_sync_timeout GUARDED_BY(NetEventsInterface::g_msgproc_mutex){0us};
-
-    /** Whether this peer wants invs or headers (when possible) for block announcements */
-    bool m_prefers_headers GUARDED_BY(NetEventsInterface::g_msgproc_mutex){false};
 
     /** Time offset computed during the version handshake based on the
      * timestamp the peer sent in the version message. */
@@ -646,8 +640,8 @@ private:
     /** Calculate an anti-DoS work threshold for headers chains */
     arith_uint256 GetAntiDoSWorkThreshold();
     /** Deal with state tracking and headers sync for peers that send
-     * non-connecting headers (this can happen due to BIP 130 headers
-     * announcements for blocks interacting with the 2hr (MAX_FUTURE_BLOCK_TIME) rule). */
+     * non-connecting block announcements (this can happen when announcements
+     * interact with the 2hr (MAX_FUTURE_BLOCK_TIME) rule). */
     void HandleUnconnectingHeaders(CNode& pfrom, Peer& peer, const std::vector<CBlockHeader>& headers) EXCLUSIVE_LOCKS_REQUIRED(g_msgproc_mutex);
     /** Return true if the headers connect to each other, false otherwise */
     bool CheckHeadersAreContinuous(const std::vector<CBlockHeader>& headers) const;
@@ -724,9 +718,6 @@ private:
 
     /** Send `addr` messages on a regular schedule. */
     void MaybeSendAddr(CNode& node, Peer& peer, std::chrono::microseconds current_time) EXCLUSIVE_LOCKS_REQUIRED(g_msgproc_mutex);
-
-    /** Send a single `sendheaders` message, after we have completed headers sync with a peer. */
-    void MaybeSendSendHeaders(CNode& node, Peer& peer) EXCLUSIVE_LOCKS_REQUIRED(g_msgproc_mutex);
 
     /** Relay (gossip) an address to a few randomly chosen nodes.
      *
@@ -2934,9 +2925,8 @@ void PeerManagerImpl::ProcessHeadersMessage(CNode& pfrom, Peer& peer,
     bool headers_connect_blockindex{chain_start_header != nullptr};
 
     if (!headers_connect_blockindex) {
-        // This could be a BIP 130 block announcement, use
-        // special logic for handling headers that don't connect, as this
-        // could be benign.
+        // This could be a block announcement. Use special logic for handling
+        // headers that don't connect, as this could be benign.
         HandleUnconnectingHeaders(pfrom, peer, headers);
         return;
     }
@@ -3750,11 +3740,6 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
         }
 
         pfrom.fSuccessfullyConnected = true;
-        return;
-    }
-
-    if (msg_type == NetMsgType::SENDHEADERS) {
-        peer.m_prefers_headers = true;
         return;
     }
 
@@ -5291,27 +5276,6 @@ void PeerManagerImpl::MaybeSendAddr(CNode& node, Peer& peer, std::chrono::micros
     }
 }
 
-void PeerManagerImpl::MaybeSendSendHeaders(CNode& node, Peer& peer)
-{
-    // Delay sending SENDHEADERS (BIP 130) until we're done with an
-    // initial-headers-sync with this peer. Receiving headers announcements for
-    // new blocks while trying to sync their headers chain is problematic,
-    // because of the state tracking done.
-    if (!peer.m_sent_sendheaders) {
-        LOCK(cs_main);
-        CNodeState &state = *State(node.GetId());
-        if (state.pindexBestKnownBlock != nullptr &&
-                state.pindexBestKnownBlock->nChainWork > m_chainman.MinimumChainWork()) {
-            // Tell our peer we prefer to receive headers rather than inv's
-            // We send this to non-NODE NETWORK peers as well, because even
-            // non-NODE NETWORK peers can announce blocks (such as pruning
-            // nodes)
-            MakeAndPushMessage(node, NetMsgType::SENDHEADERS);
-            peer.m_sent_sendheaders = true;
-        }
-    }
-}
-
 void PeerManagerImpl::MaybeSendFeefilter(CNode& pto, Peer& peer, std::chrono::microseconds current_time)
 {
     if (m_opts.ignore_incoming_txs) return;
@@ -5447,8 +5411,6 @@ bool PeerManagerImpl::SendMessages(CNode& node)
 
     MaybeSendAddr(node, peer, current_time);
 
-    MaybeSendSendHeaders(node, peer);
-
     {
         LOCK(cs_main);
 
@@ -5514,17 +5476,13 @@ bool PeerManagerImpl::SendMessages(CNode& node)
         //
         {
             // If we have no more than MAX_BLOCKS_TO_ANNOUNCE in our
-            // list of block hashes we're relaying, and our peer wants
-            // headers announcements, then find the first header
+            // list of block hashes we're relaying, then find the first header
             // not yet known to our peer but would connect, and send.
-            // If no header would connect, or if we have too many
-            // blocks, or if the peer doesn't want headers, just
-            // add all to the inv queue.
+            // If no header would connect, or if we have too many blocks, just
+            // add the tip to the inv queue.
             LOCK(peer.m_block_inv_mutex);
             std::vector<CBlock> vHeaders;
-            bool fRevertToInv = ((!peer.m_prefers_headers &&
-                                 (!state.m_requested_hb_cmpctblocks || peer.m_blocks_for_headers_relay.size() > 1)) ||
-                                 peer.m_blocks_for_headers_relay.size() > MAX_BLOCKS_TO_ANNOUNCE);
+            bool fRevertToInv = peer.m_blocks_for_headers_relay.size() > MAX_BLOCKS_TO_ANNOUNCE;
             const CBlockIndex *pBestIndex = nullptr; // last header queued for delivery
             ProcessBlockAvailability(node.GetId()); // ensure pindexBestKnownBlock is up-to-date
 
@@ -5599,7 +5557,7 @@ bool PeerManagerImpl::SendMessages(CNode& node)
                         MakeAndPushMessage(node, NetMsgType::CMPCTBLOCK, cmpctblock);
                     }
                     state.pindexBestHeaderSent = pBestIndex;
-                } else if (peer.m_prefers_headers) {
+                } else {
                     if (vHeaders.size() > 1) {
                         LogDebug(BCLog::NET, "%s: %u headers, range (%s, %s), to peer=%d\n", __func__,
                                 vHeaders.size(),
@@ -5611,8 +5569,7 @@ bool PeerManagerImpl::SendMessages(CNode& node)
                     }
                     MakeAndPushMessage(node, NetMsgType::HEADERS, TX_WITH_WITNESS(vHeaders));
                     state.pindexBestHeaderSent = pBestIndex;
-                } else
-                    fRevertToInv = true;
+                }
             }
             if (fRevertToInv) {
                 // If falling back to using an inv, just try to inv the tip.

@@ -141,7 +141,7 @@ BASE_SCRIPTS = [
     'rpc_bind.py --nonloopback',
     'p2p_headers_sync_with_minchainwork.py',
     'p2p_feefilter.py',
-    'p2p_sendheaders.py',
+    'p2p_headers_announcements.py',
     'feature_config_args.py',
     'wallet_listtransactions.py',
     'wallet_miniscript.py',

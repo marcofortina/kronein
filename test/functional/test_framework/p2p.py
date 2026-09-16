@@ -57,7 +57,6 @@ from test_framework.messages import (
     msg_ping,
     msg_pong,
     msg_sendcmpct,
-    msg_sendheaders,
     msg_sendtxrcncl,
     msg_tx,
     MSG_TX,
@@ -125,7 +124,6 @@ MESSAGEMAP = {
     b"ping": msg_ping,
     b"pong": msg_pong,
     b"sendcmpct": msg_sendcmpct,
-    b"sendheaders": msg_sendheaders,
     b"sendtxrcncl": msg_sendtxrcncl,
     b"tx": msg_tx,
     b"verack": msg_verack,
@@ -479,7 +477,6 @@ class P2PInterface(P2PConnection):
     def on_notfound(self, message): pass
     def on_pong(self, message): pass
     def on_sendcmpct(self, message): pass
-    def on_sendheaders(self, message): pass
     def on_sendtxrcncl(self, message): pass
     def on_tx(self, message): pass
 

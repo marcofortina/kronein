@@ -38,7 +38,6 @@ from test_framework.messages import (
     msg_headers,
     msg_inv,
     msg_sendcmpct,
-    msg_sendheaders,
     msg_tx,
     ser_uint256,
     tx_from_hex,
@@ -204,15 +203,19 @@ class CompactBlocksTest(BitcoinTestFramework):
 
             with p2p_lock:
                 assert predicate(peer), (
-                    "block_hash={!r}, cmpctblock={!r}, inv={!r}".format(
-                        block_hash, peer.last_message.get("cmpctblock", None), peer.last_message.get("inv", None)))
+                    "block_hash={!r}, cmpctblock={!r}, headers={!r}, inv={!r}".format(
+                        block_hash,
+                        peer.last_message.get("cmpctblock", None),
+                        peer.last_message.get("headers", None),
+                        peer.last_message.get("inv", None),
+                    ))
 
         # We shouldn't get any block announcements via cmpctblock yet.
         check_announcement_of_new_block(node, test_node, lambda p: "cmpctblock" not in p.last_message)
 
         # Try one more time, this time after requesting headers.
         test_node.request_headers_and_sync(locator=[tip])
-        check_announcement_of_new_block(node, test_node, lambda p: "cmpctblock" not in p.last_message and "inv" in p.last_message)
+        check_announcement_of_new_block(node, test_node, lambda p: "cmpctblock" not in p.last_message and "headers" in p.last_message)
 
         # Test a few ways of using sendcmpct that should NOT
         # result in compact block announcements.
@@ -245,10 +248,6 @@ class CompactBlocksTest(BitcoinTestFramework):
         check_announcement_of_new_block(node, test_node, lambda p: "cmpctblock" in p.last_message)
 
         # Try one more time (no headers sync should be needed!)
-        check_announcement_of_new_block(node, test_node, lambda p: "cmpctblock" in p.last_message)
-
-        # Try one more time, after turning on sendheaders
-        test_node.send_and_ping(msg_sendheaders())
         check_announcement_of_new_block(node, test_node, lambda p: "cmpctblock" in p.last_message)
 
         # Try one more time, after sending a version=1, announce=false message.
