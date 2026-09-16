@@ -11,7 +11,6 @@ Release Process
 
 ### Before every major and minor release
 
-* Update [bips.md](bips.md) to account for changes since the last release.
 * Update version in `CMakeLists.txt` (don't forget to set `CLIENT_VERSION_RC` to `0`).
 * Update manpages (see previous section)
 * Write release notes (see "Write the release notes" below) in doc/release-notes.md. If necessary,

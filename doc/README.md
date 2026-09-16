@@ -61,7 +61,6 @@ The Bitcoin repo's [root README](/README.md) contains relevant information on th
 - [Translation Strings Policy](translation_strings_policy.md)
 - [JSON-RPC Interface](JSON-RPC-interface.md)
 - [Unauthenticated REST Interface](REST-interface.md)
-- [BIPS](bips.md)
 - [Dnsseed Policy](dnsseed-policy.md)
 - [Benchmarking](benchmarking.md)
 - [Internal Design Docs](design/)
