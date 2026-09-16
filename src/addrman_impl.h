@@ -162,9 +162,6 @@ private:
     //! secret key to randomize bucket select with
     uint256 nKey;
 
-    //! Native peers.dat format version.
-    static constexpr uint8_t FILE_FORMAT{1};
-
     //! last used nId
     nid_type nIdCount GUARDED_BY(cs){0};
 

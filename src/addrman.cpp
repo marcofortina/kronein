@@ -136,7 +136,6 @@ void AddrManImpl::Serialize(Stream& s_) const
 
     /**
      * Serialized format.
-     * * format version byte
      * * nKey
      * * nNew
      * * nTried
@@ -159,8 +158,6 @@ void AddrManImpl::Serialize(Stream& s_) const
      */
 
     auto& s{s_};
-
-    s << FILE_FORMAT;
 
     s << nKey;
     s << nNew;
@@ -212,13 +209,6 @@ void AddrManImpl::Unserialize(Stream& s_)
 
     assert(vRandom.empty());
 
-    uint8_t format;
-    s_ >> format;
-    if (format != FILE_FORMAT) {
-        throw InvalidAddrManVersionError(strprintf(
-            "Unsupported format of addrman database: %u. Expected format %u.",
-            format, FILE_FORMAT));
-    }
     auto& s{s_};
 
     s >> nKey;

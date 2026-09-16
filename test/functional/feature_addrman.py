@@ -15,7 +15,6 @@ from test_framework.util import assert_equal
 
 def serialize_addrman(
     *,
-    format=1,
     net_magic="regtest",
     bucket_key=1,
     len_new=None,
@@ -25,7 +24,6 @@ def serialize_addrman(
     new = []
     tried = []
     r = MAGIC_BYTES[net_magic]
-    r += format.to_bytes(1, "little")
     r += ser_uint256(bucket_key)
     r += (len_new or len(new)).to_bytes(4, "little", signed=True)
     r += (len_tried or len(tried)).to_bytes(4, "little", signed=True)
@@ -64,17 +62,6 @@ class AddrmanTest(BitcoinTestFramework):
         with self.nodes[0].assert_debug_log(["Loaded 0 addresses from peers.dat"]):
             self.start_node(0, extra_args=["-checkaddrman=1"])
         assert_equal(self.nodes[0].getnodeaddresses(), [])
-
-        self.log.info("Check that addrman from future is overwritten with new addrman")
-        self.stop_node(0)
-        write_addrman(peers_dat, format=2)
-        assert_equal(os.path.exists(peers_dat + ".bak"), False)
-        with self.nodes[0].assert_debug_log([
-                f'Creating new peers.dat because the file version was not compatible ("{peers_dat}"). Original backed up to peers.dat.bak',
-        ]):
-            self.start_node(0)
-        assert_equal(self.nodes[0].getnodeaddresses(), [])
-        assert_equal(os.path.exists(peers_dat + ".bak"), True)
 
         self.log.info("Check that corrupt addrman cannot be read (EOF)")
         self.stop_node(0)
