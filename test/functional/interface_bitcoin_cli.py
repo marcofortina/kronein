@@ -91,7 +91,7 @@ class TestBitcoinCli(BitcoinTestFramework):
         self.log.info("Test -netinfo local services are moved to header if details are requested")
         det = self.nodes[0].cli('-netinfo', '1').send_cli().splitlines()
         self.log.debug(f"Test -netinfo 1 header output: {det[0]}")
-        assert re.match(rf"^{re.escape(self.config['environment']['CLIENT_NAME'])} client.+services nwl2?$", det[0])
+        assert re.match(rf"^{re.escape(self.config['environment']['CLIENT_NAME'])} client.+services nl2?$", det[0])
         assert not any(line.startswith("Local services:") for line in det)
 
     def test_echojson_positional_equals(self):
@@ -252,7 +252,7 @@ class TestBitcoinCli(BitcoinTestFramework):
 
             # Setup to test -getinfo, -generate, and -rpcwallet= with multiple wallets.
             wallets = [self.default_wallet_name, 'Encrypted', 'secret']
-            amounts = [BALANCE + Decimal('9.999928'), Decimal(9), Decimal(31)]
+            amounts = [None, Decimal(9), Decimal(31)]
             self.nodes[0].createwallet(wallet_name=wallets[1])
             self.nodes[0].createwallet(wallet_name=wallets[2])
             w1 = self.nodes[0].get_wallet_rpc(wallets[0])
@@ -267,6 +267,7 @@ class TestBitcoinCli(BitcoinTestFramework):
 
             # Mine a block to confirm; adds a block reward (50 BTC) to the default wallet.
             self.generate(self.nodes[0], 1)
+            amounts[0] = w1.getbalance()
 
             self.log.info("Test -getinfo with multiple wallets and -rpcwallet returns specified wallet balance")
             for i in range(len(wallets)):
