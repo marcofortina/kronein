@@ -4,6 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 from test_framework.messages import (
+    DEFAULT_CLUSTER_LIMIT,
     tx_from_hex,
 )
 from test_framework.test_framework import BitcoinTestFramework
@@ -98,9 +99,9 @@ class CreateTxWalletTest(BitcoinTestFramework):
 
         self.nodes[0].syncwithvalidationinterfacequeue()
         options = {"change_position": 0, "add_inputs": False}
-        for i in range(1, 25):
+        for i in range(1, DEFAULT_CLUSTER_LIMIT):
             options['inputs'] = [{'txid': txid, 'vout': vout}]
-            tx_data = test_wallet.send(outputs=[{test_wallet.getnewaddress(): 25 - i}], options=options)
+            tx_data = test_wallet.send(outputs=[{test_wallet.getnewaddress(): Decimal(25) - Decimal(i) / 100}], options=options)
             txid = tx_data['txid']
 
         # Sending one more chained transaction will fail
