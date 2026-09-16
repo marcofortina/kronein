@@ -21,7 +21,6 @@ import time
 
 
 UTXO_DUMP_MAGIC = b'utxo\xff'
-UTXO_DUMP_VERSION = 2
 NET_MAGIC_BYTES = {
     b"\xf9\xbe\xb4\xd9": "Mainnet",
     b"\x0a\x03\xcf\x40": "Signet",
@@ -137,19 +136,14 @@ def main():
     con = sqlite3.connect(args.outfile)
     con.execute(f"CREATE TABLE utxos(txid {txid_fmt}, vout INT, value INT, coinbase INT, height INT, scriptpubkey {spk_fmt})")
 
-    # read metadata (magic bytes, version, network magic, block hash, UTXO count)
+    # read metadata (magic bytes, network magic, block hash, UTXO count)
     f = open(args.infile, 'rb')
     magic_bytes = f.read(5)
-    version = int.from_bytes(f.read(2), 'little')
     network_magic = f.read(4)
     block_hash = f.read(32)
     num_utxos = int.from_bytes(f.read(8), 'little')
     if magic_bytes != UTXO_DUMP_MAGIC:
         print(f"Error: provided input file '{args.infile}' is not an UTXO dump.")
-        sys.exit(1)
-    if version != UTXO_DUMP_VERSION:
-        print(f"Error: provided input file '{args.infile}' has unknown UTXO dump version {version} "
-              f"(only version {UTXO_DUMP_VERSION} supported)")
         sys.exit(1)
     network_string = NET_MAGIC_BYTES.get(network_magic, f"unknown network ({network_magic.hex()})")
     print(f"UTXO Snapshot for {network_string} at block hash "
