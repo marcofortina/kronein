@@ -2210,10 +2210,9 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     // ContextualCheckBlockHeader() here. This means that if we add a new
     // consensus rule that is enforced in one of those two functions, then we
     // may have let in a block that violates the rule prior to updating the
-    // software, and we would NOT be enforcing the rule here. Fully solving
+    // software, and we would NOT be enforcing the rule here. Fully solving an
     // upgrade from one software version to the next after a consensus rule
-    // change is potentially tricky and issue-specific (see NeedsRedownload()
-    // for one approach that was used for BIP 141 deployment).
+    // change is potentially tricky and issue-specific.
     // Also, currently the rule against blocks more than 2 hours in the future
     // is enforced in ContextualCheckBlockHeader(); we wouldn't want to
     // re-enforce that rule here (at least until we make it impossible for
@@ -3633,9 +3632,6 @@ void ChainstateManager::ReceivedBlockTransactions(const CBlock& block, CBlockInd
     pindexNew->nDataPos = pos.nPos;
     pindexNew->nUndoPos = 0;
     pindexNew->nStatus |= BLOCK_HAVE_DATA;
-    if (pindexNew->pprev != nullptr) {
-        pindexNew->nStatus |= BLOCK_OPT_WITNESS;
-    }
     pindexNew->RaiseValidity(BLOCK_VALID_TRANSACTIONS);
     m_blockman.m_dirty_blockindex.insert(pindexNew);
 
@@ -4698,23 +4694,6 @@ bool Chainstate::ReplayBlocks()
     return true;
 }
 
-bool Chainstate::NeedsRedownload() const
-{
-    AssertLockHeld(cs_main);
-
-    CBlockIndex* block{m_chain.Tip()};
-
-    while (block != nullptr && block->pprev != nullptr) {
-        if (!(block->nStatus & BLOCK_OPT_WITNESS)) {
-            // block is insufficiently validated for a segwit client
-            return true;
-        }
-        block = block->pprev;
-    }
-
-    return false;
-}
-
 void Chainstate::ClearBlockIndexCandidates()
 {
     AssertLockHeld(::cs_main);
@@ -5746,30 +5725,7 @@ util::Result<void> ChainstateManager::PopulateAndValidateSnapshot(
     // The remainder of this function requires modifying data protected by cs_main.
     LOCK(::cs_main);
 
-    // Fake various pieces of CBlockIndex state:
-    CBlockIndex* index = nullptr;
-
-    // Don't make any modifications to the genesis block since it shouldn't be
-    // necessary, and since the genesis block doesn't have normal flags like
-    // BLOCK_VALID_SCRIPTS set.
-    constexpr int AFTER_GENESIS_START{1};
-
-    for (int i = AFTER_GENESIS_START; i <= snapshot_chainstate.m_chain.Height(); ++i) {
-        index = snapshot_chainstate.m_chain[i];
-
-        // Fake BLOCK_OPT_WITNESS so that Chainstate::NeedsRedownload()
-        // won't ask for -reindex on startup.
-        index->nStatus |= BLOCK_OPT_WITNESS;
-
-        m_blockman.m_dirty_blockindex.insert(index);
-        // Changes to the block index will be flushed to disk after this call
-        // returns in `ActivateSnapshot()`, when `MaybeRebalanceCaches()` is
-        // called, since we've added a snapshot chainstate and therefore will
-        // have to downsize the IBD chainstate, which will result in a call to
-        // `FlushStateToDisk(FORCE_FLUSH)`.
-    }
-
-    assert(index);
+    CBlockIndex* index{snapshot_chainstate.m_chain.Tip()};
     assert(index == snapshot_start_block);
     index->m_chain_tx_count = au_data.m_chain_tx_count;
 

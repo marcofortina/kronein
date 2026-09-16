@@ -125,12 +125,6 @@ static ChainstateLoadResult CompleteChainstateInitialization(
         chainstate->PopulateBlockIndexCandidates();
     }
 
-    const auto& chainstates{chainman.m_chainstates};
-    if (std::any_of(chainstates.begin(), chainstates.end(),
-                    [](const auto& cs) EXCLUSIVE_LOCKS_REQUIRED(cs_main) { return cs->NeedsRedownload(); })) {
-        return {ChainstateLoadStatus::FAILURE, _("Witness data requires validation. Please restart with -reindex.")};
-    };
-
     // Now that chainstates are loaded and we're able to flush to
     // disk, rebalance the coins caches to desired levels based
     // on the condition of each chainstate.

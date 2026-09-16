@@ -78,8 +78,6 @@ enum BlockStatus : uint32_t {
 
     BLOCK_FAILED_VALID       =   32, //!< stage after last reached validness failed
 
-    BLOCK_OPT_WITNESS        =   128, //!< block data in blk*.dat was received with a witness-enforcing client
-
     BLOCK_STATUS_RESERVED    =   256, //!< Unused flag that was previously set on assumeutxo snapshot blocks and their
                                       //!< ancestors before they were validated, and unset when they were validated.
 };
@@ -128,11 +126,6 @@ public:
     uint64_t m_chain_tx_count{0};
 
     //! Verification status of this block. See enum BlockStatus
-    //!
-    //! Note: this value is modified to show BLOCK_OPT_WITNESS during UTXO snapshot
-    //! load to avoid a spurious startup failure requiring -reindex.
-    //! @sa NeedsRedownload
-    //! @sa ActivateSnapshot
     uint32_t nStatus GUARDED_BY(::cs_main){0};
 
     //! block header

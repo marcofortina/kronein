@@ -805,8 +805,6 @@ public:
     /** Replay blocks that aren't fully applied to the database. */
     bool ReplayBlocks();
 
-    /** Whether the chain state needs to be redownloaded due to lack of witness data */
-    [[nodiscard]] bool NeedsRedownload() const EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     /** Ensures we have a genesis block in the block tree, possibly writing one to disk. */
     bool LoadGenesisBlock();
 
