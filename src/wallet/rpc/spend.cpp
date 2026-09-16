@@ -930,8 +930,7 @@ static RPCHelpMan bumpfee_helper(std::string method_name)
         "The user can specify a confirmation target for estimatesmartfee.\n"
         "Alternatively, the user can specify a fee rate in " + CURRENCY_ATOM + "/vB for the new transaction.\n"
         "At a minimum, the new fee rate must be high enough to pay an additional new relay fee (incrementalfee\n"
-        "returned by getnetworkinfo) to enter the node's mempool.\n"
-        "* WARNING: before version 0.21, fee_rate was in " + CURRENCY_UNIT + "/kvB. As of 0.21, fee_rate is in " + CURRENCY_ATOM + "/vB. *\n",
+        "returned by getnetworkinfo) to enter the node's mempool.\n",
         {
             {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The txid to be bumped"},
             {"options", RPCArg::Type::OBJ_NAMED_PARAMS, RPCArg::Optional::OMITTED, "",
@@ -939,8 +938,7 @@ static RPCHelpMan bumpfee_helper(std::string method_name)
                     {"conf_target", RPCArg::Type::NUM, RPCArg::DefaultHint{"wallet -txconfirmtarget"}, "Confirmation target in blocks\n"},
                     {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"},
                              "\nSpecify a fee rate in " + CURRENCY_ATOM + "/vB instead of relying on the built-in fee estimator.\n"
-                             "Must be at least " + incremental_fee + " higher than the current transaction fee rate.\n"
-                             "WARNING: before version 0.21, fee_rate was in " + CURRENCY_UNIT + "/kvB. As of 0.21, fee_rate is in " + CURRENCY_ATOM + "/vB.\n"},
+                             "Must be at least " + incremental_fee + " higher than the current transaction fee rate.\n"},
                     {"replaceable", RPCArg::Type::BOOL, RPCArg::Default{true},
                              "Whether the new transaction should be\n"
                              "marked bip-125 replaceable. If true, the sequence numbers in the transaction will\n"
