@@ -25,6 +25,7 @@
 #include <boost/signals2/signal.hpp>
 
 #include <functional>
+#include <memory>
 #include <optional>
 #include <unordered_map>
 
@@ -66,6 +67,12 @@ struct WalletDestination
 {
     CTxDestination dest;
     std::optional<bool> internal;
+};
+
+struct KeyMetadata
+{
+    uint64_t creation_time;
+    KeyOriginInfo key_origin;
 };
 
 /*
@@ -125,7 +132,7 @@ public:
 
     virtual int64_t GetTimeFirstKey() const { return 0; }
 
-    virtual std::unique_ptr<CKeyMetadata> GetMetadata(const CTxDestination& dest) const { return nullptr; }
+    virtual std::unique_ptr<KeyMetadata> GetMetadata(const CTxDestination& dest) const { return nullptr; }
 
     virtual std::unique_ptr<SigningProvider> GetSolvingProvider(const CScript& script) const { return nullptr; }
 
@@ -254,7 +261,7 @@ public:
 
     int64_t GetTimeFirstKey() const override;
 
-    std::unique_ptr<CKeyMetadata> GetMetadata(const CTxDestination& dest) const override;
+    std::unique_ptr<KeyMetadata> GetMetadata(const CTxDestination& dest) const override;
 
     bool CanGetAddresses(bool internal = false) const override;
 

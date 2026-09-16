@@ -18,6 +18,7 @@
 #include <util/time.h>
 #include <util/translation.h>
 #include <wallet/scriptpubkeyman.h>
+#include <wallet/walletdb.h>
 
 #include <optional>
 
@@ -588,7 +589,7 @@ std::optional<PSBTError> DescriptorScriptPubKeyMan::FillPSBT(PartiallySignedTran
     return {};
 }
 
-std::unique_ptr<CKeyMetadata> DescriptorScriptPubKeyMan::GetMetadata(const CTxDestination& dest) const
+std::unique_ptr<KeyMetadata> DescriptorScriptPubKeyMan::GetMetadata(const CTxDestination& dest) const
 {
     std::unique_ptr<SigningProvider> provider = GetSigningProvider(GetScriptForDestination(dest));
     if (provider) {
@@ -596,11 +597,7 @@ std::unique_ptr<CKeyMetadata> DescriptorScriptPubKeyMan::GetMetadata(const CTxDe
         CKeyID key_id = GetKeyForDestination(*provider, dest);
         if (provider->GetKeyOrigin(key_id, orig)) {
             LOCK(cs_desc_man);
-            std::unique_ptr<CKeyMetadata> meta = std::make_unique<CKeyMetadata>();
-            meta->key_origin = orig;
-            meta->has_key_origin = true;
-            meta->nCreateTime = m_wallet_descriptor.creation_time;
-            return meta;
+            return std::make_unique<KeyMetadata>(KeyMetadata{m_wallet_descriptor.creation_time, orig});
         }
     }
     return nullptr;

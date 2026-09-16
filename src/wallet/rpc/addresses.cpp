@@ -379,13 +379,12 @@ RPCHelpMan getaddressinfo()
                         {RPCResult::Type::STR_HEX, "pubkey", /*optional=*/true, "The hex value of the raw public key for single-key addresses (possibly embedded in P2SH or P2WSH)."},
                         {RPCResult::Type::OBJ, "embedded", /*optional=*/true, "Information about the address embedded in P2SH or P2WSH, if relevant and known.",
                         {
-                            {RPCResult::Type::ELISION, "", "Includes all getaddressinfo output fields for the embedded address, excluding metadata (timestamp, hdkeypath, hdseedid)\n"
+                            {RPCResult::Type::ELISION, "", "Includes all getaddressinfo output fields for the embedded address, excluding metadata (timestamp, hdkeypath, hdmasterfingerprint)\n"
                             "and relation to the wallet (ismine)."},
                         }},
                         {RPCResult::Type::BOOL, "iscompressed", /*optional=*/true, "If the pubkey is compressed."},
                         {RPCResult::Type::NUM_TIME, "timestamp", /*optional=*/true, "The creation time of the key, if available, expressed in " + UNIX_EPOCH_TIME + "."},
                         {RPCResult::Type::STR, "hdkeypath", /*optional=*/true, "The HD keypath, if the key is HD and available."},
-                        {RPCResult::Type::STR_HEX, "hdseedid", /*optional=*/true, "The Hash160 of the HD seed."},
                         {RPCResult::Type::STR_HEX, "hdmasterfingerprint", /*optional=*/true, "The fingerprint of the master key."},
                         {RPCResult::Type::ARR, "labels", "Array of labels associated with the address. Currently limited to one label but returned\n"
                             "as an array to keep the API stable if multiple labels are enabled in the future.",
@@ -459,13 +458,10 @@ RPCHelpMan getaddressinfo()
     ret.pushKV("ischange", ScriptIsChange(*pwallet, scriptPubKey));
 
     if (spk_man) {
-        if (const std::unique_ptr<CKeyMetadata> meta = spk_man->GetMetadata(dest)) {
-            ret.pushKV("timestamp", meta->nCreateTime);
-            if (meta->has_key_origin) {
-                ret.pushKV("hdkeypath", WriteHDKeypath(meta->key_origin.path, /*apostrophe=*/false));
-                ret.pushKV("hdseedid", meta->hd_seed_id.GetHex());
-                ret.pushKV("hdmasterfingerprint", HexStr(meta->key_origin.fingerprint));
-            }
+        if (const std::unique_ptr<KeyMetadata> meta = spk_man->GetMetadata(dest)) {
+            ret.pushKV("timestamp", meta->creation_time);
+            ret.pushKV("hdkeypath", WriteHDKeypath(meta->key_origin.path, /*apostrophe=*/false));
+            ret.pushKV("hdmasterfingerprint", HexStr(meta->key_origin.fingerprint));
         }
     }
 

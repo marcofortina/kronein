@@ -75,54 +75,6 @@ extern const std::string WALLETDESCRIPTORCKEY;
 extern const std::string WALLETDESCRIPTORKEY;
 } // namespace DBKeys
 
-class CKeyMetadata
-{
-public:
-    static const int VERSION_BASIC=1;
-    static const int VERSION_WITH_HDDATA=10;
-    static const int VERSION_WITH_KEY_ORIGIN = 12;
-    static const int CURRENT_VERSION=VERSION_WITH_KEY_ORIGIN;
-    int nVersion;
-    int64_t nCreateTime; // 0 means unknown
-    std::string hdKeypath; //optional HD/bip32 keypath. Still used to determine whether a key is a seed. Also kept for backwards compatibility
-    CKeyID hd_seed_id; //id of the HD seed used to derive this key
-    KeyOriginInfo key_origin; // Key origin info with path and fingerprint
-    bool has_key_origin = false; //!< Whether the key_origin is useful
-
-    CKeyMetadata()
-    {
-        SetNull();
-    }
-    explicit CKeyMetadata(int64_t nCreateTime_)
-    {
-        SetNull();
-        nCreateTime = nCreateTime_;
-    }
-
-    SERIALIZE_METHODS(CKeyMetadata, obj)
-    {
-        READWRITE(obj.nVersion, obj.nCreateTime);
-        if (obj.nVersion >= VERSION_WITH_HDDATA) {
-            READWRITE(obj.hdKeypath, obj.hd_seed_id);
-        }
-        if (obj.nVersion >= VERSION_WITH_KEY_ORIGIN)
-        {
-            READWRITE(obj.key_origin);
-            READWRITE(obj.has_key_origin);
-        }
-    }
-
-    void SetNull()
-    {
-        nVersion = CKeyMetadata::CURRENT_VERSION;
-        nCreateTime = 0;
-        hdKeypath.clear();
-        hd_seed_id.SetNull();
-        key_origin.clear();
-        has_key_origin = false;
-    }
-};
-
 struct DbTxnListener
 {
     std::function<void()> on_commit, on_abort;
