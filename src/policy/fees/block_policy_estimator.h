@@ -186,7 +186,7 @@ private:
      * estimate files.
      *
      * Whenever DEFAULT_MIN_RELAY_TX_FEE changes, this value should be updated
-     * accordingly. At the same time CURRENT_FEES_FILE_VERSION should be bumped.
+     * accordingly. At the same time the fee estimates file format version should be bumped.
      */
     static constexpr double MIN_BUCKET_FEERATE = 100;
     static constexpr double MAX_BUCKET_FEERATE = 1e7;
