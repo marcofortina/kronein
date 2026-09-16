@@ -56,25 +56,9 @@ static const char* SettingName(OptionsModel::OptionID option)
     }
 }
 
-/** Call node.updateRwSetting() with Bitcoin 22.x workaround. */
 static void UpdateRwSetting(interfaces::Node& node, OptionsModel::OptionID option, const std::string& suffix, const common::SettingsValue& value)
 {
-    if (value.isNum() &&
-        (option == OptionsModel::DatabaseCache ||
-         option == OptionsModel::ThreadsScriptVerif ||
-         option == OptionsModel::Prune ||
-         option == OptionsModel::PruneSize)) {
-        // Write certain old settings as strings, even though they are numbers,
-        // because Bitcoin 22.x releases try to read these specific settings as
-        // strings in addOverriddenOption() calls at startup, triggering
-        // uncaught exceptions in UniValue::get_str(). These errors were fixed
-        // in later releases by https://github.com/bitcoin/bitcoin/pull/24498.
-        // If new numeric settings are added, they can be written as numbers
-        // instead of strings, because bitcoin 22.x will not try to read these.
-        node.updateRwSetting(SettingName(option) + suffix, value.getValStr());
-    } else {
-        node.updateRwSetting(SettingName(option) + suffix, value);
-    }
+    node.updateRwSetting(SettingName(option) + suffix, value);
 }
 
 //! Convert enabled/size values to bitcoin -prune setting.
@@ -161,8 +145,6 @@ bool OptionsModel::Init(bilingual_str& error)
 {
     // Initialize display settings from stored settings.
     language = QString::fromStdString(SettingToString(node().getPersistentSetting("lang"), ""));
-
-    checkAndMigrate();
 
     QSettings settings;
 
@@ -717,79 +699,4 @@ bool OptionsModel::isRestartRequired() const
 bool OptionsModel::hasSigner()
 {
     return gArgs.GetArg("-signer", "") != "";
-}
-
-void OptionsModel::checkAndMigrate()
-{
-    // Migration of default values
-    // Check if the QSettings container was already loaded with this client version
-    QSettings settings;
-    static const char strSettingsVersionKey[] = "nSettingsVersion";
-    int settingsVersion = settings.contains(strSettingsVersionKey) ? settings.value(strSettingsVersionKey).toInt() : 0;
-    if (settingsVersion < CLIENT_VERSION)
-    {
-        // -dbcache was bumped from 100 to 300 in 0.13
-        // see https://github.com/bitcoin/bitcoin/pull/8273
-        // force people to upgrade to the new value if they are using 100MB
-        if (settingsVersion < 130000 && settings.contains("nDatabaseCache") && settings.value("nDatabaseCache").toLongLong() == 100)
-            settings.setValue("nDatabaseCache", (qint64)(DEFAULT_DB_CACHE >> 20));
-
-        settings.setValue(strSettingsVersionKey, CLIENT_VERSION);
-    }
-
-    // Overwrite the 'addrProxy' setting in case it has been set to an illegal
-    // default value (see issue #12623; PR #12650).
-    if (settings.contains("addrProxy") && settings.value("addrProxy").toString().endsWith("%2")) {
-        settings.setValue("addrProxy", GetDefaultProxyAddress());
-    }
-
-    // Overwrite the 'addrSeparateProxyTor' setting in case it has been set to an illegal
-    // default value (see issue #12623; PR #12650).
-    if (settings.contains("addrSeparateProxyTor") && settings.value("addrSeparateProxyTor").toString().endsWith("%2")) {
-        settings.setValue("addrSeparateProxyTor", GetDefaultProxyAddress());
-    }
-
-    // Migrate and delete legacy GUI settings that have now moved to <datadir>/settings.json.
-    auto migrate_setting = [&](OptionID option, const QString& qt_name) {
-        if (!settings.contains(qt_name)) return;
-        QVariant value = settings.value(qt_name);
-        if (node().getPersistentSetting(SettingName(option)).isNull()) {
-            if (option == ProxyIP) {
-                ProxySetting parsed = ParseProxyString(value.toString());
-                setOption(ProxyIP, parsed.ip);
-                setOption(ProxyPort, parsed.port);
-            } else if (option == ProxyIPTor) {
-                ProxySetting parsed = ParseProxyString(value.toString());
-                setOption(ProxyIPTor, parsed.ip);
-                setOption(ProxyPortTor, parsed.port);
-            } else {
-                setOption(option, value);
-            }
-        }
-        settings.remove(qt_name);
-    };
-
-    migrate_setting(DatabaseCache, "nDatabaseCache");
-    migrate_setting(ThreadsScriptVerif, "nThreadsScriptVerif");
-#ifdef ENABLE_WALLET
-    migrate_setting(SpendZeroConfChange, "bSpendZeroConfChange");
-    migrate_setting(ExternalSignerPath, "external_signer_path");
-#endif
-    migrate_setting(MapPortNatpmp, "fUseNatpmp");
-    migrate_setting(Listen, "fListen");
-    migrate_setting(Server, "server");
-    migrate_setting(PruneSize, "nPruneSize");
-    migrate_setting(Prune, "bPrune");
-    migrate_setting(ProxyIP, "addrProxy");
-    migrate_setting(ProxyUse, "fUseProxy");
-    migrate_setting(ProxyIPTor, "addrSeparateProxyTor");
-    migrate_setting(ProxyUseTor, "fUseSeparateProxyTor");
-    migrate_setting(Language, "language");
-
-    // In case migrating QSettings caused any settings value to change, rerun
-    // parameter interaction code to update other settings. This is particularly
-    // important for the -listen setting, which should cause -listenonion
-    // and other settings to default to false if it was set to false.
-    // (https://github.com/bitcoin-core/gui/issues/567).
-    node().initParameterInteraction();
 }

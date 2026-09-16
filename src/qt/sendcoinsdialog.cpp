@@ -118,12 +118,8 @@ SendCoinsDialog::SendCoinsDialog(const PlatformStyle *_platformStyle, QWidget *p
     QSettings settings;
     if (!settings.contains("fFeeSectionMinimized"))
         settings.setValue("fFeeSectionMinimized", true);
-    if (!settings.contains("nFeeRadio") && settings.contains("nTransactionFee") && settings.value("nTransactionFee").toLongLong() > 0) // compatibility
-        settings.setValue("nFeeRadio", 1); // custom
     if (!settings.contains("nFeeRadio"))
         settings.setValue("nFeeRadio", 0); // recommended
-    if (!settings.contains("nSmartFeeSliderPosition"))
-        settings.setValue("nSmartFeeSliderPosition", 0);
     ui->groupFee->setId(ui->radioSmartFee, 0);
     ui->groupFee->setId(ui->radioCustomFee, 1);
     ui->groupFee->button((int)std::max(0, std::min(1, settings.value("nFeeRadio").toInt())))->setChecked(true);
@@ -216,13 +212,6 @@ void SendCoinsDialog::setModel(WalletModel *_model)
 
         // set the smartfee-sliders default value (wallets default conf.target or last stored value)
         QSettings settings;
-        if (settings.value("nSmartFeeSliderPosition").toInt() != 0) {
-            // migrate nSmartFeeSliderPosition to nConfTarget
-            // nConfTarget is available since 0.15 (replaced nSmartFeeSliderPosition)
-            int nConfirmTarget = 25 - settings.value("nSmartFeeSliderPosition").toInt(); // 25 == old slider range
-            settings.setValue("nConfTarget", nConfirmTarget);
-            settings.remove("nSmartFeeSliderPosition");
-        }
         if (settings.value("nConfTarget").toInt() == 0)
             ui->confTargetSelector->setCurrentIndex(getIndexForConfTarget(model->wallet().getConfirmTarget()));
         else
