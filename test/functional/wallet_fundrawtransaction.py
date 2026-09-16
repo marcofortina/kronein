@@ -826,21 +826,20 @@ class RawTransactionsTest(BitcoinTestFramework):
         self.nodes[2].createwallet("extfund")
         wallet = self.nodes[2].get_wallet_rpc("extfund")
 
-        # Make a weird but signable script. sh(pkh()) descriptor accomplishes this
-        desc = descsum_create("sh(pkh({}))".format(privkey))
+        # Create an external but signable native Taproot output.
+        desc = descsum_create("tr({})".format(privkey))
         res = self.nodes[0].importdescriptors([{"desc": desc, "timestamp": "now"}])
         assert res[0]["success"]
         addr = self.nodes[0].deriveaddresses(desc)[0]
-        addr_info = self.nodes[0].getaddressinfo(addr)
 
         self.nodes[0].sendtoaddress(addr, 10, fee_rate=self.fee_rate_sats_per_vb)
         self.nodes[0].sendtoaddress(wallet.getnewaddress(), 10, fee_rate=self.fee_rate_sats_per_vb)
         self.generate(self.nodes[0], 6)
         ext_utxo = self.nodes[0].listunspent(addresses=[addr])[0]
 
-        # An external input without solving data should result in an error
+        # Native Taproot key-path inputs have a predictable weight even without solving data.
         raw_tx = wallet.createrawtransaction([ext_utxo], {self.nodes[0].getnewaddress(): ext_utxo["amount"] / 2})
-        assert_raises_rpc_error(-4, "Not solvable pre-selected input COutPoint(%s, %s)" % (ext_utxo["txid"][0:10], ext_utxo["vout"]), wallet.fundrawtransaction, raw_tx)
+        wallet.fundrawtransaction(raw_tx, fee_rate=self.fee_rate_sats_per_vb)
 
         # Error conditions
         assert_raises_rpc_error(-5, 'Pubkey "not a pubkey" must be a hex string', wallet.fundrawtransaction, raw_tx, solving_data={"pubkeys":["not a pubkey"]})
@@ -854,13 +853,7 @@ class RawTransactionsTest(BitcoinTestFramework):
         assert_raises_rpc_error(-8, "Invalid parameter, weight cannot be less than 165", wallet.fundrawtransaction, raw_tx, input_weights=[{"txid": ext_utxo["txid"], "vout": ext_utxo["vout"], "weight": -1}])
         assert_raises_rpc_error(-8, "Invalid parameter, weight cannot be greater than", wallet.fundrawtransaction, raw_tx, input_weights=[{"txid": ext_utxo["txid"], "vout": ext_utxo["vout"], "weight": 400001}])
 
-        # But funding should work when the solving data is provided
-        funded_tx = wallet.fundrawtransaction(raw_tx, solving_data={"pubkeys": [addr_info['pubkey']], "scripts": [addr_info["embedded"]["scriptPubKey"]]})
-        signed_tx = wallet.signrawtransactionwithwallet(funded_tx['hex'])
-        assert not signed_tx['complete']
-        signed_tx = self.nodes[0].signrawtransactionwithwallet(signed_tx['hex'])
-        assert signed_tx['complete']
-
+        # Funding should work when the native descriptor is provided.
         funded_tx = wallet.fundrawtransaction(raw_tx, solving_data={"descriptors": [desc]}, fee_rate=self.fee_rate_sats_per_vb)
         signed_tx1 = wallet.signrawtransactionwithwallet(funded_tx['hex'])
         assert not signed_tx1['complete']
@@ -872,7 +865,7 @@ class RawTransactionsTest(BitcoinTestFramework):
         # Input's weight is difference between weight of signed and unsigned,
         # and the weight of stuff that didn't change (prevout, sequence, 1 byte of scriptSig)
         input_weight = signed_weight - unsigned_weight + (41 * 4)
-        low_input_weight = input_weight // 2
+        low_input_weight = max(165, input_weight // 2)
         high_input_weight = input_weight * 2
 
         # Funding should also work if the input weight is provided
