@@ -711,7 +711,7 @@ class PSBTTest(BitcoinTestFramework):
         psbt.i = [PSBTMap({bytes([PSBT_IN_WITNESS_UTXO]) : acs_prevout.serialize()})]
         psbt.o = [PSBTMap()]
         assert_equal(self.nodes[0].finalizepsbt(psbt.to_base64()),
-            {'hex': '0200000001dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd000000000000000000010000000000000000000000000000', 'complete': True})
+            {'hex': '0100000001dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd000000000000000000010000000000000000000000000000', 'complete': True})
 
         self.log.info("Test we don't crash when making a 0-value funded transaction at 0 fee without forcing an input selection")
         assert_raises_rpc_error(-4, "Transaction requires one destination of non-zero value, a non-zero feerate, or a pre-selected input", self.nodes[0].walletcreatefundedpsbt, [], [{"data": "deadbeef"}], 0, {"fee_rate": "0"})
@@ -730,9 +730,9 @@ class PSBTTest(BitcoinTestFramework):
 
         key_info = get_generate_key()
         key = key_info.privkey
-        address = key_info.p2wpkh_addr
 
-        descriptor = descsum_create(f"wpkh({key})")
+        descriptor = descsum_create(f"tr({key})")
+        address = self.nodes[2].deriveaddresses(descriptor)[0]
 
         utxo = self.create_outpoints(self.nodes[0], outputs=[{address: 1}])[0]
         self.sync_all()
@@ -741,24 +741,24 @@ class PSBTTest(BitcoinTestFramework):
         decoded = self.nodes[2].decodepsbt(psbt)
         test_psbt_input_keys(decoded['inputs'][0], [])
 
-        # Test that even if the wrong descriptor is given, `witness_utxo` and `non_witness_utxo`
-        # are still added to the psbt
-        alt_descriptor = descsum_create(f"wpkh({get_generate_key().privkey})")
+        # Test that even if the wrong descriptor is given, the Taproot UTXO
+        # and requested sighash type are still added to the PSBT.
+        alt_descriptor = descsum_create(f"tr({get_generate_key().privkey})")
         alt_psbt = self.nodes[2].descriptorprocesspsbt(psbt=psbt, descriptors=[alt_descriptor], sighashtype="ALL")["psbt"]
         decoded = self.nodes[2].decodepsbt(alt_psbt)
-        test_psbt_input_keys(decoded['inputs'][0], ['witness_utxo', 'non_witness_utxo'])
+        test_psbt_input_keys(decoded['inputs'][0], ['witness_utxo', 'sighash'])
 
         # Test that the psbt is not finalized and does not have bip32_derivs unless specified
         processed_psbt = self.nodes[2].descriptorprocesspsbt(psbt=psbt, descriptors=[descriptor], sighashtype="ALL", bip32derivs=True, finalize=False)
         decoded = self.nodes[2].decodepsbt(processed_psbt['psbt'])
-        test_psbt_input_keys(decoded['inputs'][0], ['witness_utxo', 'non_witness_utxo', 'partial_signatures', 'bip32_derivs'])
+        test_psbt_input_keys(decoded['inputs'][0], ['witness_utxo', 'sighash', 'taproot_key_path_sig', 'taproot_bip32_derivs', 'taproot_internal_key'])
 
         # If psbt not finalized, test that result does not have hex
         assert "hex" not in processed_psbt
 
         processed_psbt = self.nodes[2].descriptorprocesspsbt(psbt=psbt, descriptors=[descriptor], sighashtype="ALL", bip32derivs=False, finalize=True)
         decoded = self.nodes[2].decodepsbt(processed_psbt['psbt'])
-        test_psbt_input_keys(decoded['inputs'][0], ['witness_utxo', 'non_witness_utxo', 'final_scriptwitness'])
+        test_psbt_input_keys(decoded['inputs'][0], ['witness_utxo', 'final_scriptwitness'])
 
         # Test psbt is complete
         assert_equal(processed_psbt['complete'], True)
