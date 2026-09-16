@@ -19,7 +19,6 @@
 
 namespace wallet {
 static const std::string DUMP_MAGIC = "BITCOIN_CORE_WALLET_DUMP";
-uint32_t DUMP_VERSION = 1;
 
 bool DumpWallet(const ArgsManager& args, WalletDatabase& db, bilingual_str& error)
 {
@@ -54,13 +53,8 @@ bool DumpWallet(const ArgsManager& args, WalletDatabase& db, bilingual_str& erro
         ret = false;
     }
 
-    // Write out a magic string with version
-    std::string line = strprintf("%s,%u\n", DUMP_MAGIC, DUMP_VERSION);
-    dump_file.write(line.data(), line.size());
-    hasher << std::span{line};
-
-    // Write out the file format
-    line = strprintf("%s,%s\n", "format", db.Format());
+    // Write out the native dump identifier.
+    std::string line = DUMP_MAGIC + "\n";
     dump_file.write(line.data(), line.size());
     hasher << std::span{line};
 
@@ -139,48 +133,16 @@ bool CreateFromDump(const ArgsManager& args, const std::string& name, const fs::
     HashWriter hasher{};
     uint256 checksum;
 
-    // Check the magic and version
+    // Check the native dump identifier.
     std::string magic_key;
-    std::getline(dump_file, magic_key, ',');
-    std::string version_value;
-    std::getline(dump_file, version_value, '\n');
+    std::getline(dump_file, magic_key);
     if (magic_key != DUMP_MAGIC) {
         error = strprintf(_("Error: Dumpfile identifier record is incorrect. Got \"%s\", expected \"%s\"."), magic_key, DUMP_MAGIC);
         dump_file.close();
         return false;
     }
-    // Check the version number (value of first record)
-    const auto ver{ToIntegral<uint32_t>(version_value)};
-    if (!ver) {
-        error = strprintf(_("Error: Unable to parse version %u as a uint32_t"), version_value);
-        dump_file.close();
-        return false;
-    }
-    if (*ver != DUMP_VERSION) {
-        error = strprintf(_("Error: Dumpfile version is not supported. This version of bitcoin-wallet only supports version 1 dumpfiles. Got dumpfile with version %s"), version_value);
-        dump_file.close();
-        return false;
-    }
-    std::string magic_hasher_line = strprintf("%s,%s\n", magic_key, version_value);
+    std::string magic_hasher_line = magic_key + "\n";
     hasher << std::span{magic_hasher_line};
-
-    // Get the stored file format
-    std::string format_key;
-    std::getline(dump_file, format_key, ',');
-    std::string format_value;
-    std::getline(dump_file, format_value, '\n');
-    if (format_key != "format") {
-        error = strprintf(_("Error: Dumpfile format record is incorrect. Got \"%s\", expected \"format\"."), format_key);
-        dump_file.close();
-        return false;
-    }
-    // Dumps are native SQLite wallet dumps only.
-    if (format_value != "sqlite") {
-        error = strprintf(_("Error: Dumpfile specifies an unsupported database format (%s). Only sqlite database dumps are supported"), format_value);
-        return false;
-    }
-    std::string format_hasher_line = strprintf("%s,%s\n", format_key, format_value);
-    hasher << std::span{format_hasher_line};
 
     DatabaseOptions options;
     DatabaseStatus status;

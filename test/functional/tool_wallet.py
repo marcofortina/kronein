@@ -83,6 +83,8 @@ class ToolWalletTest(BitcoinTestFramework):
     def read_dump(self, filename):
         dump = OrderedDict()
         with open(filename, "r") as f:
+            magic = f.readline().strip()
+            dump[magic] = ""
             for row in f:
                 row = row.strip()
                 key, value = row.split(',')
@@ -98,8 +100,7 @@ class ToolWalletTest(BitcoinTestFramework):
         if magic is None:
             magic = "BITCOIN_CORE_WALLET_DUMP"
         with open(filename, "w") as f:
-            row = ",".join([magic, dump[magic]]) + "\n"
-            f.write(row)
+            f.write(magic + "\n")
             for k, v in dump.items():
                 if k == magic or k == "checksum":
                     continue
@@ -247,7 +248,6 @@ class ToolWalletTest(BitcoinTestFramework):
     def test_dump_createfromdump(self):
         self.start_node(0)
         self.nodes[0].createwallet("todump")
-        file_format = self.nodes[0].get_wallet_rpc("todump").getwalletinfo()["format"]
         self.nodes[0].createwallet("todump2")
         self.stop_node(0)
 
@@ -261,9 +261,7 @@ class ToolWalletTest(BitcoinTestFramework):
         dump_data = self.read_dump(wallet_dump)
         orig_dump = dump_data.copy()
         # Check the dump magic
-        assert_equal(dump_data['BITCOIN_CORE_WALLET_DUMP'], '1')
-        # Check the file format
-        assert_equal(dump_data["format"], file_format)
+        assert_equal(dump_data['BITCOIN_CORE_WALLET_DUMP'], '')
 
         self.log.info('Checking that a dumpfile cannot be overwritten')
         self.assert_raises_tool_error('File {} already exists. If you are sure this is what you want, move it out of the way first.'.format(wallet_dump),  '-wallet=todump2', '-dumpfile={}'.format(wallet_dump), 'dump')
@@ -279,20 +277,10 @@ class ToolWalletTest(BitcoinTestFramework):
         self.log.info('Checking createfromdump')
         self.do_tool_createfromdump("load", "wallet.dump")
 
-        self.log.info('Checking createfromdump handling of magic and versions')
-        bad_ver_wallet_dump = self.nodes[0].datadir_path / "wallet-bad_ver1.dump"
-        dump_data["BITCOIN_CORE_WALLET_DUMP"] = "0"
-        self.write_dump(dump_data, bad_ver_wallet_dump)
-        self.assert_raises_tool_error('Error: Dumpfile version is not supported. This version of bitcoin-wallet only supports version 1 dumpfiles. Got dumpfile with version 0', '-wallet=badload', '-dumpfile={}'.format(bad_ver_wallet_dump), 'createfromdump')
-        assert not (self.nodes[0].wallets_path / "badload").is_dir()
-        bad_ver_wallet_dump = self.nodes[0].datadir_path / "wallet-bad_ver2.dump"
-        dump_data["BITCOIN_CORE_WALLET_DUMP"] = "2"
-        self.write_dump(dump_data, bad_ver_wallet_dump)
-        self.assert_raises_tool_error('Error: Dumpfile version is not supported. This version of bitcoin-wallet only supports version 1 dumpfiles. Got dumpfile with version 2', '-wallet=badload', '-dumpfile={}'.format(bad_ver_wallet_dump), 'createfromdump')
-        assert not (self.nodes[0].wallets_path / "badload").is_dir()
+        self.log.info('Checking createfromdump handling of magic')
         bad_magic_wallet_dump = self.nodes[0].datadir_path / "wallet-bad_magic.dump"
         del dump_data["BITCOIN_CORE_WALLET_DUMP"]
-        dump_data["not_the_right_magic"] = "1"
+        dump_data["not_the_right_magic"] = ""
         self.write_dump(dump_data, bad_magic_wallet_dump, "not_the_right_magic")
         self.assert_raises_tool_error('Error: Dumpfile identifier record is incorrect. Got "not_the_right_magic", expected "BITCOIN_CORE_WALLET_DUMP".', '-wallet=badload', '-dumpfile={}'.format(bad_magic_wallet_dump), 'createfromdump')
         assert not (self.nodes[0].wallets_path / "badload").is_dir()
