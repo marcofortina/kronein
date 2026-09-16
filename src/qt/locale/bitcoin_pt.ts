@@ -4209,10 +4209,6 @@ Vá ao menu Ficheiro &gt; Abrir carteira para carregar uma carteira
         <translation type="unfinished">Nível de registo específico da categoria não suportado %1$s=%2$s. Esperado %1$s=&lt;categoria&gt;:&lt;nívelderegisto&gt;. Categorias válidas: %3$s. Níveis de registo válidos: %4$s.</translation>
     </message>
     <message>
-        <source>Unsupported chainstate database format found. Please restart with -reindex-chainstate. This will rebuild the chainstate database.</source>
-        <translation type="unfinished">Foi encontrado um formato de base de dados chainstate não suportado. Por favor reinicie com -reindex-chainstate. Isto irá reconstruir a base de dados do estado da cadeia.</translation>
-    </message>
-    <message>
         <source>Warning: Private keys detected in wallet {%s} with disabled private keys</source>
         <translation type="unfinished">Aviso: foram detetadas chaves privadas na carteira {%s} com chaves privadas desativadas</translation>
     </message>

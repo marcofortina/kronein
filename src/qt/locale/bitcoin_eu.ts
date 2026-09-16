@@ -4245,10 +4245,6 @@ Joan Fitxategia &gt; Ireki Zorro menura zorro bat kargatzeko.
         <translation type="unfinished">Kategoria jakin bateko log-maila %1$s=%2$s ez da onartzen. %1$s=&lt;category&gt;:&lt;loglevel&gt;espero zen. Baliozko kategoriak: %3$s. Baliozko log-mailak: %4$s.</translation>
     </message>
     <message>
-        <source>Unsupported chainstate database format found. Please restart with -reindex-chainstate. This will rebuild the chainstate database.</source>
-        <translation type="unfinished">Onartu gabeko chainstate datu-base formatu bat aurkitu da. Mesedez, berrabiarazi -reindex-chainstate aukerarekin. Honek chainstate datu-basea berreraikiko du.</translation>
-    </message>
-    <message>
         <source>Warning: Private keys detected in wallet {%s} with disabled private keys</source>
         <translation type="unfinished">Abisua: gako pribatuak detektatu dira {%s} zorroan, gako pribatuak desgaituta daudenean.</translation>
     </message>

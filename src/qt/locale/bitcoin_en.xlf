@@ -4682,10 +4682,6 @@ Go to File &gt; Open Wallet to load a wallet.
         <source xml:space="preserve">Unsupported category-specific logging level %1$s=%2$s. Expected %1$s=&lt;category&gt;:&lt;loglevel&gt;. Valid categories: %3$s. Valid loglevels: %4$s.</source>
         <context-group purpose="location"><context context-type="linenumber">256</context></context-group>
       </trans-unit>
-      <trans-unit id="_msg1020">
-        <source xml:space="preserve">Unsupported chainstate database format found. Please restart with -reindex-chainstate. This will rebuild the chainstate database.</source>
-        <context-group purpose="location"><context context-type="linenumber">257</context></context-group>
-      </trans-unit>
       <trans-unit id="_msg1021">
         <source xml:space="preserve">Warning: Private keys detected in wallet {%s} with disabled private keys</source>
         <context-group purpose="location"><context context-type="linenumber">266</context></context-group>

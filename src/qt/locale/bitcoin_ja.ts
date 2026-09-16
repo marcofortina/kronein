@@ -4233,10 +4233,6 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">サポートされていないカテゴリ固有のログレベルです  %1$s=%2$s。 期待値は %1$s=&lt;category&gt;:&lt;loglevel&gt;。 有効なカテゴリ: %3$s。 有効なログレベル: %4$s。</translation>
     </message>
     <message>
-        <source>Unsupported chainstate database format found. Please restart with -reindex-chainstate. This will rebuild the chainstate database.</source>
-        <translation type="unfinished">サポートされていないチェーンステート データベース形式が見つかりました。 -reindex-chainstate で再起動してください。これにより、チェーンステート データベースが再構築されます。</translation>
-    </message>
-    <message>
         <source>Warning: Private keys detected in wallet {%s} with disabled private keys</source>
         <translation type="unfinished">警告: 秘密鍵が無効なウォレット {%s} で秘密鍵を検出しました</translation>
     </message>

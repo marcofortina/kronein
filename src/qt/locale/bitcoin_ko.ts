@@ -4191,10 +4191,6 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">지원되지 않는 카테고리별 로그 레벨 %1$s=%2$s 입니다. %1$s=&lt;category&gt;:&lt;loglevel&gt;가 필요합니다. 유효한 카테고리: %3$s. 유효한 로그레벨: %4$s.</translation>
     </message>
     <message>
-        <source>Unsupported chainstate database format found. Please restart with -reindex-chainstate. This will rebuild the chainstate database.</source>
-        <translation type="unfinished">지원되지 않는 체인스테이트 데이터베이스 형식이 발견되었습니다. -reindex-chainstate 옵션으로 다시 시작해 주십시오. 이 작업은 체인스테이트 데이터베이스를 다시 구축합니다.</translation>
-    </message>
-    <message>
         <source>Warning: Private keys detected in wallet {%s} with disabled private keys</source>
         <translation type="unfinished">경고: 비활성화된 개인키 지갑 {%s} 에서 개인키들이 발견되었습니다</translation>
     </message>

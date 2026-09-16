@@ -4250,10 +4250,6 @@ Vel Fíla -&gt; Innles Mappu fyri at innlesa eina mappu.
         <translation type="unfinished">Ókent bólkanágreina-gerðalistastøði %1$s=%2$s. Væntaði %1$s=&lt;category&gt;:&lt;loglevel&gt;. Gildigir bólkar: %3$s. Gildig gerðalistastøði: %4$s.</translation>
     </message>
     <message>
-        <source>Unsupported chainstate database format found. Please restart with -reindex-chainstate. This will rebuild the chainstate database.</source>
-        <translation type="unfinished">Varnaðist ókent ketustøðu-dátugrunsforsnið. Vinaliga endurbyrja við -reindex-chainstate. Tað endurbyggur ketustøðudátugrunnin.</translation>
-    </message>
-    <message>
         <source>Warning: Private keys detected in wallet {%s} with disabled private keys</source>
         <translation type="unfinished">Gev gætur: Privatir lyklar funnir í {%s} mappuni har privatir lyklar eru óvirktir.</translation>
     </message>

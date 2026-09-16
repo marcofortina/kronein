@@ -4168,10 +4168,6 @@ Choďte do Súbor &gt; Otvoriť Peňaženku, pre načítanie peňaženky.
         <translation type="unfinished">Nepodporovaná úroveň logovania v tejto kategórii %1$s=%2$s. Očakávané %1$s=&lt;category&gt;:&lt;loglevel&gt;. Platné kategórie: %3$s. Platné úrovne logovania: %4$s.</translation>
     </message>
     <message>
-        <source>Unsupported chainstate database format found. Please restart with -reindex-chainstate. This will rebuild the chainstate database.</source>
-        <translation type="unfinished">Nájdený nepodporovaný formát databázy stavu reťazca. Prosím reštartujte s '-reindex-chainstate'. Toto obnoví databázu stavu reťazca.</translation>
-    </message>
-    <message>
         <source>Warning: Private keys detected in wallet {%s} with disabled private keys</source>
         <translation type="unfinished">Upozornenie: Boli zistené súkromné kľúče v peňaženke {%s} so zakázanými súkromnými kľúčmi.</translation>
     </message>

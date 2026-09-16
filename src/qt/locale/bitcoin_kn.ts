@@ -721,10 +721,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">ನೀವು ಸಾಮಾನ್ಯ ಫೀ ಬಗ್ಗೆ ಹೆಚ್ಚಿನ ಲಾಗಿನ ಸಂದರ್ಶನಕ್ಕಿಂತ ಪಾಂಡ್ರಹಿಸುವುದಕ್ಕಿಂತ ಭಾಗಶಃ ಖರೀದಿ ಟ್ರಾನ್ಸ್ಯಾಕ್ಷನ್ ಆಯ್ಕೆಯನ್ನು ಆಯ್ಕೆಮಾಡುವುದರ ಮೇಲೆ ಪ್ರಾಥಮಿಕತೆಯನ್ನು ಕೊಡುವುದಕ್ಕಾಗಿ ನೀವು ಅಧಿಕವಾದ ಟ್ರಾನ್ಸ್ಯಾಕ್ಷನ್ ಫೀ ಪಾವತಿಸುತ್ತೀರಿ.</translation>
     </message>
     <message>
-        <source>Unsupported chainstate database format found. Please restart with -reindex-chainstate. This will rebuild the chainstate database.</source>
-        <translation type="unfinished">ಬೆಂಬಲಿಗೆಯ ತರಬೇತಿ ಡೇಟಾಬೇಸ್ ಸ್ವರೂಪ ಅಸಮರ್ಥಿತವಾಗಿದೆ. ದಯವಿಟ್ಟು -reindex-chainstate ನೊಂದಿಗೆ ಮರುಪ್ರಾರಂಭಿಸಿ. ಇದು ಬೆಂಬಲಿಗೆಯ ತರಬೇತಿ ಡೇಟಾಬೇಸ್ ಪೂರ್ತಿಯಾಗಿ ಮರುಸ್ಥಾಪಿಸುತ್ತದೆ.</translation>
-    </message>
-    <message>
         <source>Error: Duplicate descriptors created during migration. Your wallet may be corrupted.</source>
         <translation type="unfinished">ದೋಷ: ವರ್ಣನೆಗಳ ಪುನರ್ವಿನಿಮಯದ ಸಮಯದಲ್ಲಿ ನಕಲಿ ವರ್ಣನೆಗಳು ರಚಿಸಲಾಗಿವೆ. ನಿಮ್ಮ ಬಟ್ಟೆ ಹಾಕಿದ ಕಾರ್ಟೆಜ್ ಹಾಳಾಗಿರಬಹುದು.</translation>
     </message>

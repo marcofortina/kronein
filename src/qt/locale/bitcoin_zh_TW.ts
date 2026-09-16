@@ -4139,10 +4139,6 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">不支援的類別限定日誌等級 %1$s=%2$s 。 预期参数 %1$s=&lt;category&gt;:&lt;loglevel&gt;。 有效的類別: %3$s 。有效的日誌等級: %4$s 。</translation>
     </message>
     <message>
-        <source>Unsupported chainstate database format found. Please restart with -reindex-chainstate. This will rebuild the chainstate database.</source>
-        <translation type="unfinished">找到了不受支援的 chainstate 資料庫格式。 請使用 -reindex-chainstate 參數重新啟動。 這將會重建 chainstate 資料庫。</translation>
-    </message>
-    <message>
         <source>Warning: Private keys detected in wallet {%s} with disabled private keys</source>
         <translation type="unfinished">警告: 在不允許私鑰的錢包 {%s} 中發現有私鑰</translation>
     </message>

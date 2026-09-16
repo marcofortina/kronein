@@ -60,10 +60,6 @@ static constexpr uint8_t DB_BLOCK_INDEX{'b'};
 static constexpr uint8_t DB_FLAG{'F'};
 static constexpr uint8_t DB_REINDEX_FLAG{'R'};
 static constexpr uint8_t DB_LAST_BLOCK{'l'};
-// Keys used in previous version that might still be found in the DB:
-// BlockTreeDB::DB_TXINDEX_BLOCK{'T'};
-// BlockTreeDB::DB_TXINDEX{'t'}
-// BlockTreeDB::ReadFlag("txindex")
 
 bool BlockTreeDB::ReadBlockFileInfo(int nFile, CBlockFileInfo& info)
 {

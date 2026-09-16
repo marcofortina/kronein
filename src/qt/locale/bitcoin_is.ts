@@ -1248,10 +1248,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">Óstudd flokkasértæk skráningarstig %1$s=%2$s. Búist var við %1$s=:. Gildir flokkar: %3$s. Gild logstig: %4$s.</translation>
     </message>
     <message>
-        <source>Unsupported chainstate database format found. Please restart with -reindex-chainstate. This will rebuild the chainstate database.</source>
-        <translation type="unfinished">Óstudd snið chainstate gagnagrunns fannst. Vinsamlegast endurræstu með -reindex-chainstate. Þetta mun endurbyggja chainstate gagnagrunninn.</translation>
-    </message>
-    <message>
         <source>Witness data for blocks after height %d requires validation. Please restart with -reindex.</source>
         <translation type="unfinished">Vitnisgögn fyrir blokkir eftir hæð %d krefjast staðfestingar. Vinsamlegast endurræstu með -reindex.</translation>
     </message>

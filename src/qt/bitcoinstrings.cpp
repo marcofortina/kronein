@@ -228,7 +228,6 @@ QT_TRANSLATE_NOOP("bitcoin-core", "Unrecognised option \"%s\" provided in -test=
 QT_TRANSLATE_NOOP("bitcoin-core", "Unrecognized descriptor found. Loading wallet %s\n\nThe wallet might have been created on a newer version.\nPlease try running the latest software version.\n"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Unrecognized network in -proxy='%s': '%s'"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Unsupported category-specific logging level %1$s=%2$s. Expected %1$s=<category>:<loglevel>. Valid categories: %3$s. Valid loglevels: %4$s."),
-QT_TRANSLATE_NOOP("bitcoin-core", "Unsupported chainstate database format found. Please restart with -reindex-chainstate. This will rebuild the chainstate database."),
 QT_TRANSLATE_NOOP("bitcoin-core", "Unsupported global logging level %s=%s. Valid values: %s."),
 QT_TRANSLATE_NOOP("bitcoin-core", "Unsupported logging category %s=%s."),
 QT_TRANSLATE_NOOP("bitcoin-core", "User Agent comment (%s) contains unsafe characters."),

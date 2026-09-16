@@ -3379,10 +3379,6 @@ Ověřuji peněženku.</translation>
         <translation type="unfinished">Nepodporovaná úroveň pro logování kategorie %1$s=%2$s. Očekáváno %1$s=&lt;category&gt;:&lt;loglevel&gt;. Platné kategorie: %3$s. Platné úrovně logování: %4$s.</translation>
     </message>
     <message>
-        <source>Unsupported chainstate database format found. Please restart with -reindex-chainstate. This will rebuild the chainstate database.</source>
-        <translation type="unfinished">Nalezen nepodporovaný formát databáze řetězců. Restartujte prosím aplikaci s parametrem -reindex-chainstate. Tím dojde k opětovného sestavení databáze řetězců.</translation>
-    </message>
-    <message>
         <source>Warning: Private keys detected in wallet {%s} with disabled private keys</source>
         <translation type="unfinished">Upozornění: Byly zjištěné soukromé klíče v peněžence {%s} se zakázanými soukromými klíči.</translation>
     </message>

@@ -2293,10 +2293,6 @@ The migration process will create a backup of the wallet before migrating. This 
         <translation type="unfinished">Невозможно воспроизвести блоки. Вам необходимо перестроить базу данных, используя -reindex-chainstate.</translation>
     </message>
     <message>
-        <source>Unsupported chainstate database format found. Please restart with -reindex-chainstate. This will rebuild the chainstate database.</source>
-        <translation type="unfinished">Обнаружен неподдерживаемый формат базы данных состояния цепочки блоков. Пожалуйста, перезапустите программу с ключом -reindex-chainstate. Это перестроит базу данных состояния цепочки блоков.</translation>
-    </message>
-    <message>
         <source>Warning: Private keys detected in wallet {%s} with disabled private keys</source>
         <translation type="unfinished">Предупреждение: приватные ключи обнаружены в кошельке {%s} с отключенными приватными ключами</translation>
     </message>

@@ -4321,10 +4321,6 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">Непідтримуваний рівень журналювання для категорії %1$s=%2$s. Очікуване значення %1$s=&lt;category&gt;:&lt;loglevel&gt;. Припустимі категорії: %3$s. Припустимі рівні журналювання: %4$s.</translation>
     </message>
     <message>
-        <source>Unsupported chainstate database format found. Please restart with -reindex-chainstate. This will rebuild the chainstate database.</source>
-        <translation type="unfinished">Виявлено несумісний формат бази даних стану блокчейну. Перезапустіть з -reindex-chainstate. Це перебудує базу даних стану блокчейну.</translation>
-    </message>
-    <message>
         <source>Warning: Private keys detected in wallet {%s} with disabled private keys</source>
         <translation type="unfinished">Попередження: Приватні ключі виявлено в гаманці {%s} з відключеними приватними ключами</translation>
     </message>
