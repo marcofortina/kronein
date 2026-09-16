@@ -19,7 +19,6 @@ from test_framework.messages import (
     CTxOut,
     SEQUENCE_FINAL,
     tx_from_hex,
-    TX_STANDARD_VERSION,
     WITNESS_SCALE_FACTOR,
 )
 from test_framework.script import (
@@ -1537,7 +1536,6 @@ class TaprootTest(BitcoinTestFramework):
         while left:
             # Construct a native transaction with a random nLocktime.
             tx = CTransaction()
-            tx.version = TX_STANDARD_VERSION
             # Relative locktime has native v1 semantics, so disable it for these randomized inputs.
             min_sequence = SEQUENCE_LOCKTIME_DISABLE_FLAG
             if random.choice([True, False]):
@@ -1802,7 +1800,6 @@ class TaprootTest(BitcoinTestFramework):
 
         # Construct a deterministic transaction spending all outputs created above.
         tx = CTransaction()
-        tx.version = TX_STANDARD_VERSION
         tx.vin = []
         inputs = []
         input_spks = [tap_spks[0], tap_spks[1], old_spks[0], tap_spks[2], tap_spks[5], old_spks[2], tap_spks[6], tap_spks[3], tap_spks[4]]

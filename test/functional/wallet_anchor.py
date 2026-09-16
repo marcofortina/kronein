@@ -36,9 +36,9 @@ class WalletAnchorTest(BitcoinTestFramework):
 
         # Create an anchor output, and spend it
         sender = MiniWallet(self.nodes[0])
-        anchor_tx = sender.create_self_transfer(fee_rate=0, version=1)["tx"]
+        anchor_tx = sender.create_self_transfer(fee_rate=0)["tx"]
         anchor_tx.vout.append(CTxOut(0, PAY_TO_ANCHOR))
-        anchor_spend = sender.create_self_transfer(version=1)["tx"]
+        anchor_spend = sender.create_self_transfer()["tx"]
         anchor_spend.vin.append(CTxIn(COutPoint(anchor_tx.txid_int, 1), b""))
         anchor_spend.wit.vtxinwit.append(CTxInWitness())
         submit_res = self.nodes[0].submitpackage([anchor_tx.serialize().hex(), anchor_spend.serialize().hex()])

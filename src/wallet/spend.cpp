@@ -1003,13 +1003,10 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
     FastRandomContext rng_fast;
     CMutableTransaction txNew; // The resulting transaction that we make
 
-    txNew.version = coin_control.m_version;
-
     CoinSelectionParams coin_selection_params{rng_fast}; // Parameters for coin selection, init with dummy
     coin_selection_params.m_avoid_partial_spends = coin_control.m_avoid_partial_spends;
     coin_selection_params.m_include_unsafe_inputs = coin_control.m_include_unsafe_inputs;
     coin_selection_params.m_max_tx_weight = coin_control.m_max_tx_weight.value_or(MAX_STANDARD_TX_WEIGHT);
-    coin_selection_params.m_version = coin_control.m_version;
     int minimum_tx_weight = MIN_STANDARD_TX_NONWITNESS_SIZE * WITNESS_SCALE_FACTOR;
     if (coin_selection_params.m_max_tx_weight.value() < minimum_tx_weight || coin_selection_params.m_max_tx_weight.value() > MAX_STANDARD_TX_WEIGHT) {
         return util::Error{strprintf(_("Maximum transaction weight must be between %d and %d"), minimum_tx_weight, MAX_STANDARD_TX_WEIGHT)};
@@ -1430,8 +1427,9 @@ util::Result<CreatedTransactionResult> FundTransaction(CWallet& wallet, const CM
     // Set the user desired locktime
     coinControl.m_locktime = tx.nLockTime;
 
-    // Set the user desired version
-    coinControl.m_version = tx.version;
+    if (tx.version != CTransaction::CURRENT_VERSION) {
+        return util::Error{strprintf(_("Transaction version must be %d"), int{CTransaction::CURRENT_VERSION})};
+    }
 
     // Acquire the locks to prevent races to the new locked unspents between the
     // CreateTransaction call and LockCoin calls (when lockUnspents is true).

@@ -81,8 +81,7 @@ public:
      */
     static const uint32_t MAX_SEQUENCE_NONFINAL{SEQUENCE_FINAL - 1};
 
-    // Below flags apply in the context of BIP 68. BIP 68 requires the tx
-    // version to be set to 2, or higher.
+    // Below flags apply to the native v1 transaction's BIP 68 semantics.
     /**
      * If this flag is set, CTxIn::nSequence is NOT interpreted as a
      * relative lock-time.

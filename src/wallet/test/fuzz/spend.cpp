@@ -44,7 +44,6 @@ FUZZ_TARGET(wallet_create_transaction, .init = initialize_setup)
     };
 
     CCoinControl coin_control;
-    if (fuzzed_data_provider.ConsumeBool()) coin_control.m_version = fuzzed_data_provider.ConsumeIntegral<unsigned int>();
     coin_control.m_avoid_partial_spends = fuzzed_data_provider.ConsumeBool();
     coin_control.m_include_unsafe_inputs = fuzzed_data_provider.ConsumeBool();
     if (fuzzed_data_provider.ConsumeBool()) coin_control.m_confirm_target = fuzzed_data_provider.ConsumeIntegralInRange<unsigned int>(0, 999'000);

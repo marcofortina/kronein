@@ -363,8 +363,8 @@ class PackageRBFTest(BitcoinTestFramework):
         parent_coin = self.wallet.get_utxo(confirmed_only=True)
 
         # package1 pays default fee on both transactions
-        parent1 = self.wallet.create_self_transfer(utxo_to_spend=parent_coin, version=1)
-        child1 = self.wallet.create_self_transfer(utxo_to_spend=parent1["new_utxo"], version=1)
+        parent1 = self.wallet.create_self_transfer(utxo_to_spend=parent_coin)
+        child1 = self.wallet.create_self_transfer(utxo_to_spend=parent1["new_utxo"])
         package_hex1 = [parent1["hex"], child1["hex"]]
         fees_package1 = parent1["fee"] + child1["fee"]
         submitres1 = node.submitpackage(package_hex1)
@@ -372,8 +372,8 @@ class PackageRBFTest(BitcoinTestFramework):
         self.assert_mempool_contents([parent1["tx"], child1["tx"]])
 
         # package2 has a 0-fee parent (conflicting with package1) and very high fee child
-        parent2 = self.wallet.create_self_transfer(utxo_to_spend=parent_coin, fee=0, fee_rate=0, version=1)
-        child2 = self.wallet.create_self_transfer(utxo_to_spend=parent2["new_utxo"], fee=fees_package1*10, version=1)
+        parent2 = self.wallet.create_self_transfer(utxo_to_spend=parent_coin, fee=0, fee_rate=0)
+        child2 = self.wallet.create_self_transfer(utxo_to_spend=parent2["new_utxo"], fee=fees_package1*10)
         package_hex2 = [parent2["hex"], child2["hex"]]
 
         submitres2 = node.submitpackage(package_hex2)

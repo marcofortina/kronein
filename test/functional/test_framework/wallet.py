@@ -295,7 +295,6 @@ class MiniWallet:
         utxos_to_spend: Optional[list[dict]] = None,
         num_outputs=1,
         amount_per_output=0,
-        version=1,
         locktime=0,
         sequence=0,
         fee_per_output=1000,
@@ -323,7 +322,6 @@ class MiniWallet:
         tx = CTransaction()
         tx.vin = [CTxIn(COutPoint(int(utxo_to_spend['txid'], 16), utxo_to_spend['vout']), nSequence=seq) for utxo_to_spend, seq in zip(utxos_to_spend, sequence)]
         tx.vout = [CTxOut(amount_per_output, bytearray(self._scriptPubKey)) for _ in range(num_outputs)]
-        tx.version = version
         tx.nLockTime = locktime
 
         self.sign_tx(tx)

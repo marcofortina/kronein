@@ -57,7 +57,6 @@ static void SetupBitcoinTxArgs(ArgsManager &argsman)
     argsman.AddArg("delout=N", "Delete output N from TX", ArgsManager::ALLOW_ANY, OptionsCategory::COMMANDS);
     argsman.AddArg("in=TXID:VOUT(:SEQUENCE_NUMBER)", "Add input to TX", ArgsManager::ALLOW_ANY, OptionsCategory::COMMANDS);
     argsman.AddArg("locktime=N", "Set TX lock time to N", ArgsManager::ALLOW_ANY, OptionsCategory::COMMANDS);
-    argsman.AddArg("nversion=N", "Set TX version to N", ArgsManager::ALLOW_ANY, OptionsCategory::COMMANDS);
     argsman.AddArg("outaddr=VALUE:ADDRESS", "Add address-based output to TX", ArgsManager::ALLOW_ANY, OptionsCategory::COMMANDS);
     argsman.AddArg("outdata=[VALUE:]DATA", "Add data-based output to TX", ArgsManager::ALLOW_ANY, OptionsCategory::COMMANDS);
     argsman.AddArg("outmultisig=VALUE:REQUIRED:PUBKEYS:PUBKEY1:PUBKEY2:....[:FLAGS]", "Add Pay To n-of-m Multi-sig output to TX. n = REQUIRED, m = PUBKEYS. "
@@ -207,15 +206,6 @@ static CAmount ExtractAndValidateValue(const std::string& strValue)
     } else {
         throw std::runtime_error("invalid TX output value");
     }
-}
-
-static void MutateTxVersion(CMutableTransaction& tx, const std::string& cmdVal)
-{
-    const auto ver{ToIntegral<uint32_t>(cmdVal)};
-    if (!ver || *ver != CTransaction::CURRENT_VERSION) {
-        throw std::runtime_error("Invalid TX version requested: '" + cmdVal + "'");
-    }
-    tx.version = *ver;
 }
 
 static void MutateTxLocktime(CMutableTransaction& tx, const std::string& cmdVal)
@@ -698,9 +688,7 @@ static void MutateTx(CMutableTransaction& tx, const std::string& command,
 {
     std::unique_ptr<ECC_Context> ecc;
 
-    if (command == "nversion")
-        MutateTxVersion(tx, commandVal);
-    else if (command == "locktime")
+    if (command == "locktime")
         MutateTxLocktime(tx, commandVal);
     else if (command == "replaceable") {
         MutateTxRBFOptIn(tx, commandVal);
@@ -819,6 +807,8 @@ static int CommandLineRawTx(int argc, char* argv[])
 
             if (!DecodeHexTx(tx, strHexTx))
                 throw std::runtime_error("invalid transaction encoding");
+            if (tx.version != CTransaction::CURRENT_VERSION)
+                throw std::runtime_error("invalid transaction version");
 
             startArg = 2;
         } else

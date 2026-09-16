@@ -144,7 +144,7 @@ void AddOutputs(CMutableTransaction& rawTx, const UniValue& outputs_in)
     }
 }
 
-CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniValue& outputs_in, const UniValue& locktime, std::optional<bool> rbf, const uint32_t version)
+CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniValue& outputs_in, const UniValue& locktime, std::optional<bool> rbf)
 {
     CMutableTransaction rawTx;
 
@@ -154,11 +154,6 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, locktime out of range");
         rawTx.nLockTime = nLockTime;
     }
-
-    if (version != CTransaction::CURRENT_VERSION) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid parameter, version must be %d", int{CTransaction::CURRENT_VERSION}));
-    }
-    rawTx.version = version;
 
     AddInputs(rawTx, inputs_in, rbf);
     AddOutputs(rawTx, outputs_in);

@@ -19,8 +19,6 @@ from itertools import product
 from test_framework.messages import (
     MAX_BIP125_RBF_SEQUENCE,
     COIN,
-    TX_STANDARD_VERSION,
-    CTransaction,
     CTxOut,
     tx_from_hex,
 )
@@ -88,7 +86,6 @@ class RawTransactionsTest(BitcoinTestFramework):
         self.sendrawtransaction_tests()
         self.sendrawtransaction_testmempoolaccept_tests()
         self.decoderawtransaction_tests()
-        self.transaction_version_number_tests()
         self.getrawtransaction_verbosity_tests()
 
     def getrawtransaction_tests(self):
@@ -257,10 +254,6 @@ class RawTransactionsTest(BitcoinTestFramework):
         # Test `createrawtransaction` invalid extra parameters
         assert_raises_rpc_error(-1, "createrawtransaction", self.nodes[0].createrawtransaction, [], {}, 0, False, 2, 3, 'foo')
 
-        # Test `createrawtransaction` invalid version parameters
-        assert_raises_rpc_error(-8, f"Invalid parameter, version must be {TX_STANDARD_VERSION}", self.nodes[0].createrawtransaction, [], {}, 0, False, 0)
-        assert_raises_rpc_error(-8, f"Invalid parameter, version must be {TX_STANDARD_VERSION}", self.nodes[0].createrawtransaction, [], {}, 0, False, TX_STANDARD_VERSION + 1)
-
         # Test `createrawtransaction` invalid `inputs`
         assert_raises_rpc_error(-3, "JSON value of type string is not of expected type array", self.nodes[0].createrawtransaction, 'foo', {})
         assert_raises_rpc_error(-3, "JSON value of type string is not of expected type object", self.nodes[0].createrawtransaction, ['foo'], {})
@@ -339,9 +332,9 @@ class RawTransactionsTest(BitcoinTestFramework):
             self.nodes[2].createrawtransaction(inputs=[{'txid': TXID, 'vout': 9}], outputs=[{address: 99}, {address2: 99}, {'data': '99'}]),
         )
 
-        rawtx = self.nodes[2].createrawtransaction(inputs=[{'txid': TXID, 'vout': 9}], outputs=OrderedDict([(address, 99), (address2, 99)]), version=TX_STANDARD_VERSION)
+        rawtx = self.nodes[2].createrawtransaction(inputs=[{'txid': TXID, 'vout': 9}], outputs=OrderedDict([(address, 99), (address2, 99)]))
         tx = tx_from_hex(rawtx)
-        assert_equal(tx.version, TX_STANDARD_VERSION)
+        assert_equal(tx.version, 1)
 
     def sendrawtransaction_tests(self):
         self.log.info("Test sendrawtransaction with missing input")
@@ -452,38 +445,6 @@ class RawTransactionsTest(BitcoinTestFramework):
         encrawtx = "01000000010000000000000072c1a6a246ae63f74f931e8365e15a089c68d61900000000000000000000ffffffff0100e1f50500000000000000000000"
         decrawtx = self.nodes[0].decoderawtransaction(encrawtx)
         assert_equal(decrawtx['vout'][0]['value'], Decimal('1.00000000'))
-
-    def transaction_version_number_tests(self):
-        self.log.info("Test transaction version numbers")
-
-        # Test the minimum transaction version number that fits in a signed 32-bit integer.
-        # As transaction version is serialized unsigned, this should convert to its unsigned equivalent.
-        tx = CTransaction()
-        tx.version = 0x80000000
-        rawtx = tx.serialize().hex()
-        decrawtx = self.nodes[0].decoderawtransaction(rawtx)
-        assert_equal(decrawtx['version'], 0x80000000)
-
-        # Test the maximum transaction version number that fits in a signed 32-bit integer.
-        tx = CTransaction()
-        tx.version = 0x7fffffff
-        rawtx = tx.serialize().hex()
-        decrawtx = self.nodes[0].decoderawtransaction(rawtx)
-        assert_equal(decrawtx['version'], 0x7fffffff)
-
-        # Test the minimum transaction version number that fits in an unsigned 32-bit integer.
-        tx = CTransaction()
-        tx.version = 0
-        rawtx = tx.serialize().hex()
-        decrawtx = self.nodes[0].decoderawtransaction(rawtx)
-        assert_equal(decrawtx['version'], 0)
-
-        # Test the maximum transaction version number that fits in an unsigned 32-bit integer.
-        tx = CTransaction()
-        tx.version = 0xffffffff
-        rawtx = tx.serialize().hex()
-        decrawtx = self.nodes[0].decoderawtransaction(rawtx)
-        assert_equal(decrawtx['version'], 0xffffffff)
 
 if __name__ == '__main__':
     RawTransactionsTest(__file__).main()
