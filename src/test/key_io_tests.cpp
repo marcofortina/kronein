@@ -32,6 +32,26 @@ BOOST_AUTO_TEST_CASE(taproot_address)
     BOOST_CHECK(!IsValidDestination(DecodeDestination(invalid_checksum)));
 }
 
+BOOST_AUTO_TEST_CASE(native_bech32m_addresses)
+{
+    SelectParams(ChainType::REGTEST);
+
+    const std::string anchor_address{"bcrt1pfeesnyr2tx"};
+    const CTxDestination anchor{DecodeDestination(anchor_address)};
+    BOOST_REQUIRE(IsValidDestination(anchor));
+    BOOST_CHECK(std::holds_alternative<PayToAnchor>(anchor));
+    BOOST_CHECK_EQUAL(EncodeDestination(anchor), anchor_address);
+
+    const CTxDestination unknown{WitnessUnknown{2, {0x42, 0x42}}};
+    const std::string unknown_address{EncodeDestination(unknown)};
+    BOOST_REQUIRE(!unknown_address.empty());
+    BOOST_CHECK(DecodeDestination(unknown_address) == unknown);
+
+    // Legacy Base58 and witness v0 Bech32 addresses are intentionally unsupported.
+    BOOST_CHECK(!IsValidDestination(DecodeDestination("mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn")));
+    BOOST_CHECK(!IsValidDestination(DecodeDestination("bcrt1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqdku202")));
+}
+
 BOOST_AUTO_TEST_CASE(private_keys)
 {
     SelectParams(ChainType::MAIN);

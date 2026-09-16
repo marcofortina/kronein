@@ -1470,7 +1470,8 @@ class TaprootTest(BitcoinTestFramework):
             info = node.getaddressinfo(addr)
             spk = bytes.fromhex(info['scriptPubKey'])
             host_spks.append(spk)
-            host_pubkeys.append(bytes.fromhex(info['pubkey']))
+            _, pubkey = generate_keypair()
+            host_pubkeys.append(pubkey)
 
         self.init_blockinfo(node)
 

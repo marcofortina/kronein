@@ -215,12 +215,6 @@ static UniValue ProcessDescriptorImport(CWallet& wallet, const UniValue& data, c
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Internal addresses should not have a label");
         }
 
-        for (const auto& parsed_desc : parsed_descs) {
-            if (parsed_desc->GetOutputType() != OutputType::BECH32M) {
-                throw JSONRPCError(RPC_WALLET_ERROR, "Only Taproot descriptors can be imported");
-            }
-        }
-
         // If the wallet disabled private keys, abort if private keys exist
         if (wallet.IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS) && !keys.keys.empty()) {
             throw JSONRPCError(RPC_WALLET_ERROR, "Cannot import private keys to a wallet with private keys disabled");

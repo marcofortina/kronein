@@ -14,11 +14,25 @@
 #include <cassert>
 #include <cstring>
 
+/// Maximum witness program length for Bech32m addresses.
+static constexpr std::size_t BECH32M_WITNESS_PROG_MAX_LEN{40};
+
 namespace {
 class DestinationEncoder
 {
 private:
     const CChainParams& m_params;
+
+    std::string EncodeWitness(unsigned int version, const std::vector<unsigned char>& program) const
+    {
+        if (version < 1 || version > 16 || program.size() < 2 || program.size() > BECH32M_WITNESS_PROG_MAX_LEN) {
+            return {};
+        }
+        std::vector<unsigned char> data{static_cast<unsigned char>(version)};
+        data.reserve(1 + (program.size() * 8 + 4) / 5);
+        ConvertBits<8, 5, true>([&](unsigned char c) { data.push_back(c); }, program.begin(), program.end());
+        return bech32::Encode(bech32::Encoding::BECH32M, m_params.Bech32HRP(), data);
+    }
 
 public:
     explicit DestinationEncoder(const CChainParams& params) : m_params(params) {}
@@ -29,6 +43,16 @@ public:
         data.reserve(53);
         ConvertBits<8, 5, true>([&](unsigned char c) { data.push_back(c); }, tap.begin(), tap.end());
         return bech32::Encode(bech32::Encoding::BECH32M, m_params.Bech32HRP(), data);
+    }
+
+    std::string operator()(const WitnessUnknown& witness) const
+    {
+        return EncodeWitness(witness.GetWitnessVersion(), witness.GetWitnessProgram());
+    }
+
+    std::string operator()(const PayToAnchor& anchor) const
+    {
+        return (*this)(static_cast<const WitnessUnknown&>(anchor));
     }
 
     template <typename T>
@@ -45,11 +69,12 @@ CTxDestination DecodeDestination(const std::string& str, const CChainParams& par
             return CNoDestination();
         }
         if (dec.hrp != params.Bech32HRP()) {
-            error_str = strprintf("Invalid prefix for Taproot (Bech32m) address (expected %s, got %s).", params.Bech32HRP(), dec.hrp);
+            error_str = strprintf("Invalid prefix for Bech32m address (expected %s, got %s).", params.Bech32HRP(), dec.hrp);
             return CNoDestination();
         }
-        if (dec.data[0] != 1) {
-            error_str = "Only Taproot witness version 1 addresses are supported";
+        const int version{dec.data[0]};
+        if (version < 1 || version > 16) {
+            error_str = "Invalid Bech32m address witness version";
             return CNoDestination();
         }
 
@@ -57,12 +82,20 @@ CTxDestination DecodeDestination(const std::string& str, const CChainParams& par
         data.reserve(((dec.data.size() - 1) * 5) / 8);
         if (ConvertBits<5, 8, false>([&](unsigned char c) { data.push_back(c); }, dec.data.begin() + 1, dec.data.end())) {
             if (data.size() == WitnessV1Taproot::size()) {
-                WitnessV1Taproot tap;
-                std::copy(data.begin(), data.end(), tap.begin());
-                return tap;
+                if (version == 1) {
+                    WitnessV1Taproot tap;
+                    std::copy(data.begin(), data.end(), tap.begin());
+                    return tap;
+                }
             }
-            error_str = strprintf("Invalid Taproot witness program size (%d bytes, expected %d)", data.size(), WitnessV1Taproot::size());
-            return CNoDestination();
+            if (CScript::IsPayToAnchor(version, data)) {
+                return PayToAnchor{};
+            }
+            if (data.size() < 2 || data.size() > BECH32M_WITNESS_PROG_MAX_LEN) {
+                error_str = strprintf("Invalid Bech32m address program size (%d bytes)", data.size());
+                return CNoDestination();
+            }
+            return WitnessUnknown{version, data};
         } else {
             error_str = "Invalid padding in Bech32m data section";
             return CNoDestination();
@@ -70,7 +103,7 @@ CTxDestination DecodeDestination(const std::string& str, const CChainParams& par
     }
 
     auto res = bech32::LocateErrors(str);
-    error_str = res.first.empty() ? "Only Taproot Bech32m addresses are supported" : res.first;
+    error_str = res.first.empty() ? "Only native Bech32m addresses are supported" : res.first;
     if (error_locations) *error_locations = std::move(res.second);
     return CNoDestination();
 }
