@@ -74,10 +74,9 @@ std::string byte_span_to_hex_string_reversed(std::span<const std::byte> bytes)
     return oss.str();
 }
 
-constexpr auto VERIFY_ALL_PRE_SEGWIT{ScriptVerificationFlags::P2SH | ScriptVerificationFlags::DERSIG |
-                                     ScriptVerificationFlags::NULLDUMMY | ScriptVerificationFlags::CHECKLOCKTIMEVERIFY |
-                                     ScriptVerificationFlags::CHECKSEQUENCEVERIFY};
-constexpr auto VERIFY_ALL_PRE_TAPROOT{VERIFY_ALL_PRE_SEGWIT | ScriptVerificationFlags::WITNESS};
+constexpr std::string_view NATIVE_TX{"01000000013fa9412f35c42bb2b03353db325bb9e7724a1281d40606688ad852a6e86cf0880000000000fdffffff02fc0a102401000000225120eca7e5fc42990da1c2b52cf676e634aa483836ec848f7a70618584b049df1c0c00e1f505000000002251201b9268693c1923fdbffa80c8a91c712aac5a2dc8870daabe89b525b823d56d0d0140438ee2d86f85c29d5f114e248e7dc80f8957c7db6ce29e009db5db169ee338aaac0257c556ee7a74bd20bf80280030cf1f182509974dd14c1c25284d078c54b9cc000000"};
+constexpr std::string_view NATIVE_TX_2{"0100000001a480b701887819bc9b8247fef16657921410f65ae484532662a6be52ed4bebec0100000000fdffffff01605af405000000002251201b9268693c1923fdbffa80c8a91c712aac5a2dc8870daabe89b525b823d56d0d014042c3cb45036103a6e9dafb331e5e33e2ace687ec610f1f01bcb93b4d9ef405778112e171d7308ca97bf545a6da48a614dba1891e9d905ede3d107b2610ffeed800000000"};
+constexpr std::string_view NATIVE_TWO_INPUT_TX{"010000000201000000000000000000000000000000000000000000000000000000000000000000000000fdffffff02000000000000000000000000000000000000000000000000000000000000000100000000fdffffff0100e1f505000000002251201b9268693c1923fdbffa80c8a91c712aac5a2dc8870daabe89b525b823d56d0d000000000000"};
 
 void check_equal(std::span<const std::byte> _actual, std::span<const std::byte> _expected, bool equal = true)
 {
@@ -220,46 +219,15 @@ void run_verify_test(
     const Transaction& spending_tx,
     const PrecomputedTransactionData* precomputed_txdata,
     int64_t amount,
-    unsigned int input_index,
-    bool taproot)
+    unsigned int input_index)
 {
     auto status = ScriptVerifyStatus::OK;
-
-    if (taproot) {
-        BOOST_CHECK(spent_script_pubkey.Verify(
-            amount,
-            spending_tx,
-            precomputed_txdata,
-            input_index,
-            ScriptVerificationFlags::ALL,
-            status));
-        BOOST_CHECK(status == ScriptVerifyStatus::OK);
-    } else {
-        BOOST_CHECK(!spent_script_pubkey.Verify(
-            amount,
-            spending_tx,
-            precomputed_txdata,
-            input_index,
-            ScriptVerificationFlags::ALL,
-            status));
-        BOOST_CHECK(status == ScriptVerifyStatus::ERROR_SPENT_OUTPUTS_REQUIRED);
-    }
-
     BOOST_CHECK(spent_script_pubkey.Verify(
         amount,
         spending_tx,
         precomputed_txdata,
         input_index,
-        VERIFY_ALL_PRE_TAPROOT,
-        status));
-    BOOST_CHECK(status == ScriptVerifyStatus::OK);
-
-    BOOST_CHECK(spent_script_pubkey.Verify(
-        0,
-        spending_tx,
-        precomputed_txdata,
-        input_index,
-        VERIFY_ALL_PRE_SEGWIT,
+        ScriptVerificationFlags::ALL,
         status));
     BOOST_CHECK(status == ScriptVerifyStatus::OK);
 }
@@ -388,9 +356,9 @@ void CheckRange(const RangeType& range, size_t expected_size)
 
 BOOST_AUTO_TEST_CASE(btck_transaction_tests)
 {
-    auto tx_data{hex_string_to_byte_vec("02000000013f7cebd65c27431a90bba7f796914fe8cc2ddfc3f2cbd6f7e5f2fc854534da95000000006b483045022100de1ac3bcdfb0332207c4a91f3832bd2c2915840165f876ab47c5f8996b971c3602201c6c053d750fadde599e6f5c4e1963df0f01fc0d97815e8157e3d59fe09ca30d012103699b464d1d8bc9e47d4fb1cdaa89a1c5783d68363c4dbc4b524ed3d857148617feffffff02836d3c01000000001976a914fc25d6d5c94003bf5b0c7b640a248e2c637fcfb088ac7ada8202000000001976a914fbed3d9b11183209a57999d54d59f67c019e756c88ac6acb0700")};
+    auto tx_data{hex_string_to_byte_vec(NATIVE_TX)};
     auto tx{Transaction{tx_data}};
-    auto tx_data_2{hex_string_to_byte_vec("02000000000101904f4ee5c87d20090b642f116e458cd6693292ad9ece23e72f15fb6c05b956210500000000fdffffff02e2010000000000002251200839a723933b56560487ec4d67dda58f09bae518ffa7e148313c5696ac837d9f10060000000000002251205826bcdae7abfb1c468204170eab00d887b61ab143464a4a09e1450bdc59a3340140f26e7af574e647355830772946356c27e7bbc773c5293688890f58983499581be84de40be7311a14e6d6422605df086620e75adae84ff06b75ce5894de5e994a00000000")};
+    auto tx_data_2{hex_string_to_byte_vec(NATIVE_TX_2)};
     auto tx2{Transaction{tx_data_2}};
     CheckHandle(tx, tx2);
 
@@ -404,7 +372,7 @@ BOOST_AUTO_TEST_CASE(btck_transaction_tests)
     auto broken_tx_data{std::span<std::byte>{tx_data.begin(), tx_data.begin() + 10}};
     BOOST_CHECK_THROW(Transaction{broken_tx_data}, std::runtime_error);
     auto output{tx.GetOutput(tx.CountOutputs() - 1)};
-    BOOST_CHECK_EQUAL(output.Amount(), 42130042);
+    BOOST_CHECK_EQUAL(output.Amount(), 100000000);
     auto script_pubkey{output.GetScriptPubkey()};
     {
         auto tx_new{Transaction{tx_data}};
@@ -429,7 +397,7 @@ BOOST_AUTO_TEST_CASE(btck_transaction_tests)
         BOOST_CHECK_NE(script3.get(), script2.get());
         check_equal(script3.ToBytes(), script2.ToBytes());
     }
-    BOOST_CHECK_EQUAL(output.Amount(), 42130042);
+    BOOST_CHECK_EQUAL(output.Amount(), 100000000);
 
     auto tx_roundtrip{Transaction{tx.ToBytes()}};
     check_equal(tx_roundtrip.ToBytes(), tx_data);
@@ -448,16 +416,16 @@ BOOST_AUTO_TEST_CASE(btck_transaction_tests)
     for (const auto output : tx.Outputs()) {
         total_amount += output.Amount();
     }
-    BOOST_CHECK_EQUAL(total_amount, 62867453);
+    BOOST_CHECK_EQUAL(total_amount, 4999998460);
 
     auto amount = *(tx.Outputs() | std::ranges::views::filter([](const auto& output) {
-                        return output.Amount() == 42130042;
+                        return output.Amount() == 100000000;
                     }) |
                     std::views::transform([](const auto& output) {
                         return output.Amount();
                     })).begin();
     BOOST_REQUIRE(amount);
-    BOOST_CHECK_EQUAL(amount, 42130042);
+    BOOST_CHECK_EQUAL(amount, 100000000);
 
     CheckRange(tx.Outputs(), tx.CountOutputs());
 
@@ -489,7 +457,7 @@ BOOST_AUTO_TEST_CASE(btck_transaction_output)
 
 BOOST_AUTO_TEST_CASE(btck_transaction_input)
 {
-    Transaction tx{hex_string_to_byte_vec("020000000248c03e66fd371c7033196ce24298628e59ebefa00363026044e0f35e0325a65d000000006a473044022004893432347f39beaa280e99da595681ddb20fc45010176897e6e055d716dbfa022040a9e46648a5d10c33ef7cee5e6cf4b56bd513eae3ae044f0039824b02d0f44c012102982331a52822fd9b62e9b5d120da1d248558fac3da3a3c51cd7d9c8ad3da760efeffffffb856678c6e4c3c84e39e2ca818807049d6fba274b42af3c6d3f9d4b6513212d2000000006a473044022068bcedc7fe39c9f21ad318df2c2da62c2dc9522a89c28c8420ff9d03d2e6bf7b0220132afd752754e5cb1ea2fd0ed6a38ec666781e34b0e93dc9a08f2457842cf5660121033aeb9c079ea3e08ea03556182ab520ce5c22e6b0cb95cee6435ee17144d860cdfeffffff0260d50b00000000001976a914363cc8d55ea8d0500de728ef6d63804ddddbdc9888ac67040f00000000001976a914c303bdc5064bf9c9a8b507b5496bd0987285707988ac6acb0700")};
+    Transaction tx{hex_string_to_byte_vec(NATIVE_TWO_INPUT_TX)};
     TransactionInput input_0 = tx.GetInput(0);
     TransactionInput input_1 = tx.GetInput(1);
     CheckHandle(input_0, input_1);
@@ -500,9 +468,9 @@ BOOST_AUTO_TEST_CASE(btck_transaction_input)
 }
 
 BOOST_AUTO_TEST_CASE(btck_precomputed_txdata) {
-    auto tx_data{hex_string_to_byte_vec("02000000013f7cebd65c27431a90bba7f796914fe8cc2ddfc3f2cbd6f7e5f2fc854534da95000000006b483045022100de1ac3bcdfb0332207c4a91f3832bd2c2915840165f876ab47c5f8996b971c3602201c6c053d750fadde599e6f5c4e1963df0f01fc0d97815e8157e3d59fe09ca30d012103699b464d1d8bc9e47d4fb1cdaa89a1c5783d68363c4dbc4b524ed3d857148617feffffff02836d3c01000000001976a914fc25d6d5c94003bf5b0c7b640a248e2c637fcfb088ac7ada8202000000001976a914fbed3d9b11183209a57999d54d59f67c019e756c88ac6acb0700")};
+    auto tx_data{hex_string_to_byte_vec(NATIVE_TX)};
     auto tx{Transaction{tx_data}};
-    auto tx_data_2{hex_string_to_byte_vec("02000000000101904f4ee5c87d20090b642f116e458cd6693292ad9ece23e72f15fb6c05b956210500000000fdffffff02e2010000000000002251200839a723933b56560487ec4d67dda58f09bae518ffa7e148313c5696ac837d9f10060000000000002251205826bcdae7abfb1c468204170eab00d887b61ab143464a4a09e1450bdc59a3340140f26e7af574e647355830772946356c27e7bbc773c5293688890f58983499581be84de40be7311a14e6d6422605df086620e75adae84ff06b75ce5894de5e994a00000000")};
+    auto tx_data_2{hex_string_to_byte_vec(NATIVE_TX_2)};
     auto tx2{Transaction{tx_data_2}};
     auto precomputed_txdata{PrecomputedTransactionData{
         /*tx_to=*/tx,
@@ -517,59 +485,10 @@ BOOST_AUTO_TEST_CASE(btck_precomputed_txdata) {
 
 BOOST_AUTO_TEST_CASE(btck_script_verify_tests)
 {
-    // Legacy transaction aca326a724eda9a461c10a876534ecd5ae7b27f10f26c3862fb996f80ea2d45d
-    auto legacy_spent_script_pubkey{ScriptPubkey{hex_string_to_byte_vec("76a9144bfbaf6afb76cc5771bc6404810d1cc041a6933988ac")}};
-    auto legacy_spending_tx{Transaction{hex_string_to_byte_vec("02000000013f7cebd65c27431a90bba7f796914fe8cc2ddfc3f2cbd6f7e5f2fc854534da95000000006b483045022100de1ac3bcdfb0332207c4a91f3832bd2c2915840165f876ab47c5f8996b971c3602201c6c053d750fadde599e6f5c4e1963df0f01fc0d97815e8157e3d59fe09ca30d012103699b464d1d8bc9e47d4fb1cdaa89a1c5783d68363c4dbc4b524ed3d857148617feffffff02836d3c01000000001976a914fc25d6d5c94003bf5b0c7b640a248e2c637fcfb088ac7ada8202000000001976a914fbed3d9b11183209a57999d54d59f67c019e756c88ac6acb0700")}};
-    run_verify_test(
-        /*spent_script_pubkey=*/legacy_spent_script_pubkey,
-        /*spending_tx=*/legacy_spending_tx,
-        /*precomputed_txdata=*/nullptr,
-        /*amount=*/0,
-        /*input_index=*/0,
-        /*taproot=*/false);
-
-    // Legacy transaction aca326a724eda9a461c10a876534ecd5ae7b27f10f26c3862fb996f80ea2d45d with precomputed_txdata
-    auto legacy_precomputed_txdata{PrecomputedTransactionData{
-        /*tx_to=*/legacy_spending_tx,
-        /*spent_outputs=*/{},
-    }};
-    run_verify_test(
-        /*spent_script_pubkey=*/legacy_spent_script_pubkey,
-        /*spending_tx=*/legacy_spending_tx,
-        /*precomputed_txdata=*/&legacy_precomputed_txdata,
-        /*amount=*/0,
-        /*input_index=*/0,
-        /*taproot=*/false);
-
-    // Segwit transaction 1a3e89644985fbbb41e0dcfe176739813542b5937003c46a07de1e3ee7a4a7f3
-    auto segwit_spent_script_pubkey{ScriptPubkey{hex_string_to_byte_vec("0020701a8d401c84fb13e6baf169d59684e17abd9fa216c8cc5b9fc63d622ff8c58d")}};
-    auto segwit_spending_tx{Transaction{hex_string_to_byte_vec("010000000001011f97548fbbe7a0db7588a66e18d803d0089315aa7d4cc28360b6ec50ef36718a0100000000ffffffff02df1776000000000017a9146c002a686959067f4866b8fb493ad7970290ab728757d29f0000000000220020701a8d401c84fb13e6baf169d59684e17abd9fa216c8cc5b9fc63d622ff8c58d04004730440220565d170eed95ff95027a69b313758450ba84a01224e1f7f130dda46e94d13f8602207bdd20e307f062594022f12ed5017bbf4a055a06aea91c10110a0e3bb23117fc014730440220647d2dc5b15f60bc37dc42618a370b2a1490293f9e5c8464f53ec4fe1dfe067302203598773895b4b16d37485cbe21b337f4e4b650739880098c592553add7dd4355016952210375e00eb72e29da82b89367947f29ef34afb75e8654f6ea368e0acdfd92976b7c2103a1b26313f430c4b15bb1fdce663207659d8cac749a0e53d70eff01874496feff2103c96d495bfdd5ba4145e3e046fee45e84a8a48ad05bd8dbb395c011a32cf9f88053ae00000000")}};
-    run_verify_test(
-        /*spent_script_pubkey=*/segwit_spent_script_pubkey,
-        /*spending_tx=*/segwit_spending_tx,
-        /*precomputed_txdata=*/nullptr,
-        /*amount=*/18393430,
-        /*input_index=*/0,
-        /*taproot=*/false);
-
-    // Segwit transaction 1a3e89644985fbbb41e0dcfe176739813542b5937003c46a07de1e3ee7a4a7f3 with precomputed_txdata
-    auto segwit_precomputed_txdata{PrecomputedTransactionData{
-        /*tx_to=*/segwit_spending_tx,
-        /*spent_outputs=*/{},
-    }};
-    run_verify_test(
-        /*spent_script_pubkey=*/segwit_spent_script_pubkey,
-        /*spending_tx=*/segwit_spending_tx,
-        /*precomputed_txdata=*/&segwit_precomputed_txdata,
-        /*amount=*/18393430,
-        /*input_index=*/0,
-        /*taproot=*/false);
-
-    // Taproot transaction 33e794d097969002ee05d336686fc03c9e15a597c1b9827669460fac98799036
-    auto taproot_spent_script_pubkey{ScriptPubkey{hex_string_to_byte_vec("5120339ce7e165e67d93adb3fef88a6d4beed33f01fa876f05a225242b82a631abc0")}};
-    auto taproot_spending_tx{Transaction{hex_string_to_byte_vec("01000000000101d1f1c1f8cdf6759167b90f52c9ad358a369f95284e841d7a2536cef31c0549580100000000fdffffff020000000000000000316a2f49206c696b65205363686e6f7272207369677320616e6420492063616e6e6f74206c69652e204062697462756734329e06010000000000225120a37c3903c8d0db6512e2b40b0dffa05e5a3ab73603ce8c9c4b7771e5412328f90140a60c383f71bac0ec919b1d7dbc3eb72dd56e7aa99583615564f9f99b8ae4e837b758773a5b2e4c51348854c8389f008e05029db7f464a5ff2e01d5e6e626174affd30a00")}};
+    auto taproot_spent_script_pubkey{ScriptPubkey{hex_string_to_byte_vec("51201b9268693c1923fdbffa80c8a91c712aac5a2dc8870daabe89b525b823d56d0d")}};
+    auto taproot_spending_tx{Transaction{hex_string_to_byte_vec(NATIVE_TX_2)}};
     std::vector<TransactionOutput> taproot_spent_outputs;
-    taproot_spent_outputs.emplace_back(taproot_spent_script_pubkey, 88480);
+    taproot_spent_outputs.emplace_back(taproot_spent_script_pubkey, 100000000);
     auto taproot_precomputed_txdata{PrecomputedTransactionData{
         /*tx_to=*/taproot_spending_tx,
         /*spent_outputs=*/taproot_spent_outputs,
@@ -578,35 +497,8 @@ BOOST_AUTO_TEST_CASE(btck_script_verify_tests)
         /*spent_script_pubkey=*/taproot_spent_script_pubkey,
         /*spending_tx=*/taproot_spending_tx,
         /*precomputed_txdata=*/&taproot_precomputed_txdata,
-        /*amount=*/88480,
-        /*input_index=*/0,
-        /*taproot=*/true);
-
-    // Two-input taproot transaction e8e8320f40c31ed511570e9cdf1d241f8ec9a5cc392e6105240ac8dbea2098de
-    auto taproot2_spent_script_pubkey0{ScriptPubkey{hex_string_to_byte_vec("5120b7da80f57e36930b0515eb09293e25858d13e6b91fee6184943f5a584cb4248e")}};
-    auto taproot2_spent_script_pubkey1{ScriptPubkey{hex_string_to_byte_vec("5120ab78e077d062e7b8acd7063668b4db5355a1b5d5fd2a46a8e98e62e5e63fab77")}};
-    auto taproot2_spending_tx{Transaction{hex_string_to_byte_vec("02000000000102c0f01ead18750892c84b1d4f595149ad38f16847df1fbf490e235b3b78c1f98a0100000000ffffffff456764a19c2682bf5b1567119f06a421849ad1664cf42b5ef95b69d6e2159e9d0000000000ffffffff022202000000000000225120b6c0c2a8ee25a2ae0322ab7f1a06f01746f81f6b90d179c3c2a51a356e6188f1d70e020000000000225120b7da80f57e36930b0515eb09293e25858d13e6b91fee6184943f5a584cb4248e0141933fdc49eb1af1f08ed1e9cf5559259309a8acd25ff1e6999b6955124438aef4fceaa4e6a5f85286631e24837329563595bc3cf4b31e1c687442abb01c4206818101401c9620faf1e8c84187762ad14d04ae3857f59a2f03f1dcbb99290e16dfc572a63b4ea435780a5787af59beb5742fd71cda8a95381517a1ff14b4c67996c4bf8100000000")}};
-    std::vector<TransactionOutput> taproot2_spent_outputs;
-    taproot2_spent_outputs.emplace_back(taproot2_spent_script_pubkey0, 546);
-    taproot2_spent_outputs.emplace_back(taproot2_spent_script_pubkey1, 135125);
-    auto taproot2_precomputed_txdata{PrecomputedTransactionData{
-        /*tx_to=*/taproot2_spending_tx,
-        /*spent_outputs=*/taproot2_spent_outputs,
-    }};
-    run_verify_test(
-        /*spent_script_pubkey=*/taproot2_spent_script_pubkey0,
-        /*spending_tx=*/taproot2_spending_tx,
-        /*precomputed_txdata=*/&taproot2_precomputed_txdata,
-        /*amount=*/546,
-        /*input_index=*/0,
-        /*taproot=*/true);
-    run_verify_test(
-        /*spent_script_pubkey=*/taproot2_spent_script_pubkey1,
-        /*spending_tx=*/taproot2_spending_tx,
-        /*precomputed_txdata=*/&taproot2_precomputed_txdata,
-        /*amount=*/135125,
-        /*input_index=*/1,
-        /*taproot=*/true);
+        /*amount=*/100000000,
+        /*input_index=*/0);
 }
 
 BOOST_AUTO_TEST_CASE(logging_tests)
@@ -662,9 +554,9 @@ BOOST_AUTO_TEST_CASE(btck_context_tests)
 BOOST_AUTO_TEST_CASE(btck_block_header_tests)
 {
     // Block header format: version(4) + prev_hash(32) + merkle_root(32) + timestamp(4) + bits(4) + nonce(4) = 80 bytes
-    BlockHeader header_0{hex_string_to_byte_vec("00e07a26beaaeee2e71d7eb19279545edbaf15de0999983626ec00000000000000000000579cf78b65229bfb93f4a11463af2eaa5ad91780f27f5d147a423bea5f7e4cdf2a47e268b4dd01173a9662ee")};
-    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(header_0.Hash().ToBytes()), "00000000000000000000325c7e14a4ee3b4fcb2343089a839287308a0ddbee4f");
-    BlockHeader header_1{hex_string_to_byte_vec("00c00020e7cb7b4de21d26d55bd384017b8bb9333ac3b2b55bed00000000000000000000d91b4484f801b99f03d36b9d26cfa83420b67f81da12d7e6c1e7f364e743c5ba9946e268b4dd011799c8533d")};
+    BlockHeader header_0{hex_string_to_byte_vec("0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c")};
+    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(header_0.Hash().ToBytes()), "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f");
+    BlockHeader header_1{hex_string_to_byte_vec("010000006fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000982051fd1e4ba744bbbe680e1fee14677ba1a3c3540bf7b1cdb606e857233e0e61bc6649ffff001d01e36299")};
     CheckHandle(header_0, header_1);
 
     // Test error handling for invalid data
@@ -682,14 +574,14 @@ BOOST_AUTO_TEST_CASE(btck_block_header_tests)
     auto prev_hash = header.PrevHash();
     BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(prev_hash.ToBytes()), "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f");
 
-    auto raw_block = hex_string_to_byte_vec("010000006fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000982051fd1e4ba744bbbe680e1fee14677ba1a3c3540bf7b1cdb606e857233e0e61bc6649ffff001d01e362990101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff0704ffff001d0104ffffffff0100f2052a0100000043410496b538e853519c726a2c91e61ec11600ae1390813a627c66fb8be7947be63c52da7589379515d4e0a604f8141781e62294721166bf621e73a82cbf2342c858eeac00000000");
+    auto raw_block = hex_string_to_byte_vec(REGTEST_BLOCK_DATA[0]);
     Block block{raw_block};
     BlockHeader block_header{block.GetHeader()};
     BOOST_CHECK_EQUAL(block_header.Version(), 1);
-    BOOST_CHECK_EQUAL(block_header.Timestamp(), 1231469665);
-    BOOST_CHECK_EQUAL(block_header.Bits(), 0x1d00ffff);
-    BOOST_CHECK_EQUAL(block_header.Nonce(), 2573394689);
-    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(block_header.Hash().ToBytes()), "00000000839a8e6886ab5951d76f411475428afc90947ee320161bbf18eb6048");
+    BOOST_CHECK_EQUAL(block_header.Timestamp(), 1700000000);
+    BOOST_CHECK_EQUAL(block_header.Bits(), 0x207fffff);
+    BOOST_CHECK_EQUAL(block_header.Nonce(), 0);
+    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(block_header.Hash().ToBytes()), "02b546c9752f33adb2a563c6caf74b78857a0ab4214c62e057d77bed74471abf");
 }
 
 BOOST_AUTO_TEST_CASE(btck_block)
@@ -791,7 +683,7 @@ std::unique_ptr<ChainMan> create_chainman(TestDirectory& test_directory,
 void chainman_reindex_test(TestDirectory& test_directory)
 {
     auto notifications{std::make_shared<TestKernelNotifications>()};
-    auto context{create_context(notifications, ChainType::MAINNET)};
+    auto context{create_context(notifications, ChainType::REGTEST)};
     auto chainman{create_chainman(
         test_directory, /*reindex=*/true, /*wipe_chainstate=*/false,
         /*block_tree_db_in_memory=*/false, /*chainstate_db_in_memory=*/false, context)};
@@ -836,7 +728,7 @@ void chainman_reindex_test(TestDirectory& test_directory)
 void chainman_reindex_chainstate_test(TestDirectory& test_directory)
 {
     auto notifications{std::make_shared<TestKernelNotifications>()};
-    auto context{create_context(notifications, ChainType::MAINNET)};
+    auto context{create_context(notifications, ChainType::REGTEST)};
     auto chainman{create_chainman(
         test_directory, /*reindex=*/false, /*wipe_chainstate=*/true,
         /*block_tree_db_in_memory=*/false, /*chainstate_db_in_memory=*/false, context)};
@@ -846,25 +738,24 @@ void chainman_reindex_chainstate_test(TestDirectory& test_directory)
     BOOST_CHECK(chainman->ImportBlocks(import_files));
 }
 
-void chainman_mainnet_validation_test(TestDirectory& test_directory)
+void chainman_regtest_validation_test(TestDirectory& test_directory)
 {
     auto notifications{std::make_shared<TestKernelNotifications>()};
     auto validation_interface{std::make_shared<TestValidationInterface>()};
-    auto context{create_context(notifications, ChainType::MAINNET, validation_interface)};
+    auto context{create_context(notifications, ChainType::REGTEST, validation_interface)};
     auto chainman{create_chainman(
         test_directory, /*reindex=*/false, /*wipe_chainstate=*/false,
         /*block_tree_db_in_memory=*/false, /*chainstate_db_in_memory=*/false, context)};
 
-    // mainnet block 1
-    auto raw_block = hex_string_to_byte_vec("010000006fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000982051fd1e4ba744bbbe680e1fee14677ba1a3c3540bf7b1cdb606e857233e0e61bc6649ffff001d01e362990101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff0704ffff001d0104ffffffff0100f2052a0100000043410496b538e853519c726a2c91e61ec11600ae1390813a627c66fb8be7947be63c52da7589379515d4e0a604f8141781e62294721166bf621e73a82cbf2342c858eeac00000000");
+    auto raw_block = hex_string_to_byte_vec(REGTEST_BLOCK_DATA[0]);
     Block block{raw_block};
     BlockHeader header{block.GetHeader()};
     TransactionView tx{block.GetTransaction(block.CountTransactions() - 1)};
-    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(tx.Txid().ToBytes()), "0e3e2357e806b6cdb1f70b54c3a3a17b6714ee1f0e68bebb44a74b1efd512098");
+    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(tx.Txid().ToBytes()), "52f4eee46d214c662780b1f9e79e62f5a88e83f096e11cd17e9fede4eab354b1");
     BOOST_CHECK_EQUAL(header.Version(), 1);
-    BOOST_CHECK_EQUAL(header.Timestamp(), 1231469665);
-    BOOST_CHECK_EQUAL(header.Bits(), 0x1d00ffff);
-    BOOST_CHECK_EQUAL(header.Nonce(), 2573394689);
+    BOOST_CHECK_EQUAL(header.Timestamp(), 1700000000);
+    BOOST_CHECK_EQUAL(header.Bits(), 0x207fffff);
+    BOOST_CHECK_EQUAL(header.Nonce(), 0);
     BOOST_CHECK_EQUAL(tx.CountInputs(), 1);
     Transaction tx2 = tx;
     BOOST_CHECK_EQUAL(tx2.CountInputs(), 1);
@@ -874,7 +765,7 @@ void chainman_mainnet_validation_test(TestDirectory& test_directory)
     auto output_counts = *(block.Transactions() | std::views::transform([](const auto& tx) {
                                return tx.CountOutputs();
                            })).begin();
-    BOOST_CHECK_EQUAL(output_counts, 1);
+    BOOST_CHECK_EQUAL(output_counts, 2);
 
     validation_interface->m_expected_valid_block.emplace(raw_block);
     auto ser_block{block.ToBytes()};
@@ -910,10 +801,10 @@ void chainman_mainnet_validation_test(TestDirectory& test_directory)
     BOOST_CHECK(!new_block);
 }
 
-BOOST_AUTO_TEST_CASE(btck_chainman_mainnet_tests)
+BOOST_AUTO_TEST_CASE(btck_chainman_regtest_disk_tests)
 {
-    auto test_directory{TestDirectory{"mainnet_test_bitcoin_kernel"}};
-    chainman_mainnet_validation_test(test_directory);
+    auto test_directory{TestDirectory{"regtest_disk_test_bitcoin_kernel"}};
+    chainman_regtest_validation_test(test_directory);
     chainman_reindex_test(test_directory);
     chainman_reindex_chainstate_test(test_directory);
 }
@@ -1137,9 +1028,9 @@ BOOST_AUTO_TEST_CASE(btck_chainman_regtest_tests)
     // Test script pubkey serialization
     auto script_pubkey = output.GetScriptPubkey();
     auto script_pubkey_bytes{script_pubkey.ToBytes()};
-    BOOST_CHECK_EQUAL(script_pubkey_bytes.size(), 22);
+    BOOST_CHECK_EQUAL(script_pubkey_bytes.size(), 34);
     auto round_trip_script_pubkey{ScriptPubkey(script_pubkey_bytes)};
-    BOOST_CHECK_EQUAL(round_trip_script_pubkey.ToBytes().size(), 22);
+    BOOST_CHECK_EQUAL(round_trip_script_pubkey.ToBytes().size(), 34);
 
     for (const auto tx_spent_outputs : block_spent_outputs.TxsSpentOutputs()) {
         for (const auto coins : tx_spent_outputs.Coins()) {
