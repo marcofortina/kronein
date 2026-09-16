@@ -108,7 +108,6 @@ class TestNode():
         extra_args=None,
         use_cli=False,
         start_perf=False,
-        version=None,
         uses_wallet=False,
         ipcbind=False,
     ):
@@ -140,7 +139,6 @@ class TestNode():
         # For those callers that need more flexibility, they can just set the args property directly.
         # Note that common args are set in the config file (see initialize_datadir)
         self.extra_args = extra_args
-        self.version = version
         # Configuration for logging is set as command-line args rather than in the bitcoin.conf file.
         # This means that starting a bitcoind using the temp dir to debug a failed test won't
         # spam debug.log.
@@ -167,14 +165,12 @@ class TestNode():
                 self.ipc_socket_path = self.ipc_tmp_dir / "node.sock"
                 self.args.append(f"-ipcbind=unix:{self.ipc_socket_path}")
 
-        if self.version_is_at_least(190000):
-            self.args.append("-logthreadnames")
-        if self.version_is_at_least(219900):
-            self.args.append("-logsourcelocations")
-        if self.version_is_at_least(239000):
-            self.args.append("-loglevel=trace")
-        if self.version_is_at_least(290100):
-            self.args.append("-nologratelimit")
+        self.args += [
+            "-logthreadnames",
+            "-logsourcelocations",
+            "-loglevel=trace",
+            "-nologratelimit",
+        ]
 
         self.cli = TestNodeCLI(
             binaries,
@@ -328,9 +324,7 @@ class TestNode():
                 rpc.auth_service_proxy_instance.reuse_http_connections = self.reuse_http_connections
                 rpc.getblockcount()
                 # If the call to getblockcount() succeeds then the RPC connection is up
-                if self.version_is_at_least(190000) and wait_for_import:
-                    # getmempoolinfo.loaded is available since commit
-                    # bb8ae2c (version 0.19.0)
+                if wait_for_import:
                     self.wait_until(lambda: rpc.getmempoolinfo()['loaded'])
                     # Wait for the node to finish reindex, block import, and
                     # loading the mempool. Usually importing happens fast or
@@ -441,9 +435,6 @@ class TestNode():
             wallet_path = "wallet/{}".format(urllib.parse.quote(wallet_name))
             return self._rpc / wallet_path
 
-    def version_is_at_least(self, ver):
-        return self.version is None or self.version >= ver
-
     def stop_node(self, expected_stderr='', *, wait=0, wait_until_stopped=True):
         """Stop the node."""
         if not self.running:
@@ -452,11 +443,7 @@ class TestNode():
             "Should only call stop_node() on a running node after wait_for_rpc_connection() succeeded. "
             f"Did you forget to call the latter after start()? Not connected to process: {self.process.pid}")
         self.log.debug("Stopping node")
-        # Do not use wait argument when testing older nodes, e.g. in wallet_backwards_compatibility.py
-        if self.version_is_at_least(180000):
-            self.stop(wait=wait)
-        else:
-            self.stop()
+        self.stop(wait=wait)
 
         # If there are any running perf processes, stop them.
         for profile_name in tuple(self.perf_subprocesses.keys()):

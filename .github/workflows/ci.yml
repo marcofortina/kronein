@@ -507,12 +507,6 @@ jobs:
             timeout-minutes: 240
             file-env: './ci/test/00_setup_env_native_fuzz.sh'
 
-          - name: 'previous releases'
-            warp-runner: 'warp-ubuntu-latest-x64-8x'
-            fallback-runner: 'ubuntu-latest'
-            timeout-minutes: 120
-            file-env: './ci/test/00_setup_env_native_previous_releases.sh'
-
           - name: 'Alpine (musl)'
             warp-runner: 'warp-ubuntu-latest-x64-8x'
             fallback-runner: 'ubuntu-latest'

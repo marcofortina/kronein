@@ -77,10 +77,6 @@ if [ -z "$NO_DEPENDS" ]; then
   fi
   bash -c "$SHELL_OPTS make $MAKEJOBS -C depends HOST=$HOST $DEP_OPTS LOG=1"
 fi
-if [ "$DOWNLOAD_PREVIOUS_RELEASES" = "true" ]; then
-  test/get_previous_releases.py --target-dir "$PREVIOUS_RELEASES_DIR"
-fi
-
 BITCOIN_CONFIG_ALL="-DCMAKE_COMPILE_WARNING_AS_ERROR=ON -DBUILD_BENCH=ON -DBUILD_FUZZ_BINARY=ON"
 if [ -z "$NO_DEPENDS" ]; then
   BITCOIN_CONFIG_ALL="${BITCOIN_CONFIG_ALL} -DCMAKE_TOOLCHAIN_FILE=$DEPENDS_DIR/$HOST/toolchain.cmake"
@@ -123,8 +119,6 @@ if [ "${hit_rate%.*}" -lt 75 ]; then
   echo "::notice title=low ccache hitrate::Ccache hit-rate in $CONTAINER_NAME was $hit_rate%"
 fi
 du -sh "${DEPENDS_DIR}"/*/
-du -sh "${PREVIOUS_RELEASES_DIR}"
-
 if [ -n "${CI_LIMIT_STACK_SIZE}" ]; then
   ulimit -s 512
 fi

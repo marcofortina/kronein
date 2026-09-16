@@ -495,7 +495,7 @@ def main():
     if config["components"].getboolean("BUILD_BENCH") and TOOL_BENCH_SANITY_CHECK in test_list:
         # Remove it, and expand it for each bench in the list
         test_list.remove(TOOL_BENCH_SANITY_CHECK)
-        bench_cmd = Binaries(get_binary_paths(config), bin_dir=None).bench_argv() + ["-list"]
+        bench_cmd = Binaries(get_binary_paths(config)).bench_argv() + ["-list"]
         bench_list = subprocess.check_output(bench_cmd, text=True).splitlines()
         bench_list = [f"{TOOL_BENCH_SANITY_CHECK} --bench={b}" for b in bench_list]
         # Start with special scripts (variable, unknown runtime)
