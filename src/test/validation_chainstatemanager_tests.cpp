@@ -604,16 +604,13 @@ BOOST_FIXTURE_TEST_CASE(loadblockindex_invalid_descendants, TestChain100Setup)
 {
     LOCK(Assert(m_node.chainman)->GetMutex());
     // consider the chain of blocks grand_parent <- parent <- child
-    // intentionally mark:
-    //   - grand_parent: BLOCK_FAILED_VALID
-    //   - parent: BLOCK_FAILED_CHILD
-    //   - child: not invalid
-    // Test that when the block index is loaded, all blocks are marked as BLOCK_FAILED_VALID
+    // Mark only grand_parent as invalid and verify that loading the block index
+    // propagates BLOCK_FAILED_VALID to all descendants.
     auto* child{m_node.chainman->ActiveChain().Tip()};
     auto* parent{child->pprev};
     auto* grand_parent{parent->pprev};
     grand_parent->nStatus = (grand_parent->nStatus | BLOCK_FAILED_VALID);
-    parent->nStatus = (parent->nStatus & ~BLOCK_FAILED_VALID) | BLOCK_FAILED_CHILD;
+    parent->nStatus = (parent->nStatus & ~BLOCK_FAILED_VALID);
     child->nStatus = (child->nStatus & ~BLOCK_FAILED_VALID);
 
     // Reload block index to recompute block status validity flags.
