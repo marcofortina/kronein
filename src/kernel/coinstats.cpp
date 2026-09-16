@@ -7,7 +7,6 @@
 #include <chain.h>
 #include <coins.h>
 #include <crypto/muhash.h>
-#include <hash.h>
 #include <node/blockstorage.h>
 #include <primitives/transaction.h>
 #include <script/script.h>
@@ -49,11 +48,6 @@ static void TxOutSer(T& ss, const COutPoint& outpoint, const Coin& coin)
     ss << outpoint;
     ss << static_cast<uint32_t>((coin.nHeight << 1) + coin.fCoinBase);
     ss << coin.out;
-}
-
-static void ApplyCoinHash(HashWriter& ss, const COutPoint& outpoint, const Coin& coin)
-{
-    TxOutSer(ss, outpoint, coin);
 }
 
 void ApplyCoinHash(MuHash3072& muhash, const COutPoint& outpoint, const Coin& coin)
@@ -159,10 +153,6 @@ std::optional<CCoinsStats> ComputeUTXOStats(CoinStatsHashType hash_type, CCoinsV
 
     bool success = [&]() -> bool {
         switch (hash_type) {
-        case(CoinStatsHashType::HASH_SERIALIZED): {
-            HashWriter ss{};
-            return ComputeUTXOStats(view, stats, ss, interruption_point, std::move(pcursor));
-        }
         case(CoinStatsHashType::MUHASH): {
             MuHash3072 muhash;
             return ComputeUTXOStats(view, stats, muhash, interruption_point, std::move(pcursor));
@@ -180,15 +170,11 @@ std::optional<CCoinsStats> ComputeUTXOStats(CoinStatsHashType hash_type, CCoinsV
     return stats;
 }
 
-static void FinalizeHash(HashWriter& ss, CCoinsStats& stats)
-{
-    stats.hashSerialized = ss.GetHash();
-}
 static void FinalizeHash(MuHash3072& muhash, CCoinsStats& stats)
 {
     uint256 out;
     muhash.Finalize(out);
-    stats.hashSerialized = out;
+    stats.muhash = out;
 }
 static void FinalizeHash(std::nullptr_t, CCoinsStats& stats) {}
 

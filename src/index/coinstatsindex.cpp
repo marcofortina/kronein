@@ -225,7 +225,7 @@ std::optional<CCoinsStats> CoinStatsIndex::LookUpStats(const CBlockIndex& block_
         return std::nullopt;
     }
 
-    stats.hashSerialized = entry.muhash;
+    stats.muhash = entry.muhash;
     stats.nTransactionOutputs = entry.transaction_output_count;
     stats.nBogoSize = entry.bogo_size;
     stats.total_amount = entry.total_amount;

@@ -33,8 +33,8 @@ struct AssumeutxoHash : public BaseHash<uint256> {
 struct AssumeutxoData {
     int height;
 
-    //! The expected hash of the deserialized UTXO set.
-    AssumeutxoHash hash_serialized;
+    //! The expected MuHash of the deserialized UTXO set.
+    AssumeutxoHash muhash;
 
     //! Used to populate the m_chain_tx_count value, which is used during BlockManager::LoadBlockIndex().
     //!

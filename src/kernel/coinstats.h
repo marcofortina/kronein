@@ -24,7 +24,6 @@ class BlockManager;
 
 namespace kernel {
 enum class CoinStatsHashType {
-    HASH_SERIALIZED,
     MUHASH,
     NONE,
 };
@@ -35,7 +34,7 @@ struct CCoinsStats {
     uint64_t nTransactions{0};
     uint64_t nTransactionOutputs{0};
     uint64_t nBogoSize{0};
-    uint256 hashSerialized{};
+    uint256 muhash{};
     uint64_t nDiskSize{0};
     //! The total amount, or nullopt if an overflow occurred calculating it
     std::optional<CAmount> total_amount{0};

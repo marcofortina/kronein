@@ -58,12 +58,12 @@ void sanity_check_snapshot()
     LOCK(cs_main);
     auto& cs{node.chainman->ActiveChainstate()};
     cs.ForceFlushStateToDisk(/*wipe_cache=*/false);
-    const auto stats{*Assert(kernel::ComputeUTXOStats(kernel::CoinStatsHashType::HASH_SERIALIZED, &cs.CoinsDB(), node.chainman->m_blockman))};
+    const auto stats{*Assert(kernel::ComputeUTXOStats(kernel::CoinStatsHashType::MUHASH, &cs.CoinsDB(), node.chainman->m_blockman))};
     const auto cp_au_data{*Assert(node.chainman->GetParams().AssumeutxoForHeight(2 * COINBASE_MATURITY))};
     Assert(stats.nHeight == cp_au_data.height);
     Assert(stats.nTransactions + 1 == cp_au_data.m_chain_tx_count); // +1 for the genesis tx.
     Assert(stats.hashBlock == cp_au_data.blockhash);
-    Assert(AssumeutxoHash{stats.hashSerialized} == cp_au_data.hash_serialized);
+    Assert(AssumeutxoHash{stats.muhash} == cp_au_data.muhash);
 }
 
 template <bool INVALID>

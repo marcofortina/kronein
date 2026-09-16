@@ -5694,7 +5694,7 @@ util::Result<void> ChainstateManager::PopulateAndValidateSnapshot(
 
     try {
         maybe_stats = ComputeUTXOStats(
-            CoinStatsHashType::HASH_SERIALIZED, snapshot_coinsdb, m_blockman, [&interrupt = m_interrupt] { SnapshotUTXOHashBreakpoint(interrupt); });
+            CoinStatsHashType::MUHASH, snapshot_coinsdb, m_blockman, [&interrupt = m_interrupt] { SnapshotUTXOHashBreakpoint(interrupt); });
     } catch (StopHashingException const&) {
         return util::Error{Untranslated("Aborting after an interrupt was requested")};
     }
@@ -5703,9 +5703,9 @@ util::Result<void> ChainstateManager::PopulateAndValidateSnapshot(
     }
 
     // Assert that the deserialized chainstate contents match the expected assumeutxo value.
-    if (AssumeutxoHash{maybe_stats->hashSerialized} != au_data.hash_serialized) {
+    if (AssumeutxoHash{maybe_stats->muhash} != au_data.muhash) {
         return util::Error{Untranslated(strprintf("Bad snapshot content hash: expected %s, got %s",
-            au_data.hash_serialized.ToString(), maybe_stats->hashSerialized.ToString()))};
+            au_data.muhash.ToString(), maybe_stats->muhash.ToString()))};
     }
 
     snapshot_chainstate.m_chain.SetTip(*snapshot_start_block);
@@ -5803,7 +5803,7 @@ SnapshotCompletionResult ChainstateManager::MaybeValidateSnapshot(Chainstate& va
         "snapshot - this could take a few minutes");
     try {
         validated_cs_stats = ComputeUTXOStats(
-            CoinStatsHashType::HASH_SERIALIZED,
+            CoinStatsHashType::MUHASH,
             &validated_coins_db,
             m_blockman,
             [&interrupt = m_interrupt] { SnapshotUTXOHashBreakpoint(interrupt); });
@@ -5827,10 +5827,10 @@ SnapshotCompletionResult ChainstateManager::MaybeValidateSnapshot(Chainstate& va
     // TODO: For belt-and-suspenders, we could cache the UTXO set
     // hash for the snapshot when it's loaded in its chainstate's leveldb. We could then
     // reference that here for an additional check.
-    if (AssumeutxoHash{validated_cs_stats->hashSerialized} != au_data.hash_serialized) {
+    if (AssumeutxoHash{validated_cs_stats->muhash} != au_data.muhash) {
         LogWarning("[snapshot] hash mismatch: actual=%s, expected=%s",
-            validated_cs_stats->hashSerialized.ToString(),
-            au_data.hash_serialized.ToString());
+            validated_cs_stats->muhash.ToString(),
+            au_data.muhash.ToString());
         handle_invalid_snapshot();
         return SnapshotCompletionResult::HASH_MISMATCH;
     }
@@ -5839,7 +5839,7 @@ SnapshotCompletionResult ChainstateManager::MaybeValidateSnapshot(Chainstate& va
         unvalidated_cs.m_from_snapshot_blockhash->ToString());
 
     unvalidated_cs.m_assumeutxo = Assumeutxo::VALIDATED;
-    validated_cs.m_target_utxohash = AssumeutxoHash{validated_cs_stats->hashSerialized};
+    validated_cs.m_target_utxohash = AssumeutxoHash{validated_cs_stats->muhash};
     this->MaybeRebalanceCaches();
 
     return SnapshotCompletionResult::SUCCESS;

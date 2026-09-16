@@ -51,7 +51,6 @@ class CoinStatsIndexTest(BitcoinTestFramework):
         self._test_coin_stats_index()
         self._test_use_index_option()
         self._test_reorg_index()
-        self._test_index_rejects_hash_serialized()
         self._test_init_index_after_reorg()
 
     def block_sanity_check(self, block_info):
@@ -287,15 +286,6 @@ class CoinStatsIndexTest(BitcoinTestFramework):
         index_node.reconsiderblock(block)
         res3 = index_node.gettxoutsetinfo(hash_type='muhash', hash_or_height=112)
         assert_equal(res2, res3)
-
-    def _test_index_rejects_hash_serialized(self):
-        self.log.info("Test that the rpc raises if the legacy hash is passed with the index")
-
-        msg = "hash_serialized_3 hash type cannot be queried for a specific block"
-        assert_raises_rpc_error(-8, msg, self.nodes[1].gettxoutsetinfo, hash_type='hash_serialized_3', hash_or_height=111)
-
-        for use_index in {True, False, None}:
-            assert_raises_rpc_error(-8, msg, self.nodes[1].gettxoutsetinfo, hash_type='hash_serialized_3', hash_or_height=111, use_index=use_index)
 
     def _test_init_index_after_reorg(self):
         self.log.info("Test a reorg while the index is deactivated")

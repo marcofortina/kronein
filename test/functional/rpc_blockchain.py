@@ -48,7 +48,6 @@ from test_framework.p2p import P2PInterface
 from test_framework.script import hash256, OP_TRUE
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
-    assert_not_equal,
     assert_equal,
     assert_greater_than,
     assert_greater_than_or_equal,
@@ -290,7 +289,7 @@ class BlockchainTest(BitcoinTestFramework):
         assert size > 6400
         assert size < 64000
         assert_equal(len(res['bestblock']), 64)
-        assert_equal(len(res['hash_serialized_3']), 64)
+        assert_equal(len(res['muhash']), 64)
 
         self.log.info("Test gettxoutsetinfo works for blockchain with just the genesis block")
         b1hash = node.getblockhash(1)
@@ -303,7 +302,7 @@ class BlockchainTest(BitcoinTestFramework):
         assert_equal(res2['txouts'], 0)
         assert_equal(res2['bogosize'], 0),
         assert_equal(res2['bestblock'], node.getblockhash(0))
-        assert_equal(len(res2['hash_serialized_3']), 64)
+        assert_equal(len(res2['muhash']), 64)
 
         self.log.info("Test gettxoutsetinfo returns the same result after invalidate/reconsider block")
         node.reconsiderblock(b1hash)
@@ -315,24 +314,20 @@ class BlockchainTest(BitcoinTestFramework):
         assert_equal(res, res3)
 
         self.log.info("Test gettxoutsetinfo hash_type option")
-        # Adding hash_type 'hash_serialized_3', which is the default, should
+        # Adding hash_type 'muhash', which is the default, should
         # not change the result.
-        res4 = node.gettxoutsetinfo(hash_type='hash_serialized_3')
+        res4 = node.gettxoutsetinfo(hash_type='muhash')
         del res4['disk_size']
         assert_equal(res, res4)
 
         # hash_type none should not return a UTXO set hash.
         res5 = node.gettxoutsetinfo(hash_type='none')
-        assert 'hash_serialized_3' not in res5
+        assert 'muhash' not in res5
 
-        # hash_type muhash should return a different UTXO set hash.
+        # hash_type muhash should return the UTXO set hash.
         res6 = node.gettxoutsetinfo(hash_type='muhash')
         assert 'muhash' in res6
-        assert_not_equal(res['hash_serialized_3'], res6['muhash'])
-
-        # muhash should not be returned unless requested.
-        for r in [res, res2, res3, res4, res5]:
-            assert 'muhash' not in r
+        assert_equal(res['muhash'], res6['muhash'])
 
         # Unknown hash_type raises an error
         assert_raises_rpc_error(-8, "'foo hash' is not a valid hash_type", node.gettxoutsetinfo, "foo hash")
