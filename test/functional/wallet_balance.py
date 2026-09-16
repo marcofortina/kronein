@@ -281,10 +281,14 @@ class WalletTest(BitcoinTestFramework):
 
         import_key1 = get_generate_key()
         import_key2 = get_generate_key()
-        wallet.importdescriptors([{"desc": descsum_create(f"wpkh({import_key1.privkey})"), "timestamp": "now"}])
+        import_desc1 = descsum_create(f"tr({import_key1.privkey})")
+        import_desc2 = descsum_create(f"tr({import_key2.privkey})")
+        import_addr1 = self.nodes[0].deriveaddresses(import_desc1)[0]
+        import_addr2 = self.nodes[0].deriveaddresses(import_desc2)[0]
+        wallet.importdescriptors([{"desc": import_desc1, "timestamp": "now"}])
 
         amount = 15
-        default.send([{import_key1.p2wpkh_addr: amount},{import_key2.p2wpkh_addr: amount}])
+        default.send([{import_addr1: amount}, {import_addr2: amount}])
         self.generate(self.nodes[0], 1)
         # Mock the time forward by 1 day so that "now" will exclude the block we just mined
         self.nodes[0].setmocktime(int(time.time()) + 86400)
@@ -295,7 +299,7 @@ class WalletTest(BitcoinTestFramework):
         assert_equal(balances["mine"]["trusted"], amount)
 
         # Don't rescan to make sure that the import updates the wallet txos
-        wallet.importdescriptors([{"desc": descsum_create(f"wpkh({import_key2.privkey})"), "timestamp": "now"}])
+        wallet.importdescriptors([{"desc": import_desc2, "timestamp": "now"}])
         balances = wallet.getbalances()
         assert_equal(balances["mine"]["trusted"], amount * 2)
 

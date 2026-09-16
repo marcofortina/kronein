@@ -55,9 +55,10 @@ class WalletChangeAddressTest(BitcoinTestFramework):
         addr2 = [self.nodes[2].getnewaddress() for _ in range(3)]
         addrs = addr1 + addr2
 
-        # Send 1 + 0.5 coin to each address
-        [self.nodes[0].sendtoaddress(addr, 1.0) for addr in addrs]
-        [self.nodes[0].sendtoaddress(addr, 0.5) for addr in addrs]
+        # Use sufficiently large UTXOs so every spend below necessarily has a
+        # change output; the test is about change-key progression.
+        [self.nodes[0].sendtoaddress(addr, 3.0) for addr in addrs]
+        [self.nodes[0].sendtoaddress(addr, 1.5) for addr in addrs]
         self.generate(self.nodes[0], 1)
 
         for i in range(20):
@@ -76,9 +77,9 @@ class WalletChangeAddressTest(BitcoinTestFramework):
         addr1 = w1.getnewaddress()
         addr2 = w2.getnewaddress()
         self.nodes[0].sendtoaddress(addr1, 3.0)
-        self.nodes[0].sendtoaddress(addr1, 0.1)
+        self.nodes[0].sendtoaddress(addr1, 0.2)
         self.nodes[0].sendtoaddress(addr2, 3.0)
-        self.nodes[0].sendtoaddress(addr2, 0.1)
+        self.nodes[0].sendtoaddress(addr2, 0.2)
         self.generate(self.nodes[0], 1)
 
         sendTo1 = self.nodes[0].getnewaddress()

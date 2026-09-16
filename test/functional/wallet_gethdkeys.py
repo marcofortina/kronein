@@ -11,7 +11,10 @@ from test_framework.util import (
     assert_raises_rpc_error,
     assert_not_equal,
 )
-from test_framework.wallet_util import WalletUnlock
+from test_framework.wallet_util import (
+    get_generate_key,
+    WalletUnlock,
+)
 
 
 class WalletGetHDKeyTest(BitcoinTestFramework):
@@ -110,7 +113,7 @@ class WalletGetHDKeyTest(BitcoinTestFramework):
         wallet = self.nodes[0].get_wallet_rpc("lonekey")
 
         assert_equal(wallet.gethdkeys(), [])
-        wallet.importdescriptors([{"desc": descsum_create("wpkh(cTe1f5rdT8A8DFgVWTjyPwACsDPJM9ff4QngFxUixCSvvbg1x6sh)"), "timestamp": "now"}])
+        wallet.importdescriptors([{"desc": descsum_create("tr(cTe1f5rdT8A8DFgVWTjyPwACsDPJM9ff4QngFxUixCSvvbg1x6sh)"), "timestamp": "now"}])
         assert_equal(wallet.gethdkeys(), [])
 
         self.log.info("HD keys of non-ranged descriptors should appear in gethdkeys")
@@ -118,8 +121,8 @@ class WalletGetHDKeyTest(BitcoinTestFramework):
         xpub_info = def_wallet.gethdkeys(private=True)
         xpub = xpub_info[0]["xpub"]
         xprv = xpub_info[0]["xprv"]
-        prv_desc = descsum_create(f"wpkh({xprv})")
-        pub_desc = descsum_create(f"wpkh({xpub})")
+        prv_desc = descsum_create(f"tr({xprv})")
+        pub_desc = descsum_create(f"tr({xpub})")
         assert_equal(wallet.importdescriptors([{"desc": prv_desc, "timestamp": "now"}])[0]["success"], True)
         xpub_info = wallet.gethdkeys()
         assert_equal(len(xpub_info), 1)
@@ -138,8 +141,9 @@ class WalletGetHDKeyTest(BitcoinTestFramework):
         xprv1 = wallet.gethdkeys(private=True)[0]["xprv"]
         xpub2 = def_wallet.gethdkeys()[0]["xpub"]
 
-        prv_multi_desc = descsum_create(f"wsh(multi(2,{xprv1}/*,{xpub2}/*))")
-        pub_multi_desc = descsum_create(f"wsh(multi(2,{xpub1}/*,{xpub2}/*))")
+        internal_key = "4d54bb9928a0683b7e383de72943b214b0716f58aa54c7ba6bcea2328bc9c768"
+        prv_multi_desc = descsum_create(f"tr({internal_key},sortedmulti_a(2,{xprv1}/*,{xpub2}/*))")
+        pub_multi_desc = descsum_create(f"tr({internal_key},sortedmulti_a(2,{xpub1}/*,{xpub2}/*))")
         assert_equal(wallet.importdescriptors([{"desc": prv_multi_desc, "timestamp": "now"}])[0]["success"], True)
 
         xpub_info = wallet.gethdkeys()
@@ -158,16 +162,16 @@ class WalletGetHDKeyTest(BitcoinTestFramework):
 
     def test_mixed_multisig(self):
         self.log.info("Non-HD keys of a multisig do not appear in gethdkeys")
-        def_wallet = self.nodes[0].get_wallet_rpc(self.default_wallet_name)
         self.nodes[0].createwallet("single_multisig")
         wallet = self.nodes[0].get_wallet_rpc("single_multisig")
 
         xpub = wallet.gethdkeys()[0]["xpub"]
         xprv = wallet.gethdkeys(private=True)[0]["xprv"]
-        pub = def_wallet.getaddressinfo(def_wallet.getnewaddress())["pubkey"]
+        pub = get_generate_key().pubkey[2:]
 
-        prv_multi_desc = descsum_create(f"wsh(multi(2,{xprv},{pub}))")
-        pub_multi_desc = descsum_create(f"wsh(multi(2,{xpub},{pub}))")
+        internal_key = "4d54bb9928a0683b7e383de72943b214b0716f58aa54c7ba6bcea2328bc9c768"
+        prv_multi_desc = descsum_create(f"tr({internal_key},sortedmulti_a(2,{xprv},{pub}))")
+        pub_multi_desc = descsum_create(f"tr({internal_key},sortedmulti_a(2,{xpub},{pub}))")
         import_res = wallet.importdescriptors([{"desc": prv_multi_desc, "timestamp": "now"}])
         assert_equal(import_res[0]["success"], True)
 

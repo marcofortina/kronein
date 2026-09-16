@@ -2,9 +2,9 @@
 # Copyright (c) 2024-present The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Test a miniscript multisig that starts as 4-of-4 and "decays" to 3-of-4, 2-of-4, and finally 1-of-4 at each future halvening block height.
+"""Test a Tapscript multisig that starts as 4-of-4 and "decays" to 3-of-4, 2-of-4, and finally 1-of-4 at successive block heights.
 
-Spending policy: `thresh(4,pk(key_1),pk(key_2),pk(key_3),pk(key_4),after(t1),after(t2),after(t3))`
+Each threshold and timelock is represented by a Taproot script-tree leaf.
 This is similar to `test/functional/wallet_multisig_descriptor_psbt.py`.
 """
 
@@ -18,6 +18,8 @@ from test_framework.util import (
 
 
 class WalletMiniscriptDecayingMultisigDescriptorPSBTTest(BitcoinTestFramework):
+    INTERNAL_KEY = "4d54bb9928a0683b7e383de72943b214b0716f58aa54c7ba6bcea2328bc9c768"
+
     def set_test_params(self):
         self.num_nodes = 1
         self.setup_clean_chain = True
@@ -29,20 +31,24 @@ class WalletMiniscriptDecayingMultisigDescriptorPSBTTest(BitcoinTestFramework):
 
     @staticmethod
     def _get_xpub(wallet):
-        """Extract the wallet's xpubs using `listdescriptors` and pick the one from the `pkh` descriptor since it's least likely to be accidentally reused (legacy addresses)."""
-        pkh_descriptor = next(filter(lambda d: d["desc"].startswith("pkh(") and not d["internal"], wallet.listdescriptors()["descriptors"]))
+        """Extract the external Taproot descriptor's xpub with its origin information."""
+        tr_descriptor = next(filter(lambda d: d["desc"].startswith("tr(") and not d["internal"], wallet.listdescriptors()["descriptors"]))
         # keep all key origin information (master key fingerprint and all derivation steps) for proper support of hardware devices
         # see section 'Key origin identification' in 'doc/descriptors.md' for more details...
         # Replace the change index with the multipath convention
-        return pkh_descriptor["desc"].split("pkh(")[1].split(")")[0].replace("/0/*", "/<0;1>/*")
+        return tr_descriptor["desc"].split("tr(")[1].split(")")[0].replace("/0/*", "/<0;1>/*")
 
     def create_multisig(self, xpubs):
         """The multisig is created by importing a single multipath descriptor. The resulting wallet is watch-only and every signer can do this."""
         self.node.createwallet(wallet_name=f"{self.name}", blank=True, disable_private_keys=True)
         multisig = self.node.get_wallet_rpc(f"{self.name}")
-        # spending policy: `thresh(4,pk(key_1),pk(key_2),pk(key_3),pk(key_4),after(t1),after(t2),after(t3))`
-        # IMPORTANT: when backing up your descriptor, the order of key_1...key_4 must be correct!
-        multisig_desc = f"wsh(thresh({self.N},pk({'),s:pk('.join(xpubs)}),sln:after({'),sln:after('.join(map(str, self.locktimes))})))"
+        keys = ",".join(xpubs)
+        leaves = [f"multi_a({self.N},{keys})"]
+        leaves.extend(
+            f"and_v(v:after({locktime}),multi_a({required},{keys}))"
+            for locktime, required in zip(self.locktimes, range(self.N - 1, 0, -1))
+        )
+        multisig_desc = f"tr({self.INTERNAL_KEY},{{{{{leaves[0]},{leaves[1]}}},{{{leaves[2]},{leaves[3]}}}}})"
         checksum = multisig.getdescriptorinfo(multisig_desc)["checksum"]
         result = multisig.importdescriptors([
             {  # Multipath descriptor expands to receive and change
@@ -97,7 +103,7 @@ class WalletMiniscriptDecayingMultisigDescriptorPSBTTest(BitcoinTestFramework):
             # the random sample asserts that any of the signing keys can sign for the 3-of-4,
             # 2-of-4, and 1-of-4. While this is basic behavior of the miniscript thresh primitive,
             # it is a critical property of this wallet.
-            for i, m in enumerate(random.sample(range(self.M), self.M)):
+            for i, m in enumerate(random.sample(range(self.N), self.M)):
                 psbt = signers[m].walletprocesspsbt(psbt["psbt"])
                 assert_equal(psbt["complete"], i == self.M - 1)
 

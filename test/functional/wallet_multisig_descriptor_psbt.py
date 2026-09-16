@@ -15,6 +15,8 @@ from test_framework.util import (
 
 
 class WalletMultisigDescriptorPSBTTest(BitcoinTestFramework):
+    INTERNAL_KEY = "4d54bb9928a0683b7e383de72943b214b0716f58aa54c7ba6bcea2328bc9c768"
+
     def set_test_params(self):
         self.num_nodes = 3
         self.setup_clean_chain = True
@@ -26,12 +28,12 @@ class WalletMultisigDescriptorPSBTTest(BitcoinTestFramework):
 
     @staticmethod
     def _get_xpub(wallet):
-        """Extract the wallet's xpubs using `listdescriptors` and pick the one from the `pkh` descriptor since it's least likely to be accidentally reused (legacy addresses)."""
-        pkh_descriptor = next(filter(lambda d: d["desc"].startswith("pkh(") and not d["internal"], wallet.listdescriptors()["descriptors"]))
+        """Extract the external Taproot descriptor's xpub with its origin information."""
+        tr_descriptor = next(filter(lambda d: d["desc"].startswith("tr(") and not d["internal"], wallet.listdescriptors()["descriptors"]))
         # Keep all key origin information (master key fingerprint and all derivation steps) for proper support of hardware devices
         # See section 'Key origin identification' in 'doc/descriptors.md' for more details...
         # Replace the change index with the multipath convention
-        return pkh_descriptor["desc"].split("pkh(")[1].split(")")[0].replace("/0/*", "/<0;1>/*")
+        return tr_descriptor["desc"].split("tr(")[1].split(")")[0].replace("/0/*", "/<0;1>/*")
 
     @staticmethod
     def _check_psbt(psbt, to, value, multisig):
@@ -50,7 +52,7 @@ class WalletMultisigDescriptorPSBTTest(BitcoinTestFramework):
         for i, node in enumerate(self.nodes):
             node.createwallet(wallet_name=f"{self.name}_{i}", blank=True, disable_private_keys=True)
             multisig = node.get_wallet_rpc(f"{self.name}_{i}")
-            multisig_desc = f"wsh(sortedmulti({self.M},{','.join(xpubs)}))"
+            multisig_desc = f"tr({self.INTERNAL_KEY},sortedmulti_a({self.M},{','.join(xpubs)}))"
             checksum = multisig.getdescriptorinfo(multisig_desc)["checksum"]
             result = multisig.importdescriptors([
                 {  # Multipath descriptor expands to receive and change
