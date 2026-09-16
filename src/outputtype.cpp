@@ -23,8 +23,7 @@ const std::string& FormatOutputType(OutputType type)
 
 std::optional<OutputType> OutputTypeFromDestination(const CTxDestination& dest) {
     if (std::holds_alternative<WitnessV1Taproot>(dest) ||
-        std::holds_alternative<PayToAnchor>(dest) ||
-        std::holds_alternative<WitnessUnknown>(dest)) {
+        std::holds_alternative<PayToAnchor>(dest)) {
         return OutputType::BECH32M;
     }
     return std::nullopt;

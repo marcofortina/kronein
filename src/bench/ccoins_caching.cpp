@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <addresstype.h>
 #include <bench/bench.h>
 #include <coins.h>
 #include <consensus/amount.h>
@@ -9,9 +10,8 @@
 #include <policy/policy.h>
 #include <primitives/transaction.h>
 #include <script/script.h>
-#include <script/signingprovider.h>
-#include <test/util/transaction_utils.h>
 
+#include <array>
 #include <cassert>
 #include <vector>
 
@@ -25,23 +25,27 @@ static void CCoinsCaching(benchmark::Bench& bench)
 {
     ECC_Context ecc_context{};
 
-    FillableSigningProvider keystore;
     CCoinsView coinsDummy;
     CCoinsViewCache coins(&coinsDummy);
-    std::vector<CMutableTransaction> dummyTransactions =
-        SetupDummyInputs(keystore, coins, {11 * COIN, 50 * COIN, 21 * COIN, 22 * COIN});
+    const std::array<CAmount, 4> values{11 * COIN, 50 * COIN, 21 * COIN, 22 * COIN};
+    std::vector<CMutableTransaction> dummyTransactions(2);
+    for (size_t i{0}; i < values.size(); ++i) {
+        CKey key;
+        key.MakeNewKey(/*fCompressed=*/true);
+        dummyTransactions[i / 2].vout.emplace_back(
+            values[i], GetScriptForDestination(WitnessV1Taproot{XOnlyPubKey{key.GetPubKey()}}));
+    }
+    AddCoins(coins, CTransaction{dummyTransactions[0]}, 0);
+    AddCoins(coins, CTransaction{dummyTransactions[1]}, 0);
 
     CMutableTransaction t1;
     t1.vin.resize(3);
     t1.vin[0].prevout.hash = dummyTransactions[0].GetHash();
     t1.vin[0].prevout.n = 1;
-    t1.vin[0].scriptSig << std::vector<unsigned char>(65, 0);
     t1.vin[1].prevout.hash = dummyTransactions[1].GetHash();
     t1.vin[1].prevout.n = 0;
-    t1.vin[1].scriptSig << std::vector<unsigned char>(65, 0) << std::vector<unsigned char>(33, 4);
     t1.vin[2].prevout.hash = dummyTransactions[1].GetHash();
     t1.vin[2].prevout.n = 1;
-    t1.vin[2].scriptSig << std::vector<unsigned char>(65, 0) << std::vector<unsigned char>(33, 4);
     t1.vout.resize(2);
     t1.vout[0].nValue = 90 * COIN;
     t1.vout[0].scriptPubKey << OP_1;

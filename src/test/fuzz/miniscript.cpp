@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <core_io.h>
+#include <crypto/sha256.h>
 #include <hash.h>
 #include <key.h>
 #include <script/miniscript.h>
@@ -1009,7 +1010,11 @@ std::optional<Node> GenNode(MsCtx script_ctx, F ConsumeNode, Type root_type, boo
 //! The spk for this script under the given context. If it's a Taproot output also record the spend data.
 CScript ScriptPubKey(MsCtx ctx, const CScript& script, TaprootBuilder& builder)
 {
-    if (!miniscript::IsTapscript(ctx)) return CScript() << OP_0 << WitnessV0ScriptHash(script);
+    if (!miniscript::IsTapscript(ctx)) {
+        uint256 script_hash;
+        CSHA256().Write(script.data(), script.size()).Finalize(script_hash.begin());
+        return CScript() << OP_0 << ToByteVector(script_hash);
+    }
 
     // For Taproot outputs we always use a tree with a single script and a dummy internal key.
     builder.Add(0, script, TAPROOT_LEAF_TAPSCRIPT);

@@ -572,9 +572,6 @@ CreatedTransactionResult FundTransaction(CWallet& wallet, const CMutableTransact
             for (const UniValue& pk_univ : solving_data["pubkeys"].get_array().getValues()) {
                 const CPubKey pubkey = HexToPubKey(pk_univ.get_str());
                 coinControl.m_external_provider.pubkeys.emplace(pubkey.GetID(), pubkey);
-                // Add witness script for pubkeys
-                const CScript wit_script = GetScriptForDestination(WitnessV0KeyHash(pubkey));
-                coinControl.m_external_provider.scripts.emplace(CScriptID(wit_script), wit_script);
             }
         }
 

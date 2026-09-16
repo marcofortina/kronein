@@ -240,47 +240,6 @@ public:
         return UniValue(UniValue::VOBJ);
     }
 
-    UniValue operator()(const PubKeyDestination& dest) const
-    {
-        return UniValue(UniValue::VOBJ);
-    }
-
-    UniValue operator()(const PKHash& keyID) const
-    {
-        UniValue obj(UniValue::VOBJ);
-        obj.pushKV("isscript", false);
-        obj.pushKV("iswitness", false);
-        return obj;
-    }
-
-    UniValue operator()(const ScriptHash& scriptID) const
-    {
-        UniValue obj(UniValue::VOBJ);
-        obj.pushKV("isscript", true);
-        obj.pushKV("iswitness", false);
-        return obj;
-    }
-
-    UniValue operator()(const WitnessV0KeyHash& id) const
-    {
-        UniValue obj(UniValue::VOBJ);
-        obj.pushKV("isscript", false);
-        obj.pushKV("iswitness", true);
-        obj.pushKV("witness_version", 0);
-        obj.pushKV("witness_program", HexStr(id));
-        return obj;
-    }
-
-    UniValue operator()(const WitnessV0ScriptHash& id) const
-    {
-        UniValue obj(UniValue::VOBJ);
-        obj.pushKV("isscript", true);
-        obj.pushKV("iswitness", true);
-        obj.pushKV("witness_version", 0);
-        obj.pushKV("witness_program", HexStr(id));
-        return obj;
-    }
-
     UniValue operator()(const WitnessV1Taproot& tap) const
     {
         UniValue obj(UniValue::VOBJ);
@@ -296,15 +255,8 @@ public:
         UniValue obj(UniValue::VOBJ);
         obj.pushKV("isscript", true);
         obj.pushKV("iswitness", true);
-        return obj;
-    }
-
-    UniValue operator()(const WitnessUnknown& id) const
-    {
-        UniValue obj(UniValue::VOBJ);
-        obj.pushKV("iswitness", true);
-        obj.pushKV("witness_version", id.GetWitnessVersion());
-        obj.pushKV("witness_program", HexStr(id.GetWitnessProgram()));
+        obj.pushKV("witness_version", anchor.GetWitnessVersion());
+        obj.pushKV("witness_program", HexStr(anchor.GetWitnessProgram()));
         return obj;
     }
 };

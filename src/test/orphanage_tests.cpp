@@ -8,8 +8,6 @@
 #include <policy/policy.h>
 #include <primitives/transaction.h>
 #include <pubkey.h>
-#include <script/sign.h>
-#include <script/signingprovider.h>
 #include <test/util/common.h>
 #include <test/util/random.h>
 #include <test/util/setup_common.h>
@@ -48,9 +46,10 @@ static CTransactionRef MakeTransactionSpending(const std::vector<COutPoint>& out
     tx.vin[0].scriptWitness.stack.push_back({1});
     tx.vout.resize(2);
     tx.vout[0].nValue = CENT;
-    tx.vout[0].scriptPubKey = GetScriptForDestination(PKHash(key.GetPubKey()));
+    const WitnessV1Taproot taproot{XOnlyPubKey{key.GetPubKey()}};
+    tx.vout[0].scriptPubKey = GetScriptForDestination(taproot);
     tx.vout[1].nValue = 3 * CENT;
-    tx.vout[1].scriptPubKey = GetScriptForDestination(WitnessV0KeyHash(key.GetPubKey()));
+    tx.vout[1].scriptPubKey = GetScriptForDestination(taproot);
     return MakeTransactionRef(tx);
 }
 
@@ -79,7 +78,7 @@ BOOST_AUTO_TEST_CASE(peer_dos_limits)
 
     // Construct transactions to use. They must all be the same size.
     static constexpr unsigned int NUM_TXNS_CREATED = 100;
-    static constexpr int64_t TX_SIZE{467};
+    static constexpr int64_t TX_SIZE{551};
     static constexpr int64_t TOTAL_SIZE = NUM_TXNS_CREATED * TX_SIZE;
 
     std::vector<CTransactionRef> txns;
@@ -417,19 +416,9 @@ BOOST_AUTO_TEST_CASE(peer_dos_limits)
 }
 BOOST_AUTO_TEST_CASE(DoS_mapOrphans)
 {
-    // This test had non-deterministic coverage due to
-    // randomly selected seeds.
-    // This seed is chosen so that all branches of the function
-    // ecdsa_signature_parse_der_lax are executed during this test.
-    // Specifically branches that run only when an ECDSA
-    // signature's R and S values have leading zeros.
-    m_rng.Reseed(uint256{33});
-
     std::unique_ptr<node::TxOrphanage> orphanage{node::MakeTxOrphanage()};
     CKey key;
     MakeNewKeyWithFastRandomContext(key, m_rng);
-    FillableSigningProvider keystore;
-    BOOST_CHECK(keystore.AddKey(key));
 
     // Freeze time for length of test
     auto now{GetTime<std::chrono::seconds>()};
@@ -444,10 +433,10 @@ BOOST_AUTO_TEST_CASE(DoS_mapOrphans)
         tx.vin.resize(1);
         tx.vin[0].prevout.n = 0;
         tx.vin[0].prevout.hash = Txid::FromUint256(m_rng.rand256());
-        tx.vin[0].scriptSig << OP_1;
+        tx.vin[0].scriptWitness.stack.emplace_back(64, 0x01);
         tx.vout.resize(1);
         tx.vout[0].nValue = i*CENT;
-        tx.vout[0].scriptPubKey = GetScriptForDestination(PKHash(key.GetPubKey()));
+        tx.vout[0].scriptPubKey = GetScriptForDestination(WitnessV1Taproot{XOnlyPubKey{key.GetPubKey()}});
 
         auto ptx = MakeTransactionRef(tx);
         orphanage->AddTx(ptx, i);
@@ -465,9 +454,8 @@ BOOST_AUTO_TEST_CASE(DoS_mapOrphans)
         tx.vin[0].prevout.hash = txPrev->GetHash();
         tx.vout.resize(1);
         tx.vout[0].nValue = i*CENT;
-        tx.vout[0].scriptPubKey = GetScriptForDestination(PKHash(key.GetPubKey()));
-        SignatureData empty;
-        BOOST_CHECK(SignSignature(keystore, *txPrev, tx, 0, SIGHASH_ALL, empty));
+        tx.vout[0].scriptPubKey = GetScriptForDestination(WitnessV1Taproot{XOnlyPubKey{key.GetPubKey()}});
+        tx.vin[0].scriptWitness.stack.emplace_back(64, 0x01);
 
         auto ptx = MakeTransactionRef(tx);
         orphanage->AddTx(ptx, i);
@@ -482,19 +470,18 @@ BOOST_AUTO_TEST_CASE(DoS_mapOrphans)
         CMutableTransaction tx;
         tx.vout.resize(1);
         tx.vout[0].nValue = 1*CENT;
-        tx.vout[0].scriptPubKey = GetScriptForDestination(PKHash(key.GetPubKey()));
+        tx.vout[0].scriptPubKey = GetScriptForDestination(WitnessV1Taproot{XOnlyPubKey{key.GetPubKey()}});
         tx.vin.resize(2777);
         for (unsigned int j = 0; j < tx.vin.size(); j++)
         {
             tx.vin[j].prevout.n = j;
             tx.vin[j].prevout.hash = txPrev->GetHash();
         }
-        SignatureData empty;
-        BOOST_CHECK(SignSignature(keystore, *txPrev, tx, 0, SIGHASH_ALL, empty));
-        // Reuse same signature for other inputs
+        tx.vin[0].scriptWitness.stack.emplace_back(64, 0x01);
+        // Reuse the same dummy witness for other inputs
         // (they don't have to be valid for this test)
         for (unsigned int j = 1; j < tx.vin.size(); j++)
-            tx.vin[j].scriptSig = tx.vin[0].scriptSig;
+            tx.vin[j].scriptWitness = tx.vin[0].scriptWitness;
 
         BOOST_CHECK(!orphanage->AddTx(MakeTransactionRef(tx), i));
     }

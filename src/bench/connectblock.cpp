@@ -64,24 +64,18 @@ CBlock CreateTestBlock(
 
 /*
  * Creates key pairs and corresponding outputs for the benchmark transactions.
- * - For Schnorr signatures: Creates simple key path spendable outputs
- * - For Ecdsa signatures: Creates P2WPKH (native SegWit v0) outputs
+ * - Creates simple Taproot key-path spendable outputs
  * - All outputs have value of 1 BTC
  */
-std::pair<std::vector<CKey>, std::vector<CTxOut>> CreateKeysAndOutputs(const CKey& coinbaseKey, size_t num_schnorr, size_t num_ecdsa)
+std::pair<std::vector<CKey>, std::vector<CTxOut>> CreateKeysAndOutputs(const CKey& coinbaseKey, size_t count)
 {
     std::vector<CKey> keys{coinbaseKey};
-    keys.reserve(num_schnorr + num_ecdsa + 1);
+    keys.reserve(count + 1);
 
     std::vector<CTxOut> outputs;
-    outputs.reserve(num_schnorr + num_ecdsa);
+    outputs.reserve(count);
 
-    for (size_t i{0}; i < num_ecdsa; ++i) {
-        keys.emplace_back(GenerateRandomKey());
-        outputs.emplace_back(COIN, GetScriptForDestination(WitnessV0KeyHash{keys.back().GetPubKey()}));
-    }
-
-    for (size_t i{0}; i < num_schnorr; ++i) {
+    for (size_t i{0}; i < count; ++i) {
         keys.emplace_back(GenerateRandomKey());
         outputs.emplace_back(COIN, GetScriptForDestination(WitnessV1Taproot{XOnlyPubKey(keys.back().GetPubKey())}));
     }
@@ -107,25 +101,8 @@ void BenchmarkConnectBlock(benchmark::Bench& bench, std::vector<CKey>& keys, std
 static void ConnectBlockAllSchnorr(benchmark::Bench& bench)
 {
     const auto test_setup{MakeNoLogFileContext<TestChain100Setup>()};
-    auto [keys, outputs]{CreateKeysAndOutputs(test_setup->coinbaseKey, /*num_schnorr=*/5, /*num_ecdsa=*/0)};
-    BenchmarkConnectBlock(bench, keys, outputs, *test_setup);
-}
-
-static void ConnectBlockMixedEcdsaSchnorr(benchmark::Bench& bench)
-{
-    const auto test_setup{MakeNoLogFileContext<TestChain100Setup>()};
-    // Blocks in range 848000 to 868000 have a roughly 20 to 80 ratio of schnorr to ecdsa inputs
-    auto [keys, outputs]{CreateKeysAndOutputs(test_setup->coinbaseKey, /*num_schnorr=*/1, /*num_ecdsa=*/4)};
-    BenchmarkConnectBlock(bench, keys, outputs, *test_setup);
-}
-
-static void ConnectBlockAllEcdsa(benchmark::Bench& bench)
-{
-    const auto test_setup{MakeNoLogFileContext<TestChain100Setup>()};
-    auto [keys, outputs]{CreateKeysAndOutputs(test_setup->coinbaseKey, /*num_schnorr=*/0, /*num_ecdsa=*/5)};
+    auto [keys, outputs]{CreateKeysAndOutputs(test_setup->coinbaseKey, 5)};
     BenchmarkConnectBlock(bench, keys, outputs, *test_setup);
 }
 
 BENCHMARK(ConnectBlockAllSchnorr);
-BENCHMARK(ConnectBlockMixedEcdsaSchnorr);
-BENCHMARK(ConnectBlockAllEcdsa);

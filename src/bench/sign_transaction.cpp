@@ -21,12 +21,7 @@
 #include <map>
 #include <vector>
 
-enum class InputType {
-    P2WPKH, // segwitv0, witness-pubkey-hash (ECDSA signature)
-    P2TR,   // segwitv1, taproot key-path spend (Schnorr signature)
-};
-
-static void SignTransactionSingleInput(benchmark::Bench& bench, InputType input_type)
+static void SignTransactionSingleInput(benchmark::Bench& bench)
 {
     ECC_Context ecc_context{};
 
@@ -41,14 +36,7 @@ static void SignTransactionSingleInput(benchmark::Bench& bench, InputType input_
         keystore.keys.emplace(key_id, privkey);
         keystore.pubkeys.emplace(key_id, pubkey);
 
-        // Create specified locking script type
-        CScript prev_spk;
-        switch (input_type) {
-        case InputType::P2WPKH: prev_spk = GetScriptForDestination(WitnessV0KeyHash(pubkey)); break;
-        case InputType::P2TR:   prev_spk = GetScriptForDestination(WitnessV1Taproot(XOnlyPubKey{pubkey})); break;
-        default: assert(false);
-        }
-        prev_spks.push_back(prev_spk);
+        prev_spks.push_back(GetScriptForDestination(WitnessV1Taproot{XOnlyPubKey{pubkey}}));
     }
 
     // Simple 1-input tx with artificial outpoint
@@ -70,8 +58,7 @@ static void SignTransactionSingleInput(benchmark::Bench& bench, InputType input_
     });
 }
 
-static void SignTransactionECDSA(benchmark::Bench& bench)   { SignTransactionSingleInput(bench, InputType::P2WPKH); }
-static void SignTransactionSchnorr(benchmark::Bench& bench) { SignTransactionSingleInput(bench, InputType::P2TR);   }
+static void SignTransactionSchnorr(benchmark::Bench& bench) { SignTransactionSingleInput(bench); }
 
 static void SignSchnorrTapTweakBenchmark(benchmark::Bench& bench, bool use_null_merkle_root)
 {
@@ -100,7 +87,6 @@ static void SignSchnorrWithNullMerkleRoot(benchmark::Bench& bench)
     SignSchnorrTapTweakBenchmark(bench, /*use_null_merkle_root=*/true);
 }
 
-BENCHMARK(SignTransactionECDSA);
 BENCHMARK(SignTransactionSchnorr);
 BENCHMARK(SignSchnorrWithMerkleRoot);
 BENCHMARK(SignSchnorrWithNullMerkleRoot);

@@ -195,38 +195,10 @@ CTxDestination ConsumeTxDestination(FuzzedDataProvider& fuzzed_data_provider) no
             tx_destination = CNoDestination{};
         },
         [&] {
-            bool compressed = fuzzed_data_provider.ConsumeBool();
-            CPubKey pk{ConstructPubKeyBytes(
-                    fuzzed_data_provider,
-                    ConsumeFixedLengthByteVector(fuzzed_data_provider, (compressed ? CPubKey::COMPRESSED_SIZE : CPubKey::SIZE)),
-                    compressed
-            )};
-            tx_destination = PubKeyDestination{pk};
-        },
-        [&] {
-            tx_destination = PKHash{ConsumeUInt160(fuzzed_data_provider)};
-        },
-        [&] {
-            tx_destination = ScriptHash{ConsumeUInt160(fuzzed_data_provider)};
-        },
-        [&] {
-            tx_destination = WitnessV0ScriptHash{ConsumeUInt256(fuzzed_data_provider)};
-        },
-        [&] {
-            tx_destination = WitnessV0KeyHash{ConsumeUInt160(fuzzed_data_provider)};
-        },
-        [&] {
             tx_destination = WitnessV1Taproot{XOnlyPubKey{ConsumeUInt256(fuzzed_data_provider)}};
         },
         [&] {
             tx_destination = PayToAnchor{};
-        },
-        [&] {
-            std::vector<unsigned char> program{ConsumeRandomLengthByteVector(fuzzed_data_provider, /*max_length=*/40)};
-            if (program.size() < 2) {
-                program = {0, 0};
-            }
-            tx_destination = WitnessUnknown{fuzzed_data_provider.ConsumeIntegralInRange<unsigned int>(2, 16), program};
         })};
     Assert(call_size == std::variant_size_v<CTxDestination>);
     return tx_destination;

@@ -123,12 +123,6 @@ FUZZ_TARGET(scriptpubkeyman, .init = initialize_spkm)
                     CTxDestination dest;
                     bool extract_dest{ExtractDestination(spk, dest)};
                     if (extract_dest) {
-                        const std::string msg{fuzzed_data_provider.ConsumeRandomLengthString()};
-                        PKHash pk_hash{std::get_if<PKHash>(&dest) && fuzzed_data_provider.ConsumeBool() ?
-                                           *std::get_if<PKHash>(&dest) :
-                                           PKHash{ConsumeUInt160(fuzzed_data_provider)}};
-                        std::string str_sig;
-                        (void)spk_manager->SignMessage(msg, pk_hash, str_sig);
                         (void)spk_manager->GetMetadata(dest);
                     }
                 }

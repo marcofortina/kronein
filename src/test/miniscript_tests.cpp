@@ -325,7 +325,11 @@ std::set<Challenge> FindChallenges(const Node& root)
 //! The spk for this script under the given context. If it's a Taproot output also record the spend data.
 CScript ScriptPubKey(miniscript::MiniscriptContext ctx, const CScript& script, TaprootBuilder& builder)
 {
-    if (!miniscript::IsTapscript(ctx)) return CScript() << OP_0 << WitnessV0ScriptHash(script);
+    if (!miniscript::IsTapscript(ctx)) {
+        uint256 script_hash;
+        CSHA256().Write(script.data(), script.size()).Finalize(script_hash.begin());
+        return CScript() << OP_0 << ToByteVector(script_hash);
+    }
 
     // For Taproot outputs we always use a tree with a single script and a dummy internal key.
     builder.Add(0, script, TAPROOT_LEAF_TAPSCRIPT);

@@ -231,51 +231,49 @@ BOOST_AUTO_TEST_CASE(script_standard_ExtractDestination)
 
     CScript s;
     CTxDestination address;
+    const auto check_unsupported = [&](const CScript& script) {
+        BOOST_CHECK(!ExtractDestination(script, address));
+        BOOST_REQUIRE(std::holds_alternative<CNoDestination>(address));
+        BOOST_CHECK(std::get<CNoDestination>(address).GetScript() == script);
+    };
 
     // TxoutType::PUBKEY
     s.clear();
     s << ToByteVector(pubkey) << OP_CHECKSIG;
-    BOOST_CHECK(!ExtractDestination(s, address));
-    BOOST_CHECK(std::get<PubKeyDestination>(address) == PubKeyDestination(pubkey));
+    check_unsupported(s);
 
     // TxoutType::PUBKEYHASH
     s.clear();
     s << OP_DUP << OP_HASH160 << ToByteVector(pubkey.GetID()) << OP_EQUALVERIFY << OP_CHECKSIG;
-    BOOST_CHECK(ExtractDestination(s, address));
-    BOOST_CHECK(std::get<PKHash>(address) == PKHash(pubkey));
+    check_unsupported(s);
 
     // TxoutType::SCRIPTHASH
     CScript redeemScript(s); // initialize with leftover P2PKH script
     s.clear();
     s << OP_HASH160 << ToByteVector(CScriptID(redeemScript)) << OP_EQUAL;
-    BOOST_CHECK(ExtractDestination(s, address));
-    BOOST_CHECK(std::get<ScriptHash>(address) == ScriptHash(redeemScript));
+    check_unsupported(s);
 
     // TxoutType::MULTISIG
     s.clear();
     s << OP_1 << ToByteVector(pubkey) << OP_1 << OP_CHECKMULTISIG;
-    BOOST_CHECK(!ExtractDestination(s, address));
+    check_unsupported(s);
 
     // TxoutType::NULL_DATA
     s.clear();
     s << OP_RETURN << std::vector<unsigned char>({75});
-    BOOST_CHECK(!ExtractDestination(s, address));
+    check_unsupported(s);
 
     // TxoutType::WITNESS_V0_KEYHASH
     s.clear();
     s << OP_0 << ToByteVector(pubkey.GetID());
-    BOOST_CHECK(ExtractDestination(s, address));
-    WitnessV0KeyHash keyhash;
-    CHash160().Write(pubkey).Finalize(keyhash);
-    BOOST_CHECK(std::get<WitnessV0KeyHash>(address) == keyhash);
+    check_unsupported(s);
 
     // TxoutType::WITNESS_V0_SCRIPTHASH
     s.clear();
-    WitnessV0ScriptHash scripthash;
+    uint256 scripthash;
     CSHA256().Write(redeemScript.data(), redeemScript.size()).Finalize(scripthash.begin());
     s << OP_0 << ToByteVector(scripthash);
-    BOOST_CHECK(ExtractDestination(s, address));
-    BOOST_CHECK(std::get<WitnessV0ScriptHash>(address) == scripthash);
+    check_unsupported(s);
 
     // TxoutType::WITNESS_V1_TAPROOT
     s.clear();
@@ -294,85 +292,28 @@ BOOST_AUTO_TEST_CASE(script_standard_ExtractDestination)
     // -> segwit version 1 with an undefined program size (33 bytes in this test case)
     s.clear();
     s << OP_1 << ToByteVector(pubkey);
-    BOOST_CHECK(ExtractDestination(s, address));
-    WitnessUnknown unk_v1{1, ToByteVector(pubkey)};
-    BOOST_CHECK(std::get<WitnessUnknown>(address) == unk_v1);
+    check_unsupported(s);
     s.clear();
     // -> segwit versions 2+ are not specified yet
     s << OP_2 << ToByteVector(xpk);
-    BOOST_CHECK(ExtractDestination(s, address));
-    WitnessUnknown unk_v2{2, ToByteVector(xpk)};
-    BOOST_CHECK(std::get<WitnessUnknown>(address) == unk_v2);
+    check_unsupported(s);
 }
 
 BOOST_AUTO_TEST_CASE(script_standard_GetScriptFor_)
 {
-    CKey keys[3];
-    CPubKey pubkeys[3];
-    for (int i = 0; i < 3; i++) {
-        keys[i].MakeNewKey(true);
-        pubkeys[i] = keys[i].GetPubKey();
-    }
+    CKey key;
+    key.MakeNewKey(true);
+    const CPubKey pubkey{key.GetPubKey()};
 
     CScript expected, result;
 
-    // PKHash
-    expected.clear();
-    expected << OP_DUP << OP_HASH160 << ToByteVector(pubkeys[0].GetID()) << OP_EQUALVERIFY << OP_CHECKSIG;
-    result = GetScriptForDestination(PKHash(pubkeys[0]));
-    BOOST_CHECK(result == expected);
-
-    // CScriptID
-    CScript redeemScript(result);
-    expected.clear();
-    expected << OP_HASH160 << ToByteVector(CScriptID(redeemScript)) << OP_EQUAL;
-    result = GetScriptForDestination(ScriptHash(redeemScript));
-    BOOST_CHECK(result == expected);
-
     // CNoDestination
-    expected.clear();
-    result = GetScriptForDestination(CNoDestination());
-    BOOST_CHECK(result == expected);
-
-    // GetScriptForRawPubKey
-    expected.clear();
-    expected << ToByteVector(pubkeys[0]) << OP_CHECKSIG;
-    result = GetScriptForRawPubKey(pubkeys[0]);
-    BOOST_CHECK(result == expected);
-
-    // GetScriptForMultisig
-    expected.clear();
-    expected << OP_2 <<
-        ToByteVector(pubkeys[0]) <<
-        ToByteVector(pubkeys[1]) <<
-        ToByteVector(pubkeys[2]) <<
-        OP_3 << OP_CHECKMULTISIG;
-    result = GetScriptForMultisig(2, std::vector<CPubKey>(pubkeys, pubkeys + 3));
-    BOOST_CHECK(result == expected);
-
-    // WitnessV0KeyHash
-    expected.clear();
-    expected << OP_0 << ToByteVector(pubkeys[0].GetID());
-    result = GetScriptForDestination(WitnessV0KeyHash(Hash160(ToByteVector(pubkeys[0]))));
-    BOOST_CHECK(result == expected);
-    result = GetScriptForDestination(WitnessV0KeyHash(pubkeys[0].GetID()));
-    BOOST_CHECK(result == expected);
-
-    // WitnessV0ScriptHash (multisig)
-    CScript witnessScript;
-    witnessScript << OP_1 << ToByteVector(pubkeys[0]) << OP_1 << OP_CHECKMULTISIG;
-
-    uint256 scriptHash;
-    CSHA256().Write(witnessScript.data(), witnessScript.size())
-        .Finalize(scriptHash.begin());
-
-    expected.clear();
-    expected << OP_0 << ToByteVector(scriptHash);
-    result = GetScriptForDestination(WitnessV0ScriptHash(witnessScript));
+    expected << OP_RETURN << std::vector<unsigned char>{0x01, 0x02};
+    result = GetScriptForDestination(CNoDestination{expected});
     BOOST_CHECK(result == expected);
 
     // WitnessV1Taproot
-    auto xpk = XOnlyPubKey(pubkeys[0]);
+    auto xpk = XOnlyPubKey(pubkey);
     expected.clear();
     expected << OP_1 << ToByteVector(xpk);
     result = GetScriptForDestination(WitnessV1Taproot(xpk));

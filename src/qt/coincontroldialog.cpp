@@ -407,37 +407,17 @@ void CoinControlDialog::updateLabels(CCoinControl& m_coin_control, WalletModel *
         nAmount += out.txout.nValue;
 
         // Bytes
-        CTxDestination address;
-        int witnessversion = 0;
-        std::vector<unsigned char> witnessprogram;
-        if (out.txout.scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram))
-        {
-            // add input skeleton bytes (outpoint, scriptSig size, nSequence)
-            nBytesInputs += (32 + 4 + 1 + 4);
-
-            if (witnessversion == 0) { // P2WPKH
-                // 1 WU (witness item count) + 72 WU (ECDSA signature with len byte) + 34 WU (pubkey with len byte)
-                nBytesInputs += 107 / WITNESS_SCALE_FACTOR;
-            } else if (witnessversion == 1) { // P2TR key-path spend
-                // 1 WU (witness item count) + 65 WU (Schnorr signature with len byte)
-                nBytesInputs += 66 / WITNESS_SCALE_FACTOR;
-            } else {
-                // not supported, should be unreachable
-                throw std::runtime_error("Trying to spend future segwit version script");
-            }
+        // Input skeleton bytes (outpoint, empty scriptSig size, nSequence).
+        nBytesInputs += (32 + 4 + 1 + 4);
+        if (out.txout.scriptPubKey.IsPayToTaproot()) {
+            // Witness item count and a Schnorr signature with its length byte.
+            nBytesInputs += 66 / WITNESS_SCALE_FACTOR;
+        } else if (out.txout.scriptPubKey.IsPayToAnchor()) {
+            // An anchor is satisfied by an empty witness stack.
+            nBytesInputs += 1 / WITNESS_SCALE_FACTOR;
+        } else {
+            throw std::runtime_error("Trying to spend a non-native output");
         }
-        else if(ExtractDestination(out.txout.scriptPubKey, address))
-        {
-            CPubKey pubkey;
-            PKHash* pkhash = std::get_if<PKHash>(&address);
-            if (pkhash && model->wallet().getPubKey(out.txout.scriptPubKey, ToKeyID(*pkhash), pubkey))
-            {
-                nBytesInputs += (pubkey.IsCompressed() ? 148 : 180);
-            }
-            else
-                nBytesInputs += 148; // in all error cases, simply assume 148 here
-        }
-        else nBytesInputs += 148;
     }
 
     // calculation

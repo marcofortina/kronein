@@ -42,10 +42,6 @@ BOOST_AUTO_TEST_CASE(native_bech32m_addresses)
     BOOST_CHECK(std::holds_alternative<PayToAnchor>(anchor));
     BOOST_CHECK_EQUAL(EncodeDestination(anchor), anchor_address);
 
-    const CTxDestination unknown{WitnessUnknown{2, {0x42, 0x42}}};
-    const std::string unknown_address{EncodeDestination(unknown)};
-    BOOST_CHECK(unknown_address.empty());
-
     const std::string encoded_unknown{"bcrt1zgfpyysjzgfpy"};
     BOOST_CHECK(!IsValidDestination(DecodeDestination(encoded_unknown)));
 
