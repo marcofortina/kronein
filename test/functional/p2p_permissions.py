@@ -35,24 +35,12 @@ class P2PPermissionsTests(BitcoinTestFramework):
             # default permissions (no specific permissions)
             ["-whitelist=127.0.0.1"],
             # Make sure the default values in the command line documentation match the ones here
-            ["relay", "noban", "download"])
-
-        self.checkpermission(
-            # no permission (even with forcerelay)
-            ["-whitelist=@127.0.0.1", "-whitelistforcerelay=1"],
-            [])
-
-        self.checkpermission(
-            # relay permission removed (no specific permissions)
-            ["-whitelist=127.0.0.1", "-whitelistrelay=0"],
             ["noban", "download"])
 
         self.checkpermission(
-            # forcerelay and relay permission added
-            # Legacy parameter interaction which set whitelistrelay to true
-            # if whitelistforcerelay is true
-            ["-whitelist=127.0.0.1", "-whitelistforcerelay"],
-            ["forcerelay", "relay", "noban", "download"])
+            # Explicitly grant no permissions.
+            ["-whitelist=@127.0.0.1"],
+            [])
 
         # Let's make sure permissions are merged correctly
         # For this, we need to use whitebind instead of bind
@@ -67,16 +55,6 @@ class P2PPermissionsTests(BitcoinTestFramework):
             ["noban", "forcerelay", "relay", "download"])
         self.nodes[1].replace_in_config([("whitebind=forcerelay@" + ip_port, "bind=127.0.0.1")])
         self.nodes[1].replace_in_config([(f"bind=127.0.0.1:{tor_port(self.nodes[1].index)}=onion", "")])
-
-        self.checkpermission(
-            # legacy whitelistrelay should be ignored
-            ["-whitelist=noban,addr@127.0.0.1", "-whitelistrelay"],
-            ["noban", "download", "addr"])
-
-        self.checkpermission(
-            # legacy whitelistforcerelay should be ignored
-            ["-whitelist=noban,addr@127.0.0.1", "-whitelistforcerelay"],
-            ["noban", "download", "addr"])
 
         self.checkpermission(
             # all permission added

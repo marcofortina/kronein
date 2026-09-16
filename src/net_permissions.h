@@ -16,11 +16,6 @@ struct bilingual_str;
 
 extern const std::vector<std::string> NET_PERMISSIONS_DOC;
 
-/** Default for -whitelistrelay. */
-constexpr bool DEFAULT_WHITELISTRELAY = true;
-/** Default for -whitelistforcerelay. */
-constexpr bool DEFAULT_WHITELISTFORCERELAY = false;
-
 enum class NetPermissionFlags : uint32_t {
     None = 0,
     // Relay and accept transactions from this peer, even if -blocksonly is true

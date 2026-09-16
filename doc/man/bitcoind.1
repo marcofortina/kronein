@@ -394,7 +394,7 @@ during IBD, no disconnect after maxuploadtarget limit), addr
 (responses to GETADDR avoid hitting the cache and contain random
 records with the most up\-to\-date info). Specify multiple
 permissions separated by commas (default:
-download,noban,relay). Can be specified multiple times.
+download,noban). Can be specified multiple times.
 .HP
 \fB\-whitelist=\fR<[permissions@]IP address or network>
 .IP
@@ -682,18 +682,6 @@ Broadcast transactions submitted via sendrawtransaction RPC using
 short\-lived connections through the Tor or I2P networks, without
 putting them in the mempool first. Transactions submitted through
 the wallet are not affected by this option (default: 0)
-.HP
-\fB\-whitelistforcerelay\fR
-.IP
-Add 'forcerelay' permission to whitelisted peers with default
-permissions. This will relay transactions even if the
-transactions were already in the mempool. (default: 0)
-.HP
-\fB\-whitelistrelay\fR
-.IP
-Add 'relay' permission to whitelisted peers with default permissions.
-This will accept relayed transactions even when not relaying
-transactions (default: 1)
 .PP
 Block creation options:
 .HP
