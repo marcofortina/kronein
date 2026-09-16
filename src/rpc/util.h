@@ -8,7 +8,6 @@
 #include <addresstype.h>
 #include <consensus/amount.h>
 #include <node/transaction.h>
-#include <outputtype.h>
 #include <pubkey.h>
 #include <rpc/protocol.h>
 #include <rpc/request.h>
@@ -33,7 +32,6 @@
 
 class JSONRPCRequest;
 enum ServiceFlags : uint64_t;
-enum class OutputType;
 struct FlatSigningProvider;
 struct bilingual_str;
 namespace common {
@@ -136,7 +134,6 @@ std::string HelpExampleRpc(const std::string& methodname, const std::string& arg
 std::string HelpExampleRpcNamed(const std::string& methodname, const RPCArgList& args);
 
 CPubKey HexToPubKey(const std::string& hex_in);
-CTxDestination AddAndGetMultisigDestination(int required, const std::vector<CPubKey>& pubkeys, OutputType type, FlatSigningProvider& keystore, CScript& script_out);
 
 UniValue DescribeAddress(const CTxDestination& dest);
 

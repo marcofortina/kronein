@@ -10,7 +10,6 @@
 #include <core_io.h>
 #include <key_io.h>
 #include <node/types.h>
-#include <outputtype.h>
 #include <pow.h>
 #include <rpc/util.h>
 #include <script/descriptor.h>
@@ -229,40 +228,6 @@ CPubKey HexToPubKey(const std::string& hex_in)
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Pubkey \"" + hex_in + "\" must be cryptographically valid.");
     }
     return vchPubKey;
-}
-
-// Creates a multisig address from a given list of public keys, number of signatures required, and the address type
-CTxDestination AddAndGetMultisigDestination(const int required, const std::vector<CPubKey>& pubkeys, OutputType type, FlatSigningProvider& keystore, CScript& script_out)
-{
-    // Gather public keys
-    if (required < 1) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "a multisignature address must require at least one key to redeem");
-    }
-    if ((int)pubkeys.size() < required) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("not enough keys supplied (got %u keys, but need at least %d to redeem)", pubkeys.size(), required));
-    }
-    if (pubkeys.size() > MAX_PUBKEYS_PER_MULTISIG) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Number of keys involved in the multisignature address creation > %d\nReduce the number", MAX_PUBKEYS_PER_MULTISIG));
-    }
-
-    script_out = GetScriptForMultisig(required, pubkeys);
-
-    // Check if any keys are uncompressed. If so, the type is legacy
-    for (const CPubKey& pk : pubkeys) {
-        if (!pk.IsCompressed()) {
-            type = OutputType::LEGACY;
-            break;
-        }
-    }
-
-    if (type == OutputType::LEGACY && script_out.size() > MAX_SCRIPT_ELEMENT_SIZE) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, (strprintf("redeemScript exceeds size limit: %d > %d", script_out.size(), MAX_SCRIPT_ELEMENT_SIZE)));
-    }
-
-    // Make the address
-    CTxDestination dest = AddAndGetDestinationForScript(keystore, script_out, type);
-
-    return dest;
 }
 
 class DescribeAddressVisitor
