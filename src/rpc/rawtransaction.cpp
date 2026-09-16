@@ -1684,7 +1684,6 @@ static RPCHelpMan joinpsbts()
         throw JSONRPCError(RPC_INVALID_PARAMETER, "At least two PSBTs are required to join PSBTs.");
     }
 
-    uint32_t best_version = 1;
     uint32_t best_locktime = 0xffffffff;
     for (unsigned int i = 0; i < txs.size(); ++i) {
         PartiallySignedTransaction psbtx;
@@ -1692,11 +1691,10 @@ static RPCHelpMan joinpsbts()
         if (!DecodeBase64PSBT(psbtx, txs[i].get_str(), error)) {
             throw JSONRPCError(RPC_DESERIALIZATION_ERROR, strprintf("TX decode failed %s", error));
         }
-        psbtxs.push_back(psbtx);
-        // Choose the highest version number
-        if (psbtx.tx->version > best_version) {
-            best_version = psbtx.tx->version;
+        if (psbtx.tx->version != CTransaction::CURRENT_VERSION) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("PSBT transaction version must be %d", CTransaction::CURRENT_VERSION));
         }
+        psbtxs.push_back(psbtx);
         // Choose the lowest lock time
         if (psbtx.tx->nLockTime < best_locktime) {
             best_locktime = psbtx.tx->nLockTime;
@@ -1706,7 +1704,6 @@ static RPCHelpMan joinpsbts()
     // Create a blank psbt where everything will be added
     PartiallySignedTransaction merged_psbt;
     merged_psbt.tx = CMutableTransaction();
-    merged_psbt.tx->version = best_version;
     merged_psbt.tx->nLockTime = best_locktime;
 
     // Merge
