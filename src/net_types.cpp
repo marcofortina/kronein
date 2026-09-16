@@ -9,11 +9,8 @@
 #include <netbase.h>
 #include <univalue.h>
 
-static const char* BANMAN_JSON_VERSION_KEY{"version"};
-
 CBanEntry::CBanEntry(const UniValue& json)
-    : nVersion(json[BANMAN_JSON_VERSION_KEY].getInt<int>()),
-      nCreateTime(json["ban_created"].getInt<int64_t>()),
+    : nCreateTime(json["ban_created"].getInt<int64_t>()),
       nBanUntil(json["banned_until"].getInt<int64_t>())
 {
 }
@@ -21,7 +18,6 @@ CBanEntry::CBanEntry(const UniValue& json)
 UniValue CBanEntry::ToJson() const
 {
     UniValue json(UniValue::VOBJ);
-    json.pushKV(BANMAN_JSON_VERSION_KEY, nVersion);
     json.pushKV("ban_created", nCreateTime);
     json.pushKV("banned_until", nBanUntil);
     return json;
@@ -58,11 +54,6 @@ UniValue BanMapToJson(const banmap_t& bans)
 void BanMapFromJson(const UniValue& bans_json, banmap_t& bans)
 {
     for (const auto& ban_entry_json : bans_json.getValues()) {
-        const int version{ban_entry_json[BANMAN_JSON_VERSION_KEY].getInt<int>()};
-        if (version != CBanEntry::CURRENT_VERSION) {
-            LogInfo("Dropping entry with unknown version (%s) from ban list\n", version);
-            continue;
-        }
         const auto& subnet_str = ban_entry_json[BANMAN_JSON_ADDR_KEY].get_str();
         const CSubNet subnet{LookupSubNet(subnet_str)};
         if (!subnet.IsValid()) {

@@ -35,8 +35,7 @@ void initialize_banman()
 
 static bool operator==(const CBanEntry& lhs, const CBanEntry& rhs)
 {
-    return lhs.nVersion == rhs.nVersion &&
-           lhs.nCreateTime == rhs.nCreateTime &&
+    return lhs.nCreateTime == rhs.nCreateTime &&
            lhs.nBanUntil == rhs.nBanUntil;
 }
 

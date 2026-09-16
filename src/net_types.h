@@ -14,8 +14,6 @@ class UniValue;
 class CBanEntry
 {
 public:
-    static constexpr int CURRENT_VERSION{1};
-    int nVersion{CBanEntry::CURRENT_VERSION};
     int64_t nCreateTime{0};
     int64_t nBanUntil{0};
 
