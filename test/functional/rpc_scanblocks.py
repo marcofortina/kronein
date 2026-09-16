@@ -35,9 +35,12 @@ class ScanblocksTest(BitcoinTestFramework):
 
         parent_key = "tpubD6NzVbkrYhZ4WaWSyoBvQwbpLkojyoTZPRsgXELWz3Popb3qkjcJyJUGLnL4qHHoQvao8ESaAstxYSnhyswJ76uZPStJRJCTKvosUCJZL5B"
         # send 1.0, mempool only
-        # childkey 5 of `parent_key`
+        # Taproot child key 5 of `parent_key`
+        child_descriptor = f"tr({parent_key}/5)"
+        checksum = node.getdescriptorinfo(child_descriptor)["checksum"]
+        child_address = node.deriveaddresses(f"{child_descriptor}#{checksum}")[0]
         wallet.send_to(from_node=node,
-                       scriptPubKey=address_to_scriptpubkey("mkS4HXoTYWRTescLGaUTGbtTTYX5EjJyEE"),
+                       scriptPubKey=address_to_scriptpubkey(child_address),
                        amount=1 * COIN)
 
         # mine a block and assure that the mined blockhash is in the filterresult
@@ -80,7 +83,7 @@ class ScanblocksTest(BitcoinTestFramework):
 
         # make sure the blockhash is present when using the first mined block as start_height
         assert blockhash in node.scanblocks(
-            "start", [{"desc": f"pkh({parent_key}/*)", "range": [0, 100]}], height)['relevant_blocks']
+            "start", [{"desc": f"tr({parent_key}/*)", "range": [0, 100]}], height)['relevant_blocks']
 
         # check that false-positives are included in the result now; note that
         # finding a false-positive at runtime would take too long, hence we simply

@@ -4,7 +4,6 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the listsinceblock RPC."""
 
-from test_framework.address import key_to_p2wpkh
 from test_framework.blocktools import COINBASE_MATURITY
 from test_framework.descriptors import descsum_create
 from test_framework.test_framework import BitcoinTestFramework
@@ -224,8 +223,8 @@ class ListSinceBlockTest(BitcoinTestFramework):
         self.sync_all()
 
         # share utxo between nodes[1] and nodes[2]
-        privkey, pubkey = generate_keypair(wif=True)
-        address = key_to_p2wpkh(pubkey)
+        privkey, _ = generate_keypair(wif=True)
+        address = self.nodes[2].deriveaddresses(descsum_create(f"tr({privkey})"))[0]
         self.nodes[2].sendtoaddress(address, 10)
         self.generate(self.nodes[2], 6)
         wallet_importprivkey(self.nodes[2], privkey, "now")
@@ -418,9 +417,12 @@ class ListSinceBlockTest(BitcoinTestFramework):
         """Make sure we can track coins by descriptor."""
         self.log.info("Test descriptor lookup by scriptPubKey.")
 
-        # Create a watchonly wallet tracking two multisig descriptors.
-        multi_a = descsum_create("wsh(multi(1,tpubD6NzVbkrYhZ4YBNjUo96Jxd1u4XKWgnoc7LsA1jz3Yc2NiDbhtfBhaBtemB73n9V5vtJHwU6FVXwggTbeoJWQ1rzdz8ysDuQkpnaHyvnvzR/*,tpubD6NzVbkrYhZ4YHdDGMAYGaWxMSC1B6tPRTHuU5t3BcfcS3nrF523iFm5waFd1pP3ZvJt4Jr8XmCmsTBNx5suhcSgtzpGjGMASR3tau1hJz4/*))")
-        multi_b = descsum_create("wsh(multi(1,tpubD6NzVbkrYhZ4YHdDGMAYGaWxMSC1B6tPRTHuU5t3BcfcS3nrF523iFm5waFd1pP3ZvJt4Jr8XmCmsTBNx5suhcSgtzpGjGMASR3tau1hJz4/*,tpubD6NzVbkrYhZ4Y2RLiuEzNQkntjmsLpPYDm3LTRBYynUQtDtpzeUKAcb9sYthSFL3YR74cdFgF5mW8yKxv2W2CWuZDFR2dUpE5PF9kbrVXNZ/*))")
+        # Create a watch-only wallet tracking two Taproot multisig descriptors.
+        key_a = "tpubD6NzVbkrYhZ4YBNjUo96Jxd1u4XKWgnoc7LsA1jz3Yc2NiDbhtfBhaBtemB73n9V5vtJHwU6FVXwggTbeoJWQ1rzdz8ysDuQkpnaHyvnvzR"
+        key_b = "tpubD6NzVbkrYhZ4YHdDGMAYGaWxMSC1B6tPRTHuU5t3BcfcS3nrF523iFm5waFd1pP3ZvJt4Jr8XmCmsTBNx5suhcSgtzpGjGMASR3tau1hJz4"
+        key_c = "tpubD6NzVbkrYhZ4Y2RLiuEzNQkntjmsLpPYDm3LTRBYynUQtDtpzeUKAcb9sYthSFL3YR74cdFgF5mW8yKxv2W2CWuZDFR2dUpE5PF9kbrVXNZ"
+        multi_a = descsum_create(f"tr({key_a}/*,multi_a(1,{key_a}/*,{key_b}/*))")
+        multi_b = descsum_create(f"tr({key_b}/*,multi_a(1,{key_b}/*,{key_c}/*))")
         self.nodes[0].createwallet(wallet_name="wo", disable_private_keys=True)
         wo_wallet = self.nodes[0].get_wallet_rpc("wo")
         wo_wallet.importdescriptors([
