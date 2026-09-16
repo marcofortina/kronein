@@ -474,12 +474,10 @@ n blocks (default: 6)
 \fB\-wallet=\fR<path>
 .IP
 Specify wallet path to load at startup. Can be used multiple times to
-load multiple wallets. Path is to a directory containing wallet
-data and log files. If the path is not absolute, it is
-interpreted relative to <walletdir>. This only loads existing
-wallets and does not create new ones. For backwards compatibility
-this also accepts names of existing top\-level data files in
-<walletdir>.
+load multiple wallets. Path is to a directory containing
+wallet.dat. If the path is not absolute, it is interpreted
+relative to <walletdir>. This only loads existing wallets and
+does not create new ones.
 .HP
 \fB\-walletbroadcast\fR
 .IP
@@ -487,8 +485,7 @@ Make the wallet broadcast transactions (default: 1)
 .HP
 \fB\-walletdir=\fR<dir>
 .IP
-Specify directory to hold wallets (default: <datadir>/wallets if it
-exists, otherwise <datadir>)
+Specify directory to hold wallets (default: <datadir>/wallets)
 .HP
 \fB\-walletnotify=\fR<cmd>
 .IP
