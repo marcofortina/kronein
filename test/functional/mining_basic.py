@@ -161,7 +161,7 @@ class MiningTest(BitcoinTestFramework):
                 assert_equal(tx_below_min_feerate["fee"], get_fee(tx_below_min_feerate["tx"].get_vsize(), lowerfee_btc_kvb))
             else:  # go below zero fee by using modified fees
                 tx_below_min_feerate = self.wallet.send_self_transfer(from_node=node, fee_rate=blockmintxfee_btc_kvb, confirmed_only=True)
-                node.prioritisetransaction(tx_below_min_feerate["txid"], 0, -11)
+                node.prioritisetransaction(tx_below_min_feerate["txid"], -11)
 
             # check that tx below specified fee-rate is neither in template nor in the actual block
             block_template = node.getblocktemplate(NORMAL_GBT_REQUEST_PARAMS)

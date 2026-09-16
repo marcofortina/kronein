@@ -102,12 +102,12 @@ class EphemeralDustTest(BitcoinTestFramework):
         assert_raises_rpc_error(-26, "min relay fee not met", self.nodes[0].sendrawtransaction, dusty_tx["hex"])
 
         # If we add modified fees, it is still not allowed due to dust check
-        self.nodes[0].prioritisetransaction(txid=dusty_tx["txid"], dummy=0, fee_delta=COIN)
+        self.nodes[0].prioritisetransaction(txid=dusty_tx["txid"], fee_delta=COIN)
         test_res = self.nodes[0].testmempoolaccept([dusty_tx["hex"]])
         assert not test_res[0]["allowed"]
         assert_equal(test_res[0]["reject-reason"], "dust")
         # Reset priority
-        self.nodes[0].prioritisetransaction(txid=dusty_tx["txid"], dummy=0, fee_delta=-COIN)
+        self.nodes[0].prioritisetransaction(txid=dusty_tx["txid"], fee_delta=-COIN)
         assert_equal(self.nodes[0].getprioritisedtransactions(), {})
 
         # Package evaluation succeeds
@@ -117,7 +117,7 @@ class EphemeralDustTest(BitcoinTestFramework):
 
         # Entry is denied when non-0-fee, either base or unmodified.
         # If in-mempool, we're not allowed to prioritise due to detected dust output
-        assert_raises_rpc_error(-8, "Priority is not supported for transactions with dust outputs.", self.nodes[0].prioritisetransaction, dusty_tx["txid"], 0, 1)
+        assert_raises_rpc_error(-8, "Priority is not supported for transactions with dust outputs.", self.nodes[0].prioritisetransaction, dusty_tx["txid"], 1)
         assert_equal(self.nodes[0].getprioritisedtransactions(), {})
 
         self.generate(self.nodes[0], 1)
@@ -159,8 +159,8 @@ class EphemeralDustTest(BitcoinTestFramework):
         assert_equal(res["tx-results"][dusty_tx["wtxid"]]["error"], "dust, tx with dust output must be 0-fee")
 
         # Priority is ignored: rejected even if modified fee is 0
-        self.nodes[0].prioritisetransaction(txid=dusty_tx["txid"], dummy=0, fee_delta=-sats_fee)
-        self.nodes[1].prioritisetransaction(txid=dusty_tx["txid"], dummy=0, fee_delta=-sats_fee)
+        self.nodes[0].prioritisetransaction(txid=dusty_tx["txid"], fee_delta=-sats_fee)
+        self.nodes[1].prioritisetransaction(txid=dusty_tx["txid"], fee_delta=-sats_fee)
         res = self.nodes[0].submitpackage([dusty_tx["hex"], sweep_tx["hex"]])
         assert_equal(res["package_msg"], "transaction failed")
         assert_equal(res["tx-results"][dusty_tx["wtxid"]]["error"], "dust, tx with dust output must be 0-fee")
@@ -168,8 +168,8 @@ class EphemeralDustTest(BitcoinTestFramework):
         # Will not be accepted if base fee is 0 with modified fee of non-0
         dusty_tx, sweep_tx = self.create_ephemeral_dust_package()
 
-        self.nodes[0].prioritisetransaction(txid=dusty_tx["txid"], dummy=0, fee_delta=1000)
-        self.nodes[1].prioritisetransaction(txid=dusty_tx["txid"], dummy=0, fee_delta=1000)
+        self.nodes[0].prioritisetransaction(txid=dusty_tx["txid"], fee_delta=1000)
+        self.nodes[1].prioritisetransaction(txid=dusty_tx["txid"], fee_delta=1000)
 
         # It's rejected submitted alone
         test_res = self.nodes[0].testmempoolaccept([dusty_tx["hex"]])

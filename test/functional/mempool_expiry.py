@@ -42,7 +42,7 @@ class MempoolExpiryTest(BitcoinTestFramework):
         independent_utxo = self.wallet.get_utxo()
 
         # Add prioritisation to this transaction to check that it persists after the expiry
-        node.prioritisetransaction(parent_txid, 0, COIN)
+        node.prioritisetransaction(parent_txid, COIN)
         assert_equal(node.getprioritisedtransactions()[parent_txid], { "fee_delta" : COIN, "in_mempool" : True, "modified_fee": COIN + COIN * parent["fee"] })
 
         # Ensure the transactions we send to trigger the mempool check spend utxos that are independent of

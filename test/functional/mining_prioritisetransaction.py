@@ -33,7 +33,7 @@ class PrioritiseTransactionTest(BitcoinTestFramework):
     def clear_prioritisation(self, node):
         for txid, info in node.getprioritisedtransactions().items():
             delta = info["fee_delta"]
-            node.prioritisetransaction(txid, 0, -delta)
+            node.prioritisetransaction(txid, -delta)
         assert_equal(node.getprioritisedtransactions(), {})
 
     def test_large_fee_bump(self):
@@ -93,7 +93,7 @@ class PrioritiseTransactionTest(BitcoinTestFramework):
         tx_replacee = self.wallet.create_self_transfer(utxo_to_spend=conflicting_input, fee_rate=Decimal("0.0001"))
         tx_replacement = self.wallet.create_self_transfer(utxo_to_spend=conflicting_input, fee_rate=Decimal("0.005"))
         # Add 1 satoshi fee delta to replacee
-        self.nodes[0].prioritisetransaction(tx_replacee["txid"], 0, 100)
+        self.nodes[0].prioritisetransaction(tx_replacee["txid"], 100)
         assert_equal(self.nodes[0].getprioritisedtransactions(), { tx_replacee["txid"] : { "fee_delta" : 100, "in_mempool" : False}})
         self.nodes[0].sendrawtransaction(tx_replacee["hex"])
         assert_equal(self.nodes[0].getprioritisedtransactions(), { tx_replacee["txid"] : { "fee_delta" : 100, "in_mempool" : True, "modified_fee": int(tx_replacee["fee"] * COIN + 100)}})
@@ -102,7 +102,7 @@ class PrioritiseTransactionTest(BitcoinTestFramework):
         assert_equal(self.nodes[0].getprioritisedtransactions(), { tx_replacee["txid"] : { "fee_delta" : 100, "in_mempool" : False}})
 
         # PrioritiseTransaction is additive
-        self.nodes[0].prioritisetransaction(tx_replacee["txid"], 0, COIN)
+        self.nodes[0].prioritisetransaction(tx_replacee["txid"], COIN)
         self.nodes[0].sendrawtransaction(tx_replacee["hex"])
         assert_equal(self.nodes[0].getprioritisedtransactions(), { tx_replacee["txid"] : { "fee_delta" : COIN + 100, "in_mempool" : True, "modified_fee": int(tx_replacee["fee"] * COIN + COIN + 100)}})
         self.generate(self.nodes[0], 1)
@@ -205,10 +205,9 @@ class PrioritiseTransactionTest(BitcoinTestFramework):
         # Test `prioritisetransaction` required parameters
         assert_raises_rpc_error(-1, "prioritisetransaction", self.nodes[0].prioritisetransaction)
         assert_raises_rpc_error(-1, "prioritisetransaction", self.nodes[0].prioritisetransaction, '')
-        assert_raises_rpc_error(-1, "prioritisetransaction", self.nodes[0].prioritisetransaction, '', 0)
 
         # Test `prioritisetransaction` invalid extra parameters
-        assert_raises_rpc_error(-1, "prioritisetransaction", self.nodes[0].prioritisetransaction, '', 0, 0, 0)
+        assert_raises_rpc_error(-1, "prioritisetransaction", self.nodes[0].prioritisetransaction, '', 0, 0)
 
         # Test `getprioritisedtransactions` invalid parameters
         assert_raises_rpc_error(-1, "getprioritisedtransactions",
@@ -218,12 +217,10 @@ class PrioritiseTransactionTest(BitcoinTestFramework):
         assert_raises_rpc_error(-8, "txid must be of length 64 (not 3, for 'foo')", self.nodes[0].prioritisetransaction, txid='foo', fee_delta=0)
         assert_raises_rpc_error(-8, "txid must be hexadecimal string (not 'Zd1d4e24ed99057e84c3f80fd8fbec79ed9e1acee37da269356ecea000000000')", self.nodes[0].prioritisetransaction, txid='Zd1d4e24ed99057e84c3f80fd8fbec79ed9e1acee37da269356ecea000000000', fee_delta=0)
 
-        # Test `prioritisetransaction` invalid `dummy`
         txid = '1d1d4e24ed99057e84c3f80fd8fbec79ed9e1acee37da269356ecea000000000'
-        assert_raises_rpc_error(-3, "JSON value of type string is not of expected type number", self.nodes[0].prioritisetransaction, txid, 'foo', 0)
-        assert_raises_rpc_error(-8, "Priority is no longer supported, dummy argument to prioritisetransaction must be 0.", self.nodes[0].prioritisetransaction, txid, 1, 0)
 
         # Test `prioritisetransaction` invalid `fee_delta`
+        assert_raises_rpc_error(-3, "JSON value of type string is not of expected type number", self.nodes[0].prioritisetransaction, txid, 'foo')
         assert_raises_rpc_error(-3, "JSON value of type string is not of expected type number", self.nodes[0].prioritisetransaction, txid=txid, fee_delta='foo')
 
         self.test_large_fee_bump()

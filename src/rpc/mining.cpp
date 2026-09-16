@@ -499,8 +499,6 @@ static RPCHelpMan prioritisetransaction()
                 "Accepts the transaction into mined blocks at a higher (or lower) priority\n",
                 {
                     {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The transaction id."},
-                    {"dummy", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "API-Compatibility for previous API. Must be zero or null.\n"
-            "                  DEPRECATED. For forward compatibility use named arguments and omit this parameter."},
                     {"fee_delta", RPCArg::Type::NUM, RPCArg::Optional::NO, "The fee value (in satoshis) to add (or subtract, if negative).\n"
             "                  Note, that this value is not a fee rate. It is a value to modify absolute fee of the TX.\n"
             "                  The fee is not actually paid, only the algorithm for selecting transactions into a block\n"
@@ -509,20 +507,15 @@ static RPCHelpMan prioritisetransaction()
                 RPCResult{
                     RPCResult::Type::BOOL, "", "Returns true"},
                 RPCExamples{
-                    HelpExampleCli("prioritisetransaction", "\"txid\" 0.0 10000")
-            + HelpExampleRpc("prioritisetransaction", "\"txid\", 0.0, 10000")
+                    HelpExampleCli("prioritisetransaction", "\"txid\" 10000")
+            + HelpExampleRpc("prioritisetransaction", "\"txid\", 10000")
                 },
-        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        [&](const RPCHelpMan&, const JSONRPCRequest& request) -> UniValue
 {
     LOCK(cs_main);
 
     auto txid{Txid::FromUint256(ParseHashV(request.params[0], "txid"))};
-    const auto dummy{self.MaybeArg<double>("dummy")};
-    CAmount nAmount = request.params[2].getInt<int64_t>();
-
-    if (dummy && *dummy != 0) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Priority is no longer supported, dummy argument to prioritisetransaction must be 0.");
-    }
+    CAmount nAmount = request.params[1].getInt<int64_t>();
 
     CTxMemPool& mempool = EnsureAnyMemPool(request.context);
 
@@ -980,14 +973,12 @@ protected:
 
 static RPCHelpMan submitblock()
 {
-    // We allow 2 arguments for compliance with BIP22. Argument 2 is ignored.
     return RPCHelpMan{
         "submitblock",
         "Attempts to submit new block to network.\n"
         "See https://en.bitcoin.it/wiki/BIP_0022 for full specification.\n",
         {
             {"hexdata", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "the hex-encoded block data to submit"},
-            {"dummy", RPCArg::Type::STR, RPCArg::DefaultHint{"ignored"}, "dummy value, for compatibility with BIP22. This value is ignored."},
         },
         {
             RPCResult{"If the block was accepted", RPCResult::Type::NONE, "", ""},

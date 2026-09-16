@@ -219,7 +219,7 @@ class MempoolLimitTest(BitcoinTestFramework):
         # another is below the mempool minimum feerate but bumped by the child.
         tx_poor = miniwallet.create_self_transfer(fee_rate=relayfee)
         tx_rich = miniwallet.create_self_transfer(fee=0, fee_rate=0)
-        node.prioritisetransaction(tx_rich["txid"], 0, int(DEFAULT_FEE * COIN))
+        node.prioritisetransaction(tx_rich["txid"], int(DEFAULT_FEE * COIN))
         package_txns = [tx_rich, tx_poor]
         coins = [tx["new_utxo"] for tx in package_txns]
         tx_child = miniwallet.create_self_transfer_multi(utxos_to_spend=coins, fee_per_output=10000) #DEFAULT_FEE

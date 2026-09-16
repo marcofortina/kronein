@@ -383,7 +383,7 @@ class MempoolClusterTest(BitcoinTestFramework):
         assert node.getmempoolinfo()["optimal"]
 
         # If we prioritise the last transaction it can join the second transaction's chunk.
-        node.prioritisetransaction(third_chunk_tx["txid"], 0, int(third_chunk_tx["fee"]*COIN) + 1)
+        node.prioritisetransaction(third_chunk_tx["txid"], int(third_chunk_tx["fee"]*COIN) + 1)
         first_chunk_info = node.getmempoolcluster(first_chunk_tx["txid"])
         assert_equal(first_chunk_info, {'clusterweight': first_chunkweight + second_chunkweight + third_chunkweight, 'txcount': 3, 'chunks': [{'chunkfee': first_chunk_tx["fee"], 'chunkweight': first_chunkweight, 'txs': [first_chunk_tx["txid"]]}, {'chunkfee': second_chunk_tx["fee"] + 2*third_chunk_tx["fee"] + Decimal("0.00000001"), 'chunkweight': second_chunkweight + third_chunkweight, 'txs': [second_chunk_tx["txid"], third_chunk_tx["txid"]]}]})
 
