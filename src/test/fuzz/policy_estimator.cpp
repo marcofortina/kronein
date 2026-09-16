@@ -90,7 +90,6 @@ FUZZ_TARGET(policy_estimator, .init = initialize_policy_estimator)
             [&] {
                 block_policy_estimator.FlushUnconfirmed();
             });
-        (void)block_policy_estimator.estimateFee(fuzzed_data_provider.ConsumeIntegral<int>());
         EstimationResult result;
         auto conf_target = fuzzed_data_provider.ConsumeIntegral<int>();
         auto success_threshold = fuzzed_data_provider.ConsumeFloatingPoint<double>();
