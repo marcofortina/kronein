@@ -48,12 +48,6 @@ enum RPCErrorCode
     RPC_VERIFY_REJECTED             = -26, //!< Transaction or block was rejected by network rules
     RPC_VERIFY_ALREADY_IN_UTXO_SET  = -27, //!< Transaction already in utxo set
     RPC_IN_WARMUP                   = -28, //!< Client still warming up
-    RPC_METHOD_DEPRECATED           = -32, //!< RPC method is deprecated
-
-    //! Aliases for backward compatibility
-    RPC_TRANSACTION_ERROR           = RPC_VERIFY_ERROR,
-    RPC_TRANSACTION_REJECTED        = RPC_VERIFY_REJECTED,
-
     //! P2P client errors
     RPC_CLIENT_NOT_CONNECTED        = -9,  //!< Bitcoin is not connected
     RPC_CLIENT_IN_INITIAL_DOWNLOAD  = -10, //!< Still downloading initial blocks
@@ -82,11 +76,6 @@ enum RPCErrorCode
     RPC_WALLET_ALREADY_LOADED       = -35, //!< This same wallet is already loaded
     RPC_WALLET_ALREADY_EXISTS       = -36, //!< There is already a wallet with the same name
 
-    //! Backwards compatible aliases
-    RPC_WALLET_INVALID_ACCOUNT_NAME = RPC_WALLET_INVALID_LABEL_NAME,
-
-    //! Unused reserved codes, kept around for backwards compatibility. Do not reuse.
-    RPC_FORBIDDEN_BY_SAFE_MODE      = -2,  //!< Server is in safe mode, and command is not allowed in safe mode
 };
 
 #endif // BITCOIN_RPC_PROTOCOL_H
