@@ -2559,16 +2559,6 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished">出站地址取回: 短暂，用于请求取回地址</translation>
     </message>
     <message>
-        <source>detecting: peer could be v1 or v2</source>
-        <extracomment>Explanatory text for "detecting" transport type.</extracomment>
-        <translation type="unfinished">检测中: 节点可能是v1或是v2</translation>
-    </message>
-    <message>
-        <source>v1: unencrypted, plaintext transport protocol</source>
-        <extracomment>Explanatory text for v1 transport type.</extracomment>
-        <translation type="unfinished">v1: 未加密，明文传输协议</translation>
-    </message>
-    <message>
         <source>v2: BIP324 encrypted transport protocol</source>
         <extracomment>Explanatory text for v2 transport type.</extracomment>
         <translation type="unfinished">v2: BIP324加密传输协议</translation>

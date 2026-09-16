@@ -2655,16 +2655,6 @@ Má tá an earráid seo á fáil agat ba cheart duit iarraidh ar an díoltóir U
         <translation type="unfinished">Craoladh príobháideach: gearrshaolach, le haghaidh craoladh idirbheart íogair ó thaobh príobháideachta de</translation>
     </message>
     <message>
-        <source>detecting: peer could be v1 or v2</source>
-        <extracomment>Explanatory text for "detecting" transport type.</extracomment>
-        <translation type="unfinished">bhrath: d’fhéadfadh v1 nó v2 a bheith i gcomhghleacaí</translation>
-    </message>
-    <message>
-        <source>v1: unencrypted, plaintext transport protocol</source>
-        <extracomment>Explanatory text for v1 transport type.</extracomment>
-        <translation type="unfinished">v1: prótacal iompair gnáththéacs gan chriptiú</translation>
-    </message>
-    <message>
         <source>v2: BIP324 encrypted transport protocol</source>
         <extracomment>Explanatory text for v2 transport type.</extracomment>
         <translation type="unfinished">v2: BIP324 prótacal iompair criptithe</translation>

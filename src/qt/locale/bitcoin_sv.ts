@@ -2293,11 +2293,6 @@ Om den här plånboken innehåller lösbara</translation>
         <translation type="unfinished">Ut:</translation>
     </message>
     <message>
-        <source>v1: unencrypted, plaintext transport protocol</source>
-        <extracomment>Explanatory text for v1 transport type.</extracomment>
-        <translation type="unfinished">v1: okrypterat transportprotokoll i klartext</translation>
-    </message>
-    <message>
         <source>v2: BIP324 encrypted transport protocol</source>
         <extracomment>Explanatory text for v2 transport type.</extracomment>
         <translation type="unfinished">v2: BIP324 krypterat transportprotokoll</translation>

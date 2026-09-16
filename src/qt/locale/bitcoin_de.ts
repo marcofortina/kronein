@@ -2497,16 +2497,6 @@ Wenn Sie diese Fehlermeldung erhalten, sollten Sie den Händler bitten, einen BI
         <translation type="unfinished">Private Rundsendung: kurzlebig, zur Rundsendung von datenschutzsensiblen Transaktionen</translation>
     </message>
     <message>
-        <source>detecting: peer could be v1 or v2</source>
-        <extracomment>Explanatory text for "detecting" transport type.</extracomment>
-        <translation type="unfinished">Erkenne: Peer könnte v1 oder v2 sein</translation>
-    </message>
-    <message>
-        <source>v1: unencrypted, plaintext transport protocol</source>
-        <extracomment>Explanatory text for v1 transport type.</extracomment>
-        <translation type="unfinished">V1: Unverschlüsseltes Klartext-Transportprotokoll</translation>
-    </message>
-    <message>
         <source>v2: BIP324 encrypted transport protocol</source>
         <extracomment>Explanatory text for v2 transport type.</extracomment>
         <translation type="unfinished">v2: BIP324 verschlüsseltes Transportprotokoll</translation>

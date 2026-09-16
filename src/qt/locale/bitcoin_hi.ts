@@ -1287,16 +1287,6 @@ The migration process will create a backup of the wallet before migrating. This 
         <translation type="unfinished">आउटबाउंड एड्रेस फ़ेच: अल्पकालिक, याचना पतों के लिए</translation>
     </message>
     <message>
-        <source>detecting: peer could be v1 or v2</source>
-        <extracomment>Explanatory text for "detecting" transport type.</extracomment>
-        <translation type="unfinished">पता लगा जा रहा है: peer v1 या v2 हो सकता है</translation>
-    </message>
-    <message>
-        <source>v1: unencrypted, plaintext transport protocol</source>
-        <extracomment>Explanatory text for v1 transport type.</extracomment>
-        <translation type="unfinished">v1: अनएन्क्रिप्टेड, प्लेनटेक्स्ट ट्रांसपोर्ट प्रोटोकॉल</translation>
-    </message>
-    <message>
         <source>v2: BIP324 encrypted transport protocol</source>
         <extracomment>Explanatory text for v2 transport type.</extracomment>
         <translation type="unfinished">v2: BIP324 एन्क्रिप्टेड ट्रांसपोर्ट प्रोटोकॉल</translation>

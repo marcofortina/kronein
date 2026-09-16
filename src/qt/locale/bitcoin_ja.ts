@@ -2621,16 +2621,6 @@ BIP70には広範なセキュリティー上の問題があるので、ウォレ
         <translation type="unfinished">プライベートブロードキャスト: プライバシーに配慮した取引をブロードキャストするためもので、短命</translation>
     </message>
     <message>
-        <source>detecting: peer could be v1 or v2</source>
-        <extracomment>Explanatory text for "detecting" transport type.</extracomment>
-        <translation type="unfinished">検出中: ピアは v1 でも v2 でもよい</translation>
-    </message>
-    <message>
-        <source>v1: unencrypted, plaintext transport protocol</source>
-        <extracomment>Explanatory text for v1 transport type.</extracomment>
-        <translation type="unfinished">v1: 非暗号, 平文トランスポートプロトコル</translation>
-    </message>
-    <message>
         <source>v2: BIP324 encrypted transport protocol</source>
         <extracomment>Explanatory text for v2 transport type.</extracomment>
         <translation type="unfinished">v2: BIP324 暗号化トランスポートプロトコル</translation>

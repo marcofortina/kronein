@@ -2543,16 +2543,6 @@ BIP70 માં વ્યાપક સુરક્ષા ખામીઓને �
         <translation type="unfinished">આઉટબાઉન્ડ સરનામું મેળવો: અલ્પજીવી, સરનામાંની વિનંતી કરવા માટે</translation>
     </message>
     <message>
-        <source>detecting: peer could be v1 or v2</source>
-        <extracomment>Explanatory text for "detecting" transport type.</extracomment>
-        <translation type="unfinished">શોધવું: પીઅર v1 અથવા v2 હોઈ શકે છે</translation>
-    </message>
-    <message>
-        <source>v1: unencrypted, plaintext transport protocol</source>
-        <extracomment>Explanatory text for v1 transport type.</extracomment>
-        <translation type="unfinished">v1: એનક્રિપ્ટેડ, પ્લેનટેક્સ્ટ ટ્રાન્સપોર્ટ પ્રોટોકોલ</translation>
-    </message>
-    <message>
         <source>v2: BIP324 encrypted transport protocol</source>
         <extracomment>Explanatory text for v2 transport type.</extracomment>
         <translation type="unfinished">v2: BIP324 એન્ક્રિપ્ટેડ ટ્રાન્સપોર્ટ પ્રોટોકોલ</translation>

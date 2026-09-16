@@ -2637,16 +2637,6 @@ Errore hau jasotzen baduzu, merkatariei BIP21-arekin bateragarria den URI bat em
         <translation type="unfinished">Emisio pribatua: iraupen laburrekoa, pribatutasunarekiko sentikorrak diren transakzioak zabaltzeko.</translation>
     </message>
     <message>
-        <source>detecting: peer could be v1 or v2</source>
-        <extracomment>Explanatory text for "detecting" transport type.</extracomment>
-        <translation type="unfinished">detektatzen: parea v1 edo v2 izan daiteke.</translation>
-    </message>
-    <message>
-        <source>v1: unencrypted, plaintext transport protocol</source>
-        <extracomment>Explanatory text for v1 transport type.</extracomment>
-        <translation type="unfinished">v1: zifratu gabea, testu lauzko garraio-protokoloa.</translation>
-    </message>
-    <message>
         <source>v2: BIP324 encrypted transport protocol</source>
         <extracomment>Explanatory text for v2 transport type.</extracomment>
         <translation type="unfinished">v2: BIP324 bidez zifratutako garraio-protokoloa.</translation>

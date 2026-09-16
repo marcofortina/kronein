@@ -2623,16 +2623,6 @@ Fært tú hesi feilboð, skalt tú biðja seljaran, ella tann vinnurekandi, útf
         <translation type="unfinished">Loyniútvarping: stokkut, at útvarpa viðkvæmar flytingar</translation>
     </message>
     <message>
-        <source>detecting: peer could be v1 or v2</source>
-        <extracomment>Explanatory text for "detecting" transport type.</extracomment>
-        <translation type="unfinished">kannar: javningi kann vera v1 ella v2</translation>
-    </message>
-    <message>
-        <source>v1: unencrypted, plaintext transport protocol</source>
-        <extracomment>Explanatory text for v1 transport type.</extracomment>
-        <translation type="unfinished">v1: óbronglað, bersýnt fjarskiftisprotokoll</translation>
-    </message>
-    <message>
         <source>v2: BIP324 encrypted transport protocol</source>
         <extracomment>Explanatory text for v2 transport type.</extracomment>
         <translation type="unfinished">v2: BIP324 bronglað fjarskiftisprotokoll</translation>

@@ -2917,14 +2917,9 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <note annotates="source" from="developer">Explanatory text for a short-lived outbound peer connection that is used to broadcast privacy-sensitive data (like our transactions).</note>
       </trans-unit>
       <trans-unit id="_msg622">
-        <source xml:space="preserve">detecting: peer could be v1 or v2</source>
+        <source xml:space="preserve">detecting: BIP324 handshake in progress</source>
         <context-group purpose="location"><context context-type="linenumber">495</context></context-group>
         <note annotates="source" from="developer">Explanatory text for &quot;detecting&quot; transport type.</note>
-      </trans-unit>
-      <trans-unit id="_msg623">
-        <source xml:space="preserve">v1: unencrypted, plaintext transport protocol</source>
-        <context-group purpose="location"><context context-type="linenumber">497</context></context-group>
-        <note annotates="source" from="developer">Explanatory text for v1 transport type.</note>
       </trans-unit>
       <trans-unit id="_msg624">
         <source xml:space="preserve">v2: BIP324 encrypted transport protocol</source>

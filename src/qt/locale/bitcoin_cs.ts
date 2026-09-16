@@ -2130,16 +2130,6 @@ Proces migrace vytvoří zálohu peněženky před samotnou migrací. Tento zál
         <translation type="unfinished">Soukromý broadcast: krátkodobé spojení pro přenos citlivých transakcí</translation>
     </message>
     <message>
-        <source>detecting: peer could be v1 or v2</source>
-        <extracomment>Explanatory text for "detecting" transport type.</extracomment>
-        <translation type="unfinished">detekováno: protějšek může být v1 nebo v2</translation>
-    </message>
-    <message>
-        <source>v1: unencrypted, plaintext transport protocol</source>
-        <extracomment>Explanatory text for v1 transport type.</extracomment>
-        <translation type="unfinished">v1: nešifrovaný, transportní protokol využívající volný text</translation>
-    </message>
-    <message>
         <source>v2: BIP324 encrypted transport protocol</source>
         <extracomment>Explanatory text for v2 transport type.</extracomment>
         <translation type="unfinished">v2: transportní protokol využívající šifrování pomocí BIP324</translation>

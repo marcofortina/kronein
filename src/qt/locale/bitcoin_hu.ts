@@ -2568,16 +2568,6 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished">Outbound Address Fetch: rövid életű, címek lekérdezéséhez.</translation>
     </message>
     <message>
-        <source>detecting: peer could be v1 or v2</source>
-        <extracomment>Explanatory text for "detecting" transport type.</extracomment>
-        <translation type="unfinished">észlelve: partrer lehet v1 vagy v2</translation>
-    </message>
-    <message>
-        <source>v1: unencrypted, plaintext transport protocol</source>
-        <extracomment>Explanatory text for v1 transport type.</extracomment>
-        <translation type="unfinished">v1: titkosítatlan, egyszerű szöveges átviteli protokol</translation>
-    </message>
-    <message>
         <source>v2: BIP324 encrypted transport protocol</source>
         <extracomment>Explanatory text for v2 transport type.</extracomment>
         <translation type="unfinished">v2: BIP324 titkosított átviteli protokol</translation>

@@ -2584,16 +2584,6 @@ BIP70의 광범위한 보안 결함으로 인해 모든 가맹점에서는 지�
  </translation>
     </message>
     <message>
-        <source>detecting: peer could be v1 or v2</source>
-        <extracomment>Explanatory text for "detecting" transport type.</extracomment>
-        <translation type="unfinished">감지 중: 피어는 v1 또는 v2일 수 있습니다</translation>
-    </message>
-    <message>
-        <source>v1: unencrypted, plaintext transport protocol</source>
-        <extracomment>Explanatory text for v1 transport type.</extracomment>
-        <translation type="unfinished">v1: 암호화되지 않은 평문 전송 프로토콜</translation>
-    </message>
-    <message>
         <source>v2: BIP324 encrypted transport protocol</source>
         <extracomment>Explanatory text for v2 transport type.</extracomment>
         <translation type="unfinished">v2: BIP324를 사용하는 암호화된 전송 프로토콜</translation>

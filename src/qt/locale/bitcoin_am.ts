@@ -748,16 +748,6 @@ The migration process will create a backup of the wallet before migrating. This 
         <translation type="unfinished">የBIP324 ክፍለ ጊዜ መለያ ሕብረቁምፊ በሄክስ።</translation>
     </message>
     <message>
-        <source>detecting: peer could be v1 or v2</source>
-        <extracomment>Explanatory text for "detecting" transport type.</extracomment>
-        <translation type="unfinished">ማወቅ፡ እኩያ v1 ወይም v2 ሊሆን ይችላል።</translation>
-    </message>
-    <message>
-        <source>v1: unencrypted, plaintext transport protocol</source>
-        <extracomment>Explanatory text for v1 transport type.</extracomment>
-        <translation type="unfinished">v1፡ ያልተመሰጠረ፣ ግልጽ የጽሑፍ ትራንስፖርት ፕሮቶኮል</translation>
-    </message>
-    <message>
         <source>v2: BIP324 encrypted transport protocol</source>
         <extracomment>Explanatory text for v2 transport type.</extracomment>
         <translation type="unfinished">v2፡ BIP324 የተመሰጠረ የትራንስፖርት ፕሮቶኮል</translation>

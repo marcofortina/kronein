@@ -3386,14 +3386,8 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
     <message>
         <location line="+5"/>
-        <source>detecting: peer could be v1 or v2</source>
+        <source>detecting: BIP324 handshake in progress</source>
         <extracomment>Explanatory text for &quot;detecting&quot; transport type.</extracomment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+2"/>
-        <source>v1: unencrypted, plaintext transport protocol</source>
-        <extracomment>Explanatory text for v1 transport type.</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>

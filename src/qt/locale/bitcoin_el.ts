@@ -2062,16 +2062,6 @@ The migration process will create a backup of the wallet before migrating. This 
         <translation type="unfinished">Η συμβολοσειρά αναγνωριστικού περιόδου σύνδεσης BIP324 σε δεκαεξαδική μορφή.</translation>
     </message>
     <message>
-        <source>detecting: peer could be v1 or v2</source>
-        <extracomment>Explanatory text for "detecting" transport type.</extracomment>
-        <translation type="unfinished">ανίχνευση: ο κόμβος μπορεί να είναι v1 ή v2</translation>
-    </message>
-    <message>
-        <source>v1: unencrypted, plaintext transport protocol</source>
-        <extracomment>Explanatory text for v1 transport type.</extracomment>
-        <translation type="unfinished">v1: μη κρυπτογραφημένο, πρωτόκολλο μεταφοράς απλού κειμένου</translation>
-    </message>
-    <message>
         <source>v2: BIP324 encrypted transport protocol</source>
         <extracomment>Explanatory text for v2 transport type.</extracomment>
         <translation type="unfinished">v2: BIP324 κρυπτογραφημένο πρωτόκολλο μεταφοράς</translation>

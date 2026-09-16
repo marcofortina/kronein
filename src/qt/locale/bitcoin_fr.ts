@@ -2621,16 +2621,6 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished">Diffusion privée : de courte durée, pour diffuser des transactions sensibles en termes de confidentialité</translation>
     </message>
     <message>
-        <source>detecting: peer could be v1 or v2</source>
-        <extracomment>Explanatory text for "detecting" transport type.</extracomment>
-        <translation type="unfinished">détection : les paires pourraient être v1 ou v2</translation>
-    </message>
-    <message>
-        <source>v1: unencrypted, plaintext transport protocol</source>
-        <extracomment>Explanatory text for v1 transport type.</extracomment>
-        <translation type="unfinished">v1 : protocole de transport non chiffré en texte clair</translation>
-    </message>
-    <message>
         <source>v2: BIP324 encrypted transport protocol</source>
         <extracomment>Explanatory text for v2 transport type.</extracomment>
         <translation type="unfinished">v2 : protocole de transport chiffré BIP324</translation>

@@ -2497,11 +2497,6 @@ Si rebeu aquest error, haureu de sol·licitar al comerciant que proporcioni un U
         <translation type="unfinished">Obtenció d'adreces de sortida: de curta durada, per a sol·licitar adreces</translation>
     </message>
     <message>
-        <source>detecting: peer could be v1 or v2</source>
-        <extracomment>Explanatory text for "detecting" transport type.</extracomment>
-        <translation type="unfinished">detectant: l'igual podria ser v1 o v2</translation>
-    </message>
-    <message>
         <source>we selected the peer for high bandwidth relay</source>
         <translation type="unfinished">hem seleccionat l'igual per a un gran trànsit d'amplada de banda</translation>
     </message>

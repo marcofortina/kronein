@@ -974,11 +974,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">Tími síðustu blokkar</translation>
     </message>
     <message>
-        <source>v1: unencrypted, plaintext transport protocol</source>
-        <extracomment>Explanatory text for v1 transport type.</extracomment>
-        <translation type="unfinished">v1: ódulkóðuð, látlaus flutningsaðferð</translation>
-    </message>
-    <message>
         <source>Executing command without any wallet</source>
         <translation type="unfinished">Framkvæmir skipun án veskis</translation>
     </message>
