@@ -224,14 +224,14 @@ util::Result<std::unique_ptr<AddrMan>> LoadAddrman(const NetGroupManager& netgro
 void DumpAnchors(const fs::path& anchors_db_path, const std::vector<CAddress>& anchors)
 {
     LOG_TIME_SECONDS(strprintf("Flush %d outbound block-relay-only peer addresses to anchors.dat", anchors.size()));
-    SerializeFileDB("anchors", anchors_db_path, CAddress::V2_DISK(anchors));
+    SerializeFileDB("anchors", anchors_db_path, CAddress::DISK(anchors));
 }
 
 std::vector<CAddress> ReadAnchors(const fs::path& anchors_db_path)
 {
     std::vector<CAddress> anchors;
     try {
-        DeserializeFileDB(anchors_db_path, CAddress::V2_DISK(anchors));
+        DeserializeFileDB(anchors_db_path, CAddress::DISK(anchors));
         LogInfo("Loaded %i addresses from %s", anchors.size(), fs::quoted(fs::PathToString(anchors_db_path.filename())));
     } catch (const std::exception&) {
         anchors.clear();

@@ -135,7 +135,7 @@ void CNetAddr::SetIP(const CNetAddr& ipIn)
     m_addr = ipIn.m_addr;
 }
 
-void CNetAddr::SetLegacyIPv6(std::span<const uint8_t> ipv6)
+void CNetAddr::SetIPv6(std::span<const uint8_t> ipv6)
 {
     assert(ipv6.size() == ADDR_IPV6_SIZE);
 
@@ -145,17 +145,6 @@ void CNetAddr::SetLegacyIPv6(std::span<const uint8_t> ipv6)
         // IPv4-in-IPv6
         m_net = NET_IPV4;
         skip = sizeof(IPV4_IN_IPV6_PREFIX);
-    } else if (HasPrefix(ipv6, TORV2_IN_IPV6_PREFIX)) {
-        // TORv2-in-IPv6 (unsupported). Unserialize as !IsValid(), thus ignoring them.
-        // Mimic a default-constructed CNetAddr object which is !IsValid() and thus
-        // will not be gossiped, but continue reading next addresses from the stream.
-        m_net = NET_IPV6;
-        m_addr.assign(ADDR_IPV6_SIZE, 0x0);
-        return;
-    } else if (HasPrefix(ipv6, INTERNAL_IN_IPV6_PREFIX)) {
-        // Internal-in-IPv6
-        m_net = NET_INTERNAL;
-        skip = sizeof(INTERNAL_IN_IPV6_PREFIX);
     } else {
         // IPv6
         m_net = NET_IPV6;
@@ -296,7 +285,7 @@ CNetAddr::CNetAddr(const struct in_addr& ipv4Addr)
 
 CNetAddr::CNetAddr(const struct in6_addr& ipv6Addr, const uint32_t scope)
 {
-    SetLegacyIPv6({reinterpret_cast<const uint8_t*>(&ipv6Addr), sizeof(ipv6Addr)});
+    SetIPv6({reinterpret_cast<const uint8_t*>(&ipv6Addr), sizeof(ipv6Addr)});
     m_scope_id = scope;
 }
 
@@ -472,25 +461,6 @@ bool CNetAddr::IsRoutable() const
 bool CNetAddr::IsInternal() const
 {
    return m_net == NET_INTERNAL;
-}
-
-bool CNetAddr::IsAddrV1Compatible() const
-{
-    switch (m_net) {
-    case NET_IPV4:
-    case NET_IPV6:
-    case NET_INTERNAL:
-        return true;
-    case NET_ONION:
-    case NET_I2P:
-    case NET_CJDNS:
-        return false;
-    case NET_UNROUTABLE: // m_net is never and should not be set to NET_UNROUTABLE
-    case NET_MAX:        // m_net is never and should not be set to NET_MAX
-        assert(false);
-    } // no default case, so the compiler can warn about missing cases
-
-    assert(false);
 }
 
 enum Network CNetAddr::GetNetwork() const
@@ -691,10 +661,15 @@ Network CNetAddr::GetNetClass() const
 
 std::vector<unsigned char> CNetAddr::GetAddrBytes() const
 {
-    if (IsAddrV1Compatible()) {
-        uint8_t serialized[V1_SERIALIZATION_SIZE];
-        SerializeV1Array(serialized);
-        return {std::begin(serialized), std::end(serialized)};
+    if (IsIPv4()) {
+        std::vector<unsigned char> bytes{IPV4_IN_IPV6_PREFIX.begin(), IPV4_IN_IPV6_PREFIX.end()};
+        bytes.insert(bytes.end(), m_addr.begin(), m_addr.end());
+        return bytes;
+    }
+    if (IsInternal()) {
+        std::vector<unsigned char> bytes{INTERNAL_IN_IPV6_PREFIX.begin(), INTERNAL_IN_IPV6_PREFIX.end()};
+        bytes.insert(bytes.end(), m_addr.begin(), m_addr.end());
+        return bytes;
     }
     return std::vector<unsigned char>(m_addr.begin(), m_addr.end());
 }

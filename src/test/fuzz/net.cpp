@@ -33,9 +33,7 @@ FUZZ_TARGET(net, .init = initialize_net)
     FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
     SetMockTime(ConsumeTime(fuzzed_data_provider));
     CNode node{ConsumeNode(fuzzed_data_provider)};
-    if (const auto service_opt =
-            ConsumeDeserializable<CService>(fuzzed_data_provider, ConsumeDeserializationParams<CNetAddr::SerParams>(fuzzed_data_provider)))
-    {
+    if (const auto service_opt = ConsumeDeserializable<CService>(fuzzed_data_provider)) {
         node.SetAddrLocal(*service_opt);
     }
     LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 10000) {

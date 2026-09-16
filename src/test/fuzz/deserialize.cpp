@@ -232,28 +232,18 @@ FUZZ_TARGET_DESERIALIZE(coins_deserialize, {
 FUZZ_TARGET(netaddr_deserialize, .init = initialize_deserialize)
 {
     FuzzedDataProvider fdp{buffer.data(), buffer.size()};
-    const auto maybe_na{ConsumeDeserializable<CNetAddr>(fdp, ConsumeDeserializationParams<CNetAddr::SerParams>(fdp))};
+    const auto maybe_na{ConsumeDeserializable<CNetAddr>(fdp)};
     if (!maybe_na) return;
     const CNetAddr& na{*maybe_na};
-    if (na.IsAddrV1Compatible()) {
-        AssertEqualAfterSerializeDeserialize(na, CNetAddr::V1);
-    }
-    AssertEqualAfterSerializeDeserialize(na, CNetAddr::V2);
+    AssertEqualAfterSerializeDeserialize(na);
 }
 FUZZ_TARGET(service_deserialize, .init = initialize_deserialize)
 {
     FuzzedDataProvider fdp{buffer.data(), buffer.size()};
-    const auto ser_params{ConsumeDeserializationParams<CNetAddr::SerParams>(fdp)};
-    const auto maybe_s{ConsumeDeserializable<CService>(fdp, ser_params)};
+    const auto maybe_s{ConsumeDeserializable<CService>(fdp)};
     if (!maybe_s) return;
     const CService& s{*maybe_s};
-    if (s.IsAddrV1Compatible()) {
-        AssertEqualAfterSerializeDeserialize(s, CNetAddr::V1);
-    }
-    AssertEqualAfterSerializeDeserialize(s, CNetAddr::V2);
-    if (ser_params.enc == CNetAddr::Encoding::V1) {
-        assert(s.IsAddrV1Compatible());
-    }
+    AssertEqualAfterSerializeDeserialize(s);
 }
 FUZZ_TARGET_DESERIALIZE(messageheader_deserialize, {
     CMessageHeader mh;
@@ -267,8 +257,8 @@ FUZZ_TARGET(address_deserialize, .init = initialize_deserialize)
     const auto maybe_a{ConsumeDeserializable<CAddress>(fdp, ser_enc)};
     if (!maybe_a) return;
     const CAddress& a{*maybe_a};
-    AssertEqualAfterSerializeDeserialize(a, CAddress::V2_NETWORK);
-    AssertEqualAfterSerializeDeserialize(a, CAddress::V2_DISK);
+    AssertEqualAfterSerializeDeserialize(a, CAddress::NETWORK);
+    AssertEqualAfterSerializeDeserialize(a, CAddress::DISK);
 }
 FUZZ_TARGET_DESERIALIZE(inv_deserialize, {
     CInv i;

@@ -58,19 +58,10 @@ enum Network {
 };
 
 /// Prefix of an IPv6 address when it contains an embedded IPv4 address.
-/// Used when (un)serializing addresses in ADDRv1 format (pre-BIP155).
 static const std::array<uint8_t, 12> IPV4_IN_IPV6_PREFIX{
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF};
 
-/// Prefix of an IPv6 address when it contains an embedded TORv2 address.
-/// Used when (un)serializing addresses in ADDRv1 format (pre-BIP155).
-/// Such dummy IPv6 addresses are guaranteed to not be publicly routable as they
-/// fall under RFC4193's fc00::/7 subnet allocated to unique-local addresses.
-static const std::array<uint8_t, 6> TORV2_IN_IPV6_PREFIX{
-    0xFD, 0x87, 0xD8, 0x7E, 0xEB, 0x43};
-
 /// Prefix of an IPv6 address when it contains an embedded "internal" address.
-/// Used when (un)serializing addresses in ADDRv1 format (pre-BIP155).
 /// The prefix comes from 0xFD + SHA256("bitcoin")[0:5].
 /// Such dummy IPv6 addresses are guaranteed to not be publicly routable as they
 /// fall under RFC4193's fc00::/7 subnet allocated to unique-local addresses.
@@ -134,13 +125,8 @@ public:
     explicit CNetAddr(const struct in_addr& ipv4Addr);
     void SetIP(const CNetAddr& ip);
 
-    /**
-     * Set from a legacy IPv6 address.
-     * Legacy IPv6 address may be a normal IPv6 address, or another address
-     * (e.g. IPv4) disguised as IPv6. This encoding is used in the legacy
-     * `addr` encoding.
-     */
-    void SetLegacyIPv6(std::span<const uint8_t> ipv6);
+    //! Set from a 16-byte IPv6 address, normalizing IPv4-mapped addresses.
+    void SetIPv6(std::span<const uint8_t> ipv6);
 
     bool SetInternal(const std::string& name);
 
@@ -188,11 +174,6 @@ public:
      */
     [[nodiscard]] bool IsPrivacyNet() const { return IsTor() || IsI2P(); }
 
-    /**
-     * Check if the current object can be serialized in pre-ADDRv2/BIP155 format.
-     */
-    bool IsAddrV1Compatible() const;
-
     enum Network GetNetwork() const;
     std::string ToStringAddr() const;
     bool GetInAddr(struct in_addr* pipv4Addr) const;
@@ -220,41 +201,16 @@ public:
         return IsIPv4() || IsIPv6() || IsTor() || IsI2P() || IsCJDNS();
     }
 
-    enum class Encoding {
-        V1,
-        V2, //!< BIP155 encoding
-    };
-    struct SerParams {
-        const Encoding enc;
-        SER_PARAMS_OPFUNC
-    };
-    static constexpr SerParams V1{Encoding::V1};
-    static constexpr SerParams V2{Encoding::V2};
-
-    /**
-     * Serialize to a stream.
-     */
     template <typename Stream>
     void Serialize(Stream& s) const
     {
-        if (s.template GetParams<SerParams>().enc == Encoding::V2) {
-            SerializeV2Stream(s);
-        } else {
-            SerializeV1Stream(s);
-        }
+        SerializeV2Stream(s);
     }
 
-    /**
-     * Unserialize from a stream.
-     */
     template <typename Stream>
     void Unserialize(Stream& s)
     {
-        if (s.template GetParams<SerParams>().enc == Encoding::V2) {
-            UnserializeV2Stream(s);
-        } else {
-            UnserializeV1Stream(s);
-        }
+        UnserializeV2Stream(s);
     }
 
     /**
@@ -263,7 +219,6 @@ public:
     enum BIP155Network : uint8_t {
         IPV4 = 1,
         IPV6 = 2,
-        TORV2 = 3,
         TORV3 = 4,
         I2P = 5,
         CJDNS = 6,
@@ -291,11 +246,6 @@ private:
     bool SetI2P(std::string_view addr);
 
     /**
-     * Size of CNetAddr when serialized as ADDRv1 (pre-BIP155) (in bytes).
-     */
-    static constexpr size_t V1_SERIALIZATION_SIZE = ADDR_IPV6_SIZE;
-
-    /**
      * Maximum size of an address as defined in BIP155 (in bytes).
      * This is only the size of the address, not the entire CNetAddr object
      * when serialized.
@@ -305,7 +255,7 @@ private:
     /**
      * Get the BIP155 network id of this address.
      * Must not be called for IsInternal() objects.
-     * @returns BIP155 network id, except TORV2 which is no longer supported.
+     * @returns BIP155 network id.
      */
     BIP155Network GetBIP155Network() const;
 
@@ -319,56 +269,6 @@ private:
     bool SetNetFromBIP155Network(uint8_t possible_bip155_net, size_t address_size);
 
     /**
-     * Serialize in pre-ADDRv2/BIP155 format to an array.
-     */
-    void SerializeV1Array(uint8_t (&arr)[V1_SERIALIZATION_SIZE]) const
-    {
-        size_t prefix_size;
-
-        switch (m_net) {
-        case NET_IPV6:
-            assert(m_addr.size() == sizeof(arr));
-            memcpy(arr, m_addr.data(), m_addr.size());
-            return;
-        case NET_IPV4:
-            prefix_size = sizeof(IPV4_IN_IPV6_PREFIX);
-            assert(prefix_size + m_addr.size() == sizeof(arr));
-            memcpy(arr, IPV4_IN_IPV6_PREFIX.data(), prefix_size);
-            memcpy(arr + prefix_size, m_addr.data(), m_addr.size());
-            return;
-        case NET_INTERNAL:
-            prefix_size = sizeof(INTERNAL_IN_IPV6_PREFIX);
-            assert(prefix_size + m_addr.size() == sizeof(arr));
-            memcpy(arr, INTERNAL_IN_IPV6_PREFIX.data(), prefix_size);
-            memcpy(arr + prefix_size, m_addr.data(), m_addr.size());
-            return;
-        case NET_ONION:
-        case NET_I2P:
-        case NET_CJDNS:
-            break;
-        case NET_UNROUTABLE:
-        case NET_MAX:
-            assert(false);
-        } // no default case, so the compiler can warn about missing cases
-
-        // Serialize ONION, I2P and CJDNS as all-zeros.
-        memset(arr, 0x0, V1_SERIALIZATION_SIZE);
-    }
-
-    /**
-     * Serialize in pre-ADDRv2/BIP155 format to a stream.
-     */
-    template <typename Stream>
-    void SerializeV1Stream(Stream& s) const
-    {
-        uint8_t serialized[V1_SERIALIZATION_SIZE];
-
-        SerializeV1Array(serialized);
-
-        s << serialized;
-    }
-
-    /**
      * Serialize as ADDRv2 / BIP155.
      */
     template <typename Stream>
@@ -379,41 +279,14 @@ private:
             // serialize such addresses from addrman.
             s << static_cast<uint8_t>(BIP155Network::IPV6);
             s << COMPACTSIZE(ADDR_IPV6_SIZE);
-            SerializeV1Stream(s);
+            const auto address_bytes{GetAddrBytes()};
+            assert(address_bytes.size() == ADDR_IPV6_SIZE);
+            s << std::span{address_bytes};
             return;
         }
 
         s << static_cast<uint8_t>(GetBIP155Network());
         s << m_addr;
-    }
-
-    /**
-     * Unserialize from a pre-ADDRv2/BIP155 format from an array.
-     *
-     * This function is only called from UnserializeV1Stream() and is a wrapper
-     * for SetLegacyIPv6(); however, we keep it for symmetry with
-     * SerializeV1Array() to have pairs of ser/unser functions and to make clear
-     * that if one is altered, a corresponding reverse modification should be
-     * applied to the other.
-     */
-    void UnserializeV1Array(uint8_t (&arr)[V1_SERIALIZATION_SIZE])
-    {
-        // Use SetLegacyIPv6() so that m_net is set correctly. For example
-        // ::FFFF:0102:0304 should be set as m_net=NET_IPV4 (1.2.3.4).
-        SetLegacyIPv6(arr);
-    }
-
-    /**
-     * Unserialize from a pre-ADDRv2/BIP155 format from a stream.
-     */
-    template <typename Stream>
-    void UnserializeV1Stream(Stream& s)
-    {
-        uint8_t serialized[V1_SERIALIZATION_SIZE];
-
-        s >> serialized;
-
-        UnserializeV1Array(serialized);
     }
 
     /**
@@ -456,13 +329,12 @@ private:
                 return;
             }
 
-            if (!util::HasPrefix(m_addr, IPV4_IN_IPV6_PREFIX) &&
-                !util::HasPrefix(m_addr, TORV2_IN_IPV6_PREFIX)) {
+            if (!util::HasPrefix(m_addr, IPV4_IN_IPV6_PREFIX)) {
                 return;
             }
 
-            // IPv4 and TORv2 are not supposed to be embedded in IPv6 (like in V1
-            // encoding). Unserialize as !IsValid(), thus ignoring them.
+            // IPv4 is not supposed to be embedded in IPv6. Unserialize as
+            // !IsValid(), thus ignoring it.
         } else {
             // If we receive an unknown BIP155 network id (from the future?) then
             // ignore the address - unserialize as !IsValid().

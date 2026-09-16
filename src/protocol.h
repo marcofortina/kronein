@@ -300,12 +300,12 @@ public:
         Disk,
         Network,
     };
-    struct SerParams : CNetAddr::SerParams {
+    struct SerParams {
         const Format fmt;
         SER_PARAMS_OPFUNC
     };
-    static constexpr SerParams V2_NETWORK{{CNetAddr::Encoding::V2}, Format::Network};
-    static constexpr SerParams V2_DISK{{CNetAddr::Encoding::V2}, Format::Disk};
+    static constexpr SerParams NETWORK{Format::Network};
+    static constexpr SerParams DISK{Format::Disk};
 
     SERIALIZE_METHODS(CAddress, obj)
     {
@@ -319,16 +319,12 @@ public:
         } else {
             assert(params.fmt == Format::Network);
         }
-        if (params.enc != Encoding::V2) {
-            throw std::ios_base::failure("ADDRv1 serialization is not supported");
-        }
-
         READWRITE(Using<LossyChronoFormatter<uint32_t>>(obj.nTime));
         uint64_t services_tmp;
         SER_WRITE(obj, services_tmp = obj.nServices);
         READWRITE(Using<CompactSizeFormatter<false>>(services_tmp));
         SER_READ(obj, obj.nServices = static_cast<ServiceFlags>(services_tmp));
-        READWRITE(CNetAddr::V2(AsBase<CService>(obj)));
+        READWRITE(AsBase<CService>(obj));
     }
 
     //! Always included in serialization. The behavior is unspecified if the value is not representable as uint32_t.

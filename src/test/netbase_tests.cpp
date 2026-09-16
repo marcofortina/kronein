@@ -138,9 +138,8 @@ BOOST_AUTO_TEST_CASE(netbase_lookupnumeric)
     BOOST_CHECK(TestParse("[127.0.0.1]", "127.0.0.1:65535"));
     BOOST_CHECK(TestParse(":::", "[::]:0"));
 
-    // verify that an internal address fails to resolve
-    BOOST_CHECK(TestParse("[fd6b:88c0:8724:1:2:3:4:5]", "[::]:0"));
-    // and that a one-off resolves correctly
+    // IPv6 literals are not reinterpreted as internal addresses.
+    BOOST_CHECK(TestParse("[fd6b:88c0:8724:1:2:3:4:5]", "[fd6b:88c0:8724:1:2:3:4:5]:65535"));
     BOOST_CHECK(TestParse("[fd6c:88c0:8724:1:2:3:4:5]", "[fd6c:88c0:8724:1:2:3:4:5]:65535"));
 }
 
@@ -546,7 +545,7 @@ BOOST_AUTO_TEST_CASE(caddress_serialize_v2)
 {
     DataStream s{};
 
-    s << CAddress::V2_NETWORK(fixture_addresses);
+    s << CAddress::NETWORK(fixture_addresses);
     BOOST_CHECK_EQUAL(HexStr(s), stream_addrv2_hex);
 }
 
@@ -554,7 +553,7 @@ BOOST_AUTO_TEST_CASE(caddress_unserialize_v2)
 {
     std::vector<CAddress> addresses_unserialized;
 
-    SpanReader{ParseHex(stream_addrv2_hex)} >> CAddress::V2_NETWORK(addresses_unserialized);
+    SpanReader{ParseHex(stream_addrv2_hex)} >> CAddress::NETWORK(addresses_unserialized);
     BOOST_CHECK(fixture_addresses == addresses_unserialized);
 }
 
