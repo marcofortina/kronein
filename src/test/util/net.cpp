@@ -24,7 +24,6 @@ void ConnmanTestMsg::Handshake(CNode& node,
                                bool successfully_connected,
                                ServiceFlags remote_services,
                                ServiceFlags local_services,
-                               int32_t version,
                                bool relay_txs)
 {
     auto& peerman{static_cast<PeerManager&>(*m_msgproc)};
@@ -36,7 +35,7 @@ void ConnmanTestMsg::Handshake(CNode& node,
 
     CSerializedNetMsg msg_version{
         NetMsg::Make(NetMsgType::VERSION,
-                version,                                        //
+                PROTOCOL_VERSION,                               //
                 Using<CustomUintFormatter<8>>(remote_services), //
                 int64_t{},                                      // dummy time
                 int64_t{},                                      // ignored service bits
@@ -55,8 +54,7 @@ void ConnmanTestMsg::Handshake(CNode& node,
     peerman.SendMessages(node);
     FlushSendBuffer(node); // Drop the verack message added by SendMessages.
     if (node.fDisconnect) return;
-    assert(node.nVersion == version);
-    assert(node.GetCommonVersion() == std::min(version, PROTOCOL_VERSION));
+    assert(node.nVersion == PROTOCOL_VERSION);
     CNodeStateStats statestats;
     assert(peerman.GetNodeStateStats(node.GetId(), statestats));
     assert(statestats.m_relay_txs == (relay_txs && !node.IsBlockOnlyConn()));
@@ -164,7 +162,6 @@ CNode* ConnmanTestMsg::ConnectNodePublic(PeerManager& peerman, const char* pszDe
 {
     CNode* node = ConnectNode(CAddress{}, pszDest, /*fCountFailure=*/false, conn_type, /*proxy_override=*/std::nullopt);
     if (!node) return nullptr;
-    node->SetCommonVersion(PROTOCOL_VERSION);
     peerman.InitializeNode(*node, NODE_NETWORK);
     node->fSuccessfullyConnected = true;
     AddTestNode(*node);

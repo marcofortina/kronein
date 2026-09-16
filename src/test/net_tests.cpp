@@ -818,8 +818,17 @@ BOOST_AUTO_TEST_CASE(initial_advertise_from_version_message)
     m_node.peerman->SendMessages(peer);
     connman.FlushSendBuffer(peer); // Drop sent version message
 
-    auto msg_version_receive =
-        NetMsg::Make(NetMsgType::VERSION, PROTOCOL_VERSION, services, time, services, CNetAddr::V2(peer_us));
+    auto msg_version_receive = NetMsg::Make(
+        NetMsgType::VERSION,
+        PROTOCOL_VERSION,
+        services,
+        time,
+        services, CNetAddr::V2(peer_us),
+        services, CNetAddr::V2(CService{}),
+        uint64_t{1},
+        std::string{},
+        int32_t{},
+        true);
     Assert(connman.ReceiveMsgFrom(peer, std::move(msg_version_receive)));
     peer.fPauseSend = false;
     bool more_work{connman.ProcessMessagesOnce(peer)};
@@ -1525,7 +1534,6 @@ BOOST_AUTO_TEST_CASE(private_broadcast_version_does_not_update_addrman_services)
                       /*successfully_connected=*/false,
                       /*remote_services=*/NODE_NETWORK,
                       /*local_services=*/NODE_NONE,
-                      /*version=*/PROTOCOL_VERSION,
                       /*relay_txs=*/true);
 
     BOOST_CHECK_EQUAL(m_node.addrman->Select().first.nServices, NODE_NONE);

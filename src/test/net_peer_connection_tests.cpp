@@ -10,7 +10,6 @@
 #include <netbase.h>
 #include <netgroup.h>
 #include <node/connection_types.h>
-#include <node/protocol_version.h>
 #include <protocol.h>
 #include <random.h>
 #include <test/util/logging.h>
@@ -75,7 +74,6 @@ void AddPeer(NodeId& id, std::vector<CNode*>& nodes, PeerManager& peerman, Connm
                                  /*inbound_onion=*/inbound_onion,
                                  /*network_key=*/0});
     CNode& node = *nodes.back();
-    node.SetCommonVersion(PROTOCOL_VERSION);
 
     peerman.InitializeNode(node, NODE_NETWORK);
     node.fSuccessfullyConnected = true;

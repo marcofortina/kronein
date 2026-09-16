@@ -78,7 +78,6 @@ void HeadersSyncSetup::ResetAndInitialize()
             /*successfully_connected=*/true,
             /*remote_services=*/NODE_NETWORK,
             /*local_services=*/NODE_NETWORK,
-            /*version=*/PROTOCOL_VERSION,
             /*relay_txs=*/true);
 
         connman.AddTestNode(p2p_node);

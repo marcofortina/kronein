@@ -20,6 +20,7 @@ from test_framework.p2p import (
     P2PInterface,
     P2P_SUBVERSION,
     P2P_SERVICES,
+    P2P_VERSION,
     P2P_VERSION_RELAY,
 )
 from test_framework.test_framework import BitcoinTestFramework
@@ -97,13 +98,13 @@ class P2PLeakTest(BitcoinTestFramework):
         self.num_nodes = 1
         self.extra_args = [[f"-peertimeout={PEER_TIMEOUT}"]]
 
-    def create_old_version(self, nversion):
-        old_version_msg = msg_version()
-        old_version_msg.nVersion = nversion
-        old_version_msg.strSubVer = P2P_SUBVERSION
-        old_version_msg.nServices = P2P_SERVICES
-        old_version_msg.relay = P2P_VERSION_RELAY
-        return old_version_msg
+    def create_unsupported_version(self, version):
+        version_msg = msg_version()
+        version_msg.nVersion = version
+        version_msg.strSubVer = P2P_SUBVERSION
+        version_msg.nServices = P2P_SERVICES
+        version_msg.relay = P2P_VERSION_RELAY
+        return version_msg
 
     def run_test(self):
         self.log.info('Check that the node doesn\'t send unexpected messages before handshake completion')
@@ -149,11 +150,12 @@ class P2PLeakTest(BitcoinTestFramework):
         assert_equal(ver.nStartingHeight, 201)
         assert_equal(ver.relay, 1)
 
-        self.log.info('Check that old peers are disconnected')
-        p2p_old_peer = self.nodes[0].add_p2p_connection(P2PInterface(), send_version=False, wait_for_verack=False)
-        with self.nodes[0].assert_debug_log(["using obsolete version 31799, disconnecting"]):
-            p2p_old_peer.send_without_ping(self.create_old_version(31799))
-            p2p_old_peer.wait_for_disconnect()
+        self.log.info('Check that peers using a different protocol version are disconnected')
+        for version in [31799, P2P_VERSION + 1]:
+            peer = self.nodes[0].add_p2p_connection(P2PInterface(), send_version=False, wait_for_verack=False)
+            with self.nodes[0].assert_debug_log([f"using unsupported protocol version {version}, disconnecting"]):
+                peer.send_without_ping(self.create_unsupported_version(version))
+                peer.wait_for_disconnect()
 
 
 if __name__ == '__main__':

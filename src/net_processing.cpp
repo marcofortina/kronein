@@ -2079,8 +2079,7 @@ void PeerManagerImpl::NewPoWValidBlock(const CBlockIndex *pindex, const std::sha
     m_connman.ForEachNode([this, pindex, &lazy_ser, &hashBlock](CNode* pnode) EXCLUSIVE_LOCKS_REQUIRED(::cs_main) {
         AssertLockHeld(::cs_main);
 
-        if (pnode->GetCommonVersion() < INVALID_CB_NO_BAN_VERSION || pnode->fDisconnect)
-            return;
+        if (pnode->fDisconnect) return;
         ProcessBlockAvailability(pnode->GetId());
         CNodeState &state = *State(pnode->GetId());
         // If the peer has, or we announced to them the previous block already,
@@ -3494,12 +3493,12 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
 
         int64_t nTime;
         CService addrMe;
-        uint64_t nNonce = 1;
+        uint64_t nNonce;
         ServiceFlags nServices;
         int nVersion;
         std::string cleanSubVer;
-        int starting_height = -1;
-        bool fRelay = true;
+        int starting_height;
+        bool fRelay;
 
         vRecv >> nVersion >> Using<CustomUintFormatter<8>>(nServices) >> nTime;
         if (nTime < 0) {
@@ -3524,30 +3523,20 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
             return;
         }
 
-        if (nVersion < MIN_PEER_PROTO_VERSION) {
-            // disconnect from peers older than this proto version
-            LogDebug(BCLog::NET, "peer using obsolete version %i, %s\n", nVersion, pfrom.DisconnectMsg(fLogIPs));
+        if (nVersion != PROTOCOL_VERSION) {
+            LogDebug(BCLog::NET, "peer using unsupported protocol version %i, %s\n", nVersion, pfrom.DisconnectMsg(fLogIPs));
             pfrom.fDisconnect = true;
             return;
         }
 
-        if (!vRecv.empty()) {
-            // The version message includes information about the sending node which we don't use:
-            // service bits followed by an ADDRv2-encoded address.
-            uint64_t ignored_services;
-            CService ignored_addr;
-            vRecv >> ignored_services >> CNetAddr::V2(ignored_addr) >> nNonce;
-        }
-        if (!vRecv.empty()) {
-            std::string strSubVer;
-            vRecv >> LIMITED_STRING(strSubVer, MAX_SUBVERSION_LENGTH);
-            cleanSubVer = SanitizeString(strSubVer);
-        }
-        if (!vRecv.empty()) {
-            vRecv >> starting_height;
-        }
-        if (!vRecv.empty())
-            vRecv >> fRelay;
+        // The version message includes information about the sending node which we don't use:
+        // service bits followed by an ADDRv2-encoded address.
+        uint64_t ignored_services;
+        CService ignored_addr;
+        std::string strSubVer;
+        vRecv >> ignored_services >> CNetAddr::V2(ignored_addr) >> nNonce;
+        vRecv >> LIMITED_STRING(strSubVer, MAX_SUBVERSION_LENGTH) >> starting_height >> fRelay;
+        cleanSubVer = SanitizeString(strSubVer);
         // Disconnect if we connected to ourself
         if (pfrom.IsInboundConn() && !m_connman.CheckIncomingNonce(nNonce))
         {
@@ -3567,9 +3556,6 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
             PushNodeVersion(pfrom, peer);
         }
 
-        // Change version
-        const int greatest_common_version = std::min(nVersion, PROTOCOL_VERSION);
-        pfrom.SetCommonVersion(greatest_common_version);
         pfrom.nVersion = nVersion;
 
         pfrom.m_has_all_wanted_services = HasAllDesirableServiceFlags(nServices);
@@ -3681,12 +3667,6 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
             m_outbound_time_offsets.WarnIfOutOfSync();
         }
 
-        // If the peer is old enough to have the old alert system, send it the final alert.
-        if (greatest_common_version <= 70012) {
-            constexpr auto finalAlert{"60010000000000000000000000ffffff7f00000000ffffff7ffeffff7f01ffffff7f00000000ffffff7f00ffffff7f002f555247454e543a20416c657274206b657920636f6d70726f6d697365642c2075706772616465207265717569726564004630440220653febd6410f470f6bae11cad19c48413becb1ac2c17f908fd0fd53bdc3abd5202206d0e9c96fe88d4a0f01ed9dedae2b6f9e00da94cad0fecaae66ecf689bf71b50"_hex};
-            MakeAndPushMessage(pfrom, "alert", finalAlert);
-        }
-
         // Feeler connections exist only to verify if address is online.
         if (pfrom.IsFeelerConn()) {
             LogDebug(BCLog::NET, "feeler connection completed, %s\n", pfrom.DisconnectMsg(fLogIPs));
@@ -3750,14 +3730,11 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
             return;
         }
 
-        if (pfrom.GetCommonVersion() >= SHORT_IDS_BLOCKS_VERSION) {
-            // Tell our peer we are willing to provide version 2 cmpctblocks.
-            // However, we do not request new block announcements using
-            // cmpctblock messages.
-            // We send this to non-NODE NETWORK peers as well, because
-            // they may wish to request compact blocks from us
-            MakeAndPushMessage(pfrom, NetMsgType::SENDCMPCT, /*high_bandwidth=*/false, /*version=*/CMPCTBLOCKS_VERSION);
-        }
+        // Tell our peer we are willing to provide version 2 cmpctblocks.
+        // However, we do not request new block announcements using cmpctblock messages.
+        // We send this to non-NODE NETWORK peers as well, because they may wish to
+        // request compact blocks from us.
+        MakeAndPushMessage(pfrom, NetMsgType::SENDCMPCT, /*high_bandwidth=*/false, /*version=*/CMPCTBLOCKS_VERSION);
 
         if (m_txreconciliation && !m_txreconciliation->IsPeerRegistered(pfrom.GetId())) {
             m_txreconciliation->ForgetPeer(pfrom.GetId());
@@ -4777,22 +4754,11 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
     }
 
     if (msg_type == NetMsgType::PING) {
-        if (pfrom.GetCommonVersion() > BIP0031_VERSION) {
-            uint64_t nonce = 0;
-            vRecv >> nonce;
-            // Echo the message back with the nonce. This allows for two useful features:
-            //
-            // 1) A remote node can quickly check if the connection is operational
-            // 2) Remote nodes can measure the latency of the network thread. If this node
-            //    is overloaded it won't respond to pings quickly and the remote node can
-            //    avoid sending us more work, like chain download requests.
-            //
-            // The nonce stops the remote getting confused between different pings: without
-            // it, if the remote node sends a ping once per second and this node takes 5
-            // seconds to respond to each, the 5th ping the remote sends would appear to
-            // return very quickly.
-            MakeAndPushMessage(pfrom, NetMsgType::PONG, nonce);
-        }
+        uint64_t nonce = 0;
+        vRecv >> nonce;
+        // Echo the message back with the nonce. This lets the peer check that the
+        // connection is operational and measure network-thread latency.
+        MakeAndPushMessage(pfrom, NetMsgType::PONG, nonce);
         return;
     }
 
@@ -5253,14 +5219,8 @@ void PeerManagerImpl::MaybeSendPing(CNode& node_to, Peer& peer, std::chrono::mic
         } while (nonce == 0);
         peer.m_ping_queued = false;
         peer.m_ping_start = now;
-        if (node_to.GetCommonVersion() > BIP0031_VERSION) {
-            peer.m_ping_nonce_sent = nonce;
-            MakeAndPushMessage(node_to, NetMsgType::PING, nonce);
-        } else {
-            // Peer is too old to support ping message type with nonce, pong will never arrive.
-            peer.m_ping_nonce_sent = 0;
-            MakeAndPushMessage(node_to, NetMsgType::PING);
-        }
+        peer.m_ping_nonce_sent = nonce;
+        MakeAndPushMessage(node_to, NetMsgType::PING, nonce);
     }
 }
 
@@ -5337,7 +5297,7 @@ void PeerManagerImpl::MaybeSendSendHeaders(CNode& node, Peer& peer)
     // initial-headers-sync with this peer. Receiving headers announcements for
     // new blocks while trying to sync their headers chain is problematic,
     // because of the state tracking done.
-    if (!peer.m_sent_sendheaders && node.GetCommonVersion() >= SENDHEADERS_VERSION) {
+    if (!peer.m_sent_sendheaders) {
         LOCK(cs_main);
         CNodeState &state = *State(node.GetId());
         if (state.pindexBestKnownBlock != nullptr &&
@@ -5355,7 +5315,6 @@ void PeerManagerImpl::MaybeSendSendHeaders(CNode& node, Peer& peer)
 void PeerManagerImpl::MaybeSendFeefilter(CNode& pto, Peer& peer, std::chrono::microseconds current_time)
 {
     if (m_opts.ignore_incoming_txs) return;
-    if (pto.GetCommonVersion() < FEEFILTER_VERSION) return;
     // peers with the forcerelay permission should not filter txs to us
     if (pto.HasPermission(NetPermissionFlags::ForceRelay)) return;
     // Don't send feefilter messages to outbound block-relay-only peers since they should never announce

@@ -6,7 +6,6 @@
 
 #include <compat/compat.h>
 #include <netaddress.h>
-#include <node/protocol_version.h>
 #include <protocol.h>
 #include <test/fuzz/FuzzedDataProvider.h>
 #include <test/fuzz/util.h>
@@ -459,7 +458,6 @@ void FillNode(FuzzedDataProvider& fuzzed_data_provider, ConnmanTestMsg& connman,
     auto successfully_connected = fuzzed_data_provider.ConsumeBool();
     auto remote_services = ConsumeWeakEnum(fuzzed_data_provider, ALL_SERVICE_FLAGS);
     auto local_services = ConsumeWeakEnum(fuzzed_data_provider, ALL_SERVICE_FLAGS);
-    auto version = fuzzed_data_provider.ConsumeIntegralInRange<int32_t>(MIN_PEER_PROTO_VERSION, std::numeric_limits<int32_t>::max());
     auto relay_txs = fuzzed_data_provider.ConsumeBool();
-    connman.Handshake(node, successfully_connected, remote_services, local_services, version, relay_txs);
+    connman.Handshake(node, successfully_connected, remote_services, local_services, relay_txs);
 }

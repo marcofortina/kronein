@@ -83,8 +83,6 @@ from test_framework.v2_p2p import (
 
 logger = logging.getLogger("TestFramework.p2p")
 
-# The minimum P2P version that this test framework supports
-MIN_P2P_VERSION_SUPPORTED = 70016
 # The P2P version that this test framework implements and sends in its `version` message
 # Native protocol baseline.
 P2P_VERSION = 70016
@@ -500,7 +498,7 @@ class P2PInterface(P2PConnection):
         pass
 
     def on_version(self, message):
-        assert message.nVersion >= MIN_P2P_VERSION_SUPPORTED, "Version {} received. Test framework only supports versions greater than {}".format(message.nVersion, MIN_P2P_VERSION_SUPPORTED)
+        assert message.nVersion == P2P_VERSION, f"Unsupported protocol version {message.nVersion}"
         # For inbound connections, reply to version with our version message.
         if not self.p2p_connected_to_node:
             self.send_version()
