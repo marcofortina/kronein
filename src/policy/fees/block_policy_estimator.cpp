@@ -32,9 +32,6 @@
 #include <stdexcept>
 #include <utility>
 
-//! Native fee estimates file format version.
-constexpr uint8_t FEES_FILE_VERSION{1};
-
 static constexpr double INF_FEERATE = 1e99;
 
 std::string StringForFeeEstimateHorizon(FeeEstimateHorizon horizon)
@@ -969,7 +966,6 @@ bool CBlockPolicyEstimator::Write(AutoFile& fileout) const
 {
     try {
         LOCK(m_cs_fee_estimator);
-        fileout << FEES_FILE_VERSION;
         fileout << nBestSeenHeight;
         if (BlockSpan() > HistoricalBlockSpan()/2) {
             fileout << firstRecordedHeight << nBestSeenHeight;
@@ -993,14 +989,6 @@ bool CBlockPolicyEstimator::Read(AutoFile& filein)
 {
     try {
         LOCK(m_cs_fee_estimator);
-        uint8_t file_version;
-        filein >> file_version;
-        if (file_version != FEES_FILE_VERSION) {
-            throw std::runtime_error{strprintf(
-                "Unsupported fee estimates file version (%u). Expected version %u.",
-                file_version, FEES_FILE_VERSION)};
-        }
-
         // Read fee estimates file into temporary variables so existing data
         // structures aren't corrupted if there is an exception.
         unsigned int nFileBestSeenHeight;

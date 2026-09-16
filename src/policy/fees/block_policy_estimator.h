@@ -182,11 +182,10 @@ private:
     /** Minimum and Maximum values for tracking feerates
      * The MIN_BUCKET_FEERATE should just be set to the lowest reasonable feerate.
      * MIN_BUCKET_FEERATE has historically inherited DEFAULT_MIN_RELAY_TX_FEE.
-     * It is hardcoded because changing it is disruptive, as it invalidates existing fee
-     * estimate files.
+     * It is hardcoded because changing it invalidates existing fee estimate files.
      *
      * Whenever DEFAULT_MIN_RELAY_TX_FEE changes, this value should be updated
-     * accordingly. At the same time the fee estimates file format version should be bumped.
+     * accordingly.
      */
     static constexpr double MIN_BUCKET_FEERATE = 100;
     static constexpr double MAX_BUCKET_FEERATE = 1e7;
