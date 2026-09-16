@@ -31,13 +31,11 @@ namespace DBKeys {
 const std::string ACENTRY{"acentry"};
 const std::string ACTIVEEXTERNALSPK{"activeexternalspk"};
 const std::string ACTIVEINTERNALSPK{"activeinternalspk"};
-const std::string BESTBLOCK_NOMERKLE{"bestblock_nomerkle"};
 const std::string BESTBLOCK{"bestblock"};
 const std::string DESTDATA{"destdata"};
 const std::string FLAGS{"flags"};
 const std::string LOCKED_UTXO{"lockedutxo"};
 const std::string MASTER_KEY{"mkey"};
-const std::string MINVERSION{"minversion"};
 const std::string NAME{"name"};
 const std::string ORDERPOSNEXT{"orderposnext"};
 const std::string PURPOSE{"purpose"};
@@ -105,14 +103,12 @@ bool WalletBatch::EraseMasterKey(unsigned int id)
 
 bool WalletBatch::WriteBestBlock(const CBlockLocator& locator)
 {
-    WriteIC(DBKeys::BESTBLOCK, CBlockLocator()); // Write empty block locator so versions that require a merkle branch automatically rescan
-    return WriteIC(DBKeys::BESTBLOCK_NOMERKLE, locator);
+    return WriteIC(DBKeys::BESTBLOCK, locator);
 }
 
 bool WalletBatch::ReadBestBlock(CBlockLocator& locator)
 {
-    if (m_batch->Read(DBKeys::BESTBLOCK, locator) && !locator.vHave.empty()) return true;
-    return m_batch->Read(DBKeys::BESTBLOCK_NOMERKLE, locator);
+    return m_batch->Read(DBKeys::BESTBLOCK, locator);
 }
 
 bool WalletBatch::IsEncrypted()
