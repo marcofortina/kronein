@@ -546,15 +546,14 @@ static DBErrors LoadAddressBookRecords(CWallet* pwallet, DatabaseBatch& batch) E
     return result;
 }
 
-static DBErrors LoadTxRecords(CWallet* pwallet, DatabaseBatch& batch, bool& any_unordered) EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet)
+static DBErrors LoadTxRecords(CWallet* pwallet, DatabaseBatch& batch) EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet)
 {
     AssertLockHeld(pwallet->cs_wallet);
     DBErrors result = DBErrors::LOAD_OK;
 
     // Load tx record
-    any_unordered = false;
     LoadResult tx_res = LoadRecords(pwallet, batch, DBKeys::TX,
-        [&any_unordered] (CWallet* pwallet, DataStream& key, DataStream& value, std::string& err) EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet) {
+        [] (CWallet* pwallet, DataStream& key, DataStream& value, std::string& err) EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet) {
         DBErrors result = DBErrors::LOAD_OK;
         Txid hash;
         key >> hash;
@@ -571,8 +570,11 @@ static DBErrors LoadTxRecords(CWallet* pwallet, DatabaseBatch& batch, bool& any_
             if (wtx.GetHash() != hash)
                 return false;
 
-            if (wtx.nOrderPos == -1)
-                any_unordered = true;
+            if (wtx.nOrderPos < 0) {
+                err = "Error: Wallet transaction has an invalid order position.";
+                result = DBErrors::CORRUPT;
+                return false;
+            }
 
             return true;
         };
@@ -673,7 +675,6 @@ static DBErrors LoadDecryptionKeys(CWallet* pwallet, DatabaseBatch& batch) EXCLU
 DBErrors WalletBatch::LoadWallet(CWallet* pwallet)
 {
     DBErrors result = DBErrors::LOAD_OK;
-    bool any_unordered = false;
 
     LOCK(pwallet->cs_wallet);
 
@@ -712,7 +713,7 @@ DBErrors WalletBatch::LoadWallet(CWallet* pwallet)
         result = std::max(LoadDecryptionKeys(pwallet, *m_batch), result);
 
         // Load tx records
-        result = std::max(LoadTxRecords(pwallet, *m_batch, any_unordered), result);
+        result = std::max(LoadTxRecords(pwallet, *m_batch), result);
     } catch (std::runtime_error& e) {
         // Exceptions that can be ignored or treated as non-critical are handled by the individual loading functions.
         // Any uncaught exceptions will be caught here and treated as critical.
@@ -732,9 +733,6 @@ DBErrors WalletBatch::LoadWallet(CWallet* pwallet)
 
     if (!has_last_client || last_client != CLIENT_VERSION) // Update
         this->WriteVersion(CLIENT_VERSION);
-
-    if (any_unordered)
-        result = pwallet->ReorderTransactions();
 
     // Since it was accidentally possible to "encrypt" a wallet with private keys disabled, we should check if this is
     // such a wallet and remove the encryption key records to avoid any future issues.
