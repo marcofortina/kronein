@@ -33,7 +33,6 @@ private:
      */
     static constexpr const char* JSON_KEY = "banned_nets";
 
-    const fs::path m_banlist_dat;
     const fs::path m_banlist_json;
 public:
     explicit CBanDB(fs::path ban_list_path);

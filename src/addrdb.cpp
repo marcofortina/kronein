@@ -134,8 +134,7 @@ void DeserializeFileDB(const fs::path& path, Data&& data)
 } // namespace
 
 CBanDB::CBanDB(fs::path ban_list_path)
-    : m_banlist_dat(ban_list_path + ".dat"),
-      m_banlist_json(ban_list_path + ".json")
+    : m_banlist_json(ban_list_path + ".json")
 {
 }
 
@@ -154,9 +153,6 @@ bool CBanDB::Write(const banmap_t& banSet)
 
 bool CBanDB::Read(banmap_t& banSet)
 {
-    if (fs::exists(m_banlist_dat)) {
-        LogWarning("banlist.dat ignored because it can only be read by " CLIENT_NAME " version 22.x. Remove %s to silence this warning.", fs::quoted(fs::PathToString(m_banlist_dat)));
-    }
     // If the JSON banlist does not exist, then recreate it
     if (!fs::exists(m_banlist_json)) {
         return false;
