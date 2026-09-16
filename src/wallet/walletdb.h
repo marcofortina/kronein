@@ -124,7 +124,6 @@ public:
     bool EraseTx(Txid hash);
 
     bool WriteMasterKey(unsigned int nID, const CMasterKey& kMasterKey);
-    bool EraseMasterKey(unsigned int id);
 
     bool WriteBestBlock(const CBlockLocator& locator);
     bool ReadBestBlock(CBlockLocator& locator);
