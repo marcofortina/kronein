@@ -37,8 +37,6 @@ using fsbridge::FopenFn;
 
 namespace node {
 
-static const uint64_t MEMPOOL_DUMP_VERSION{1};
-
 bool LoadMempool(CTxMemPool& pool, const fs::path& load_path, Chainstate& active_chainstate, ImportMempoolOptions&& opts)
 {
     if (load_path.empty()) return false;
@@ -57,11 +55,6 @@ bool LoadMempool(CTxMemPool& pool, const fs::path& load_path, Chainstate& active
     const auto now{NodeClock::now()};
 
     try {
-        uint64_t version;
-        file >> version;
-
-        if (version != MEMPOOL_DUMP_VERSION) return false;
-
         Obfuscation obfuscation;
         file >> obfuscation;
         file.SetObfuscation(obfuscation);
@@ -174,8 +167,6 @@ bool DumpMempool(const CTxMemPool& pool, const fs::path& dump_path, FopenFn mock
     }
 
     try {
-        file << MEMPOOL_DUMP_VERSION;
-
         const Obfuscation obfuscation{FastRandomContext{}.randbytes<Obfuscation::KEY_SIZE>()};
         file << obfuscation;
         file.SetObfuscation(obfuscation);
