@@ -192,6 +192,8 @@ class P2PPrivateBroadcast(BitcoinTestFramework):
             })
             dummy_address = CAddress()
             dummy_address.nServices = 0
+            dummy_address.net = CAddress.NET_IPV6
+            dummy_address.ip = "::"
             assert_equal(peer.last_message["version"].nVersion, P2P_VERSION)
             assert_equal(peer.last_message["version"].nServices, 0)
             assert_equal(peer.last_message["version"].nTime, 0)

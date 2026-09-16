@@ -293,9 +293,9 @@ class MempoolAcceptanceTest(BitcoinTestFramework):
 
         self.log.info('Some nonstandard transactions')
         tx = tx_from_hex(raw_tx_reference)
-        tx.version = 4  # A version currently non-standard
+        tx.version = 4  # The native format only permits transaction version 1
         self.check_mempool_result(
-            result_expected=[{'txid': tx.txid_hex, 'allowed': False, 'reject-reason': 'version'}],
+            result_expected=[{'txid': tx.txid_hex, 'allowed': False, 'reject-reason': 'bad-tx-version'}],
             rawtxs=[tx.serialize().hex()],
         )
         tx = tx_from_hex(raw_tx_reference)
@@ -464,8 +464,9 @@ class MempoolAcceptanceTest(BitcoinTestFramework):
         anchor_spend.vin.append(CTxIn(COutPoint(int(create_anchor_tx["txid"], 16), create_anchor_tx["sent_vout"]), b""))
         anchor_spend.vout.append(CTxOut(anchor_value - int(fee*COIN), script_to_p2wsh_script(CScript([OP_TRUE]))))
         anchor_spend.wit.vtxinwit.append(CTxInWitness())
-        # It's "segwit" but txid == wtxid since there is no witness data
-        assert_equal(anchor_spend.txid_hex, anchor_spend.wtxid_hex)
+        # Native serialization keeps the witness and base identifier domains
+        # distinct even when every witness stack is empty.
+        assert anchor_spend.txid_hex != anchor_spend.wtxid_hex
 
         self.check_mempool_result(
             result_expected=[{'txid': anchor_spend.txid_hex, 'allowed': True, 'vsize': anchor_spend.get_vsize(), 'fees': { 'base': Decimal('0.00000700')}}],

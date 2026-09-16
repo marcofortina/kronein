@@ -1236,7 +1236,10 @@ class FullBlockTest(BitcoinTestFramework):
                 tx.vout.append(CTxOut(0, script_output))
                 tx.vin.append(CTxIn(COutPoint(b.vtx[1].txid_int, 0)))
                 b = self.update_block(i, [tx])
-                assert_equal(b.get_weight(), MAX_BLOCK_WEIGHT)
+                # With one mandatory empty witness stack, this layout reaches the
+                # largest weight below the limit obtainable by changing only the
+                # base-serialized output script.
+                assert_equal(b.get_weight(), MAX_BLOCK_WEIGHT - 1)
                 blocks.append(b)
                 self.save_spendable_output()
                 spend = self.get_spendable_output()

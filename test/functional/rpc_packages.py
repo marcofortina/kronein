@@ -123,8 +123,8 @@ class RPCPackagesTest(BitcoinTestFramework):
         assert_equal(testres_bad_sig, self.independent_txns_testres + [{
             "txid": tx_bad_sig_txid,
             "wtxid": tx_bad_sig_wtxid, "allowed": False,
-            "reject-reason": "mempool-script-verify-flag-failed (Operation not valid with the current stack size)",
-            "reject-details": "mempool-script-verify-flag-failed (Operation not valid with the current stack size), " +
+            "reject-reason": "mempool-script-verify-flag-failed (Witness program was passed an empty witness)",
+            "reject-details": "mempool-script-verify-flag-failed (Witness program was passed an empty witness), " +
                               f"input 0 of {tx_bad_sig_txid} (wtxid {tx_bad_sig_wtxid}), spending {coin['txid']}:{coin['vout']}"
         }])
 
@@ -414,7 +414,7 @@ class RPCPackagesTest(BitcoinTestFramework):
         )
 
         # Create a transaction chain such as only the parent gets accepted (by making the child's
-        # version non-standard). Make sure the parent does get broadcast.
+        # version invalid). Make sure the parent does get broadcast.
         self.log.info("If a package is partially submitted, transactions included in mempool get broadcast")
         peer = node.add_p2p_connection(P2PTxInvStore())
         txs = self.wallet.create_self_transfer_chain(chain_length=2)
@@ -426,7 +426,7 @@ class RPCPackagesTest(BitcoinTestFramework):
         first_wtxid = txs[0]["tx"].wtxid_hex
         assert "error" not in res["tx-results"][first_wtxid]
         sec_wtxid = bad_child.wtxid_hex
-        assert_equal(res["tx-results"][sec_wtxid]["error"], "version")
+        assert_equal(res["tx-results"][sec_wtxid]["error"], "bad-tx-version")
         peer.wait_for_broadcast([first_wtxid])
 
     def test_maxfeerate_submitpackage(self):

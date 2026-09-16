@@ -5,6 +5,7 @@
 """Test decoding native output scripts via the decodescript RPC."""
 
 from test_framework.test_framework import BitcoinTestFramework
+from test_framework.script_util import ANCHOR_ADDRESS
 from test_framework.util import assert_equal
 
 
@@ -30,7 +31,7 @@ class DecodeScriptTest(BitcoinTestFramework):
         result = self.nodes[0].decodescript("51024e73")
         assert_equal(result["asm"], "1 29518")
         assert_equal(result["type"], "anchor")
-        assert "address" not in result
+        assert_equal(result["address"], ANCHOR_ADDRESS)
 
 
 if __name__ == "__main__":

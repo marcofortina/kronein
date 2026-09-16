@@ -177,7 +177,7 @@ class HTTPBasicsTest (BitcoinTestFramework):
         headers_chunked.update({"Transfer-encoding": "chunked"})
         body_chunked = [
             b'{"jsonrpc":"2.0","id":1,"method":"submitblock","params":["',
-            b'0' * 1000000,
+            b'01000000' + b'0' * (1000000 - 8),
             b'1' * 1000000,
             b'2' * 1000000,
             b'3' * 1000000,

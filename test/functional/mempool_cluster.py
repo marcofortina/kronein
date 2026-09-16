@@ -256,7 +256,7 @@ class MempoolClusterTest(BitcoinTestFramework):
         assert_greater_than_or_equal(vsize_remaining, 500)
 
         # Create a transaction spending from all clusters that exceeds the cluster size limit.
-        tx_merger_too_big = self.wallet.create_self_transfer_multi(utxos_to_spend=utxos_to_merge, target_vsize=vsize_remaining + 4, fee_per_output=10000)
+        tx_merger_too_big = self.wallet.create_self_transfer_multi(utxos_to_spend=utxos_to_merge, target_vsize=vsize_remaining + 20, fee_per_output=10000)
         assert_raises_rpc_error(-26, "too-large-cluster", node.sendrawtransaction, tx_merger_too_big["hex"])
 
         # A transaction that is slightly smaller should work.
