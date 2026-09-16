@@ -197,10 +197,6 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
         parser.add_argument("--randomseed", type=int,
                             help="set a random seed for deterministically reproducing a previous test run")
         parser.add_argument("--timeout-factor", dest="timeout_factor", type=float, help="adjust test timeouts by a factor. Setting it to 0 disables all timeouts")
-        parser.add_argument("--v2transport", dest="v2transport", default=False, action="store_true",
-                            help="use BIP324 v2 connections between all nodes by default")
-        parser.add_argument("--v1transport", dest="v1transport", default=False, action="store_true",
-                            help="Explicitly use v1 transport (can be used to overwrite global --v2transport option)")
         parser.add_argument("--test_methods", dest="test_methods", nargs='*',
                             help="Run specified test methods sequentially instead of the full test. Use only for methods that do not depend on any context set up in run_test or other methods.")
 
@@ -218,9 +214,6 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
         self.config = configparser.ConfigParser()
         self.config.read_file(open(self.options.configfile))
         self.binary_paths = get_binary_paths(self.config)
-        if self.options.v1transport:
-            self.options.v2transport=False
-
         PortSeed.n = self.options.port_seed
 
     def get_binaries(self, bin_dir=None):
@@ -482,7 +475,6 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
                 extra_args=args,
                 use_cli=self.options.usecli,
                 start_perf=self.options.perf,
-                v2transport=self.options.v2transport,
                 uses_wallet=self.uses_wallet,
             )
             init.update(extra_init[i])
@@ -549,7 +541,7 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
     def wait_for_node_exit(self, i, timeout):
         self.nodes[i].process.wait(timeout)
 
-    def connect_nodes(self, a, b, *, peer_advertises_v2=None):
+    def connect_nodes(self, a, b):
         from_connection = self.nodes[a]
         to_connection = self.nodes[b]
 
@@ -565,15 +557,7 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
 
         ip_port = "127.0.0.1:" + str(p2p_port(b))
 
-        if peer_advertises_v2 is None:
-            peer_advertises_v2 = from_connection.use_v2transport
-
-        if peer_advertises_v2 != from_connection.use_v2transport:
-            from_connection.addnode(node=ip_port, command="onetry", v2transport=peer_advertises_v2)
-        else:
-            # skip the optional third argument if it matches the default, for
-            # compatibility with older clients
-            from_connection.addnode(ip_port, "onetry")
+        from_connection.addnode(ip_port, "onetry")
 
         self.wait_until(lambda: find_conn(from_connection, to_connection_subver, inbound=False) is not None)
         self.wait_until(lambda: find_conn(to_connection, from_connection_subver, inbound=True) is not None)

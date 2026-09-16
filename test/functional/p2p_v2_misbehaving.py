@@ -7,7 +7,6 @@ import random
 import time
 from enum import Enum
 
-from test_framework.messages import MAGIC_BYTES
 from test_framework.p2p import P2PInterface
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import random_bitflip
@@ -20,8 +19,7 @@ from test_framework.v2_p2p import (
 class TestType(Enum):
     """ Scenarios to be tested:
 
-    1. EARLY_KEY_RESPONSE - The responder needs to wait until one byte is received which does not match the 16 bytes
-    consisting of network magic followed by "version\x00\x00\x00\x00\x00" before sending out its ellswift + garbage bytes
+    1. EARLY_KEY_RESPONSE - The responder waits for the complete 64-byte EllSwift key before responding
     2. EXCESS_GARBAGE - Disconnection happens when > MAX_GARBAGE_LEN bytes garbage is sent
     3. WRONG_GARBAGE_TERMINATOR - Disconnection happens when incorrect garbage terminator is sent
     4. WRONG_GARBAGE - Disconnection happens when garbage bytes that is sent is different from what the peer receives
@@ -118,7 +116,7 @@ class MisbehavingV2Peer(P2PInterface):
 
     def data_received(self, t):
         if self.test_type == TestType.EARLY_KEY_RESPONSE:
-            # check that data can be received on recvbuf only when mismatch from V1_PREFIX happens
+            # Check that no response is received before the complete key is sent.
             assert self.v2_state.can_data_be_received
         else:
             super().data_received(t)
@@ -127,34 +125,32 @@ class MisbehavingV2Peer(P2PInterface):
 class EncryptedP2PMisbehaving(BitcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
-        self.extra_args = [["-v2transport=1", "-peertimeout=3"]]
+        self.extra_args = [["-peertimeout=3"]]
 
     def run_test(self):
         self.test_earlykeyresponse()
         self.test_v2disconnection()
 
     def test_earlykeyresponse(self):
-        self.log.info('Sending ellswift bytes in parts to ensure that response from responder is received only when')
-        self.log.info('ellswift bytes have a mismatch from the 16 bytes(network magic followed by "version\\x00\\x00\\x00\\x00\\x00")')
+        self.log.info('Send the EllSwift key in parts and verify the responder waits for all 64 bytes')
         node0 = self.nodes[0]
         node0.setmocktime(int(time.time()))
-        self.log.info('Sending first 4 bytes of ellswift which match network magic')
+        self.log.info('Sending the first 63 bytes of the EllSwift key')
         self.log.info('If a response is received, assertion failure would happen in our custom data_received() function')
         with node0.wait_for_new_peer():
-            peer1 = node0.add_p2p_connection(MisbehavingV2Peer(TestType.EARLY_KEY_RESPONSE), wait_for_verack=False, send_version=False, supports_v2_p2p=True, wait_for_v2_handshake=False)
-        peer1.send_raw_message(MAGIC_BYTES['regtest'])
-        self.log.info('Sending remaining ellswift and garbage which are different from V1_PREFIX. Since a response is')
-        self.log.info('expected now, our custom data_received() function wouldn\'t result in assertion failure')
-        peer1.v2_state.can_data_be_received = True
+            peer1 = node0.add_p2p_connection(MisbehavingV2Peer(TestType.EARLY_KEY_RESPONSE), wait_for_verack=False, send_version=False, wait_for_v2_handshake=False)
         self.wait_until(lambda: peer1.v2_state.ellswift_ours)
-        peer1.send_raw_message(peer1.v2_state.ellswift_ours[4:] + peer1.v2_state.sent_garbage)
-        # Ensure that the bytes sent after 4 bytes network magic are actually received.
-        self.wait_until(lambda: node0.getpeerinfo()[-1]["bytesrecv"] > 4)
+        peer1.send_raw_message(peer1.v2_state.ellswift_ours[:63])
+        self.wait_until(lambda: node0.getpeerinfo()[-1]["bytesrecv"] == 63)
+        self.log.info('Sending the final key byte and garbage; the responder may now answer')
+        peer1.v2_state.can_data_be_received = True
+        peer1.send_raw_message(peer1.v2_state.ellswift_ours[63:] + peer1.v2_state.sent_garbage)
+        self.wait_until(lambda: node0.getpeerinfo()[-1]["bytesrecv"] > 63)
         self.wait_until(lambda: node0.getpeerinfo()[-1]["bytessent"] > 0)
         with node0.assert_debug_log(['V2 handshake timeout, disconnecting peer=0']):
             node0.bumpmocktime(4)  # `InactivityCheck()` triggers now
             peer1.wait_for_disconnect(timeout=1)
-        self.log.info('successful disconnection since modified ellswift was sent as response')
+        self.log.info('Successful timeout after the deliberately incomplete handshake')
 
     def test_v2disconnection(self):
         # test v2 disconnection scenarios
@@ -171,12 +167,12 @@ class EncryptedP2PMisbehaving(BitcoinTestFramework):
             if test_type == TestType.EARLY_KEY_RESPONSE:
                 continue
             elif test_type == TestType.SEND_NON_EMPTY_VERSION_PACKET:
-                node0.add_p2p_connection(MisbehavingV2Peer(test_type), wait_for_verack=True, send_version=True, supports_v2_p2p=True)
+                node0.add_p2p_connection(MisbehavingV2Peer(test_type), wait_for_verack=True, send_version=True)
                 self.log.info(f"No disconnection for {test_type.name}")
             else:
                 with node0.assert_debug_log(expected_debug_message[test_type.value], timeout=5):
                     node0.setmocktime(int(time.time()))
-                    peer1 = node0.add_p2p_connection(MisbehavingV2Peer(test_type), wait_for_verack=False, send_version=False, supports_v2_p2p=True, expect_success=False)
+                    peer1 = node0.add_p2p_connection(MisbehavingV2Peer(test_type), wait_for_verack=False, send_version=False, expect_success=False)
                     # Make a passing connection for more robust disconnection checking.
                     peer2 = node0.add_p2p_connection(P2PInterface())
                     assert peer2.is_connected

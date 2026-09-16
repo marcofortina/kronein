@@ -82,18 +82,11 @@ class TimeoutsTest(BitcoinTestFramework):
         no_verack_node.send_without_ping(msg_ping())
         no_version_node.send_without_ping(msg_ping())
 
-        if self.options.v2transport:
-            expected_timeout_logs = [
-                "version handshake timeout, disconnecting peer=0",
-                "version handshake timeout, disconnecting peer=1",
-                "version handshake timeout, disconnecting peer=2",
-            ]
-        else:
-            expected_timeout_logs = [
-                "version handshake timeout, disconnecting peer=0",
-                "socket no message in first 3 seconds, never sent to peer, disconnecting peer=1",
-                "socket no message in first 3 seconds, never received from peer, never sent to peer, disconnecting peer=2",
-            ]
+        expected_timeout_logs = [
+            "version handshake timeout, disconnecting peer=0",
+            "version handshake timeout, disconnecting peer=1",
+            "version handshake timeout, disconnecting peer=2",
+        ]
 
         with self.nodes[0].assert_debug_log(expected_msgs=expected_timeout_logs):
             self.mock_forward(2)

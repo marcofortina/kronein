@@ -25,7 +25,6 @@ from test_framework.crypto.chacha20 import REKEY_INTERVAL
 class P2PEncrypted(BitcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 2
-        self.extra_args = [["-v2transport=1"], ["-v2transport=1"]]
 
     def setup_network(self):
         self.setup_nodes()
@@ -53,34 +52,16 @@ class P2PEncrypted(BitcoinTestFramework):
 
     def run_test(self):
         node0, node1 = self.nodes[0], self.nodes[1]
-        self.log.info("Check inbound connection to v2 TestNode from v2 P2PConnection is v2")
-        peer1 = node0.add_p2p_connection(P2PInterface(), wait_for_verack=True, supports_v2_p2p=True)
-        assert peer1.supports_v2_p2p
+        self.log.info("Check inbound connection uses BIP324")
+        node0.add_p2p_connection(P2PInterface(), wait_for_verack=True)
         assert_equal(node0.getpeerinfo()[-1]["transport_protocol_type"], "v2")
 
-        self.log.info("Check inbound connection to v2 TestNode from v1 P2PConnection is v1")
-        peer2 = node0.add_p2p_connection(P2PInterface(), wait_for_verack=True, supports_v2_p2p=False)
-        assert not peer2.supports_v2_p2p
-        assert_equal(node0.getpeerinfo()[-1]["transport_protocol_type"], "v1")
-
-        self.log.info("Check outbound connection from v2 TestNode to v1 P2PConnection advertised as v1 is v1")
-        peer3 = node0.add_outbound_p2p_connection(P2PInterface(), p2p_idx=0, supports_v2_p2p=False, advertise_v2_p2p=False)
-        assert not peer3.supports_v2_p2p
-        assert_equal(node0.getpeerinfo()[-1]["transport_protocol_type"], "v1")
-
-        # v2 TestNode performs downgrading here
-        self.log.info("Check outbound connection from v2 TestNode to v1 P2PConnection advertised as v2 is v1")
-        peer4 = node0.add_outbound_p2p_connection(P2PInterface(), p2p_idx=1, supports_v2_p2p=False, advertise_v2_p2p=True)
-        assert not peer4.supports_v2_p2p
-        assert_equal(node0.getpeerinfo()[-1]["transport_protocol_type"], "v1")
-
-        self.log.info("Check outbound connection from v2 TestNode to v2 P2PConnection advertised as v2 is v2")
-        peer5 = node0.add_outbound_p2p_connection(P2PInterface(), p2p_idx=2, supports_v2_p2p=True, advertise_v2_p2p=True)
-        assert peer5.supports_v2_p2p
+        self.log.info("Check outbound connection uses BIP324")
+        node0.add_outbound_p2p_connection(P2PInterface(), p2p_idx=0)
         assert_equal(node0.getpeerinfo()[-1]["transport_protocol_type"], "v2")
 
         self.log.info("Check if version is sent and verack is received in inbound/outbound connections")
-        assert_equal(len(node0.getpeerinfo()), 5)  # check if above 5 connections are present in node0's getpeerinfo()
+        assert_equal(len(node0.getpeerinfo()), 2)
         for peer in node0.getpeerinfo():
             assert_greater_than(peer['bytessent_per_msg']['version'], 0)
             assert_greater_than(peer['bytesrecv_per_msg']['verack'], 0)
@@ -90,8 +71,7 @@ class P2PEncrypted(BitcoinTestFramework):
         test_blocks = self.generate_blocks(node0, REKEY_INTERVAL+1)
 
         for i in range(2):
-            peer6 = node0.add_p2p_connection(P2PDataStore(), supports_v2_p2p=True)
-            assert peer6.supports_v2_p2p
+            peer6 = node0.add_p2p_connection(P2PDataStore())
             assert_equal(node0.getpeerinfo()[-1]["transport_protocol_type"], "v2")
 
             # Consider: node0 <-- peer6. node0 and node1 aren't connected here.
@@ -111,7 +91,7 @@ class P2PEncrypted(BitcoinTestFramework):
                 peer6.send_blocks_and_test(test_blocks, node0, success=False, is_decoy=True)  # node0's tip doesn't advance
 
             # Then, connect node0 and node1 using v2 and check whether the blocks are received by node1
-            self.connect_nodes(0, 1, peer_advertises_v2=True)
+            self.connect_nodes(0, 1)
             self.log.info("Wait for node1 to receive all the blocks from node0")
             self.sync_all()
             self.log.info("Make sure node0 and node1 have same block tips")
@@ -120,14 +100,7 @@ class P2PEncrypted(BitcoinTestFramework):
             self.disconnect_nodes(0, 1)
 
         self.log.info("Check the connections opened as expected")
-        check_node_connections(node=node0, num_in=4, num_out=3)
-
-        self.log.info("Check inbound connection to v1 TestNode from v2 P2PConnection is v1")
-        self.restart_node(0, ["-v2transport=0"])
-        peer1 = node0.add_p2p_connection(P2PInterface(), wait_for_verack=True, supports_v2_p2p=True)
-        assert not peer1.supports_v2_p2p
-        assert_equal(node0.getpeerinfo()[-1]["transport_protocol_type"], "v1")
-        check_node_connections(node=node0, num_in=1, num_out=0)
+        check_node_connections(node=node0, num_in=3, num_out=1)
 
 
 if __name__ == '__main__':

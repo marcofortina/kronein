@@ -489,9 +489,7 @@ RPCConsole::RPCConsole(interfaces::Node& node, const PlatformStyle *_platformSty
     ui->peerConnectionTypeLabel->setToolTip(ui->peerConnectionTypeLabel->toolTip().arg(connection_types_list));
     const std::vector<QString> TRANSPORT_TYPE_DOC{
         //: Explanatory text for "detecting" transport type.
-        tr("detecting: peer could be v1 or v2"),
-        //: Explanatory text for v1 transport type.
-        tr("v1: unencrypted, plaintext transport protocol"),
+        tr("detecting: BIP324 handshake in progress"),
         //: Explanatory text for v2 transport type.
         tr("v2: BIP324 encrypted transport protocol")};
     const QString transport_types_list{"<ul><li>" + Join(TRANSPORT_TYPE_DOC, QString("</li><li>")) + "</li></ul>"};

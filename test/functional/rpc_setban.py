@@ -34,15 +34,10 @@ class SetBanTests(BitcoinTestFramework):
         self.restart_node(1, [])
         context = ExitStack()
         context.enter_context(self.nodes[1].assert_debug_log(expected_msgs=["dropped (banned)\n"]))
-        # When disconnected right after connecting, a v2 node will attempt to reconnect with v1.
-        # Wait for all disconnects on node0, so that it cannot mess with later tests.
+        # Wait for the disconnect on node0, so that it cannot interfere with later tests.
         context.enter_context(self.nodes[0].assert_debug_log(
             expected_msgs=[
-                "retrying with v1 transport protocol for peer=2",
                 "Cleared nodestate for peer=2",
-                "Cleared nodestate for peer=3",
-            ] if self.options.v2transport else [
-                "Cleared nodestate for peer=2",  # Just one v1 disconnect to wait for
             ],
             timeout=8))
         with context:

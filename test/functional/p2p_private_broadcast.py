@@ -136,9 +136,6 @@ class P2PPrivateBroadcast(BitcoinTestFramework):
             [
                 # Needed to be able to add CJDNS addresses to addrman (otherwise they are unroutable).
                 "-cjdnsreachable",
-                # Connecting, sending garbage, being disconnected messes up with this test's
-                # check_broadcasts() which waits for a particular Python node to receive a connection.
-                "-v2transport=0",
                 "-test=addrman",
                 "-privatebroadcast",
                 f"-proxy={self.socks5_server.conf.addr[0]}:{self.socks5_server.conf.addr[1]}",
@@ -381,7 +378,6 @@ class P2PPrivateBroadcast(BitcoinTestFramework):
         self.log.info("Trying to send a transaction when none of Tor or I2P is reachable")
         self.restart_node(0, extra_args=[
             "-privatebroadcast",
-            "-v2transport=0",
             # A location where definitely a Tor control is not listening. This would allow
             # Bitcoin Core to start, hoping/assuming that the location of the Tor proxy
             # may be retrieved after startup from the Tor control, but it will not be, so

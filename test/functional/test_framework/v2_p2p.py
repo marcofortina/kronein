@@ -82,7 +82,7 @@ class EncryptedP2PState:
         self.ellswift_ours = None
         self.sent_garbage = b""
         self.received_garbage = b""
-        self.received_prefix = b""  # received ellswift bytes till the first mismatch from 16 bytes v1_prefix
+        self.received_prefix = b""  # EllSwift key bytes received so far.
         self.tried_v2_handshake = False  # True when the initial handshake is over
         # stores length of packet contents to detect whether first 3 bytes (which contains length of packet contents)
         # has been decrypted. set to -1 if decryption hasn't been done yet.
@@ -122,26 +122,18 @@ class EncryptedP2PState:
         return self.generate_keypair_and_garbage()
 
     def respond_v2_handshake(self, response):
-        """Responder begins the v2 handshake by sending its ellswift bytes and garbage. However, the responder
-        sends this after having received at least one byte that mismatches 16-byte v1_prefix.
+        """Responder begins the v2 handshake after receiving the initiator's EllSwift key.
 
         Returns:
         1. int - length of bytes that were consumed so that recvbuf can be updated
         2. bytes - bytes to be sent to the peer when starting the v2 handshake as a responder.
-                 - returns b"" if more bytes need to be received before we can respond and start the v2 handshake.
-                 - returns -1 to downgrade the connection to v1 P2P.
+                 - returns b"" if more key bytes are needed before the response can be sent.
         """
-        v1_prefix = MAGIC_BYTES[self.net] + b'version\x00\x00\x00\x00\x00'
-        while len(self.received_prefix) < 16:
-            byte = response.read(1)
-            # return b"" if we need to receive more bytes
-            if not byte:
-                return len(self.received_prefix), b""
-            self.received_prefix += byte
-            if self.received_prefix[-1] != v1_prefix[len(self.received_prefix) - 1]:
-                return len(self.received_prefix), self.generate_keypair_and_garbage()
-        # return -1 to decide v1 only after all 16 bytes processed
-        return len(self.received_prefix), -1
+        key_bytes = response.read(64 - len(self.received_prefix))
+        self.received_prefix += key_bytes
+        if len(self.received_prefix) < 64:
+            return len(key_bytes), b""
+        return len(key_bytes), self.generate_keypair_and_garbage()
 
     def complete_handshake(self, response):
         """ Instantiates the encrypted transport and

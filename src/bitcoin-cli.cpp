@@ -550,7 +550,7 @@ public:
                 const std::string age{conn_time == 0 ? "" : ToString((time_now - conn_time) / 60)};
                 const std::string services{FormatServices(peer["servicesnames"])};
                 const std::string sub_version{peer["subver"].get_str()};
-                const std::string transport{peer["transport_protocol_type"].isNull() ? "v1" : peer["transport_protocol_type"].get_str()};
+                const std::string transport{peer["transport_protocol_type"].get_str()};
                 const bool is_addr_relay_enabled{peer["addr_relay_enabled"].isNull() ? false : peer["addr_relay_enabled"].get_bool()};
                 const bool is_bip152_hb_from{peer["bip152_hb_from"].get_bool()};
                 const bool is_bip152_hb_to{peer["bip152_hb_to"].get_bool()};

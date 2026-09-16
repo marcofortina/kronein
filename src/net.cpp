@@ -373,7 +373,6 @@ CNode* CConnman::ConnectNode(CAddress addrConnect,
                              const char* pszDest,
                              bool fCountFailure,
                              ConnectionType conn_type,
-                             bool use_v2transport,
                              const std::optional<Proxy>& proxy_override)
 {
     AssertLockNotHeld(m_unused_i2p_sessions_mutex);
@@ -390,8 +389,7 @@ CNode* CConnman::ConnectNode(CAddress addrConnect,
         }
     }
 
-    LogDebug(BCLog::NET, "trying %s connection (%s) to %s, lastseen=%.1fhrs\n",
-        use_v2transport ? "v2" : "v1",
+    LogDebug(BCLog::NET, "trying v2 connection (%s) to %s, lastseen=%.1fhrs\n",
         ConnectionTypeAsString(conn_type),
         pszDest ? pszDest : addrConnect.ToStringAddrPort(),
         Ticks<HoursDouble>(pszDest ? 0h : Now<NodeSeconds>() - addrConnect.nTime));
@@ -539,10 +537,8 @@ CNode* CConnman::ConnectNode(CAddress addrConnect,
                                 network_id,
                                 CNodeOptions{
                                     .permission_flags = permission_flags,
-                                    .proxy_override = proxy_override,
                                     .i2p_sam_session = std::move(i2p_transient_session),
                                     .recv_flood_size = nReceiveFloodSize,
-                                    .use_v2transport = use_v2transport,
                                 });
         pnode->AddRef();
 
@@ -717,197 +713,6 @@ std::string CNode::DisconnectMsg(bool log_ip) const
                      LogIP(log_ip));
 }
 
-V1Transport::V1Transport(const NodeId node_id) noexcept
-    : m_magic_bytes{Params().MessageStart()}, m_node_id{node_id}
-{
-    LOCK(m_recv_mutex);
-    Reset();
-}
-
-Transport::Info V1Transport::GetInfo() const noexcept
-{
-    return {.transport_type = TransportProtocolType::V1, .session_id = {}};
-}
-
-int V1Transport::readHeader(std::span<const uint8_t> msg_bytes)
-{
-    AssertLockHeld(m_recv_mutex);
-    // copy data to temporary parsing buffer
-    unsigned int nRemaining = CMessageHeader::HEADER_SIZE - nHdrPos;
-    unsigned int nCopy = std::min<unsigned int>(nRemaining, msg_bytes.size());
-
-    memcpy(&hdrbuf[nHdrPos], msg_bytes.data(), nCopy);
-    nHdrPos += nCopy;
-
-    // if header incomplete, exit
-    if (nHdrPos < CMessageHeader::HEADER_SIZE)
-        return nCopy;
-
-    // deserialize to CMessageHeader
-    try {
-        hdrbuf >> hdr;
-    }
-    catch (const std::exception&) {
-        LogDebug(BCLog::NET, "Header error: Unable to deserialize, peer=%d\n", m_node_id);
-        return -1;
-    }
-
-    // Check start string, network magic
-    if (hdr.pchMessageStart != m_magic_bytes) {
-        LogDebug(BCLog::NET, "Header error: Wrong MessageStart %s received, peer=%d\n", HexStr(hdr.pchMessageStart), m_node_id);
-        return -1;
-    }
-
-    // reject messages larger than MAX_SIZE or MAX_PROTOCOL_MESSAGE_LENGTH
-    // NOTE: failing to perform this check previously allowed a malicious peer to make us allocate 32MiB of memory per
-    // connection. See https://bitcoincore.org/en/2024/07/03/disclose_receive_buffer_oom.
-    if (hdr.nMessageSize > MAX_SIZE || hdr.nMessageSize > MAX_PROTOCOL_MESSAGE_LENGTH) {
-        LogDebug(BCLog::NET, "Header error: Size too large (%s, %u bytes), peer=%d\n", SanitizeString(hdr.GetMessageType()), hdr.nMessageSize, m_node_id);
-        return -1;
-    }
-
-    // switch state to reading message data
-    in_data = true;
-
-    return nCopy;
-}
-
-int V1Transport::readData(std::span<const uint8_t> msg_bytes)
-{
-    AssertLockHeld(m_recv_mutex);
-    unsigned int nRemaining = hdr.nMessageSize - nDataPos;
-    unsigned int nCopy = std::min<unsigned int>(nRemaining, msg_bytes.size());
-
-    if (vRecv.size() < nDataPos + nCopy) {
-        // Allocate up to 256 KiB ahead, but never more than the total message size.
-        vRecv.resize(std::min(hdr.nMessageSize, nDataPos + nCopy + 256 * 1024));
-    }
-
-    hasher.Write(msg_bytes.first(nCopy));
-    memcpy(&vRecv[nDataPos], msg_bytes.data(), nCopy);
-    nDataPos += nCopy;
-
-    return nCopy;
-}
-
-const uint256& V1Transport::GetMessageHash() const
-{
-    AssertLockHeld(m_recv_mutex);
-    assert(CompleteInternal());
-    if (data_hash.IsNull())
-        hasher.Finalize(data_hash);
-    return data_hash;
-}
-
-CNetMessage V1Transport::GetReceivedMessage(const std::chrono::microseconds time, bool& reject_message)
-{
-    AssertLockNotHeld(m_recv_mutex);
-    // Initialize out parameter
-    reject_message = false;
-    // decompose a single CNetMessage from the TransportDeserializer
-    LOCK(m_recv_mutex);
-    CNetMessage msg(std::move(vRecv));
-
-    // store message type string, time, and sizes
-    msg.m_type = hdr.GetMessageType();
-    msg.m_time = time;
-    msg.m_message_size = hdr.nMessageSize;
-    msg.m_raw_message_size = hdr.nMessageSize + CMessageHeader::HEADER_SIZE;
-
-    uint256 hash = GetMessageHash();
-
-    // We just received a message off the wire, harvest entropy from the time (and the message checksum)
-    RandAddEvent(ReadLE32(hash.begin()));
-
-    // Check checksum and header message type string
-    if (memcmp(hash.begin(), hdr.pchChecksum, CMessageHeader::CHECKSUM_SIZE) != 0) {
-        LogDebug(BCLog::NET, "Header error: Wrong checksum (%s, %u bytes), expected %s was %s, peer=%d\n",
-                 SanitizeString(msg.m_type), msg.m_message_size,
-                 HexStr(std::span{hash}.first(CMessageHeader::CHECKSUM_SIZE)),
-                 HexStr(hdr.pchChecksum),
-                 m_node_id);
-        reject_message = true;
-    } else if (!hdr.IsMessageTypeValid()) {
-        LogDebug(BCLog::NET, "Header error: Invalid message type (%s, %u bytes), peer=%d\n",
-                 SanitizeString(hdr.GetMessageType()), msg.m_message_size, m_node_id);
-        reject_message = true;
-    }
-
-    // Always reset the network deserializer (prepare for the next message)
-    Reset();
-    return msg;
-}
-
-bool V1Transport::SetMessageToSend(CSerializedNetMsg& msg) noexcept
-{
-    AssertLockNotHeld(m_send_mutex);
-    // Determine whether a new message can be set.
-    LOCK(m_send_mutex);
-    if (m_sending_header || m_bytes_sent < m_message_to_send.data.size()) return false;
-
-    // create dbl-sha256 checksum
-    uint256 hash = Hash(msg.data);
-
-    // create header
-    CMessageHeader hdr(m_magic_bytes, msg.m_type.c_str(), msg.data.size());
-    memcpy(hdr.pchChecksum, hash.begin(), CMessageHeader::CHECKSUM_SIZE);
-
-    // serialize header
-    m_header_to_send.clear();
-    VectorWriter{m_header_to_send, 0, hdr};
-
-    // update state
-    m_message_to_send = std::move(msg);
-    m_sending_header = true;
-    m_bytes_sent = 0;
-    return true;
-}
-
-Transport::BytesToSend V1Transport::GetBytesToSend(bool have_next_message) const noexcept
-{
-    AssertLockNotHeld(m_send_mutex);
-    LOCK(m_send_mutex);
-    if (m_sending_header) {
-        return {std::span{m_header_to_send}.subspan(m_bytes_sent),
-                // We have more to send after the header if the message has payload, or if there
-                // is a next message after that.
-                have_next_message || !m_message_to_send.data.empty(),
-                m_message_to_send.m_type
-               };
-    } else {
-        return {std::span{m_message_to_send.data}.subspan(m_bytes_sent),
-                // We only have more to send after this message's payload if there is another
-                // message.
-                have_next_message,
-                m_message_to_send.m_type
-               };
-    }
-}
-
-void V1Transport::MarkBytesSent(size_t bytes_sent) noexcept
-{
-    AssertLockNotHeld(m_send_mutex);
-    LOCK(m_send_mutex);
-    m_bytes_sent += bytes_sent;
-    if (m_sending_header && m_bytes_sent == m_header_to_send.size()) {
-        // We're done sending a message's header. Switch to sending its data bytes.
-        m_sending_header = false;
-        m_bytes_sent = 0;
-    } else if (!m_sending_header && m_bytes_sent == m_message_to_send.data.size()) {
-        // We're done sending a message's data. Wipe the data vector to reduce memory consumption.
-        ClearShrink(m_message_to_send.data);
-        m_bytes_sent = 0;
-    }
-}
-
-size_t V1Transport::GetSendMemoryUsage() const noexcept
-{
-    AssertLockNotHeld(m_send_mutex);
-    LOCK(m_send_mutex);
-    // Don't count sending-side fields besides m_message_to_send, as they're all small and bounded.
-    return m_message_to_send.GetMemoryUsage();
-}
-
 namespace {
 
 /** List of short messages as defined in BIP324, in order.
@@ -916,7 +721,7 @@ namespace {
  * messages get ignored anyway - whether we know how to decode them or not.
  */
 const std::array<std::string, 33> V2_MESSAGE_IDS = {
-    "", // 12 bytes follow encoding the message type like in V1
+    "", // 12 bytes follow encoding the message type
     NetMsgType::ADDR,
     NetMsgType::BLOCK,
     NetMsgType::BLOCKTXN,
@@ -1001,10 +806,9 @@ V2Transport::V2Transport(NodeId nodeid, bool initiating, const CKey& key, std::s
     : m_cipher{key, ent32},
       m_initiating{initiating},
       m_nodeid{nodeid},
-      m_v1_fallback{nodeid},
-      m_recv_state{initiating ? RecvState::KEY : RecvState::KEY_MAYBE_V1},
+      m_recv_state{RecvState::KEY},
       m_send_garbage{std::move(garbage)},
-      m_send_state{initiating ? SendState::AWAITING_KEY : SendState::MAYBE_V1}
+      m_send_state{SendState::AWAITING_KEY}
 {
     Assume(m_send_garbage.size() <= MAX_GARBAGE_LEN);
     // Start sending immediately if we're the initiator of the connection.
@@ -1023,9 +827,6 @@ void V2Transport::SetReceiveState(RecvState recv_state) noexcept
     AssertLockHeld(m_recv_mutex);
     // Enforce allowed state transitions.
     switch (m_recv_state) {
-    case RecvState::KEY_MAYBE_V1:
-        Assume(recv_state == RecvState::KEY || recv_state == RecvState::V1);
-        break;
     case RecvState::KEY:
         Assume(recv_state == RecvState::GARB_GARBTERM);
         break;
@@ -1041,9 +842,6 @@ void V2Transport::SetReceiveState(RecvState recv_state) noexcept
     case RecvState::APP_READY:
         Assume(recv_state == RecvState::APP);
         break;
-    case RecvState::V1:
-        Assume(false); // V1 state cannot be left
-        break;
     }
     // Change state.
     m_recv_state = recv_state;
@@ -1054,14 +852,10 @@ void V2Transport::SetSendState(SendState send_state) noexcept
     AssertLockHeld(m_send_mutex);
     // Enforce allowed state transitions.
     switch (m_send_state) {
-    case SendState::MAYBE_V1:
-        Assume(send_state == SendState::V1 || send_state == SendState::AWAITING_KEY);
-        break;
     case SendState::AWAITING_KEY:
         Assume(send_state == SendState::READY);
         break;
     case SendState::READY:
-    case SendState::V1:
         Assume(false); // Final states
         break;
     }
@@ -1073,47 +867,7 @@ bool V2Transport::ReceivedMessageComplete() const noexcept
 {
     AssertLockNotHeld(m_recv_mutex);
     LOCK(m_recv_mutex);
-    if (m_recv_state == RecvState::V1) return m_v1_fallback.ReceivedMessageComplete();
-
     return m_recv_state == RecvState::APP_READY;
-}
-
-void V2Transport::ProcessReceivedMaybeV1Bytes() noexcept
-{
-    AssertLockHeld(m_recv_mutex);
-    AssertLockNotHeld(m_send_mutex);
-    Assume(m_recv_state == RecvState::KEY_MAYBE_V1);
-    // We still have to determine if this is a v1 or v2 connection. The bytes being received could
-    // be the beginning of either a v1 packet (network magic + "version\x00\x00\x00\x00\x00"), or
-    // of a v2 public key. BIP324 specifies that a mismatch with this 16-byte string should trigger
-    // sending of the key.
-    std::array<uint8_t, V1_PREFIX_LEN> v1_prefix = {0, 0, 0, 0, 'v', 'e', 'r', 's', 'i', 'o', 'n', 0, 0, 0, 0, 0};
-    std::copy(std::begin(Params().MessageStart()), std::end(Params().MessageStart()), v1_prefix.begin());
-    Assume(m_recv_buffer.size() <= v1_prefix.size());
-    if (!std::equal(m_recv_buffer.begin(), m_recv_buffer.end(), v1_prefix.begin())) {
-        // Mismatch with v1 prefix, so we can assume a v2 connection.
-        SetReceiveState(RecvState::KEY); // Convert to KEY state, leaving received bytes around.
-        // Transition the sender to AWAITING_KEY state and start sending.
-        LOCK(m_send_mutex);
-        SetSendState(SendState::AWAITING_KEY);
-        StartSendingHandshake();
-    } else if (m_recv_buffer.size() == v1_prefix.size()) {
-        // Full match with the v1 prefix, so fall back to v1 behavior.
-        LOCK(m_send_mutex);
-        std::span<const uint8_t> feedback{m_recv_buffer};
-        // Feed already received bytes to v1 transport. It should always accept these, because it's
-        // less than the size of a v1 header, and these are the first bytes fed to m_v1_fallback.
-        bool ret = m_v1_fallback.ReceivedBytes(feedback);
-        Assume(feedback.empty());
-        Assume(ret);
-        SetReceiveState(RecvState::V1);
-        SetSendState(SendState::V1);
-        // Reset v2 transport buffers to save memory.
-        ClearShrink(m_recv_buffer);
-        ClearShrink(m_send_buffer);
-    } else {
-        // We have not received enough to distinguish v1 from v2 yet. Wait until more bytes come.
-    }
 }
 
 bool V2Transport::ProcessReceivedKeyBytes() noexcept
@@ -1123,22 +877,6 @@ bool V2Transport::ProcessReceivedKeyBytes() noexcept
     Assume(m_recv_state == RecvState::KEY);
     Assume(m_recv_buffer.size() <= EllSwiftPubKey::size());
 
-    // As a special exception, if bytes 4-16 of the key on a responder connection match the
-    // corresponding bytes of a V1 version message, but bytes 0-4 don't match the network magic
-    // (if they did, we'd have switched to V1 state already), assume this is a peer from
-    // another network, and disconnect them. They will almost certainly disconnect us too when
-    // they receive our uniformly random key and garbage, but detecting this case specially
-    // means we can log it.
-    static constexpr std::array<uint8_t, 12> MATCH = {'v', 'e', 'r', 's', 'i', 'o', 'n', 0, 0, 0, 0, 0};
-    static constexpr size_t OFFSET = std::tuple_size_v<MessageStartChars>;
-    if (!m_initiating && m_recv_buffer.size() >= OFFSET + MATCH.size()) {
-        if (std::equal(MATCH.begin(), MATCH.end(), m_recv_buffer.begin() + OFFSET)) {
-            LogDebug(BCLog::NET, "V2 transport error: V1 peer with wrong MessageStart %s\n",
-                     HexStr(std::span(m_recv_buffer).first(OFFSET)));
-            return false;
-        }
-    }
-
     if (m_recv_buffer.size() == EllSwiftPubKey::size()) {
         // Other side's key has been fully received, and can now be Diffie-Hellman combined with
         // our key to initialize the encryption ciphers.
@@ -1146,6 +884,7 @@ bool V2Transport::ProcessReceivedKeyBytes() noexcept
         // Initialize the ciphers.
         EllSwiftPubKey ellswift(MakeByteSpan(m_recv_buffer));
         LOCK(m_send_mutex);
+        if (!m_initiating) StartSendingHandshake();
         m_cipher.Initialize(ellswift, m_initiating);
 
         // Switch receiver state to GARB_GARBTERM.
@@ -1276,15 +1015,6 @@ size_t V2Transport::GetMaxBytesToProcess() noexcept
 {
     AssertLockHeld(m_recv_mutex);
     switch (m_recv_state) {
-    case RecvState::KEY_MAYBE_V1:
-        // During the KEY_MAYBE_V1 state we do not allow more than the length of v1 prefix into the
-        // receive buffer.
-        Assume(m_recv_buffer.size() <= V1_PREFIX_LEN);
-        // As long as we're not sure if this is a v1 or v2 connection, don't receive more than what
-        // is strictly necessary to distinguish the two (16 bytes). If we permitted more than
-        // the v1 header size (24 bytes), we may not be able to feed the already-received bytes
-        // back into the m_v1_fallback V1 transport.
-        return V1_PREFIX_LEN - m_recv_buffer.size();
     case RecvState::KEY:
         // During the KEY state, we only allow the 64-byte key into the receive buffer.
         Assume(m_recv_buffer.size() <= EllSwiftPubKey::size());
@@ -1297,7 +1027,7 @@ size_t V2Transport::GetMaxBytesToProcess() noexcept
         return 1;
     case RecvState::VERSION:
     case RecvState::APP:
-        // These three states all involve decoding a packet. Process the length descriptor first,
+        // These states both involve decoding a packet. Process the length descriptor first,
         // so that we know where the current packet ends (and we don't process bytes from the next
         // packet or decoy yet). Then, process the ciphertext bytes of the current packet.
         if (m_recv_buffer.size() < BIP324Cipher::LENGTH_LEN) {
@@ -1312,10 +1042,6 @@ size_t V2Transport::GetMaxBytesToProcess() noexcept
     case RecvState::APP_READY:
         // No bytes can be processed until GetMessage() is called.
         return 0;
-    case RecvState::V1:
-        // Not allowed (must be dealt with by the caller).
-        Assume(false);
-        return 0;
     }
     Assume(false); // unreachable
     return 0;
@@ -1328,7 +1054,6 @@ bool V2Transport::ReceivedBytes(std::span<const uint8_t>& msg_bytes) noexcept
     static constexpr size_t MAX_RESERVE_AHEAD = 256 * 1024;
 
     LOCK(m_recv_mutex);
-    if (m_recv_state == RecvState::V1) return m_v1_fallback.ReceivedBytes(msg_bytes);
 
     // Process the provided bytes in msg_bytes in a loop. In each iteration a nonzero number of
     // bytes (decided by GetMaxBytesToProcess) are taken from the beginning om msg_bytes, and
@@ -1341,7 +1066,6 @@ bool V2Transport::ReceivedBytes(std::span<const uint8_t>& msg_bytes) noexcept
         // Reserve space in the buffer if there is not enough.
         if (m_recv_buffer.size() + std::min(msg_bytes.size(), max_read) > m_recv_buffer.capacity()) {
             switch (m_recv_state) {
-            case RecvState::KEY_MAYBE_V1:
             case RecvState::KEY:
             case RecvState::GARB_GARBTERM:
                 // During the initial states (key/garbage), allocate once to fit the maximum (4111
@@ -1363,10 +1087,6 @@ bool V2Transport::ReceivedBytes(std::span<const uint8_t>& msg_bytes) noexcept
                 // The buffer is empty in this state.
                 Assume(m_recv_buffer.empty());
                 break;
-            case RecvState::V1:
-                // Should have bailed out above.
-                Assume(false);
-                break;
             }
         }
 
@@ -1378,11 +1098,6 @@ bool V2Transport::ReceivedBytes(std::span<const uint8_t>& msg_bytes) noexcept
 
         // Process data in the buffer.
         switch (m_recv_state) {
-        case RecvState::KEY_MAYBE_V1:
-            ProcessReceivedMaybeV1Bytes();
-            if (m_recv_state == RecvState::V1) return true;
-            break;
-
         case RecvState::KEY:
             if (!ProcessReceivedKeyBytes()) return false;
             break;
@@ -1399,10 +1114,6 @@ bool V2Transport::ReceivedBytes(std::span<const uint8_t>& msg_bytes) noexcept
         case RecvState::APP_READY:
             return true;
 
-        case RecvState::V1:
-            // We should have bailed out before.
-            Assume(false);
-            break;
         }
         // Make sure we have made progress before continuing.
         Assume(max_read > 0);
@@ -1455,8 +1166,6 @@ CNetMessage V2Transport::GetReceivedMessage(std::chrono::microseconds time, bool
 {
     AssertLockNotHeld(m_recv_mutex);
     LOCK(m_recv_mutex);
-    if (m_recv_state == RecvState::V1) return m_v1_fallback.GetReceivedMessage(time, reject_message);
-
     Assume(m_recv_state == RecvState::APP_READY);
     std::span<const uint8_t> contents{m_recv_decode_buffer};
     auto msg_type = GetMessageType(contents);
@@ -1484,7 +1193,6 @@ bool V2Transport::SetMessageToSend(CSerializedNetMsg& msg) noexcept
 {
     AssertLockNotHeld(m_send_mutex);
     LOCK(m_send_mutex);
-    if (m_send_state == SendState::V1) return m_v1_fallback.SetMessageToSend(msg);
     // We only allow adding a new message to be sent when in the READY state (so the packet cipher
     // is available) and the send buffer is empty. This limits the number of messages in the send
     // buffer to just one, and leaves the responsibility for queueing them up to the caller.
@@ -1516,9 +1224,6 @@ Transport::BytesToSend V2Transport::GetBytesToSend(bool have_next_message) const
 {
     AssertLockNotHeld(m_send_mutex);
     LOCK(m_send_mutex);
-    if (m_send_state == SendState::V1) return m_v1_fallback.GetBytesToSend(have_next_message);
-
-    if (m_send_state == SendState::MAYBE_V1) Assume(m_send_buffer.empty());
     Assume(m_send_pos <= m_send_buffer.size());
     return {
         std::span{m_send_buffer}.subspan(m_send_pos),
@@ -1533,17 +1238,12 @@ void V2Transport::MarkBytesSent(size_t bytes_sent) noexcept
 {
     AssertLockNotHeld(m_send_mutex);
     LOCK(m_send_mutex);
-    if (m_send_state == SendState::V1) return m_v1_fallback.MarkBytesSent(bytes_sent);
-
     if (m_send_state == SendState::AWAITING_KEY && m_send_pos == 0 && bytes_sent > 0) {
         LogDebug(BCLog::NET, "start sending v2 handshake to peer=%d\n", m_nodeid);
     }
 
     m_send_pos += bytes_sent;
     Assume(m_send_pos <= m_send_buffer.size());
-    if (m_send_pos >= CMessageHeader::HEADER_SIZE) {
-        m_sent_v1_header_worth = true;
-    }
     // Wipe the buffer when everything is sent.
     if (m_send_pos == m_send_buffer.size()) {
         m_send_pos = 0;
@@ -1551,29 +1251,10 @@ void V2Transport::MarkBytesSent(size_t bytes_sent) noexcept
     }
 }
 
-bool V2Transport::ShouldReconnectV1() const noexcept
-{
-    AssertLockNotHeld(m_send_mutex);
-    AssertLockNotHeld(m_recv_mutex);
-    // Only outgoing connections need reconnection.
-    if (!m_initiating) return false;
-
-    LOCK(m_recv_mutex);
-    // We only reconnect in the very first state and when the receive buffer is empty. Together
-    // these conditions imply nothing has been received so far.
-    if (m_recv_state != RecvState::KEY) return false;
-    if (!m_recv_buffer.empty()) return false;
-    // Check if we've sent enough for the other side to disconnect us (if it was V1).
-    LOCK(m_send_mutex);
-    return m_sent_v1_header_worth;
-}
-
 size_t V2Transport::GetSendMemoryUsage() const noexcept
 {
     AssertLockNotHeld(m_send_mutex);
     LOCK(m_send_mutex);
-    if (m_send_state == SendState::V1) return m_v1_fallback.GetSendMemoryUsage();
-
     return sizeof(m_send_buffer) + memusage::DynamicUsage(m_send_buffer);
 }
 
@@ -1581,14 +1262,11 @@ Transport::Info V2Transport::GetInfo() const noexcept
 {
     AssertLockNotHeld(m_recv_mutex);
     LOCK(m_recv_mutex);
-    if (m_recv_state == RecvState::V1) return m_v1_fallback.GetInfo();
-
     Transport::Info info;
 
     // Do not report v2 and session ID until the version packet has been received
     // and verified (confirming that the other side very likely has the same keys as us).
-    if (m_recv_state != RecvState::KEY_MAYBE_V1 && m_recv_state != RecvState::KEY &&
-        m_recv_state != RecvState::GARB_GARBTERM && m_recv_state != RecvState::VERSION) {
+    if (m_recv_state != RecvState::KEY && m_recv_state != RecvState::GARB_GARBTERM && m_recv_state != RecvState::VERSION) {
         info.transport_type = TransportProtocolType::V2;
         info.session_id = uint256(MakeUCharSpan(m_cipher.GetSessionID()));
     } else {
@@ -1827,10 +1505,7 @@ void CConnman::CreateNodeFromAcceptedSocket(std::unique_ptr<Sock>&& sock,
     NodeId id = GetNewNodeId();
     uint64_t nonce = GetDeterministicRandomizer(RANDOMIZER_ID_LOCALHOSTNONCE).Write(id).Finalize();
 
-    // The V2Transport transparently falls back to V1 behavior when an incoming V1 connection is
-    // detected, so use it whenever we signal NODE_P2P_V2.
     ServiceFlags local_services = GetLocalServices();
-    const bool use_v2transport(local_services & NODE_P2P_V2);
 
     uint64_t network_id = GetDeterministicRandomizer(RANDOMIZER_ID_NETWORKKEY)
                         .Write(inbound_onion ? NET_ONION : addr.GetNetClass())
@@ -1851,7 +1526,6 @@ void CConnman::CreateNodeFromAcceptedSocket(std::unique_ptr<Sock>&& sock,
                                  .permission_flags = permission_flags,
                                  .prefer_evict = discouraged,
                                  .recv_flood_size = nReceiveFloodSize,
-                                 .use_v2transport = use_v2transport,
                              });
     pnode->AddRef();
     m_msgproc->InitializeNode(*pnode, local_services);
@@ -1871,7 +1545,7 @@ void CConnman::CreateNodeFromAcceptedSocket(std::unique_ptr<Sock>&& sock,
     RandAddEvent((uint32_t)id);
 }
 
-bool CConnman::AddConnection(const std::string& address, ConnectionType conn_type, bool use_v2transport = false)
+bool CConnman::AddConnection(const std::string& address, ConnectionType conn_type)
 {
     AssertLockNotHeld(m_unused_i2p_sessions_mutex);
     std::optional<int> max_connections;
@@ -1910,7 +1584,6 @@ bool CConnman::AddConnection(const std::string& address, ConnectionType conn_typ
                           /*grant_outbound=*/std::move(grant),
                           /*pszDest=*/address.c_str(),
                           /*conn_type=*/conn_type,
-                          /*use_v2transport=*/use_v2transport,
                           /*proxy_override=*/std::nullopt);
     return true;
 }
@@ -1918,11 +1591,6 @@ bool CConnman::AddConnection(const std::string& address, ConnectionType conn_typ
 void CConnman::DisconnectNodes()
 {
     AssertLockNotHeld(m_nodes_mutex);
-    AssertLockNotHeld(m_reconnections_mutex);
-
-    // Use a temporary variable to accumulate desired reconnections, so we don't need
-    // m_reconnections_mutex while holding m_nodes_mutex.
-    decltype(m_reconnections) reconnections_to_add;
 
     {
         LOCK(m_nodes_mutex);
@@ -1946,20 +1614,6 @@ void CConnman::DisconnectNodes()
             {
                 // remove from m_nodes
                 m_nodes.erase(remove(m_nodes.begin(), m_nodes.end(), pnode), m_nodes.end());
-
-                // Add to reconnection list if appropriate. We don't reconnect right here, because
-                // the creation of a connection is a blocking operation (up to several seconds),
-                // and we don't want to hold up the socket handler thread for that long.
-                if (network_active && pnode->m_transport->ShouldReconnectV1()) {
-                    reconnections_to_add.push_back({
-                        .proxy_override = pnode->m_proxy_override,
-                        .addr_connect = pnode->addr,
-                        .grant = std::move(pnode->grantOutbound),
-                        .destination = pnode->m_dest,
-                        .conn_type = pnode->m_conn_type,
-                        .use_v2transport = false});
-                    LogDebug(BCLog::NET, "retrying with v1 transport protocol for peer=%d\n", pnode->GetId());
-                }
 
                 // release outbound grant (if any)
                 pnode->grantOutbound.Release();
@@ -1987,11 +1641,6 @@ void CConnman::DisconnectNodes()
                 DeleteNode(pnode);
             }
         }
-    }
-    {
-        // Move entries from reconnections_to_add to m_reconnections.
-        LOCK(m_reconnections_mutex);
-        m_reconnections.splice(m_reconnections.end(), std::move(reconnections_to_add));
     }
 }
 
@@ -2423,9 +2072,6 @@ void CConnman::ProcessAddrFetch()
         strDest = m_addr_fetches.front();
         m_addr_fetches.pop_front();
     }
-    // Attempt v2 connection if we support v2 - we'll reconnect with v1 if our
-    // peer doesn't support it or immediately disconnects us for another reason.
-    const bool use_v2transport(GetLocalServices() & NODE_P2P_V2);
     CAddress addr;
     CountingSemaphoreGrant<> grant(*semOutbound, /*fTry=*/true);
     if (grant) {
@@ -2434,7 +2080,6 @@ void CConnman::ProcessAddrFetch()
                               /*grant_outbound=*/std::move(grant),
                               /*pszDest=*/strDest.c_str(),
                               /*conn_type=*/ConnectionType::ADDR_FETCH,
-                              /*use_v2transport=*/use_v2transport,
                               /*proxy_override=*/std::nullopt);
     }
 }
@@ -2541,14 +2186,10 @@ bool CConnman::MaybePickPreferredNetwork(std::optional<Network>& network)
 void CConnman::ThreadOpenConnections(const std::vector<std::string> connect, std::span<const std::string> seed_nodes)
 {
     AssertLockNotHeld(m_unused_i2p_sessions_mutex);
-    AssertLockNotHeld(m_reconnections_mutex);
     FastRandomContext rng;
     // Connect to specific addresses
     if (!connect.empty())
     {
-        // Attempt v2 connection if we support v2 - we'll reconnect with v1 if our
-        // peer doesn't support it or immediately disconnects us for another reason.
-        const bool use_v2transport(GetLocalServices() & NODE_P2P_V2);
         for (int64_t nLoop = 0;; nLoop++)
         {
             for (const std::string& strAddr : connect)
@@ -2558,7 +2199,6 @@ void CConnman::ThreadOpenConnections(const std::vector<std::string> connect, std
                                       /*grant_outbound=*/{},
                                       /*pszDest=*/strAddr.c_str(),
                                       /*conn_type=*/ConnectionType::MANUAL,
-                                      /*use_v2transport=*/use_v2transport,
                                       /*proxy_override=*/std::nullopt);
                 for (int i = 0; i < 10 && i < nLoop; i++)
                 {
@@ -2570,7 +2210,6 @@ void CConnman::ThreadOpenConnections(const std::vector<std::string> connect, std
             if (!m_interrupt_net->sleep_for(500ms)) {
                 return;
             }
-            PerformReconnections();
         }
     }
 
@@ -2612,7 +2251,6 @@ void CConnman::ThreadOpenConnections(const std::vector<std::string> connect, std
             return;
         }
 
-        PerformReconnections();
 
         CountingSemaphoreGrant<> grant(*semOutbound);
         if (m_interrupt_net->interrupted()) {
@@ -2907,14 +2545,11 @@ void CConnman::ThreadOpenConnections(const std::vector<std::string> connect, std
             // Don't record addrman failure attempts when node is offline. This can be identified since all local
             // network connections (if any) belong in the same netgroup, and the size of `outbound_ipv46_peer_netgroups` would only be 1.
             const bool count_failures{((int)outbound_ipv46_peer_netgroups.size() + outbound_privacy_network_peers) >= std::min(m_max_automatic_connections - 1, 2)};
-            // Use BIP324 transport when both us and them have NODE_V2_P2P set.
-            const bool use_v2transport(addrConnect.nServices & GetLocalServices() & NODE_P2P_V2);
             OpenNetworkConnection(/*addrConnect=*/addrConnect,
                                   /*fCountFailure=*/count_failures,
                                   /*grant_outbound=*/std::move(grant),
                                   /*pszDest=*/nullptr,
                                   /*conn_type=*/conn_type,
-                                  /*use_v2transport=*/use_v2transport,
                                   /*proxy_override=*/std::nullopt);
         }
     }
@@ -2996,7 +2631,6 @@ std::vector<AddedNodeInfo> CConnman::GetAddedNodeInfo(bool include_connected) co
 void CConnman::ThreadOpenAddedConnections()
 {
     AssertLockNotHeld(m_unused_i2p_sessions_mutex);
-    AssertLockNotHeld(m_reconnections_mutex);
     while (true)
     {
         CountingSemaphoreGrant<> grant(*semAddnode);
@@ -3014,13 +2648,10 @@ void CConnman::ThreadOpenAddedConnections()
                                   /*grant_outbound=*/std::move(grant),
                                   /*pszDest=*/info.m_params.m_added_node.c_str(),
                                   /*conn_type=*/ConnectionType::MANUAL,
-                                  /*use_v2transport=*/info.m_params.m_use_v2transport,
                                   /*proxy_override=*/std::nullopt);
             if (!m_interrupt_net->sleep_for(500ms)) return;
             grant = CountingSemaphoreGrant<>(*semAddnode, /*fTry=*/true);
         }
-        // See if any reconnections are desired.
-        PerformReconnections();
         // Retry every 60 seconds if a connection was attempted, otherwise two seconds
         if (!m_interrupt_net->sleep_for(tried ? 60s : 2s)) {
             return;
@@ -3034,7 +2665,6 @@ bool CConnman::OpenNetworkConnection(const CAddress& addrConnect,
                                      CountingSemaphoreGrant<>&& grant_outbound,
                                      const char* pszDest,
                                      ConnectionType conn_type,
-                                     bool use_v2transport,
                                      const std::optional<Proxy>& proxy_override)
 {
     AssertLockNotHeld(m_unused_i2p_sessions_mutex);
@@ -3058,7 +2688,7 @@ bool CConnman::OpenNetworkConnection(const CAddress& addrConnect,
         return false;
     }
 
-    CNode* pnode = ConnectNode(addrConnect, pszDest, fCountFailure, conn_type, use_v2transport, proxy_override);
+    CNode* pnode = ConnectNode(addrConnect, pszDest, fCountFailure, conn_type, proxy_override);
 
     if (!pnode)
         return false;
@@ -3280,14 +2910,11 @@ void CConnman::ThreadPrivateBroadcast()
             target_str += " through the proxy at " + proxy->ToString();
         }
 
-        const bool use_v2transport(addr.nServices & GetLocalServices() & NODE_P2P_V2);
-
         if (OpenNetworkConnection(addr,
                                   /*fCountFailure=*/true,
                                   std::move(conn_max_grant),
                                   /*pszDest=*/nullptr,
                                   ConnectionType::PRIVATE_BROADCAST,
-                                  use_v2transport,
                                   proxy)) {
             const size_t remaining{m_private_broadcast.NumToOpenSub(1)};
             LogDebug(BCLog::PRIVBROADCAST, "Socket connected to %s; remaining connections to open: %d", target_str, remaining);
@@ -3664,7 +3291,6 @@ void CConnman::StopThreads()
 
 void CConnman::StopNodes()
 {
-    AssertLockNotHeld(m_reconnections_mutex);
 
     if (fAddressesInitialized) {
         DumpAddresses();
@@ -3693,7 +3319,6 @@ void CConnman::StopNodes()
         DeleteNode(pnode);
     }
     m_nodes_disconnected.clear();
-    WITH_LOCK(m_reconnections_mutex, m_reconnections.clear());
     vhListenSocket.clear();
     semOutbound.reset();
     semAddnode.reset();
@@ -3988,13 +3613,9 @@ ServiceFlags CConnman::GetLocalServices() const
     return m_local_services;
 }
 
-static std::unique_ptr<Transport> MakeTransport(NodeId id, bool use_v2transport, bool inbound) noexcept
+static std::unique_ptr<Transport> MakeTransport(NodeId id, bool inbound) noexcept
 {
-    if (use_v2transport) {
-        return std::make_unique<V2Transport>(id, /*initiating=*/!inbound);
-    } else {
-        return std::make_unique<V1Transport>(id);
-    }
+    return std::make_unique<V2Transport>(id, /*initiating=*/!inbound);
 }
 
 CNode::CNode(NodeId idIn,
@@ -4008,15 +3629,13 @@ CNode::CNode(NodeId idIn,
              bool inbound_onion,
              uint64_t network_key,
              CNodeOptions&& node_opts)
-    : m_transport{MakeTransport(idIn, node_opts.use_v2transport, conn_type_in == ConnectionType::INBOUND)},
+    : m_transport{MakeTransport(idIn, conn_type_in == ConnectionType::INBOUND)},
       m_permission_flags{node_opts.permission_flags},
       m_sock{sock},
       m_connected{GetTime<std::chrono::seconds>()},
-      m_proxy_override{std::move(node_opts.proxy_override)},
       addr{addrIn},
       addrBind{addrBindIn},
       m_addr_name{addrNameIn.empty() ? addr.ToStringAddrPort() : addrNameIn},
-      m_dest(addrNameIn),
       m_inbound_onion{inbound_onion},
       m_prefer_evict{node_opts.prefer_evict},
       nKeyedNetGroup{nKeyedNetGroupIn},
@@ -4138,9 +3757,7 @@ void CConnman::PushMessage(CNode* pnode, CSerializedNetMsg&& msg)
         // returned by the GetBytesToSend call above), attempt "optimistic write":
         // because the poll/select loop may pause for SELECT_TIMEOUT_MILLISECONDS before actually
         // doing a send, try sending from the calling thread if the queue was empty before.
-        // With a V1Transport, more will always be true here, because adding a message always
-        // results in sendable bytes there, but with V2Transport this is not the case (it may
-        // still be in the handshake).
+        // During the BIP324 handshake a queued message may not be sendable yet.
         if (queue_was_empty && more) {
             std::tie(nBytesSent, std::ignore) = SocketSendData(*pnode);
         }
@@ -4173,33 +3790,6 @@ uint64_t CConnman::CalculateKeyedNetGroup(const CNetAddr& address) const
     return GetDeterministicRandomizer(RANDOMIZER_ID_NETGROUP).Write(vchNetGroup).Finalize();
 }
 
-void CConnman::PerformReconnections()
-{
-    AssertLockNotHeld(m_reconnections_mutex);
-    AssertLockNotHeld(m_unused_i2p_sessions_mutex);
-    while (true) {
-        // Move first element of m_reconnections to todo (avoiding an allocation inside the lock).
-        decltype(m_reconnections) todo;
-        {
-            LOCK(m_reconnections_mutex);
-            if (m_reconnections.empty()) break;
-            todo.splice(todo.end(), m_reconnections, m_reconnections.begin());
-        }
-
-        auto& item = *todo.begin();
-        OpenNetworkConnection(item.addr_connect,
-                              // We only reconnect if the first attempt to connect succeeded at
-                              // connection time, but then failed after the CNode object was
-                              // created. Since we already know connecting is possible, do not
-                              // count failure to reconnect.
-                              /*fCountFailure=*/false,
-                              std::move(item.grant),
-                              item.destination.empty() ? nullptr : item.destination.c_str(),
-                              item.conn_type,
-                              item.use_v2transport,
-                              item.proxy_override);
-    }
-}
 
 void CConnman::ASMapHealthCheck()
 {

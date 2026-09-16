@@ -1221,11 +1221,6 @@ class FullBlockTest(BitcoinTestFramework):
         b_cb34.solve()
         self.send_blocks([b_cb34], success=False, reject_reason='bad-cb-height', reconnect=True)
 
-        # Don't use v2transport for the large reorg, which is too slow with the unoptimized python ChaCha20 implementation
-        if self.options.v2transport:
-            self.nodes[0].disconnect_p2ps()
-            self.helper_peer = self.nodes[0].add_p2p_connection(P2PDataStore(), supports_v2_p2p=False)
-
         self.move_tip(88)
         if not self.options.skip_reorg:
             self.log.info("Test a re-org of one week's worth of blocks (1088 blocks)")

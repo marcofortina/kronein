@@ -12,13 +12,6 @@ from test_framework.util import (
 )
 
 
-class VersionSender(P2PInterface):
-    def on_open(self):
-        assert self.on_connection_send_msg is not None
-        self.send_version()
-        assert self.on_connection_send_msg is None
-
-
 class P2PFeelerReceiver(P2PInterface):
     def on_version(self, message):
         # The bitcoind node closes feeler connections as soon as a version
@@ -113,20 +106,6 @@ class P2PAddConnections(BitcoinTestFramework):
         assert_equal(feeler_conn.message_count["version"], 1)
         # Feeler connections do not request tx relay
         assert_equal(feeler_conn.last_message["version"].relay, 0)
-
-        self.log.info("Send version message early to node")
-        # Normally the test framework would be shy and send the version message
-        # only after it received one. See the on_version method. Check that
-        # bitcoind behaves properly when a version is sent unexpectedly (but
-        # tolerably) early.
-        #
-        # This checks that bitcoind sends its own version prior to processing
-        # the remote version (and replying with a verack). Otherwise it would
-        # be violating its own rules, such as "non-version message before
-        # version handshake".
-        ver_conn = self.nodes[0].add_outbound_p2p_connection(VersionSender(), p2p_idx=6, connection_type="outbound-full-relay", supports_v2_p2p=False, advertise_v2_p2p=False)
-        ver_conn.sync_with_ping()
-
 
 if __name__ == '__main__':
     P2PAddConnections(__file__).main()

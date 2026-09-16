@@ -14,7 +14,6 @@ from test_framework.messages import (
     NODE_NETWORK,
     NODE_NETWORK_LIMITED,
     NODE_NONE,
-    NODE_P2P_V2,
     msg_verack,
 )
 from test_framework.p2p import P2PInterface
@@ -36,8 +35,7 @@ class P2PHandshakeTest(BitcoinTestFramework):
     def add_outbound_connection(self, node, connection_type, services, wait_for_disconnect):
         peer = node.add_outbound_p2p_connection(
             P2PInterface(), p2p_idx=0, wait_for_disconnect=wait_for_disconnect,
-            connection_type=connection_type, services=services,
-            supports_v2_p2p=self.options.v2transport, advertise_v2_p2p=self.options.v2transport)
+            connection_type=connection_type, services=services)
         if not wait_for_disconnect:
             # check that connection is alive past the version handshake and disconnect manually
             peer.sync_with_ping()
@@ -51,8 +49,6 @@ class P2PHandshakeTest(BitcoinTestFramework):
            outbound connection types where the desirable service flags check is done."""
         CONNECTION_TYPES = ["outbound-full-relay", "block-relay-only", "addr-fetch"]
         for conn_type, services in itertools.product(CONNECTION_TYPES, service_flag_tests):
-            if self.options.v2transport:
-                services |= NODE_P2P_V2
             expected_result = "disconnect" if expect_disconnect else "connect"
             self.log.info(f'    - services 0x{services:08x}, type "{conn_type}" [{expected_result}]')
             if expect_disconnect:
@@ -100,7 +96,7 @@ class P2PHandshakeTest(BitcoinTestFramework):
         self.log.info("Check that connecting to ourself leads to immediate disconnect")
         with node.assert_debug_log(["connected to self", "disconnecting"]):
             node_listen_addr = f"127.0.0.1:{p2p_port(0)}"
-            node.addconnection(node_listen_addr, "outbound-full-relay", self.options.v2transport)
+            node.addconnection(node_listen_addr, "outbound-full-relay")
             self.wait_until(lambda: len(node.getpeerinfo()) == 0)
 
 

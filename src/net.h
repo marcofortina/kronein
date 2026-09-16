@@ -98,13 +98,10 @@ static constexpr bool DEFAULT_FIXEDSEEDS{true};
 static const size_t DEFAULT_MAXRECEIVEBUFFER = 5 * 1000;
 static const size_t DEFAULT_MAXSENDBUFFER    = 1 * 1000;
 
-static constexpr bool DEFAULT_V2_TRANSPORT{true};
-
 typedef int64_t NodeId;
 
 struct AddedNodeParams {
     std::string m_added_node;
-    bool m_use_v2transport;
 };
 
 struct AddedNodeInfo {
@@ -330,12 +327,9 @@ public:
      *
      *            Effectively, there are three possible outcomes about whether there are more bytes
      *            to send:
-     *            - Yes:     the transport itself has more bytes to send later. For example, for
-     *                       V1Transport this happens during the sending of the header of a
-     *                       message, when there is a non-empty payload that follows.
+     *            - Yes:     the transport itself has more bytes to send later.
      *            - No:      the transport itself has no more bytes to send, but will have bytes to
-     *                       send if handed a message through SetMessageToSend. In V1Transport this
-     *                       happens when sending the payload of a message.
+     *                       send if handed a message through SetMessageToSend.
      *            - Blocked: the transport itself has no more bytes to send, and is also incapable
      *                       of sending anything more at all now, if it were handed another
      *                       message to send. This occurs in V2Transport before the handshake is
@@ -365,92 +359,6 @@ public:
     /** Return the memory usage of this transport attributable to buffered data to send. */
     virtual size_t GetSendMemoryUsage() const noexcept = 0;
 
-    // 3. Miscellaneous functions.
-
-    /** Whether upon disconnections, a reconnect with V1 is warranted. */
-    virtual bool ShouldReconnectV1() const noexcept = 0;
-};
-
-class V1Transport final : public Transport
-{
-private:
-    const MessageStartChars m_magic_bytes;
-    const NodeId m_node_id; // Only for logging
-    mutable Mutex m_recv_mutex; //!< Lock for receive state
-    mutable CHash256 hasher GUARDED_BY(m_recv_mutex);
-    mutable uint256 data_hash GUARDED_BY(m_recv_mutex);
-    bool in_data GUARDED_BY(m_recv_mutex); // parsing header (false) or data (true)
-    DataStream hdrbuf GUARDED_BY(m_recv_mutex){}; // partially received header
-    CMessageHeader hdr GUARDED_BY(m_recv_mutex); // complete header
-    DataStream vRecv GUARDED_BY(m_recv_mutex){}; // received message data
-    unsigned int nHdrPos GUARDED_BY(m_recv_mutex);
-    unsigned int nDataPos GUARDED_BY(m_recv_mutex);
-
-    const uint256& GetMessageHash() const EXCLUSIVE_LOCKS_REQUIRED(m_recv_mutex);
-    int readHeader(std::span<const uint8_t> msg_bytes) EXCLUSIVE_LOCKS_REQUIRED(m_recv_mutex);
-    int readData(std::span<const uint8_t> msg_bytes) EXCLUSIVE_LOCKS_REQUIRED(m_recv_mutex);
-
-    void Reset() EXCLUSIVE_LOCKS_REQUIRED(m_recv_mutex) {
-        AssertLockHeld(m_recv_mutex);
-        vRecv.clear();
-        hdrbuf.clear();
-        hdrbuf.resize(24);
-        in_data = false;
-        nHdrPos = 0;
-        nDataPos = 0;
-        data_hash.SetNull();
-        hasher.Reset();
-    }
-
-    bool CompleteInternal() const noexcept EXCLUSIVE_LOCKS_REQUIRED(m_recv_mutex)
-    {
-        AssertLockHeld(m_recv_mutex);
-        if (!in_data) return false;
-        return hdr.nMessageSize == nDataPos;
-    }
-
-    /** Lock for sending state. */
-    mutable Mutex m_send_mutex;
-    /** The header of the message currently being sent. */
-    std::vector<uint8_t> m_header_to_send GUARDED_BY(m_send_mutex);
-    /** The data of the message currently being sent. */
-    CSerializedNetMsg m_message_to_send GUARDED_BY(m_send_mutex);
-    /** Whether we're currently sending header bytes or message bytes. */
-    bool m_sending_header GUARDED_BY(m_send_mutex) {false};
-    /** How many bytes have been sent so far (from m_header_to_send, or from m_message_to_send.data). */
-    size_t m_bytes_sent GUARDED_BY(m_send_mutex) {0};
-
-public:
-    explicit V1Transport(NodeId node_id) noexcept;
-
-    bool ReceivedMessageComplete() const override EXCLUSIVE_LOCKS_REQUIRED(!m_recv_mutex)
-    {
-        AssertLockNotHeld(m_recv_mutex);
-        return WITH_LOCK(m_recv_mutex, return CompleteInternal());
-    }
-
-    Info GetInfo() const noexcept override;
-
-    bool ReceivedBytes(std::span<const uint8_t>& msg_bytes) override EXCLUSIVE_LOCKS_REQUIRED(!m_recv_mutex)
-    {
-        AssertLockNotHeld(m_recv_mutex);
-        LOCK(m_recv_mutex);
-        int ret = in_data ? readData(msg_bytes) : readHeader(msg_bytes);
-        if (ret < 0) {
-            Reset();
-        } else {
-            msg_bytes = msg_bytes.subspan(ret);
-        }
-        return ret >= 0;
-    }
-
-    CNetMessage GetReceivedMessage(std::chrono::microseconds time, bool& reject_message) override EXCLUSIVE_LOCKS_REQUIRED(!m_recv_mutex);
-
-    bool SetMessageToSend(CSerializedNetMsg& msg) noexcept override EXCLUSIVE_LOCKS_REQUIRED(!m_send_mutex);
-    BytesToSend GetBytesToSend(bool have_next_message) const noexcept override EXCLUSIVE_LOCKS_REQUIRED(!m_send_mutex);
-    void MarkBytesSent(size_t bytes_sent) noexcept override EXCLUSIVE_LOCKS_REQUIRED(!m_send_mutex);
-    size_t GetSendMemoryUsage() const noexcept override EXCLUSIVE_LOCKS_REQUIRED(!m_send_mutex);
-    bool ShouldReconnectV1() const noexcept override { return false; }
 };
 
 class V2Transport final : public Transport
@@ -460,10 +368,6 @@ private:
      *  empty, and receivers should ignore it. Future extensions can change what is sent as long as
      *  an empty version packet contents is interpreted as no extensions supported. */
     static constexpr std::array<std::byte, 0> VERSION_CONTENTS = {};
-
-    /** The length of the V1 prefix to match bytes initially received by responders with to
-     *  determine if their peer is speaking V1 or V2. */
-    static constexpr size_t V1_PREFIX_LEN = 16;
 
     // The sender side and receiver side of V2Transport are state machines that are transitioned
     // through, based on what has been received. The receive state corresponds to the contents of,
@@ -475,28 +379,16 @@ private:
      *
      * Diagram:
      *
-     *   start(responder)
-     *        |
-     *        |  start(initiator)                           /---------\
-     *        |          |                                  |         |
-     *        v          v                                  v         |
-     *  KEY_MAYBE_V1 -> KEY -> GARB_GARBTERM -> VERSION -> APP -> APP_READY
-     *        |
-     *        \-------> V1
+     *   KEY -> GARB_GARBTERM -> VERSION -> APP -> APP_READY
+     *                                      ^         |
+     *                                      \---------/
      */
     enum class RecvState : uint8_t {
-        /** (Responder only) either v2 public key or v1 header.
-         *
-         * This is the initial state for responders, before data has been received to distinguish
-         * v1 from v2 connections. When that happens, the state becomes either KEY (for v2) or V1
-         * (for v1). */
-        KEY_MAYBE_V1,
-
         /** Public key.
          *
-         * This is the initial state for initiators, during which the other side's public key is
-         * received. When that information arrives, the ciphers get initialized and the state
-         * becomes GARB_GARBTERM. */
+         * This is the initial state, during which the other side's public key is received. When
+         * that information arrives, the ciphers get initialized and the state becomes
+         * GARB_GARBTERM. */
         KEY,
 
         /** Garbage and garbage terminator.
@@ -529,40 +421,20 @@ private:
          * Nothing can be received in this state. When the message is retrieved by GetMessage,
          * the state becomes APP again. */
         APP_READY,
-
-        /** Nothing (this transport is using v1 fallback).
-         *
-         * All receive operations are redirected to m_v1_fallback. */
-        V1,
     };
 
     /** State type that controls the sender side.
      *
      * Diagram:
      *
-     *  start(responder)
-     *      |
-     *      |      start(initiator)
-     *      |            |
-     *      v            v
-     *  MAYBE_V1 -> AWAITING_KEY -> READY
-     *      |
-     *      \-----> V1
+     *  AWAITING_KEY -> READY
      */
     enum class SendState : uint8_t {
-        /** (Responder only) Not sending until v1 or v2 is detected.
-         *
-         * This is the initial state for responders. The send buffer is empty.
-         * When the receiver determines whether this
-         * is a V1 or V2 connection, the sender state becomes AWAITING_KEY (for v2) or V1 (for v1).
-         */
-        MAYBE_V1,
-
         /** Waiting for the other side's public key.
          *
-         * This is the initial state for initiators. The public key and garbage is sent out. When
-         * the receiver receives the other side's public key and transitions to GARB_GARBTERM, the
-         * sender state becomes READY. */
+         * The initiator sends its public key and garbage immediately; the responder does so after
+         * receiving the initiator's public key. When the receiver transitions to GARB_GARBTERM,
+         * the sender state becomes READY. */
         AWAITING_KEY,
 
         /** Normal sending state.
@@ -572,11 +444,6 @@ private:
          * addition to the key and garbage which may still be there). In this state a message can be
          * provided if the send buffer is empty. */
         READY,
-
-        /** This transport is using v1 fallback.
-         *
-         * All send operations are redirected to m_v1_fallback. */
-        V1,
     };
 
     /** Cipher state. */
@@ -585,9 +452,6 @@ private:
     const bool m_initiating;
     /** NodeId (for debug logging). */
     const NodeId m_nodeid;
-    /** Encapsulate a V1Transport to fall back to. */
-    V1Transport m_v1_fallback;
-
     /** Lock for receiver-side fields. */
     mutable Mutex m_recv_mutex ACQUIRED_BEFORE(m_send_mutex);
     /** In {VERSION, APP}, the decrypted packet length, if m_recv_buffer.size() >=
@@ -609,27 +473,22 @@ private:
     std::vector<uint8_t> m_send_buffer GUARDED_BY(m_send_mutex);
     /** How many bytes from the send buffer have been sent so far. */
     uint32_t m_send_pos GUARDED_BY(m_send_mutex) {0};
-    /** The garbage sent, or to be sent (MAYBE_V1 and AWAITING_KEY state only). */
+    /** The garbage sent, or to be sent during the handshake. */
     std::vector<uint8_t> m_send_garbage GUARDED_BY(m_send_mutex);
     /** Type of the message being sent. */
     std::string m_send_type GUARDED_BY(m_send_mutex);
     /** Current sender state. */
     SendState m_send_state GUARDED_BY(m_send_mutex);
-    /** Whether we've sent at least 24 bytes (which would trigger disconnect for V1 peers). */
-    bool m_sent_v1_header_worth GUARDED_BY(m_send_mutex) {false};
-
     /** Change the receive state. */
     void SetReceiveState(RecvState recv_state) noexcept EXCLUSIVE_LOCKS_REQUIRED(m_recv_mutex);
     /** Change the send state. */
     void SetSendState(SendState send_state) noexcept EXCLUSIVE_LOCKS_REQUIRED(m_send_mutex);
     /** Given a packet's contents, find the message type (if valid), and strip it from contents. */
     static std::optional<std::string> GetMessageType(std::span<const uint8_t>& contents) noexcept;
-    /** Determine how many received bytes can be processed in one go (not allowed in V1 state). */
+    /** Determine how many received bytes can be processed in one go. */
     size_t GetMaxBytesToProcess() noexcept EXCLUSIVE_LOCKS_REQUIRED(m_recv_mutex);
     /** Put our public key + garbage in the send buffer. */
     void StartSendingHandshake() noexcept EXCLUSIVE_LOCKS_REQUIRED(m_send_mutex);
-    /** Process bytes in m_recv_buffer, while in KEY_MAYBE_V1 state. */
-    void ProcessReceivedMaybeV1Bytes() noexcept EXCLUSIVE_LOCKS_REQUIRED(m_recv_mutex, !m_send_mutex);
     /** Process bytes in m_recv_buffer, while in KEY state. */
     bool ProcessReceivedKeyBytes() noexcept EXCLUSIVE_LOCKS_REQUIRED(m_recv_mutex, !m_send_mutex);
     /** Process bytes in m_recv_buffer, while in GARB_GARBTERM state. */
@@ -661,19 +520,15 @@ public:
     void MarkBytesSent(size_t bytes_sent) noexcept override EXCLUSIVE_LOCKS_REQUIRED(!m_send_mutex);
     size_t GetSendMemoryUsage() const noexcept override EXCLUSIVE_LOCKS_REQUIRED(!m_send_mutex);
 
-    // Miscellaneous functions.
-    bool ShouldReconnectV1() const noexcept override EXCLUSIVE_LOCKS_REQUIRED(!m_recv_mutex, !m_send_mutex);
     Info GetInfo() const noexcept override EXCLUSIVE_LOCKS_REQUIRED(!m_recv_mutex);
 };
 
 struct CNodeOptions
 {
     NetPermissionFlags permission_flags = NetPermissionFlags::None;
-    std::optional<Proxy> proxy_override = {};
     std::unique_ptr<i2p::sam::Session> i2p_sam_session = nullptr;
     bool prefer_evict = false;
     size_t recv_flood_size{DEFAULT_MAXRECEIVEBUFFER * 1000};
-    bool use_v2transport = false;
 };
 
 /** Information about a peer */
@@ -713,16 +568,11 @@ public:
     //! Unix epoch time at peer connection
     const std::chrono::seconds m_connected;
 
-    //! Proxy to use regardless of global proxy settings if reconnecting to this node.
-    const std::optional<Proxy> m_proxy_override;
-
     // Address of this peer
     const CAddress addr;
     // Bind address of our side of the connection
     const CService addrBind;
     const std::string m_addr_name;
-    /** The pszDest argument provided to ConnectNode(). Only used for reconnections. */
-    const std::string m_dest;
     //! Whether this peer is an inbound onion, i.e. connected via our Tor onion service.
     const bool m_inbound_onion;
     std::atomic<int> nVersion{0};
@@ -1127,11 +977,8 @@ public:
         vWhitelistedRangeOutgoing = connOptions.vWhitelistedRangeOutgoing;
         {
             LOCK(m_added_nodes_mutex);
-            // Attempt v2 connection if we support v2 - we'll reconnect with v1 if our
-            // peer doesn't support it or immediately disconnects us for another reason.
-            const bool use_v2transport(GetLocalServices() & NODE_P2P_V2);
             for (const std::string& added_node : connOptions.m_added_nodes) {
-                m_added_node_params.push_back({added_node, use_v2transport});
+                m_added_node_params.push_back({added_node});
             }
         }
         m_onion_binds = connOptions.onion_binds;
@@ -1156,10 +1003,9 @@ public:
     bool Start(CScheduler& scheduler, const Options& options) EXCLUSIVE_LOCKS_REQUIRED(!m_total_bytes_sent_mutex, !m_added_nodes_mutex, !m_addr_fetches_mutex, !mutexMsgProc);
 
     void StopThreads();
-    void StopNodes() EXCLUSIVE_LOCKS_REQUIRED(!m_reconnections_mutex);
-    void Stop() EXCLUSIVE_LOCKS_REQUIRED(!m_reconnections_mutex)
+    void StopNodes();
+    void Stop()
     {
-        AssertLockNotHeld(m_reconnections_mutex);
         StopThreads();
         StopNodes();
     };
@@ -1176,7 +1022,6 @@ public:
      * @param[in] grant_outbound Take ownership of this grant, to be released later when the connection is closed.
      * @param[in] pszDest Address to resolve and connect to.
      * @param[in] conn_type Type of the connection to open, must not be `ConnectionType::INBOUND`.
-     * @param[in] use_v2transport Use P2P encryption, (aka V2 transport, BIP324).
      * @param[in] proxy_override Optional proxy to use and override normal proxy selection.
      * @retval true The connection was opened successfully.
      * @retval false The connection attempt failed.
@@ -1186,7 +1031,6 @@ public:
                                CountingSemaphoreGrant<>&& grant_outbound,
                                const char* pszDest,
                                ConnectionType conn_type,
-                               bool use_v2transport,
                                const std::optional<Proxy>& proxy_override)
         EXCLUSIVE_LOCKS_REQUIRED(!m_unused_i2p_sessions_mutex);
 
@@ -1344,14 +1188,13 @@ public:
      * @param[in]   address     Address of node to try connecting to
      * @param[in]   conn_type   ConnectionType::OUTBOUND, ConnectionType::BLOCK_RELAY,
      *                          ConnectionType::ADDR_FETCH or ConnectionType::FEELER
-     * @param[in]   use_v2transport  Set to true if node attempts to connect using BIP 324 v2 transport protocol.
      * @return      bool        Returns false if there are no available
      *                          slots for this connection:
      *                          - conn_type not a supported ConnectionType
      *                          - Max total outbound connection capacity filled
      *                          - Max connection capacity for type is filled
      */
-    bool AddConnection(const std::string& address, ConnectionType conn_type, bool use_v2transport) EXCLUSIVE_LOCKS_REQUIRED(!m_unused_i2p_sessions_mutex);
+    bool AddConnection(const std::string& address, ConnectionType conn_type) EXCLUSIVE_LOCKS_REQUIRED(!m_unused_i2p_sessions_mutex);
 
     size_t GetNodeCount(ConnectionDirection) const;
     std::map<CNetAddr, LocalServiceInfo> getNetLocalAddresses() const;
@@ -1424,10 +1267,10 @@ private:
     bool Bind(const CService& addr, unsigned int flags, NetPermissionFlags permissions);
     bool InitBinds(const Options& options);
 
-    void ThreadOpenAddedConnections() EXCLUSIVE_LOCKS_REQUIRED(!m_added_nodes_mutex, !m_unused_i2p_sessions_mutex, !m_reconnections_mutex);
+    void ThreadOpenAddedConnections() EXCLUSIVE_LOCKS_REQUIRED(!m_added_nodes_mutex, !m_unused_i2p_sessions_mutex);
     void AddAddrFetch(const std::string& strDest) EXCLUSIVE_LOCKS_REQUIRED(!m_addr_fetches_mutex);
     void ProcessAddrFetch() EXCLUSIVE_LOCKS_REQUIRED(!m_addr_fetches_mutex, !m_unused_i2p_sessions_mutex);
-    void ThreadOpenConnections(std::vector<std::string> connect, std::span<const std::string> seed_nodes) EXCLUSIVE_LOCKS_REQUIRED(!m_addr_fetches_mutex, !m_added_nodes_mutex, !m_nodes_mutex, !m_unused_i2p_sessions_mutex, !m_reconnections_mutex);
+    void ThreadOpenConnections(std::vector<std::string> connect, std::span<const std::string> seed_nodes) EXCLUSIVE_LOCKS_REQUIRED(!m_addr_fetches_mutex, !m_added_nodes_mutex, !m_nodes_mutex, !m_unused_i2p_sessions_mutex);
     void ThreadMessageHandler() EXCLUSIVE_LOCKS_REQUIRED(!mutexMsgProc);
     void ThreadI2PAcceptIncoming();
     void ThreadPrivateBroadcast() EXCLUSIVE_LOCKS_REQUIRED(!m_unused_i2p_sessions_mutex);
@@ -1446,7 +1289,7 @@ private:
                                       const CService& addr_bind,
                                       const CService& addr);
 
-    void DisconnectNodes() EXCLUSIVE_LOCKS_REQUIRED(!m_reconnections_mutex, !m_nodes_mutex);
+    void DisconnectNodes() EXCLUSIVE_LOCKS_REQUIRED(!m_nodes_mutex);
     void NotifyNumConnectionsChanged();
     /** Return true if the peer is inactive and should be disconnected. */
     bool InactivityCheck(const CNode& node, std::chrono::microseconds now) const;
@@ -1478,7 +1321,7 @@ private:
      */
     void SocketHandlerListening(const Sock::EventsPerSock& events_per_sock);
 
-    void ThreadSocketHandler() EXCLUSIVE_LOCKS_REQUIRED(!m_total_bytes_sent_mutex, !mutexMsgProc, !m_nodes_mutex, !m_reconnections_mutex);
+    void ThreadSocketHandler() EXCLUSIVE_LOCKS_REQUIRED(!m_total_bytes_sent_mutex, !mutexMsgProc, !m_nodes_mutex);
     void ThreadDNSAddressSeed() EXCLUSIVE_LOCKS_REQUIRED(!m_addr_fetches_mutex, !m_nodes_mutex);
 
     uint64_t CalculateKeyedNetGroup(const CNetAddr& ad) const;
@@ -1514,7 +1357,6 @@ private:
      * @param[in] pszDest Address to resolve and connect to.
      * @param[in] fCountFailure Increment the number of connection attempts to this address in Addrman.
      * @param[in] conn_type Type of the connection to open, must not be `ConnectionType::INBOUND`.
-     * @param[in] use_v2transport Use P2P encryption, (aka V2 transport, BIP324).
      * @param[in] proxy_override Optional proxy to use and override normal proxy selection.
      * @return Newly created CNode object or nullptr if the connection failed.
      */
@@ -1522,7 +1364,6 @@ private:
                        const char* pszDest,
                        bool fCountFailure,
                        ConnectionType conn_type,
-                       bool use_v2transport,
                        const std::optional<Proxy>& proxy_override)
         EXCLUSIVE_LOCKS_REQUIRED(!m_unused_i2p_sessions_mutex);
 
@@ -1770,30 +1611,6 @@ private:
      * a host fails, then the created session is put to this pool for reuse.
      */
     std::queue<std::unique_ptr<i2p::sam::Session>> m_unused_i2p_sessions GUARDED_BY(m_unused_i2p_sessions_mutex);
-
-    /**
-     * Mutex protecting m_reconnections.
-     */
-    Mutex m_reconnections_mutex;
-
-    /** Struct for entries in m_reconnections. */
-    struct ReconnectionInfo
-    {
-        std::optional<Proxy> proxy_override;
-        CAddress addr_connect;
-        CountingSemaphoreGrant<> grant;
-        std::string destination;
-        ConnectionType conn_type;
-        bool use_v2transport;
-    };
-
-    /**
-     * List of reconnections we have to make.
-     */
-    std::list<ReconnectionInfo> m_reconnections GUARDED_BY(m_reconnections_mutex);
-
-    /** Attempt reconnections, if m_reconnections non-empty. */
-    void PerformReconnections() EXCLUSIVE_LOCKS_REQUIRED(!m_reconnections_mutex, !m_unused_i2p_sessions_mutex);
 
     /**
      * Cap on the size of `m_unused_i2p_sessions`, to ensure it does not

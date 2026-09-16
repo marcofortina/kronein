@@ -1118,15 +1118,6 @@ public:
         m_to_send.insert(m_to_send.end(), data.begin(), data.end());
     }
 
-    /** Send V1 version message header to the transport. */
-    void SendV1Version(const MessageStartChars& magic)
-    {
-        CMessageHeader hdr(magic, "version", 126 + m_rng.randrange(11));
-        DataStream ser{};
-        ser << hdr;
-        m_to_send.insert(m_to_send.end(), UCharCast(ser.data()), UCharCast(ser.data() + ser.size()));
-    }
-
     /** Schedule bytes to be sent to the transport. */
     void Send(std::span<const std::byte> data) { Send(MakeUCharSpan(data)); }
 
@@ -1341,7 +1332,7 @@ public:
 
 } // namespace
 
-BOOST_AUTO_TEST_CASE(v2transport_test)
+BOOST_AUTO_TEST_CASE(transport_test)
 {
     // A mostly normal scenario, testing a transport in initiator mode.
     for (int i = 0; i < 10; ++i) {
@@ -1543,21 +1534,6 @@ BOOST_AUTO_TEST_CASE(v2transport_test)
         tester.ReceiveMessage(uint8_t(3), msg_data_2); // "blocktxn" short id
     }
 
-    // Send correct network's V1 header
-    {
-        V2TransportTester tester(m_rng, false);
-        tester.SendV1Version(Params().MessageStart());
-        auto ret = tester.Interact();
-        BOOST_CHECK(ret);
-    }
-
-    // Send wrong network's V1 header
-    {
-        V2TransportTester tester(m_rng, false);
-        tester.SendV1Version(CChainParams::Main()->MessageStart());
-        auto ret = tester.Interact();
-        BOOST_CHECK(!ret);
-    }
 }
 
 BOOST_AUTO_TEST_CASE(private_broadcast_version_does_not_update_addrman_services)

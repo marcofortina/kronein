@@ -1143,12 +1143,12 @@ BOOST_AUTO_TEST_CASE(addrman_update_address)
     BOOST_CHECK_EQUAL(vAddr2.at(0).nServices, NODE_NETWORK_LIMITED);
 
     // Updating an existing addr through Add() (used in gossip relay) can add additional services but can't remove existing ones.
-    CAddress addr_v2{CAddress(ResolveService("250.1.1.1", 8333), NODE_P2P_V2)};
+    CAddress addr_v2{CAddress(ResolveService("250.1.1.1", 8333), NODE_COMPACT_FILTERS)};
     addr_v2.nTime = start_time;
     BOOST_CHECK(!addrman->Add({addr_v2}, source));
     std::vector<CAddress> vAddr3{addrman->GetAddr(/*max_addresses=*/0, /*max_pct=*/0, /*network=*/std::nullopt)};
     BOOST_CHECK_EQUAL(vAddr3.size(), 1U);
-    BOOST_CHECK_EQUAL(vAddr3.at(0).nServices, NODE_P2P_V2 | NODE_NETWORK_LIMITED);
+    BOOST_CHECK_EQUAL(vAddr3.at(0).nServices, NODE_COMPACT_FILTERS | NODE_NETWORK_LIMITED);
 
     // SetServices() (used when we connected to them) overwrites existing service flags
     addrman->SetServices(addr, NODE_NETWORK);
@@ -1166,7 +1166,7 @@ BOOST_AUTO_TEST_CASE(addrman_update_address)
     BOOST_CHECK(!addrman->Add({addr_v2}, source));
     std::vector<CAddress> vAddr6{addrman->GetAddr(/*max_addresses=*/0, /*max_pct=*/0, /*network=*/std::nullopt)};
     BOOST_CHECK_EQUAL(vAddr6.size(), 1U);
-    BOOST_CHECK_EQUAL(vAddr6.at(0).nServices, NODE_NETWORK | NODE_P2P_V2);
+    BOOST_CHECK_EQUAL(vAddr6.at(0).nServices, NODE_NETWORK | NODE_COMPACT_FILTERS);
 }
 
 BOOST_AUTO_TEST_CASE(addrman_size)

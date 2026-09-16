@@ -136,8 +136,7 @@ class NetTest(BitcoinTestFramework):
         self.nodes[0].setmocktime(no_version_peer_conntime)
         with self.nodes[0].wait_for_new_peer():
             no_version_peer = self.nodes[0].add_p2p_connection(P2PInterface(), send_version=False, wait_for_verack=False)
-        if self.options.v2transport:
-            self.wait_until(lambda: self.nodes[0].getpeerinfo()[no_version_peer_id]["transport_protocol_type"] == "v2")
+        self.wait_until(lambda: self.nodes[0].getpeerinfo()[no_version_peer_id]["transport_protocol_type"] == "v2")
         self.nodes[0].setmocktime(0)
         peer_info = self.nodes[0].getpeerinfo()[no_version_peer_id]
         peer_info.pop("addr")
@@ -162,8 +161,8 @@ class NetTest(BitcoinTestFramework):
                 "inflight": [],
                 "last_block": 0,
                 "last_transaction": 0,
-                "lastrecv": 0 if not self.options.v2transport else no_version_peer_conntime,
-                "lastsend": 0 if not self.options.v2transport else no_version_peer_conntime,
+                "lastrecv": no_version_peer_conntime,
+                "lastsend": no_version_peer_conntime,
                 "minfeefilter": Decimal("0E-8"),
                 "network": "not_publicly_routable",
                 "permissions": [],
@@ -173,13 +172,13 @@ class NetTest(BitcoinTestFramework):
                 "last_inv_sequence": 0,
                 "services": "0000000000000000",
                 "servicesnames": [],
-                "session_id": "" if not self.options.v2transport else no_version_peer.v2_state.peer['session_id'].hex(),
+                "session_id": no_version_peer.v2_state.peer['session_id'].hex(),
                 "startingheight": -1,
                 "subver": "",
                 "synced_blocks": -1,
                 "synced_headers": -1,
                 "timeoffset": 0,
-                "transport_protocol_type": "v1" if not self.options.v2transport else "v2",
+                "transport_protocol_type": "v2",
                 "version": 0,
             },
         )
@@ -191,10 +190,8 @@ class NetTest(BitcoinTestFramework):
         # Test getnettotals and getpeerinfo by doing a ping. The bytes
         # sent/received should increase by at least the size of one ping
         # and one pong. Both have a payload size of 8 bytes, but the total
-        # size depends on the used p2p version:
-        #   - p2p v1: 24 bytes (header) + 8 bytes (payload) = 32 bytes
-        #   - p2p v2: 21 bytes (header/tag with short-id) + 8 bytes (payload) = 29 bytes
-        ping_size = 32 if not self.options.v2transport else 29
+        # BIP324 uses 21 bytes of framing/tag plus the 8-byte payload.
+        ping_size = 29
         net_totals_before = self.nodes[0].getnettotals()
         peer_info_before = self.nodes[0].getpeerinfo()
 
@@ -203,7 +200,9 @@ class NetTest(BitcoinTestFramework):
         self.wait_until(lambda: (self.nodes[0].getnettotals()['totalbytesrecv'] >= net_totals_before['totalbytesrecv'] + ping_size * 2), timeout=1)
 
         for peer_before in peer_info_before:
-            peer_after = lambda: next(p for p in self.nodes[0].getpeerinfo() if p['id'] == peer_before['id'])
+            def peer_after():
+                return next(p for p in self.nodes[0].getpeerinfo() if p['id'] == peer_before['id'])
+
             self.wait_until(lambda: peer_after()['bytesrecv_per_msg'].get('pong', 0) >= peer_before['bytesrecv_per_msg'].get('pong', 0) + ping_size, timeout=1)
             self.wait_until(lambda: peer_after()['bytessent_per_msg'].get('ping', 0) >= peer_before['bytessent_per_msg'].get('ping', 0) + ping_size, timeout=1)
 
@@ -279,10 +278,7 @@ class NetTest(BitcoinTestFramework):
     def test_service_flags(self):
         self.log.info("Test service flags")
         self.nodes[0].add_p2p_connection(P2PInterface(), services=(1 << 4) | (1 << 63))
-        if self.options.v2transport:
-            assert_equal(['UNKNOWN[2^4]', 'P2P_V2', 'UNKNOWN[2^63]'], self.nodes[0].getpeerinfo()[-1]['servicesnames'])
-        else:
-            assert_equal(['UNKNOWN[2^4]', 'UNKNOWN[2^63]'], self.nodes[0].getpeerinfo()[-1]['servicesnames'])
+        assert_equal(['UNKNOWN[2^4]', 'UNKNOWN[2^63]'], self.nodes[0].getpeerinfo()[-1]['servicesnames'])
         self.nodes[0].disconnect_p2ps()
 
     def test_getnodeaddresses(self):
@@ -411,10 +407,7 @@ class NetTest(BitcoinTestFramework):
         node = self.nodes[0]
 
         self.restart_node(0)
-        # we want to use a p2p v1 connection here in order to ensure
-        # a peer id of zero (a downgrade from v2 to v1 would lead
-        # to an increase of the peer id)
-        self.connect_nodes(0, 1, peer_advertises_v2=False)
+        self.connect_nodes(0, 1)
 
         self.log.info("Test sendmsgtopeer")
         self.log.debug("Send a valid message")
@@ -441,7 +434,8 @@ class NetTest(BitcoinTestFramework):
         node.sendmsgtopeer(peer_id=0, msg_type="addr", msg="FF")
 
         self.log.debug("Test that oversized messages are allowed, but get us disconnected")
-        zero_byte_string = b'\x00' * 4000001
+        # Exceed the BIP324 maximum contents length after the one-byte short message id.
+        zero_byte_string = b'\x00' * 4000013
         node.sendmsgtopeer(peer_id=0, msg_type="addr", msg=zero_byte_string.hex())
         self.wait_until(lambda: len(self.nodes[0].getpeerinfo()) == 0, timeout=10)
 
@@ -511,7 +505,7 @@ class NetTest(BitcoinTestFramework):
                         "bucket_position": "82/8",
                         "address": "2.0.0.0",
                         "port": 8333,
-                        "services": 9,
+                        "services": P2P_SERVICES,
                         "network": "ipv4",
                         "source": "2.0.0.0",
                         "source_network": "ipv4",
@@ -520,7 +514,7 @@ class NetTest(BitcoinTestFramework):
                         "bucket_position": "336/24",
                         "address": "fc00:1:2:3:4:5:6:7",
                         "port": 8333,
-                        "services": 9,
+                        "services": P2P_SERVICES,
                         "network": "cjdns",
                         "source": "fc00:1:2:3:4:5:6:7",
                         "source_network": "cjdns",
@@ -529,7 +523,7 @@ class NetTest(BitcoinTestFramework):
                         "bucket_position": "963/46",
                         "address": "c4gfnttsuwqomiygupdqqqyy5y5emnk5c73hrfvatri67prd7vyq.b32.i2p",
                         "port": 8333,
-                        "services": 9,
+                        "services": P2P_SERVICES,
                         "network": "i2p",
                         "source": "c4gfnttsuwqomiygupdqqqyy5y5emnk5c73hrfvatri67prd7vyq.b32.i2p",
                         "source_network": "i2p",
@@ -537,7 +531,7 @@ class NetTest(BitcoinTestFramework):
                     {
                         "bucket_position": "613/6",
                         "address": "2803:0:1234:abcd::1",
-                        "services": 9,
+                        "services": P2P_SERVICES,
                         "network": "ipv6",
                         "source": "2803:0:1234:abcd::1",
                         "source_network": "ipv6",
@@ -549,7 +543,7 @@ class NetTest(BitcoinTestFramework):
                         "bucket_position": "6/33",
                         "address": "1.2.3.4",
                         "port": 8333,
-                        "services": 9,
+                        "services": P2P_SERVICES,
                         "network": "ipv4",
                         "source": "1.2.3.4",
                         "source_network": "ipv4",
@@ -558,7 +552,7 @@ class NetTest(BitcoinTestFramework):
                         "bucket_position": "197/34",
                         "address": "1233:3432:2434:2343:3234:2345:6546:4534",
                         "port": 8333,
-                        "services": 9,
+                        "services": P2P_SERVICES,
                         "network": "ipv6",
                         "source": "1233:3432:2434:2343:3234:2345:6546:4534",
                         "source_network": "ipv6",
@@ -567,7 +561,7 @@ class NetTest(BitcoinTestFramework):
                         "bucket_position": "72/61",
                         "address": "pg6mmjiyjmcrsslvykfwnntlaru7p5svn6y2ymmju6nubxndf4pscryd.onion",
                         "port": 8333,
-                        "services": 9,
+                        "services": P2P_SERVICES,
                         "network": "onion",
                         "source": "pg6mmjiyjmcrsslvykfwnntlaru7p5svn6y2ymmju6nubxndf4pscryd.onion",
                         "source_network": "onion"
@@ -575,7 +569,7 @@ class NetTest(BitcoinTestFramework):
                     {
                         "bucket_position": "139/46",
                         "address": "nrfj6inpyf73gpkyool35hcmne5zwfmse3jl3aw23vk7chdemalyaqad.onion",
-                        "services": 9,
+                        "services": P2P_SERVICES,
                         "network": "onion",
                         "source": "nrfj6inpyf73gpkyool35hcmne5zwfmse3jl3aw23vk7chdemalyaqad.onion",
                         "source_network": "onion",

@@ -96,8 +96,45 @@ void ConnmanTestMsg::NodeReceiveMsgBytes(CNode& node, std::span<const uint8_t> m
     }
 }
 
+V2Transport& ConnmanTestMsg::GetTestPeerTransport(CNode& node) const
+{
+    auto [it, inserted]{m_test_peer_transports.try_emplace(&node)};
+    if (!inserted) return *it->second;
+
+    // A test peer always has the opposite BIP324 role from the node. Keep the
+    // peer transport alive so that its cipher counters remain synchronized
+    // across multiple messages.
+    it->second = std::make_unique<V2Transport>(node.GetId(), /*initiating=*/node.IsInboundConn());
+    auto& peer{*it->second};
+
+    const auto transfer_bytes = [](Transport& sender, Transport& receiver) {
+        const auto& [bytes, _more, _msg_type]{sender.GetBytesToSend(false)};
+        if (bytes.empty()) return false;
+
+        std::span<const uint8_t> remaining{bytes};
+        const bool valid{receiver.ReceivedBytes(remaining)};
+        assert(valid);
+        const size_t consumed{bytes.size() - remaining.size()};
+        assert(consumed > 0);
+        sender.MarkBytesSent(consumed);
+        assert(remaining.empty());
+        return true;
+    };
+
+    while (node.m_transport->GetInfo().transport_type != TransportProtocolType::V2 ||
+           peer.GetInfo().transport_type != TransportProtocolType::V2) {
+        const bool node_progress{transfer_bytes(*node.m_transport, peer)};
+        const bool peer_progress{transfer_bytes(peer, *node.m_transport)};
+        assert(node_progress || peer_progress);
+    }
+    return peer;
+}
+
 void ConnmanTestMsg::FlushSendBuffer(CNode& node) const
 {
+    // Complete the encrypted transport handshake before discarding application
+    // messages. Otherwise this would also discard the node's BIP324 key bytes.
+    (void)GetTestPeerTransport(node);
     LOCK(node.cs_vSend);
     node.vSendMsg.clear();
     node.m_send_memusage = 0;
@@ -110,21 +147,22 @@ void ConnmanTestMsg::FlushSendBuffer(CNode& node) const
 
 bool ConnmanTestMsg::ReceiveMsgFrom(CNode& node, CSerializedNetMsg&& ser_msg) const
 {
-    bool queued = node.m_transport->SetMessageToSend(ser_msg);
+    V2Transport& peer{GetTestPeerTransport(node)};
+    bool queued = peer.SetMessageToSend(ser_msg);
     assert(queued);
     bool complete{false};
     while (true) {
-        const auto& [to_send, _more, _msg_type] = node.m_transport->GetBytesToSend(false);
+        const auto& [to_send, _more, _msg_type] = peer.GetBytesToSend(false);
         if (to_send.empty()) break;
         NodeReceiveMsgBytes(node, to_send, complete);
-        node.m_transport->MarkBytesSent(to_send.size());
+        peer.MarkBytesSent(to_send.size());
     }
     return complete;
 }
 
 CNode* ConnmanTestMsg::ConnectNodePublic(PeerManager& peerman, const char* pszDest, ConnectionType conn_type)
 {
-    CNode* node = ConnectNode(CAddress{}, pszDest, /*fCountFailure=*/false, conn_type, /*use_v2transport=*/true, /*proxy_override=*/std::nullopt);
+    CNode* node = ConnectNode(CAddress{}, pszDest, /*fCountFailure=*/false, conn_type, /*proxy_override=*/std::nullopt);
     if (!node) return nullptr;
     node->SetCommonVersion(PROTOCOL_VERSION);
     peerman.InitializeNode(*node, NODE_NETWORK);
@@ -280,44 +318,6 @@ ssize_t DynSock::Pipe::GetBytes(void* buf, size_t len, int flags)
     }
 
     return read_bytes;
-}
-
-std::optional<CNetMessage> DynSock::Pipe::GetNetMsg()
-{
-    V1Transport transport{NodeId{0}};
-
-    {
-        WAIT_LOCK(m_mutex, lock);
-
-        WaitForDataOrEof(lock);
-        if (m_eof && m_data.empty()) {
-            return std::nullopt;
-        }
-
-        for (;;) {
-            std::span<const uint8_t> s{m_data};
-            if (!transport.ReceivedBytes(s)) {  // Consumed bytes are removed from the front of s.
-                return std::nullopt;
-            }
-            m_data.erase(m_data.begin(), m_data.begin() + m_data.size() - s.size());
-            if (transport.ReceivedMessageComplete()) {
-                break;
-            }
-            if (m_data.empty()) {
-                WaitForDataOrEof(lock);
-                if (m_eof && m_data.empty()) {
-                    return std::nullopt;
-                }
-            }
-        }
-    }
-
-    bool reject{false};
-    CNetMessage msg{transport.GetReceivedMessage(/*time=*/{}, reject)};
-    if (reject) {
-        return std::nullopt;
-    }
-    return std::make_optional<CNetMessage>(std::move(msg));
 }
 
 void DynSock::Pipe::PushBytes(const void* buf, size_t len)

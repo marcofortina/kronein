@@ -32,8 +32,6 @@ std::string TransportTypeAsString(TransportProtocolType transport_type)
     switch (transport_type) {
     case TransportProtocolType::DETECTING:
         return "detecting";
-    case TransportProtocolType::V1:
-        return "v1";
     case TransportProtocolType::V2:
         return "v2";
     } // no default case, so the compiler can warn about missing cases

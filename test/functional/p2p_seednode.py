@@ -44,7 +44,7 @@ class P2PSeedNodes(BitcoinTestFramework):
             node.addpeeraddress(ip, port)
 
         # Restart the node so seednode is processed again.
-        with node.assert_debug_log(expected_msgs=["trying v1 connection"], timeout=ADD_NEXT_SEEDNODE):
+        with node.assert_debug_log(expected_msgs=["trying v2 connection"], timeout=ADD_NEXT_SEEDNODE):
             self.restart_node(0, extra_args=self.nodes[0].extra_args + [f'-seednode={seed_node}'])
 
         with node.assert_debug_log(expected_msgs=[f"Couldn't connect to peers from addrman after {ADD_NEXT_SEEDNODE} seconds. Adding seednode ({seed_node}) to addrfetch"], unexpected_msgs=["Empty addrman, adding seednode"], timeout=ADD_NEXT_SEEDNODE * 1.5):

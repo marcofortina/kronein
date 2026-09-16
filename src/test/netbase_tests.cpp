@@ -514,7 +514,7 @@ static const std::vector<CAddress> fixture_addresses({
     },
     CAddress{
         CService(CNetAddr(in6_addr(COMPAT_IN6ADDR_LOOPBACK_INIT)), 0xf1f2 /* port */),
-        static_cast<ServiceFlags>(NODE_P2P_V2 | NODE_COMPACT_FILTERS | NODE_NETWORK_LIMITED),
+        static_cast<ServiceFlags>(NODE_COMPACT_FILTERS | NODE_NETWORK_LIMITED),
         NodeSeconds{0xffffffffs}, /* Sun Feb  7 06:28:15 UTC 2106 */
     },
 });
@@ -535,7 +535,7 @@ static constexpr const char* stream_addrv1_hex =
     "00f1"                             // port
 
     "ffffffff"                         // time, Sun Feb  7 06:28:15 UTC 2106
-    "400c000000000000"                 // service flags, NODE_P2P_V2 | NODE_COMPACT_FILTERS | NODE_NETWORK_LIMITED
+    "4004000000000000"                 // service flags, NODE_COMPACT_FILTERS | NODE_NETWORK_LIMITED
     "00000000000000000000000000000001" // address, fixed 16 bytes (IPv6)
     "f1f2";                            // port
 
@@ -559,7 +559,7 @@ static constexpr const char* stream_addrv2_hex =
     "00f1"                             // port
 
     "ffffffff"                         // time, Sun Feb  7 06:28:15 UTC 2106
-    "fd400c"                           // service flags, COMPACTSIZE(NODE_P2P_V2 | NODE_COMPACT_FILTERS | NODE_NETWORK_LIMITED)
+    "fd4004"                           // service flags, COMPACTSIZE(NODE_COMPACT_FILTERS | NODE_NETWORK_LIMITED)
     "02"                               // network id, IPv6
     "10"                               // address length, COMPACTSIZE(16)
     "00000000000000000000000000000001" // address

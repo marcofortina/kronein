@@ -53,8 +53,7 @@ const std::vector<std::string> CONNECTION_TYPE_DOC{
 };
 
 const std::vector<std::string> TRANSPORT_TYPE_DOC{
-    "detecting (peer could be v1 or v2)",
-    "v1 (plaintext transport protocol)",
+    "detecting (BIP324 handshake in progress)",
     "v2 (BIP324 encrypted transport protocol)"
 };
 
@@ -194,7 +193,7 @@ static RPCHelpMan getpeerinfo()
                                                               "Please note this output is unlikely to be stable in upcoming releases as we iterate to\n"
                                                               "best capture connection behaviors."},
                     {RPCResult::Type::STR, "transport_protocol_type", "Type of transport protocol: \n" + Join(TRANSPORT_TYPE_DOC, ",\n") + ".\n"},
-                    {RPCResult::Type::STR, "session_id", "The session ID for this connection, or \"\" if there is none (\"v2\" transport protocol only).\n"},
+                    {RPCResult::Type::STR, "session_id", "The BIP324 session ID for this connection, or \"\" while the handshake is in progress.\n"},
                 }},
             }},
         },
@@ -327,12 +326,11 @@ static RPCHelpMan addnode()
                 {
                     {"node", RPCArg::Type::STR, RPCArg::Optional::NO, "The IP address/hostname optionally followed by :port of the peer to connect to"},
                     {"command", RPCArg::Type::STR, RPCArg::Optional::NO, "'add' to add a node to the list, 'remove' to remove a node from the list, 'onetry' to try a connection to the node once"},
-                    {"v2transport", RPCArg::Type::BOOL, RPCArg::DefaultHint{"set by -v2transport"}, "Attempt to connect using BIP324 v2 transport protocol (ignored for 'remove' command)"},
                 },
                 RPCResult{RPCResult::Type::NONE, "", ""},
                 RPCExamples{
-                    HelpExampleCli("addnode", "\"192.168.0.6:8333\" \"onetry\" true")
-            + HelpExampleRpc("addnode", "\"192.168.0.6:8333\", \"onetry\" true")
+                    HelpExampleCli("addnode", "\"192.168.0.6:8333\" \"onetry\"")
+            + HelpExampleRpc("addnode", "\"192.168.0.6:8333\", \"onetry\"")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -346,12 +344,6 @@ static RPCHelpMan addnode()
     CConnman& connman = EnsureConnman(node);
 
     const auto node_arg{self.Arg<std::string_view>("node")};
-    bool node_v2transport = connman.GetLocalServices() & NODE_P2P_V2;
-    bool use_v2transport = self.MaybeArg<bool>("v2transport").value_or(node_v2transport);
-
-    if (use_v2transport && !node_v2transport) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Error: v2transport requested but not enabled (see -v2transport)");
-    }
 
     if (command == "onetry")
     {
@@ -361,14 +353,13 @@ static RPCHelpMan addnode()
                                       /*grant_outbound=*/{},
                                       /*pszDest=*/std::string{node_arg}.c_str(),
                                       /*conn_type=*/ConnectionType::MANUAL,
-                                      /*use_v2transport=*/use_v2transport,
                                       /*proxy_override=*/std::nullopt);
         return UniValue::VNULL;
     }
 
     if (command == "add")
     {
-        if (!connman.AddNode({std::string{node_arg}, use_v2transport})) {
+        if (!connman.AddNode({std::string{node_arg}})) {
             throw JSONRPCError(RPC_CLIENT_NODE_ALREADY_ADDED, "Error: Node already added");
         }
     }
@@ -392,7 +383,6 @@ static RPCHelpMan addconnection()
         {
             {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The IP address and port to attempt connecting to."},
             {"connection_type", RPCArg::Type::STR, RPCArg::Optional::NO, "Type of connection to open (\"outbound-full-relay\", \"block-relay-only\", \"addr-fetch\" or \"feeler\")."},
-            {"v2transport", RPCArg::Type::BOOL, RPCArg::Optional::NO, "Attempt to connect using BIP324 v2 transport protocol"},
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "",
@@ -401,8 +391,8 @@ static RPCHelpMan addconnection()
                 { RPCResult::Type::STR, "connection_type", "Type of connection opened." },
             }},
         RPCExamples{
-            HelpExampleCli("addconnection", "\"192.168.0.6:8333\" \"outbound-full-relay\" true")
-            + HelpExampleRpc("addconnection", "\"192.168.0.6:8333\" \"outbound-full-relay\" true")
+            HelpExampleCli("addconnection", "\"192.168.0.6:8333\" \"outbound-full-relay\"")
+            + HelpExampleRpc("addconnection", "\"192.168.0.6:8333\" \"outbound-full-relay\"")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -424,16 +414,10 @@ static RPCHelpMan addconnection()
     } else {
         throw JSONRPCError(RPC_INVALID_PARAMETER, self.ToString());
     }
-    bool use_v2transport{self.Arg<bool>("v2transport")};
-
     NodeContext& node = EnsureAnyNodeContext(request.context);
     CConnman& connman = EnsureConnman(node);
 
-    if (use_v2transport && !(connman.GetLocalServices() & NODE_P2P_V2)) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Error: Adding v2transport connections requires -v2transport init flag to be set.");
-    }
-
-    const bool success = connman.AddConnection(address, conn_type, use_v2transport);
+    const bool success = connman.AddConnection(address, conn_type);
     if (!success) {
         throw JSONRPCError(RPC_CLIENT_NODE_CAPACITY_REACHED, "Error: Already at capacity for specified connection type.");
     }

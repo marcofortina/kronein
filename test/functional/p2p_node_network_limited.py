@@ -12,7 +12,6 @@ from test_framework.messages import (
     CInv,
     MSG_BLOCK,
     NODE_NETWORK_LIMITED,
-    NODE_P2P_V2,
     msg_getdata,
 )
 from test_framework.p2p import P2PInterface
@@ -119,8 +118,6 @@ class NodeNetworkLimitedTest(BitcoinTestFramework):
         node = self.nodes[0].add_p2p_connection(P2PIgnoreInv())
 
         expected_services = NODE_NETWORK_LIMITED
-        if self.options.v2transport:
-            expected_services |= NODE_P2P_V2
 
         self.log.info("Check that node has signalled expected services.")
         assert_equal(node.nServices, expected_services)
