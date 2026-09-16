@@ -4,22 +4,17 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the listtransactions API."""
 
-from decimal import Decimal
-import time
-import os
 import shutil
+import time
+from decimal import Decimal
 
 from test_framework.blocktools import MAX_FUTURE_BLOCK_TIME
 from test_framework.descriptors import descsum_create
-from test_framework.messages import (
-    COIN,
-    tx_from_hex,
-)
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
-    assert_not_equal,
     assert_array_result,
     assert_equal,
+    assert_not_equal,
     assert_raises_rpc_error,
     find_vout_for_address,
 )
@@ -97,125 +92,11 @@ class ListTransactionsTest(BitcoinTestFramework):
                             {"category": "receive", "amount": Decimal("0.44")},
                             {"txid": txid})
 
-        self.run_rbf_opt_in_test()
         self.run_externally_generated_address_test()
         self.run_coinjoin_test()
         self.run_invalid_parameters_test()
         self.test_op_return()
         self.test_from_me_status_change()
-
-    def run_rbf_opt_in_test(self):
-        """Test the opt-in-rbf flag for sent and received transactions."""
-
-        def is_opt_in(node, txid):
-            """Check whether a transaction signals opt-in RBF itself."""
-            rawtx = node.getrawtransaction(txid, 1)
-            for x in rawtx["vin"]:
-                if x["sequence"] < 0xfffffffe:
-                    return True
-            return False
-
-        def get_unconfirmed_utxo_entry(node, txid_to_match):
-            """Find an unconfirmed output matching a certain txid."""
-            utxo = node.listunspent(0, 0)
-            for i in utxo:
-                if i["txid"] == txid_to_match:
-                    return i
-            return None
-
-        self.log.info("Test txs w/o opt-in RBF (bip125-replaceable=no)")
-        # Chain a few transactions that don't opt in.
-        txid_1 = self.nodes[0].sendtoaddress(self.nodes[1].getnewaddress(), 1)
-        assert not is_opt_in(self.nodes[0], txid_1)
-        assert_array_result(self.nodes[0].listtransactions(), {"txid": txid_1}, {"bip125-replaceable": "no"})
-        self.sync_mempools()
-        assert_array_result(self.nodes[1].listtransactions(), {"txid": txid_1}, {"bip125-replaceable": "no"})
-
-        # Tx2 will build off tx1, still not opting in to RBF.
-        utxo_to_use = get_unconfirmed_utxo_entry(self.nodes[0], txid_1)
-        assert_equal(utxo_to_use["safe"], True)
-        utxo_to_use = get_unconfirmed_utxo_entry(self.nodes[1], txid_1)
-        assert_equal(utxo_to_use["safe"], False)
-
-        # Create tx2 using createrawtransaction
-        inputs = [{"txid": utxo_to_use["txid"], "vout": utxo_to_use["vout"]}]
-        outputs = {self.nodes[0].getnewaddress(): 0.999}
-        tx2 = self.nodes[1].createrawtransaction(inputs=inputs, outputs=outputs, replaceable=False)
-        tx2_signed = self.nodes[1].signrawtransactionwithwallet(tx2)["hex"]
-        txid_2 = self.nodes[1].sendrawtransaction(tx2_signed)
-
-        # ...and check the result
-        assert not is_opt_in(self.nodes[1], txid_2)
-        assert_array_result(self.nodes[1].listtransactions(), {"txid": txid_2}, {"bip125-replaceable": "no"})
-        self.sync_mempools()
-        assert_array_result(self.nodes[0].listtransactions(), {"txid": txid_2}, {"bip125-replaceable": "no"})
-
-        self.log.info("Test txs with opt-in RBF (bip125-replaceable=yes)")
-        # Tx3 will opt-in to RBF
-        utxo_to_use = get_unconfirmed_utxo_entry(self.nodes[0], txid_2)
-        inputs = [{"txid": txid_2, "vout": utxo_to_use["vout"]}]
-        outputs = {self.nodes[1].getnewaddress(): 0.998}
-        tx3 = self.nodes[0].createrawtransaction(inputs, outputs)
-        tx3_modified = tx_from_hex(tx3)
-        tx3_modified.vin[0].nSequence = 0
-        tx3 = tx3_modified.serialize().hex()
-        tx3_signed = self.nodes[0].signrawtransactionwithwallet(tx3)['hex']
-        txid_3 = self.nodes[0].sendrawtransaction(tx3_signed)
-
-        assert is_opt_in(self.nodes[0], txid_3)
-        assert_array_result(self.nodes[0].listtransactions(), {"txid": txid_3}, {"bip125-replaceable": "yes"})
-        self.sync_mempools()
-        assert_array_result(self.nodes[1].listtransactions(), {"txid": txid_3}, {"bip125-replaceable": "yes"})
-
-        # Tx4 will chain off tx3.  Doesn't signal itself, but depends on one
-        # that does.
-        utxo_to_use = get_unconfirmed_utxo_entry(self.nodes[1], txid_3)
-        inputs = [{"txid": txid_3, "vout": utxo_to_use["vout"]}]
-        outputs = {self.nodes[0].getnewaddress(): 0.997}
-        tx4 = self.nodes[1].createrawtransaction(inputs=inputs, outputs=outputs, replaceable=False)
-        tx4_signed = self.nodes[1].signrawtransactionwithwallet(tx4)["hex"]
-        txid_4 = self.nodes[1].sendrawtransaction(tx4_signed)
-
-        assert not is_opt_in(self.nodes[1], txid_4)
-        assert_array_result(self.nodes[1].listtransactions(), {"txid": txid_4}, {"bip125-replaceable": "yes"})
-        self.sync_mempools()
-        assert_array_result(self.nodes[0].listtransactions(), {"txid": txid_4}, {"bip125-replaceable": "yes"})
-
-        self.log.info("Test tx with unknown RBF state (bip125-replaceable=unknown)")
-        # Replace tx3, and check that tx4 becomes unknown
-        tx3_b = tx3_modified
-        tx3_b.vout[0].nValue -= int(Decimal("0.004") * COIN)  # bump the fee
-        tx3_b = tx3_b.serialize().hex()
-        tx3_b_signed = self.nodes[0].signrawtransactionwithwallet(tx3_b)['hex']
-        txid_3b = self.nodes[0].sendrawtransaction(tx3_b_signed, 0)
-        assert is_opt_in(self.nodes[0], txid_3b)
-
-        assert_array_result(self.nodes[0].listtransactions(), {"txid": txid_4}, {"bip125-replaceable": "unknown"})
-        self.sync_mempools()
-        assert_array_result(self.nodes[1].listtransactions(), {"txid": txid_4}, {"bip125-replaceable": "unknown"})
-
-        self.log.info("Test bip125-replaceable status with gettransaction RPC")
-        for n in self.nodes[0:2]:
-            assert_equal(n.gettransaction(txid_1)["bip125-replaceable"], "no")
-            assert_equal(n.gettransaction(txid_2)["bip125-replaceable"], "no")
-            assert_equal(n.gettransaction(txid_3)["bip125-replaceable"], "yes")
-            assert_equal(n.gettransaction(txid_3b)["bip125-replaceable"], "yes")
-            assert_equal(n.gettransaction(txid_4)["bip125-replaceable"], "unknown")
-
-        self.log.info("Test bip125-replaceable status with listsinceblock")
-        for n in self.nodes[0:2]:
-            txs = {tx['txid']: tx['bip125-replaceable'] for tx in n.listsinceblock()['transactions']}
-            assert_equal(txs[txid_1], "no")
-            assert_equal(txs[txid_2], "no")
-            assert_equal(txs[txid_3], "yes")
-            assert_equal(txs[txid_3b], "yes")
-            assert_equal(txs[txid_4], "unknown")
-
-        self.log.info("Test mined transactions are no longer bip125-replaceable")
-        self.generate(self.nodes[0], 1)
-        assert txid_3b not in self.nodes[0].getrawmempool()
-        assert_equal(self.nodes[0].gettransaction(txid_3b)["bip125-replaceable"], "no")
-        assert_equal(self.nodes[0].gettransaction(txid_4)["bip125-replaceable"], "unknown")
 
     def run_externally_generated_address_test(self):
         """Test behavior when receiving address is not in the address book."""
@@ -224,8 +105,8 @@ class ListTransactionsTest(BitcoinTestFramework):
         # refill keypool otherwise the second node wouldn't recognize addresses generated on the first nodes
         self.nodes[0].keypoolrefill(1000)
         self.stop_nodes()
-        wallet0 = os.path.join(self.nodes[0].chain_path, self.default_wallet_name, "wallet.dat")
-        wallet2 = os.path.join(self.nodes[2].chain_path, self.default_wallet_name, "wallet.dat")
+        wallet0 = self.nodes[0].wallets_path / self.default_wallet_name / "wallet.dat"
+        wallet2 = self.nodes[2].wallets_path / self.default_wallet_name / "wallet.dat"
         shutil.copyfile(wallet0, wallet2)
         self.start_nodes()
         # reconnect nodes
@@ -327,12 +208,13 @@ class ListTransactionsTest(BitcoinTestFramework):
         # Run twice, once for a transaction in the mempool, again when it confirms
         for confirm in [False, True]:
             key = get_generate_key()
-            descriptor = descsum_create(f"wpkh({key.privkey})")
+            descriptor = descsum_create(f"tr({key.privkey})")
+            address = self.nodes[0].deriveaddresses(descriptor)[0]
             default_wallet.importdescriptors([{"desc": descriptor, "timestamp": "now"}])
 
-            send_res = default_wallet.send(outputs=[{key.p2wpkh_addr: 1}, {wallet.getnewaddress(): 1}])
+            send_res = default_wallet.send(outputs=[{address: 1}, {wallet.getnewaddress(): 1}])
             assert_equal(send_res["complete"], True)
-            vout = find_vout_for_address(self.nodes[0], send_res["txid"], key.p2wpkh_addr)
+            vout = find_vout_for_address(self.nodes[0], send_res["txid"], address)
             utxos = [{"txid": send_res["txid"], "vout": vout}]
             self.generate(self.nodes[0], 1, sync_fun=self.no_op)
 

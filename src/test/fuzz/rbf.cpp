@@ -85,10 +85,6 @@ FUZZ_TARGET(rbf, .init = initialize_rbf)
             TryAddToMempool(pool, ConsumeTxMemPoolEntry(fuzzed_data_provider, tx));
         }
     }
-    {
-        LOCK(pool.cs);
-        (void)IsRBFOptIn(tx, pool);
-    }
 }
 
 FUZZ_TARGET(package_rbf, .init = initialize_package_rbf)
