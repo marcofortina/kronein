@@ -28,7 +28,6 @@
 
 namespace wallet {
 namespace DBKeys {
-const std::string ACENTRY{"acentry"};
 const std::string ACTIVEEXTERNALSPK{"activeexternalspk"};
 const std::string ACTIVEINTERNALSPK{"activeinternalspk"};
 const std::string BESTBLOCK{"bestblock"};
@@ -39,7 +38,6 @@ const std::string MASTER_KEY{"mkey"};
 const std::string NAME{"name"};
 const std::string ORDERPOSNEXT{"orderposnext"};
 const std::string PURPOSE{"purpose"};
-const std::string SETTINGS{"settings"};
 const std::string TX{"tx"};
 const std::string VERSION{"version"};
 const std::string WALLETDESCRIPTOR{"walletdescriptor"};

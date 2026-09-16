@@ -54,7 +54,6 @@ enum class DBErrors : int
 };
 
 namespace DBKeys {
-extern const std::string ACENTRY;
 extern const std::string ACTIVEEXTERNALSPK;
 extern const std::string ACTIVEINTERNALSPK;
 extern const std::string BESTBLOCK;
@@ -65,7 +64,6 @@ extern const std::string MASTER_KEY;
 extern const std::string NAME;
 extern const std::string ORDERPOSNEXT;
 extern const std::string PURPOSE;
-extern const std::string SETTINGS;
 extern const std::string TX;
 extern const std::string VERSION;
 extern const std::string WALLETDESCRIPTOR;
