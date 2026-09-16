@@ -12,8 +12,8 @@ import sys
 import time
 
 from test_framework.blocktools import DIFF_1_N_BITS, SIGNET_HEADER
-from test_framework.key import ECKey
-from test_framework.script_util import CScript, key_to_p2wpkh_script
+from test_framework.key import compute_xonly_pubkey
+from test_framework.script import CScript, taproot_construct
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
@@ -42,11 +42,9 @@ class SignetMinerTest(BitcoinTestFramework):
         self.setup_clean_chain = True
         self.num_nodes = 4
 
-        # generate and specify signet challenge (simple p2wpkh script)
-        privkey = ECKey()
-        privkey.set(CHALLENGE_PRIVATE_KEY, True)
-        pubkey = privkey.get_pubkey().get_bytes()
-        challenge = key_to_p2wpkh_script(pubkey)
+        # Generate and specify a key-path Taproot signet challenge.
+        internal_key = compute_xonly_pubkey(CHALLENGE_PRIVATE_KEY)[0]
+        challenge = taproot_construct(internal_key).scriptPubKey
 
         self.extra_args = [
             [f'-signetchallenge={challenge.hex()}'],

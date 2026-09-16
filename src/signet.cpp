@@ -27,7 +27,7 @@
 
 static constexpr uint8_t SIGNET_HEADER[4] = {0xec, 0xc7, 0xda, 0xa2};
 
-static constexpr script_verify_flags BLOCK_SCRIPT_VERIFY_FLAGS = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_NULLDUMMY;
+static constexpr script_verify_flags BLOCK_SCRIPT_VERIFY_FLAGS = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_NULLDUMMY | SCRIPT_VERIFY_TAPROOT;
 
 static bool FetchAndClearCommitmentSection(const std::span<const uint8_t> header, CScript& witness_commitment, std::vector<uint8_t>& result)
 {
@@ -70,13 +70,11 @@ static uint256 ComputeModifiedMerkleRoot(const CMutableTransaction& cb, const CB
 std::optional<SignetTxs> SignetTxs::Create(const CBlock& block, const CScript& challenge)
 {
     CMutableTransaction tx_to_spend;
-    tx_to_spend.version = 0;
     tx_to_spend.nLockTime = 0;
     tx_to_spend.vin.emplace_back(COutPoint(), CScript(OP_0), 0);
     tx_to_spend.vout.emplace_back(0, challenge);
 
     CMutableTransaction tx_spending;
-    tx_spending.version = 0;
     tx_spending.nLockTime = 0;
     tx_spending.vin.emplace_back(COutPoint(), CScript(), 0);
     tx_spending.vout.emplace_back(0, CScript(OP_RETURN));
