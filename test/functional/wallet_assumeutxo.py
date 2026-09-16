@@ -46,7 +46,7 @@ class AssumeutxoTest(BitcoinTestFramework):
         self.start_nodes()
 
     def import_descriptor(self, node, wallet_name, key, timestamp):
-        import_request = [{"desc": descsum_create("pkh(" + key.pubkey + ")"),
+        import_request = [{"desc": descsum_create("tr(" + key.pubkey + ")"),
                            "timestamp": timestamp,
                            "label": "Descriptor import test"}]
         wrpc = node.get_wallet_rpc(wallet_name)
@@ -172,7 +172,7 @@ class AssumeutxoTest(BitcoinTestFramework):
 
         assert_equal(
             dump_output['txoutset_hash'],
-            "d2b051ff5e8eef46520350776f4100dd710a63447a8e01d917e92e79751a63e2")
+            "1032971a458241d500721de000962f6bded83a1b3c83aa45f0aaf46c4a4c476f")
         assert_equal(dump_output["nchaintx"], 334)
         assert_equal(n0.getblockchaininfo()["blocks"], SNAPSHOT_BASE_HEIGHT)
 

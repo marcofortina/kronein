@@ -20,7 +20,6 @@
 #include <cstdint>
 #include <ios>
 #include <optional>
-#include <set>
 #include <string>
 #include <string_view>
 
@@ -36,8 +35,6 @@ namespace node {
 //! before being used. Thus, new fields should be added only if needed.
 class SnapshotMetadata
 {
-    inline static const uint16_t VERSION{2};
-    const std::set<uint16_t> m_supported_versions{VERSION};
     const MessageStartChars m_network_magic;
 public:
     //! The hash of the block that reflects the tip of the chain for the
@@ -63,7 +60,6 @@ public:
     template <typename Stream>
     inline void Serialize(Stream& s) const {
         s << SNAPSHOT_MAGIC_BYTES;
-        s << VERSION;
         s << m_network_magic;
         s << m_base_blockhash;
         s << m_coins_count;
@@ -75,14 +71,7 @@ public:
         std::array<uint8_t, SNAPSHOT_MAGIC_BYTES.size()> snapshot_magic;
         s >> snapshot_magic;
         if (snapshot_magic != SNAPSHOT_MAGIC_BYTES) {
-            throw std::ios_base::failure("Invalid UTXO set snapshot magic bytes. Please check if this is indeed a snapshot file or if you are using an outdated snapshot format.");
-        }
-
-        // Read the version
-        uint16_t version;
-        s >> version;
-        if (!m_supported_versions.contains(version)) {
-            throw std::ios_base::failure(strprintf("Version of snapshot %s does not match any of the supported versions.", version));
+            throw std::ios_base::failure("Invalid UTXO set snapshot magic bytes.");
         }
 
         // Read the network magic (pchMessageStart)
