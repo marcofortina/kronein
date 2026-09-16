@@ -162,28 +162,8 @@ private:
     //! secret key to randomize bucket select with
     uint256 nKey;
 
-    //! Serialization versions.
-    enum Format : uint8_t {
-        V0_HISTORICAL = 0,    //!< historic format, before commit e6b343d88
-        V1_DETERMINISTIC = 1, //!< for pre-asmap files
-        V2_ASMAP = 2,         //!< for files including asmap version
-        V3_BIP155 = 3,        //!< same as V2_ASMAP plus addresses are in BIP155 format
-        V4_MULTIPORT = 4,     //!< adds support for multiple ports per IP
-    };
-
-    //! The maximum format this software knows it can unserialize. Also, we always serialize
-    //! in this format.
-    //! The format (first byte in the serialized stream) can be higher than this and
-    //! still this software may be able to unserialize the file - if the second byte
-    //! (see `lowest_compatible` in `Unserialize()`) is less or equal to this.
-    static constexpr Format FILE_FORMAT = Format::V4_MULTIPORT;
-
-    //! The initial value of a field that is incremented every time an incompatible format
-    //! change is made (such that old software versions would not be able to parse and
-    //! understand the new file format). This is 32 because we overtook the "key size"
-    //! field which was 32 historically.
-    //! @note Don't increment this. Increment `lowest_compatible` in `Serialize()` instead.
-    static constexpr uint8_t INCOMPATIBILITY_BASE = 32;
+    //! Native peers.dat format version.
+    static constexpr uint8_t FILE_FORMAT{1};
 
     //! last used nId
     nid_type nIdCount GUARDED_BY(cs){0};

@@ -1067,14 +1067,13 @@ static auto MakeCorruptPeersDat()
     DataStream s{};
     s << ::Params().MessageStart();
 
-    unsigned char nVersion = 1;
-    s << nVersion;
-    s << ((unsigned char)32);
+    uint8_t version{1};
+    s << version;
     s << uint256::ONE;
     s << 10; // nNew
     s << 10; // nTried
 
-    int nUBuckets = ADDRMAN_NEW_BUCKET_COUNT ^ (1 << 30);
+    int nUBuckets = ADDRMAN_NEW_BUCKET_COUNT;
     s << nUBuckets;
 
     const std::optional<CService> serv{Lookup("252.1.1.1", 7777, false)};
@@ -1083,7 +1082,7 @@ static auto MakeCorruptPeersDat()
     std::optional<CNetAddr> resolved{LookupHost("252.2.2.2", false)};
     BOOST_REQUIRE(resolved.has_value());
     AddrInfo info = AddrInfo(addr, resolved.value());
-    s << CAddress::V1_DISK(info);
+    s << CAddress::V2_DISK(info);
 
     return s;
 }
