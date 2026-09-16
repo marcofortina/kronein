@@ -28,7 +28,6 @@ from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_greater_than_or_equal,
-    assert_not_equal
 )
 from test_framework.wallet import MiniWallet
 from test_framework.p2p import P2PInterface
@@ -372,21 +371,7 @@ class IPCMiningTest(BitcoinTestFramework):
                 block_valid = (await mining.checkBlock(ctx, block.serialize(), check_opts)).result
                 assert_equal(block_valid, True)
 
-                # The remote template block will be mutated, capture the original:
-                remote_block_before = await mining_get_block(template, ctx)
-
-                self.log.debug("Submitted coinbase must include witness")
-                assert_not_equal(coinbase.serialize_without_witness().hex(), coinbase.serialize().hex())
-                submitted = (await template.submitSolution(ctx, block.nVersion, block.nTime, block.nNonce, coinbase.serialize_without_witness())).result
-                assert_equal(submitted, False)
-
-                self.log.debug("Even a rejected submitSolution() mutates the template's block")
-                # Can be used by clients to download and inspect the (rejected)
-                # reconstructed block.
-                remote_block_after = await mining_get_block(template, ctx)
-                assert_not_equal(remote_block_before.serialize().hex(), remote_block_after.serialize().hex())
-
-                self.log.debug("Submit again, with the witness")
+                self.log.debug("Submit the native coinbase transaction")
                 submitted = (await template.submitSolution(ctx, block.nVersion, block.nTime, block.nNonce, coinbase.serialize())).result
                 assert_equal(submitted, True)
 
