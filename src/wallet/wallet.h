@@ -233,11 +233,7 @@ struct CAddressBookData
      */
     std::optional<std::string> label;
 
-    /**
-     * Address purpose which was originally recorded for payment protocol
-     * support but now serves as a cached IsMine value. Wallet code should
-     * not rely on this field being set.
-     */
+    /** Address purpose. Always set for non-change address book entries. */
     std::optional<AddressPurpose> purpose;
 
     /**

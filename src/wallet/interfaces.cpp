@@ -188,8 +188,7 @@ public:
             *name = entry->GetLabel();
         }
         if (purpose) {
-            // In very old wallets, address purpose may not be recorded so we derive it from IsMine
-            *purpose = entry->purpose.value_or(m_wallet->IsMine(dest) ? AddressPurpose::RECEIVE : AddressPurpose::SEND);
+            *purpose = *Assert(entry->purpose);
         }
         return true;
     }
@@ -200,8 +199,7 @@ public:
         m_wallet->ForEachAddrBookEntry([&](const CTxDestination& dest, const std::string& label, bool is_change, const std::optional<AddressPurpose>& purpose) EXCLUSIVE_LOCKS_REQUIRED(m_wallet->cs_wallet) {
             if (is_change) return;
             bool is_mine = m_wallet->IsMine(dest);
-            // In very old wallets, address purpose may not be recorded so we derive it from IsMine
-            result.emplace_back(dest, is_mine, purpose.value_or(is_mine ? AddressPurpose::RECEIVE : AddressPurpose::SEND), label);
+            result.emplace_back(dest, is_mine, *Assert(purpose), label);
         });
         return result;
     }

@@ -506,12 +506,20 @@ static DBErrors LoadAddressBookRecords(CWallet* pwallet, DatabaseBatch& batch) E
         value >> purpose_str;
         std::optional<AddressPurpose> purpose{PurposeFromString(purpose_str)};
         if (!purpose) {
-            pwallet->WalletLogPrintf("Warning: nonstandard purpose string '%s' for address '%s'\n", purpose_str, strAddress);
+            err = strprintf("Error: Invalid purpose '%s' for address '%s'.", purpose_str, strAddress);
+            return DBErrors::CORRUPT;
         }
         pwallet->m_address_book[DecodeDestination(strAddress)].purpose = purpose;
         return DBErrors::LOAD_OK;
     });
     result = std::max(result, purpose_res.m_result);
+
+    for (const auto& [address, data] : pwallet->m_address_book) {
+        if (!data.IsChange() && !data.purpose) {
+            pwallet->WalletLogPrintf("Error: Address book entry '%s' has no purpose.\n", EncodeDestination(address));
+            result = std::max(result, DBErrors::CORRUPT);
+        }
+    }
 
     // Load destination data record
     LoadResult dest_res = LoadRecords(pwallet, batch, DBKeys::DESTDATA,

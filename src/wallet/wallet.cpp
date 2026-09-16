@@ -2256,6 +2256,11 @@ bool CWallet::SetAddressBookWithDB(WalletBatch& batch, const CTxDestination& add
         std::map<CTxDestination, CAddressBookData>::iterator mi = m_address_book.find(address);
         fUpdated = mi != m_address_book.end() && !mi->second.IsChange();
 
+        if (!new_purpose && (mi == m_address_book.end() || !mi->second.purpose)) {
+            WalletLogPrintf("Error: address book purpose is required for new entries\n");
+            return false;
+        }
+
         CAddressBookData& record = mi != m_address_book.end() ? mi->second : m_address_book[address];
         record.SetLabel(strName);
         is_mine = IsMine(address);
@@ -2275,10 +2280,7 @@ bool CWallet::SetAddressBookWithDB(WalletBatch& batch, const CTxDestination& add
         return false;
     }
 
-    // In very old wallets, address purpose may not be recorded so we derive it from IsMine
-    NotifyAddressBookChanged(address, strName, is_mine,
-                             purpose.value_or(is_mine ? AddressPurpose::RECEIVE : AddressPurpose::SEND),
-                             (fUpdated ? CT_UPDATED : CT_NEW));
+    NotifyAddressBookChanged(address, strName, is_mine, *Assert(purpose), (fUpdated ? CT_UPDATED : CT_NEW));
     return true;
 }
 
