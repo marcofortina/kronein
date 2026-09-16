@@ -393,9 +393,7 @@ BOOST_AUTO_TEST_CASE(netpermissions_test)
     NetPermissions::AddFlag(whitebindPermissions.m_flags, NetPermissionFlags::Implicit);
     BOOST_CHECK(NetPermissions::HasFlag(whitebindPermissions.m_flags, NetPermissionFlags::Implicit));
 
-    // Can set one permission
-    BOOST_CHECK(NetWhitebindPermissions::TryParse("mempool@1.2.3.4:32", whitebindPermissions, error));
-    BOOST_CHECK_EQUAL(whitebindPermissions.m_flags, NetPermissionFlags::Mempool);
+    // Can set no permissions explicitly
     BOOST_CHECK(NetWhitebindPermissions::TryParse("@1.2.3.4:32", whitebindPermissions, error));
     BOOST_CHECK_EQUAL(whitebindPermissions.m_flags, NetPermissionFlags::None);
 
@@ -463,20 +461,19 @@ BOOST_AUTO_TEST_CASE(netpermissions_test)
     BOOST_CHECK_EQUAL(whitelistPermissions.m_flags, NetPermissionFlags::ForceRelay | NetPermissionFlags::NoBan | NetPermissionFlags::Relay);
     BOOST_CHECK(error.empty());
     BOOST_CHECK_EQUAL(whitelistPermissions.m_subnet.ToString(), "1.2.3.4/32");
-    BOOST_CHECK(NetWhitelistPermissions::TryParse("forcerelay,noban,relay,mempool@1.2.3.4/32", whitelistPermissions, connection_direction, error));
+    BOOST_CHECK(NetWhitelistPermissions::TryParse("forcerelay,noban,relay,addr@1.2.3.4/32", whitelistPermissions, connection_direction, error));
     BOOST_CHECK(NetWhitelistPermissions::TryParse("in,relay@1.2.3.4", whitelistPermissions, connection_direction, error));
     BOOST_CHECK_EQUAL(connection_direction, ConnectionDirection::In);
-    BOOST_CHECK(NetWhitelistPermissions::TryParse("out,mempool@1.2.3.4", whitelistPermissions, connection_direction, error));
+    BOOST_CHECK(NetWhitelistPermissions::TryParse("out,addr@1.2.3.4", whitelistPermissions, connection_direction, error));
     BOOST_CHECK_EQUAL(connection_direction, ConnectionDirection::Out);
-    BOOST_CHECK(NetWhitelistPermissions::TryParse("in,out,mempool@1.2.3.4", whitelistPermissions, connection_direction, error));
+    BOOST_CHECK(NetWhitelistPermissions::TryParse("in,out,addr@1.2.3.4", whitelistPermissions, connection_direction, error));
     BOOST_CHECK_EQUAL(connection_direction, ConnectionDirection::Both);
 
     const auto strings = NetPermissions::ToStrings(NetPermissionFlags::All);
-    BOOST_CHECK_EQUAL(strings.size(), 6U);
+    BOOST_CHECK_EQUAL(strings.size(), 5U);
     BOOST_CHECK(std::find(strings.begin(), strings.end(), "forcerelay") != strings.end());
     BOOST_CHECK(std::find(strings.begin(), strings.end(), "relay") != strings.end());
     BOOST_CHECK(std::find(strings.begin(), strings.end(), "noban") != strings.end());
-    BOOST_CHECK(std::find(strings.begin(), strings.end(), "mempool") != strings.end());
     BOOST_CHECK(std::find(strings.begin(), strings.end(), "download") != strings.end());
     BOOST_CHECK(std::find(strings.begin(), strings.end(), "addr") != strings.end());
 }

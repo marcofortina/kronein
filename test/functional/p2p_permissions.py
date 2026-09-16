@@ -35,7 +35,7 @@ class P2PPermissionsTests(BitcoinTestFramework):
             # default permissions (no specific permissions)
             ["-whitelist=127.0.0.1"],
             # Make sure the default values in the command line documentation match the ones here
-            ["relay", "noban", "mempool", "download"])
+            ["relay", "noban", "download"])
 
         self.checkpermission(
             # no permission (even with forcerelay)
@@ -45,48 +45,43 @@ class P2PPermissionsTests(BitcoinTestFramework):
         self.checkpermission(
             # relay permission removed (no specific permissions)
             ["-whitelist=127.0.0.1", "-whitelistrelay=0"],
-            ["noban", "mempool", "download"])
+            ["noban", "download"])
 
         self.checkpermission(
             # forcerelay and relay permission added
             # Legacy parameter interaction which set whitelistrelay to true
             # if whitelistforcerelay is true
             ["-whitelist=127.0.0.1", "-whitelistforcerelay"],
-            ["forcerelay", "relay", "noban", "mempool", "download"])
+            ["forcerelay", "relay", "noban", "download"])
 
         # Let's make sure permissions are merged correctly
         # For this, we need to use whitebind instead of bind
         # by modifying the configuration file.
         ip_port = "127.0.0.1:{}".format(p2p_port(1))
-        self.nodes[1].replace_in_config([("bind=127.0.0.1", "whitebind=mempool,forcerelay@" + ip_port)])
+        self.nodes[1].replace_in_config([("bind=127.0.0.1", "whitebind=forcerelay@" + ip_port)])
         # Explicitly bind the tor port to prevent collisions with the default tor port
         append_config(self.nodes[1].datadir_path, [f"bind=127.0.0.1:{tor_port(self.nodes[1].index)}=onion"])
         self.checkpermission(
             ["-whitelist=noban@127.0.0.1"],
             # Check parameter interaction forcerelay should activate relay
-            ["noban", "mempool", "forcerelay", "relay", "download"])
-        self.nodes[1].replace_in_config([("whitebind=mempool,forcerelay@" + ip_port, "bind=127.0.0.1")])
+            ["noban", "forcerelay", "relay", "download"])
+        self.nodes[1].replace_in_config([("whitebind=forcerelay@" + ip_port, "bind=127.0.0.1")])
         self.nodes[1].replace_in_config([(f"bind=127.0.0.1:{tor_port(self.nodes[1].index)}=onion", "")])
 
         self.checkpermission(
             # legacy whitelistrelay should be ignored
-            ["-whitelist=noban,mempool@127.0.0.1", "-whitelistrelay"],
-            ["noban", "mempool", "download"])
+            ["-whitelist=noban,addr@127.0.0.1", "-whitelistrelay"],
+            ["noban", "download", "addr"])
 
         self.checkpermission(
             # legacy whitelistforcerelay should be ignored
-            ["-whitelist=noban,mempool@127.0.0.1", "-whitelistforcerelay"],
-            ["noban", "mempool", "download"])
-
-        self.checkpermission(
-            # missing mempool permission to be considered legacy whitelisted
-            ["-whitelist=noban@127.0.0.1"],
-            ["noban", "download"])
+            ["-whitelist=noban,addr@127.0.0.1", "-whitelistforcerelay"],
+            ["noban", "download", "addr"])
 
         self.checkpermission(
             # all permission added
             ["-whitelist=all@127.0.0.1"],
-            ["forcerelay", "noban", "mempool", "relay", "download", "addr"])
+            ["forcerelay", "noban", "relay", "download", "addr"])
 
         for flag, permissions in [(["-whitelist=noban,out@127.0.0.1"], ["noban", "download"]), (["-whitelist=noban@127.0.0.1"], [])]:
             self.restart_node(0, flag)

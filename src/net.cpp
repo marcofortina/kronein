@@ -579,7 +579,6 @@ void CConnman::AddWhitelistPermissionFlags(NetPermissionFlags& flags, std::optio
         NetPermissions::ClearFlag(flags, NetPermissionFlags::Implicit);
         if (whitelist_forcerelay) NetPermissions::AddFlag(flags, NetPermissionFlags::ForceRelay);
         if (whitelist_relay) NetPermissions::AddFlag(flags, NetPermissionFlags::Relay);
-        NetPermissions::AddFlag(flags, NetPermissionFlags::Mempool);
         NetPermissions::AddFlag(flags, NetPermissionFlags::NoBan);
     }
 }
@@ -736,7 +735,7 @@ const std::array<std::string, 33> V2_MESSAGE_IDS = {
     NetMsgType::GETHEADERS,
     NetMsgType::HEADERS,
     NetMsgType::INV,
-    NetMsgType::MEMPOOL,
+    "", // Unsupported short message ID
     "", // BIP37 merkleblock was removed
     NetMsgType::NOTFOUND,
     NetMsgType::PING,

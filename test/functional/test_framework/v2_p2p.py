@@ -31,7 +31,6 @@ SHORTID = {
     12: b"getheaders",
     13: b"headers",
     14: b"inv",
-    15: b"mempool",
     17: b"notfound",
     18: b"ping",
     19: b"pong",

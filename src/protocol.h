@@ -108,12 +108,6 @@ inline constexpr const char* BLOCK{"block"};
  */
 inline constexpr const char* GETADDR{"getaddr"};
 /**
- * The mempool message requests the TXIDs of transactions that the receiving
- * node has verified as valid but which have not yet appeared in a block.
- * @since protocol version 60002 as described by BIP35.
- */
-inline constexpr const char* MEMPOOL{"mempool"};
-/**
  * The ping message is sent periodically to help confirm that the receiving
  * peer is still connected.
  */
@@ -223,7 +217,6 @@ inline const std::array ALL_NET_MESSAGE_TYPES{std::to_array<std::string>({
     NetMsgType::HEADERS,
     NetMsgType::BLOCK,
     NetMsgType::GETADDR,
-    NetMsgType::MEMPOOL,
     NetMsgType::PING,
     NetMsgType::PONG,
     NetMsgType::NOTFOUND,

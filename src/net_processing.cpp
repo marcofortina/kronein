@@ -293,8 +293,6 @@ struct Peer {
          *  transactions in dependency order before relay, so this does not have
          *  to be sorted. */
         std::set<Wtxid> m_tx_inventory_to_send GUARDED_BY(m_tx_inventory_mutex);
-        /** Whether the peer has requested us to send our complete mempool. */
-        bool m_send_mempool GUARDED_BY(m_tx_inventory_mutex){false};
         /** The next time after which we will send an `inv` message containing
          *  transaction announcements to this peer. */
         std::chrono::microseconds m_next_inv_send_time GUARDED_BY(m_tx_inventory_mutex){0};
@@ -4635,24 +4633,6 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
         return;
     }
 
-    if (msg_type == NetMsgType::MEMPOOL) {
-        if (!pfrom.HasPermission(NetPermissionFlags::Mempool))
-        {
-            if (!pfrom.HasPermission(NetPermissionFlags::NoBan))
-            {
-                LogDebug(BCLog::NET, "mempool request without permission, %s\n", pfrom.DisconnectMsg(fLogIPs));
-                pfrom.fDisconnect = true;
-            }
-            return;
-        }
-
-        if (auto tx_relay = peer.GetTxRelay(); tx_relay != nullptr) {
-            LOCK(tx_relay->m_tx_inventory_mutex);
-            tx_relay->m_send_mempool = true;
-        }
-        return;
-    }
-
     if (msg_type == NetMsgType::PING) {
         uint64_t nonce = 0;
         vRecv >> nonce;
@@ -5543,30 +5523,6 @@ bool PeerManagerImpl::SendMessages(CNode& node)
                         tx_relay->m_next_inv_send_time = NextInvToInbounds(current_time, INBOUND_INVENTORY_BROADCAST_INTERVAL, node.m_network_key);
                     } else {
                         tx_relay->m_next_inv_send_time = current_time + m_rng.rand_exp_duration(OUTBOUND_INVENTORY_BROADCAST_INTERVAL);
-                    }
-                }
-
-                // Respond to BIP35 mempool requests
-                if (fSendTrickle && tx_relay->m_send_mempool) {
-                    auto vtxinfo = m_mempool.infoAll();
-                    tx_relay->m_send_mempool = false;
-                    const CFeeRate filterrate{tx_relay->m_fee_filter_received.load()};
-
-                    for (const auto& txinfo : vtxinfo) {
-                        const Wtxid& wtxid{txinfo.tx->GetWitnessHash()};
-                        const CInv inv{MSG_WTX, wtxid.ToUint256()};
-                        tx_relay->m_tx_inventory_to_send.erase(wtxid);
-
-                        // Don't send transactions that peers will not put into their mempool
-                        if (txinfo.fee < filterrate.GetFee(txinfo.vsize)) {
-                            continue;
-                        }
-                        tx_relay->m_tx_inventory_known_filter.insert(inv.hash);
-                        vInv.push_back(inv);
-                        if (vInv.size() == MAX_INV_SZ) {
-                            MakeAndPushMessage(node, NetMsgType::INV, vInv);
-                            vInv.clear();
-                        }
                     }
                 }
 
