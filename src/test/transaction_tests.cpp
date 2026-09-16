@@ -69,6 +69,7 @@ BOOST_AUTO_TEST_CASE(native_output_forms)
         CScript{} << OP_0 << std::vector<unsigned char>(20),
         CScript{} << OP_0 << std::vector<unsigned char>(32),
         CScript{} << OP_TRUE,
+        CScript{} << std::vector<unsigned char>(MAX_SCRIPT_SIZE + 1, 0x01),
     };
     for (const CScript& script : removed_outputs) {
         tx.vout[0].scriptPubKey = script;

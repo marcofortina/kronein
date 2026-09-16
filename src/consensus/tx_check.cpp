@@ -12,7 +12,8 @@
 
 bool IsNativeOutputScript(const CScript& script_pub_key)
 {
-    if (script_pub_key.IsUnspendable() || script_pub_key.IsPayToAnchor()) return true;
+    const bool is_data_output{!script_pub_key.empty() && *script_pub_key.begin() == OP_RETURN};
+    if (is_data_output || script_pub_key.IsPayToAnchor()) return true;
 
     int witness_version;
     std::vector<unsigned char> witness_program;
