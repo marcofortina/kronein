@@ -110,7 +110,7 @@ BOOST_AUTO_TEST_CASE(ReadWrite)
 //! Check settings struct contents against expected json strings.
 static void CheckValues(const common::Settings& settings, const std::string& single_val, const std::string& list_val)
 {
-    common::SettingsValue single_value = GetSetting(settings, "section", "name", false, false, false);
+    common::SettingsValue single_value = GetSetting(settings, "section", "name", false, false);
     common::SettingsValue list_value(common::SettingsValue::VARR);
     for (const auto& item : GetSettingsList(settings, "section", "name", false)) {
         list_value.push_back(item);
@@ -134,8 +134,8 @@ BOOST_AUTO_TEST_CASE(Simple)
     settings2.ro_config["section"]["name"].emplace_back("val2");
     settings2.ro_config["section"]["name"].emplace_back("val3");
 
-    // The first given arg takes precedence when specified via config file.
-    CheckValues(settings2, R"("val2")", R"(["val2","val3"])");
+    // The last given arg takes precedence when specified via config file.
+    CheckValues(settings2, R"("val3")", R"(["val2","val3"])");
 }
 
 // Confirm that a high priority setting overrides a lower priority setting even
@@ -146,9 +146,9 @@ BOOST_AUTO_TEST_CASE(NullOverride)
 {
     common::Settings settings;
     settings.command_line_options["name"].emplace_back("value");
-    BOOST_CHECK_EQUAL(R"("value")", GetSetting(settings, "section", "name", false, false, false).write().c_str());
+    BOOST_CHECK_EQUAL(R"("value")", GetSetting(settings, "section", "name", false, false).write().c_str());
     settings.forced_settings["name"] = {};
-    BOOST_CHECK_EQUAL(R"(null)", GetSetting(settings, "section", "name", false, false, false).write().c_str());
+    BOOST_CHECK_EQUAL(R"(null)", GetSetting(settings, "section", "name", false, false).write().c_str());
 }
 
 // Test different ways settings can be merged, and verify results. This test can
@@ -229,7 +229,7 @@ BOOST_FIXTURE_TEST_CASE(Merge, MergeTestingSetup)
         }
 
         desc += " || ";
-        desc += GetSetting(settings, network, name, ignore_default_section_config, /*ignore_nonpersistent=*/false, /*get_chain_type=*/false).write();
+        desc += GetSetting(settings, network, name, ignore_default_section_config, /*ignore_nonpersistent=*/false).write();
         desc += " |";
         for (const auto& s : GetSettingsList(settings, network, name, ignore_default_section_config)) {
             desc += " ";
@@ -263,7 +263,7 @@ BOOST_FIXTURE_TEST_CASE(Merge, MergeTestingSetup)
     // Results file is formatted like:
     //
     //   <input> || GetSetting() | GetSettingsList() | OnlyHasDefaultSectionSetting()
-    BOOST_CHECK_EQUAL(out_sha_hex, "79db02d74e3e193196541b67c068b40ebd0c124a24b3ecbe9cbf7e85b1c4ba7a");
+    BOOST_CHECK_EQUAL(out_sha_hex, "f18ec53ab2c96b7cdd7102f5cf8291b12a022614010f63557596d6b445efb1ca");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

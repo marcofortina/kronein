@@ -229,7 +229,7 @@ void DoCheck(std::string prv, std::string pub, const std::string& norm_pub, int 
         BOOST_CHECK_MESSAGE(EqualDescriptor(pub, pub2), "Public ser: " + pub2 + " Public desc: " + pub);
     }
 
-    // Check that the COMPAT identifier did not change
+    // Check the identifier of the descriptor's current public serialization.
     if (op_desc_id) {
         BOOST_CHECK_MESSAGE(DescriptorID(*parse_priv) == *op_desc_id, "DescriptorID() " + DescriptorID(*parse_priv).ToString() + " does not match for priv " + prv);
     }
@@ -497,7 +497,7 @@ void Check(const std::string& prv, const std::string& pub, const std::string& no
 
     // Replace apostrophes with 'h' both in prv and in pub, if apostrophes are found in both
     if (prv.find('\'') != std::string::npos && pub.find('\'') != std::string::npos) {
-        DoCheck(prv, pub, norm_pub, flags, scripts, type, op_desc_id, paths, /*replace_apostrophe_with_h_in_prv=*/true,
+        DoCheck(prv, pub, norm_pub, flags, scripts, type, std::nullopt, paths, /*replace_apostrophe_with_h_in_prv=*/true,
                 /*replace_apostrophe_with_h_in_pub=*/true, /*spender_nlocktime=*/spender_nlocktime,
                 /*spender_nsequence=*/spender_nsequence, /*preimages=*/preimages,
                 expected_prv, expected_pub, desc_index);

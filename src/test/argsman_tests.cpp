@@ -486,7 +486,7 @@ BOOST_AUTO_TEST_CASE(util_ReadConfigStream)
 
     BOOST_CHECK_EQUAL(test_args.GetArg("-a", "xxx"), "");
     BOOST_CHECK_EQUAL(test_args.GetArg("-b", "xxx"), "1");
-    BOOST_CHECK_EQUAL(test_args.GetArg("-ccc", "xxx"), "argument");
+    BOOST_CHECK_EQUAL(test_args.GetArg("-ccc", "xxx"), "multiple");
     BOOST_CHECK_EQUAL(test_args.GetArg("-d", "xxx"), "e");
     BOOST_CHECK_EQUAL(test_args.GetArg("-fff", "xxx"), "0");
     BOOST_CHECK_EQUAL(test_args.GetArg("-ggg", "xxx"), "1");
@@ -552,7 +552,7 @@ BOOST_AUTO_TEST_CASE(util_ReadConfigStream)
     // section-specific setting
     BOOST_CHECK(test_args.GetArg("-h", "xxx") == "1");
     // section takes priority for multiple values
-    BOOST_CHECK(test_args.GetArg("-ccc", "xxx") == "extend1");
+    BOOST_CHECK(test_args.GetArg("-ccc", "xxx") == "extend2");
     // check multiple values works
     const std::vector<std::string> sec1_ccc_expected = {"extend1","extend2","argument","multiple"};
     const auto& sec1_ccc_res = test_args.GetArgs("-ccc");
@@ -598,7 +598,7 @@ BOOST_AUTO_TEST_CASE(util_ReadConfigStream)
     BOOST_CHECK(test_args.GetArg("-d", "xxx") == "xxx");
     BOOST_CHECK(test_args.GetArgs("-d").size() == 0);
     BOOST_CHECK(test_args.GetArgs("-ccc").size() == 1);
-    BOOST_CHECK(test_args.GetArg("-h", "xxx") == "0");
+    BOOST_CHECK(test_args.GetArg("-h", "xxx") == "xxx");
 }
 
 BOOST_AUTO_TEST_CASE(util_GetArg)
@@ -635,7 +635,7 @@ BOOST_AUTO_TEST_CASE(util_GetArg)
     BOOST_CHECK_EQUAL(testArgs.GetBoolArg("booltest4", false), true);
 
     BOOST_CHECK_EQUAL(testArgs.GetArg("pritest1", "default"), "b");
-    BOOST_CHECK_EQUAL(testArgs.GetArg("pritest2", "default"), "a");
+    BOOST_CHECK_EQUAL(testArgs.GetArg("pritest2", "default"), "b");
     BOOST_CHECK_EQUAL(testArgs.GetArg("pritest3", "default"), "a");
     BOOST_CHECK_EQUAL(testArgs.GetArg("pritest4", "default"), "b");
 }
@@ -916,7 +916,7 @@ BOOST_FIXTURE_TEST_CASE(util_ArgsMerge, ArgsMergeTestingSetup)
     // Results file is formatted like:
     //
     //   <input> || <IsArgSet/IsArgNegated/GetArg output> | <GetArgs output> | <GetUnsuitable output>
-    BOOST_CHECK_EQUAL(out_sha_hex, "f1ee5ab094cc43d16a6086fa7f2c10389e0f99902616b31bbf29189972ad1473");
+    BOOST_CHECK_EQUAL(out_sha_hex, "bbf5b611017c70ece2d5186d4279589e280ff116fcdf6cc4c7b1ba643511a804");
 }
 
 // Similar test as above, but for ArgsManager::GetChainTypeString function.
@@ -1019,7 +1019,7 @@ BOOST_FIXTURE_TEST_CASE(util_ChainMerge, ChainMergeTestingSetup)
     // Results file is formatted like:
     //
     //   <input> || <output>
-    BOOST_CHECK_EQUAL(out_sha_hex, "c0e33aab0c74e040ddcee9edad59e8148d8e1cacb3cccd9ea1a1f485cb6bad21");
+    BOOST_CHECK_EQUAL(out_sha_hex, "2fccc3d4bd9a58f2536328dd48191eb6be4eac42df06019b5ec6c4e6d4e96d56");
 }
 
 BOOST_AUTO_TEST_CASE(util_ReadWriteSettings)

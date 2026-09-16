@@ -450,7 +450,7 @@ common::SettingsValue ArgsManager::GetPersistentSetting(const std::string& name)
 {
     LOCK(cs_args);
     return common::GetSetting(m_settings, m_network, name, !UseDefaultSection("-" + name),
-        /*ignore_nonpersistent=*/true, /*get_chain_type=*/false);
+        /*ignore_nonpersistent=*/true);
 }
 
 bool ArgsManager::IsArgNegated(const std::string& strArg) const
@@ -814,8 +814,7 @@ std::variant<ChainType, std::string> ArgsManager::GetChainArg() const
         LOCK(cs_args);
         common::SettingsValue value = common::GetSetting(m_settings, /* section= */ "", SettingName(arg),
             /* ignore_default_section_config= */ false,
-            /*ignore_nonpersistent=*/false,
-            /* get_chain_type= */ true);
+            /*ignore_nonpersistent=*/false);
         return value.isNull() ? false : value.isBool() ? value.get_bool() : InterpretBool(value.get_str());
     };
 
@@ -850,7 +849,7 @@ common::SettingsValue ArgsManager::GetSetting(const std::string& arg) const
     LOCK(cs_args);
     return common::GetSetting(
         m_settings, m_network, SettingName(arg), !UseDefaultSection(arg),
-        /*ignore_nonpersistent=*/false, /*get_chain_type=*/false);
+        /*ignore_nonpersistent=*/false);
 }
 
 std::vector<common::SettingsValue> ArgsManager::GetSettingsList(const std::string& arg) const
