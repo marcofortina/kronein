@@ -2819,7 +2819,6 @@ bool CWallet::LoadWalletArgs(std::shared_ptr<CWallet> wallet, const WalletContex
 std::shared_ptr<CWallet> CWallet::CreateNew(WalletContext& context, const std::string& name, std::unique_ptr<WalletDatabase> database, uint64_t wallet_creation_flags, bilingual_str& error, std::vector<bilingual_str>& warnings)
 {
     interfaces::Chain* chain = context.chain;
-    const std::string& walletFile = database->Filename();
 
     const auto start{SteadyClock::now()};
     // TODO: Can't use std::make_shared because we need a custom deleter but
@@ -2830,11 +2829,6 @@ std::shared_ptr<CWallet> CWallet::CreateNew(WalletContext& context, const std::s
         return nullptr;
     }
 
-    // Initialize version key.
-    if(!WalletBatch(walletInstance->GetDatabase()).WriteVersion(CLIENT_VERSION)) {
-        error = strprintf(_("Error creating %s: Could not write version metadata."), walletFile);
-        return nullptr;
-    }
     {
         LOCK(walletInstance->cs_wallet);
 

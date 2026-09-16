@@ -152,9 +152,6 @@ public:
 
     DBErrors LoadWallet(CWallet* pwallet);
 
-    //! Write the given client_version.
-    bool WriteVersion(int client_version) { return m_batch->Write(DBKeys::VERSION, CLIENT_VERSION); }
-
     //! Delete records of the given types
 
     bool WriteWalletFlags(uint64_t flags);

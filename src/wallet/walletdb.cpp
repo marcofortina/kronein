@@ -39,7 +39,6 @@ const std::string NAME{"name"};
 const std::string ORDERPOSNEXT{"orderposnext"};
 const std::string PURPOSE{"purpose"};
 const std::string TX{"tx"};
-const std::string VERSION{"version"};
 const std::string WALLETDESCRIPTOR{"walletdescriptor"};
 const std::string WALLETDESCRIPTORCACHE{"walletdescriptorcache"};
 const std::string WALLETDESCRIPTORLHCACHE{"walletdescriptorlhcache"};
@@ -306,7 +305,7 @@ static DataStream PrefixStream(const Args&... args)
     return prefix;
 }
 
-static DBErrors LoadDescriptorWalletRecords(CWallet* pwallet, DatabaseBatch& batch, int last_client) EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet)
+static DBErrors LoadDescriptorWalletRecords(CWallet* pwallet, DatabaseBatch& batch) EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet)
 {
     AssertLockHeld(pwallet->cs_wallet);
 
@@ -314,7 +313,7 @@ static DBErrors LoadDescriptorWalletRecords(CWallet* pwallet, DatabaseBatch& bat
     int num_keys = 0;
     int num_ckeys= 0;
     LoadResult desc_res = LoadRecords(pwallet, batch, DBKeys::WALLETDESCRIPTOR,
-        [&batch, &num_keys, &num_ckeys, &last_client] (CWallet* pwallet, DataStream& key, DataStream& value, std::string& strErr) {
+        [&batch, &num_keys, &num_ckeys] (CWallet* pwallet, DataStream& key, DataStream& value, std::string& strErr) {
         DBErrors result = DBErrors::LOAD_OK;
 
         uint256 id;
@@ -324,9 +323,7 @@ static DBErrors LoadDescriptorWalletRecords(CWallet* pwallet, DatabaseBatch& bat
             value >> desc;
         } catch (const std::ios_base::failure& e) {
             strErr = strprintf("Error: Unrecognized descriptor found in wallet %s. ", pwallet->GetName());
-            strErr += (last_client > CLIENT_VERSION) ? "The wallet might have been created on a newer version. " :
-                    "The database might be corrupted or the software version is not compatible with one of your wallet descriptors. ";
-            strErr += "Please try running the latest software version";
+            strErr += "The database might be corrupted or contain an invalid descriptor.";
             // Also include error details
             strErr = strprintf("%s\nDetails: %s", strErr, e.what());
             return DBErrors::UNKNOWN_DESCRIPTOR;
@@ -679,11 +676,6 @@ DBErrors WalletBatch::LoadWallet(CWallet* pwallet)
 
     LOCK(pwallet->cs_wallet);
 
-    // Last client version to open this wallet
-    int last_client = CLIENT_VERSION;
-    bool has_last_client = m_batch->Read(DBKeys::VERSION, last_client);
-    if (has_last_client) pwallet->WalletLogPrintf("Last client version = %d\n", last_client);
-
     try {
         // Load wallet flags, so they are known when processing other records.
         // The FLAGS key is absent during wallet creation.
@@ -698,10 +690,9 @@ DBErrors WalletBatch::LoadWallet(CWallet* pwallet)
 
 
         // Load descriptors
-        result = std::max(LoadDescriptorWalletRecords(pwallet, *m_batch, last_client), result);
+        result = std::max(LoadDescriptorWalletRecords(pwallet, *m_batch), result);
         // Early return if there are unknown descriptors. Later loading of ACTIVEINTERNALSPK and ACTIVEEXTERNALEXPK
-        // may reference the unknown descriptor's ID which can result in a misleading corruption error
-        // when in reality the wallet is simply too new.
+        // may reference the unknown descriptor's ID and result in a misleading corruption error.
         if (result == DBErrors::UNKNOWN_DESCRIPTOR) return result;
 
         // Load address book
@@ -731,9 +722,6 @@ DBErrors WalletBatch::LoadWallet(CWallet* pwallet)
     // upgrading, we don't want to make it worse.
     if (result != DBErrors::LOAD_OK)
         return result;
-
-    if (!has_last_client || last_client != CLIENT_VERSION) // Update
-        this->WriteVersion(CLIENT_VERSION);
 
     return result;
 }
