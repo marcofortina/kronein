@@ -10,7 +10,7 @@ from test_framework.blocktools import COINBASE_MATURITY
 from test_framework.descriptors import descsum_create
 from test_framework.messages import (
     COIN,
-    DEFAULT_ANCESTOR_LIMIT,
+    DEFAULT_CLUSTER_LIMIT,
 )
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
@@ -681,8 +681,8 @@ class WalletTest(BitcoinTestFramework):
         import_res = watch_wallet.importdescriptors([{"desc": self.wallet.get_descriptor(), "timestamp": "now"}])
         assert_equal(import_res[0]["success"], True)
 
-        # DEFAULT_ANCESTOR_LIMIT transactions off a confirmed tx should be fine
-        chain = self.wallet.create_self_transfer_chain(chain_length=DEFAULT_ANCESTOR_LIMIT)
+        # DEFAULT_CLUSTER_LIMIT transactions off a confirmed tx should be fine
+        chain = self.wallet.create_self_transfer_chain(chain_length=DEFAULT_CLUSTER_LIMIT)
         ancestor_vsize = 0
         ancestor_fees = Decimal(0)
 

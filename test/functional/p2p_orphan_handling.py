@@ -11,7 +11,7 @@ from test_framework.mempool_util import (
 )
 from test_framework.messages import (
     CInv,
-    DEFAULT_ANCESTOR_LIMIT,
+    MAX_PACKAGE_COUNT,
     MSG_TX,
     MSG_WTX,
     malleate_tx_to_invalid_witness,
@@ -502,7 +502,7 @@ class OrphanHandlingTest(BitcoinTestFramework):
 
         # Now honest peer will send a maximally sized ancestor package of 24 orphans chaining
         # off of a single missing transaction, with a total vsize 404,000Wu
-        ancestor_package = self.wallet.create_self_transfer_chain(chain_length=DEFAULT_ANCESTOR_LIMIT - 1)
+        ancestor_package = self.wallet.create_self_transfer_chain(chain_length=MAX_PACKAGE_COUNT - 1)
         sum_ancestor_package_vsize = sum([tx["tx"].get_vsize() for tx in ancestor_package])
         final_tx = self.wallet.create_self_transfer(utxo_to_spend=ancestor_package[-1]["new_utxo"], target_vsize=101000 - sum_ancestor_package_vsize)
         ancestor_package.append(final_tx)
@@ -530,7 +530,7 @@ class OrphanHandlingTest(BitcoinTestFramework):
 
         # Wait until all transactions have been processed. When the last tx is accepted, it's
         # guaranteed to have all ancestors.
-        self.wait_until(lambda: node.getmempoolentry(final_tx["txid"])["ancestorcount"] == DEFAULT_ANCESTOR_LIMIT)
+        self.wait_until(lambda: node.getmempoolentry(final_tx["txid"])["ancestorcount"] == MAX_PACKAGE_COUNT)
 
     @cleanup
     def test_announcers_before_and_after(self):
