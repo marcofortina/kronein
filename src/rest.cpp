@@ -185,22 +185,15 @@ static bool rest_headers(const std::any& context,
     const RESTResponseFormat rf = ParseDataFormat(param, uri_part);
     std::vector<std::string> path = SplitString(param, '/');
 
-    std::string raw_count;
-    std::string hashStr;
-    if (path.size() == 2) {
-        // deprecated path: /rest/headers/<count>/<hash>
-        hashStr = path[1];
-        raw_count = path[0];
-    } else if (path.size() == 1) {
-        // new path with query parameter: /rest/headers/<hash>?count=<count>
-        hashStr = path[0];
-        try {
-            raw_count = req->GetQueryParameter("count").value_or("5");
-        } catch (const std::runtime_error& e) {
-            return RESTERR(req, HTTP_BAD_REQUEST, e.what());
-        }
-    } else {
+    if (path.size() != 1) {
         return RESTERR(req, HTTP_BAD_REQUEST, "Invalid URI format. Expected /rest/headers/<hash>.<ext>?count=<count>");
+    }
+    const std::string& hashStr{path[0]};
+    std::string raw_count;
+    try {
+        raw_count = req->GetQueryParameter("count").value_or("5");
+    } catch (const std::runtime_error& e) {
+        return RESTERR(req, HTTP_BAD_REQUEST, e.what());
     }
 
     const auto parsed_count{ToIntegral<size_t>(raw_count)};
@@ -504,22 +497,15 @@ static bool rest_filter_header(const std::any& context, HTTPRequest* req, const 
     const RESTResponseFormat rf = ParseDataFormat(param, uri_part);
 
     std::vector<std::string> uri_parts = SplitString(param, '/');
-    std::string raw_count;
-    std::string raw_blockhash;
-    if (uri_parts.size() == 3) {
-        // deprecated path: /rest/blockfilterheaders/<filtertype>/<count>/<blockhash>
-        raw_blockhash = uri_parts[2];
-        raw_count = uri_parts[1];
-    } else if (uri_parts.size() == 2) {
-        // new path with query parameter: /rest/blockfilterheaders/<filtertype>/<blockhash>?count=<count>
-        raw_blockhash = uri_parts[1];
-        try {
-            raw_count = req->GetQueryParameter("count").value_or("5");
-        } catch (const std::runtime_error& e) {
-            return RESTERR(req, HTTP_BAD_REQUEST, e.what());
-        }
-    } else {
+    if (uri_parts.size() != 2) {
         return RESTERR(req, HTTP_BAD_REQUEST, "Invalid URI format. Expected /rest/blockfilterheaders/<filtertype>/<blockhash>.<ext>?count=<count>");
+    }
+    const std::string& raw_blockhash{uri_parts[1]};
+    std::string raw_count;
+    try {
+        raw_count = req->GetQueryParameter("count").value_or("5");
+    } catch (const std::runtime_error& e) {
+        return RESTERR(req, HTTP_BAD_REQUEST, e.what());
     }
 
     const auto parsed_count{ToIntegral<size_t>(raw_count)};
