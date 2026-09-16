@@ -259,6 +259,6 @@ std::unique_ptr<T> MakeNoLogFileContext(const ChainType chain_type = ChainType::
     return std::make_unique<T>(chain_type, opts);
 }
 
-CBlock getBlock13b8a();
+CBlock CreateMerkleBlockFixture();
 
 #endif // BITCOIN_TEST_UTIL_SETUP_COMMON_H

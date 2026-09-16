@@ -277,14 +277,6 @@ will expand to the 3 descriptors
 When this tuple contains only two elements, wallet implementations can use the
 first descriptor for receiving addresses and the second descriptor for change addresses.
 
-### Compatibility with old wallets
-
-In order to easily represent the sets of scripts currently supported by
-existing Bitcoin Core wallets, a convenience function `combo` is
-provided, which takes as input a public key, and describes a set of P2PK,
-P2PKH, P2WPKH, and P2SH-P2WPKH scripts for that key. In case the key is
-uncompressed, the set only includes P2PK and P2PKH scripts.
-
 ### Checksums
 
 Descriptors can optionally be suffixed with a checksum to protect against

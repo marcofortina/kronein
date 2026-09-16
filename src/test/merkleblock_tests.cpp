@@ -20,15 +20,15 @@ BOOST_AUTO_TEST_SUITE(merkleblock_tests)
  */
 BOOST_AUTO_TEST_CASE(merkleblock_construct_from_txids_found)
 {
-    CBlock block = getBlock13b8a();
+    CBlock block = CreateMerkleBlockFixture();
 
     std::set<Txid> txids;
 
     // Last txn in block.
-    constexpr Txid txhash1{"74d681e0e03bafa802c8aa084379aa98d9fcd632ddc2ed9782b586ec87451f20"};
+    const Txid txhash1{block.vtx.back()->GetHash()};
 
     // Second txn in block.
-    constexpr Txid txhash2{"f9fc751cb7dc372406a9f8d738d5e6f8f63bab71986a39cf36ee70ee17036d07"};
+    const Txid txhash2{block.vtx[1]->GetHash()};
 
     txids.insert(txhash1);
     txids.insert(txhash2);
@@ -58,7 +58,7 @@ BOOST_AUTO_TEST_CASE(merkleblock_construct_from_txids_found)
  */
 BOOST_AUTO_TEST_CASE(merkleblock_construct_from_txids_not_found)
 {
-    CBlock block = getBlock13b8a();
+    CBlock block = CreateMerkleBlockFixture();
 
     std::set<Txid> txids2;
     txids2.insert(Txid{"c0ffee00003bafa802c8aa084379aa98d9fcd632ddc2ed9782b586ec87451f20"});
