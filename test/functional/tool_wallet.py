@@ -67,7 +67,7 @@ class ToolWalletTest(BitcoinTestFramework):
 
     def get_expected_info_output(self, name="", transactions=0, keypool=2, address=0, imported_privs=0):
         wallet_name = self.default_wallet_name if name == "" else name
-        output_types = 4  # p2pkh, p2sh, segwit, bech32m
+        output_types = 1  # bech32m
         return textwrap.dedent('''\
             Wallet info
             ===========
@@ -78,7 +78,7 @@ class ToolWalletTest(BitcoinTestFramework):
             Keypool Size: %d
             Transactions: %d
             Address Book: %d
-        ''' % (wallet_name, keypool * output_types, transactions, imported_privs * 3 + address))
+        ''' % (wallet_name, keypool * output_types, transactions, imported_privs + address))
 
     def read_dump(self, filename):
         dump = OrderedDict()
@@ -358,7 +358,7 @@ class ToolWalletTest(BitcoinTestFramework):
             Format: sqlite
             Encrypted: no
             HD (hd seed available): yes
-            Keypool Size: 8
+            Keypool Size: 2
             Transactions: 4
             Address Book: 4
         ''')
@@ -378,7 +378,7 @@ class ToolWalletTest(BitcoinTestFramework):
         self.generate(self.nodes[0], 101)
         def_wallet = self.nodes[0].get_wallet_rpc(self.default_wallet_name)
         outputs = {}
-        for i in range(500):
+        for i in range(800):
             outputs[wallet.getnewaddress()] = 0.01
         def_wallet.sendmany(amounts=outputs)
         self.generate(self.nodes[0], 1)
