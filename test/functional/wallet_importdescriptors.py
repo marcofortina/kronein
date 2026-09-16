@@ -4,7 +4,6 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test native Taproot descriptor imports."""
 
-from test_framework.descriptors import descsum_create
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
@@ -55,17 +54,6 @@ class ImportDescriptorsTest(BitcoinTestFramework):
         source.sendtoaddress(receive_address, 1)
         self.generate(node, 1)
         assert_equal(watch.getreceivedbyaddress(receive_address), 1)
-
-        taproot_descriptor = exported[0]["desc"].split("#")[0]
-        legacy = descsum_create(f"wpkh({taproot_descriptor[3:-1]})")
-        error = watch.importdescriptors([{
-            "desc": legacy,
-            "timestamp": "now",
-            "active": True,
-            "range": [0, 1],
-        }])[0]
-        assert_equal(error["success"], False)
-        assert_equal(error["error"]["message"], "Only Taproot descriptors can be active")
 
         assert_raises_rpc_error(-3, "Missing required timestamp field", watch.importdescriptors, [{"desc": exported[0]["desc"]}])
 

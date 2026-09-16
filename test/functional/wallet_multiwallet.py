@@ -182,24 +182,15 @@ class MultiWalletTest(BitcoinTestFramework):
         open(not_a_dir, 'a').close()
         self.nodes[0].assert_start_raises_init_error(['-walletdir=' + not_a_dir], 'Error: Specified -walletdir "' + not_a_dir + '" is not a directory')
 
-        # if wallets/ doesn't exist, datadir should be the default wallet dir
+        # If wallets/ is removed, the node must keep using the native path
+        # instead of falling back to the network data directory.
         wallet_dir2 = data_dir('walletdir')
         os.rename(wallet_dir(), wallet_dir2)
-        self.start_node(0)
-        self.nodes[0].createwallet("w4")
-        self.nodes[0].createwallet("w5")
-        assert_equal(set(node.listwallets()), {"w4", "w5"})
-        w5 = wallet("w5")
-        self.generatetoaddress(node, nblocks=1, address=w5.getnewaddress(), sync_fun=self.no_op)
-
-        # now if wallets/ exists again, but the rootdir is specified as the walletdir, w4 and w5 should still be loaded
+        self.start_node(0, ['-nowallet'])
+        assert_equal(node.listwalletdir(), {'wallets': []})
+        self.stop_node(0)
         os.rename(wallet_dir2, wallet_dir())
-        self.restart_node(0, ['-nowallet', '-walletdir=' + data_dir()])
-        self.nodes[0].loadwallet("w4")
-        self.nodes[0].loadwallet("w5")
-        assert_equal(set(node.listwallets()), {"w4", "w5"})
-        w5 = wallet("w5")
-        assert_equal(w5.getbalances()["mine"]["immature"], 50)
+        self.start_node(0, ['-nowallet'])
 
         competing_wallet_dir = os.path.join(self.options.tmpdir, 'competing_walletdir')
         os.mkdir(competing_wallet_dir)

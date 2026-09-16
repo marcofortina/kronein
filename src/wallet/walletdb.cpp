@@ -342,6 +342,10 @@ static DBErrors LoadDescriptorWalletRecords(CWallet* pwallet, DatabaseBatch& bat
             strErr = strprintf("%s\nDetails: %s", strErr, e.what());
             return DBErrors::UNKNOWN_DESCRIPTOR;
         }
+        if (desc.descriptor->GetOutputType() != OutputType::BECH32M) {
+            strErr = "Only Taproot descriptors are supported";
+            return DBErrors::UNKNOWN_DESCRIPTOR;
+        }
         DescriptorScriptPubKeyMan& spkm = pwallet->LoadDescriptorScriptPubKeyMan(id, desc);
 
         // Prior to doing anything with this spkm, verify ID compatibility

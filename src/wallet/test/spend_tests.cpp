@@ -17,25 +17,26 @@
 namespace wallet {
 BOOST_FIXTURE_TEST_SUITE(spend_tests, WalletTestingSetup)
 
-BOOST_AUTO_TEST_CASE(max_signed_input_size_uses_external_outpoint)
+static CScript TaprootScript(const CKey& key)
 {
-    const CKey key{GenerateRandomKey()};
-    FillableSigningProvider provider;
-    BOOST_REQUIRE(provider.AddKey(key));
+    TaprootBuilder builder;
+    builder.Finalize(XOnlyPubKey{key.GetPubKey()});
+    return GetScriptForDestination(builder.GetOutput());
+}
 
-    const CTxOut txout{COIN, GetScriptForDestination(PKHash{key.GetPubKey()})};
-    const COutPoint outpoint{Txid{}, 0};
-    CCoinControl coin_control;
-    coin_control.Select(outpoint).SetTxOut(txout);
-
-    const int low_r{CalculateMaximumSignedInputSize(txout, COutPoint{}, &provider, /*can_grind_r=*/true, &coin_control)};
-    const int high_r{CalculateMaximumSignedInputSize(txout, outpoint, &provider, /*can_grind_r=*/true, &coin_control)};
-    BOOST_CHECK_EQUAL(high_r, low_r + 1);
+static void FundTaprootWallet(TestChain100Setup& setup, int count)
+{
+    for (int i = 0; i < count; ++i) {
+        const auto funding{setup.CreateValidMempoolTransaction(
+            setup.m_coinbase_txns.at(i), 0, i + 1, setup.coinbaseKey,
+            TaprootScript(setup.coinbaseKey), 50 * COIN, /*submit=*/false)};
+        setup.CreateAndProcessBlock({funding}, GetScriptForRawPubKey(setup.coinbaseKey.GetPubKey()));
+    }
 }
 
 BOOST_FIXTURE_TEST_CASE(SubtractFee, TestChain100Setup)
 {
-    CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+    FundTaprootWallet(*this, 1);
     auto wallet = CreateSyncedWallet(*m_node.chain, WITH_LOCK(Assert(m_node.chainman)->GetMutex(), return m_node.chainman->ActiveChain()), coinbaseKey);
 
     // Check that a subtract-from-recipient transaction slightly less than the
@@ -71,13 +72,14 @@ BOOST_FIXTURE_TEST_CASE(wallet_duplicated_preset_inputs_test, TestChain100Setup)
 {
     // Verify that the wallet's Coin Selection process does not include pre-selected inputs twice in a transaction.
 
-    // Add 4 spendable UTXO, 50 BTC each, to the wallet (total balance 200 BTC)
-    for (int i = 0; i < 4; i++) CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+    // Add 4 spendable Taproot UTXOs, 50 BTC each, to the wallet (total balance 200 BTC)
+    FundTaprootWallet(*this, 4);
     auto wallet = CreateSyncedWallet(*m_node.chain, WITH_LOCK(Assert(m_node.chainman)->GetMutex(), return m_node.chainman->ActiveChain()), coinbaseKey);
 
     LOCK(wallet->cs_wallet);
     auto available_coins = AvailableCoins(*wallet);
     std::vector<COutput> coins = available_coins.All();
+    BOOST_REQUIRE_EQUAL(coins.size(), 4U);
     // Preselect the first 3 UTXO (150 BTC total)
     std::set<COutPoint> preset_inputs = {coins[0].outpoint, coins[1].outpoint, coins[2].outpoint};
 

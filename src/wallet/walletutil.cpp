@@ -22,11 +22,7 @@ fs::path GetWalletDir()
             path = "";
         }
     } else {
-        path = gArgs.GetDataDirNet();
-        // If a wallets directory exists, use that, otherwise default to GetDataDir
-        if (fs::is_directory(path / "wallets")) {
-            path /= "wallets";
-        }
+        path = gArgs.GetDataDirNet() / "wallets";
     }
 
     return path;
@@ -34,38 +30,14 @@ fs::path GetWalletDir()
 
 WalletDescriptor GenerateWalletDescriptor(const CExtPubKey& master_key, const OutputType& addr_type, bool internal)
 {
+    assert(addr_type == OutputType::BECH32M);
     int64_t creation_time = GetTime();
 
     std::string xpub = EncodeExtPubKey(master_key);
 
     // Build descriptor string
-    std::string desc_prefix;
-    std::string desc_suffix = "/*)";
-    switch (addr_type) {
-    case OutputType::LEGACY: {
-        desc_prefix = "pkh(" + xpub + "/44h";
-        break;
-    }
-    case OutputType::P2SH_SEGWIT: {
-        desc_prefix = "sh(wpkh(" + xpub + "/49h";
-        desc_suffix += ")";
-        break;
-    }
-    case OutputType::BECH32: {
-        desc_prefix = "wpkh(" + xpub + "/84h";
-        break;
-    }
-    case OutputType::BECH32M: {
-        desc_prefix = "tr(" + xpub + "/86h";
-        break;
-    }
-    case OutputType::UNKNOWN: {
-        // We should never have a DescriptorScriptPubKeyMan for an UNKNOWN OutputType,
-        // so if we get to this point something is wrong
-        assert(false);
-    }
-    } // no default case, so the compiler can warn about missing cases
-    assert(!desc_prefix.empty());
+    std::string desc_prefix = "tr(" + xpub + "/86h";
+    const std::string desc_suffix = "/*)";
 
     // Mainnet derives at 0', testnet and regtest derive at 1'
     if (Params().IsTestChain()) {

@@ -215,12 +215,10 @@ static UniValue ProcessDescriptorImport(CWallet& wallet, const UniValue& data, c
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Internal addresses should not have a label");
         }
 
-        // Combo descriptor check
-        if (active && !parsed_descs.at(0)->IsSingleType()) {
-            throw JSONRPCError(RPC_WALLET_ERROR, "Combo descriptors cannot be set to active");
-        }
-        if (active && parsed_descs.at(0)->GetOutputType() != OutputType::BECH32M) {
-            throw JSONRPCError(RPC_WALLET_ERROR, "Only Taproot descriptors can be active");
+        for (const auto& parsed_desc : parsed_descs) {
+            if (parsed_desc->GetOutputType() != OutputType::BECH32M) {
+                throw JSONRPCError(RPC_WALLET_ERROR, "Only Taproot descriptors can be imported");
+            }
         }
 
         // If the wallet disabled private keys, abort if private keys exist

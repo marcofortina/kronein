@@ -3564,6 +3564,10 @@ util::Result<std::reference_wrapper<DescriptorScriptPubKeyMan>> CWallet::AddWall
 {
     AssertLockHeld(cs_wallet);
 
+    if (desc.descriptor->GetOutputType() != OutputType::BECH32M) {
+        return util::Error{_("Only Taproot descriptors are supported")};
+    }
+
     auto spk_man = GetDescriptorScriptPubKeyMan(desc);
     if (spk_man) {
         WalletLogPrintf("Update existing descriptor: %s\n", desc.descriptor->ToString());
