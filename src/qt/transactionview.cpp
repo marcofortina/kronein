@@ -254,30 +254,30 @@ void TransactionView::chooseDate(int idx)
         break;
     case Today:
         transactionProxyModel->setDateRange(
-                GUIUtil::StartOfDay(current),
+                current.startOfDay(),
                 std::nullopt);
         break;
     case ThisWeek: {
         // Find last Monday
         QDate startOfWeek = current.addDays(-(current.dayOfWeek()-1));
         transactionProxyModel->setDateRange(
-                GUIUtil::StartOfDay(startOfWeek),
+                startOfWeek.startOfDay(),
                 std::nullopt);
 
         } break;
     case ThisMonth:
         transactionProxyModel->setDateRange(
-                GUIUtil::StartOfDay(QDate(current.year(), current.month(), 1)),
+                QDate(current.year(), current.month(), 1).startOfDay(),
                 std::nullopt);
         break;
     case LastMonth:
         transactionProxyModel->setDateRange(
-                GUIUtil::StartOfDay(QDate(current.year(), current.month(), 1).addMonths(-1)),
-                GUIUtil::StartOfDay(QDate(current.year(), current.month(), 1)));
+                QDate(current.year(), current.month(), 1).addMonths(-1).startOfDay(),
+                QDate(current.year(), current.month(), 1).startOfDay());
         break;
     case ThisYear:
         transactionProxyModel->setDateRange(
-                GUIUtil::StartOfDay(QDate(current.year(), 1, 1)),
+                QDate(current.year(), 1, 1).startOfDay(),
                 std::nullopt);
         break;
     case Range:
@@ -557,8 +557,8 @@ void TransactionView::dateRangeChanged()
     if(!transactionProxyModel)
         return;
     transactionProxyModel->setDateRange(
-            GUIUtil::StartOfDay(dateFrom->date()),
-            GUIUtil::StartOfDay(dateTo->date()).addDays(1));
+            dateFrom->date().startOfDay(),
+            dateTo->date().startOfDay().addDays(1));
 }
 
 void TransactionView::focusTransaction(const QModelIndex &idx)

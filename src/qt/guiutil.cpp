@@ -832,7 +832,7 @@ qreal calculateIdealFontSize(int width, const QString& text, QFont font, qreal m
     while(font_size >= minPointSize) {
         font.setPointSizeF(font_size);
         QFontMetrics fm(font);
-        if (TextWidth(fm, text) < width) {
+        if (fm.horizontalAdvance(text) < width) {
             break;
         }
         font_size -= 0.5;
@@ -897,7 +897,7 @@ void PolishProgressDialog(QProgressDialog* dialog)
 {
 #ifdef Q_OS_MACOS
     // Workaround for macOS-only Qt bug; see: QTBUG-65750, QTBUG-70357.
-    const int margin = TextWidth(dialog->fontMetrics(), ("X"));
+    const int margin = dialog->fontMetrics().horizontalAdvance("X");
     dialog->resize(dialog->width() + 2 * margin, dialog->height());
 #endif
     // QProgressDialog estimates the time the operation will take (based on time
@@ -905,11 +905,6 @@ void PolishProgressDialog(QProgressDialog* dialog)
     // The default minimumDuration value is 4 seconds, and it could make users
     // think that the GUI is frozen.
     dialog->setMinimumDuration(0);
-}
-
-int TextWidth(const QFontMetrics& fm, const QString& text)
-{
-    return fm.horizontalAdvance(text);
 }
 
 void LogQtInfo()
@@ -945,16 +940,6 @@ void PopupMenu(QMenu* menu, const QPoint& point, QAction* at_action)
     // The qminimal plugin does not provide window system integration.
     if (QApplication::platformName() == "minimal") return;
     menu->popup(point, at_action);
-}
-
-QDateTime StartOfDay(const QDate& date)
-{
-    return date.startOfDay();
-}
-
-bool HasPixmap(const QLabel* label)
-{
-    return !label->pixmap(Qt::ReturnByValue).isNull();
 }
 
 QString MakeHtmlLink(const QString& source, const QString& link)
