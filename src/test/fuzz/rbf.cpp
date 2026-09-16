@@ -116,7 +116,7 @@ FUZZ_TARGET(package_rbf, .init = initialize_package_rbf)
     replacement_tx->vin[0].prevout = g_outpoints.at(iter++);
     CTransaction replacement_tx_final{*replacement_tx};
     auto replacement_entry = ConsumeTxMemPoolEntry(fuzzed_data_provider, replacement_tx_final);
-    int32_t replacement_weight = replacement_entry.GetAdjustedWeight();
+    int32_t replacement_weight = replacement_entry.GetTxWeight();
     // Ensure that we don't hit FeeFrac limits, as we store TxGraph entries in terms of FeePerWeight
     int64_t running_vsize_total{replacement_entry.GetTxSize()};
 
@@ -195,7 +195,7 @@ FUZZ_TARGET(package_rbf, .init = initialize_package_rbf)
     changeset->StageAddition(replacement_entry.GetSharedTx(), replacement_fees,
             replacement_entry.GetTime().count(), replacement_entry.GetHeight(),
             replacement_entry.GetSequence(), replacement_entry.GetSpendsCoinbase(),
-            replacement_entry.GetSigOpCost(), replacement_entry.GetLockPoints());
+            replacement_entry.GetLockPoints());
     // Calculate the chunks for a replacement.
     auto calc_results{changeset->CalculateChunksForRBF()};
 
@@ -217,7 +217,7 @@ FUZZ_TARGET(package_rbf, .init = initialize_package_rbf)
         FeeFrac replaced;
         for (auto txiter : all_conflicts) {
             replaced.fee += txiter->GetModifiedFee();
-            replaced.size += txiter->GetAdjustedWeight();
+            replaced.size += txiter->GetTxWeight();
         }
         // The total fee & size of the new diagram minus replaced fee & size should be the total
         // fee & size of the old diagram minus replacement fee & size.

@@ -31,11 +31,7 @@ from test_framework.messages import (
     MAX_MONEY,
     SEQUENCE_FINAL,
 )
-from test_framework.blocktools import (
-    create_tx_with_script,
-    MAX_BLOCK_SIGOPS,
-    MAX_STANDARD_TX_SIGOPS,
-)
+from test_framework.blocktools import create_tx_with_script
 from test_framework.script import (
     OP_TRUE,
     CScript,
@@ -44,7 +40,6 @@ from test_framework.script import (
     OP_2MUL,
     OP_AND,
     OP_CAT,
-    OP_CHECKSIG,
     OP_DIV,
     OP_INVERT,
     OP_LEFT,
@@ -231,30 +226,6 @@ class InvalidOPIFConstruction(BadTxTemplate):
         return create_tx_with_script(
             self.spend_tx, 0, script_sig=b'\x68' * 35,
             amount=(self.spend_avail // 2))
-
-
-class TooManySigopsPerBlock(BadTxTemplate):
-    reject_reason = "bad-txns-too-many-sigops"
-    block_reject_reason = "bad-blk-sigops, out-of-bounds SigOpCount"
-
-    def get_tx(self):
-        lotsa_checksigs = CScript([OP_CHECKSIG] * (MAX_BLOCK_SIGOPS))
-        return create_tx_with_script(
-            self.spend_tx, 0,
-            output_script=lotsa_checksigs,
-            amount=1)
-
-
-class TooManySigopsPerTransaction(BadTxTemplate):
-    reject_reason = "bad-txns-too-many-sigops"
-    valid_in_block = True
-
-    def get_tx(self):
-        lotsa_checksigs = CScript([OP_CHECKSIG] * (MAX_STANDARD_TX_SIGOPS + 1))
-        return create_tx_with_script(
-            self.spend_tx, 0,
-            output_script=lotsa_checksigs,
-            amount=1)
 
 
 def getDisabledOpcodeTemplate(opcode):

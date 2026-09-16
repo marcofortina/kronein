@@ -77,7 +77,6 @@ private:
     const uint64_t entry_sequence;  //!< Sequence number used to determine whether this transaction is too recent for relay
     const unsigned int entryHeight; //!< Chain height when entering the mempool
     const bool spendsCoinbase;      //!< keep track of transactions that spend a coinbase
-    const int64_t sigOpCost;        //!< Total sigop cost
     mutable CAmount m_modified_fee; //!< Used for determining the priority of the transaction for mining in a block
     mutable LockPoints lockPoints;  //!< Track the height and time at which tx was final
 
@@ -85,8 +84,7 @@ public:
     virtual ~CTxMemPoolEntry() = default;
     CTxMemPoolEntry(const CTransactionRef& tx, CAmount fee,
                     int64_t time, unsigned int entry_height, uint64_t entry_sequence,
-                    bool spends_coinbase,
-                    int64_t sigops_cost, LockPoints lp)
+                    bool spends_coinbase, LockPoints lp)
         : tx{tx},
           nFee{fee},
           nTxWeight{GetTransactionWeight(*tx)},
@@ -95,7 +93,6 @@ public:
           entry_sequence{entry_sequence},
           entryHeight{entry_height},
           spendsCoinbase{spends_coinbase},
-          sigOpCost{sigops_cost},
           m_modified_fee{nFee},
           lockPoints{lp} {}
 
@@ -110,12 +107,10 @@ public:
     {
         return GetVirtualTransactionSize(nTxWeight);
     }
-    int32_t GetAdjustedWeight() const { return nTxWeight; }
     int32_t GetTxWeight() const { return nTxWeight; }
     std::chrono::seconds GetTime() const { return std::chrono::seconds{nTime}; }
     unsigned int GetHeight() const { return entryHeight; }
     uint64_t GetSequence() const { return entry_sequence; }
-    int64_t GetSigOpCost() const { return sigOpCost; }
     CAmount GetModifiedFee() const { return m_modified_fee; }
     size_t DynamicMemoryUsage() const { return nUsageSize; }
     const LockPoints& GetLockPoints() const { return lockPoints; }
@@ -146,8 +141,7 @@ struct TransactionInfo {
     /**
      * The virtual transaction size.
      *
-     * This is a policy field which considers the sigop cost of the
-     * transaction as well as its weight, and reinterprets it as bytes.
+     * This is the transaction weight reinterpreted as virtual bytes.
      *
      * It is the primary metric by which the mining algorithm selects
      * transactions.

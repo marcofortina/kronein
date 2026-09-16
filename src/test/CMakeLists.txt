@@ -99,7 +99,6 @@ add_executable(test_bitcoin
   serialize_tests.cpp
   settings_tests.cpp
   sighash_tests.cpp
-  sigopcount_tests.cpp
   skiplist_tests.cpp
   sock_tests.cpp
   span_tests.cpp

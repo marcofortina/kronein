@@ -79,7 +79,6 @@ static BlockAssembler::Options ClampOptions(BlockAssembler::Options options)
 {
     // Apply DEFAULT_BLOCK_RESERVED_WEIGHT when the caller left it unset.
     options.block_reserved_weight = std::clamp<size_t>(options.block_reserved_weight.value_or(DEFAULT_BLOCK_RESERVED_WEIGHT), MINIMUM_BLOCK_RESERVED_WEIGHT, MAX_BLOCK_WEIGHT);
-    options.coinbase_output_max_additional_sigops = std::clamp<size_t>(options.coinbase_output_max_additional_sigops, 0, MAX_BLOCK_SIGOPS_COST);
     // Limit weight to between block_reserved_weight and MAX_BLOCK_WEIGHT for sanity:
     // block_reserved_weight can safely exceed -blockmaxweight, but the rest of the block template will be empty.
     options.nBlockMaxWeight = std::clamp<size_t>(options.nBlockMaxWeight, *options.block_reserved_weight, MAX_BLOCK_WEIGHT);
@@ -111,7 +110,6 @@ void BlockAssembler::resetBlock()
 {
     // Reserve space for fixed-size block header, txs count, and coinbase tx.
     nBlockWeight = *Assert(m_options.block_reserved_weight);
-    nBlockSigOpsCost = m_options.coinbase_output_max_additional_sigops;
 
     // These counters do not include coinbase tx
     nBlockTx = 0;
@@ -213,7 +211,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock()
         coinbase_tx.required_outputs.push_back(final_coinbase->vout[witness_index]);
     }
 
-    LogInfo("CreateNewBlock(): block weight: %u txs: %u fees: %ld sigops %d\n", GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost);
+    LogInfo("CreateNewBlock(): block weight: %u txs: %u fees: %ld\n", GetBlockWeight(*pblock), nBlockTx, nFees);
 
     // Fill in header
     pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
@@ -237,12 +235,9 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock()
     return std::move(pblocktemplate);
 }
 
-bool BlockAssembler::TestChunkBlockLimits(FeePerWeight chunk_feerate, int64_t chunk_sigops_cost) const
+bool BlockAssembler::TestChunkBlockLimits(FeePerWeight chunk_feerate) const
 {
     if (nBlockWeight + chunk_feerate.size >= m_options.nBlockMaxWeight) {
-        return false;
-    }
-    if (nBlockSigOpsCost + chunk_sigops_cost >= MAX_BLOCK_SIGOPS_COST) {
         return false;
     }
     return true;
@@ -264,10 +259,8 @@ void BlockAssembler::AddToBlock(const CTxMemPoolEntry& entry)
 {
     pblocktemplate->block.vtx.emplace_back(entry.GetSharedTx());
     pblocktemplate->vTxFees.push_back(entry.GetFee());
-    pblocktemplate->vTxSigOpsCost.push_back(entry.GetSigOpCost());
     nBlockWeight += entry.GetTxWeight();
     ++nBlockTx;
-    nBlockSigOpsCost += entry.GetSigOpCost();
     nFees += entry.GetFee();
 
     if (m_options.print_modified_fee) {
@@ -301,13 +294,8 @@ void BlockAssembler::addChunks()
             return;
         }
 
-        int64_t chunk_sig_ops = 0;
-        for (const auto& tx : selected_transactions) {
-            chunk_sig_ops += tx.get().GetSigOpCost();
-        }
-
         // Check to see if this chunk will fit.
-        if (!TestChunkBlockLimits(chunk_feerate, chunk_sig_ops) || !TestChunkTransactions(selected_transactions)) {
+        if (!TestChunkBlockLimits(chunk_feerate) || !TestChunkTransactions(selected_transactions)) {
             // This chunk won't fit, so we skip it and will try the next best one.
             m_mempool->SkipBuilderChunk();
             ++nConsecutiveFailed;

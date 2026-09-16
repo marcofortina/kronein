@@ -15,7 +15,6 @@ $Proxy.includeTypes("ipc/capnp/mining-types.h");
 const maxMoney :Int64 = 2100000000000000;
 const maxDouble :Float64 = 1.7976931348623157e308;
 const defaultBlockReservedWeight :UInt32 = 8000;
-const defaultCoinbaseOutputMaxAdditionalSigops :UInt32 = 400;
 
 interface Mining $Proxy.wrap("interfaces::Mining") {
     isTestChain @0 (context :Proxy.Context) -> (result: Bool);
@@ -32,18 +31,16 @@ interface BlockTemplate $Proxy.wrap("interfaces::BlockTemplate") {
     getBlockHeader @1 (context: Proxy.Context) -> (result: Data);
     getBlock @2 (context: Proxy.Context) -> (result: Data);
     getTxFees @3 (context: Proxy.Context) -> (result: List(Int64));
-    getTxSigops @4 (context: Proxy.Context) -> (result: List(Int64));
-    getCoinbaseTx @5 (context: Proxy.Context) -> (result: CoinbaseTx);
-    getCoinbaseMerklePath @6 (context: Proxy.Context) -> (result: List(Data));
-    submitSolution @7 (context: Proxy.Context, timestamp: UInt32, nonce: UInt32, coinbase :Data) -> (result: Bool);
-    waitNext @8 (context: Proxy.Context, options: BlockWaitOptions) -> (result: BlockTemplate);
-    interruptWait @9() -> ();
+    getCoinbaseTx @4 (context: Proxy.Context) -> (result: CoinbaseTx);
+    getCoinbaseMerklePath @5 (context: Proxy.Context) -> (result: List(Data));
+    submitSolution @6 (context: Proxy.Context, timestamp: UInt32, nonce: UInt32, coinbase :Data) -> (result: Bool);
+    waitNext @7 (context: Proxy.Context, options: BlockWaitOptions) -> (result: BlockTemplate);
+    interruptWait @8() -> ();
 }
 
 struct BlockCreateOptions $Proxy.wrap("node::BlockCreateOptions") {
     useMempool @0 :Bool = true $Proxy.name("use_mempool");
     blockReservedWeight @1 :UInt64 = .defaultBlockReservedWeight $Proxy.name("block_reserved_weight");
-    coinbaseOutputMaxAdditionalSigops @2 :UInt64 = .defaultCoinbaseOutputMaxAdditionalSigops $Proxy.name("coinbase_output_max_additional_sigops");
 }
 
 struct BlockWaitOptions $Proxy.wrap("node::BlockWaitOptions") {

@@ -74,7 +74,6 @@ FUZZ_TARGET(transaction, .init = initialize_transaction)
     (void)tx.ToString();
 
     (void)EncodeHexTx(tx);
-    (void)GetLegacySigOpCount(tx);
     (void)GetTransactionWeight(tx);
     (void)GetVirtualTransactionSize(tx);
     (void)IsFinalTx(tx, /* nBlockHeight= */ 1024, /* nBlockTime= */ 1024);

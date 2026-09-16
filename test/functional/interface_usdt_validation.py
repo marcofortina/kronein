@@ -34,7 +34,6 @@ struct connected_block
     int         height;
     i64         transactions;
     int         inputs;
-    i64         sigops;
     u64         duration;
 };
 
@@ -47,8 +46,7 @@ int trace_block_connected(struct pt_regs *ctx) {
     bpf_usdt_readarg(2, ctx, &block.height);
     bpf_usdt_readarg(3, ctx, &block.transactions);
     bpf_usdt_readarg(4, ctx, &block.inputs);
-    bpf_usdt_readarg(5, ctx, &block.sigops);
-    bpf_usdt_readarg(6, ctx, &block.duration);
+    bpf_usdt_readarg(5, ctx, &block.duration);
     block_connected.perf_submit(ctx, &block, sizeof(block));
     return 0;
 }
@@ -78,17 +76,15 @@ class ValidationTracepointTest(BitcoinTestFramework):
                 ("height", ctypes.c_int),
                 ("transactions", ctypes.c_int64),
                 ("inputs", ctypes.c_int),
-                ("sigops", ctypes.c_int64),
                 ("duration", ctypes.c_uint64),
             ]
 
             def __repr__(self):
-                return "ConnectedBlock(hash=%s height=%d, transactions=%d, inputs=%d, sigops=%d, duration=%d)" % (
+                return "ConnectedBlock(hash=%s height=%d, transactions=%d, inputs=%d, duration=%d)" % (
                     bytes(self.hash[::-1]).hex(),
                     self.height,
                     self.transactions,
                     self.inputs,
-                    self.sigops,
                     self.duration)
 
         BLOCKS_EXPECTED = 2
@@ -128,7 +124,6 @@ class ValidationTracepointTest(BitcoinTestFramework):
             assert_equal(block["height"], event.height)
             assert_equal(len(block["tx"]), event.transactions)
             assert_equal(len([tx["vin"] for tx in block["tx"]]), event.inputs)
-            assert_equal(0, event.sigops)  # no sigops in coinbase tx
             # only plausibility checks
             assert event.duration > 0
             # generatetoaddress (mining and connecting) takes longer than

@@ -661,7 +661,7 @@ class CTransaction:
         return True
 
     # Calculate the transaction weight using witness and non-witness
-    # serialization size (does NOT use sigops).
+    # serialization size.
     def get_weight(self):
         with_witness_size = len(self.serialize_with_witness())
         without_witness_size = len(self.serialize_without_witness())
@@ -802,7 +802,7 @@ class CBlock(CBlockHeader):
             self.nNonce += 1
 
     # Calculate the block weight using witness and non-witness
-    # serialization size (does NOT use sigops).
+    # serialization size.
     def get_weight(self):
         with_witness_size = len(self.serialize(with_witness=True))
         without_witness_size = len(self.serialize(with_witness=False))

@@ -44,8 +44,6 @@ struct CBlockTemplate
     CBlock block;
     // Fees per transaction, not including coinbase transaction (unlike CBlock::vtx).
     std::vector<CAmount> vTxFees;
-    // Sigops per transaction, not including coinbase transaction (unlike CBlock::vtx).
-    std::vector<int64_t> vTxSigOpsCost;
     /* A vector of package fee rates, ordered by the sequence in which
      * packages are selected for inclusion in the block template.*/
     std::vector<FeePerVSize> m_package_feerates;
@@ -66,7 +64,6 @@ private:
     // Information on the current status of the block
     uint64_t nBlockWeight;
     uint64_t nBlockTx;
-    uint64_t nBlockSigOpsCost;
     CAmount nFees;
 
     // Chain context for the block
@@ -115,7 +112,7 @@ private:
 
     // helper functions for addChunks()
     /** Test if a new chunk would "fit" in the block */
-    bool TestChunkBlockLimits(FeePerWeight chunk_feerate, int64_t chunk_sigops_cost) const;
+    bool TestChunkBlockLimits(FeePerWeight chunk_feerate) const;
     /** Perform locktime checks on each transaction in a chunk:
       * This check should always succeed, and is here
       * only as an extra check in case of a bug */

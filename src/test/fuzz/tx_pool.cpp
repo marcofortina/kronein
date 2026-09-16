@@ -289,17 +289,10 @@ FUZZ_TARGET(tx_pool_standard, .init = initialize_tx_pool)
                 tx_mut.vin.push_back(in);
             }
 
-            // Check sigops in mempool + block template creation
-            bool add_sigops{fuzzed_data_provider.ConsumeBool()};
-
             const auto amount_fee = fuzzed_data_provider.ConsumeIntegralInRange<CAmount>(-1000, amount_in);
             const auto amount_out = (amount_in - amount_fee) / num_out;
             for (int i = 0; i < num_out; ++i) {
-                if (i == 0 && add_sigops) {
-                    tx_mut.vout.emplace_back(amount_out, CScript() << std::vector<unsigned char>(33, 0x02) << OP_CHECKSIG);
-                } else {
-                    tx_mut.vout.emplace_back(amount_out, P2WSH_OP_TRUE);
-                }
+                tx_mut.vout.emplace_back(amount_out, P2WSH_OP_TRUE);
             }
 
             auto tx = MakeTransactionRef(tx_mut);

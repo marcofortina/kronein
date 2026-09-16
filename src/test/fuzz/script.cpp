@@ -98,7 +98,6 @@ FUZZ_TARGET(script, .init = initialize_script)
     (void)script.IsPayToScriptHash();
     (void)script.IsPayToWitnessScriptHash();
     (void)script.IsPushOnly();
-    (void)script.GetSigOpCount(/* fAccurate= */ false);
 
     {
         const std::vector<uint8_t> bytes = ConsumeRandomLengthByteVector(fuzzed_data_provider);
@@ -116,17 +115,6 @@ FUZZ_TARGET(script, .init = initialize_script)
         {
             CScript script_mut{script};
             (void)FindAndDelete(script_mut, *other_script);
-        }
-        const std::vector<std::string> random_string_vector = ConsumeRandomLengthStringVector(fuzzed_data_provider);
-        const auto flags_rand{fuzzed_data_provider.ConsumeIntegral<script_verify_flags::value_type>()};
-        const auto flags = script_verify_flags::from_int(flags_rand) | SCRIPT_VERIFY_P2SH;
-        {
-            CScriptWitness wit;
-            for (const auto& s : random_string_vector) {
-                wit.stack.emplace_back(s.begin(), s.end());
-            }
-            (void)CountWitnessSigOps(script, *other_script, wit, flags);
-            wit.SetNull();
         }
     }
 

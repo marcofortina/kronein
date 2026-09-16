@@ -197,30 +197,10 @@ Attaching 5 probes...
 ConnectBlock Benchmark between height 20000 and 38000 inclusive
 Logging blocks taking longer than 25 ms to connect.
 Starting Connect Block Benchmark between height 20000 and 38000.
-BENCH   39 blk/s     59 tx/s      59 inputs/s       20 sigops/s (height 20038)
-Block 20492 (000000f555653bb05e2f3c6e79925e01a20dd57033f4dc7c354b46e34735d32b)    20 tx   2319 ins   2318 sigops  took   38 ms
-BENCH 1840 blk/s   2117 tx/s    4478 inputs/s     2471 sigops/s (height 21879)
-BENCH 1816 blk/s   4972 tx/s    4982 inputs/s      125 sigops/s (height 23695)
-BENCH 2095 blk/s   2890 tx/s    2910 inputs/s      152 sigops/s (height 25790)
-BENCH 1684 blk/s   3979 tx/s    4053 inputs/s      288 sigops/s (height 27474)
-BENCH 1155 blk/s   3216 tx/s    3252 inputs/s      115 sigops/s (height 28629)
-BENCH 1797 blk/s   2488 tx/s    2503 inputs/s      111 sigops/s (height 30426)
-BENCH 1849 blk/s   6318 tx/s    6569 inputs/s    12189 sigops/s (height 32275)
-BENCH  946 blk/s  20209 tx/s   20775 inputs/s    83809 sigops/s (height 33221)
-Block 33406 (0000002adfe4a15cfcd53bd890a89bbae836e5bb7f38bac566f61ad4548c87f6)    25 tx   2045 ins   2090 sigops  took   29 ms
-Block 33687 (00000073231307a9828e5607ceb8156b402efe56747271a4442e75eb5b77cd36)    52 tx   1797 ins   1826 sigops  took   26 ms
-BENCH  582 blk/s  21581 tx/s   27673 inputs/s    60345 sigops/s (height 33803)
-BENCH 1035 blk/s  19735 tx/s   19776 inputs/s    51355 sigops/s (height 34838)
-Block 35625 (0000006b00b347390c4768ea9df2655e9ff4b120f29d78594a2a702f8a02c997)    20 tx   3374 ins   3371 sigops  took   49 ms
-BENCH  887 blk/s  17857 tx/s   22191 inputs/s    24404 sigops/s (height 35725)
-Block 35937 (000000d816d13d6e39b471cd4368db60463a764ba1f29168606b04a22b81ea57)    75 tx   3943 ins   3940 sigops  took   61 ms
-BENCH  823 blk/s  16298 tx/s   21031 inputs/s    18440 sigops/s (height 36548)
-Block 36583 (000000c3e260556dbf42968aae3f904dba8b8c1ff96a6f6e3aa5365d2e3ad317)    24 tx   2198 ins   2194 sigops  took   34 ms
-Block 36700 (000000b3b173de9e65a3cfa738d976af6347aaf83fa17ab3f2a4d2ede3ddfac4)    73 tx   1615 ins   1611 sigops  took   31 ms
-Block 36832 (0000007859578c02c1ac37dabd1b9ec19b98f350b56935f5dd3a41e9f79f836e)    34 tx   1440 ins   1436 sigops  took   26 ms
-BENCH  613 blk/s  16718 tx/s   25074 inputs/s    23022 sigops/s (height 37161)
-Block 37870 (000000f5c1086291ba2d943fb0c3bc82e71c5ee341ee117681d1456fbf6c6c38)    25 tx   1517 ins   1514 sigops  took   29 ms
-BENCH  811 blk/s  16031 tx/s   20921 inputs/s    18696 sigops/s (height 37972)
+BENCH   39 blk/s     59 tx/s      59 inputs/s (height 20038)
+Block 20492 (000000f555653bb05e2f3c6e79925e01a20dd57033f4dc7c354b46e34735d32b)    20 tx   2319 ins  took   38 ms
+BENCH 1840 blk/s   2117 tx/s    4478 inputs/s (height 21879)
+BENCH  811 blk/s  16031 tx/s   20921 inputs/s (height 37972)
 
 Took 14055 ms to connect the blocks between height 20000 and 38000.
 

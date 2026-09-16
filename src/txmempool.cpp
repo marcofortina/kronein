@@ -473,7 +473,7 @@ void CTxMemPool::check(const CCoinsViewCache& active_coins_tip, int64_t spendhei
             ++diagram_iter;
         }
         checkTotal += it->GetTxSize();
-        check_total_adjusted_weight += it->GetAdjustedWeight();
+        check_total_adjusted_weight += it->GetTxWeight();
         check_total_fee += it->GetFee();
         check_total_modified_fee += it->GetModifiedFee();
         innerUsage += it->DynamicMemoryUsage();
@@ -803,7 +803,7 @@ bool CTxMemPool::CheckPolicyLimits(const CTransactionRef& tx)
     // limits would be violated. Note that the changeset will be destroyed
     // when it goes out of scope.
     auto changeset = GetChangeSet();
-    (void) changeset->StageAddition(tx, /*fee=*/0, /*time=*/0, /*entry_height=*/0, /*entry_sequence=*/0, /*spends_coinbase=*/false, /*sigops_cost=*/0, LockPoints{});
+    (void) changeset->StageAddition(tx, /*fee=*/0, /*time=*/0, /*entry_height=*/0, /*entry_sequence=*/0, /*spends_coinbase=*/false, LockPoints{});
     return changeset->CheckMemPoolPolicyLimits();
 }
 
@@ -1001,7 +1001,7 @@ util::Result<std::pair<std::vector<FeeFrac>, std::vector<FeeFrac>>> CTxMemPool::
     return m_pool->m_txgraph->GetMainStagingDiagrams();
 }
 
-CTxMemPool::ChangeSet::TxHandle CTxMemPool::ChangeSet::StageAddition(const CTransactionRef& tx, const CAmount fee, int64_t time, unsigned int entry_height, uint64_t entry_sequence, bool spends_coinbase, int64_t sigops_cost, LockPoints lp)
+CTxMemPool::ChangeSet::TxHandle CTxMemPool::ChangeSet::StageAddition(const CTransactionRef& tx, const CAmount fee, int64_t time, unsigned int entry_height, uint64_t entry_sequence, bool spends_coinbase, LockPoints lp)
 {
     LOCK(m_pool->cs);
     Assume(m_to_add.find(tx->GetHash()) == m_to_add.end());
@@ -1014,7 +1014,7 @@ CTxMemPool::ChangeSet::TxHandle CTxMemPool::ChangeSet::StageAddition(const CTran
     m_pool->ApplyDelta(tx->GetHash(), delta);
 
     FeePerWeight feerate(fee, GetTransactionWeight(*tx));
-    auto newit = m_to_add.emplace(tx, fee, time, entry_height, entry_sequence, spends_coinbase, sigops_cost, lp).first;
+    auto newit = m_to_add.emplace(tx, fee, time, entry_height, entry_sequence, spends_coinbase, lp).first;
     m_pool->m_txgraph->AddTransaction(const_cast<CTxMemPoolEntry&>(*newit), feerate);
     if (delta) {
         newit->UpdateModifiedFee(delta);

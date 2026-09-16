@@ -142,7 +142,7 @@ struct MempoolAcceptResult {
 
     /** Mempool transactions replaced by the tx. */
     const std::list<CTransactionRef> m_replaced_transactions;
-    /** Virtual size as used by the mempool, calculated using serialized size and sigops. */
+    /** Virtual size as used by the mempool, calculated from transaction weight. */
     const std::optional<int64_t> m_vsize;
     /** Raw base fees in satoshis. */
     const std::optional<CAmount> m_base_fees;

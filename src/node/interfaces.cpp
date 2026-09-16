@@ -876,11 +876,6 @@ public:
         return m_block_template->vTxFees;
     }
 
-    std::vector<int64_t> getTxSigops() override
-    {
-        return m_block_template->vTxSigOpsCost;
-    }
-
     CoinbaseTx getCoinbaseTx() override
     {
         return m_block_template->m_coinbase_tx;

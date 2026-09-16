@@ -49,7 +49,7 @@ enum BlockStatus : uint32_t {
 
     /**
      * Only first tx is coinbase, 2 <= coinbase input script length <= 100, transactions valid, no duplicate txids,
-     * sigops, size, merkle root. Implies all parents are at least TREE but not necessarily TRANSACTIONS.
+     * size, merkle root. Implies all parents are at least TREE but not necessarily TRANSACTIONS.
      *
      * If a block's validity is at least VALID_TRANSACTIONS, CBlockIndex::nTx will be set. If a block and all previous
      * blocks back to the genesis block or an assumeutxo snapshot block are at least VALID_TRANSACTIONS,

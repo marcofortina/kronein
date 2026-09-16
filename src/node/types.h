@@ -52,11 +52,6 @@ struct BlockCreateOptions {
      */
     std::optional<size_t> block_reserved_weight{};
     /**
-     * The maximum additional sigops which the pool will add in coinbase
-     * transaction outputs.
-     */
-    size_t coinbase_output_max_additional_sigops{DEFAULT_COINBASE_OUTPUT_MAX_ADDITIONAL_SIGOPS};
-    /**
      * Script to put in the coinbase transaction. The default is an
      * Taproot dummy.
      *
@@ -68,8 +63,8 @@ struct BlockCreateOptions {
      * This software typically also controls the payout outputs, even for solo
      * mining.
      *
-     * The size and sigops are not checked against
-     * coinbase_max_additional_weight and coinbase_output_max_additional_sigops.
+     * Its size is covered by block_reserved_weight rather than checked
+     * separately.
      */
     CScript coinbase_output_script{CScript() << OP_1 << std::vector<unsigned char>(32)};
     /**

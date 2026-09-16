@@ -39,9 +39,6 @@ public:
 
     // Fees per transaction, not including coinbase transaction.
     virtual std::vector<CAmount> getTxFees() = 0;
-    // Sigop cost per transaction, not including coinbase transaction.
-    virtual std::vector<int64_t> getTxSigops() = 0;
-
     /** Return fields needed to construct a coinbase transaction */
     virtual node::CoinbaseTx getCoinbaseTx() = 0;
 

@@ -25,11 +25,10 @@ static void AddTx(const CTransactionRef& tx, const CAmount& nFee, CTxMemPool& po
     unsigned int nHeight = 1;
     uint64_t sequence = 0;
     bool spendsCoinbase = false;
-    unsigned int sigOpCost = 4;
     LockPoints lp;
     TryAddToMempool(pool, CTxMemPoolEntry(
         tx, nFee, nTime, nHeight, sequence,
-        spendsCoinbase, sigOpCost, lp));
+        spendsCoinbase, lp));
 }
 
 // Right now this is only testing eviction performance in an extremely small

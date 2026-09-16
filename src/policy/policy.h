@@ -25,8 +25,6 @@ class CScript;
 static constexpr unsigned int DEFAULT_BLOCK_MAX_WEIGHT{MAX_BLOCK_WEIGHT};
 /** Default for -blockreservedweight **/
 static constexpr unsigned int DEFAULT_BLOCK_RESERVED_WEIGHT{8000};
-/** Default sigops cost to reserve for coinbase transaction outputs when creating block templates. */
-static constexpr unsigned int DEFAULT_COINBASE_OUTPUT_MAX_ADDITIONAL_SIGOPS{400};
 /** This accounts for the block header, var_int encoding of the transaction count and a minimally viable
  * coinbase transaction. It adds an additional safety margin, because even with a thorough understanding
  * of block serialization, it's easy to make a costly mistake when trying to squeeze every last byte.
@@ -38,8 +36,6 @@ static constexpr unsigned int DEFAULT_BLOCK_MIN_TX_FEE{1};
 static constexpr int32_t MAX_STANDARD_TX_WEIGHT{400000};
 /** The minimum non-witness size for transactions we're willing to relay/mine: one larger than 64  */
 static constexpr unsigned int MIN_STANDARD_TX_NONWITNESS_SIZE{65};
-/** The maximum number of sigops we're willing to relay/mine in a single tx */
-static constexpr unsigned int MAX_STANDARD_TX_SIGOPS_COST{MAX_BLOCK_SIGOPS_COST/5};
 /** Default for -incrementalrelayfee, which sets the minimum feerate increase for mempool limiting or replacement **/
 static constexpr unsigned int DEFAULT_INCREMENTAL_RELAY_FEE{100};
 /** Limits retained for parsing Miniscript descriptors. Witness-v0 outputs are not native chain outputs. */

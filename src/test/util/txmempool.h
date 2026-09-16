@@ -23,7 +23,6 @@ struct TestMemPoolEntryHelper {
     unsigned int nHeight{1};
     uint64_t m_sequence{0};
     bool spendsCoinbase{false};
-    unsigned int sigOpCost{4};
     LockPoints lp;
 
     CTxMemPoolEntry FromTx(const CMutableTransaction& tx) const;
@@ -35,7 +34,6 @@ struct TestMemPoolEntryHelper {
     TestMemPoolEntryHelper& Height(unsigned int _height) { nHeight = _height; return *this; }
     TestMemPoolEntryHelper& Sequence(uint64_t _seq) { m_sequence = _seq; return *this; }
     TestMemPoolEntryHelper& SpendsCoinbase(bool _flag) { spendsCoinbase = _flag; return *this; }
-    TestMemPoolEntryHelper& SigOpsCost(unsigned int _sigopsCost) { sigOpCost = _sigopsCost; return *this; }
 };
 
 /** Check expected properties for every PackageMempoolAcceptResult, regardless of value. Returns

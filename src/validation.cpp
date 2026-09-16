@@ -624,8 +624,7 @@ private:
         std::vector<CTxMemPoolEntry::CTxMemPoolEntryRef> m_parents;
         /* Handle to the tx in the changeset */
         CTxMemPool::ChangeSet::TxHandle m_tx_handle;
-        /** Virtual size of the transaction as used by the mempool, calculated using serialized size
-         * of the transaction and sigops. */
+        /** Virtual size of the transaction as used by the mempool. */
         int64_t m_vsize;
         /** Fees paid by this transaction: total input amounts subtracted by total output amounts. */
         CAmount m_base_fees;
@@ -891,8 +890,6 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return state.Invalid(TxValidationResult::TX_WITNESS_MUTATED, "bad-witness-nonstandard");
     }
 
-    int64_t nSigOpsCost = GetTransactionSigOpCost(tx, m_view, STANDARD_SCRIPT_VERIFY_FLAGS);
-
     // Keep track of transactions that spend a coinbase, which we re-scan
     // during reorgs to ensure COINBASE_MATURITY is still met.
     bool fSpendsCoinbase = false;
@@ -910,7 +907,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     if (!m_subpackage.m_changeset) {
         m_subpackage.m_changeset = m_pool.GetChangeSet();
     }
-    ws.m_tx_handle = m_subpackage.m_changeset->StageAddition(ptx, ws.m_base_fees, nAcceptTime, m_active_chainstate.m_chain.Height(), entry_sequence, fSpendsCoinbase, nSigOpsCost, lock_points.value());
+    ws.m_tx_handle = m_subpackage.m_changeset->StageAddition(ptx, ws.m_base_fees, nAcceptTime, m_active_chainstate.m_chain.Height(), entry_sequence, fSpendsCoinbase, lock_points.value());
 
     // ws.m_modified_fees includes any fee deltas from PrioritiseTransaction
     ws.m_modified_fees = ws.m_tx_handle->GetModifiedFee();
@@ -923,10 +920,6 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
             return false; // state filled in by PreCheckEphemeralTx
         }
     }
-
-    if (nSigOpsCost > MAX_STANDARD_TX_SIGOPS_COST)
-        return state.Invalid(TxValidationResult::TX_NOT_STANDARD, "bad-txns-too-many-sigops",
-                strprintf("%d", nSigOpsCost));
 
     // No individual transactions are allowed below the mempool min feerate except from disconnected
     // blocks and transactions in a package. Package transactions will be checked using package
@@ -2330,7 +2323,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     std::vector<int> prevheights;
     CAmount nFees = 0;
     int nInputs = 0;
-    int64_t nSigOpsCost = 0;
     blockundo.vtxundo.reserve(block.vtx.size() - 1);
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
@@ -2370,16 +2362,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                               "contains a non-BIP68-final transaction " + tx.GetHash().ToString());
                 break;
             }
-        }
-
-        // GetTransactionSigOpCost counts 3 types of sigops:
-        // * legacy (always)
-        // * p2sh (when P2SH enabled in flags and excludes coinbase)
-        // * witness (when witness enabled in flags and excludes coinbase)
-        nSigOpsCost += GetTransactionSigOpCost(tx, view, flags);
-        if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST) {
-            state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-blk-sigops", "too many sigops");
-            break;
         }
 
         if (!tx.IsCoinBase() && fScriptChecks)
@@ -2476,7 +2458,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         pindex->nHeight,
         block.vtx.size(),
         nInputs,
-        nSigOpsCost,
         Ticks<std::chrono::nanoseconds>(time_5 - time_start)
     );
 
@@ -3812,16 +3793,6 @@ bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensu
                                  strprintf("Transaction check failed (tx hash %s) %s", tx->GetHash().ToString(), tx_state.GetDebugMessage()));
         }
     }
-    // This underestimates the number of sigops, because unlike ConnectBlock it
-    // does not count witness and p2sh sigops.
-    unsigned int nSigOps = 0;
-    for (const auto& tx : block.vtx)
-    {
-        nSigOps += GetLegacySigOpCount(*tx);
-    }
-    if (nSigOps * WITNESS_SCALE_FACTOR > MAX_BLOCK_SIGOPS_COST)
-        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-blk-sigops", "out-of-bounds SigOpCount");
-
     if (fCheckPOW && fCheckMerkleRoot)
         block.fChecked = true;
 

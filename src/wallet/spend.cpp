@@ -131,7 +131,6 @@ TxSize CalculateMaximumSignedTxSize(const CTransaction &tx, const CWallet *walle
         weight += *txin_weight;
     }
 
-    // It's ok to use 0 as the number of sigops since we never create any pathological transaction.
     return TxSize{GetVirtualTransactionSize(weight), weight};
 }
 

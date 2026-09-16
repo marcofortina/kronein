@@ -235,9 +235,6 @@ class IPCMiningTest(BitcoinTestFramework):
                 assert_greater_than_or_equal(len(block.vtx), 1)
                 txfees = await template.getTxFees(ctx)
                 assert_equal(len(txfees.result), 0)
-                txsigops = await template.getTxSigops(ctx)
-                assert_equal(len(txsigops.result), 0)
-
                 self.log.debug("Wait for a new template")
                 waitoptions = self.capnp_modules['mining'].BlockWaitOptions()
                 waitoptions.timeout = timeout

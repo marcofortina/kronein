@@ -6,8 +6,6 @@
 #define BITCOIN_CONSENSUS_TX_VERIFY_H
 
 #include <consensus/amount.h>
-#include <script/verify_flags.h>
-
 #include <cstdint>
 #include <vector>
 
@@ -27,33 +25,6 @@ namespace Consensus {
  */
 [[nodiscard]] bool CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmount& txfee);
 } // namespace Consensus
-
-/** Auxiliary functions for transaction validation (ideally should not be exposed) */
-
-/**
- * Count ECDSA signature operations the old-fashioned (pre-0.6) way
- * @return number of sigops this transaction's outputs will produce when spent
- * @see CTransaction::FetchInputs
- */
-unsigned int GetLegacySigOpCount(const CTransaction& tx);
-
-/**
- * Count ECDSA signature operations in pay-to-script-hash inputs.
- *
- * @param[in] mapInputs Map of previous transactions that have outputs we're spending
- * @return maximum number of sigops required to validate this transaction's inputs
- * @see CTransaction::FetchInputs
- */
-unsigned int GetP2SHSigOpCount(const CTransaction& tx, const CCoinsViewCache& mapInputs);
-
-/**
- * Compute total signature operation cost of a transaction.
- * @param[in] tx     Transaction for which we are computing the cost
- * @param[in] inputs Map of previous transactions that have outputs we're spending
- * @param[in] flags Script verification flags
- * @return Total signature operation cost of tx
- */
-int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& inputs, script_verify_flags flags);
 
 /**
  * Check if transaction is final and can be included in a block with the

@@ -417,7 +417,7 @@ static std::vector<RPCResult> ClusterDescription()
             {RPCResult{RPCResult::Type::OBJ, "chunk", "",
                 {
                     RPCResult{RPCResult::Type::NUM, "chunkfee", "fees of the transactions in this chunk"},
-                    RPCResult{RPCResult::Type::NUM, "chunkweight", "sigops-adjusted weight of all transactions in this chunk"},
+                    RPCResult{RPCResult::Type::NUM, "chunkweight", "weight of all transactions in this chunk"},
                     RPCResult{RPCResult::Type::ARR, "txs", "transactions in this chunk in mining order",
                         {RPCResult{RPCResult::Type::STR_HEX, "txid", "transaction id"}}},
                 }
@@ -473,7 +473,7 @@ static void clusterToJSON(const CTxMemPool& pool, UniValue& info, std::vector<co
     AssertLockHeld(pool.cs);
     int total_weight{0};
     for (const auto& tx : cluster) {
-        total_weight += tx->GetAdjustedWeight();
+        total_weight += tx->GetTxWeight();
     }
     info.pushKV("clusterweight", total_weight);
     info.pushKV("txcount", cluster.size());
@@ -495,7 +495,7 @@ static void clusterToJSON(const CTxMemPool& pool, UniValue& info, std::vector<co
             current_chunk_feerate = pool.GetMainChunkFeerate(*tx);
         }
         current_chunk.push_back(tx);
-        current_chunk_feerate.size -= tx->GetAdjustedWeight();
+        current_chunk_feerate.size -= tx->GetTxWeight();
     }
     AppendChunkInfo(all_chunks, pool.GetMainChunkFeerate(*current_chunk[0]), current_chunk);
     current_chunk.clear();
@@ -605,7 +605,7 @@ static RPCHelpMan getmempoolfeeratediagram()
                     {
                         RPCResult::Type::OBJ, "", "",
                         {
-                            {RPCResult::Type::NUM, "weight", "cumulative sigops-adjusted weight"},
+                            {RPCResult::Type::NUM, "weight", "cumulative transaction weight"},
                             {RPCResult::Type::NUM, "fee", "cumulative fee"}
                         }
                     }
@@ -1307,7 +1307,7 @@ static RPCHelpMan submitpackage()
                     {RPCResult::Type::OBJ, "wtxid", "transaction wtxid", {
                         {RPCResult::Type::STR_HEX, "txid", "The transaction hash in hex"},
                         {RPCResult::Type::STR_HEX, "other-wtxid", /*optional=*/true, "The wtxid of a different transaction with the same txid but different witness found in the mempool. This means the submitted transaction was ignored."},
-                        {RPCResult::Type::NUM, "vsize", /*optional=*/true, "Sigops-adjusted virtual transaction size."},
+                        {RPCResult::Type::NUM, "vsize", /*optional=*/true, "Virtual transaction size."},
                         {RPCResult::Type::OBJ, "fees", /*optional=*/true, "Transaction fees", {
                             {RPCResult::Type::STR_AMOUNT, "base", "transaction fee in " + CURRENCY_UNIT},
                             {RPCResult::Type::STR_AMOUNT, "effective-feerate", /*optional=*/true, "if the transaction was not already in the mempool, the effective feerate in " + CURRENCY_UNIT + " per KvB. For example, the package feerate and/or feerate with modified fees from prioritisetransaction."},

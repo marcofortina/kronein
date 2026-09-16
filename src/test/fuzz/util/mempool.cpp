@@ -3,7 +3,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <consensus/amount.h>
-#include <consensus/consensus.h>
 #include <kernel/mempool_entry.h>
 #include <primitives/transaction.h>
 #include <test/fuzz/FuzzedDataProvider.h>
@@ -26,6 +25,5 @@ CTxMemPoolEntry ConsumeTxMemPoolEntry(FuzzedDataProvider& fuzzed_data_provider, 
     const uint64_t entry_sequence{fuzzed_data_provider.ConsumeIntegral<uint64_t>()};
     const auto entry_height{fuzzed_data_provider.ConsumeIntegralInRange<uint32_t>(0, max_height)};
     const bool spends_coinbase = fuzzed_data_provider.ConsumeBool();
-    const unsigned int sig_op_cost = fuzzed_data_provider.ConsumeIntegralInRange<unsigned int>(0, MAX_BLOCK_SIGOPS_COST);
-    return CTxMemPoolEntry{MakeTransactionRef(tx), fee, time, entry_height, entry_sequence, spends_coinbase, sig_op_cost, {}};
+    return CTxMemPoolEntry{MakeTransactionRef(tx), fee, time, entry_height, entry_sequence, spends_coinbase, {}};
 }

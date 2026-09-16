@@ -426,14 +426,6 @@ FUZZ_TARGET(tx_package_eval, .init = initialize_tx_pool)
                     tx_mut.vin.emplace_back();
                 }
 
-                // Make an unspent p2pk output to exercise sigops-adjusted virtual size.
-                if (last_tx && amount_in > 1000 && fuzzed_data_provider.ConsumeBool()) {
-                    tx_mut.vout.emplace_back(1000, CScript() << std::vector<unsigned char>(33, 0x02) << OP_CHECKSIG);
-                    // Don't add any other outputs.
-                    num_out = 1;
-                    amount_in -= 1000;
-                }
-
                 const auto amount_fee = fuzzed_data_provider.ConsumeIntegralInRange<CAmount>(0, amount_in);
                 const auto amount_out = (amount_in - amount_fee) / num_out;
                 for (int i = 0; i < num_out; ++i) {

@@ -288,30 +288,6 @@ void TestCoinsView(FuzzedDataProvider& fuzzed_data_provider, CCoinsViewCache& co
                 }
             },
             [&] {
-                const CTransaction transaction{random_mutable_transaction};
-                if (ContainsSpentInput(transaction, coins_view_cache)) {
-                    // Avoid:
-                    // consensus/tx_verify.cpp:130: unsigned int GetP2SHSigOpCount(const CTransaction &, const CCoinsViewCache &): Assertion `!coin.IsSpent()' failed.
-                    return;
-                }
-                (void)GetP2SHSigOpCount(transaction, coins_view_cache);
-            },
-            [&] {
-                const CTransaction transaction{random_mutable_transaction};
-                if (ContainsSpentInput(transaction, coins_view_cache)) {
-                    // Avoid:
-                    // consensus/tx_verify.cpp:130: unsigned int GetP2SHSigOpCount(const CTransaction &, const CCoinsViewCache &): Assertion `!coin.IsSpent()' failed.
-                    return;
-                }
-                const auto flags = script_verify_flags::from_int(fuzzed_data_provider.ConsumeIntegral<script_verify_flags::value_type>());
-                if (!transaction.vin.empty() && (flags & SCRIPT_VERIFY_WITNESS) != 0 && (flags & SCRIPT_VERIFY_P2SH) == 0) {
-                    // Avoid:
-                    // script/interpreter.cpp:1705: size_t CountWitnessSigOps(const CScript &, const CScript &, const CScriptWitness &, unsigned int): Assertion `(flags & SCRIPT_VERIFY_P2SH) != 0' failed.
-                    return;
-                }
-                (void)GetTransactionSigOpCost(transaction, coins_view_cache, flags);
-            },
-            [&] {
                 (void)IsWitnessStandard(CTransaction{random_mutable_transaction}, coins_view_cache);
             });
     }

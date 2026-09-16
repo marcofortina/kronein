@@ -644,7 +644,6 @@ static RPCHelpMan getblocktemplate()
                             {RPCResult::Type::NUM, "", "transactions before this one (by 1-based index in 'transactions' list) that must be present in the final block if this one is"},
                         }},
                         {RPCResult::Type::NUM, "fee", "difference in value between transaction inputs and outputs (in satoshis); for coinbase transactions, this is a negative Number of the total collected block fees (ie, not including the block subsidy); if key is not present, fee is unknown and clients MUST NOT assume there isn't one"},
-                        {RPCResult::Type::NUM, "sigops", "total SigOps cost, as counted for purposes of block limits; if key is not present, sigop cost is unknown and clients MUST NOT assume it is zero"},
                         {RPCResult::Type::NUM, "weight", "total transaction weight, as counted for purposes of block limits"},
                     }},
                 }},
@@ -661,7 +660,6 @@ static RPCHelpMan getblocktemplate()
                     {RPCResult::Type::STR, "value", "A way the block template may be changed, e.g. 'time', 'transactions', 'prevblock'"},
                 }},
                 {RPCResult::Type::STR_HEX, "noncerange", "A range of valid nonces"},
-                {RPCResult::Type::NUM, "sigoplimit", "limit of sigops in blocks"},
                 {RPCResult::Type::NUM, "sizelimit", "limit of block size"},
                 {RPCResult::Type::NUM, "weightlimit", /*optional=*/true, "limit of block weight"},
                 {RPCResult::Type::NUM_TIME, "curtime", "current timestamp in " + UNIX_EPOCH_TIME + ". Adjusted for the proposed BIP94 timewarp rule."},
@@ -865,7 +863,6 @@ static RPCHelpMan getblocktemplate()
     UniValue transactions(UniValue::VARR);
     std::map<Txid, int64_t> setTxIndex;
     std::vector<CAmount> tx_fees{block_template->getTxFees()};
-    std::vector<CAmount> tx_sigops{block_template->getTxSigops()};
 
     int i = 0;
     for (const auto& it : block.vtx) {
@@ -892,7 +889,6 @@ static RPCHelpMan getblocktemplate()
 
         int index_in_template = i - 2;
         entry.pushKV("fee", tx_fees.at(index_in_template));
-        entry.pushKV("sigops", tx_sigops.at(index_in_template));
         entry.pushKV("weight", GetTransactionWeight(tx));
 
         transactions.push_back(std::move(entry));
@@ -932,7 +928,6 @@ static RPCHelpMan getblocktemplate()
     result.pushKV("mintime", GetMinimumTime(pindexPrev, consensusParams.DifficultyAdjustmentInterval()));
     result.pushKV("mutable", std::move(aMutable));
     result.pushKV("noncerange", "00000000ffffffff");
-    result.pushKV("sigoplimit", MAX_BLOCK_SIGOPS_COST);
     result.pushKV("sizelimit", MAX_BLOCK_SERIALIZED_SIZE);
     result.pushKV("weightlimit", MAX_BLOCK_WEIGHT);
     result.pushKV("curtime", block.GetBlockTime());

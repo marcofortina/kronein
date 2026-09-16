@@ -163,9 +163,8 @@ Arguments passed:
 1. Block Header Hash as `pointer to unsigned chars` (i.e. 32 bytes in little-endian)
 2. Block Height as `int32`
 3. Transactions in the Block as `uint64`
-4. Inputs spend in the Block as `int32`
-5. SigOps in the Block (excluding coinbase SigOps) `uint64`
-6. Time it took to connect the Block in nanoseconds (ns) as `uint64`
+4. Inputs spent in the Block as `int32`
+5. Time it took to connect the Block in nanoseconds (ns) as `uint64`
 
 ### Context `utxocache`
 

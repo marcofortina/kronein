@@ -377,8 +377,6 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
 bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& script, script_verify_flags flags, const BaseSignatureChecker& checker, SigVersion sigversion, ScriptError* error = nullptr);
 bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, const CScriptWitness* witness, script_verify_flags flags, const BaseSignatureChecker& checker, ScriptError* serror = nullptr);
 
-size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey, const CScriptWitness& witness, script_verify_flags flags);
-
 int FindAndDelete(CScript& script, const CScript& b);
 
 const std::map<std::string, script_verify_flag_name>& ScriptFlagNamesToEnum();
