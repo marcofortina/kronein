@@ -9,7 +9,7 @@ import tempfile
 from io import BytesIO
 
 from test_framework.address import (
-    ADDRESS_BCRT1_P2WSH_OP_TRUE,
+    ADDRESS_BCRT1_P2TR_OP_TRUE,
     ADDRESS_BCRT1_UNSPENDABLE,
 )
 from test_framework.blocktools import (
@@ -281,7 +281,7 @@ class ZMQTest (BitcoinTestFramework):
         assert_equal(hashtx.receive().hex(), disconnect_cb)
 
         # Generate 2 blocks in nodes[1] to a different address to ensure split
-        connect_blocks = self.generatetoaddress(self.nodes[1], 2, ADDRESS_BCRT1_P2WSH_OP_TRUE, sync_fun=self.no_op)
+        connect_blocks = self.generatetoaddress(self.nodes[1], 2, ADDRESS_BCRT1_P2TR_OP_TRUE, sync_fun=self.no_op)
 
         # nodes[0] will reorg chain after connecting back nodes[1]
         self.connect_nodes(0, 1)
@@ -331,7 +331,7 @@ class ZMQTest (BitcoinTestFramework):
         assert_equal((self.nodes[0].getbestblockhash(), "C", None), seq.receive_sequence())
 
         # Generate 2 blocks in nodes[1] to a different address to ensure a chain split
-        self.generatetoaddress(self.nodes[1], 2, ADDRESS_BCRT1_P2WSH_OP_TRUE, sync_fun=self.no_op)
+        self.generatetoaddress(self.nodes[1], 2, ADDRESS_BCRT1_P2TR_OP_TRUE, sync_fun=self.no_op)
 
         # nodes[0] will reorg chain after connecting back nodes[1]
         self.connect_nodes(0, 1)
