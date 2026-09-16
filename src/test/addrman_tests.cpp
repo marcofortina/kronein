@@ -1067,8 +1067,6 @@ static auto MakeCorruptPeersDat()
     DataStream s{};
     s << ::Params().MessageStart();
 
-    uint8_t version{1};
-    s << version;
     s << uint256::ONE;
     s << 10; // nNew
     s << 10; // nTried
