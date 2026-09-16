@@ -30,13 +30,6 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
         addressRet = PayToAnchor();
         return true;
     }
-    case TxoutType::PUBKEY:
-    case TxoutType::PUBKEYHASH:
-    case TxoutType::SCRIPTHASH:
-    case TxoutType::WITNESS_V0_KEYHASH:
-    case TxoutType::WITNESS_V0_SCRIPTHASH:
-    case TxoutType::WITNESS_UNKNOWN:
-    case TxoutType::MULTISIG:
     case TxoutType::NULL_DATA:
     case TxoutType::NONSTANDARD:
         addressRet = CNoDestination(scriptPubKey);

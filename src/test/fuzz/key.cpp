@@ -116,25 +116,7 @@ FUZZ_TARGET(key, .init = initialize_key)
     }
 
     {
-        const CScript tx_pubkey_script = GetScriptForRawPubKey(pubkey);
-        assert(!tx_pubkey_script.IsPayToScriptHash());
-        assert(!tx_pubkey_script.IsPayToWitnessScriptHash());
-        assert(!tx_pubkey_script.IsPushOnly());
-        assert(!tx_pubkey_script.IsUnspendable());
-        assert(tx_pubkey_script.HasValidOps());
-        assert(tx_pubkey_script.size() == 35);
-
-        const CScript tx_multisig_script = GetScriptForMultisig(1, {pubkey});
-        assert(!tx_multisig_script.IsPayToScriptHash());
-        assert(!tx_multisig_script.IsPayToWitnessScriptHash());
-        assert(!tx_multisig_script.IsPushOnly());
-        assert(!tx_multisig_script.IsUnspendable());
-        assert(tx_multisig_script.HasValidOps());
-        assert(tx_multisig_script.size() == 37);
-
         FillableSigningProvider fillable_signing_provider;
-        assert(!IsSegWitOutput(fillable_signing_provider, tx_pubkey_script));
-        assert(!IsSegWitOutput(fillable_signing_provider, tx_multisig_script));
         assert(fillable_signing_provider.GetKeys().size() == 0);
         assert(!fillable_signing_provider.HaveKey(pubkey.GetID()));
 
@@ -148,30 +130,6 @@ FUZZ_TARGET(key, .init = initialize_key)
         const bool ok_add_key_pubkey = fillable_signing_provider_pub.AddKeyPubKey(key, pubkey);
         assert(ok_add_key_pubkey);
         assert(fillable_signing_provider_pub.HaveKey(pubkey.GetID()));
-
-        TxoutType which_type_tx_pubkey;
-        const bool is_standard_tx_pubkey = IsStandard(tx_pubkey_script, which_type_tx_pubkey);
-        assert(is_standard_tx_pubkey);
-        assert(which_type_tx_pubkey == TxoutType::PUBKEY);
-
-        TxoutType which_type_tx_multisig;
-        const bool is_standard_tx_multisig = IsStandard(tx_multisig_script, which_type_tx_multisig);
-        assert(is_standard_tx_multisig);
-        assert(which_type_tx_multisig == TxoutType::MULTISIG);
-
-        std::vector<std::vector<unsigned char>> v_solutions_ret_tx_pubkey;
-        const TxoutType outtype_tx_pubkey = Solver(tx_pubkey_script, v_solutions_ret_tx_pubkey);
-        assert(outtype_tx_pubkey == TxoutType::PUBKEY);
-        assert(v_solutions_ret_tx_pubkey.size() == 1);
-        assert(v_solutions_ret_tx_pubkey[0].size() == 33);
-
-        std::vector<std::vector<unsigned char>> v_solutions_ret_tx_multisig;
-        const TxoutType outtype_tx_multisig = Solver(tx_multisig_script, v_solutions_ret_tx_multisig);
-        assert(outtype_tx_multisig == TxoutType::MULTISIG);
-        assert(v_solutions_ret_tx_multisig.size() == 3);
-        assert(v_solutions_ret_tx_multisig[0].size() == 1);
-        assert(v_solutions_ret_tx_multisig[1].size() == 33);
-        assert(v_solutions_ret_tx_multisig[2].size() == 1);
 
         CKeyID key_id = pubkey.GetID();
         assert(!key_id.IsNull());

@@ -174,7 +174,8 @@ PartiallySignedTransaction ProcessPSBT(const std::string& psbt_string, const std
             if (!input.non_witness_utxo) {
                 const CTxIn& tx_in = psbtx.tx->vin.at(i);
                 const Coin& coin = coins.at(tx_in.prevout);
-                if (!coin.out.IsNull() && IsSegWitOutput(provider, coin.out.scriptPubKey)) {
+                if (!coin.out.IsNull() &&
+                    (coin.out.scriptPubKey.IsPayToTaproot() || coin.out.scriptPubKey.IsPayToAnchor())) {
                     input.witness_utxo = coin.out;
                 }
             }
@@ -189,7 +190,7 @@ PartiallySignedTransaction ProcessPSBT(const std::string& psbt_string, const std
         }
 
         // Update script/keypath information using descriptor data.
-        // Note that SignPSBTInput does a lot more than just constructing ECDSA signatures.
+        // Note that SignPSBTInput does a lot more than just constructing signatures.
         // We only actually care about those if our signing provider doesn't hide private
         // information, as is the case with `descriptorprocesspsbt`
         // Only error for mismatching sighash types as it is critical that the sighash to sign with matches the PSBT's

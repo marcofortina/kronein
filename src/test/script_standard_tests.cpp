@@ -28,200 +28,39 @@ BOOST_AUTO_TEST_CASE(dest_default_is_no_dest)
     BOOST_CHECK(!IsValidDestination(dest));
 }
 
-BOOST_AUTO_TEST_CASE(script_standard_Solver_success)
+BOOST_AUTO_TEST_CASE(script_standard_Solver)
 {
-    CKey keys[3];
-    CPubKey pubkeys[3];
-    for (int i = 0; i < 3; i++) {
-        keys[i].MakeNewKey(true);
-        pubkeys[i] = keys[i].GetPubKey();
-    }
+    std::vector<std::vector<unsigned char>> solutions;
 
-    CScript s;
-    std::vector<std::vector<unsigned char> > solutions;
-
-    // TxoutType::PUBKEY
-    s.clear();
-    s << ToByteVector(pubkeys[0]) << OP_CHECKSIG;
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::PUBKEY);
-    BOOST_CHECK_EQUAL(solutions.size(), 1U);
-    BOOST_CHECK(solutions[0] == ToByteVector(pubkeys[0]));
-
-    // TxoutType::PUBKEYHASH
-    s.clear();
-    s << OP_DUP << OP_HASH160 << ToByteVector(pubkeys[0].GetID()) << OP_EQUALVERIFY << OP_CHECKSIG;
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::PUBKEYHASH);
-    BOOST_CHECK_EQUAL(solutions.size(), 1U);
-    BOOST_CHECK(solutions[0] == ToByteVector(pubkeys[0].GetID()));
-
-    // TxoutType::SCRIPTHASH
-    CScript redeemScript(s); // initialize with leftover P2PKH script
-    s.clear();
-    s << OP_HASH160 << ToByteVector(CScriptID(redeemScript)) << OP_EQUAL;
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::SCRIPTHASH);
-    BOOST_CHECK_EQUAL(solutions.size(), 1U);
-    BOOST_CHECK(solutions[0] == ToByteVector(CScriptID(redeemScript)));
-
-    // TxoutType::MULTISIG
-    s.clear();
-    s << OP_1 <<
-        ToByteVector(pubkeys[0]) <<
-        ToByteVector(pubkeys[1]) <<
-        OP_2 << OP_CHECKMULTISIG;
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::MULTISIG);
-    BOOST_CHECK_EQUAL(solutions.size(), 4U);
-    BOOST_CHECK(solutions[0] == std::vector<unsigned char>({1}));
-    BOOST_CHECK(solutions[1] == ToByteVector(pubkeys[0]));
-    BOOST_CHECK(solutions[2] == ToByteVector(pubkeys[1]));
-    BOOST_CHECK(solutions[3] == std::vector<unsigned char>({2}));
-
-    s.clear();
-    s << OP_2 <<
-        ToByteVector(pubkeys[0]) <<
-        ToByteVector(pubkeys[1]) <<
-        ToByteVector(pubkeys[2]) <<
-        OP_3 << OP_CHECKMULTISIG;
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::MULTISIG);
-    BOOST_CHECK_EQUAL(solutions.size(), 5U);
-    BOOST_CHECK(solutions[0] == std::vector<unsigned char>({2}));
-    BOOST_CHECK(solutions[1] == ToByteVector(pubkeys[0]));
-    BOOST_CHECK(solutions[2] == ToByteVector(pubkeys[1]));
-    BOOST_CHECK(solutions[3] == ToByteVector(pubkeys[2]));
-    BOOST_CHECK(solutions[4] == std::vector<unsigned char>({3}));
-
-    // TxoutType::NULL_DATA
-    s.clear();
-    s << OP_RETURN <<
-        std::vector<unsigned char>({0}) <<
-        std::vector<unsigned char>({75}) <<
-        std::vector<unsigned char>({255});
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::NULL_DATA);
-    BOOST_CHECK_EQUAL(solutions.size(), 0U);
-
-    // TxoutType::WITNESS_V0_KEYHASH
-    s.clear();
-    s << OP_0 << ToByteVector(pubkeys[0].GetID());
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::WITNESS_V0_KEYHASH);
-    BOOST_CHECK_EQUAL(solutions.size(), 1U);
-    BOOST_CHECK(solutions[0] == ToByteVector(pubkeys[0].GetID()));
-
-    // TxoutType::WITNESS_V0_SCRIPTHASH
-    uint256 scriptHash;
-    CSHA256().Write(redeemScript.data(), redeemScript.size())
-        .Finalize(scriptHash.begin());
-
-    s.clear();
-    s << OP_0 << ToByteVector(scriptHash);
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::WITNESS_V0_SCRIPTHASH);
-    BOOST_CHECK_EQUAL(solutions.size(), 1U);
-    BOOST_CHECK(solutions[0] == ToByteVector(scriptHash));
-
-    // TxoutType::WITNESS_V1_TAPROOT
-    s.clear();
-    s << OP_1 << ToByteVector(uint256::ZERO);
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::WITNESS_V1_TAPROOT);
-    BOOST_CHECK_EQUAL(solutions.size(), 1U);
+    const CScript taproot{CScript{} << OP_1 << ToByteVector(uint256::ZERO)};
+    BOOST_CHECK_EQUAL(Solver(taproot, solutions), TxoutType::WITNESS_V1_TAPROOT);
+    BOOST_REQUIRE_EQUAL(solutions.size(), 1U);
     BOOST_CHECK(solutions[0] == ToByteVector(uint256::ZERO));
 
-    // TxoutType::WITNESS_UNKNOWN
-    s.clear();
-    s << OP_16 << ToByteVector(uint256::ONE);
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::WITNESS_UNKNOWN);
-    BOOST_CHECK_EQUAL(solutions.size(), 2U);
-    BOOST_CHECK(solutions[0] == std::vector<unsigned char>{16});
-    BOOST_CHECK(solutions[1] == ToByteVector(uint256::ONE));
-
-    // TxoutType::ANCHOR
-    s.clear();
-    s << OP_1 << ANCHOR_BYTES;
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::ANCHOR);
+    const CScript anchor{CScript{} << OP_1 << ANCHOR_BYTES};
+    BOOST_CHECK_EQUAL(Solver(anchor, solutions), TxoutType::ANCHOR);
     BOOST_CHECK(solutions.empty());
 
-    // Sanity-check IsPayToAnchor
-    int version{-1};
-    std::vector<unsigned char> witness_program;
-    BOOST_CHECK(s.IsPayToAnchor());
-    BOOST_CHECK(s.IsWitnessProgram(version, witness_program));
-    BOOST_CHECK(CScript::IsPayToAnchor(version, witness_program));
+    const CScript data{CScript{} << OP_RETURN << std::vector<unsigned char>{0x01, 0x02}};
+    BOOST_CHECK_EQUAL(Solver(data, solutions), TxoutType::NULL_DATA);
+    BOOST_CHECK(solutions.empty());
 
-    // TxoutType::NONSTANDARD
-    s.clear();
-    s << OP_9 << OP_ADD << OP_11 << OP_EQUAL;
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::NONSTANDARD);
-}
-
-BOOST_AUTO_TEST_CASE(script_standard_Solver_failure)
-{
-    CKey key = GenerateRandomKey();
-    CPubKey pubkey = key.GetPubKey();
-
-    CScript s;
-    std::vector<std::vector<unsigned char> > solutions;
-
-    // TxoutType::PUBKEY with incorrectly sized pubkey
-    s.clear();
-    s << std::vector<unsigned char>(30, 0x01) << OP_CHECKSIG;
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::NONSTANDARD);
-
-    // TxoutType::PUBKEYHASH with incorrectly sized key hash
-    s.clear();
-    s << OP_DUP << OP_HASH160 << ToByteVector(pubkey) << OP_EQUALVERIFY << OP_CHECKSIG;
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::NONSTANDARD);
-
-    // TxoutType::SCRIPTHASH with incorrectly sized script hash
-    s.clear();
-    s << OP_HASH160 << std::vector<unsigned char>(21, 0x01) << OP_EQUAL;
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::NONSTANDARD);
-
-    // TxoutType::MULTISIG 0/2
-    s.clear();
-    s << OP_0 << ToByteVector(pubkey) << OP_1 << OP_CHECKMULTISIG;
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::NONSTANDARD);
-
-    // TxoutType::MULTISIG 2/1
-    s.clear();
-    s << OP_2 << ToByteVector(pubkey) << OP_1 << OP_CHECKMULTISIG;
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::NONSTANDARD);
-
-    // TxoutType::MULTISIG n = 2 with 1 pubkey
-    s.clear();
-    s << OP_1 << ToByteVector(pubkey) << OP_2 << OP_CHECKMULTISIG;
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::NONSTANDARD);
-
-    // TxoutType::MULTISIG n = 1 with 0 pubkeys
-    s.clear();
-    s << OP_1 << OP_1 << OP_CHECKMULTISIG;
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::NONSTANDARD);
-
-    // TxoutType::NULL_DATA with other opcodes
-    s.clear();
-    s << OP_RETURN << std::vector<unsigned char>({75}) << OP_ADD;
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::NONSTANDARD);
-
-    // TxoutType::WITNESS_V0_{KEY,SCRIPT}HASH with incorrect program size (-> consensus-invalid, i.e. non-standard)
-    s.clear();
-    s << OP_0 << std::vector<unsigned char>(19, 0x01);
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::NONSTANDARD);
-
-    // TxoutType::WITNESS_V1_TAPROOT with incorrect program size (-> undefined, but still policy-valid)
-    s.clear();
-    s << OP_1 << std::vector<unsigned char>(31, 0x01);
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::WITNESS_UNKNOWN);
-    s.clear();
-    s << OP_1 << std::vector<unsigned char>(33, 0x01);
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::WITNESS_UNKNOWN);
-
-    // TxoutType::ANCHOR but wrong witness version
-    s.clear();
-    s << OP_2 << ANCHOR_BYTES;
-    BOOST_CHECK(!s.IsPayToAnchor());
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::WITNESS_UNKNOWN);
-
-    // TxoutType::ANCHOR but wrong 2-byte data push
-    s.clear();
-    s << OP_1 << std::vector<unsigned char>{0xff, 0xff};
-    BOOST_CHECK(!s.IsPayToAnchor());
-    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::WITNESS_UNKNOWN);
+    CKey key{GenerateRandomKey()};
+    const CPubKey pubkey{key.GetPubKey()};
+    const std::vector<CScript> unsupported{
+        CScript{} << ToByteVector(pubkey) << OP_CHECKSIG,
+        CScript{} << OP_DUP << OP_HASH160 << ToByteVector(pubkey.GetID()) << OP_EQUALVERIFY << OP_CHECKSIG,
+        CScript{} << OP_HASH160 << ToByteVector(CScriptID{data}) << OP_EQUAL,
+        CScript{} << OP_0 << ToByteVector(pubkey.GetID()),
+        CScript{} << OP_0 << std::vector<unsigned char>(32, 0x01),
+        CScript{} << OP_2 << std::vector<unsigned char>(32, 0x01),
+        CScript{} << OP_1 << ToByteVector(pubkey) << OP_1 << OP_CHECKMULTISIG,
+        CScript{} << OP_9 << OP_ADD << OP_11 << OP_EQUAL,
+    };
+    for (const CScript& script : unsupported) {
+        BOOST_CHECK_EQUAL(Solver(script, solutions), TxoutType::NONSTANDARD);
+        BOOST_CHECK(solutions.empty());
+    }
 }
 
 BOOST_AUTO_TEST_CASE(script_standard_ExtractDestination)
@@ -237,64 +76,64 @@ BOOST_AUTO_TEST_CASE(script_standard_ExtractDestination)
         BOOST_CHECK(std::get<CNoDestination>(address).GetScript() == script);
     };
 
-    // TxoutType::PUBKEY
+    // P2PK is unsupported.
     s.clear();
     s << ToByteVector(pubkey) << OP_CHECKSIG;
     check_unsupported(s);
 
-    // TxoutType::PUBKEYHASH
+    // P2PKH is unsupported.
     s.clear();
     s << OP_DUP << OP_HASH160 << ToByteVector(pubkey.GetID()) << OP_EQUALVERIFY << OP_CHECKSIG;
     check_unsupported(s);
 
-    // TxoutType::SCRIPTHASH
+    // P2SH is unsupported.
     CScript redeemScript(s); // initialize with leftover P2PKH script
     s.clear();
     s << OP_HASH160 << ToByteVector(CScriptID(redeemScript)) << OP_EQUAL;
     check_unsupported(s);
 
-    // TxoutType::MULTISIG
+    // Bare multisig is unsupported.
     s.clear();
     s << OP_1 << ToByteVector(pubkey) << OP_1 << OP_CHECKMULTISIG;
     check_unsupported(s);
 
-    // TxoutType::NULL_DATA
+    // OP_RETURN has no destination.
     s.clear();
     s << OP_RETURN << std::vector<unsigned char>({75});
     check_unsupported(s);
 
-    // TxoutType::WITNESS_V0_KEYHASH
+    // P2WPKH is unsupported.
     s.clear();
     s << OP_0 << ToByteVector(pubkey.GetID());
     check_unsupported(s);
 
-    // TxoutType::WITNESS_V0_SCRIPTHASH
+    // P2WSH is unsupported.
     s.clear();
     uint256 scripthash;
     CSHA256().Write(redeemScript.data(), redeemScript.size()).Finalize(scripthash.begin());
     s << OP_0 << ToByteVector(scripthash);
     check_unsupported(s);
 
-    // TxoutType::WITNESS_V1_TAPROOT
+    // P2TR is the native spendable destination.
     s.clear();
     auto xpk = XOnlyPubKey(pubkey);
     s << OP_1 << ToByteVector(xpk);
     BOOST_CHECK(ExtractDestination(s, address));
     BOOST_CHECK(std::get<WitnessV1Taproot>(address) == WitnessV1Taproot(xpk));
 
-    // TxoutType::ANCHOR
+    // P2A remains a native destination.
     s.clear();
     s << OP_1 << ANCHOR_BYTES;
     BOOST_CHECK(ExtractDestination(s, address));
     BOOST_CHECK(std::get<PayToAnchor>(address) == PayToAnchor());
 
-    // TxoutType::WITNESS_UNKNOWN with unknown version
-    // -> segwit version 1 with an undefined program size (33 bytes in this test case)
+    // Undefined witness programs are unsupported.
+    // Version 1 with an undefined program size (33 bytes in this test case).
     s.clear();
     s << OP_1 << ToByteVector(pubkey);
     check_unsupported(s);
     s.clear();
-    // -> segwit versions 2+ are not specified yet
+    // Witness versions 2+ are not part of the transaction model.
     s << OP_2 << ToByteVector(xpk);
     check_unsupported(s);
 }

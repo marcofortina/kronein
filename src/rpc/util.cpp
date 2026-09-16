@@ -44,11 +44,12 @@ const std::string EXAMPLE_ADDRESS[2] = {"bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8
 
 std::string GetAllOutputTypes()
 {
-    std::vector<std::string> ret;
-    using U = std::underlying_type_t<TxoutType>;
-    for (U i = (U)TxoutType::NONSTANDARD; i <= (U)TxoutType::WITNESS_UNKNOWN; ++i) {
-        ret.emplace_back(GetTxnOutputType(static_cast<TxoutType>(i)));
-    }
+    const std::vector<std::string> ret{
+        GetTxnOutputType(TxoutType::NONSTANDARD),
+        GetTxnOutputType(TxoutType::ANCHOR),
+        GetTxnOutputType(TxoutType::NULL_DATA),
+        GetTxnOutputType(TxoutType::WITNESS_V1_TAPROOT),
+    };
     return Join(ret, ", ");
 }
 

@@ -116,9 +116,6 @@ bool ProduceSignature(const SigningProvider& provider, const BaseSignatureCreato
 SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nIn, const CTxOut& txout);
 void UpdateInput(CTxIn& input, const SignatureData& data);
 
-/** Check whether a scriptPubKey is known to be segwit. */
-bool IsSegWitOutput(const SigningProvider& provider, const CScript& script);
-
 /** Sign the CMutableTransaction */
 bool SignTransaction(CMutableTransaction& mtx, const SigningProvider* provider, const std::map<COutPoint, Coin>& coins, int sighash, std::map<int, bilingual_str>& input_errors);
 

@@ -55,9 +55,7 @@ FUZZ_TARGET(script, .init = initialize_script)
     TxoutType which_type;
     bool is_standard_ret = IsStandard(script, which_type);
     if (!is_standard_ret) {
-        assert(which_type == TxoutType::NONSTANDARD ||
-               which_type == TxoutType::NULL_DATA ||
-               which_type == TxoutType::MULTISIG);
+        assert(which_type == TxoutType::NONSTANDARD);
     }
     if (which_type == TxoutType::NONSTANDARD) {
         assert(!is_standard_ret);
@@ -73,20 +71,14 @@ FUZZ_TARGET(script, .init = initialize_script)
     CTxDestination address;
     bool extract_destination_ret = ExtractDestination(script, address);
     if (!extract_destination_ret) {
-        assert(which_type == TxoutType::PUBKEY ||
-               which_type == TxoutType::NONSTANDARD ||
-               which_type == TxoutType::NULL_DATA ||
-               which_type == TxoutType::MULTISIG);
+        assert(which_type == TxoutType::NONSTANDARD || which_type == TxoutType::NULL_DATA);
     }
-    if (which_type == TxoutType::NONSTANDARD ||
-        which_type == TxoutType::NULL_DATA ||
-        which_type == TxoutType::MULTISIG) {
+    if (which_type == TxoutType::NONSTANDARD || which_type == TxoutType::NULL_DATA) {
         assert(!extract_destination_ret);
     }
 
     const FlatSigningProvider signing_provider;
     (void)InferDescriptor(script, signing_provider);
-    (void)IsSegWitOutput(signing_provider, script);
 
     (void)RecursiveDynamicUsage(script);
 
