@@ -65,7 +65,7 @@ static std::map<TxValidationResult, Behaviors> expected_behaviors{
     {TxValidationResult::TX_CONFLICT,                {                0,                 1,              0,               0,        1,            0,             1}},
     {TxValidationResult::TX_MEMPOOL_POLICY,          {                0,                 1,              0,               0,        1,            0,             1}},
     {TxValidationResult::TX_NO_MEMPOOL,              {                0,                 1,              0,               0,        1,            0,             1}},
-    {TxValidationResult::TX_RECONSIDERABLE,          {                0,                 0,              0,               1,        1,            0,             1}},
+    {TxValidationResult::TX_RECONSIDERABLE,          {                0,                 0,              1,               1,        1,            1,             1}},
     {TxValidationResult::TX_UNKNOWN,                 {                0,                 1,              0,               0,        1,            0,             1}},
 };
 

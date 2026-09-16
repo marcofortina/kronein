@@ -431,13 +431,11 @@ node::RejectedTxTodo TxDownloadManagerImpl::MempoolRejectedTx(const CTransaction
     } else if (state.GetResult() == TxValidationResult::TX_WITNESS_MISSING) {
         add_extra_compact_tx = false;
     } else {
-        // We can add the wtxid of this transaction to our reject filter.
-        // Do not add the txid: different witness data can produce another
-        // candidate with the same txid. Announcements are keyed by wtxid.
         if (state.GetResult() == TxValidationResult::TX_RECONSIDERABLE) {
-            // If the result is TX_RECONSIDERABLE, add it to m_lazy_recent_rejects_reconsiderable
-            // because we should not download or submit this transaction by itself again, but may
-            // submit it as part of a package later.
+            // Parent lookups use txids while transaction announcements use wtxids. Native
+            // serialization keeps these identifier domains distinct even when the witness stacks
+            // are empty, so record both identifiers for package reconsideration.
+            RecentRejectsReconsiderableFilter().insert(ptx->GetHash().ToUint256());
             RecentRejectsReconsiderableFilter().insert(ptx->GetWitnessHash().ToUint256());
 
             if (first_time_failure) {
@@ -448,6 +446,8 @@ node::RejectedTxTodo TxDownloadManagerImpl::MempoolRejectedTx(const CTransaction
                 package_to_validate = Find1P1CPackage(ptx, nodeid);
             }
         } else {
+            // Do not add the txid: different witness data can produce another candidate with the
+            // same txid. Announcements are keyed by wtxid.
             RecentRejectsFilter().insert(ptx->GetWitnessHash().ToUint256());
         }
         m_txrequest.ForgetTxHash(ptx->GetWitnessHash().ToUint256());

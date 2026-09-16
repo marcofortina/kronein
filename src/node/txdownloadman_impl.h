@@ -66,7 +66,7 @@ public:
 
     /**
      * Filter for:
-     * (1) wtxids of transactions that were recently rejected by the mempool but are
+     * (1) txids and wtxids of transactions that were recently rejected by the mempool but are
      * eligible for reconsideration if submitted with other transactions.
      * (2) packages (see GetPackageHash) we have already rejected before and should not retry.
      *
@@ -74,8 +74,8 @@ public:
      * have larger mempools and thus lower minimum feerates than us.
      *
      * When a transaction's error is TxValidationResult::TX_RECONSIDERABLE (in a package or by
-     * itself), add its wtxid to this filter. When a package fails for any reason, add the combined
-     * hash to this filter.
+     * itself), add its txid and wtxid to this filter. When a package fails for any reason, add the
+     * combined hash to this filter.
      *
      * Upon receiving an announcement for a transaction, if it exists in this filter, do not
      * download the txdata. When considering packages, if it exists in this filter, drop it.
@@ -89,7 +89,7 @@ public:
     CRollingBloomFilter& RecentRejectsReconsiderableFilter()
     {
         if (!m_lazy_recent_rejects_reconsiderable) {
-            m_lazy_recent_rejects_reconsiderable = std::make_unique<CRollingBloomFilter>(120'000, 0.000'001);
+            m_lazy_recent_rejects_reconsiderable = std::make_unique<CRollingBloomFilter>(240'000, 0.000'001);
         }
 
         return *m_lazy_recent_rejects_reconsiderable;
