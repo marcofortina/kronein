@@ -78,13 +78,8 @@ public:
     std::vector<bilingual_str> GetMessages() const EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 };
 
-/**
- * RPC helper function that wraps warnings.GetMessages().
- *
- * Returns a UniValue::VSTR with the latest warning if use_deprecated is
- * set to true, or a UniValue::VARR with all warnings otherwise.
- */
-UniValue GetWarningsForRpc(const Warnings& warnings, bool use_deprecated);
+/** RPC helper function that returns all warning messages. */
+UniValue GetWarningsForRpc(const Warnings& warnings);
 } // namespace node
 
 #endif // BITCOIN_NODE_WARNINGS_H

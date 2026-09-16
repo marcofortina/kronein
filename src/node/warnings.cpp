@@ -51,13 +51,8 @@ std::vector<bilingual_str> Warnings::GetMessages() const
     return messages;
 }
 
-UniValue GetWarningsForRpc(const Warnings& warnings, bool use_deprecated)
+UniValue GetWarningsForRpc(const Warnings& warnings)
 {
-    if (use_deprecated) {
-        const auto all_messages{warnings.GetMessages()};
-        return all_messages.empty() ? "" : all_messages.back().original;
-    }
-
     UniValue messages{UniValue::VARR};
     for (auto&& message : warnings.GetMessages()) {
         messages.push_back(std::move(message.original));

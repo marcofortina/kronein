@@ -437,14 +437,11 @@ static RPCHelpMan getmininginfo()
                             {RPCResult::Type::NUM, "difficulty", "The next difficulty"},
                             {RPCResult::Type::STR_HEX, "target", "The next target"}
                         }},
-                        (IsDeprecatedRPCEnabled("warnings") ?
-                            RPCResult{RPCResult::Type::STR, "warnings", "any network and blockchain warnings (DEPRECATED)"} :
-                            RPCResult{RPCResult::Type::ARR, "warnings", "any network and blockchain warnings (run with `-deprecatedrpc=warnings` to return the latest warning as a single string)",
+                        {RPCResult::Type::ARR, "warnings", "any network and blockchain warnings",
                             {
                                 {RPCResult::Type::STR, "", "warning"},
                             }
-                            }
-                        ),
+                        },
                     }},
                 RPCExamples{
                     HelpExampleCli("getmininginfo", "")
@@ -488,7 +485,7 @@ static RPCHelpMan getmininginfo()
             chainman.GetConsensus().signet_challenge;
         obj.pushKV("signet_challenge", HexStr(signet_challenge));
     }
-    obj.pushKV("warnings", node::GetWarningsForRpc(*CHECK_NONFATAL(node.warnings), IsDeprecatedRPCEnabled("warnings")));
+    obj.pushKV("warnings", node::GetWarningsForRpc(*CHECK_NONFATAL(node.warnings)));
     return obj;
 },
     };

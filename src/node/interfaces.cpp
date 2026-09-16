@@ -792,7 +792,6 @@ public:
     {
         return std::make_unique<RpcHandlerImpl>(command);
     }
-    bool rpcEnableDeprecated(const std::string& method) override { return IsDeprecatedRPCEnabled(method); }
     common::SettingsValue getSetting(const std::string& name) override
     {
         return args().GetSetting(name);
