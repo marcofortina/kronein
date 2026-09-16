@@ -567,6 +567,23 @@ BOOST_AUTO_TEST_CASE(ccoins_serialization)
     }
 }
 
+BOOST_AUTO_TEST_CASE(txundo_serialization)
+{
+    Coin coin;
+    SpanReader{"97f23c835800816115944e077fe7c803cfa57f29b36bf87c1d35"_hex} >> coin;
+
+    CTxUndo undo;
+    undo.vprevout.push_back(coin);
+    DataStream stream;
+    stream << undo;
+    BOOST_CHECK_EQUAL(HexStr(stream), "0197f23c835800816115944e077fe7c803cfa57f29b36bf87c1d35");
+
+    CTxUndo decoded;
+    stream >> decoded;
+    BOOST_REQUIRE_EQUAL(decoded.vprevout.size(), 1U);
+    BOOST_CHECK(decoded.vprevout.front() == coin);
+}
+
 const static COutPoint OUTPOINT;
 constexpr CAmount SPENT {-1};
 constexpr CAmount ABSENT{-2};
