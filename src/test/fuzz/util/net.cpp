@@ -104,7 +104,7 @@ P ConsumeDeserializationParams(FuzzedDataProvider& fuzzed_data_provider) noexcep
         return P{PickValue(fuzzed_data_provider, ADDR_ENCODINGS)};
     }
     if constexpr (std::is_same_v<P, CAddress::SerParams>) {
-        return P{{PickValue(fuzzed_data_provider, ADDR_ENCODINGS)}, PickValue(fuzzed_data_provider, ADDR_FORMATS)};
+        return P{{CNetAddr::Encoding::V2}, PickValue(fuzzed_data_provider, ADDR_FORMATS)};
     }
 }
 template CNetAddr::SerParams ConsumeDeserializationParams(FuzzedDataProvider&) noexcept;

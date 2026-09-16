@@ -288,30 +288,8 @@ class CAddress : public CService
 {
     static constexpr std::chrono::seconds TIME_INIT{100000000};
 
-    /** Historically, CAddress disk serialization stored the CLIENT_VERSION, optionally OR'ed with
-     *  the ADDRV2_FORMAT flag to indicate V2 serialization. The first field has since been
-     *  disentangled from client versioning, and now instead:
-     *  - The low bits (masked by DISK_VERSION_IGNORE_MASK) store the fixed value DISK_VERSION_INIT,
-     *    (in case any code exists that treats it as a client version) but are ignored on
-     *    deserialization.
-     *  - The high bits (masked by ~DISK_VERSION_IGNORE_MASK) store actual serialization information.
-     *    Only 0 or DISK_VERSION_ADDRV2 (equal to the historical ADDRV2_FORMAT) are valid now, and
-     *    any other value triggers a deserialization failure. Other values can be added later if
-     *    needed.
-     *
-     *  For disk deserialization, ADDRV2_FORMAT in the stream version signals that ADDRV2
-     *  deserialization is permitted, but the actual format is determined by the high bits in the
-     *  stored version field. For network serialization, the stream version having ADDRV2_FORMAT or
-     *  not determines the actual format used (as it has no embedded version number).
-     */
-    static constexpr uint32_t DISK_VERSION_INIT{220000};
-    static constexpr uint32_t DISK_VERSION_IGNORE_MASK{0b00000000'00000111'11111111'11111111};
-    /** The version number written in disk serialized addresses to indicate V2 serializations.
-     * It must be exactly 1<<29, as that is the value that historical versions used for this
-     * (they used their internal ADDRV2_FORMAT flag here). */
-    static constexpr uint32_t DISK_VERSION_ADDRV2{1 << 29};
-    static_assert((DISK_VERSION_INIT & ~DISK_VERSION_IGNORE_MASK) == 0, "DISK_VERSION_INIT must be covered by DISK_VERSION_IGNORE_MASK");
-    static_assert((DISK_VERSION_ADDRV2 & DISK_VERSION_IGNORE_MASK) == 0, "DISK_VERSION_ADDRV2 must not be covered by DISK_VERSION_IGNORE_MASK");
+    //! Native CAddress disk format version.
+    static constexpr uint8_t DISK_VERSION{1};
 
 public:
     CAddress() : CService{} {};
@@ -327,55 +305,35 @@ public:
         SER_PARAMS_OPFUNC
     };
     static constexpr SerParams V2_NETWORK{{CNetAddr::Encoding::V2}, Format::Network};
-    static constexpr SerParams V1_DISK{{CNetAddr::Encoding::V1}, Format::Disk};
     static constexpr SerParams V2_DISK{{CNetAddr::Encoding::V2}, Format::Disk};
 
     SERIALIZE_METHODS(CAddress, obj)
     {
-        bool use_v2;
         auto& params = SER_PARAMS(SerParams);
         if (params.fmt == Format::Disk) {
-            // In the disk serialization format, the encoding (v1 or v2) is determined by a flag version
-            // that's part of the serialization itself. ADDRV2_FORMAT in the stream version only determines
-            // whether V2 is chosen/permitted at all.
-            uint32_t stored_format_version = DISK_VERSION_INIT;
-            if (params.enc == Encoding::V2) stored_format_version |= DISK_VERSION_ADDRV2;
+            uint8_t stored_format_version{DISK_VERSION};
             READWRITE(stored_format_version);
-            stored_format_version &= ~DISK_VERSION_IGNORE_MASK; // ignore low bits
-            if (stored_format_version == 0) {
-                use_v2 = false;
-            } else if (stored_format_version == DISK_VERSION_ADDRV2 && params.enc == Encoding::V2) {
-                // Only support v2 deserialization if V2 is set.
-                use_v2 = true;
-            } else {
+            if (stored_format_version != DISK_VERSION) {
                 throw std::ios_base::failure("Unsupported CAddress disk format version");
             }
         } else {
             assert(params.fmt == Format::Network);
-            if (params.enc != Encoding::V2) {
-                throw std::ios_base::failure("ADDRv1 network serialization is not supported");
-            }
-            use_v2 = true;
+        }
+        if (params.enc != Encoding::V2) {
+            throw std::ios_base::failure("ADDRv1 serialization is not supported");
         }
 
         READWRITE(Using<LossyChronoFormatter<uint32_t>>(obj.nTime));
-        // nServices is serialized as CompactSize in V2; as uint64_t in V1.
-        if (use_v2) {
-            uint64_t services_tmp;
-            SER_WRITE(obj, services_tmp = obj.nServices);
-            READWRITE(Using<CompactSizeFormatter<false>>(services_tmp));
-            SER_READ(obj, obj.nServices = static_cast<ServiceFlags>(services_tmp));
-        } else {
-            READWRITE(Using<CustomUintFormatter<8>>(obj.nServices));
-        }
-        // Invoke V1/V2 serializer for CService parent object.
-        const auto ser_params{use_v2 ? CNetAddr::V2 : CNetAddr::V1};
-        READWRITE(ser_params(AsBase<CService>(obj)));
+        uint64_t services_tmp;
+        SER_WRITE(obj, services_tmp = obj.nServices);
+        READWRITE(Using<CompactSizeFormatter<false>>(services_tmp));
+        SER_READ(obj, obj.nServices = static_cast<ServiceFlags>(services_tmp));
+        READWRITE(CNetAddr::V2(AsBase<CService>(obj)));
     }
 
     //! Always included in serialization. The behavior is unspecified if the value is not representable as uint32_t.
     NodeSeconds nTime{TIME_INIT};
-    //! Serialized as uint64_t in V1, and as CompactSize in V2.
+    //! Serialized as CompactSize.
     ServiceFlags nServices{NODE_NONE};
 
     friend bool operator==(const CAddress& a, const CAddress& b)
