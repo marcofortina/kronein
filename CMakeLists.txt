@@ -175,7 +175,7 @@ if(BUILD_GUI)
   if(BUILD_GUI_TESTS)
     list(APPEND qt_components Test)
   endif()
-  find_package(Qt 6.2 MODULE REQUIRED
+  find_package(Qt 6.4 MODULE REQUIRED
     COMPONENTS ${qt_components}
   )
   unset(qt_components)
