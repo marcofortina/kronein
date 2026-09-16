@@ -686,9 +686,6 @@ std::string ArgsManager::GetHelpMessage() const
             case OptionsCategory::COMMANDS:
                 usage += HelpMessageGroup("Commands:");
                 break;
-            case OptionsCategory::REGISTER_COMMANDS:
-                usage += HelpMessageGroup("Register Commands:");
-                break;
             case OptionsCategory::CLI_COMMANDS:
                 usage += HelpMessageGroup("CLI Commands:");
                 break;

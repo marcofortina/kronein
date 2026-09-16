@@ -63,7 +63,6 @@ enum class OptionsCategory {
     RPC,
     GUI,
     COMMANDS,
-    REGISTER_COMMANDS,
     CLI_COMMANDS,
     IPC,
 
