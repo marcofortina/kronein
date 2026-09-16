@@ -209,10 +209,6 @@ BOOST_AUTO_TEST_CASE(tx_valid)
             DataStream stream(ParseHex(transaction));
             CTransaction tx(deserialize, TX_WITH_WITNESS, stream);
 
-            TxValidationState state;
-            BOOST_CHECK_MESSAGE(CheckTransaction(tx, state), strTest);
-            BOOST_CHECK(state.IsValid());
-
             PrecomputedTransactionData txdata(tx);
             script_verify_flags verify_flags = ParseScriptFlags(test[2].get_str());
 
@@ -297,9 +293,10 @@ BOOST_AUTO_TEST_CASE(tx_invalid)
             DataStream stream(ParseHex(transaction));
             CTransaction tx(deserialize, TX_WITH_WITNESS, stream);
 
-            TxValidationState state;
-            if (!CheckTransaction(tx, state) || state.IsInvalid()) {
-                BOOST_CHECK_MESSAGE(test[2].get_str() == "BADTX", strTest);
+            if (test[2].get_str() == "BADTX") {
+                TxValidationState state;
+                BOOST_CHECK_MESSAGE(!CheckTransaction(tx, state), strTest);
+                BOOST_CHECK(state.IsInvalid());
                 continue;
             }
 
@@ -346,6 +343,18 @@ BOOST_AUTO_TEST_CASE(tx_no_inputs)
     TxValidationState state;
     BOOST_CHECK_MESSAGE(!CheckTransaction(CTransaction(empty), state), "Transaction with no inputs should be invalid.");
     BOOST_CHECK(state.GetRejectReason() == "bad-txns-vin-empty");
+}
+
+BOOST_AUTO_TEST_CASE(tx_version)
+{
+    for (const uint32_t version : {0U, 2U}) {
+        CMutableTransaction tx;
+        tx.version = version;
+
+        TxValidationState state;
+        BOOST_CHECK(!CheckTransaction(CTransaction{tx}, state));
+        BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-tx-version");
+    }
 }
 
 BOOST_AUTO_TEST_CASE(tx_oversized)

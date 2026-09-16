@@ -95,7 +95,7 @@ void IpcPipeTest()
     BOOST_CHECK_EQUAL(uni1.write(), uni2.write());
 
     CMutableTransaction mtx;
-    mtx.version = 2;
+    mtx.version = CTransaction::CURRENT_VERSION;
     mtx.nLockTime = 3;
     mtx.vin.emplace_back(txout1);
     mtx.vout.emplace_back(COIN, CScript());

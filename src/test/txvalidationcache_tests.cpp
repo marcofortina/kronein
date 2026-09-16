@@ -291,7 +291,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
     // TEST CHECKSEQUENCEVERIFY
     {
         CMutableTransaction invalid_with_csv_tx;
-        invalid_with_csv_tx.version = 2;
+        invalid_with_csv_tx.version = CTransaction::CURRENT_VERSION;
         invalid_with_csv_tx.vin.resize(1);
         invalid_with_csv_tx.vin[0].prevout.hash = spend_tx.GetHash();
         invalid_with_csv_tx.vin[0].prevout.n = 3;

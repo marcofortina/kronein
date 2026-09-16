@@ -76,12 +76,7 @@ class MiningTest(BitcoinTestFramework):
         assert_equal(mining_info['currentblocktx'], 0)
         assert_equal(mining_info['currentblockweight'], DEFAULT_BLOCK_RESERVED_WEIGHT)
 
-        self.log.info('test blockversion')
-        self.restart_node(0, extra_args=[f'-mocktime={t}', '-blockversion=1337'])
-        self.connect_nodes(0, 1)
-        assert_equal(1337, self.nodes[0].getblocktemplate(NORMAL_GBT_REQUEST_PARAMS)['version'])
-        self.restart_node(0, extra_args=[f'-mocktime={t}'])
-        self.connect_nodes(0, 1)
+        self.log.info('test native block version')
         block_template = self.nodes[0].getblocktemplate(NORMAL_GBT_REQUEST_PARAMS)
         assert_equal(BLOCK_VERSION, block_template['version'])
         assert_equal(["csv", "!segwit", "taproot"], block_template['rules'])

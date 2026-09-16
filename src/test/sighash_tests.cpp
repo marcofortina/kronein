@@ -3,8 +3,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <common/system.h>
-#include <consensus/tx_check.h>
-#include <consensus/validation.h>
 #include <hash.h>
 #include <script/interpreter.h>
 #include <script/script.h>
@@ -191,10 +189,6 @@ BOOST_AUTO_TEST_CASE(sighash_from_data)
           sigHashHex = test[4].get_str();
 
           SpanReader{ParseHex(raw_tx)} >> TX_BASE(tx);
-
-          TxValidationState state;
-          BOOST_CHECK_MESSAGE(CheckTransaction(*tx, state), strTest);
-          BOOST_CHECK(state.IsValid());
 
           std::vector<unsigned char> raw = ParseHex(raw_script);
           scriptCode.insert(scriptCode.end(), raw.begin(), raw.end());

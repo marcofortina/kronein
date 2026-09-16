@@ -588,7 +588,7 @@ class CTransaction:
 
     def __init__(self, tx=None):
         if tx is None:
-            self.version = 2
+            self.version = 1
             self.vin = []
             self.vout = []
             self.wit = CTxWitness()

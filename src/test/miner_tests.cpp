@@ -531,7 +531,7 @@ void MinerTestingSetup::TestBasicMining(const CScript& scriptPubKey, const std::
     std::vector<int> prevheights;
 
     // relative height locked
-    tx.version = 2;
+    tx.version = CTransaction::CURRENT_VERSION;
     tx.vin.resize(1);
     prevheights.resize(1);
     tx.vin[0].prevout.hash = txFirst[0]->GetHash(); // only 1 transaction

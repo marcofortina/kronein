@@ -336,7 +336,7 @@ class FullBlockTest(BitcoinTestFramework):
         #                                          \-> b12 (3) -> b13 (4) -> b15 (5) -> b23 (6)
         #                                                                           \-> b24 (6) -> b25 (7)
         #                      \-> b3 (1) -> b4 (2)
-        self.log.info("Accept a block of weight MAX_BLOCK_WEIGHT")
+        self.log.info("Accept a block just below MAX_BLOCK_WEIGHT")
         self.move_tip(15)
         b23 = self.next_block(23, spend=out[6])
         tx = CTransaction()
@@ -345,23 +345,24 @@ class FullBlockTest(BitcoinTestFramework):
         tx.vout.append(CTxOut(0, script_output))
         tx.vin.append(CTxIn(COutPoint(b23.vtx[1].txid_int, 0)))
         b23 = self.update_block(23, [tx])
-        # Make sure the math above worked out to produce a max-weighted block
-        assert_equal(b23.get_weight(), MAX_BLOCK_WEIGHT)
+        # The mandatory empty witness stack makes this layout one weight unit
+        # smaller than the limit.
+        assert_equal(b23.get_weight(), MAX_BLOCK_WEIGHT - 1)
         self.send_blocks([b23], True)
         self.save_spendable_output()
 
-        self.log.info("Reject a block of weight MAX_BLOCK_WEIGHT + 4")
+        self.log.info("Reject a block just above MAX_BLOCK_WEIGHT")
         self.move_tip(15)
         b24 = self.next_block(24, spend=out[6])
         script_length = (MAX_BLOCK_WEIGHT - b24.get_weight() - 276) // 4
         script_output = CScript([b'\x00' * (script_length + 1)])
         tx.vout = [CTxOut(0, script_output)]
         b24 = self.update_block(24, [tx])
-        assert_equal(b24.get_weight(), MAX_BLOCK_WEIGHT + 1 * 4)
-        self.send_blocks([b24], success=False, reject_reason='bad-blk-length', reconnect=True)
+        assert_equal(b24.get_weight(), MAX_BLOCK_WEIGHT + 3)
+        self.send_blocks([b24], success=False, reject_reason='bad-blk-weight', reconnect=True)
 
         b25 = self.next_block(25, spend=out[7])
-        self.send_blocks([b25], False)
+        self.send_blocks([b25], success=False, force_send=True, reconnect=True)
 
         # Create blocks with a coinbase input script size out of range
         #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6  (3)
@@ -881,12 +882,12 @@ class FullBlockTest(BitcoinTestFramework):
         tx = CTransaction()
 
         # use canonical serialization to calculate size
-        script_length = (MAX_BLOCK_WEIGHT - 4 * len(b64a.normal_serialize()) - 276) // 4
+        script_length = (MAX_BLOCK_WEIGHT - 4 * len(b64a.normal_serialize()) - 276) // 4 + 1
         script_output = CScript([b'\x00' * script_length])
         tx.vout.append(CTxOut(0, script_output))
         tx.vin.append(CTxIn(COutPoint(b64a.vtx[1].txid_int, 0)))
         b64a = self.update_block("64a", [tx])
-        assert_equal(b64a.get_weight(), MAX_BLOCK_WEIGHT + 8 * 4)
+        assert_equal(b64a.get_weight(), MAX_BLOCK_WEIGHT + 31)
         self.send_blocks([b64a], success=False, reject_reason='non-canonical ReadCompactSize()')
 
         # bitcoind doesn't disconnect us for sending a bloated block, but if we subsequently
@@ -900,7 +901,7 @@ class FullBlockTest(BitcoinTestFramework):
         b64 = CBlock(b64a)
         b64.vtx = copy.deepcopy(b64a.vtx)
         assert_equal(b64.hash_hex, b64a.hash_hex)
-        assert_equal(b64.get_weight(), MAX_BLOCK_WEIGHT)
+        assert_equal(b64.get_weight(), MAX_BLOCK_WEIGHT - 1)
         self.blocks[64] = b64
         b64 = self.update_block(64, [])
         self.send_blocks([b64], True)

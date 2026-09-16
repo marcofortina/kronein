@@ -295,7 +295,7 @@ class MiniWallet:
         utxos_to_spend: Optional[list[dict]] = None,
         num_outputs=1,
         amount_per_output=0,
-        version=2,
+        version=1,
         locktime=0,
         sequence=0,
         fee_per_output=1000,

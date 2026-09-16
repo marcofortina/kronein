@@ -11,6 +11,9 @@
 bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
 {
     // Basic checks that don't depend on any context
+    if (tx.version != CTransaction::CURRENT_VERSION) {
+        return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-tx-version");
+    }
     if (tx.vin.empty())
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vin-empty");
     if (tx.vout.empty())

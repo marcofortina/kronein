@@ -137,11 +137,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock()
     nHeight = pindexPrev->nHeight + 1;
 
     pblock->nVersion = CBlockHeader::CURRENT_VERSION;
-    // -regtest only: allow overriding block.nVersion with
-    // -blockversion=N to test forking scenarios
-    if (chainparams.MineBlocksOnDemand()) {
-        pblock->nVersion = gArgs.GetIntArg("-blockversion", pblock->nVersion);
-    }
 
     pblock->nTime = TicksSinceEpoch<std::chrono::seconds>(NodeClock::now());
     m_lock_time_cutoff = pindexPrev->GetMedianTimePast();

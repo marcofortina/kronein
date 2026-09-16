@@ -57,13 +57,9 @@ class BIP68Test(BitcoinTestFramework):
         self.log.info("Running test sequence-lock-unconfirmed-inputs")
         self.test_sequence_lock_unconfirmed_inputs()
 
-        self.log.info("Verifying version=2 transactions are standard.")
-        self.test_version2_relay()
-
         self.log.info("Passed")
 
-    # Test that BIP68 is not in effect if tx version is 1, or if
-    # the first sequence bit is set.
+    # Test that the first sequence bit disables relative locktime.
     def test_disable_flag(self):
         # Create some unconfirmed inputs
         utxo = self.wallet.send_self_transfer(from_node=self.nodes[0])["new_utxo"]
@@ -85,7 +81,6 @@ class BIP68Test(BitcoinTestFramework):
         # This transaction will enable sequence-locks, so this transaction should
         # fail
         tx2 = CTransaction()
-        tx2.version = 2
         sequence_value = sequence_value & 0x7fffffff
         tx2.vin = [CTxIn(COutPoint(tx1_id, 0), nSequence=sequence_value)]
         tx2.wit.vtxinwit = [CTxInWitness()]
@@ -93,12 +88,6 @@ class BIP68Test(BitcoinTestFramework):
         tx2.vout = [CTxOut(int(value - self.relayfee * COIN), SCRIPT_W0_SH_OP_TRUE)]
 
         assert_raises_rpc_error(-26, NOT_FINAL_ERROR, self.wallet.sendrawtransaction, from_node=self.nodes[0], tx_hex=tx2.serialize().hex())
-
-        # Setting the version back down to 1 should disable the sequence lock,
-        # so this should be accepted.
-        tx2.version = 1
-
-        self.wallet.sendrawtransaction(from_node=self.nodes[0], tx_hex=tx2.serialize().hex())
 
     # Calculate the median time past of a prior block ("confirmations" before
     # the current tip).
@@ -137,7 +126,6 @@ class BIP68Test(BitcoinTestFramework):
             using_sequence_locks = False
 
             tx = CTransaction()
-            tx.version = 2
             value = 0
             for j in range(num_inputs):
                 sequence_value = 0xfffffffe # this disables sequence locks
@@ -205,7 +193,6 @@ class BIP68Test(BitcoinTestFramework):
         # Anyone-can-spend mempool tx.
         # Sequence lock of 0 should pass.
         tx2 = CTransaction()
-        tx2.version = 2
         tx2.vin = [CTxIn(COutPoint(tx1.txid_int, 0), nSequence=0)]
         tx2.vout = [CTxOut(int(tx1.vout[0].nValue - self.relayfee * COIN), SCRIPT_W0_SH_OP_TRUE)]
         self.wallet.sign_tx(tx=tx2)
@@ -222,7 +209,6 @@ class BIP68Test(BitcoinTestFramework):
                 sequence_value |= SEQUENCE_LOCKTIME_TYPE_FLAG
 
             tx = CTransaction()
-            tx.version = 2
             tx.vin = [CTxIn(COutPoint(orig_tx.txid_int, 0), nSequence=sequence_value)]
             tx.wit.vtxinwit = [CTxInWitness()]
             tx.wit.vtxinwit[0].scriptWitness.stack = [CScript([OP_TRUE])]
@@ -322,12 +308,6 @@ class BIP68Test(BitcoinTestFramework):
         self.nodes[0].setmocktime(0)
         self.nodes[0].invalidateblock(self.nodes[0].getblockhash(cur_height+1))
         self.generate(self.wallet, 10, sync_fun=self.no_op)
-
-    # Use self.nodes[1] to test that version 2 transactions are standard.
-    def test_version2_relay(self):
-        mini_wallet = MiniWallet(self.nodes[1])
-        mini_wallet.send_self_transfer(from_node=self.nodes[1], version=2)
-
 
 if __name__ == '__main__':
     BIP68Test(__file__).main()
