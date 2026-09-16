@@ -10,7 +10,6 @@ argument:
 
     nodes_main.txt
     nodes_signet.txt
-    nodes_test.txt
     nodes_testnet4.txt
 
 These files must consist of lines in the format
@@ -113,16 +112,16 @@ def parse_spec(s):
     else:
         return host + (port, )
 
-def ser_compact_size(l):
+def ser_compact_size(size):
     r = b""
-    if l < 253:
-        r = l.to_bytes(1, "little")
-    elif l < 0x10000:
-        r = (253).to_bytes(1, "little") + l.to_bytes(2, "little")
-    elif l < 0x100000000:
-        r = (254).to_bytes(1, "little") + l.to_bytes(4, "little")
+    if size < 253:
+        r = size.to_bytes(1, "little")
+    elif size < 0x10000:
+        r = (253).to_bytes(1, "little") + size.to_bytes(2, "little")
+    elif size < 0x100000000:
+        r = (254).to_bytes(1, "little") + size.to_bytes(4, "little")
     else:
-        r = (255).to_bytes(1, "little") + l.to_bytes(8, "little")
+        r = (255).to_bytes(1, "little") + size.to_bytes(8, "little")
     return r
 
 def bip155_serialize(spec):
@@ -176,9 +175,6 @@ def main():
     g.write('\n')
     with open(os.path.join(indir,'nodes_signet.txt'), 'r') as f:
         process_nodes(g, f, 'chainparams_seed_signet')
-    g.write('\n')
-    with open(os.path.join(indir,'nodes_test.txt'), 'r') as f:
-        process_nodes(g, f, 'chainparams_seed_test')
     g.write('\n')
     with open(os.path.join(indir,'nodes_testnet4.txt'), 'r') as f:
         process_nodes(g, f, 'chainparams_seed_testnet4')

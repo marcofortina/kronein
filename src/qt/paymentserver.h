@@ -64,8 +64,7 @@ public:
     // Returns true if there were URIs on the command line
     // which were successfully sent to an already-running
     // process.
-    // Note: if a payment request is given, SelectParams(MAIN/TESTNET)
-    // will be called so we startup in the right mode.
+    // If a payment request is given, the matching chain parameters will be selected.
     static bool ipcSendCommandLine();
 
     // parent should be QApplication object
