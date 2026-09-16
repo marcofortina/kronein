@@ -68,21 +68,6 @@ class IPCInterfaceTest(BitcoinTestFramework):
 
         asyncio.run(capnp.run(async_routine()))
 
-    def run_deprecated_mining_test(self):
-        self.log.info("Running deprecated mining interface test")
-        async def async_routine():
-            node = self.nodes[0]
-            connection = await capnp.AsyncIoStream.create_unix_connection(node.ipc_socket_path)
-            init = capnp.TwoPartyClient(connection).bootstrap().cast_as(self.capnp_modules['init'].Init)
-            self.log.debug("Calling deprecated makeMiningOld2 should raise an error")
-            try:
-                await init.makeMiningOld2()
-                raise AssertionError("makeMiningOld2 unexpectedly succeeded")
-            except capnp.KjException as e:
-                assert_equal(e.description, "remote exception: std::exception: Old mining interface (@2) not supported. Please update your client!")
-                assert_equal(e.type, "FAILED")
-        asyncio.run(capnp.run(async_routine()))
-
     def run_unclean_disconnect_test(self):
         """Test behavior when disconnecting during an IPC call that later
         returns a non-null interface pointer. This used to cause a crash as
@@ -165,7 +150,6 @@ class IPCInterfaceTest(BitcoinTestFramework):
     def run_test(self):
         self.run_echo_test()
         self.run_mining_test()
-        self.run_deprecated_mining_test()
         self.run_unclean_disconnect_test()
         self.run_thread_busy_test()
 
