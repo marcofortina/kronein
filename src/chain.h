@@ -302,14 +302,6 @@ const CBlockIndex* LastCommonAncestor(const CBlockIndex* pa, const CBlockIndex* 
 /** Used to marshal pointers into hashes for db storage. */
 class CDiskBlockIndex : public CBlockIndex
 {
-    /** Historically CBlockLocator's version field has been written to disk
-     * streams as the client version, but the value has never been used.
-     *
-     * Hard-code to the highest client version ever written.
-     * SerParams can be used if the field requires any meaning in the future.
-     **/
-    static constexpr int DUMMY_VERSION = 259900;
-
 public:
     uint256 hashPrev;
 
@@ -326,9 +318,6 @@ public:
     SERIALIZE_METHODS(CDiskBlockIndex, obj)
     {
         LOCK(::cs_main);
-        int _nVersion = DUMMY_VERSION;
-        READWRITE(VARINT_MODE(_nVersion, VarIntMode::NONNEGATIVE_SIGNED));
-
         READWRITE(VARINT_MODE(obj.nHeight, VarIntMode::NONNEGATIVE_SIGNED));
         READWRITE(VARINT(obj.nStatus));
         READWRITE(VARINT(obj.nTx));
