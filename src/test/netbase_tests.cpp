@@ -545,7 +545,7 @@ BOOST_AUTO_TEST_CASE(caddress_serialize_v2)
 {
     DataStream s{};
 
-    s << CAddress::NETWORK(fixture_addresses);
+    s << fixture_addresses;
     BOOST_CHECK_EQUAL(HexStr(s), stream_addrv2_hex);
 }
 
@@ -553,7 +553,7 @@ BOOST_AUTO_TEST_CASE(caddress_unserialize_v2)
 {
     std::vector<CAddress> addresses_unserialized;
 
-    SpanReader{ParseHex(stream_addrv2_hex)} >> CAddress::NETWORK(addresses_unserialized);
+    SpanReader{ParseHex(stream_addrv2_hex)} >> addresses_unserialized;
     BOOST_CHECK(fixture_addresses == addresses_unserialized);
 }
 

@@ -815,7 +815,7 @@ BOOST_AUTO_TEST_CASE(initial_advertise_from_version_message)
         if (!is_incoming && msg_type == "addrv2") {
             std::vector<CAddress> addresses;
 
-            SpanReader{data} >> CAddress::NETWORK(addresses);
+            SpanReader{data} >> addresses;
 
             for (const auto& addr : addresses) {
                 if (addr == expected) {

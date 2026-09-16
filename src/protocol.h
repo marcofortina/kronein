@@ -288,37 +288,13 @@ class CAddress : public CService
 {
     static constexpr std::chrono::seconds TIME_INIT{100000000};
 
-    //! Native CAddress disk format version.
-    static constexpr uint8_t DISK_VERSION{1};
-
 public:
     CAddress() : CService{} {};
     CAddress(CService ipIn, ServiceFlags nServicesIn) : CService{ipIn}, nServices{nServicesIn} {};
     CAddress(CService ipIn, ServiceFlags nServicesIn, NodeSeconds time) : CService{ipIn}, nTime{time}, nServices{nServicesIn} {};
 
-    enum class Format {
-        Disk,
-        Network,
-    };
-    struct SerParams {
-        const Format fmt;
-        SER_PARAMS_OPFUNC
-    };
-    static constexpr SerParams NETWORK{Format::Network};
-    static constexpr SerParams DISK{Format::Disk};
-
     SERIALIZE_METHODS(CAddress, obj)
     {
-        auto& params = SER_PARAMS(SerParams);
-        if (params.fmt == Format::Disk) {
-            uint8_t stored_format_version{DISK_VERSION};
-            READWRITE(stored_format_version);
-            if (stored_format_version != DISK_VERSION) {
-                throw std::ios_base::failure("Unsupported CAddress disk format version");
-            }
-        } else {
-            assert(params.fmt == Format::Network);
-        }
         READWRITE(Using<LossyChronoFormatter<uint32_t>>(obj.nTime));
         uint64_t services_tmp;
         SER_WRITE(obj, services_tmp = obj.nServices);

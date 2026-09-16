@@ -1082,7 +1082,7 @@ static auto MakeCorruptPeersDat()
     std::optional<CNetAddr> resolved{LookupHost("252.2.2.2", false)};
     BOOST_REQUIRE(resolved.has_value());
     AddrInfo info = AddrInfo(addr, resolved.value());
-    s << CAddress::DISK(info);
+    s << info;
 
     return s;
 }

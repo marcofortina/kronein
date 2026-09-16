@@ -89,18 +89,6 @@ CAddress ConsumeAddress(FuzzedDataProvider& fuzzed_data_provider) noexcept
     return {ConsumeService(fuzzed_data_provider), ConsumeWeakEnum(fuzzed_data_provider, ALL_SERVICE_FLAGS), NodeSeconds{std::chrono::seconds{fuzzed_data_provider.ConsumeIntegral<uint32_t>()}}};
 }
 
-template <typename P>
-P ConsumeDeserializationParams(FuzzedDataProvider& fuzzed_data_provider) noexcept
-{
-    constexpr std::array ADDR_FORMATS{
-        CAddress::Format::Disk,
-        CAddress::Format::Network,
-    };
-    static_assert(std::is_same_v<P, CAddress::SerParams>);
-    return P{PickValue(fuzzed_data_provider, ADDR_FORMATS)};
-}
-template CAddress::SerParams ConsumeDeserializationParams(FuzzedDataProvider&) noexcept;
-
 FuzzedSock::FuzzedSock(FuzzedDataProvider& fuzzed_data_provider)
     : Sock{fuzzed_data_provider.ConsumeIntegralInRange<SOCKET>(INVALID_SOCKET - 1, INVALID_SOCKET)},
       m_fuzzed_data_provider{fuzzed_data_provider},

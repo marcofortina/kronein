@@ -158,7 +158,7 @@ void AddrManImpl::Serialize(Stream& s_) const
      * very little in common.
      */
 
-    ParamsStream s{s_, CAddress::DISK};
+    auto& s{s_};
 
     s << FILE_FORMAT;
 
@@ -219,7 +219,7 @@ void AddrManImpl::Unserialize(Stream& s_)
             "Unsupported format of addrman database: %u. Expected format %u.",
             format, FILE_FORMAT));
     }
-    ParamsStream s{s_, CAddress::DISK};
+    auto& s{s_};
 
     s >> nKey;
     s >> nNew;

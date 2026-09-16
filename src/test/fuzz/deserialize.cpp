@@ -131,7 +131,7 @@ FUZZ_TARGET_DESERIALIZE(block_filter_deserialize, {
 FUZZ_TARGET(addr_info_deserialize, .init = initialize_deserialize)
 {
     FuzzedDataProvider fdp{buffer.data(), buffer.size()};
-    (void)ConsumeDeserializable<AddrInfo>(fdp, ConsumeDeserializationParams<CAddress::SerParams>(fdp));
+    (void)ConsumeDeserializable<AddrInfo>(fdp);
 }
 FUZZ_TARGET_DESERIALIZE(block_file_info_deserialize, {
     CBlockFileInfo block_file_info;
@@ -253,12 +253,10 @@ FUZZ_TARGET_DESERIALIZE(messageheader_deserialize, {
 FUZZ_TARGET(address_deserialize, .init = initialize_deserialize)
 {
     FuzzedDataProvider fdp{buffer.data(), buffer.size()};
-    const auto ser_enc{ConsumeDeserializationParams<CAddress::SerParams>(fdp)};
-    const auto maybe_a{ConsumeDeserializable<CAddress>(fdp, ser_enc)};
+    const auto maybe_a{ConsumeDeserializable<CAddress>(fdp)};
     if (!maybe_a) return;
     const CAddress& a{*maybe_a};
-    AssertEqualAfterSerializeDeserialize(a, CAddress::NETWORK);
-    AssertEqualAfterSerializeDeserialize(a, CAddress::DISK);
+    AssertEqualAfterSerializeDeserialize(a);
 }
 FUZZ_TARGET_DESERIALIZE(inv_deserialize, {
     CInv i;

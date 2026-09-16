@@ -3806,7 +3806,7 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
 
     if (msg_type == NetMsgType::ADDRV2) {
         std::vector<CAddress> vAddr;
-        vRecv >> CAddress::NETWORK(vAddr);
+        vRecv >> vAddr;
 
         if (!SetupAddressRelay(pfrom, peer)) {
             LogDebug(BCLog::NET, "ignoring %s message from %s peer=%d\n", msg_type, pfrom.ConnectionTypeAsString(), pfrom.GetId());
@@ -5128,7 +5128,7 @@ void PeerManagerImpl::MaybeSendAddr(CNode& node, Peer& peer, std::chrono::micros
                 // rate-limiting with limited start-tokens doesn't ignore it if the first
                 // message ends up containing multiple addresses.
                 std::vector<CAddress> self_announcement{local_addr};
-                MakeAndPushMessage(node, NetMsgType::ADDRV2, CAddress::NETWORK(self_announcement));
+                MakeAndPushMessage(node, NetMsgType::ADDRV2, self_announcement);
             } else {
                 // All later self-announcements are sent together with the other addresses.
                 PushAddress(peer, local_addr);
@@ -5161,7 +5161,7 @@ void PeerManagerImpl::MaybeSendAddr(CNode& node, Peer& peer, std::chrono::micros
     // No addrv2 messages to send
     if (peer.m_addrs_to_send.empty()) return;
 
-    MakeAndPushMessage(node, NetMsgType::ADDRV2, CAddress::NETWORK(peer.m_addrs_to_send));
+    MakeAndPushMessage(node, NetMsgType::ADDRV2, peer.m_addrs_to_send);
     peer.m_addrs_to_send.clear();
 
     // We only send the large addrv2 message once.

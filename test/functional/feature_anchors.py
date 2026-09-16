@@ -119,8 +119,8 @@ class AnchorsTest(BitcoinTestFramework):
         expected_pubkey = caddr.serialize_v2()[7:39].hex()
 
         # position of services byte of first addr in anchors.dat
-        # network magic, vector length, version, nTime
-        services_index = 4 + 1 + 1 + 4
+        # network magic, vector length, nTime
+        services_index = 4 + 1 + 4
         data = bytes()
         with open(node_anchors_path, "rb") as file_handler:
             data = file_handler.read()
