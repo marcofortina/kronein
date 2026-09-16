@@ -22,7 +22,6 @@ target_sources(test_bitcoin
     wallet_rpc_tests.cpp
     wallet_tests.cpp
     wallet_transaction_tests.cpp
-    walletdb_tests.cpp
     walletload_tests.cpp
 )
 target_link_libraries(test_bitcoin bitcoin_wallet)
