@@ -289,10 +289,6 @@ FUZZ_TARGET_DESERIALIZE(inv_deserialize, {
     CInv i;
     DeserializeFromFuzzingInput(buffer, i);
 })
-FUZZ_TARGET_DESERIALIZE(bloomfilter_deserialize, {
-    CBloomFilter bf;
-    DeserializeFromFuzzingInput(buffer, bf);
-})
 FUZZ_TARGET_DESERIALIZE(diskblockindex_deserialize, {
     CDiskBlockIndex dbi;
     DeserializeFromFuzzingInput(buffer, dbi);

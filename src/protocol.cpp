@@ -63,7 +63,6 @@ std::string CInv::GetMessageType() const
     // WTX is not a message type, just an inv type
     case MSG_WTX:            return "wtx";
     case MSG_BLOCK:          return NetMsgType::BLOCK;
-    case MSG_FILTERED_BLOCK: return NetMsgType::MERKLEBLOCK;
     case MSG_CMPCT_BLOCK:    return NetMsgType::CMPCTBLOCK;
     default:
         throw std::out_of_range(strprintf("CInv::GetMessageType(): type=%d unknown type", type));
@@ -90,7 +89,6 @@ static std::string serviceFlagToStr(size_t bit)
     switch ((ServiceFlags)service_flag) {
     case NODE_NONE: abort();  // impossible
     case NODE_NETWORK:         return "NETWORK";
-    case NODE_BLOOM:           return "BLOOM";
     case NODE_COMPACT_FILTERS: return "COMPACT_FILTERS";
     case NODE_NETWORK_LIMITED: return "NETWORK_LIMITED";
     case NODE_P2P_V2:          return "P2P_V2";

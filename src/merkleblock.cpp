@@ -27,7 +27,7 @@ std::vector<bool> BytesToBits(const std::vector<unsigned char>& bytes)
     return ret;
 }
 
-CMerkleBlock::CMerkleBlock(const CBlock& block, CBloomFilter* filter, const std::set<Txid>* txids)
+CMerkleBlock::CMerkleBlock(const CBlock& block, const std::set<Txid>& txids)
 {
     header = static_cast<const CBlockHeader&>(block);
 
@@ -40,14 +40,7 @@ CMerkleBlock::CMerkleBlock(const CBlock& block, CBloomFilter* filter, const std:
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const Txid& hash{block.vtx[i]->GetHash()};
-        if (txids && txids->contains(hash)) {
-            vMatch.push_back(true);
-        } else if (filter && filter->IsRelevantAndUpdate(*block.vtx[i])) {
-            vMatch.push_back(true);
-            vMatchedTxn.emplace_back(i, hash);
-        } else {
-            vMatch.push_back(false);
-        }
+        vMatch.push_back(txids.contains(hash));
         vHashes.push_back(hash);
     }
 

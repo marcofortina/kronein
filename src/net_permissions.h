@@ -23,8 +23,6 @@ constexpr bool DEFAULT_WHITELISTFORCERELAY = false;
 
 enum class NetPermissionFlags : uint32_t {
     None = 0,
-    // Can query bloomfilter even if -peerbloomfilters is false
-    BloomFilter = (1U << 1),
     // Relay and accept transactions from this peer, even if -blocksonly is true
     // This peer is also not subject to limits on how many transaction INVs are tracked
     Relay = (1U << 3),
@@ -44,7 +42,7 @@ enum class NetPermissionFlags : uint32_t {
     // True if the user did not specifically set fine-grained permissions with
     // the -whitebind or -whitelist configuration options.
     Implicit = (1U << 31),
-    All = BloomFilter | ForceRelay | Relay | NoBan | Mempool | Download | Addr,
+    All = ForceRelay | Relay | NoBan | Mempool | Download | Addr,
 };
 static inline constexpr NetPermissionFlags operator|(NetPermissionFlags a, NetPermissionFlags b)
 {

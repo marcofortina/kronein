@@ -58,14 +58,14 @@ class P2PPermissionsTests(BitcoinTestFramework):
         # For this, we need to use whitebind instead of bind
         # by modifying the configuration file.
         ip_port = "127.0.0.1:{}".format(p2p_port(1))
-        self.nodes[1].replace_in_config([("bind=127.0.0.1", "whitebind=bloomfilter,forcerelay@" + ip_port)])
+        self.nodes[1].replace_in_config([("bind=127.0.0.1", "whitebind=mempool,forcerelay@" + ip_port)])
         # Explicitly bind the tor port to prevent collisions with the default tor port
         append_config(self.nodes[1].datadir_path, [f"bind=127.0.0.1:{tor_port(self.nodes[1].index)}=onion"])
         self.checkpermission(
             ["-whitelist=noban@127.0.0.1"],
             # Check parameter interaction forcerelay should activate relay
-            ["noban", "bloomfilter", "forcerelay", "relay", "download"])
-        self.nodes[1].replace_in_config([("whitebind=bloomfilter,forcerelay@" + ip_port, "bind=127.0.0.1")])
+            ["noban", "mempool", "forcerelay", "relay", "download"])
+        self.nodes[1].replace_in_config([("whitebind=mempool,forcerelay@" + ip_port, "bind=127.0.0.1")])
         self.nodes[1].replace_in_config([(f"bind=127.0.0.1:{tor_port(self.nodes[1].index)}=onion", "")])
 
         self.checkpermission(
@@ -86,7 +86,7 @@ class P2PPermissionsTests(BitcoinTestFramework):
         self.checkpermission(
             # all permission added
             ["-whitelist=all@127.0.0.1"],
-            ["forcerelay", "noban", "mempool", "bloomfilter", "relay", "download", "addr"])
+            ["forcerelay", "noban", "mempool", "relay", "download", "addr"])
 
         for flag, permissions in [(["-whitelist=noban,out@127.0.0.1"], ["noban", "download"]), (["-whitelist=noban@127.0.0.1"], [])]:
             self.restart_node(0, flag)

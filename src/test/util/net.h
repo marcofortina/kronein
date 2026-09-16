@@ -120,7 +120,6 @@ struct ConnmanTestMsg : public CConnman {
 constexpr ServiceFlags ALL_SERVICE_FLAGS[]{
     NODE_NONE,
     NODE_NETWORK,
-    NODE_BLOOM,
     NODE_COMPACT_FILTERS,
     NODE_NETWORK_LIMITED,
     NODE_P2P_V2,
@@ -128,7 +127,6 @@ constexpr ServiceFlags ALL_SERVICE_FLAGS[]{
 
 constexpr NetPermissionFlags ALL_NET_PERMISSION_FLAGS[]{
     NetPermissionFlags::None,
-    NetPermissionFlags::BloomFilter,
     NetPermissionFlags::Relay,
     NetPermissionFlags::ForceRelay,
     NetPermissionFlags::NoBan,

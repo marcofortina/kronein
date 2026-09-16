@@ -5,8 +5,8 @@
 """Test the importprunedfunds and removeprunedfunds RPCs."""
 from decimal import Decimal
 
-from test_framework.address import key_to_p2wpkh
 from test_framework.blocktools import COINBASE_MATURITY
+from test_framework.descriptors import descsum_create
 from test_framework.messages import (
     CMerkleBlock,
     from_hex,
@@ -16,7 +16,6 @@ from test_framework.util import (
     assert_equal,
     assert_not_equal,
     assert_raises_rpc_error,
-    wallet_importprivkey,
 )
 from test_framework.wallet_util import generate_keypair
 
@@ -38,9 +37,10 @@ class ImportPrunedFundsTest(BitcoinTestFramework):
         # pubkey
         address2 = self.nodes[0].getnewaddress()
         # privkey
-        address3_privkey, address3_pubkey = generate_keypair(wif=True)
-        address3 = key_to_p2wpkh(address3_pubkey)
-        wallet_importprivkey(self.nodes[0], address3_privkey, "now")
+        address3_privkey, _ = generate_keypair(wif=True)
+        address3_desc = descsum_create(f"tr({address3_privkey})")
+        address3 = self.nodes[0].deriveaddresses(address3_desc)[0]
+        assert self.nodes[0].importdescriptors([{"desc": address3_desc, "timestamp": "now"}])[0]["success"]
 
         # Check only one address
         address_info = self.nodes[0].getaddressinfo(address1)
@@ -94,7 +94,7 @@ class ImportPrunedFundsTest(BitcoinTestFramework):
 
         # Import with private key with no rescan
         w1 = self.nodes[1].get_wallet_rpc(self.default_wallet_name)
-        wallet_importprivkey(w1, address3_privkey, "now")
+        assert w1.importdescriptors([{"desc": address3_desc, "timestamp": "now"}])[0]["success"]
         w1.importprunedfunds(rawtxn3, proof3)
         assert [tx for tx in w1.listtransactions() if tx['txid'] == txnid3]
         balance3 = w1.getbalance()
@@ -134,7 +134,7 @@ class ImportPrunedFundsTest(BitcoinTestFramework):
         node = self.nodes[0]
 
         # Create a transaction
-        utxo = node.listunspent()[0]
+        utxo = max(node.listunspent(), key=lambda coin: coin["amount"])
         addr = node.getnewaddress()
         tx1_id = node.send(outputs=[{addr: 1}], inputs=[utxo])["txid"]
         tx1_fee = node.gettransaction(tx1_id)["fee"]

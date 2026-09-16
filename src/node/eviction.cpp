@@ -40,7 +40,6 @@ static bool CompareNodeTXTime(const NodeEvictionCandidate &a, const NodeEviction
     // There is a fall-through here because it is common for a node to have more than a few peers that have not yet relayed txn.
     if (a.m_last_tx_time != b.m_last_tx_time) return a.m_last_tx_time < b.m_last_tx_time;
     if (a.m_relay_txs != b.m_relay_txs) return b.m_relay_txs;
-    if (a.fBloomFilter != b.fBloomFilter) return a.fBloomFilter;
     return a.m_connected > b.m_connected;
 }
 

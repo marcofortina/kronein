@@ -95,12 +95,6 @@ inline constexpr const char* INV{"inv"};
  */
 inline constexpr const char* GETDATA{"getdata"};
 /**
- * The merkleblock message is a reply to a getdata message which requested a
- * block using the inventory type MSG_MERKLEBLOCK.
- * @since protocol version 70001 as described by BIP37.
- */
-inline constexpr const char* MERKLEBLOCK{"merkleblock"};
-/**
  * The getblocks message requests an inv message that provides block header
  * hashes starting from a particular point in the block chain.
  */
@@ -134,7 +128,6 @@ inline constexpr const char* GETADDR{"getaddr"};
  * The mempool message requests the TXIDs of transactions that the receiving
  * node has verified as valid but which have not yet appeared in a block.
  * @since protocol version 60002 as described by BIP35.
- *   Only available with service bit NODE_BLOOM, see also BIP111.
  */
 inline constexpr const char* MEMPOOL{"mempool"};
 /**
@@ -154,30 +147,6 @@ inline constexpr const char* PONG{"pong"};
  * @since protocol version 70001.
  */
 inline constexpr const char* NOTFOUND{"notfound"};
-/**
- * The filterload message tells the receiving peer to filter all relayed
- * transactions and requested merkle blocks through the provided filter.
- * @since protocol version 70001 as described by BIP37.
- *   Only available with service bit NODE_BLOOM since protocol version
- *   70011 as described by BIP111.
- */
-inline constexpr const char* FILTERLOAD{"filterload"};
-/**
- * The filteradd message tells the receiving peer to add a single element to a
- * previously-set bloom filter, such as a new public key.
- * @since protocol version 70001 as described by BIP37.
- *   Only available with service bit NODE_BLOOM since protocol version
- *   70011 as described by BIP111.
- */
-inline constexpr const char* FILTERADD{"filteradd"};
-/**
- * The filterclear message tells the receiving peer to remove a previously-set
- * bloom filter.
- * @since protocol version 70001 as described by BIP37.
- *   Only available with service bit NODE_BLOOM since protocol version
- *   70011 as described by BIP111.
- */
-inline constexpr const char* FILTERCLEAR{"filterclear"};
 /**
  * Indicates that a node prefers to receive new block announcements via a
  * "headers" message rather than an "inv".
@@ -274,7 +243,6 @@ inline const std::array ALL_NET_MESSAGE_TYPES{std::to_array<std::string>({
     NetMsgType::SENDADDRV2,
     NetMsgType::INV,
     NetMsgType::GETDATA,
-    NetMsgType::MERKLEBLOCK,
     NetMsgType::GETBLOCKS,
     NetMsgType::GETHEADERS,
     NetMsgType::TX,
@@ -285,9 +253,6 @@ inline const std::array ALL_NET_MESSAGE_TYPES{std::to_array<std::string>({
     NetMsgType::PING,
     NetMsgType::PONG,
     NetMsgType::NOTFOUND,
-    NetMsgType::FILTERLOAD,
-    NetMsgType::FILTERADD,
-    NetMsgType::FILTERCLEAR,
     NetMsgType::SENDHEADERS,
     NetMsgType::FEEFILTER,
     NetMsgType::SENDCMPCT,
@@ -311,8 +276,6 @@ enum ServiceFlags : uint64_t {
     // NODE_NETWORK means that the node is capable of serving the complete block chain. It is currently
     // set by all Bitcoin Core non pruned nodes, and is unset by SPV clients or other light clients.
     NODE_NETWORK = (1 << 0),
-    // NODE_BLOOM means the node is capable and willing to handle bloom-filtered connections.
-    NODE_BLOOM = (1 << 2),
     // NODE_COMPACT_FILTERS means the node will service basic block filter requests.
     // See BIP157 and BIP158 for details on how this is implemented.
     NODE_COMPACT_FILTERS = (1 << 6),
@@ -471,7 +434,6 @@ enum GetDataMsg : uint32_t {
     MSG_BLOCK = 2,
     MSG_WTX = 5,                                      //!< Defined in BIP 339
     // The following can only occur in getdata. Invs always use WTX or BLOCK.
-    MSG_FILTERED_BLOCK = 3,                           //!< Defined in BIP37
     MSG_CMPCT_BLOCK = 4,                              //!< Defined in BIP152
 };
 
@@ -493,7 +455,6 @@ public:
     bool IsMsgTx() const { return type == MSG_TX; }
     bool IsMsgBlk() const { return type == MSG_BLOCK; }
     bool IsMsgWtx() const { return type == MSG_WTX; }
-    bool IsMsgFilteredBlk() const { return type == MSG_FILTERED_BLOCK; }
     bool IsMsgCmpctBlk() const { return type == MSG_CMPCT_BLOCK; }
     // Combined-message helper methods
     bool IsGenTxMsg() const
@@ -502,7 +463,7 @@ public:
     }
     bool IsGenBlkMsg() const
     {
-        return type == MSG_BLOCK || type == MSG_FILTERED_BLOCK || type == MSG_CMPCT_BLOCK;
+        return type == MSG_BLOCK || type == MSG_CMPCT_BLOCK;
     }
 
     uint32_t type;

@@ -340,11 +340,6 @@ allow multiple networks.
 .IP
 Serve compact block filters to peers per BIP 157 (default: 0)
 .HP
-\fB\-peerbloomfilters\fR
-.IP
-Support filtering of blocks and transaction with bloom filters (default:
-0)
-.HP
 \fB\-port=\fR<port>
 .IP
 Listen for connections on <port> (default: 8333, testnet3: 18333,
@@ -395,9 +390,8 @@ Support v2 transport (default: 1)
 .IP
 Bind to the given address and add permission flags to the peers
 connecting to it. Use [host]:port notation for IPv6. Allowed
-permissions: bloomfilter (allow requesting BIP37 filtered blocks
-and transactions), noban (do not ban for misbehavior; implies
-download), forcerelay (relay transactions that are already in the
+permissions: noban (do not ban for misbehavior; implies download),
+forcerelay (relay transactions that are already in the
 mempool; implies relay), relay (relay even in \fB\-blocksonly\fR mode,
 and unlimited transaction announcements), mempool (allow
 requesting BIP35 mempool contents), download (allow getheaders

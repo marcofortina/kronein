@@ -8,7 +8,6 @@
 from test_framework.messages import (
     msg_sendtxrcncl,
     msg_version,
-    NODE_BLOOM,
 )
 from test_framework.p2p import (
     P2PInterface,
@@ -19,7 +18,6 @@ from test_framework.p2p import (
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
-    assert_not_equal,
 )
 
 class PeerNoVerack(P2PInterface):
@@ -90,20 +88,6 @@ class SendTxRcnclTest(BitcoinTestFramework):
         no_txrelay_version_msg.relay = 0
         peer.send_without_ping(no_txrelay_version_msg)
         peer.wait_for_verack()
-        assert not peer.sendtxrcncl_msg_received
-        self.nodes[0].disconnect_p2ps()
-
-        self.log.info('SENDTXRCNCL for fRelay=false should not be sent (with NODE_BLOOM offered)')
-        self.restart_node(0, ["-peerbloomfilters", "-txreconciliation"])
-        peer = self.nodes[0].add_p2p_connection(SendTxrcnclReceiver(), send_version=False, wait_for_verack=False)
-        no_txrelay_version_msg = msg_version()
-        no_txrelay_version_msg.nVersion = P2P_VERSION
-        no_txrelay_version_msg.strSubVer = P2P_SUBVERSION
-        no_txrelay_version_msg.nServices = P2P_SERVICES
-        no_txrelay_version_msg.relay = 0
-        peer.send_without_ping(no_txrelay_version_msg)
-        peer.wait_for_verack()
-        assert_not_equal(peer.nServices & NODE_BLOOM, 0)
         assert not peer.sendtxrcncl_msg_received
         self.nodes[0].disconnect_p2ps()
 

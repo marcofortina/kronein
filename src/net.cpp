@@ -922,9 +922,9 @@ const std::array<std::string, 33> V2_MESSAGE_IDS = {
     NetMsgType::BLOCKTXN,
     NetMsgType::CMPCTBLOCK,
     NetMsgType::FEEFILTER,
-    NetMsgType::FILTERADD,
-    NetMsgType::FILTERCLEAR,
-    NetMsgType::FILTERLOAD,
+    "", // BIP37 filteradd was removed
+    "", // BIP37 filterclear was removed
+    "", // BIP37 filterload was removed
     NetMsgType::GETBLOCKS,
     NetMsgType::GETBLOCKTXN,
     NetMsgType::GETDATA,
@@ -932,7 +932,7 @@ const std::array<std::string, 33> V2_MESSAGE_IDS = {
     NetMsgType::HEADERS,
     NetMsgType::INV,
     NetMsgType::MEMPOOL,
-    NetMsgType::MERKLEBLOCK,
+    "", // BIP37 merkleblock was removed
     NetMsgType::NOTFOUND,
     NetMsgType::PING,
     NetMsgType::PONG,
@@ -1702,7 +1702,6 @@ bool CConnman::AttemptToEvictConnection()
                 .m_last_tx_time = node->m_last_tx_time,
                 .fRelevantServices = node->m_has_all_wanted_services,
                 .m_relay_txs = node->m_relays_txs.load(),
-                .fBloomFilter = node->m_bloom_filter_loaded.load(),
                 .nKeyedNetGroup = node->nKeyedNetGroup,
                 .prefer_evict = node->m_prefer_evict,
                 .m_is_local = node->addr.IsLocal(),

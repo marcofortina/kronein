@@ -24,7 +24,7 @@ BOOST_AUTO_TEST_CASE(murmurhash3)
     // source of test data for their MurmurHash3() primitive during
     // development.
     //
-    // The magic number 0xFBA4C795 comes from CBloomFilter::Hash()
+    // The magic number 0xFBA4C795 is also used by the rolling bloom filter.
 
     T(0x00000000U, 0x00000000, "");
     T(0x6a396f08U, 0xFBA4C795, "");

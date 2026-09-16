@@ -28,7 +28,6 @@ FUZZ_TARGET(node_eviction)
             /*m_last_tx_time=*/std::chrono::seconds{fuzzed_data_provider.ConsumeIntegral<int64_t>()},
             /*fRelevantServices=*/fuzzed_data_provider.ConsumeBool(),
             /*m_relay_txs=*/fuzzed_data_provider.ConsumeBool(),
-            /*fBloomFilter=*/fuzzed_data_provider.ConsumeBool(),
             /*nKeyedNetGroup=*/fuzzed_data_provider.ConsumeIntegral<uint64_t>(),
             /*prefer_evict=*/fuzzed_data_provider.ConsumeBool(),
             /*m_is_local=*/fuzzed_data_provider.ConsumeBool(),

@@ -28,12 +28,9 @@ FUZZ_TARGET(merkleblock)
         [&] {
             CMerkleBlock merkle_block;
             const std::optional<CBlock> opt_block = ConsumeDeserializable<CBlock>(fuzzed_data_provider, TX_WITH_WITNESS);
-            CBloomFilter bloom_filter;
             std::set<Txid> txids;
             if (opt_block && !opt_block->vtx.empty()) {
                 if (fuzzed_data_provider.ConsumeBool()) {
-                    merkle_block = CMerkleBlock{*opt_block, bloom_filter};
-                } else if (fuzzed_data_provider.ConsumeBool()) {
                     LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 10000) {
                         txids.insert(Txid::FromUint256(ConsumeUInt256(fuzzed_data_provider)));
                     }

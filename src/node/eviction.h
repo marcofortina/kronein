@@ -23,7 +23,6 @@ struct NodeEvictionCandidate {
     std::chrono::seconds m_last_tx_time;
     bool fRelevantServices;
     bool m_relay_txs;
-    bool fBloomFilter;
     uint64_t nKeyedNetGroup;
     bool prefer_evict;
     bool m_is_local;

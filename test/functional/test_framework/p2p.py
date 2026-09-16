@@ -44,9 +44,6 @@ from test_framework.messages import (
     msg_cfilter,
     msg_cmpctblock,
     msg_feefilter,
-    msg_filteradd,
-    msg_filterclear,
-    msg_filterload,
     msg_getaddr,
     msg_getblocks,
     msg_getblocktxn,
@@ -58,7 +55,6 @@ from test_framework.messages import (
     msg_headers,
     msg_inv,
     msg_mempool,
-    msg_merkleblock,
     msg_notfound,
     msg_ping,
     msg_pong,
@@ -122,9 +118,6 @@ MESSAGEMAP = {
     b"cfilter": msg_cfilter,
     b"cmpctblock": msg_cmpctblock,
     b"feefilter": msg_feefilter,
-    b"filteradd": msg_filteradd,
-    b"filterclear": msg_filterclear,
-    b"filterload": msg_filterload,
     b"getaddr": msg_getaddr,
     b"getblocks": msg_getblocks,
     b"getblocktxn": msg_getblocktxn,
@@ -136,7 +129,6 @@ MESSAGEMAP = {
     b"headers": msg_headers,
     b"inv": msg_inv,
     b"mempool": msg_mempool,
-    b"merkleblock": msg_merkleblock,
     b"notfound": msg_notfound,
     b"ping": msg_ping,
     b"pong": msg_pong,
@@ -632,15 +624,6 @@ class P2PInterface(P2PConnection):
             if not last_headers:
                 return False
             return last_headers.headers[0].hash_int == int(blockhash, 16)
-
-        self.wait_until(test_function, timeout=timeout)
-
-    def wait_for_merkleblock(self, blockhash, *, timeout=60):
-        def test_function():
-            last_filtered_block = self.last_message.get('merkleblock')
-            if not last_filtered_block:
-                return False
-            return last_filtered_block.merkleblock.header.hash_int == int(blockhash, 16)
 
         self.wait_until(test_function, timeout=timeout)
 

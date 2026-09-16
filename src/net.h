@@ -878,10 +878,6 @@ public:
      * from false to true. It will never change back to false. */
     std::atomic_bool m_relays_txs{false};
 
-    /** Whether this peer has loaded a bloom filter. Used only in inbound
-     *  eviction logic. */
-    std::atomic_bool m_bloom_filter_loaded{false};
-
     /** UNIX epoch time of the last block received from this peer that we had
      * not yet seen (e.g. not already received from another peer), that passed
      * preliminary validity checks and was saved to disk, even if we don't

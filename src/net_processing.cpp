@@ -23,7 +23,6 @@
 #include <index/blockfilterindex.h>
 #include <kernel/types.h>
 #include <logging.h>
-#include <merkleblock.h>
 #include <net.h>
 #include <net_permissions.h>
 #include <netaddress.h>
@@ -291,12 +290,6 @@ struct Peer {
     std::chrono::microseconds m_next_send_feefilter GUARDED_BY(NetEventsInterface::g_msgproc_mutex){0};
 
     struct TxRelay {
-        mutable RecursiveMutex m_bloom_filter_mutex;
-        /** Whether we relay transactions to this peer. */
-        bool m_relay_txs GUARDED_BY(m_bloom_filter_mutex){false};
-        /** A bloom filter for which transactions to announce to the peer. See BIP37. */
-        std::unique_ptr<CBloomFilter> m_bloom_filter PT_GUARDED_BY(m_bloom_filter_mutex) GUARDED_BY(m_bloom_filter_mutex){nullptr};
-
         mutable RecursiveMutex m_tx_inventory_mutex;
         /** A filter of all the transaction identifiers that the peer has announced to
          *  us or we have announced to the peer. We use this to avoid announcing
@@ -306,9 +299,7 @@ struct Peer {
          *  transactions in dependency order before relay, so this does not have
          *  to be sorted. */
         std::set<Wtxid> m_tx_inventory_to_send GUARDED_BY(m_tx_inventory_mutex);
-        /** Whether the peer has requested us to send our complete mempool. Only
-         *  permitted if the peer has NetPermissionFlags::Mempool or we advertise
-         *  NODE_BLOOM. See BIP35. */
+        /** Whether the peer has requested us to send our complete mempool. */
         bool m_send_mempool GUARDED_BY(m_tx_inventory_mutex){false};
         /** The next time after which we will send an `inv` message containing
          *  transaction announcements to this peer. */
@@ -1591,10 +1582,6 @@ void PeerManagerImpl::InitializeNode(const CNode& node, ServiceFlags our_service
     }
     WITH_LOCK(m_tx_download_mutex, m_txdownloadman.CheckIsEmpty(nodeid));
 
-    if (NetPermissions::HasFlag(node.m_permission_flags, NetPermissionFlags::BloomFilter)) {
-        our_services = static_cast<ServiceFlags>(our_services | NODE_BLOOM);
-    }
-
     PeerRef peer = std::make_shared<Peer>(nodeid, our_services, node.IsInboundConn());
     {
         LOCK(m_peer_mutex);
@@ -1794,7 +1781,7 @@ bool PeerManagerImpl::GetNodeStateStats(NodeId nodeid, CNodeStateStats& stats) c
     }
 
     if (auto tx_relay = peer->GetTxRelay(); tx_relay != nullptr) {
-        stats.m_relay_txs = WITH_LOCK(tx_relay->m_bloom_filter_mutex, return tx_relay->m_relay_txs);
+        stats.m_relay_txs = true;
         stats.m_fee_filter_received = tx_relay->m_fee_filter_received.load();
         LOCK(tx_relay->m_tx_inventory_mutex);
         stats.m_last_inv_seq = tx_relay->m_last_inv_sequence;
@@ -2346,7 +2333,7 @@ void PeerManagerImpl::ProcessGetBlockData(CNode& pfrom, Peer& peer, const CInv& 
         }
         // disconnect node in case we have reached the outbound limit for serving historical blocks
         if (m_connman.OutboundTargetReached(true) &&
-            (((m_chainman.m_best_header != nullptr) && (m_chainman.m_best_header->GetBlockTime() - pindex->GetBlockTime() > HISTORICAL_BLOCK_AGE)) || inv.IsMsgFilteredBlk()) &&
+            ((m_chainman.m_best_header != nullptr) && (m_chainman.m_best_header->GetBlockTime() - pindex->GetBlockTime() > HISTORICAL_BLOCK_AGE)) &&
             !pfrom.HasPermission(NetPermissionFlags::Download) // nodes with the download permission may exceed target
         ) {
             LogDebug(BCLog::NET, "historical block serving limit reached, %s\n", pfrom.DisconnectMsg(fLogIPs));
@@ -2406,29 +2393,6 @@ void PeerManagerImpl::ProcessGetBlockData(CNode& pfrom, Peer& peer, const CInv& 
     if (pblock) {
         if (inv.IsMsgBlk()) {
             MakeAndPushMessage(pfrom, NetMsgType::BLOCK, TX_WITH_WITNESS(*pblock));
-        } else if (inv.IsMsgFilteredBlk()) {
-            bool sendMerkleBlock = false;
-            CMerkleBlock merkleBlock;
-            if (auto tx_relay = peer.GetTxRelay(); tx_relay != nullptr) {
-                LOCK(tx_relay->m_bloom_filter_mutex);
-                if (tx_relay->m_bloom_filter) {
-                    sendMerkleBlock = true;
-                    merkleBlock = CMerkleBlock(*pblock, *tx_relay->m_bloom_filter);
-                }
-            }
-            if (sendMerkleBlock) {
-                MakeAndPushMessage(pfrom, NetMsgType::MERKLEBLOCK, merkleBlock);
-                // CMerkleBlock just contains hashes, so also push any transactions in the block the client did not see
-                // This avoids hurting performance by pointlessly requiring a round-trip
-                // Note that there is currently no way for a node to request any single transactions we didn't send here -
-                // they must either disconnect and retry or request the full block.
-                // Thus, the protocol spec specified allows for us to provide duplicate txn here,
-                // however we MUST always provide at least what the remote peer needs
-                for (const auto& [tx_idx, _] : merkleBlock.vMatchedTxn)
-                    MakeAndPushMessage(pfrom, NetMsgType::TX, TX_WITH_WITNESS(*pblock->vtx[tx_idx]));
-            }
-            // else
-            // no response
         } else if (inv.IsMsgCmpctBlk()) {
             // If a peer is asking for old blocks, we're almost guaranteed
             // they won't have a useful mempool to match against a compact block,
@@ -3633,21 +3597,15 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
         }
         peer.m_starting_height = starting_height;
 
-        // Only initialize the Peer::TxRelay m_relay_txs data structure if:
+        // Only initialize the Peer::TxRelay data structure if:
         // - this isn't an outbound block-relay-only connection, and
         // - this isn't an outbound feeler connection, and
-        // - fRelay=true (the peer wishes to receive transaction announcements)
-        //   or we're offering NODE_BLOOM to this peer. NODE_BLOOM means that
-        //   the peer may turn on transaction relay later.
+        // - fRelay=true (the peer wishes to receive transaction announcements).
         if (!pfrom.IsBlockOnlyConn() &&
             !pfrom.IsFeelerConn() &&
-            (fRelay || (peer.m_our_services & NODE_BLOOM))) {
-            auto* const tx_relay = peer.SetTxRelay();
-            {
-                LOCK(tx_relay->m_bloom_filter_mutex);
-                tx_relay->m_relay_txs = fRelay; // set to true after we get the first filter* message
-            }
-            if (fRelay) pfrom.m_relays_txs = true;
+            fRelay) {
+            peer.SetTxRelay();
+            pfrom.m_relays_txs = true;
         }
 
         const auto mapped_as{m_connman.GetMappedAS(pfrom.addr)};
@@ -3683,7 +3641,7 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
             // - this is not an addr fetch connection;
             // - we are not in -blocksonly mode.
             const auto* tx_relay = peer.GetTxRelay();
-            if (tx_relay && WITH_LOCK(tx_relay->m_bloom_filter_mutex, return tx_relay->m_relay_txs) &&
+            if (tx_relay &&
                 !pfrom.IsAddrFetchConn() && !m_opts.ignore_incoming_txs) {
                 const uint64_t recon_salt = m_txreconciliation->PreRegisterPeer(pfrom.GetId());
                 MakeAndPushMessage(pfrom, NetMsgType::SENDTXRCNCL,
@@ -3902,10 +3860,7 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
         }
 
         // Peer must not offer us reconciliations if they specified no tx relay support in VERSION.
-        // This flag might also be false in other cases, but the RejectIncomingTxs check above
-        // eliminates them, so that this flag fully represents what we are looking for.
-        const auto* tx_relay = peer.GetTxRelay();
-        if (!tx_relay || !WITH_LOCK(tx_relay->m_bloom_filter_mutex, return tx_relay->m_relay_txs)) {
+        if (!peer.GetTxRelay()) {
             LogDebug(BCLog::NET, "sendtxrcncl received which indicated no tx relay to us, %s\n", pfrom.DisconnectMsg(fLogIPs));
             pfrom.fDisconnect = true;
             return;
@@ -4851,23 +4806,11 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
     }
 
     if (msg_type == NetMsgType::MEMPOOL) {
-        // Only process received mempool messages if we advertise NODE_BLOOM
-        // or if the peer has mempool permissions.
-        if (!(peer.m_our_services & NODE_BLOOM) && !pfrom.HasPermission(NetPermissionFlags::Mempool))
+        if (!pfrom.HasPermission(NetPermissionFlags::Mempool))
         {
             if (!pfrom.HasPermission(NetPermissionFlags::NoBan))
             {
-                LogDebug(BCLog::NET, "mempool request with bloom filters disabled, %s\n", pfrom.DisconnectMsg(fLogIPs));
-                pfrom.fDisconnect = true;
-            }
-            return;
-        }
-
-        if (m_connman.OutboundTargetReached(false) && !pfrom.HasPermission(NetPermissionFlags::Mempool))
-        {
-            if (!pfrom.HasPermission(NetPermissionFlags::NoBan))
-            {
-                LogDebug(BCLog::NET, "mempool request with bandwidth limit reached, %s\n", pfrom.DisconnectMsg(fLogIPs));
+                LogDebug(BCLog::NET, "mempool request without permission, %s\n", pfrom.DisconnectMsg(fLogIPs));
                 pfrom.fDisconnect = true;
             }
             return;
@@ -4958,78 +4901,6 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
         if (bPingFinished) {
             peer.m_ping_nonce_sent = 0;
         }
-        return;
-    }
-
-    if (msg_type == NetMsgType::FILTERLOAD) {
-        if (!(peer.m_our_services & NODE_BLOOM)) {
-            LogDebug(BCLog::NET, "filterload received despite not offering bloom services, %s\n", pfrom.DisconnectMsg(fLogIPs));
-            pfrom.fDisconnect = true;
-            return;
-        }
-        CBloomFilter filter;
-        vRecv >> filter;
-
-        if (!filter.IsWithinSizeConstraints())
-        {
-            // There is no excuse for sending a too-large filter
-            Misbehaving(peer, "too-large bloom filter");
-        } else if (auto tx_relay = peer.GetTxRelay(); tx_relay != nullptr) {
-            {
-                LOCK(tx_relay->m_bloom_filter_mutex);
-                tx_relay->m_bloom_filter.reset(new CBloomFilter(filter));
-                tx_relay->m_relay_txs = true;
-            }
-            pfrom.m_bloom_filter_loaded = true;
-            pfrom.m_relays_txs = true;
-        }
-        return;
-    }
-
-    if (msg_type == NetMsgType::FILTERADD) {
-        if (!(peer.m_our_services & NODE_BLOOM)) {
-            LogDebug(BCLog::NET, "filteradd received despite not offering bloom services, %s\n", pfrom.DisconnectMsg(fLogIPs));
-            pfrom.fDisconnect = true;
-            return;
-        }
-        std::vector<unsigned char> vData;
-        vRecv >> vData;
-
-        // Nodes must NEVER send a data item > MAX_SCRIPT_ELEMENT_SIZE bytes (the max size for a script data object,
-        // and thus, the maximum size any matched object can have) in a filteradd message
-        bool bad = false;
-        if (vData.size() > MAX_SCRIPT_ELEMENT_SIZE) {
-            bad = true;
-        } else if (auto tx_relay = peer.GetTxRelay(); tx_relay != nullptr) {
-            LOCK(tx_relay->m_bloom_filter_mutex);
-            if (tx_relay->m_bloom_filter) {
-                tx_relay->m_bloom_filter->insert(vData);
-            } else {
-                bad = true;
-            }
-        }
-        if (bad) {
-            Misbehaving(peer, "bad filteradd message");
-        }
-        return;
-    }
-
-    if (msg_type == NetMsgType::FILTERCLEAR) {
-        if (!(peer.m_our_services & NODE_BLOOM)) {
-            LogDebug(BCLog::NET, "filterclear received despite not offering bloom services, %s\n", pfrom.DisconnectMsg(fLogIPs));
-            pfrom.fDisconnect = true;
-            return;
-        }
-        auto tx_relay = peer.GetTxRelay();
-        if (!tx_relay) return;
-
-        {
-            LOCK(tx_relay->m_bloom_filter_mutex);
-            tx_relay->m_bloom_filter = nullptr;
-            tx_relay->m_relay_txs = true;
-        }
-        pfrom.m_bloom_filter_loaded = false;
-        pfrom.m_relays_txs = true;
         return;
     }
 
@@ -5901,19 +5772,11 @@ bool PeerManagerImpl::SendMessages(CNode& node)
                     }
                 }
 
-                // Time to send but the peer has requested we not relay transactions.
-                if (fSendTrickle) {
-                    LOCK(tx_relay->m_bloom_filter_mutex);
-                    if (!tx_relay->m_relay_txs) tx_relay->m_tx_inventory_to_send.clear();
-                }
-
                 // Respond to BIP35 mempool requests
                 if (fSendTrickle && tx_relay->m_send_mempool) {
                     auto vtxinfo = m_mempool.infoAll();
                     tx_relay->m_send_mempool = false;
                     const CFeeRate filterrate{tx_relay->m_fee_filter_received.load()};
-
-                    LOCK(tx_relay->m_bloom_filter_mutex);
 
                     for (const auto& txinfo : vtxinfo) {
                         const Wtxid& wtxid{txinfo.tx->GetWitnessHash()};
@@ -5923,9 +5786,6 @@ bool PeerManagerImpl::SendMessages(CNode& node)
                         // Don't send transactions that peers will not put into their mempool
                         if (txinfo.fee < filterrate.GetFee(txinfo.vsize)) {
                             continue;
-                        }
-                        if (tx_relay->m_bloom_filter) {
-                            if (!tx_relay->m_bloom_filter->IsRelevantAndUpdate(*txinfo.tx)) continue;
                         }
                         tx_relay->m_tx_inventory_known_filter.insert(inv.hash);
                         vInv.push_back(inv);
@@ -5952,7 +5812,6 @@ bool PeerManagerImpl::SendMessages(CNode& node)
                     // No reason to drain out at many times the network's capacity,
                     // especially since we have many peers and some will draw much shorter delays.
                     unsigned int nRelayedTransactions = 0;
-                    LOCK(tx_relay->m_bloom_filter_mutex);
                     size_t broadcast_max{INVENTORY_BROADCAST_TARGET + (tx_relay->m_tx_inventory_to_send.size()/1000)*5};
                     broadcast_max = std::min<size_t>(INVENTORY_BROADCAST_MAX, broadcast_max);
                     while (!vInvTx.empty() && nRelayedTransactions < broadcast_max) {
@@ -5977,7 +5836,6 @@ bool PeerManagerImpl::SendMessages(CNode& node)
                         if (txinfo.fee < filterrate.GetFee(txinfo.vsize)) {
                             continue;
                         }
-                        if (tx_relay->m_bloom_filter && !tx_relay->m_bloom_filter->IsRelevantAndUpdate(*txinfo.tx)) continue;
                         // Send
                         vInv.push_back(inv);
                         nRelayedTransactions++;
