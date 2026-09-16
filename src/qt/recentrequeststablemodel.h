@@ -20,8 +20,6 @@ class RecentRequestEntry
 public:
     RecentRequestEntry() = default;
 
-    static const int CURRENT_VERSION = 1;
-    int nVersion{RecentRequestEntry::CURRENT_VERSION};
     int64_t id{0};
     QDateTime date;
     SendCoinsRecipient recipient;
@@ -29,7 +27,7 @@ public:
     SERIALIZE_METHODS(RecentRequestEntry, obj) {
         unsigned int date_timet;
         SER_WRITE(obj, date_timet = obj.date.toSecsSinceEpoch());
-        READWRITE(obj.nVersion, obj.id, date_timet, obj.recipient);
+        READWRITE(obj.id, date_timet, obj.recipient);
         SER_READ(obj, obj.date = QDateTime::fromSecsSinceEpoch(date_timet));
     }
 };

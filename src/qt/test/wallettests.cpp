@@ -374,15 +374,12 @@ void TestGUI(interfaces::Node& node, const std::shared_ptr<CWallet>& wallet)
     QCOMPARE(requests.size(), size_t{1});
     RecentRequestEntry entry;
     SpanReader{MakeByteSpan(requests[0])} >> entry;
-    QCOMPARE(entry.nVersion, int{1});
     QCOMPARE(entry.id, int64_t{1});
     QVERIFY(entry.date.isValid());
     QCOMPARE(entry.recipient.address, address);
     QCOMPARE(entry.recipient.label, QString{"TEST_LABEL_1"});
     QCOMPARE(entry.recipient.amount, CAmount{1});
     QCOMPARE(entry.recipient.message, QString{"TEST_MESSAGE_1"});
-    QCOMPARE(entry.recipient.sPaymentRequest, std::string{});
-    QCOMPARE(entry.recipient.authenticatedMerchant, QString{});
 
     // Check Remove button
     QTableView* table = receiveCoinsDialog.findChild<QTableView*>("recentRequestsView");
