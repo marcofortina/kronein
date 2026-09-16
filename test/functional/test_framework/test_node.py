@@ -30,6 +30,7 @@ from .authproxy import (
     serialization_fallback,
 )
 from .p2p import P2P_SUBVERSION
+from .segwit_addr import decode_segwit_address, encode_segwit_address
 from .util import (
     MAX_NODES,
     assert_equal,
@@ -217,7 +218,12 @@ class TestNode():
     def get_deterministic_priv_key(self):
         """Return a deterministic priv key in base58, that only depends on the node's index"""
         assert len(self.PRIV_KEYS) == MAX_NODES
-        return self.PRIV_KEYS[self.index]
+        key_pair = self.PRIV_KEYS[self.index]
+        if self.chain == "regtest":
+            return key_pair
+        witness_version, witness_program = decode_segwit_address("bcrt", key_pair.address)
+        hrp = "bc" if self.chain == "main" else "tb"
+        return self.AddressKeyPair(encode_segwit_address(hrp, witness_version, witness_program), key_pair.key)
 
     def _node_msg(self, msg: str) -> str:
         """Return a modified msg that identifies this node by its index as a debugging aid."""
