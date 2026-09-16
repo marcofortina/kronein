@@ -1070,10 +1070,10 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
 
     // Get size of spending the change output
     int change_spend_size = CalculateMaximumSignedInputSize(change_prototype_txout, &wallet, /*coin_control=*/nullptr);
-    // If the wallet doesn't know how to sign change output, assume p2sh-p2wpkh
-    // as lower-bound to allow BnB to do its thing
+    // If the wallet doesn't know how to sign the change output, use the
+    // maximum size of a native taproot key-path input.
     if (change_spend_size == -1) {
-        coin_selection_params.change_spend_size = DUMMY_NESTED_P2WPKH_INPUT_SIZE;
+        coin_selection_params.change_spend_size = DUMMY_TAPROOT_INPUT_SIZE;
     } else {
         coin_selection_params.change_spend_size = change_spend_size;
     }
