@@ -730,7 +730,7 @@ const std::array<std::string, 33> V2_MESSAGE_IDS = {
     "", // BIP37 filteradd was removed
     "", // BIP37 filterclear was removed
     "", // BIP37 filterload was removed
-    NetMsgType::GETBLOCKS,
+    "", // Unsupported short message ID
     NetMsgType::GETBLOCKTXN,
     NetMsgType::GETDATA,
     NetMsgType::GETHEADERS,

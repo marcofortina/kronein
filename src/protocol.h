@@ -83,11 +83,6 @@ inline constexpr const char* INV{"inv"};
  */
 inline constexpr const char* GETDATA{"getdata"};
 /**
- * The getblocks message requests an inv message that provides block header
- * hashes starting from a particular point in the block chain.
- */
-inline constexpr const char* GETBLOCKS{"getblocks"};
-/**
  * The getheaders message requests a headers message that provides block
  * headers starting from a particular point in the block chain.
  * @since protocol version 31800.
@@ -223,7 +218,6 @@ inline const std::array ALL_NET_MESSAGE_TYPES{std::to_array<std::string>({
     NetMsgType::ADDRV2,
     NetMsgType::INV,
     NetMsgType::GETDATA,
-    NetMsgType::GETBLOCKS,
     NetMsgType::GETHEADERS,
     NetMsgType::TX,
     NetMsgType::HEADERS,

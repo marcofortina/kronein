@@ -35,7 +35,7 @@ Part 2: Headers announcements stop after large reorg and resume after getheaders
 - For response-type in {inv, getheaders}
   * node mines a 7 block reorg [ expect: headers announcement of 8 blocks ]
   * node mines an 8-block reorg [ expect: inv at tip ]
-  * peer responds with getblocks/getdata [expect: inv, blocks ]
+  * peer requests the announced blocks with getdata [expect: blocks]
   * node mines another block [ expect: inv at tip, peer sends getdata, expect: block ]
   * node mines another block at tip [ expect: inv ]
   * peer responds with getheaders with an old hashstop more than 8 blocks back [expect: headers]
@@ -76,7 +76,6 @@ from test_framework.p2p import (
     p2p_lock,
     MSG_BLOCK,
     msg_block,
-    msg_getblocks,
     msg_getdata,
     msg_getheaders,
     msg_headers,
@@ -119,11 +118,6 @@ class BaseNode(P2PInterface):
         headers_message = msg_headers()
         headers_message.headers = [CBlockHeader(b) for b in new_blocks]
         self.send_without_ping(headers_message)
-
-    def send_getblocks(self, locator):
-        getblocks_message = msg_getblocks()
-        getblocks_message.locator.vHave = locator
-        self.send_without_ping(getblocks_message)
 
     def wait_for_block_announcement(self, block_hash, timeout=60):
         def test_function():
@@ -342,9 +336,7 @@ class HeadersAnnouncementsTest(BitcoinTestFramework):
             fork_point = self.nodes[0].getblock("%064x" % new_block_hashes[0])["previousblockhash"]
             fork_point = int(fork_point, 16)
 
-            # Use getblocks/getdata
-            test_node.send_getblocks(locator=[fork_point])
-            test_node.check_last_inv_announcement(inv=new_block_hashes)
+            # Request the announced blocks directly.
             test_node.send_get_data(new_block_hashes)
             test_node.wait_for_block(new_block_hashes[-1])
 

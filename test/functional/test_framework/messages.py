@@ -1186,30 +1186,6 @@ class msg_getdata:
         return "msg_getdata(inv=%s)" % (repr(self.inv))
 
 
-class msg_getblocks:
-    __slots__ = ("locator", "hashstop")
-    msgtype = b"getblocks"
-
-    def __init__(self):
-        self.locator = CBlockLocator()
-        self.hashstop = 0
-
-    def deserialize(self, f):
-        self.locator = CBlockLocator()
-        self.locator.deserialize(f)
-        self.hashstop = deser_uint256(f)
-
-    def serialize(self):
-        r = b""
-        r += self.locator.serialize()
-        r += ser_uint256(self.hashstop)
-        return r
-
-    def __repr__(self):
-        return "msg_getblocks(locator=%s hashstop=%064x)" \
-            % (repr(self.locator), self.hashstop)
-
-
 class msg_tx:
     __slots__ = ("tx",)
     msgtype = b"tx"

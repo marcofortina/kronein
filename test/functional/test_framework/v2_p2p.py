@@ -26,7 +26,6 @@ SHORTID = {
     3: b"blocktxn",
     4: b"cmpctblock",
     5: b"feefilter",
-    9: b"getblocks",
     10: b"getblocktxn",
     11: b"getdata",
     12: b"getheaders",
