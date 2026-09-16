@@ -30,17 +30,8 @@ enum WalletFlags : uint64_t {
     //! a newly created wallet when the wallet database is loaded, to avoid
     //! initialization that should only happen on first run.
     //!
-    //! A secondary function of this flag, which applies to descriptor wallets
-    //! only, is to serve as an ongoing indication that descriptors in the
-    //! wallet should be created manually, and that the wallet should not
-    //! generate automatically generate new descriptors if it is later
-    //! encrypted. To support this behavior, descriptor wallets unlike legacy
-    //! wallets do not automatically unset the BLANK flag when things are
-    //! imported.
-    //!
-    //! This flag is also a mandatory flag to prevent previous versions of
-    //! bitcoin from opening the wallet, thinking it was newly created, and
-    //! then improperly reinitializing it.
+    //! It also indicates that descriptors should be created manually and that
+    //! importing data must not automatically initialize wallet descriptors.
     WALLET_FLAG_BLANK_WALLET = (1ULL << 33),
 
     //! Indicates that the wallet needs an external signer

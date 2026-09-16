@@ -108,9 +108,6 @@ struct Descriptor {
     /** Convert the descriptor back to a string, undoing parsing. */
     virtual std::string ToString() const = 0;
 
-    /** Whether this descriptor will return one scriptPubKey or multiple (aka is or is not combo) */
-    virtual bool IsSingleType() const = 0;
-
     /** Whether the given provider has all private keys required by this descriptor.
      * @return `false` if the descriptor doesn't have any keys or subdescriptors,
      *         or if the provider does not have all private keys required by

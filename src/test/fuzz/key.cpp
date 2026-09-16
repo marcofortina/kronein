@@ -173,22 +173,9 @@ FUZZ_TARGET(key, .init = initialize_key)
         assert(v_solutions_ret_tx_multisig[1].size() == 33);
         assert(v_solutions_ret_tx_multisig[2].size() == 1);
 
-        OutputType output_type{};
-        const CTxDestination tx_destination{PKHash{pubkey}};
-        assert(output_type == OutputType::LEGACY);
-        assert(IsValidDestination(tx_destination));
-        assert(PKHash{pubkey} == *std::get_if<PKHash>(&tx_destination));
-
-        const CScript script_for_destination = GetScriptForDestination(tx_destination);
-        assert(script_for_destination.size() == 25);
-
-        const std::string destination_address = EncodeDestination(tx_destination);
-        assert(DecodeDestination(destination_address) == tx_destination);
-
         CKeyID key_id = pubkey.GetID();
         assert(!key_id.IsNull());
         assert(key_id == CKeyID{key_id});
-        assert(key_id == GetKeyForDestination(fillable_signing_provider, tx_destination));
 
         CPubKey pubkey_out;
         const bool ok_get_pubkey = fillable_signing_provider.GetPubKey(key_id, pubkey_out);

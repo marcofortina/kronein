@@ -66,15 +66,17 @@ class DescriptorTest(BitcoinTestFramework):
             expanded_descs=[f"tr({xpub}/0/*)", f"tr({xpub}/1/*)"],
         )
 
+        assert_raises_rpc_error(-5, "pk() can only be used inside tr()", node.getdescriptorinfo, f"pk(02{internal_key})")
         for legacy_desc in (
-            f"pk(02{internal_key})",
             f"pkh(02{internal_key})",
             f"wpkh(02{internal_key})",
             f"sh(wpkh(02{internal_key}))",
             f"wsh(pk(02{internal_key}))",
             f"combo(02{internal_key})",
         ):
-            assert_raises_rpc_error(-5, "Descriptor produces a non-native output", node.getdescriptorinfo, legacy_desc)
+            assert_raises_rpc_error(-5, "is not a valid descriptor function", node.getdescriptorinfo, legacy_desc)
+
+        assert_raises_rpc_error(-5, "Raw script is not a native output", node.getdescriptorinfo, "raw(00140000000000000000000000000000000000000000)")
 
 
 if __name__ == "__main__":

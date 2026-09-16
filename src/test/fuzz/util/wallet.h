@@ -36,10 +36,7 @@ struct FuzzedWallet {
     void ImportDescriptors(const std::string& seed_insecure)
     {
         const std::vector<std::string> DESCS{
-            "pkh(%s/%s/*)",
-            "sh(wpkh(%s/%s/*))",
             "tr(%s/%s/*)",
-            "wpkh(%s/%s/*)",
         };
 
         for (const std::string& desc_fmt : DESCS) {
@@ -52,7 +49,6 @@ struct FuzzedWallet {
                 assert(parsed_desc);
                 assert(error.empty());
                 assert(parsed_desc->IsRange());
-                assert(parsed_desc->IsSingleType());
                 assert(!keys.keys.empty());
                 WalletDescriptor w_desc{std::move(parsed_desc), /*creation_time=*/0, /*range_start=*/0, /*range_end=*/1, /*next_index=*/0};
                 assert(!wallet->GetDescriptorScriptPubKeyMan(w_desc));

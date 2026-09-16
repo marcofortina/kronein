@@ -35,7 +35,6 @@ util::Result<CTxDestination> DescriptorScriptPubKeyMan::GetNewDestination(const 
     }
     {
         LOCK(cs_desc_man);
-        assert(m_wallet_descriptor.descriptor->IsSingleType()); // This is a combo descriptor which should not be an active descriptor
         std::optional<OutputType> desc_addr_type = m_wallet_descriptor.descriptor->GetOutputType();
         assert(desc_addr_type);
         if (type != *desc_addr_type) {
@@ -372,11 +371,10 @@ bool DescriptorScriptPubKeyMan::IsHDEnabled() const
 
 bool DescriptorScriptPubKeyMan::CanGetAddresses(bool internal) const
 {
-    // We can only give out addresses from descriptors that are single type (not combo), ranged,
-    // and either have cached keys or can generate more keys (ignoring encryption)
+    // We can only give out addresses from ranged descriptors that have cached
+    // keys or can generate more keys (ignoring encryption).
     LOCK(cs_desc_man);
-    return m_wallet_descriptor.descriptor->IsSingleType() &&
-           m_wallet_descriptor.descriptor->IsRange() &&
+    return m_wallet_descriptor.descriptor->IsRange() &&
            (HavePrivateKeys() || m_wallet_descriptor.next_index < m_wallet_descriptor.range_end);
 }
 

@@ -19,7 +19,6 @@ static void TestDescriptor(const Descriptor& desc, FlatSigningProvider& sig_prov
 {
     // Trivial helpers.
     (void)desc.IsRange();
-    (void)desc.IsSingleType();
     (void)desc.GetOutputType();
 
     if (is_ranged.has_value()) {
@@ -49,15 +48,13 @@ static void TestDescriptor(const Descriptor& desc, FlatSigningProvider& sig_prov
     if (!out_scripts.empty()) {
         assert(InferDescriptor(out_scripts.back(), sig_provider));
 
-        // The ScriptSize() must match the size of the serialized Script. (ScriptSize() is set for all descs but 'combo()'.)
-        const bool is_combo{!desc.IsSingleType()};
-        assert(is_combo || desc.ScriptSize() == out_scripts.back().size());
+        assert(desc.ScriptSize() == out_scripts.back().size());
     }
 
     const auto max_sat_maxsig{desc.MaxSatisfactionWeight(true)};
     const auto max_sat_nonmaxsig{desc.MaxSatisfactionWeight(true)};
     const auto max_elems{desc.MaxSatisfactionElems()};
-    // We must be able to estimate the max satisfaction size for any solvable descriptor (but combo).
+    // We must be able to estimate the maximum satisfaction size for any solvable descriptor.
     const bool is_nontop_or_nonsolvable{!*is_solvable || !desc.GetOutputType()};
     const bool is_input_size_info_set{max_sat_maxsig && max_sat_nonmaxsig && max_elems};
     assert(is_input_size_info_set || is_nontop_or_nonsolvable);

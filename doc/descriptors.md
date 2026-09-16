@@ -8,9 +8,9 @@ descriptor must produce one of the following:
 - a Taproot or pay-to-anchor address (`addr`);
 - a raw Taproot, pay-to-anchor, or unspendable `OP_RETURN` script (`raw`).
 
-Top-level P2PK, P2PKH, P2SH, witness-v0, and bare multisig descriptors are
-rejected by descriptor RPCs and by wallet import. Script expressions inside a
-Taproot script tree are Tapscript, not historical output types.
+P2PK, P2PKH, P2SH, witness-v0, and bare multisig are not part of the descriptor
+grammar. Script expressions inside a Taproot script tree are Tapscript, not
+alternative top-level output types.
 
 ## Examples
 
@@ -66,8 +66,7 @@ A `TREE` is either one script expression or two trees enclosed in braces:
 
 Taproot leaves support `pk`, `pkh`, `multi_a`, `sortedmulti_a`, timelocks,
 hashlocks, and the Tapscript Miniscript combinators. `multi_a` and
-`sortedmulti_a` implement k-of-n policies using `OP_CHECKSIGADD`; historical
-`OP_CHECKMULTISIG` output descriptors are not supported.
+`sortedmulti_a` implement k-of-n policies using `OP_CHECKSIGADD`.
 
 For the complete Miniscript expression grammar, see BIP 379. For Taproot
 descriptors and Tapscript multisig, see BIP 386 and BIP 387.

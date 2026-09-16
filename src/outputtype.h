@@ -13,17 +13,11 @@
 #include <string>
 
 enum class OutputType {
-    LEGACY,
-    P2SH_SEGWIT,
-    BECH32,
     BECH32M,
     UNKNOWN,
 };
 
 static constexpr auto OUTPUT_TYPES = std::array{
-    OutputType::LEGACY,
-    OutputType::P2SH_SEGWIT,
-    OutputType::BECH32,
     OutputType::BECH32M,
 };
 

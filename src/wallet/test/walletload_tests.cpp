@@ -26,7 +26,6 @@ public:
 
     bool IsRange() const override { return false; }
     bool IsSolvable() const override { return false; }
-    bool IsSingleType() const override { return true; }
     bool HavePrivateKeys(const SigningProvider&) const override { return false; }
     bool ToPrivateString(const SigningProvider& provider, std::string& out) const override { return false; }
     bool ToNormalizedString(const SigningProvider& provider, std::string& out, const DescriptorCache* cache = nullptr) const override { return false; }

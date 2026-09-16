@@ -143,14 +143,12 @@ FUZZ_TARGET(scriptpubkeyman, .init = initialize_spkm)
             [&] {
                 LOCK(spk_manager->cs_desc_man);
                 auto wallet_desc{spk_manager->GetWalletDescriptor()};
-                if (wallet_desc.descriptor->IsSingleType()) {
-                    auto output_type{wallet_desc.descriptor->GetOutputType()};
-                    if (output_type.has_value()) {
-                        auto dest{spk_manager->GetNewDestination(*output_type)};
-                        if (dest) {
-                            assert(IsValidDestination(*dest));
-                            assert(spk_manager->IsHDEnabled());
-                        }
+                auto output_type{wallet_desc.descriptor->GetOutputType()};
+                if (output_type.has_value()) {
+                    auto dest{spk_manager->GetNewDestination(*output_type)};
+                    if (dest) {
+                        assert(IsValidDestination(*dest));
+                        assert(spk_manager->IsHDEnabled());
                     }
                 }
             },
