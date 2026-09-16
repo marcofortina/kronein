@@ -45,7 +45,7 @@ class BIP68Test(BitcoinTestFramework):
         self.num_nodes = 2
 
     def run_test(self):
-        self.relayfee = self.nodes[0].getnetworkinfo()["relayfee"]
+        self.relayfee = self.nodes[0].getmempoolinfo()["minrelaytxfee"]
         self.wallet = MiniWallet(self.nodes[0])
 
         self.log.info("Running test disable flag")

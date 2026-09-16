@@ -63,7 +63,7 @@ def fill_mempool(test_framework, node, *, tx_sync_fun=None):
     """
     test_framework.log.info("Fill the mempool until eviction is triggered and the mempoolminfee rises")
     txouts = gen_return_txouts()
-    minrelayfee = node.getnetworkinfo()['relayfee']
+    minrelayfee = node.getmempoolinfo()['minrelaytxfee']
 
     tx_batch_size = 1
     num_of_batches = 75

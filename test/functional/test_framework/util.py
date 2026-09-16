@@ -699,7 +699,7 @@ def mine_large_block(test_framework, mini_wallet, node):
     # generate a 66k transaction,
     # and 14 of them is close to the 1MB block limit
     txouts = gen_return_txouts()
-    fee = 100 * node.getnetworkinfo()["relayfee"]
+    fee = 100 * node.getmempoolinfo()["minrelaytxfee"]
     create_lots_of_big_transactions(mini_wallet, node, fee, 14, txouts)
     test_framework.generate(node, 1)
 

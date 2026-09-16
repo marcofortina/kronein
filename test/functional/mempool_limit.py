@@ -201,7 +201,7 @@ class MempoolLimitTest(BitcoinTestFramework):
         # Generate coins needed to create transactions in the subtests (excluding coins used in fill_mempool).
         self.generate(miniwallet, 20)
 
-        relayfee = node.getnetworkinfo()['relayfee']
+        relayfee = node.getmempoolinfo()['minrelaytxfee']
         self.log.info('Check that mempoolminfee is minrelaytxfee')
         assert_equal(node.getmempoolinfo()['minrelaytxfee'], node.getmempoolinfo()["mempoolminfee"])
 

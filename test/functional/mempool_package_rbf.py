@@ -400,7 +400,7 @@ class PackageRBFTest(BitcoinTestFramework):
         )
 
         node.sendrawtransaction(grandparent_result["hex"])
-        minrelayfeerate = node.getnetworkinfo()["relayfee"]
+        minrelayfeerate = node.getmempoolinfo()["minrelaytxfee"]
 
         # Now make package of two descendants that looks
         # like a cpfp where the parent can't get in on its own

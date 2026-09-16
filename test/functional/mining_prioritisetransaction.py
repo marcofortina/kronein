@@ -228,7 +228,7 @@ class PrioritiseTransactionTest(BitcoinTestFramework):
         self.test_diamond()
 
         self.txouts = gen_return_txouts()
-        self.relayfee = self.nodes[0].getnetworkinfo()['relayfee']
+        self.relayfee = self.nodes[0].getmempoolinfo()['minrelaytxfee']
 
         utxo_count = 90
         utxos = self.wallet.send_self_transfer_multi(from_node=self.nodes[0], num_outputs=utxo_count)['new_utxos']

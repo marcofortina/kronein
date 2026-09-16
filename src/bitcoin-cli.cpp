@@ -315,8 +315,9 @@ struct AddrinfoRequestHandler : BaseRequestHandler {
 struct GetinfoRequestHandler : BaseRequestHandler {
     const int ID_NETWORKINFO = 0;
     const int ID_BLOCKCHAININFO = 1;
-    const int ID_WALLETINFO = 2;
-    const int ID_BALANCES = 3;
+    const int ID_MEMPOOLINFO = 2;
+    const int ID_WALLETINFO = 3;
+    const int ID_BALANCES = 4;
 
     /** Create a simulated `getinfo` request. */
     UniValue PrepareRequest(const std::string& method, const std::vector<std::string>& args) override
@@ -327,6 +328,7 @@ struct GetinfoRequestHandler : BaseRequestHandler {
         UniValue result(UniValue::VARR);
         result.push_back(JSONRPCRequestObj("getnetworkinfo", NullUniValue, ID_NETWORKINFO));
         result.push_back(JSONRPCRequestObj("getblockchaininfo", NullUniValue, ID_BLOCKCHAININFO));
+        result.push_back(JSONRPCRequestObj("getmempoolinfo", NullUniValue, ID_MEMPOOLINFO));
         result.push_back(JSONRPCRequestObj("getwalletinfo", NullUniValue, ID_WALLETINFO));
         result.push_back(JSONRPCRequestObj("getbalances", NullUniValue, ID_BALANCES));
         return result;
@@ -337,13 +339,16 @@ struct GetinfoRequestHandler : BaseRequestHandler {
     {
         UniValue result(UniValue::VOBJ);
         const std::vector<UniValue> batch = JSONRPCProcessBatchReply(batch_in);
-        // Errors in getnetworkinfo() and getblockchaininfo() are fatal, pass them on;
+        // Errors in getnetworkinfo(), getblockchaininfo(), and getmempoolinfo() are fatal, pass them on;
         // getwalletinfo() and getbalances() are allowed to fail if there is no wallet.
         if (!batch[ID_NETWORKINFO]["error"].isNull()) {
             return batch[ID_NETWORKINFO];
         }
         if (!batch[ID_BLOCKCHAININFO]["error"].isNull()) {
             return batch[ID_BLOCKCHAININFO];
+        }
+        if (!batch[ID_MEMPOOLINFO]["error"].isNull()) {
+            return batch[ID_MEMPOOLINFO];
         }
         result.pushKV("version", batch[ID_NETWORKINFO]["result"]["version"]);
         result.pushKV("blocks", batch[ID_BLOCKCHAININFO]["result"]["blocks"]);
@@ -371,7 +376,7 @@ struct GetinfoRequestHandler : BaseRequestHandler {
         if (!batch[ID_BALANCES]["result"].isNull()) {
             result.pushKV("balance", batch[ID_BALANCES]["result"]["mine"]["trusted"]);
         }
-        result.pushKV("relayfee", batch[ID_NETWORKINFO]["result"]["relayfee"]);
+        result.pushKV("relayfee", batch[ID_MEMPOOLINFO]["result"]["minrelaytxfee"]);
         result.pushKV("warnings", batch[ID_NETWORKINFO]["result"]["warnings"]);
         return JSONRPCReplyObj(std::move(result), NullUniValue,  /*id=*/1);
     }

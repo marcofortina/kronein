@@ -75,7 +75,7 @@ class RawTransactionsTest(BitcoinTestFramework):
     def run_test(self):
         self.watchonly_utxo = None
         self.log.info("Connect nodes, set fees, generate blocks, and sync")
-        self.min_relay_tx_fee = self.nodes[0].getnetworkinfo()['relayfee']
+        self.min_relay_tx_fee = self.nodes[0].getmempoolinfo()['minrelaytxfee']
         # This test is not meant to test fee estimation and we'd like
         # to be sure all txs are sent at a consistent desired feerate
         self.fee_rate_sats_per_vb = self.min_relay_tx_fee * Decimal(1e8) / 1000

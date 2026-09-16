@@ -64,7 +64,8 @@ def cleanup(func):
             self.nodes[0].disconnect_p2ps()
             # Do not clear the node's mempool, as each test requires mempool min feerate > min
             # relay feerate. However, do check that this is the case.
-            assert self.nodes[0].getmempoolinfo()["mempoolminfee"] > self.nodes[0].getnetworkinfo()["relayfee"]
+            mempool_info = self.nodes[0].getmempoolinfo()
+            assert mempool_info["mempoolminfee"] > mempool_info["minrelaytxfee"]
             # Ensure we do not try to spend the same UTXOs in subsequent tests, as they will look like RBF attempts.
             self.wallet.rescan_utxos(include_mempool=True)
 
