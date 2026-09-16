@@ -15,6 +15,7 @@
 #include <wallet/types.h>
 
 #include <cstdint>
+#include <ios>
 #include <map>
 #include <utility>
 #include <variant>
@@ -60,37 +61,28 @@ struct TxStateInactive {
     std::string toString() const { return strprintf("Inactive (abandoned=%i)", abandoned); }
 };
 
-//! State of transaction loaded in an unrecognized state with unexpected hash or
-//! index values. Treated as inactive (with serialized hash and index values
-//! preserved) by default, but may enter another state if transaction is added
-//! to the mempool, or confirmed, or abandoned, or found conflicting.
-struct TxStateUnrecognized {
-    uint256 block_hash;
-    int index;
-
-    TxStateUnrecognized(const uint256& block_hash, int index) : block_hash(block_hash), index(index) {}
-    std::string toString() const { return strprintf("Unrecognized (block=%s, index=%i)", block_hash.ToString(), index); }
-};
-
 //! All possible CWalletTx states
-using TxState = std::variant<TxStateConfirmed, TxStateInMempool, TxStateBlockConflicted, TxStateInactive, TxStateUnrecognized>;
+using TxState = std::variant<TxStateConfirmed, TxStateInMempool, TxStateBlockConflicted, TxStateInactive>;
 
 //! Subset of states transaction sync logic is implemented to handle.
 using SyncTxState = std::variant<TxStateConfirmed, TxStateInMempool, TxStateInactive>;
 
-//! Try to interpret deserialized TxStateUnrecognized data as a recognized state.
-static inline TxState TxStateInterpretSerialized(TxStateUnrecognized data)
+//! Decode a persisted transaction state, rejecting invalid combinations.
+static inline TxState TxStateInterpretSerialized(const uint256& block_hash, int index)
 {
-    if (data.block_hash == uint256::ZERO) {
-        if (data.index == 0) return TxStateInactive{};
-    } else if (data.block_hash == uint256::ONE) {
-        if (data.index == -1) return TxStateInactive{/*abandoned=*/true};
-    } else if (data.index >= 0) {
-        return TxStateConfirmed{data.block_hash, /*height=*/-1, data.index};
-    } else if (data.index == -1) {
-        return TxStateBlockConflicted{data.block_hash, /*height=*/-1};
+    if (block_hash == uint256::ZERO && index == 0) {
+        return TxStateInactive{};
     }
-    return data;
+    if (block_hash == uint256::ONE && index == -1) {
+        return TxStateInactive{/*abandoned=*/true};
+    }
+    if (block_hash != uint256::ZERO && block_hash != uint256::ONE && index >= 0) {
+        return TxStateConfirmed{block_hash, /*height=*/-1, index};
+    }
+    if (block_hash != uint256::ZERO && block_hash != uint256::ONE && index == -1) {
+        return TxStateBlockConflicted{block_hash, /*height=*/-1};
+    }
+    throw std::ios_base::failure{"Invalid wallet transaction state"};
 }
 
 //! Get TxState serialized block hash. Inverse of TxStateInterpretSerialized.
@@ -100,8 +92,7 @@ static inline uint256 TxStateSerializedBlockHash(const TxState& state)
         [](const TxStateInactive& inactive) { return inactive.abandoned ? uint256::ONE : uint256::ZERO; },
         [](const TxStateInMempool& in_mempool) { return uint256::ZERO; },
         [](const TxStateConfirmed& confirmed) { return confirmed.confirmed_block_hash; },
-        [](const TxStateBlockConflicted& conflicted) { return conflicted.conflicting_block_hash; },
-        [](const TxStateUnrecognized& unrecognized) { return unrecognized.block_hash; }
+        [](const TxStateBlockConflicted& conflicted) { return conflicted.conflicting_block_hash; }
     }, state);
 }
 
@@ -112,8 +103,7 @@ static inline int TxStateSerializedIndex(const TxState& state)
         [](const TxStateInactive& inactive) { return inactive.abandoned ? -1 : 0; },
         [](const TxStateInMempool& in_mempool) { return 0; },
         [](const TxStateConfirmed& confirmed) { return confirmed.position_in_block; },
-        [](const TxStateBlockConflicted& conflicted) { return -1; },
-        [](const TxStateUnrecognized& unrecognized) { return unrecognized.index; }
+        [](const TxStateBlockConflicted& conflicted) { return -1; }
     }, state);
 }
 
@@ -258,7 +248,7 @@ public:
         int serializedIndex;
         s >> TX_WITH_WITNESS(tx) >> serialized_block_hash >> serializedIndex >> mapValue >> vOrderForm >> nTimeReceived >> nTimeSmart >> nOrderPos;
 
-        m_state = TxStateInterpretSerialized({serialized_block_hash, serializedIndex});
+        m_state = TxStateInterpretSerialized(serialized_block_hash, serializedIndex);
     }
 
     void SetTx(CTransactionRef arg)

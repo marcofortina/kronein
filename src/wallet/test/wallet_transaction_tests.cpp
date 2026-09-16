@@ -15,13 +15,18 @@ BOOST_FIXTURE_TEST_SUITE(wallet_transaction_tests, WalletTestingSetup)
 
 BOOST_AUTO_TEST_CASE(roundtrip)
 {
-    for (uint8_t hash = 0; hash < 5; ++hash) {
-        for (int index = -2; index < 3; ++index) {
-            TxState state = TxStateInterpretSerialized(TxStateUnrecognized{uint256{hash}, index});
-            BOOST_CHECK_EQUAL(TxStateSerializedBlockHash(state), uint256{hash});
-            BOOST_CHECK_EQUAL(TxStateSerializedIndex(state), index);
-        }
-    }
+    const uint256 block_hash{2};
+    BOOST_CHECK(std::holds_alternative<TxStateInactive>(TxStateInterpretSerialized(uint256::ZERO, 0)));
+    const TxState abandoned{TxStateInterpretSerialized(uint256::ONE, -1)};
+    const auto* inactive{std::get_if<TxStateInactive>(&abandoned)};
+    BOOST_REQUIRE(inactive);
+    BOOST_CHECK(inactive->abandoned);
+    BOOST_CHECK(std::holds_alternative<TxStateConfirmed>(TxStateInterpretSerialized(block_hash, 0)));
+    BOOST_CHECK(std::holds_alternative<TxStateBlockConflicted>(TxStateInterpretSerialized(block_hash, -1)));
+
+    BOOST_CHECK_THROW(TxStateInterpretSerialized(uint256::ZERO, -1), std::ios_base::failure);
+    BOOST_CHECK_THROW(TxStateInterpretSerialized(uint256::ONE, 0), std::ios_base::failure);
+    BOOST_CHECK_THROW(TxStateInterpretSerialized(block_hash, -2), std::ios_base::failure);
 }
 
 BOOST_AUTO_TEST_CASE(native_wallet_tx_serialization)
