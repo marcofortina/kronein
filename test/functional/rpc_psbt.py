@@ -597,8 +597,6 @@ class PSBTTest(BitcoinTestFramework):
         # Test decoding error: invalid base64
         assert_raises_rpc_error(-22, "TX decode failed invalid base64", self.nodes[0].decodepsbt, ";definitely not base64;")
 
-        # Legacy input-type update and joining cases are not part of the native wallet.
-
         self.log.info("Test signing a Taproot input whose script is watched by another wallet")
         self.nodes[1].createwallet(wallet_name="scriptwatchonly", disable_private_keys=True)
         watchonly = self.nodes[1].get_wallet_rpc("scriptwatchonly")

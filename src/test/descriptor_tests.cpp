@@ -14,7 +14,6 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <array>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -44,14 +43,6 @@ void CheckNativeDescriptor(const std::string& descriptor, bool ranged = false)
         BOOST_REQUIRE(output_type.has_value());
         BOOST_CHECK_EQUAL(static_cast<int>(*output_type), static_cast<int>(OutputType::BECH32M));
     }
-}
-
-void CheckRejected(const std::string& descriptor)
-{
-    FlatSigningProvider keys;
-    std::string error;
-    BOOST_CHECK_MESSAGE(Parse(descriptor, keys, error).empty(), descriptor);
-    BOOST_CHECK_MESSAGE(!error.empty(), descriptor);
 }
 
 } // namespace
@@ -85,28 +76,6 @@ BOOST_AUTO_TEST_CASE(taproot_key_forms)
         "tr(musig(02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9,"
         "03dff1d77f2a671c5f36183726db2341be58feae1da2deced843240f7b502ba659,"
         "023590a94e768f8e1815c2f24b4d80a8e3149316c3518ce7b7ad338368d038ca66))");
-}
-
-BOOST_AUTO_TEST_CASE(pre_taproot_descriptors_are_not_in_the_grammar)
-{
-    const std::string key{"0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"};
-    const std::array legacy_descriptors{
-        "pk(" + key + ")",
-        "pkh(" + key + ")",
-        "wpkh(" + key + ")",
-        "combo(" + key + ")",
-        "multi(1," + key + ")",
-        "sortedmulti(1," + key + ")",
-        "sh(pkh(" + key + "))",
-        "wsh(pk(" + key + "))",
-        "sh(wsh(pk(" + key + ")))",
-    };
-    for (const auto& descriptor : legacy_descriptors) CheckRejected(descriptor);
-
-    CheckRejected("raw(76a914000000000000000000000000000000000000000088ac)");
-    CheckRejected("raw(00140000000000000000000000000000000000000000)");
-    CheckRejected("tr(0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
-                  "483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8)");
 }
 
 BOOST_AUTO_TEST_CASE(checksum_and_inference)

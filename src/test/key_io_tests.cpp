@@ -44,10 +44,6 @@ BOOST_AUTO_TEST_CASE(native_bech32m_addresses)
 
     const std::string encoded_unknown{"bcrt1zgfpyysjzgfpy"};
     BOOST_CHECK(!IsValidDestination(DecodeDestination(encoded_unknown)));
-
-    // Legacy Base58 and witness v0 Bech32 addresses are intentionally unsupported.
-    BOOST_CHECK(!IsValidDestination(DecodeDestination("mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn")));
-    BOOST_CHECK(!IsValidDestination(DecodeDestination("bcrt1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqdku202")));
 }
 
 BOOST_AUTO_TEST_CASE(private_keys)

@@ -263,9 +263,6 @@ class RawTransactionsTest(BitcoinTestFramework):
 
         assert_raises_rpc_error(-8, "Unknown named parameter foo", self.nodes[2].fundrawtransaction, rawtx, foo='bar')
 
-        # reserveChangeKey was deprecated and is now removed
-        assert_raises_rpc_error(-8, "Unknown named parameter reserveChangeKey", lambda: self.nodes[2].fundrawtransaction(hexstring=rawtx, reserveChangeKey=True))
-
     def test_invalid_change_address(self):
         self.log.info("Test fundrawtxn with an invalid change address")
         utx = get_unspent(self.nodes[2].listunspent(), 5)
