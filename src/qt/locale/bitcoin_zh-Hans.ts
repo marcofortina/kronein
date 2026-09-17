@@ -4031,10 +4031,6 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">初始化区块数据库时出错</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">载入 %s 时发生错误</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">%s 加载出错:钱包损坏</translation>
     </message>

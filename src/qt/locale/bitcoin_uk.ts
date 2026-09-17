@@ -4233,10 +4233,6 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">Помилка ініціалізації бази даних блоків</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Помилка завантаження %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Помилка завантаження %s: Гаманець пошкоджено</translation>
     </message>

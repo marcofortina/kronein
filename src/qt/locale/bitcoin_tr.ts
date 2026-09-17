@@ -3549,10 +3549,6 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">Blok veritabanını başlatılırken bir hata meydana geldi</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">%s unsurunun yüklenmesinde hata oluştu</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">%s unsurunun yüklenmesinde hata oluştu: bozuk cüzdan</translation>
     </message>

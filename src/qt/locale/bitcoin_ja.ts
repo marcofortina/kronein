@@ -4141,10 +4141,6 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">ブロックデータベースの初期化時にエラーが発生しました</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">%s の読み込みエラー</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">%s の読み込みエラー: ウォレットが壊れています</translation>
     </message>

@@ -3202,10 +3202,6 @@ Ga naar Bestand &gt; Wallet openen om een wallet te laden.
         <translation type="unfinished">Fout bij intialisatie blokkendatabase</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Fout bij het laden van %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Fout bij het laden van %s: Wallet beschadigd</translation>
     </message>

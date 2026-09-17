@@ -48,8 +48,7 @@ enum class DBErrors : int
     NONCRITICAL_ERROR = 3,
     TOO_NEW = 4,
     UNKNOWN_DESCRIPTOR = 5,
-    LOAD_FAIL = 6,
-    CORRUPT = 7,
+    CORRUPT = 6,
 };
 
 namespace DBKeys {

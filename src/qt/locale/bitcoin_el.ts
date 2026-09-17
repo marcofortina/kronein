@@ -3115,10 +3115,6 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">Το αρχείο dump %s δεν υπάρχει.</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Σφάλμα κατά τη φόρτωση %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Σφάλμα κατά τη φόρτωση %s: Κατεστραμμένο Πορτοφόλι</translation>
     </message>

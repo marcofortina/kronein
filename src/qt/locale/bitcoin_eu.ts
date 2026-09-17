@@ -4156,10 +4156,6 @@ Joan Fitxategia &gt; Ireki Zorro menura zorro bat kargatzeko.
         <translation type="unfinished">Errorea bloke datu basea hasieratzean</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Kargatzean %serrorea</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Errorea %s kargatzean: zorroa hondatuta dago</translation>
     </message>

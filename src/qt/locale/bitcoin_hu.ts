@@ -4118,10 +4118,6 @@ A "Fájl &gt; Tárca megnyitása" menüben tölthet be egyet.
         <translation type="unfinished">A blokk-adatbázis előkészítése nem sikerült</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Hiba a(z) %s betöltése közben</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Hiba a(z) %s betöltése közben: A tárca hibás.</translation>
     </message>

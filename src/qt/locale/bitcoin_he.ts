@@ -3272,10 +3272,6 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">שגיאה באתחול מסד נתוני המקטעים</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">שגיאה בטעינת %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">שגיאת טעינה %s: הארנק משובש</translation>
     </message>

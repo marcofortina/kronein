@@ -3462,10 +3462,6 @@ Gå till Fil &gt; Öppna plånbok för att läsa in en plånbok.
         <translation type="unfinished">Fel vid initiering av blockdatabasen</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Fel vid inläsning av %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Fel vid inläsning av %s: Plånboken är korrupt</translation>
     </message>

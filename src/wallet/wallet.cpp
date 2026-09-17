@@ -2096,9 +2096,6 @@ DBErrors CWallet::PopulateWalletFromDB(bilingual_str& error, std::vector<bilingu
                             "The wallet might have been created on a newer version.\n"
                             "Please try running the latest software version.\n"), wallet_file);
         break;
-    case DBErrors::LOAD_FAIL:
-        error = strprintf(_("Error loading %s"), wallet_file);
-        break;
     } // no default case, so the compiler can warn about missing cases
     return nLoadWalletRet;
 }

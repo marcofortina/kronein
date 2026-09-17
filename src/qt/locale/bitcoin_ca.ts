@@ -3788,10 +3788,6 @@ Ves a Arxiu &gt; Obrir Cartera per a carregar cartera.
         <translation type="unfinished">Error carregant la base de dades de blocs</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Error carregant %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">S'ha produït un error en carregar %s: la cartera és corrupta</translation>
     </message>

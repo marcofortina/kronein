@@ -2344,10 +2344,6 @@
         <translation type="unfinished">Ошибка при инициализации базы данных блоков</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Ошибка при загрузке %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Ошибка загрузки %s: кошелёк поврежден</translation>
     </message>

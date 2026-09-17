@@ -3606,10 +3606,6 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">Грешка у иницијализацији базе података блокова</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Грешка током учитавања %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Грешка током учитавања %s: Новчаник је оштећен</translation>
     </message>

@@ -4136,10 +4136,6 @@ Tor 네트워크에 연결하기 위한 프록시 설정이 제공되지 않았�
         <translation type="unfinished">블록 데이터베이스 초기화 오류 발생</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">%s 불러오기 오류 발생</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">%s 불러오기 오류: 지갑이 손상됨</translation>
     </message>

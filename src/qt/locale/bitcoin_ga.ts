@@ -4176,10 +4176,6 @@ Téigh go Comhad &gt; Oscail Sparán chun sparán a lódáil.
         <translation type="unfinished">Earráid ag túsú bunachar sonraí bloic</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Earráid lódáil %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Earráid lódáil %s: Sparán truaillithe</translation>
     </message>

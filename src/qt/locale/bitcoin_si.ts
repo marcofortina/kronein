@@ -1278,10 +1278,6 @@
         <translation type="unfinished">පෙරනිමි පසුම්බිය</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">%s පූරණය වීමේ දෝෂයකි</translation>
-    </message>
-    <message>
         <source>Loading wallet…</source>
         <translation type="unfinished">පසුම්බිය පූරණය වෙමින්…</translation>
     </message>

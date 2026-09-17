@@ -3685,10 +3685,6 @@ Idi na Datoteka &gt;  Otvori novčanik za učitanje novčanika.
         <translation type="unfinished">Greška kod inicijaliziranja baze blokova</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Greška kod pokretanja programa %s!</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Greška kod učitavanja %s: Novčanik pokvaren</translation>
     </message>

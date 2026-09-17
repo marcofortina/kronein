@@ -3415,10 +3415,6 @@ Ověřuji peněženku.</translation>
         <translation type="unfinished">Chyba při zakládání databáze bloků</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Chyba při načítání %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Chyba při načítání %s: peněženka je poškozená</translation>
     </message>

@@ -4017,10 +4017,6 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">初始化區塊資料庫時發生錯誤</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">載入檔案 %s 時發生錯誤</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">載入檔案 %s 時發生錯誤: 錢包損毀了</translation>
     </message>

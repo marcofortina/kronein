@@ -4078,10 +4078,6 @@ Ve a "Archivo &gt; Abrir monedero" para cargar uno.
         <translation type="unfinished">Error al inicializar la base de datos de bloques</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Error al cargar %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Error al cargar %s: monedero dañado</translation>
     </message>

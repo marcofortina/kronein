@@ -3354,10 +3354,6 @@ Mergi la Fisiere&gt;Deschide Portofel ca sa incarci un portofel.
         <translation type="unfinished">Eroare la iniţializarea bazei de date de blocuri</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Eroare la încărcarea %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Eroare la încărcarea %s: Portofel corupt</translation>
     </message>

@@ -2753,10 +2753,6 @@
         <translation type="unfinished">ვერ ინიციალიზდება ბლოკების ბაზა</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">შეცდომა %s-ის ჩამოტვირთვისას</translation>
-    </message>
-    <message>
         <source>Error loading block database</source>
         <translation type="unfinished">არ იტვირთება ბლოკების ბაზა</translation>
     </message>

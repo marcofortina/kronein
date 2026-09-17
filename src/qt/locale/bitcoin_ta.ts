@@ -2824,10 +2824,6 @@
         <translation type="unfinished">பிளாக் டேட்டாபேஸ் துவக்குவதில் பிழை!</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">%s லோட் செய்வதில் பிழை</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">லோட் செய்வதில் பிழை %s: வாலட் சிதைந்தது</translation>
     </message>

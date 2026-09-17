@@ -4105,10 +4105,6 @@ Choďte do Súbor &gt; Otvoriť Peňaženku, pre načítanie peňaženky.
         <translation type="unfinished">Chyba inicializácie databázy blokov</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Chyba načítania %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Chyba načítania %s: Peňaženka je poškodená</translation>
     </message>

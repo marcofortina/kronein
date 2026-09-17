@@ -3518,10 +3518,6 @@ Gå til Fil &gt; Åpne lommebok for å laste en lommebok.
         <translation type="unfinished">Feil under initialisering av blokkdatabase</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Feil ved lasting av %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Feil under innlasting av %s: Skadet lommebok</translation>
     </message>

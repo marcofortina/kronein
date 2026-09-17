@@ -3927,10 +3927,6 @@ Za odpiranje denarnice kliknite Datoteka &gt; Odpri denarnico
         <translation type="unfinished">Napaka pri inicializaciji podatkovne baze blokov</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Napaka pri nalaganju %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Napaka pri nalaganju %s: Denarnica ovkarjena</translation>
     </message>

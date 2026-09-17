@@ -3928,10 +3928,6 @@ ilman, että käytetään mitään snapshot-tietoja. Ilmoita tästä tapauksesta
         <translation type="unfinished">Virhe alustaessa lohkotietokantaa</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Virhe ladattaessa %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Virhe ladattaessa %s: Lompakko vioittunut</translation>
     </message>

@@ -4126,10 +4126,6 @@ Przejdź do Plik &gt; Otwórz Portfel, aby wczytać portfel.
         <translation type="unfinished">Błąd inicjowania bazy danych bloków</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Błąd ładowania %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Błąd ładowania %s: Uszkodzony portfel</translation>
     </message>

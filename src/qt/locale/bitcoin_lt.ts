@@ -2724,10 +2724,6 @@
         <translation type="unfinished">Klaida inicijuojant blokų duomenų bazę</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Klaida įkeliant %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Klaida įkeliant %s: Piniginės failas pažeistas</translation>
     </message>

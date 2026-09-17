@@ -4152,10 +4152,6 @@ Vel Fíla -&gt; Innles Mappu fyri at innlesa eina mappu.
         <translation type="unfinished">Villa undir innleiðslu av blokkdátugrunni</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Villa undir innlesing av %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Villa undir innlesing av %s: Mappa avskeplað</translation>
     </message>

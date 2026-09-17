@@ -600,10 +600,6 @@
         <translation type="unfinished">אַראָר אין אריינשאַפֿן בלאָק דאַטאַבאַזע</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">ערראָר לאָאַדינג 1%s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Ошибка לאָדן 1%s: װאַלעט קראָופּטעד</translation>
     </message>

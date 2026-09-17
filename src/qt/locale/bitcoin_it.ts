@@ -4031,10 +4031,6 @@ Vai su File &gt; Apri Portafoglio per caricare un portafoglio.
         <translation type="unfinished">Errore durante l'inizializzazione del database dei blocchi</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Errore caricamento %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Errore caricamento %s: portafoglio corrotto</translation>
     </message>

@@ -4009,10 +4009,6 @@ Gehen Sie zu Datei &gt; Wallet Öffnen, um eine Wallet zu laden.
         <translation type="unfinished">Fehler beim Initialisieren der Blockdatenbank</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Fehler beim Laden von %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Fehler beim Laden von %s: Das Wallet ist beschädigt</translation>
     </message>

@@ -3799,10 +3799,6 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">Erro ao inicializar banco de dados de blocos</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Erro ao carregar %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Erro ao carregar %s Carteira corrompida</translation>
     </message>

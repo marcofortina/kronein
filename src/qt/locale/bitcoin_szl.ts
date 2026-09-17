@@ -1593,10 +1593,6 @@ once_cell = "1.18"</translation>
         <translation type="unfinished">Wgrŏwanie zakōńczōne</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Feler wgrŏwaniŏ %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Feler wgrŏwaniŏ %s: Portmanyj poprzniōny</translation>
     </message>

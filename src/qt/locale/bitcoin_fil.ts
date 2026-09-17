@@ -2663,10 +2663,6 @@
         <translation type="unfinished">Kamalian sa pagsisimula ng block database</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Kamalian sa pag-lo-load %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Kamalian sa pag-lo-load %s: Nasira ang walet</translation>
     </message>

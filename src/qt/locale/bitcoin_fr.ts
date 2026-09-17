@@ -4103,10 +4103,6 @@ Accédez à Fichier &gt; Ouvrir un portefeuille pour en charger un.
         <translation type="unfinished">Erreur d’initialisation de la base de données des blocs</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Erreur de chargement de %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Erreur de chargement de %s : le portefeuille est corrompu</translation>
     </message>

@@ -2939,10 +2939,6 @@ Gå til Fil &gt; Åbn Pung for, at indlæse en pung.
         <translation type="unfinished">Klargøring af blokdatabase mislykkedes</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Fejl under indlæsning af %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Fejl under indlæsning af %s: Tegnebog ødelagt</translation>
     </message>

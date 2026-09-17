@@ -4108,10 +4108,6 @@ Vá ao menu Ficheiro &gt; Abrir carteira para carregar uma carteira
         <translation type="unfinished">Erro ao inicializar a base de dados de blocos</translation>
     </message>
     <message>
-        <source>Error loading %s</source>
-        <translation type="unfinished">Erro ao carregar %s</translation>
-    </message>
-    <message>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished">Erro ao carregar %s: carteira corrompida</translation>
     </message>

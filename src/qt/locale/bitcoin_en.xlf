@@ -4578,10 +4578,6 @@ Go to File &gt; Open Wallet to load a wallet.
         <source xml:space="preserve">Error initializing block database</source>
         <context-group purpose="location"><context context-type="linenumber">46</context></context-group>
       </trans-unit>
-      <trans-unit id="_msg1004">
-        <source xml:space="preserve">Error loading %s</source>
-        <context-group purpose="location"><context context-type="linenumber">47</context></context-group>
-      </trans-unit>
       <trans-unit id="_msg1005">
         <source xml:space="preserve">Error loading %s: Wallet corrupted</source>
         <context-group purpose="location"><context context-type="linenumber">49</context></context-group>

@@ -46,7 +46,6 @@ QT_TRANSLATE_NOOP("bitcoin-core", "Duplicate binding configuration for address %
 QT_TRANSLATE_NOOP("bitcoin-core", "Elliptic curve cryptography sanity check failure. %s is shutting down."),
 QT_TRANSLATE_NOOP("bitcoin-core", "Embedded asmap data not available"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error initializing block database"),
-QT_TRANSLATE_NOOP("bitcoin-core", "Error loading %s"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error loading %s: External signer wallet being loaded without external signer support compiled"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error loading %s: Wallet corrupted"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error loading %s: Wallet requires newer version of %s"),
