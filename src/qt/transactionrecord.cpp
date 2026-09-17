@@ -110,9 +110,8 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 }
                 else
                 {
-                    // Received by IP connection (deprecated features), or a multisignature or other non-simple transaction
+                    // Received through a script that cannot be represented as an address.
                     sub.type = TransactionRecord::RecvFromOther;
-                    sub.address = mapValue["from"];
                 }
                 if (wtx.is_coinbase)
                 {

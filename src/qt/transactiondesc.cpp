@@ -124,14 +124,8 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
     {
         strHTML += "<b>" + tr("Source") + ":</b> " + tr("Generated") + "<br>";
     }
-    else if (wtx.value_map.contains("from") && !wtx.value_map["from"].empty())
-    {
-        // Online transaction
-        strHTML += "<b>" + tr("From") + ":</b> " + GUIUtil::HtmlEscape(wtx.value_map["from"]) + "<br>";
-    }
     else
     {
-        // Offline transaction
         if (nNet > 0)
         {
             // Credit
@@ -159,7 +153,7 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
     //
     if (wtx.value_map.contains("to") && !wtx.value_map["to"].empty())
     {
-        // Online transaction
+        // User-supplied recipient metadata.
         std::string strAddress = wtx.value_map["to"];
         strHTML += "<b>" + tr("To") + ":</b> ";
         CTxDestination dest = DecodeDestination(strAddress);
@@ -214,7 +208,6 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
 
                 if (!wtx.value_map.contains("to") || wtx.value_map["to"].empty())
                 {
-                    // Offline transaction
                     CTxDestination address;
                     if (ExtractDestination(txout.scriptPubKey, address))
                     {
