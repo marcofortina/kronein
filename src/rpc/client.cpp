@@ -298,7 +298,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "psbtbumpfee", 1, "replaceable"},
     { "psbtbumpfee", 1, "outputs"},
     { "psbtbumpfee", 1, "original_change_index"},
-    { "psbtbumpfee", 1, "psbt_version"},
     { "logging", 0, "include" },
     { "logging", 1, "exclude" },
     { "disconnectnode", 1, "nodeid" },

@@ -15,19 +15,19 @@
 
 using common::PSBTError;
 
-PartiallySignedTransaction::PartiallySignedTransaction(const CMutableTransaction& tx, uint32_t version) : m_version(version)
+PartiallySignedTransaction::PartiallySignedTransaction(const CMutableTransaction& tx)
 {
-    assert(m_version == 0 || m_version == 2);
+    assert(tx.version == CTransaction::CURRENT_VERSION);
 
     tx_version = tx.version;
     fallback_locktime = tx.nLockTime;
     inputs.reserve(tx.vin.size());
     for (const CTxIn& input : tx.vin) {
-        inputs.emplace_back(GetVersion(), input.prevout.hash, input.prevout.n, input.nSequence);
+        inputs.emplace_back(input.prevout.hash, input.prevout.n, input.nSequence);
     }
     outputs.reserve(tx.vout.size());
     for (const CTxOut& output : tx.vout) {
-        outputs.emplace_back(GetVersion(), output.nValue, output.scriptPubKey);
+        outputs.emplace_back(output.nValue, output.scriptPubKey);
     }
 }
 
@@ -44,10 +44,6 @@ bool PartiallySignedTransaction::Merge(const PartiallySignedTransaction& psbt)
     if (!this_id || !psbt_id || this_id != psbt_id) {
         return false;
     }
-    if (GetVersion() != psbt.GetVersion()) {
-        return false;
-    }
-
     for (unsigned int i = 0; i < inputs.size(); ++i) {
         if (!inputs[i].Merge(psbt.inputs[i])) {
             return false;
@@ -86,34 +82,32 @@ bool PartiallySignedTransaction::Merge(const PartiallySignedTransaction& psbt)
 
 std::optional<uint32_t> PartiallySignedTransaction::ComputeTimeLock() const
 {
-    if (GetVersion() >= 2) {
-        std::optional<uint32_t> time_lock{0};
-        std::optional<uint32_t> height_lock{0};
-        for (const PSBTInput& input : inputs) {
-            if (input.time_locktime.has_value() && !input.height_locktime.has_value()) {
-                height_lock.reset(); // Transaction can no longer have a height locktime
-                if (!time_lock.has_value()) {
-                    return std::nullopt;
-                }
-            } else if (!input.time_locktime.has_value() && input.height_locktime.has_value()) {
-                time_lock.reset(); // Transaction can no longer have a time locktime
-                if (!height_lock.has_value()) {
-                    return std::nullopt;
-                }
+    std::optional<uint32_t> time_lock{0};
+    std::optional<uint32_t> height_lock{0};
+    for (const PSBTInput& input : inputs) {
+        if (input.time_locktime.has_value() && !input.height_locktime.has_value()) {
+            height_lock.reset(); // Transaction can no longer have a height locktime
+            if (!time_lock.has_value()) {
+                return std::nullopt;
             }
-            if (input.time_locktime && time_lock.has_value()) {
-                time_lock = std::max(time_lock, input.time_locktime);
-            }
-            if (input.height_locktime && height_lock.has_value()) {
-                height_lock = std::max(height_lock, input.height_locktime);
+        } else if (!input.time_locktime.has_value() && input.height_locktime.has_value()) {
+            time_lock.reset(); // Transaction can no longer have a time locktime
+            if (!height_lock.has_value()) {
+                return std::nullopt;
             }
         }
-        if (height_lock.has_value() && *height_lock > 0) {
-            return *height_lock;
+        if (input.time_locktime && time_lock.has_value()) {
+            time_lock = std::max(time_lock, input.time_locktime);
         }
-        if (time_lock.has_value() && *time_lock > 0) {
-            return *time_lock;
+        if (input.height_locktime && height_lock.has_value()) {
+            height_lock = std::max(height_lock, input.height_locktime);
         }
+    }
+    if (height_lock.has_value() && *height_lock > 0) {
+        return *height_lock;
+    }
+    if (time_lock.has_value() && *time_lock > 0) {
+        return *time_lock;
     }
     return fallback_locktime.value_or(0);
 }
@@ -151,20 +145,14 @@ std::optional<Txid> PartiallySignedTransaction::GetUniqueID() const
     if (!mtx) {
         return std::nullopt;
     }
-    if (GetVersion() >= 2) {
-        for (CTxIn& txin : mtx->vin) {
-            txin.nSequence = 0;
-        }
+    for (CTxIn& txin : mtx->vin) {
+        txin.nSequence = 0;
     }
     return mtx->GetHash();
 }
 
 bool PartiallySignedTransaction::AddInput(const PSBTInput& psbtin)
 {
-    // The input being added must be for this PSBT's version
-    if (psbtin.GetVersion() != GetVersion()) {
-        return false;
-    }
     // Prevent duplicate inputs
     if (std::find_if(inputs.begin(), inputs.end(),
         [psbtin](const PSBTInput& psbt) {
@@ -234,18 +222,6 @@ bool PartiallySignedTransaction::AddInput(const PSBTInput& psbtin)
 
 bool PartiallySignedTransaction::AddOutput(const PSBTOutput& psbtout)
 {
-    // The output being added must be for this PSBT's version
-    if (psbtout.GetVersion() != GetVersion()) {
-        return false;
-    }
-
-    if (GetVersion() < 2) {
-        // This is a v0 psbt, do the v0 AddOutput
-        outputs.push_back(psbtout);
-        return true;
-    }
-
-    // No global tx, must be PSBTv2
     // Check outputs are modifiable
     if (!m_tx_modifiable.has_value() || !m_tx_modifiable->test(1)) {
         return false;
@@ -707,12 +683,4 @@ util::Result<PartiallySignedTransaction> DecodeRawPSBT(std::span<const std::byte
     } catch (const std::exception& e) {
         return util::Error{Untranslated(e.what())};
     }
-}
-
-uint32_t PartiallySignedTransaction::GetVersion() const
-{
-    if (m_version != std::nullopt) {
-        return *m_version;
-    }
-    return 0;
 }

@@ -670,6 +670,11 @@ const RPCResult decodepsbt_inputs{
             {
                 {RPCResult::Type::STR, "hash", "The hash and preimage that corresponds to it."},
             }},
+            {RPCResult::Type::STR_HEX, "previous_txid", "TXID of the transaction containing the output being spent by this input"},
+            {RPCResult::Type::NUM, "previous_vout", "Index of the output being spent"},
+            {RPCResult::Type::NUM, "sequence", /*optional=*/true, "Sequence number for this input"},
+            {RPCResult::Type::NUM, "time_locktime", /*optional=*/true, "Time-based locktime required for this input"},
+            {RPCResult::Type::NUM, "height_locktime", /*optional=*/true, "Height-based locktime required for this input"},
             {RPCResult::Type::STR_HEX, "taproot_key_path_sig", /*optional=*/ true, "hex-encoded signature for the Taproot key path spend"},
             {RPCResult::Type::ARR, "taproot_script_path_sigs", /*optional=*/ true, "",
             {
@@ -842,14 +847,14 @@ static RPCHelpMan decodepsbt()
                                 {RPCResult::Type::STR, "path", "The path"},
                             }},
                         }},
-                        {RPCResult::Type::NUM, "tx_version", /* optional */ true, "The version number of the unsigned transaction. Not to be confused with PSBT version"},
+                        {RPCResult::Type::NUM, "tx_version", "The version number of the unsigned transaction. Not to be confused with PSBT version"},
                         {RPCResult::Type::NUM, "fallback_locktime", /* optional */ true, "The locktime to fallback to if no inputs specify a required locktime."},
-                        {RPCResult::Type::NUM, "input_count", /* optional */ true, "The number of inputs in this psbt"},
-                        {RPCResult::Type::NUM, "output_count", /* optional */ true, "The number of outputs in this psbt."},
+                        {RPCResult::Type::NUM, "input_count", "The number of inputs in this psbt"},
+                        {RPCResult::Type::NUM, "output_count", "The number of outputs in this psbt."},
                         {RPCResult::Type::BOOL, "inputs_modifiable", /* optional */ true, "Whether inputs can be modified"},
                         {RPCResult::Type::BOOL, "outputs_modifiable", /* optional */ true, "Whether outputs can be modified"},
                         {RPCResult::Type::BOOL, "has_sighash_single", /* optional */ true, "Whether this PSBT has SIGHASH_SINGLE inputs"},
-                        {RPCResult::Type::NUM, "psbt_version", /* optional */ true, "The PSBT version number. Not to be confused with the unsigned transaction version"},
+                        {RPCResult::Type::NUM, "psbt_version", "The PSBT version number. Not to be confused with the unsigned transaction version"},
                         {RPCResult::Type::ARR, "proprietary", "The global proprietary map",
                         {
                             {RPCResult::Type::OBJ, "", "",
@@ -904,19 +909,16 @@ static RPCHelpMan decodepsbt()
     }
     result.pushKV("global_xpubs", std::move(global_xpubs));
 
-    // Add PSBTv2 stuff
-    if (psbtx.GetVersion() >= 2) {
-        result.pushKV("tx_version", psbtx.tx_version);
-        if (psbtx.fallback_locktime.has_value()) {
-            result.pushKV("fallback_locktime", static_cast<uint64_t>(*psbtx.fallback_locktime));
-        }
-        result.pushKV("input_count", (uint64_t)psbtx.inputs.size());
-        result.pushKV("output_count", (uint64_t)psbtx.outputs.size());
-        if (psbtx.m_tx_modifiable.has_value()) {
-            result.pushKV("inputs_modifiable", psbtx.m_tx_modifiable->test(0));
-            result.pushKV("outputs_modifiable", psbtx.m_tx_modifiable->test(1));
-            result.pushKV("has_sighash_single", psbtx.m_tx_modifiable->test(2));
-        }
+    result.pushKV("tx_version", psbtx.tx_version);
+    if (psbtx.fallback_locktime.has_value()) {
+        result.pushKV("fallback_locktime", static_cast<uint64_t>(*psbtx.fallback_locktime));
+    }
+    result.pushKV("input_count", (uint64_t)psbtx.inputs.size());
+    result.pushKV("output_count", (uint64_t)psbtx.outputs.size());
+    if (psbtx.m_tx_modifiable.has_value()) {
+        result.pushKV("inputs_modifiable", psbtx.m_tx_modifiable->test(0));
+        result.pushKV("outputs_modifiable", psbtx.m_tx_modifiable->test(1));
+        result.pushKV("has_sighash_single", psbtx.m_tx_modifiable->test(2));
     }
 
     // PSBT version
@@ -1026,19 +1028,16 @@ static RPCHelpMan decodepsbt()
             in.pushKV("hash256_preimages", std::move(hash256_preimages));
         }
 
-        // PSBTv2
-        if (psbtx.GetVersion() >= 2) {
-            in.pushKV("previous_txid", input.prev_txid.GetHex());
-            in.pushKV("previous_vout", static_cast<uint64_t>(input.prev_out));
-            if (input.sequence.has_value()) {
-                in.pushKV("sequence", static_cast<uint64_t>(*input.sequence));
-            }
-            if (input.time_locktime.has_value()) {
-                in.pushKV("time_locktime", static_cast<uint64_t>(*input.time_locktime));
-            }
-            if (input.height_locktime.has_value()) {
-                in.pushKV("height_locktime", static_cast<uint64_t>(*input.height_locktime));
-            }
+        in.pushKV("previous_txid", input.prev_txid.GetHex());
+        in.pushKV("previous_vout", static_cast<uint64_t>(input.prev_out));
+        if (input.sequence.has_value()) {
+            in.pushKV("sequence", static_cast<uint64_t>(*input.sequence));
+        }
+        if (input.time_locktime.has_value()) {
+            in.pushKV("time_locktime", static_cast<uint64_t>(*input.time_locktime));
+        }
+        if (input.height_locktime.has_value()) {
+            in.pushKV("height_locktime", static_cast<uint64_t>(*input.height_locktime));
         }
 
         // Taproot key path signature

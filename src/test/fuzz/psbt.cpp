@@ -33,9 +33,7 @@ FUZZ_TARGET(psbt)
     PartiallySignedTransaction psbt_mut = *psbt_res;
     const PartiallySignedTransaction psbt = psbt_mut;
 
-    // We are on purpose not forward compatible, and version 1 is disabled.
-    const auto psbt_version{psbt.GetVersion()};
-    Assert(psbt_version == 0 || psbt_version == 2);
+    Assert(psbt.GetVersion() == PSBT_VERSION);
 
     // A PSBT must roundtrip.
     std::vector<uint8_t> psbt_ser;
@@ -67,7 +65,7 @@ FUZZ_TARGET(psbt)
             (void)tx_out.ToString();
         }
         // A PSBT input must roundtrip to signature data.
-        PSBTInput input_fill{psbt_version, input_mod.prev_txid, input_mod.prev_out, input_mod.sequence};
+        PSBTInput input_fill{input_mod.prev_txid, input_mod.prev_out, input_mod.sequence};
         SignatureData sig_data;
         input_mod.FillSignatureData(sig_data);
         input_fill.FromSignatureData(sig_data);
@@ -97,7 +95,7 @@ FUZZ_TARGET(psbt)
         (void)output.IsNull();
         PSBTOutput output_mod = output;
         // A PSBT output must roundtrip to signature data.
-        PSBTOutput output_fill{psbt_version, output_mod.amount, output_mod.script};
+        PSBTOutput output_fill{output_mod.amount, output_mod.script};
         SignatureData sig_data;
         output_mod.FillSignatureData(sig_data);
         output_fill.FromSignatureData(sig_data);

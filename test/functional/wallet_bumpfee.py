@@ -401,6 +401,10 @@ def test_notmine_bumpfee(self, rbf_node, peer_node, dest_address):
     def finish_psbtbumpfee(psbt):
         psbt = rbf_node.walletprocesspsbt(psbt)
         psbt = peer_node.walletprocesspsbt(psbt["psbt"])
+        if "hex" not in psbt:
+            # Complete signatures may still need the PSBT finalizer.
+            psbt = rbf_node.finalizepsbt(psbt["psbt"])
+        assert psbt["complete"]
         res = rbf_node.testmempoolaccept([psbt["hex"]])
         assert res[0]["allowed"]
         assert_greater_than(res[0]["fees"]["base"], old_fee)

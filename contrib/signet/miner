@@ -10,6 +10,7 @@ import math
 import os
 import re
 import shlex
+import struct
 import sys
 import time
 import subprocess
@@ -20,7 +21,7 @@ sys.path.insert(0, PATH_BASE_TEST_FUNCTIONAL)
 
 from test_framework.blocktools import get_witness_script, script_BIP34_coinbase_height, SIGNET_HEADER # noqa: E402
 from test_framework.messages import CBlock, CBlockHeader, COutPoint, CTransaction, CTxIn, CTxInWitness, CTxOut, from_binary, from_hex, ser_string, ser_uint256, tx_from_hex, MAX_SEQUENCE_NONFINAL # noqa: E402
-from test_framework.psbt import PSBT, PSBTMap, PSBT_GLOBAL_UNSIGNED_TX, PSBT_IN_FINAL_SCRIPTWITNESS, PSBT_IN_SIGHASH_TYPE, PSBT_IN_WITNESS_UTXO # noqa: E402
+from test_framework.psbt import PSBT, PSBTMap, PSBT_GLOBAL_TX_VERSION, PSBT_IN_FINAL_SCRIPTWITNESS, PSBT_IN_OUTPUT_INDEX, PSBT_IN_PREVIOUS_TXID, PSBT_IN_SEQUENCE, PSBT_IN_SIGHASH_TYPE, PSBT_IN_WITNESS_UTXO, PSBT_OUT_AMOUNT, PSBT_OUT_SCRIPT # noqa: E402
 from test_framework.script import CScript, CScriptOp # noqa: E402
 
 logging.basicConfig(
@@ -132,13 +133,17 @@ def generate_psbt(block, signet_spk):
     signet_spk_bin = bytes.fromhex(signet_spk)
     signme, spendme = signet_txs(block, signet_spk_bin)
     psbt = PSBT()
-    psbt.g = PSBTMap( {PSBT_GLOBAL_UNSIGNED_TX: signme.serialize_without_witness(),
+    psbt.g = PSBTMap( {PSBT_GLOBAL_TX_VERSION: struct.pack("<i", signme.version),
                        PSBT_SIGNET_BLOCK: block.serialize()
                      } )
     psbt.i = [ PSBTMap( {PSBT_IN_WITNESS_UTXO: spendme.vout[0].serialize(),
-                         PSBT_IN_SIGHASH_TYPE: bytes([1,0,0,0])})
+                         PSBT_IN_SIGHASH_TYPE: bytes([1,0,0,0]),
+                         PSBT_IN_PREVIOUS_TXID: ser_uint256(signme.vin[0].prevout.hash),
+                         PSBT_IN_OUTPUT_INDEX: struct.pack("<I", signme.vin[0].prevout.n),
+                         PSBT_IN_SEQUENCE: struct.pack("<I", signme.vin[0].nSequence)})
              ]
-    psbt.o = [ PSBTMap() ]
+    psbt.o = [ PSBTMap( {PSBT_OUT_AMOUNT: struct.pack("<q", signme.vout[0].nValue),
+                         PSBT_OUT_SCRIPT: bytes(signme.vout[0].scriptPubKey)}) ]
     return psbt.to_base64()
 
 def get_poolid(args):

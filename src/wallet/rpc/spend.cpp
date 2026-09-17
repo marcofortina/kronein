@@ -108,7 +108,7 @@ static UniValue FinishTransaction(const std::shared_ptr<CWallet> pwallet, const 
     }
 
     // Make a blank psbt
-    PartiallySignedTransaction psbtx(rawTx, /*version=*/2);
+    PartiallySignedTransaction psbtx(rawTx);
 
     // First fill transaction with our data without signing,
     // so external signers are not asked to sign more than once.

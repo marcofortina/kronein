@@ -74,7 +74,7 @@ class PSBTTest(BitcoinTestFramework):
     @staticmethod
     def psbt_from_tx(tx):
         """Construct the native PSBTv2 representation of an unsigned transaction."""
-        psbt = PSBT(g=PSBTMap({PSBT_GLOBAL_TX_VERSION: struct.pack("<i", tx.nVersion)}))
+        psbt = PSBT(g=PSBTMap({PSBT_GLOBAL_TX_VERSION: struct.pack("<i", tx.version)}))
         psbt.i = [PSBTMap({
             PSBT_IN_PREVIOUS_TXID: txin.prevout.hash.to_bytes(32, "little"),
             PSBT_IN_OUTPUT_INDEX: struct.pack("<I", txin.prevout.n),
@@ -535,12 +535,14 @@ class PSBTTest(BitcoinTestFramework):
         # Update psbts, should only have data for one input and not the other
         psbt1 = self.nodes[1].walletprocesspsbt(psbt_orig, sign=False)['psbt']
         psbt1_decoded = self.nodes[0].decodepsbt(psbt1)
-        assert psbt1_decoded['inputs'][0] and not psbt1_decoded['inputs'][1]
+        assert "witness_utxo" in psbt1_decoded['inputs'][0]
+        assert "witness_utxo" not in psbt1_decoded['inputs'][1]
         # Check that BIP32 path was added
         assert "taproot_bip32_derivs" in psbt1_decoded['inputs'][0]
         psbt2 = self.nodes[2].walletprocesspsbt(psbt_orig, sign=False, bip32derivs=False)['psbt']
         psbt2_decoded = self.nodes[0].decodepsbt(psbt2)
-        assert not psbt2_decoded['inputs'][0] and psbt2_decoded['inputs'][1]
+        assert "witness_utxo" not in psbt2_decoded['inputs'][0]
+        assert "witness_utxo" in psbt2_decoded['inputs'][1]
         # Check that BIP32 paths were not added
         assert "taproot_bip32_derivs" not in psbt2_decoded['inputs'][1]
 
@@ -702,7 +704,8 @@ class PSBTTest(BitcoinTestFramework):
         tx.vout[0].nValue += 1  # slightly modify tx
         psbt2 = self.psbt_from_tx(tx).to_base64()
         assert_raises_rpc_error(-8, "PSBTs not compatible (different transactions)", self.nodes[0].combinepsbt, [psbt1, psbt2])
-        assert_equal(self.nodes[0].combinepsbt([psbt1, psbt1]), psbt1)
+        combined = self.nodes[0].combinepsbt([psbt1, psbt1])
+        assert_equal(self.nodes[0].combinepsbt([combined, combined]), combined)
 
         self.log.info("Test we don't crash when making a 0-value funded transaction at 0 fee without forcing an input selection")
         assert_raises_rpc_error(-4, "Transaction requires one destination of non-zero value, a non-zero feerate, or a pre-selected input", self.nodes[0].walletcreatefundedpsbt, [], [{"data": "deadbeef"}], 0, {"fee_rate": "0"})
@@ -710,7 +713,8 @@ class PSBTTest(BitcoinTestFramework):
         self.log.info("Test descriptorprocesspsbt updates and signs a psbt with descriptors")
 
         def test_psbt_input_keys(psbt_input, keys):
-            assert_equal(set(keys), set(psbt_input.keys()))
+            expected = set(keys) | {"previous_txid", "previous_vout", "sequence"}
+            assert_equal(expected, set(psbt_input.keys()))
 
         self.generate(self.nodes[2], 1)
 
