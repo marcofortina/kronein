@@ -76,7 +76,7 @@ The Bitcoin repo's [root README](/README.md) contains relevant information on th
 - [Files](files.md)
 - [Fuzz-testing](fuzzing.md)
 - [I2P Support](i2p.md)
-- [Init Scripts (systemd/upstart/openrc)](init.md)
+- [Init Scripts (systemd/OpenRC/launchd)](init.md)
 - [Managing Wallets](managing-wallets.md)
 - [Multisig Tutorial](multisig-tutorial.md)
 - [Offline Signing Tutorial](offline-signing-tutorial.md)
