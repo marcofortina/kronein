@@ -107,7 +107,7 @@ else:
 
 if args.addr == '':
     # get address for receiving coins
-    args.addr = bitcoin_cli(['getnewaddress', 'faucet', 'bech32'])
+    args.addr = bitcoin_cli(['getnewaddress', 'faucet'])
 
 data = {'address': args.addr, 'password': args.password, 'amount': args.amount}
 

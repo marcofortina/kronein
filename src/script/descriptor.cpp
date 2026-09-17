@@ -48,7 +48,7 @@ namespace {
 //     * Note that hex encoded keys are covered by these characters. Xprvs and
 //       xpubs use other characters too, but already have their own checksum
 //       mechanism.
-//     * Function names like "multi()" use other characters, but mistakes in
+//     * Function names like "multi_a()" use other characters, but mistakes in
 //       these would generally result in an unparsable descriptor.
 //   * A case error always counts as 1 symbol error.
 //   * Any other 1 character substitution error counts as 1 or 2 symbol errors.
@@ -165,7 +165,7 @@ struct PubkeyProvider
 {
 public:
     //! Index of this key expression in the descriptor
-    //! E.g. If this PubkeyProvider is key1 in multi(2, key1, key2, key3), then m_expr_index = 0
+    //! E.g. If this PubkeyProvider is key1 in multi_a(2, key1, key2, key3), then m_expr_index = 0
     const uint32_t m_expr_index;
 
     explicit PubkeyProvider(uint32_t exp_index) : m_expr_index(exp_index) {}
@@ -795,16 +795,14 @@ public:
 class DescriptorImpl : public Descriptor
 {
 protected:
-    //! Public key arguments for this descriptor (size 1 for PK, PKH, WPKH; any size for WSH and Multisig).
+    //! Public key arguments for this descriptor (size 1 for single-key forms, any size for multi_a).
     const std::vector<std::unique_ptr<PubkeyProvider>> m_pubkey_args;
     //! The string name of the descriptor function.
     const std::string m_name;
     //! Warnings (not including subdescriptors).
     std::vector<std::string> m_warnings;
 
-    //! The sub-descriptor arguments (empty for everything but SH and WSH).
-    //! In doc/descriptors.m this is referred to as SCRIPT expressions sh(SCRIPT)
-    //! and wsh(SCRIPT), and distinct from KEY expressions and ADDR expressions.
+    //! The script-tree arguments used by tr(), distinct from key and address expressions.
     //! Subdescriptors can only ever generate a single script.
     const std::vector<std::unique_ptr<DescriptorImpl>> m_subdescriptor_args;
 
@@ -2042,7 +2040,7 @@ std::vector<std::unique_ptr<DescriptorImpl>> ParseScript(uint32_t& key_exp_index
                     vec.emplace_back(vec.at(0)->Clone());
                 }
             } else if (vec.size() != max_providers_len) {
-                error = strprintf("multi(): Multipath derivation paths have mismatched lengths");
+                error = strprintf("multi_a(): Multipath derivation paths have mismatched lengths");
                 return {};
             }
         }
