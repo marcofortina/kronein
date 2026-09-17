@@ -270,7 +270,7 @@ public:
 
     void FillSignatureData(SignatureData& sigdata) const;
     void FromSignatureData(const SignatureData& sigdata);
-    [[nodiscard]] bool Merge(const PSBTInput& input);
+    void Merge(const PSBTInput& input);
     COutPoint GetOutPoint() const;
     /**
      * Retrieves the UTXO for this input
@@ -785,7 +785,7 @@ public:
 
     void FillSignatureData(SignatureData& sigdata) const;
     void FromSignatureData(const SignatureData& sigdata);
-    [[nodiscard]] bool Merge(const PSBTOutput& output);
+    void Merge(const PSBTOutput& output);
     explicit PSBTOutput(CAmount amount, const CScript& script)
         : amount(amount),
         script(script)

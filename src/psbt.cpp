@@ -43,14 +43,10 @@ bool PartiallySignedTransaction::Merge(const PartiallySignedTransaction& psbt)
         return false;
     }
     for (unsigned int i = 0; i < inputs.size(); ++i) {
-        if (!inputs[i].Merge(psbt.inputs[i])) {
-            return false;
-        }
+        inputs[i].Merge(psbt.inputs[i]);
     }
     for (unsigned int i = 0; i < outputs.size(); ++i) {
-        if (!outputs[i].Merge(psbt.outputs[i])) {
-            return false;
-        }
+        outputs[i].Merge(psbt.outputs[i]);
     }
     MergeGlobalXPubs(psbt);
     if (fallback_locktime == std::nullopt && psbt.fallback_locktime != std::nullopt) fallback_locktime = psbt.fallback_locktime;
@@ -344,7 +340,7 @@ void PSBTInput::FromSignatureData(const SignatureData& sigdata)
     }
 }
 
-bool PSBTInput::Merge(const PSBTInput& input)
+void PSBTInput::Merge(const PSBTInput& input)
 {
     if (witness_utxo.IsNull() && !input.witness_utxo.IsNull()) {
         witness_utxo = input.witness_utxo;
@@ -385,7 +381,6 @@ bool PSBTInput::Merge(const PSBTInput& input)
     if (time_locktime == std::nullopt && input.time_locktime != std::nullopt) time_locktime = input.time_locktime;
     if (height_locktime == std::nullopt && input.height_locktime != std::nullopt) height_locktime = input.height_locktime;
 
-    return true;
 }
 
 bool PSBTInput::HasSignatures() const
@@ -432,7 +427,7 @@ void PSBTOutput::FromSignatureData(const SignatureData& sigdata)
     m_musig2_participants.insert(sigdata.musig2_pubkeys.begin(), sigdata.musig2_pubkeys.end());
 }
 
-bool PSBTOutput::Merge(const PSBTOutput& output)
+void PSBTOutput::Merge(const PSBTOutput& output)
 {
     m_proprietary.insert(output.m_proprietary.begin(), output.m_proprietary.end());
     unknown.insert(output.unknown.begin(), output.unknown.end());
@@ -442,7 +437,6 @@ bool PSBTOutput::Merge(const PSBTOutput& output)
     if (m_tap_tree.empty() && !output.m_tap_tree.empty()) m_tap_tree = output.m_tap_tree;
     m_musig2_participants.insert(output.m_musig2_participants.begin(), output.m_musig2_participants.end());
 
-    return true;
 }
 
 bool PSBTInputSigned(const PSBTInput& input)
