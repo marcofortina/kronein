@@ -112,6 +112,7 @@ std::vector<uint32_t> GetDust(const CTransaction& tx, CFeeRate dust_relay_rate);
 
 /**
 * Check for standard transaction types
+* The transaction must have passed CheckTransaction() and CheckNativeTransaction().
 * @return True if all outputs (scriptPubKeys) use only standard transaction forms
 */
 bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_datacarrier_bytes, const CFeeRate& dust_relay_fee, std::string& reason);

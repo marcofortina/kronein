@@ -101,13 +101,7 @@ BOOST_AUTO_TEST_CASE(native_standardness)
     std::string reason;
     BOOST_CHECK(IsStandardTx(CTransaction{tx}, MAX_OP_RETURN_RELAY, dust_fee, reason));
 
-    tx.vin[0].scriptSig = CScript{} << OP_TRUE;
-    reason.clear();
-    BOOST_CHECK(!IsStandardTx(CTransaction{tx}, MAX_OP_RETURN_RELAY, dust_fee, reason));
-    BOOST_CHECK_EQUAL(reason, "scriptsig-not-empty");
-    tx.vin[0].scriptSig.clear();
-
-    tx.vout[0].scriptPubKey = CScript{} << OP_0 << std::vector<unsigned char>(32);
+    tx.vout[0].scriptPubKey = CScript{} << OP_RETURN << OP_HASH160;
     reason.clear();
     BOOST_CHECK(!IsStandardTx(CTransaction{tx}, MAX_OP_RETURN_RELAY, dust_fee, reason));
     BOOST_CHECK_EQUAL(reason, "scriptpubkey");
