@@ -303,12 +303,8 @@ class RawTransactionsTest(BitcoinTestFramework):
         outputs = { self.nodes[0].getnewaddress() : 1.0 }
         rawtx   = self.nodes[2].createrawtransaction(inputs, [{key: value} for key, value in outputs.items()])
 
-        # 4-byte version + 1-byte vin count + 36-byte prevout then script_len
-        rawtx = rawtx[:82] + "0100" + rawtx[84:]
-
         dec_tx  = self.nodes[2].decoderawtransaction(rawtx)
         assert_equal(utx['txid'], dec_tx['vin'][0]['txid'])
-        assert_equal("00", dec_tx['vin'][0]['scriptSig']['hex'])
 
         # Should fail without add_inputs:
         assert_raises_rpc_error(-4, ERR_NOT_ENOUGH_PRESET_INPUTS, self.nodes[2].fundrawtransaction, rawtx, add_inputs=False)
@@ -324,7 +320,7 @@ class RawTransactionsTest(BitcoinTestFramework):
                 assert_equal(i, rawtxfund['changepos'])
 
         assert_equal(utx['txid'], dec_tx['vin'][0]['txid'])
-        assert_equal("00", dec_tx['vin'][0]['scriptSig']['hex'])
+        assert_equal("", dec_tx['vin'][0]['scriptSig']['hex'])
 
         assert_equal(matchingOuts, 1)
         assert_equal(len(dec_tx['vout']), 2)

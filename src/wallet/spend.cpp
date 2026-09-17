@@ -1184,12 +1184,8 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
         }
         txNew.vin.emplace_back(coin->outpoint, CScript{}, sequence.value_or(default_sequence));
 
-        auto scripts = coin_control.GetScripts(coin->outpoint);
-        if (scripts.first) {
-            txNew.vin.back().scriptSig = *scripts.first;
-        }
-        if (scripts.second) {
-            txNew.vin.back().scriptWitness = *scripts.second;
+        if (auto witness = coin_control.GetScriptWitness(coin->outpoint)) {
+            txNew.vin.back().scriptWitness = *witness;
         }
     }
     if (coin_control.m_locktime) {
@@ -1410,7 +1406,6 @@ util::Result<CreatedTransactionResult> FundTransaction(CWallet& wallet, const CM
             preset_txin.SetTxOut(coins[outPoint].out);
         }
         preset_txin.SetSequence(txin.nSequence);
-        preset_txin.SetScriptSig(txin.scriptSig);
         preset_txin.SetScriptWitness(txin.scriptWitness);
     }
 

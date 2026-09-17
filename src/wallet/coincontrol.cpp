@@ -81,10 +81,10 @@ std::optional<uint32_t> CCoinControl::GetSequence(const COutPoint& outpoint) con
     return it != m_selected.end() ? it->second.GetSequence() : std::nullopt;
 }
 
-std::pair<std::optional<CScript>, std::optional<CScriptWitness>> CCoinControl::GetScripts(const COutPoint& outpoint) const
+std::optional<CScriptWitness> CCoinControl::GetScriptWitness(const COutPoint& outpoint) const
 {
     const auto it = m_selected.find(outpoint);
-    return it != m_selected.end() ? m_selected.at(outpoint).GetScripts() : std::make_pair(std::nullopt, std::nullopt);
+    return it != m_selected.end() ? m_selected.at(outpoint).GetScriptWitness() : std::nullopt;
 }
 
 void PreselectedInput::SetTxOut(const CTxOut& txout)
@@ -123,24 +123,14 @@ std::optional<uint32_t> PreselectedInput::GetSequence() const
     return m_sequence;
 }
 
-void PreselectedInput::SetScriptSig(const CScript& script)
-{
-    m_script_sig = script;
-}
-
 void PreselectedInput::SetScriptWitness(const CScriptWitness& script_wit)
 {
     m_script_witness = script_wit;
 }
 
-bool PreselectedInput::HasScripts() const
+std::optional<CScriptWitness> PreselectedInput::GetScriptWitness() const
 {
-    return m_script_sig.has_value() || m_script_witness.has_value();
-}
-
-std::pair<std::optional<CScript>, std::optional<CScriptWitness>> PreselectedInput::GetScripts() const
-{
-    return {m_script_sig, m_script_witness};
+    return m_script_witness;
 }
 
 void PreselectedInput::SetPosition(unsigned int pos)
