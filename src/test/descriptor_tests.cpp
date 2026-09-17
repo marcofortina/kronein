@@ -39,6 +39,14 @@ void CheckNativeDescriptor(const std::string& descriptor, bool ranged = false)
     BOOST_CHECK(IsNativeOutputScript(scripts[0]));
 }
 
+void CheckUnsupportedDescriptor(const std::string& descriptor)
+{
+    FlatSigningProvider keys;
+    std::string error;
+    BOOST_CHECK(Parse(descriptor, keys, error).empty());
+    BOOST_CHECK(!error.empty());
+}
+
 } // namespace
 
 BOOST_FIXTURE_TEST_SUITE(descriptor_tests, BasicTestingSetup)
@@ -58,6 +66,37 @@ BOOST_AUTO_TEST_CASE(native_descriptor_grammar)
     const CScript taproot_script{GetScriptForDestination(WitnessV1Taproot{output_key})};
     CheckNativeDescriptor("raw(" + HexStr(taproot_script) + ")");
     CheckNativeDescriptor("raw(6a0474657374)");
+}
+
+BOOST_AUTO_TEST_CASE(reject_pre_taproot_descriptors)
+{
+    const std::string compressed_key{"02" + std::string{INTERNAL_KEY}};
+    for (const std::string& descriptor : std::vector<std::string>{
+             "pk(" + compressed_key + ")",
+             "pkh(" + compressed_key + ")",
+             "wpkh(" + compressed_key + ")",
+             "combo(" + compressed_key + ")",
+             "sh(wpkh(" + compressed_key + "))",
+             "wsh(pk(" + compressed_key + "))",
+             "multi(1," + compressed_key + ")",
+             "sortedmulti(1," + compressed_key + ")",
+             "addr(mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn)",
+         }) {
+        CheckUnsupportedDescriptor(descriptor);
+    }
+
+    const std::vector<CScript> pre_taproot_outputs{
+        CScript{} << std::vector<unsigned char>(33, 0x02) << OP_CHECKSIG, // P2PK
+        CScript{} << OP_DUP << OP_HASH160 << std::vector<unsigned char>(20, 0x01) << OP_EQUALVERIFY << OP_CHECKSIG, // P2PKH
+        CScript{} << OP_HASH160 << std::vector<unsigned char>(20, 0x01) << OP_EQUAL, // P2SH
+        CScript{} << OP_0 << std::vector<unsigned char>(20, 0x01), // P2WPKH
+        CScript{} << OP_0 << std::vector<unsigned char>(32, 0x01), // P2WSH
+    };
+    FlatSigningProvider keys;
+    for (const CScript& script : pre_taproot_outputs) {
+        CheckUnsupportedDescriptor("raw(" + HexStr(script) + ")");
+        BOOST_CHECK(!InferDescriptor(script, keys));
+    }
 }
 
 BOOST_AUTO_TEST_CASE(taproot_key_forms)

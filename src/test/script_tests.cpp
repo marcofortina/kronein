@@ -76,6 +76,12 @@ BOOST_AUTO_TEST_CASE(native_output_verification)
 
     const std::vector<CScript> unsupported{
         CScript{},
+        CScript{} << OP_RETURN << std::vector<unsigned char>{0x01},
+        CScript{} << std::vector<unsigned char>(33, 0x02) << OP_CHECKSIG, // P2PK
+        CScript{} << OP_DUP << OP_HASH160 << std::vector<unsigned char>(20, 0x01) << OP_EQUALVERIFY << OP_CHECKSIG, // P2PKH
+        CScript{} << OP_HASH160 << std::vector<unsigned char>(20, 0x01) << OP_EQUAL, // P2SH
+        CScript{} << OP_0 << std::vector<unsigned char>(20, 0x01), // P2WPKH
+        CScript{} << OP_0 << std::vector<unsigned char>(32, 0x01), // P2WSH
         CScript{} << OP_1 << std::vector<unsigned char>(31, 0x01),
         CScript{} << OP_1 << std::vector<unsigned char>(33, 0x01),
         CScript{} << OP_2 << std::vector<unsigned char>(32, 0x01),

@@ -31,6 +31,10 @@ from test_framework.messages import (
 from test_framework.script import (
     CScript,
     OP_0,
+    OP_CHECKSIG,
+    OP_DUP,
+    OP_EQUAL,
+    OP_EQUALVERIFY,
     OP_HASH160,
     OP_RETURN,
 )
@@ -287,18 +291,21 @@ class MempoolAcceptanceTest(BitcoinTestFramework):
             result_expected=[{'txid': tx.txid_hex, 'allowed': False, 'reject-reason': 'bad-tx-version'}],
             rawtxs=[tx.serialize().hex()],
         )
-        tx = tx_from_hex(raw_tx_reference)
-        tx.vout[0].scriptPubKey = CScript([OP_0])  # Some non-standard script
-        self.check_mempool_result(
-            result_expected=[{'txid': tx.txid_hex, 'allowed': False, 'reject-reason': 'bad-txns-non-native-output'}],
-            rawtxs=[tx.serialize().hex()],
-        )
-        tx = tx_from_hex(raw_tx_reference)
-        tx.vout[0].scriptPubKey = CScript([OP_HASH160])
-        self.check_mempool_result(
-            result_expected=[{'txid': tx.txid_hex, 'allowed': False, 'reject-reason': 'bad-txns-non-native-output'}],
-            rawtxs=[tx.serialize().hex()],
-        )
+        unsupported_outputs = {
+            "P2PK": CScript([bytes([2]) * 33, OP_CHECKSIG]),
+            "P2PKH": CScript([OP_DUP, OP_HASH160, bytes(20), OP_EQUALVERIFY, OP_CHECKSIG]),
+            "P2SH": CScript([OP_HASH160, bytes(20), OP_EQUAL]),
+            "P2WPKH": CScript([OP_0, bytes(20)]),
+            "P2WSH": CScript([OP_0, bytes(32)]),
+        }
+        for output_name, output_script in unsupported_outputs.items():
+            self.log.info(f"Reject a transaction creating a {output_name} output")
+            tx = tx_from_hex(raw_tx_reference)
+            tx.vout[0].scriptPubKey = output_script
+            self.check_mempool_result(
+                result_expected=[{'txid': tx.txid_hex, 'allowed': False, 'reject-reason': 'bad-txns-non-native-output'}],
+                rawtxs=[tx.serialize().hex()],
+            )
         tx = tx_from_hex(raw_tx_reference)
         tx.vin[0].scriptSig = CScript([OP_HASH160])  # Some not-pushonly scriptSig
         self.check_mempool_result(

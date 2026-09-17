@@ -50,6 +50,28 @@ class DescriptorTest(BitcoinTestFramework):
         self.test_desc(f"raw(5120{internal_key})", isrange=False, issolvable=False, hasprivatekeys=False)
         self.test_desc("raw(6a0464617461)", isrange=False, issolvable=False, hasprivatekeys=False)
 
+        compressed_key = f"02{internal_key}"
+        for unsupported in [
+            f"pkh({compressed_key})",
+            f"wpkh({compressed_key})",
+            f"combo({compressed_key})",
+            f"sh(wpkh({compressed_key}))",
+            f"wsh(pk({compressed_key}))",
+            f"multi(1,{compressed_key})",
+            f"sortedmulti(1,{compressed_key})",
+        ]:
+            assert_raises_rpc_error(-5, "is not a valid descriptor function", node.getdescriptorinfo, unsupported)
+
+        assert_raises_rpc_error(-5, "Address is not valid", node.getdescriptorinfo, "addr(mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn)")
+        for unsupported_script in [
+            f"21{compressed_key}ac",  # P2PK
+            f"76a914{'01' * 20}88ac",  # P2PKH
+            f"a914{'01' * 20}87",  # P2SH
+            f"0014{'01' * 20}",  # P2WPKH
+            f"0020{'01' * 32}",  # P2WSH
+        ]:
+            assert_raises_rpc_error(-5, "Raw script is not a native output", node.getdescriptorinfo, f"raw({unsupported_script})")
+
         priv_key = generate_keypair(wif=True)[0]
         assert_raises_rpc_error(-5, f"tr(): Key ' {priv_key}' is invalid due to whitespace", node.getdescriptorinfo, f"tr( {priv_key})")
         private_info = node.getdescriptorinfo(f"tr({priv_key})")
