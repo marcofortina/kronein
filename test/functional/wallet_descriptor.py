@@ -169,27 +169,24 @@ class WalletDescriptorTest(BitcoinTestFramework):
         self.nodes[0].createwallet(wallet_name='desc_import', disable_private_keys=True)
         imp_rpc = self.nodes[0].get_wallet_rpc('desc_import')
 
-        addr_types = [('bech32m', False, 'tr(', '86h/1h/0h', -13),
-                      ('bech32m', True, 'tr(', '86h/1h/0h', -13)]
-
-        for addr_type, internal, desc_prefix, deriv_path, int_idx in addr_types:
+        for internal in (False, True):
             int_str = 'internal' if internal else 'external'
 
-            self.log.info("Testing descriptor address type for {} {}".format(addr_type, int_str))
+            self.log.info(f"Testing native {int_str} descriptor")
             if internal:
                 addr = exp_rpc.getrawchangeaddress()
             else:
                 addr = exp_rpc.getnewaddress()
             desc = exp_rpc.getaddressinfo(addr)['parent_desc']
-            assert_equal(desc_prefix, desc[0:len(desc_prefix)])
+            assert_equal('tr(', desc[:3])
             idx = desc.index('/') + 1
-            assert_equal(deriv_path, desc[idx:idx + 9])
+            assert_equal('86h/1h/0h', desc[idx:idx + 9])
             if internal:
-                assert_equal('1', desc[int_idx])
+                assert_equal('1', desc[-13])
             else:
-                assert_equal('0', desc[int_idx])
+                assert_equal('0', desc[-13])
 
-            self.log.info("Testing the same descriptor is returned for address type {} {}".format(addr_type, int_str))
+            self.log.info(f"Testing that the same {int_str} descriptor is returned")
             for i in range(0, 10):
                 if internal:
                     addr = exp_rpc.getrawchangeaddress()
@@ -198,7 +195,7 @@ class WalletDescriptorTest(BitcoinTestFramework):
                 test_desc = exp_rpc.getaddressinfo(addr)['parent_desc']
                 assert_equal(desc, test_desc)
 
-            self.log.info("Testing import of exported {} descriptor".format(addr_type))
+            self.log.info(f"Testing import of exported {int_str} descriptor")
             imp_rpc.importdescriptors([{
                 'desc': desc,
                 'active': True,

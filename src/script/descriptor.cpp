@@ -2004,19 +2004,19 @@ std::vector<std::unique_ptr<DescriptorImpl>> ParseScript(uint32_t& key_exp_index
         if (const auto maybe_thres{ToIntegral<uint32_t>(std::string_view{threshold.begin(), threshold.end()})}) {
             thres = *maybe_thres;
         } else {
-            error = strprintf("Multi threshold '%s' is not valid", std::string(threshold.begin(), threshold.end()));
+            error = strprintf("multi_a threshold '%s' is not valid", std::string(threshold.begin(), threshold.end()));
             return {};
         }
         size_t max_providers_len = 0;
         while (expr.size()) {
             if (!Const(",", expr)) {
-                error = strprintf("Multi: expected ',', got '%c'", expr[0]);
+                error = strprintf("multi_a: expected ',', got '%c'", expr[0]);
                 return {};
             }
             auto arg = Expr(expr);
             auto pks = ParsePubkey(key_exp_index, arg, ctx, out, error);
             if (pks.empty()) {
-                error = strprintf("Multi: %s", error);
+                error = strprintf("multi_a: %s", error);
                 return {};
             }
             max_providers_len = std::max(max_providers_len, pks.size());
