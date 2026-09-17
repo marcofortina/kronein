@@ -5,7 +5,6 @@
 #include <addresstype.h>
 #include <chain.h>
 #include <chainparams.h>
-#include <clientversion.h>
 #include <node/blockstorage.h>
 #include <node/context.h>
 #include <node/kernel_notifications.h>

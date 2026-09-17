@@ -4,7 +4,6 @@
 
 #include <addrman.h>
 #include <chainparams.h>
-#include <clientversion.h>
 #include <common/args.h>
 #include <compat/compat.h>
 #include <net.h>

@@ -9,7 +9,6 @@
 #include <qt/optionsmodel.h>
 #include <qt/walletmodel.h>
 
-#include <clientversion.h>
 #include <interfaces/wallet.h>
 #include <key_io.h>
 #include <streams.h>

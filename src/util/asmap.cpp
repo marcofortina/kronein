@@ -4,7 +4,6 @@
 
 #include <util/asmap.h>
 
-#include <clientversion.h>
 #include <hash.h>
 #include <serialize.h>
 #include <streams.h>

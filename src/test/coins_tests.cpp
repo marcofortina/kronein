@@ -3,7 +3,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <addresstype.h>
-#include <clientversion.h>
 #include <coins.h>
 #include <streams.h>
 #include <test/util/common.h>

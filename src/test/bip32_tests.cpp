@@ -4,7 +4,6 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <clientversion.h>
 #include <key.h>
 #include <key_io.h>
 #include <streams.h>

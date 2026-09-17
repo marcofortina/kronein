@@ -3,7 +3,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chain.h>
-#include <clientversion.h>
 #include <core_io.h>
 #include <hash.h>
 #include <interfaces/chain.h>

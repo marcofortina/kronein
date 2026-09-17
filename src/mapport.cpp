@@ -4,7 +4,6 @@
 
 #include <mapport.h>
 
-#include <clientversion.h>
 #include <common/netif.h>
 #include <common/pcp.h>
 #include <common/system.h>
