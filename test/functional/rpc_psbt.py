@@ -815,11 +815,8 @@ class PSBTTest(BitcoinTestFramework):
         for tx_in in decoded_psbt["tx"]["vin"]:
             assert_greater_than(tx_in["sequence"], MAX_BIP125_RBF_SEQUENCE)
 
-        # Make sure change address wallet does not have P2SH innerscript access to results in success
-        # when attempting BnB coin selection
+        # A foreign native Taproot change address must work with BnB coin selection.
         self.nodes[0].walletcreatefundedpsbt([], [{self.nodes[2].getnewaddress():unspent["amount"]+1}], block_height+2, {"change_address":self.nodes[1].getnewaddress()}, False)
-
-        # Wallet change is always native Taproot.
 
         # Regression test for 14473 (mishandling of already-signed witness transaction):
         psbtx_info = self.nodes[0].walletcreatefundedpsbt([{"txid":unspent["txid"], "vout":unspent["vout"]}], [{self.nodes[2].getnewaddress():unspent["amount"]+1}], 0, {"add_inputs": True})

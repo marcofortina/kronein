@@ -1,8 +1,10 @@
 # PSBT Howto for Bitcoin Core
 
-Since Bitcoin Core 0.17, an RPC interface exists for Partially Signed Bitcoin
-Transactions (PSBTs, as specified in
-[BIP 174](https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki)).
+The RPC interface uses Partially Signed Bitcoin Transactions (PSBTs). This
+codebase supports only PSBT version 2, as specified in
+[BIP 370](https://github.com/bitcoin/bips/blob/master/bip-0370.mediawiki), with
+the common PSBT fields and roles defined by
+[BIP 174](https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki).
 
 This document describes the overall workflow for producing signed transactions
 through the use of PSBT, and the specific RPC commands used in typical
@@ -31,7 +33,7 @@ following steps:
   to assess the values and fees involved. If they agree, they produce a
   partial signature for the inputs for which they have relevant key(s).
 - A **Finalizer** is run for each input to convert the partial signatures and
-  possibly script information into a final `scriptSig` and/or `scriptWitness`.
+  possibly script information into a final witness.
 - An **Extractor** produces a valid Bitcoin transaction (in network format)
   from a PSBT for which all inputs are finalized.
 
@@ -68,18 +70,18 @@ hardware implementations will typically implement multiple roles simultaneously.
   it, and optionally signs inputs. Where possible it also finalizes the partial
   signatures.
 - **`descriptorprocesspsbt` (Updater, Signer, Finalizer)** is a node RPC that takes
-  as input a PSBT and a list of descriptors. It updates SegWit inputs with
+  as input a PSBT and a list of descriptors. It updates Taproot inputs with
   information available from the UTXO set and the mempool and signs the inputs using
   the provided descriptors. Where possible it also finalizes the partial signatures.
 - **`utxoupdatepsbt` (Updater)** is a node RPC that takes a PSBT and updates it
-  to include information available from the UTXO set (works only for SegWit
+  to include information available from the UTXO set (works only for Taproot
   inputs).
 - **`finalizepsbt` (Finalizer, Extractor)** is a utility RPC that finalizes any
   partial signatures, and if all inputs are finalized, converts the result to a
   fully signed transaction which can be broadcast with `sendrawtransaction`.
 - **`combinepsbt` (Combiner)** is a utility RPC that implements a Combiner. It
   can be used at any point in the workflow to merge information added to
-  different versions of the same PSBT. In particular it is useful to combine the
+  different copies of the same PSBT. In particular it is useful to combine the
   output of multiple Updaters or Signers.
 - **`joinpsbts`** (Creator) is a utility RPC that joins multiple PSBTs together,
   concatenating the inputs and outputs. This can be used to construct CoinJoin
