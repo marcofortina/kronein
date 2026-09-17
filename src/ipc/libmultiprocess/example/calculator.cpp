@@ -38,10 +38,11 @@ public:
     }
 };
 
-static void LogPrint(mp::LogMessage log_data)
+// Exercises deprecated log callback signature
+static void LogPrint(bool raise, const std::string& message)
 {
-    if (log_data.level == mp::Log::Raise) throw std::runtime_error(log_data.message);
-    std::ofstream("debug.log", std::ios_base::app) << log_data.message << std::endl;
+    if (raise) throw std::runtime_error(message);
+    std::ofstream("debug.log", std::ios_base::app) << message << std::endl;
 }
 
 int main(int argc, char** argv)

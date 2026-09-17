@@ -245,6 +245,12 @@ public:
     //! Construct event loop object with specified logging options.
     EventLoop(const char* exe_name, LogOptions log_opts, void* context = nullptr);
 
+    //! Backwards-compatible constructor for previous (deprecated) logging callback signature
+    EventLoop(const char* exe_name, std::function<void(bool, std::string)> old_callback, void* context = nullptr)
+        : EventLoop(exe_name,
+                LogFn{[old_callback = std::move(old_callback)](LogMessage log_data) {old_callback(log_data.level == Log::Raise, std::move(log_data.message));}},
+                context){}
+
     ~EventLoop();
 
     //! Run event loop. Does not return until shutdown. This should only be
