@@ -32,6 +32,7 @@ from test_framework.psbt import (
     PSBT_IN_SIGHASH_TYPE,
     PSBT_IN_HASH160,
     PSBT_IN_HASH256,
+    PSBT_IN_FINAL_SCRIPTWITNESS,
     PSBT_IN_MUSIG2_PARTIAL_SIG,
     PSBT_IN_MUSIG2_PARTICIPANT_PUBKEYS,
     PSBT_IN_MUSIG2_PUB_NONCE,
@@ -935,6 +936,22 @@ class PSBTTest(BitcoinTestFramework):
 
         # Test psbt is complete
         assert_equal(processed_psbt['complete'], True)
+
+        self.log.info("Test descriptorprocesspsbt rejects an invalid finalized signature")
+        flawed_psbt = PSBT.from_base64(processed_psbt["psbt"])
+        valid_witness = flawed_psbt.i[0].map[PSBT_IN_FINAL_SCRIPTWITNESS]
+        assert_equal(valid_witness[0], 1)
+        sig_len = valid_witness[1]
+        signature = valid_witness[2:2 + sig_len]
+        invalid_signature = bytes([signature[0] ^ 1]) + signature[1:]
+        flawed_psbt.i[0].map[PSBT_IN_FINAL_SCRIPTWITNESS] = valid_witness[:2] + invalid_signature + valid_witness[2 + sig_len:]
+        invalid_result = self.nodes[2].descriptorprocesspsbt(
+            psbt=flawed_psbt.to_base64(),
+            descriptors=[descriptor],
+            finalize=True,
+        )
+        assert_equal(invalid_result["complete"], False)
+        assert "hex" not in invalid_result
 
         # Broadcast transaction
         self.nodes[2].sendrawtransaction(processed_psbt['hex'])
