@@ -13,7 +13,7 @@ BOOST_FIXTURE_TEST_SUITE(txreconciliation_tests, BasicTestingSetup)
 
 BOOST_AUTO_TEST_CASE(RegisterPeerTest)
 {
-    TxReconciliationTracker tracker(TXRECONCILIATION_VERSION);
+    TxReconciliationTracker tracker;
     const uint64_t salt = 0;
 
     // Prepare a peer for reconciliation.
@@ -33,11 +33,11 @@ BOOST_AUTO_TEST_CASE(RegisterPeerTest)
     BOOST_REQUIRE(tracker.RegisterPeer(1, false, 1, salt) == ReconciliationRegisterResult::SUCCESS);
     BOOST_CHECK(tracker.IsPeerRegistered(1));
 
-    // Reconciliation version is higher than ours, should be able to register.
+    // A different reconciliation version is not accepted.
     BOOST_REQUIRE(!tracker.IsPeerRegistered(2));
     tracker.PreRegisterPeer(2);
-    BOOST_REQUIRE(tracker.RegisterPeer(2, true, 2, salt) == ReconciliationRegisterResult::SUCCESS);
-    BOOST_CHECK(tracker.IsPeerRegistered(2));
+    BOOST_REQUIRE(tracker.RegisterPeer(2, true, 2, salt) == ReconciliationRegisterResult::PROTOCOL_VIOLATION);
+    BOOST_CHECK(!tracker.IsPeerRegistered(2));
 
     // Try registering for the second time.
     BOOST_REQUIRE(tracker.RegisterPeer(1, false, 1, salt) == ReconciliationRegisterResult::ALREADY_REGISTERED);
@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE(RegisterPeerTest)
 
 BOOST_AUTO_TEST_CASE(ForgetPeerTest)
 {
-    TxReconciliationTracker tracker(TXRECONCILIATION_VERSION);
+    TxReconciliationTracker tracker;
     NodeId peer_id0 = 0;
 
     // Removing peer after pre-registering works and does not let to register the peer.
@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE(ForgetPeerTest)
 
 BOOST_AUTO_TEST_CASE(IsPeerRegisteredTest)
 {
-    TxReconciliationTracker tracker(TXRECONCILIATION_VERSION);
+    TxReconciliationTracker tracker;
     NodeId peer_id0 = 0;
 
     BOOST_REQUIRE(!tracker.IsPeerRegistered(peer_id0));

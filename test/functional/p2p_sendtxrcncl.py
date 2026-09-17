@@ -157,13 +157,13 @@ class SendTxRcnclTest(BitcoinTestFramework):
             peer.send_without_ping(sendtxrcncl_low_version)
             peer.wait_for_disconnect()
 
-        self.log.info('SENDTXRCNCL with version=2 is valid')
+        self.log.info('SENDTXRCNCL with version=2 triggers a disconnect')
         sendtxrcncl_higher_version = create_sendtxrcncl_msg()
         sendtxrcncl_higher_version.version = 2
         peer = self.nodes[0].add_p2p_connection(PeerNoVerack(), send_version=True, wait_for_verack=False)
-        with self.nodes[0].assert_debug_log(['Register peer=1'], timeout=2):
+        with self.nodes[0].assert_debug_log(["txreconciliation protocol violation"]):
             peer.send_without_ping(sendtxrcncl_higher_version)
-        self.nodes[0].disconnect_p2ps()
+            peer.wait_for_disconnect()
 
         self.log.info('sending SENDTXRCNCL after sending VERACK triggers a disconnect')
         peer = self.nodes[0].add_p2p_connection(P2PInterface())

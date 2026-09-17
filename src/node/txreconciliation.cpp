@@ -65,9 +65,6 @@ class TxReconciliationTracker::Impl
 private:
     mutable Mutex m_txreconciliation_mutex;
 
-    // Local protocol version
-    uint32_t m_recon_version;
-
     /**
      * Keeps track of txreconciliation states of eligible peers.
      * For pre-registered peers, the locally generated salt is stored.
@@ -77,8 +74,6 @@ private:
     std::unordered_map<NodeId, std::variant<uint64_t, TxReconciliationState>> m_states GUARDED_BY(m_txreconciliation_mutex);
 
 public:
-    explicit Impl(uint32_t recon_version) : m_recon_version(recon_version) {}
-
     uint64_t PreRegisterPeer(NodeId peer_id) EXCLUSIVE_LOCKS_REQUIRED(!m_txreconciliation_mutex)
     {
         AssertLockNotHeld(m_txreconciliation_mutex);
@@ -108,14 +103,9 @@ public:
 
         uint64_t local_salt = *std::get_if<uint64_t>(&recon_state->second);
 
-        // If the peer supports the version which is lower than ours, we downgrade to the version
-        // it supports. For now, this only guarantees that nodes with future reconciliation
-        // versions have the choice of reconciling with this current version. However, they also
-        // have the choice to refuse supporting reconciliations if the common version is not
-        // satisfactory (e.g. too low).
-        const uint32_t recon_version{std::min(peer_recon_version, m_recon_version)};
-        // v1 is the lowest version, so suggesting something below must be a protocol violation.
-        if (recon_version < 1) return ReconciliationRegisterResult::PROTOCOL_VIOLATION;
+        if (peer_recon_version != TXRECONCILIATION_VERSION) {
+            return ReconciliationRegisterResult::PROTOCOL_VIOLATION;
+        }
 
         LogDebug(BCLog::TXRECONCILIATION, "Register peer=%d (inbound=%i)\n",
                       peer_id, is_peer_inbound);
@@ -144,7 +134,7 @@ public:
     }
 };
 
-TxReconciliationTracker::TxReconciliationTracker(uint32_t recon_version) : m_impl{std::make_unique<TxReconciliationTracker::Impl>(recon_version)} {}
+TxReconciliationTracker::TxReconciliationTracker() : m_impl{std::make_unique<TxReconciliationTracker::Impl>()} {}
 
 TxReconciliationTracker::~TxReconciliationTracker() = default;
 
