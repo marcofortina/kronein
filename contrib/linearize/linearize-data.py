@@ -78,13 +78,12 @@ def getFirstBlockFileId(block_dir_path):
 
 def read_xor_key(blocks_path):
     NUM_XOR_BYTES = 8  # From InitBlocksdirXorKey::xor_key.size()
-    try:
-        xor_filename = os.path.join(blocks_path, "xor.dat")
-        with open(xor_filename, "rb") as xor_file:
-            return xor_file.read(NUM_XOR_BYTES)
-    # support also blockdirs created with pre-v28 versions, where no xor key exists yet
-    except FileNotFoundError:
-        return bytes([0] * NUM_XOR_BYTES)
+    xor_filename = os.path.join(blocks_path, "xor.dat")
+    with open(xor_filename, "rb") as xor_file:
+        xor_key = xor_file.read()
+    if len(xor_key) != NUM_XOR_BYTES:
+        raise ValueError(f"Expected {NUM_XOR_BYTES} bytes in {xor_filename}, got {len(xor_key)}")
+    return xor_key
 
 # Block header and extent on disk
 BlockExtent = namedtuple('BlockExtent', ['fn', 'offset', 'inhdr', 'blkhdr', 'size'])
