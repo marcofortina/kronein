@@ -148,7 +148,7 @@ Example, display the first Taproot receive address on testnet4:
 <cmd> --fingerprint=00000000 --chain=testnet4 displayaddress --desc "tr([00000000/86h/1h/0h]tpubDDUZ..../0/0)"
 ```
 
-The command MUST be able to figure out the address type from the descriptor.
+The command MUST derive the native Taproot address from the descriptor.
 
 The command MUST return an object containing `{"address": "[the address]"}`.
 As a sanity check, for devices that support this, it SHOULD ask the device to derive the address.

@@ -1,7 +1,6 @@
 # Taproot multisig tutorial
 
-This chain supports multisig as a Taproot script path. P2SH, P2WSH, and bare
-`OP_CHECKMULTISIG` outputs are not accepted.
+This chain supports multisig exclusively as a Taproot script path.
 
 For an M-of-N wallet, every participant first creates a signer wallet and
 shares the public Taproot account key, including its origin fingerprint and

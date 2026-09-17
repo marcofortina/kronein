@@ -8,9 +8,9 @@ descriptor must produce one of the following:
 - a Taproot or pay-to-anchor address (`addr`);
 - a raw Taproot, pay-to-anchor, or unspendable `OP_RETURN` script (`raw`).
 
-P2PK, P2PKH, P2SH, witness-v0, and bare multisig are not part of the descriptor
-grammar. Script expressions inside a Taproot script tree are Tapscript, not
-alternative top-level output types.
+No other top-level output forms are part of the descriptor grammar. Script
+expressions inside a Taproot script tree are Tapscript, not alternative
+top-level output types.
 
 ## Examples
 

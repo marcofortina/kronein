@@ -113,11 +113,11 @@ $ curl localhost:18332/rest/getutxos/checkmempool/b2cdfd7b89def827ff8af7cd9bff76
          "height" : 2147483647,
          "value" : 8.8687,
          "scriptPubKey" : {
-            "asm" : "OP_DUP OP_HASH160 1c7cebb529b86a04c683dfa87be49de35bcf589e OP_EQUALVERIFY OP_CHECKSIG",
-            "desc" : "addr(mi7as51dvLJsizWnTMurtRmrP8hG2m1XvD)#gj9tznmy",
-            "hex" : "76a9141c7cebb529b86a04c683dfa87be49de35bcf589e88ac",
-            "type" : "pubkeyhash",
-            "address" : "mi7as51dvLJsizWnTMurtRmrP8hG2m1XvD"
+            "asm" : "1 0101010101010101010101010101010101010101010101010101010101010101",
+            "desc" : "addr(tb1pqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqsn60vlk)#uhax7av5",
+            "hex" : "51200101010101010101010101010101010101010101010101010101010101010101",
+            "type" : "witness_v1_taproot",
+            "address" : "tb1pqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqsn60vlk"
          }
       }
    ]
