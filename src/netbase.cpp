@@ -328,7 +328,7 @@ static IntrRecvError InterruptibleRecv(uint8_t* data, size_t len, std::chrono::m
             return IntrRecvError::Disconnected;
         } else { // Other error or blocking
             int nErr = WSAGetLastError();
-            if (nErr == WSAEINPROGRESS || nErr == WSAEWOULDBLOCK || nErr == WSAEINVAL) {
+            if (nErr == WSAEINPROGRESS || nErr == WSAEWOULDBLOCK) {
                 // Only wait at most MAX_WAIT_FOR_IO at a time, unless
                 // we're approaching the end of the specified total timeout
                 const auto remaining = std::chrono::milliseconds{endTime - curTime};
@@ -592,8 +592,7 @@ static bool ConnectToSocket(const Sock& sock, struct sockaddr* sockaddr, socklen
     // Connect to `sockaddr` using `sock`.
     if (sock.Connect(sockaddr, len) == SOCKET_ERROR) {
         int nErr = WSAGetLastError();
-        // WSAEINVAL is here because some legacy version of winsock uses it
-        if (nErr == WSAEINPROGRESS || nErr == WSAEWOULDBLOCK || nErr == WSAEINVAL)
+        if (nErr == WSAEINPROGRESS || nErr == WSAEWOULDBLOCK)
         {
             // Connection didn't actually fail, but is being established
             // asynchronously. Thus, use async I/O api (select/poll)
