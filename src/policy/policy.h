@@ -38,9 +38,6 @@ static constexpr int32_t MAX_STANDARD_TX_WEIGHT{400000};
 static constexpr unsigned int MIN_STANDARD_TX_NONWITNESS_SIZE{65};
 /** Default for -incrementalrelayfee, which sets the minimum feerate increase for mempool limiting or replacement **/
 static constexpr unsigned int DEFAULT_INCREMENTAL_RELAY_FEE{100};
-/** Limits retained for parsing Miniscript descriptors. Witness-v0 outputs are not native chain outputs. */
-static constexpr unsigned int MAX_STANDARD_P2WSH_STACK_ITEMS{100};
-static constexpr unsigned int MAX_STANDARD_P2WSH_SCRIPT_SIZE{3600};
 /** The maximum size in bytes of each witness stack item in a standard BIP 342 script (Taproot, leaf version 0xc0) */
 static constexpr unsigned int MAX_STANDARD_TAPSCRIPT_STACK_ITEM_SIZE{80};
 /** Min feerate for defining dust.

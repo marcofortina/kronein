@@ -234,8 +234,7 @@ enum class Fragment {
     OR_I,      //!< OP_IF [X] OP_ELSE [Y] OP_ENDIF
     ANDOR,     //!< [X] OP_NOTIF [Z] OP_ELSE [Y] OP_ENDIF
     THRESH,    //!< [X1] ([Xn] OP_ADD)* [k] OP_EQUAL
-    MULTI,     //!< [k] [key_n]* [n] OP_CHECKMULTISIG (only available within P2WSH context)
-    MULTI_A,   //!< [key_0] OP_CHECKSIG ([key_n] OP_CHECKSIGADD)* [k] OP_NUMEQUAL (only within Tapscript ctx)
+    MULTI_A,   //!< [key_0] OP_CHECKSIG ([key_n] OP_CHECKSIGADD)* [k] OP_NUMEQUAL
     // AND_N(X,Y) is represented as ANDOR(X,Y,0)
     // WRAP_T(X) is represented as AND_V(X,1)
     // WRAP_L(X) is represented as OR_I(0,X)
@@ -249,19 +248,8 @@ enum class Availability {
 };
 
 enum class MiniscriptContext {
-    P2WSH,
     TAPSCRIPT,
 };
-
-/** Whether the context Tapscript, ensuring the only other possibility is P2WSH. */
-constexpr bool IsTapscript(MiniscriptContext ms_ctx)
-{
-    switch (ms_ctx) {
-        case MiniscriptContext::P2WSH: return false;
-        case MiniscriptContext::TAPSCRIPT: return true;
-    }
-    assert(false);
-}
 
 namespace internal {
 
@@ -272,32 +260,29 @@ static constexpr uint32_t MAX_TAPMINISCRIPT_STACK_ELEM_SIZE{65};
 constexpr uint32_t TX_OVERHEAD{4 + 4};
 //! prevout + nSequence + scriptSig
 constexpr uint32_t TXIN_BYTES_NO_WITNESS{36 + 4 + 1};
-//! nValue + script len + OP_0 + pushdata 32.
-constexpr uint32_t P2WSH_TXOUT_BYTES{8 + 1 + 1 + 33};
+//! nValue + script len + OP_1 + pushdata 32.
+constexpr uint32_t P2TR_TXOUT_BYTES{8 + 1 + 1 + 33};
 //! Data other than the witness in a transaction. Overhead + vin count + one vin + vout count + one vout.
-constexpr uint32_t TX_BODY_LEEWAY_WEIGHT{(TX_OVERHEAD + GetSizeOfCompactSize(1) + TXIN_BYTES_NO_WITNESS + GetSizeOfCompactSize(1) + P2WSH_TXOUT_BYTES) * WITNESS_SCALE_FACTOR};
+constexpr uint32_t TX_BODY_LEEWAY_WEIGHT{(TX_OVERHEAD + GetSizeOfCompactSize(1) + TXIN_BYTES_NO_WITNESS + GetSizeOfCompactSize(1) + P2TR_TXOUT_BYTES) * WITNESS_SCALE_FACTOR};
 //! Maximum possible stack size to spend a Taproot output (excluding the script itself).
 constexpr uint32_t MAX_TAPSCRIPT_SAT_SIZE{GetSizeOfCompactSize(MAX_STACK_SIZE) + (GetSizeOfCompactSize(MAX_TAPMINISCRIPT_STACK_ELEM_SIZE) + MAX_TAPMINISCRIPT_STACK_ELEM_SIZE) * MAX_STACK_SIZE + GetSizeOfCompactSize(TAPROOT_CONTROL_MAX_SIZE) + TAPROOT_CONTROL_MAX_SIZE};
-/** The maximum size of a script depending on the context. */
-constexpr uint32_t MaxScriptSize(MiniscriptContext ms_ctx)
+/** The maximum size of a Tapscript leaf script. */
+constexpr uint32_t MaxScriptSize()
 {
-    if (IsTapscript(ms_ctx)) {
-        // Leaf scripts under Tapscript are not explicitly limited in size. They are only implicitly
-        // bounded by the maximum standard size of a spending transaction. Let the maximum script
-        // size conservatively be small enough such that even a maximum sized witness and a reasonably
-        // sized spending transaction can spend an output paying to this script without running into
-        // the maximum standard tx size limit.
-        constexpr auto max_size{MAX_STANDARD_TX_WEIGHT - TX_BODY_LEEWAY_WEIGHT - MAX_TAPSCRIPT_SAT_SIZE};
-        return max_size - GetSizeOfCompactSize(max_size);
-    }
-    return MAX_STANDARD_P2WSH_SCRIPT_SIZE;
+    // Leaf scripts under Tapscript are not explicitly limited in size. They are only implicitly
+    // bounded by the maximum standard size of a spending transaction. Let the maximum script
+    // size conservatively be small enough such that even a maximum sized witness and a reasonably
+    // sized spending transaction can spend an output paying to this script without running into
+    // the maximum standard tx size limit.
+    constexpr auto max_size{MAX_STANDARD_TX_WEIGHT - TX_BODY_LEEWAY_WEIGHT - MAX_TAPSCRIPT_SAT_SIZE};
+    return max_size - GetSizeOfCompactSize(max_size);
 }
 
 //! Helper function for Node::CalcType.
-Type ComputeType(Fragment fragment, Type x, Type y, Type z, const std::vector<Type>& sub_types, uint32_t k, size_t data_size, size_t n_subs, size_t n_keys, MiniscriptContext ms_ctx);
+Type ComputeType(Fragment fragment, Type x, Type y, Type z, const std::vector<Type>& sub_types, uint32_t k, size_t data_size, size_t n_subs, size_t n_keys);
 
 //! Helper function for Node::CalcScriptLen.
-size_t ComputeScriptLen(Fragment fragment, Type sub0typ, size_t subsize, uint32_t k, size_t n_subs, size_t n_keys, MiniscriptContext ms_ctx);
+size_t ComputeScriptLen(Fragment fragment, Type sub0typ, size_t subsize, uint32_t k, size_t n_subs, size_t n_keys);
 
 //! A helper sanitizer/checker for the output of CalcType.
 Type SanitizeType(Type x);
@@ -420,7 +405,7 @@ struct Ops {
  * individual opcodes miniscripts correspond to, using concatenation to construct scripts, and
  * using the union operation to choose between execution branches. Since any top-level script
  * satisfaction ends with a single stack element, we know that for a full script:
- * - netdiff+1 is the maximal initial stack size (relevant for P2WSH stack limits).
+ * - netdiff+1 is the maximal initial stack size.
  * - exec+1 is the maximal stack size reached during execution (relevant for P2TR stack limits).
  *
  * Mathematically, SatInfo forms a semiring:
@@ -535,13 +520,13 @@ class Node
     enum Fragment fragment;
     //! The k parameter (time for OLDER/AFTER, threshold for THRESH(_M))
     uint32_t k = 0;
-    //! The keys used by this expression (only for PK_K/PK_H/MULTI)
+    //! The keys used by this expression (only for PK_K/PK_H/MULTI_A)
     std::vector<Key> keys;
     //! The data bytes in this expression (only for HASH160/HASH256/SHA256/RIPEMD160).
     std::vector<unsigned char> data;
     //! Subexpressions (for WRAP_*/AND_*/OR_*/ANDOR/THRESH)
     std::vector<Node> subs;
-    //! The Script context for this node. Either P2WSH or Tapscript.
+    //! The Tapscript context for this node.
     MiniscriptContext m_script_ctx;
 
 public:
@@ -617,7 +602,7 @@ private:
             subsize += sub.ScriptSize();
         }
         Type sub0type = subs.size() > 0 ? subs[0].GetType() : ""_mst;
-        return internal::ComputeScriptLen(fragment, sub0type, subsize, k, subs.size(), keys.size(), m_script_ctx);
+        return internal::ComputeScriptLen(fragment, sub0type, subsize, k, subs.size(), keys.size());
     }
 
     /* Apply a recursive algorithm to a Miniscript tree, without actual recursive calls.
@@ -785,7 +770,7 @@ private:
         Type y = subs.size() > 1 ? subs[1].GetType() : ""_mst;
         Type z = subs.size() > 2 ? subs[2].GetType() : ""_mst;
 
-        return SanitizeType(ComputeType(fragment, x, y, z, sub_types, k, data.size(), subs.size(), keys.size(), m_script_ctx));
+        return SanitizeType(ComputeType(fragment, x, y, z, sub_types, k, data.size(), subs.size(), keys.size()));
     }
 
 public:
@@ -806,8 +791,7 @@ public:
         };
         // The upward function computes for a node, given its followed-by-OP_VERIFY status
         // and the CScripts of its child nodes, the CScript of the node.
-        const bool is_tapscript{IsTapscript(m_script_ctx)};
-        auto upfn = [&ctx, is_tapscript](bool verify, const Node& node, std::span<CScript> subs) -> CScript {
+        auto upfn = [&ctx](bool verify, const Node& node, std::span<CScript> subs) -> CScript {
             switch (node.fragment) {
                 case Fragment::PK_K: return BuildScript(ctx.ToPKBytes(node.keys[0]));
                 case Fragment::PK_H: return BuildScript(OP_DUP, OP_HASH160, ctx.ToPKHBytes(node.keys[0]), OP_EQUALVERIFY);
@@ -839,16 +823,7 @@ public:
                 case Fragment::OR_C: return BuildScript(std::move(subs[0]), OP_NOTIF, subs[1], OP_ENDIF);
                 case Fragment::OR_I: return BuildScript(OP_IF, subs[0], OP_ELSE, subs[1], OP_ENDIF);
                 case Fragment::ANDOR: return BuildScript(std::move(subs[0]), OP_NOTIF, subs[2], OP_ELSE, subs[1], OP_ENDIF);
-                case Fragment::MULTI: {
-                    CHECK_NONFATAL(!is_tapscript);
-                    CScript script = BuildScript(node.k);
-                    for (const auto& key : node.keys) {
-                        script = BuildScript(std::move(script), ctx.ToPKBytes(key));
-                    }
-                    return BuildScript(std::move(script), node.keys.size(), verify ? OP_CHECKMULTISIGVERIFY : OP_CHECKMULTISIG);
-                }
                 case Fragment::MULTI_A: {
-                    CHECK_NONFATAL(is_tapscript);
                     CScript script = BuildScript(ctx.ToPKBytes(*node.keys.begin()), OP_CHECKSIG);
                     for (auto it = node.keys.begin() + 1; it != node.keys.end(); ++it) {
                         script = BuildScript(std::move(script), ctx.ToPKBytes(*it), OP_CHECKSIGADD);
@@ -896,8 +871,7 @@ public:
         };
         // The upward function computes for a node, given whether its parent is a wrapper,
         // and the string representations of its child nodes, the string representation of the node.
-        const bool is_tapscript{IsTapscript(m_script_ctx)};
-        auto upfn = [is_tapscript, &toString](bool wrapped, const Node& node, std::span<std::string> subs) -> std::optional<std::string> {
+        auto upfn = [&toString](bool wrapped, const Node& node, std::span<std::string> subs) -> std::optional<std::string> {
             std::string ret = wrapped ? ":" : "";
 
             switch (node.fragment) {
@@ -960,18 +934,7 @@ public:
                     // and_n(X,Y) is syntactic sugar for andor(X,Y,0).
                     if (node.subs[2].fragment == Fragment::JUST_0) return std::move(ret) + "and_n(" + std::move(subs[0]) + "," + std::move(subs[1]) + ")";
                     return std::move(ret) + "andor(" + std::move(subs[0]) + "," + std::move(subs[1]) + "," + std::move(subs[2]) + ")";
-                case Fragment::MULTI: {
-                    CHECK_NONFATAL(!is_tapscript);
-                    auto str = std::move(ret) + "multi(" + util::ToString(node.k);
-                    for (const auto& key : node.keys) {
-                        auto key_str = toString(key);
-                        if (!key_str) return {};
-                        str += "," + std::move(*key_str);
-                    }
-                    return std::move(str) + ")";
-                }
                 case Fragment::MULTI_A: {
-                    CHECK_NONFATAL(is_tapscript);
                     auto str = std::move(ret) + "multi_a(" + util::ToString(node.k);
                     for (const auto& key : node.keys) {
                         auto key_str = toString(key);
@@ -1044,7 +1007,6 @@ private:
                 const auto dsat{subs[0].ops.dsat + subs[2].ops.dsat};
                 return {count, sat, dsat};
             }
-            case Fragment::MULTI: return {1, (uint32_t)keys.size(), (uint32_t)keys.size()};
             case Fragment::MULTI_A: return {(uint32_t)keys.size() + 1, 0, 0};
             case Fragment::WRAP_S:
             case Fragment::WRAP_C:
@@ -1131,11 +1093,6 @@ private:
                 const auto& y{subs[1].ss};
                 return {SatInfo::If() + (x.Sat() | y.Sat()), SatInfo::If() + (x.Dsat() | y.Dsat())};
             }
-            // multi(k, key1, key2, ..., key_n) starts off with k+1 stack elements (a 0, plus k
-            // signatures), then reaches n+k+3 stack elements after pushing the n keys, plus k and
-            // n itself, and ends with 1 stack element (success or failure). Thus, it net removes
-            // k elements (from k+1 to 1), while reaching k+n+2 more than it ends with.
-            case Fragment::MULTI: return {SatInfo(k, k + keys.size() + 2)};
             // multi_a(k, key1, key2, ..., key_n) starts off with n stack elements (the
             // signatures), reaches 1 more (after the first key push), and ends with 1. Thus it net
             // removes n-1 elements (from n to 1) while reaching n more than it ends with.
@@ -1186,8 +1143,8 @@ private:
     }
 
     internal::WitnessSize CalcWitnessSize() const {
-        const uint32_t sig_size = IsTapscript(m_script_ctx) ? 1 + 65 : 1 + 72;
-        const uint32_t pubkey_size = IsTapscript(m_script_ctx) ? 1 + 32 : 1 + 33;
+        const uint32_t sig_size = 1 + 65;
+        const uint32_t pubkey_size = 1 + 32;
         switch (fragment) {
             case Fragment::JUST_0: return {{}, 0};
             case Fragment::JUST_1:
@@ -1214,7 +1171,6 @@ private:
             case Fragment::OR_C: return {subs[0].ws.sat | (subs[0].ws.dsat + subs[1].ws.sat), {}};
             case Fragment::OR_D: return {subs[0].ws.sat | (subs[0].ws.dsat + subs[1].ws.sat), subs[0].ws.dsat + subs[1].ws.dsat};
             case Fragment::OR_I: return {(subs[0].ws.sat + 1 + 1) | (subs[1].ws.sat + 1), (subs[0].ws.dsat + 1 + 1) | (subs[1].ws.dsat + 1)};
-            case Fragment::MULTI: return {k * sig_size + 1, k + 1};
             case Fragment::MULTI_A: return {k * sig_size + static_cast<uint32_t>(keys.size()) - k, static_cast<uint32_t>(keys.size())};
             case Fragment::WRAP_A:
             case Fragment::WRAP_N:
@@ -1281,32 +1237,6 @@ private:
                     // satisfying 0 keys.
                     auto& nsat{sats[0]};
                     CHECK_NONFATAL(node.k != 0);
-                    assert(node.k < sats.size());
-                    return {std::move(nsat), std::move(sats[node.k])};
-                }
-                case Fragment::MULTI: {
-                    // sats[j] represents the best stack containing j valid signatures (out of the first i keys).
-                    // In the loop below, these stacks are built up using a dynamic programming approach.
-                    // sats[0] starts off being {0}, due to the CHECKMULTISIG bug that pops off one element too many.
-                    std::vector<InputStack> sats = Vector(ZERO);
-                    for (size_t i = 0; i < node.keys.size(); ++i) {
-                        std::vector<unsigned char> sig;
-                        Availability avail = ctx.Sign(node.keys[i], sig);
-                        // Compute signature stack for just the i'th key.
-                        auto sat = InputStack(std::move(sig)).SetWithSig().SetAvailable(avail);
-                        // Compute the next sats vector: next_sats[0] is a copy of sats[0] (no signatures). All further
-                        // next_sats[j] are equal to either the existing sats[j], or sats[j-1] plus a signature for the
-                        // current (i'th) key. The very last element needs all signatures filled.
-                        std::vector<InputStack> next_sats;
-                        next_sats.push_back(sats[0]);
-                        for (size_t j = 1; j < sats.size(); ++j) next_sats.push_back(sats[j] | (std::move(sats[j - 1]) + sat));
-                        next_sats.push_back(std::move(sats[sats.size() - 1]) + std::move(sat));
-                        // Switch over.
-                        sats = std::move(next_sats);
-                    }
-                    // The dissatisfaction consists of k+1 stack elements all equal to 0.
-                    InputStack nsat = ZERO;
-                    for (size_t i = 0; i < node.k; ++i) nsat = std::move(nsat) + ZERO;
                     assert(node.k < sats.size());
                     return {std::move(nsat), std::move(sats[node.k])};
                 }
@@ -1563,11 +1493,7 @@ public:
     uint32_t GetStaticOps() const { return ops.count; }
 
     //! Check the ops limit of this script against the consensus limit.
-    bool CheckOpsLimit() const {
-        if (IsTapscript(m_script_ctx)) return true;
-        if (const auto ops = GetOps()) return *ops <= MAX_OPS_PER_SCRIPT;
-        return true;
-    }
+    bool CheckOpsLimit() const { return true; }
 
     /** Whether this node is of type B, K or W. (That is, anything but V.) */
     bool IsBKW() const {
@@ -1590,11 +1516,7 @@ public:
     bool CheckStackSize() const {
         // Since in Tapscript there is no standardness limit on the script and witness sizes, we may run
         // into the maximum stack size while executing the script. Make sure it doesn't happen.
-        if (IsTapscript(m_script_ctx)) {
-            if (const auto exec_ss = GetExecStackSize()) return exec_ss <= MAX_STACK_SIZE;
-            return true;
-        }
-        if (const auto ss = GetStackSize()) return *ss <= MAX_STANDARD_P2WSH_STACK_ITEMS;
+        if (const auto exec_ss = GetExecStackSize()) return exec_ss <= MAX_STACK_SIZE;
         return true;
     }
 
@@ -1637,7 +1559,6 @@ public:
                     return true;
                 case Fragment::PK_K:
                 case Fragment::PK_H:
-                case Fragment::MULTI:
                 case Fragment::MULTI_A:
                 case Fragment::AFTER:
                 case Fragment::OLDER:
@@ -1669,7 +1590,7 @@ public:
     //! Check whether this node is valid at all.
     bool IsValid() const {
         if (GetType() == ""_mst) return false;
-        return ScriptSize() <= internal::MaxScriptSize(m_script_ctx);
+        return ScriptSize() <= internal::MaxScriptSize();
     }
 
     //! Check whether this node is valid as a script on its own.
@@ -1863,7 +1784,7 @@ inline std::optional<Node<Key>> Parse(std::span<const char> in, const Ctx& ctx)
     //   (instead transforming another opcode into its VERIFY form). However, the v: wrapper has
     //   to be interleaved with other fragments to be valid, so this is not a concern.
     size_t script_size{1};
-    size_t max_size{internal::MaxScriptSize(ctx.MsContext())};
+    size_t max_size{internal::MaxScriptSize()};
 
     // The two integers are used to hold state for thresh()
     std::vector<std::tuple<ParseContext, int64_t, int64_t>> to_parse;
@@ -1871,11 +1792,8 @@ inline std::optional<Node<Key>> Parse(std::span<const char> in, const Ctx& ctx)
 
     to_parse.emplace_back(ParseContext::WRAPPED_EXPR, -1, -1);
 
-    // Parses a multi() or multi_a() from its string representation. Returns false on parsing error.
-    const auto parse_multi_exp = [&](std::span<const char>& in, const bool is_multi_a) -> bool {
-        const auto max_keys{is_multi_a ? MAX_PUBKEYS_PER_MULTI_A : MAX_PUBKEYS_PER_MULTISIG};
-        const auto required_ctx{is_multi_a ? MiniscriptContext::TAPSCRIPT : MiniscriptContext::P2WSH};
-        if (ctx.MsContext() != required_ctx) return false;
+    // Parses a multi_a() from its string representation. Returns false on parsing error.
+    const auto parse_multi_exp = [&](std::span<const char>& in) -> bool {
         // Get threshold
         int next_comma = FindNextChar(in, ',');
         if (next_comma < 1) return false;
@@ -1895,16 +1813,11 @@ inline std::optional<Node<Key>> Parse(std::span<const char> in, const Ctx& ctx)
             keys.push_back(std::move(*key));
             in = in.subspan(key_length + 1);
         }
-        if (keys.size() < 1 || keys.size() > max_keys) return false;
+        if (keys.size() < 1 || keys.size() > MAX_PUBKEYS_PER_MULTI_A) return false;
         if (k < 1 || k > (int64_t)keys.size()) return false;
-        if (is_multi_a) {
-            // (push + xonly-key + CHECKSIG[ADD]) * n + k + OP_NUMEQUAL(VERIFY), minus one.
-            script_size += (1 + 32 + 1) * keys.size() + BuildScript(k).size();
-            constructed.emplace_back(internal::NoDupCheck{}, ctx.MsContext(), Fragment::MULTI_A, std::move(keys), k);
-        } else {
-            script_size += 2 + (keys.size() > 16) + (k > 16) + 34 * keys.size();
-            constructed.emplace_back(internal::NoDupCheck{}, ctx.MsContext(), Fragment::MULTI, std::move(keys), k);
-        }
+        // (push + xonly-key + CHECKSIG[ADD]) * n + k + OP_NUMEQUAL(VERIFY), minus one.
+        script_size += (1 + 32 + 1) * keys.size() + BuildScript(k).size();
+        constructed.emplace_back(internal::NoDupCheck{}, ctx.MsContext(), Fragment::MULTI_A, std::move(keys), k);
         return true;
     };
 
@@ -1981,7 +1894,7 @@ inline std::optional<Node<Key>> Parse(std::span<const char> in, const Ctx& ctx)
                 std::optional<Key> key = ParseKey<Key, Ctx>("pk", in, ctx);
                 if (!key) return {};
                 constructed.emplace_back(internal::NoDupCheck{}, ctx.MsContext(), Fragment::WRAP_C, Vector(Node<Key>(internal::NoDupCheck{}, ctx.MsContext(), Fragment::PK_K, Vector(std::move(*key)))));
-                script_size += IsTapscript(ctx.MsContext()) ? 33 : 34;
+                script_size += 33;
             } else if (Const("pkh(", in, /*skip=*/false)) {
                 std::optional<Key> key = ParseKey<Key, Ctx>("pkh", in, ctx);
                 if (!key) return {};
@@ -1991,7 +1904,7 @@ inline std::optional<Node<Key>> Parse(std::span<const char> in, const Ctx& ctx)
                 std::optional<Key> key = ParseKey<Key, Ctx>("pk_k", in, ctx);
                 if (!key) return {};
                 constructed.emplace_back(internal::NoDupCheck{}, ctx.MsContext(), Fragment::PK_K, Vector(std::move(*key)));
-                script_size += IsTapscript(ctx.MsContext()) ? 32 : 33;
+                script_size += 32;
             } else if (Const("pk_h(", in, /*skip=*/false)) {
                 std::optional<Key> key = ParseKey<Key, Ctx>("pk_h", in, ctx);
                 if (!key) return {};
@@ -2031,10 +1944,8 @@ inline std::optional<Node<Key>> Parse(std::span<const char> in, const Ctx& ctx)
                 if (!num.has_value() || *num < 1 || *num >= 0x80000000L) return {};
                 constructed.emplace_back(internal::NoDupCheck{}, ctx.MsContext(), Fragment::OLDER, *num);
                 script_size += 1 + (*num > 16) + (*num > 0x7f) + (*num > 0x7fff) + (*num > 0x7fffff);
-            } else if (Const("multi(", in)) {
-                if (!parse_multi_exp(in, /* is_multi_a = */false)) return {};
             } else if (Const("multi_a(", in)) {
-                if (!parse_multi_exp(in, /* is_multi_a = */true)) return {};
+                if (!parse_multi_exp(in)) return {};
             } else if (Const("thresh(", in)) {
                 int next_comma = FindNextChar(in, ',');
                 if (next_comma < 1) return {};
@@ -2372,29 +2283,8 @@ inline std::optional<Node<Key>> DecodeScript(I& in, I last, const Ctx& ctx)
                     break;
                 }
             }
-            // Multi
-            if (last - in >= 3 && in[0].first == OP_CHECKMULTISIG) {
-                if (IsTapscript(ctx.MsContext())) return {};
-                std::vector<Key> keys;
-                const auto n = ParseScriptNumber(in[1]);
-                if (!n || last - in < 3 + *n) return {};
-                if (*n < 1 || *n > 20) return {};
-                for (int i = 0; i < *n; ++i) {
-                    if (in[2 + i].second.size() != 33) return {};
-                    auto key = ctx.FromPKBytes(in[2 + i].second.begin(), in[2 + i].second.end());
-                    if (!key) return {};
-                    keys.push_back(std::move(*key));
-                }
-                const auto k = ParseScriptNumber(in[2 + *n]);
-                if (!k || *k < 1 || *k > *n) return {};
-                in += 3 + *n;
-                std::reverse(keys.begin(), keys.end());
-                constructed.emplace_back(internal::NoDupCheck{}, ctx.MsContext(), Fragment::MULTI, std::move(keys), *k);
-                break;
-            }
-            // Tapscript's equivalent of multi
+            // Tapscript multisig
             if (last - in >= 4 && in[0].first == OP_NUMEQUAL) {
-                if (!IsTapscript(ctx.MsContext())) return {};
                 // The necessary threshold of signatures.
                 const auto k = ParseScriptNumber(in[1]);
                 if (!k) return {};
@@ -2689,7 +2579,7 @@ inline std::optional<Node<typename Ctx::Key>> FromScript(const CScript& script, 
 {
     using namespace internal;
     // A too large Script is necessarily invalid, don't bother parsing it.
-    if (script.size() > MaxScriptSize(ctx.MsContext())) return {};
+    if (script.size() > MaxScriptSize()) return {};
     auto decomposed = DecomposeScript(script);
     if (!decomposed) return {};
     auto it = decomposed->begin();
