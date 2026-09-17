@@ -29,7 +29,7 @@ function(add_boost_if_needed)
     endif()
   endif()
 
-  find_package(Boost 1.74.0 REQUIRED CONFIG)
+  find_package(Boost 1.80.0 REQUIRED CONFIG)
   mark_as_advanced(Boost_INCLUDE_DIR boost_headers_DIR)
   # Workaround for a bug in NetBSD pkgsrc.
   # See https://gnats.netbsd.org/59856.
@@ -51,25 +51,6 @@ function(add_boost_if_needed)
     # Workaround for https://github.com/microsoft/vcpkg/issues/36955.
     target_compile_definitions(Boost::headers INTERFACE
       BOOST_NO_USER_CONFIG
-    )
-  endif()
-
-  # Prevent use of std::unary_function, which was removed in C++17,
-  # and will generate warnings with newer compilers for Boost
-  # older than 1.80.
-  # See: https://github.com/boostorg/config/pull/430.
-  set(CMAKE_REQUIRED_DEFINITIONS -DBOOST_NO_CXX98_FUNCTION_BASE)
-  get_target_property(CMAKE_REQUIRED_INCLUDES Boost::headers INTERFACE_INCLUDE_DIRECTORIES)
-  set(CMAKE_REQUIRED_FLAGS ${working_compiler_werror_flag})
-  set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
-  include(CheckCXXSourceCompiles)
-  check_cxx_source_compiles("
-    #include <boost/config.hpp>
-    " NO_DIAGNOSTICS_BOOST_NO_CXX98_FUNCTION_BASE
-  )
-  if(NO_DIAGNOSTICS_BOOST_NO_CXX98_FUNCTION_BASE)
-    target_compile_definitions(Boost::headers INTERFACE
-      BOOST_NO_CXX98_FUNCTION_BASE
     )
   endif()
 
