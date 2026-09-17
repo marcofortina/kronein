@@ -3,7 +3,7 @@
 // file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
 #include <bench/bench.h>
-#include <bench/data/block413567.raw.h>
+#include <bench/blockdata.h>
 #include <chainparams.h>
 #include <flatfile.h>
 #include <node/blockstorage.h>
@@ -35,7 +35,8 @@
  */
 static void LoadExternalBlockFile(benchmark::Bench& bench)
 {
-    const auto testing_setup{MakeNoLogFileContext<const TestingSetup>(ChainType::MAIN)};
+    const auto testing_setup{MakeNoLogFileContext<const TestingSetup>(ChainType::REGTEST)};
+    const auto& block_data{benchmark::GetNativeBenchBlockData()};
 
     // Create a single block as in the blocks files (magic bytes, block size,
     // block data) as a stream object.
@@ -43,9 +44,9 @@ static void LoadExternalBlockFile(benchmark::Bench& bench)
     DataStream ss{};
     auto params{testing_setup->m_node.chainman->GetParams()};
     ss << params.MessageStart();
-    ss << static_cast<uint32_t>(benchmark::data::block413567.size());
+    ss << static_cast<uint32_t>(block_data.size());
     // Use span-serialization to avoid writing the size first.
-    ss << std::span{benchmark::data::block413567};
+    ss << std::span{block_data};
 
     // Create the test file.
     {
