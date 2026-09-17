@@ -35,12 +35,7 @@ static constexpr uint8_t PSBT_GLOBAL_PROPRIETARY = 0xFC;
 
 // Input types
 static constexpr uint8_t PSBT_IN_WITNESS_UTXO = 0x01;
-static constexpr uint8_t PSBT_IN_PARTIAL_SIG = 0x02;
 static constexpr uint8_t PSBT_IN_SIGHASH = 0x03;
-static constexpr uint8_t PSBT_IN_REDEEMSCRIPT = 0x04;
-static constexpr uint8_t PSBT_IN_WITNESSSCRIPT = 0x05;
-static constexpr uint8_t PSBT_IN_BIP32_DERIVATION = 0x06;
-static constexpr uint8_t PSBT_IN_SCRIPTSIG = 0x07;
 static constexpr uint8_t PSBT_IN_SCRIPTWITNESS = 0x08;
 static constexpr uint8_t PSBT_IN_RIPEMD160 = 0x0A;
 static constexpr uint8_t PSBT_IN_SHA256 = 0x0B;
@@ -58,9 +53,6 @@ static constexpr uint8_t PSBT_IN_MUSIG2_PARTIAL_SIG = 0x1c;
 static constexpr uint8_t PSBT_IN_PROPRIETARY = 0xFC;
 
 // Output types
-static constexpr uint8_t PSBT_OUT_REDEEMSCRIPT = 0x00;
-static constexpr uint8_t PSBT_OUT_WITNESSSCRIPT = 0x01;
-static constexpr uint8_t PSBT_OUT_BIP32_DERIVATION = 0x02;
 static constexpr uint8_t PSBT_OUT_TAP_INTERNAL_KEY = 0x05;
 static constexpr uint8_t PSBT_OUT_TAP_TREE = 0x06;
 static constexpr uint8_t PSBT_OUT_TAP_BIP32_DERIVATION = 0x07;
@@ -144,30 +136,6 @@ void DeserializeHDKeypath(Stream& s, KeyOriginInfo& hd_keypath)
     hd_keypath = DeserializeKeyOrigin(s, ReadCompactSize(s));
 }
 
-// Deserialize HD keypaths into a map
-template<typename Stream>
-void DeserializeHDKeypaths(Stream& s, const std::vector<unsigned char>& key, std::map<CPubKey, KeyOriginInfo>& hd_keypaths)
-{
-    // Make sure that the key is the size of pubkey + 1
-    if (key.size() != CPubKey::SIZE + 1 && key.size() != CPubKey::COMPRESSED_SIZE + 1) {
-        throw std::ios_base::failure("Size of key was not the expected size for the type BIP32 keypath");
-    }
-    // Read in the pubkey from key
-    CPubKey pubkey(key.begin() + 1, key.end());
-    if (!pubkey.IsFullyValid()) {
-       throw std::ios_base::failure("Invalid pubkey");
-    }
-    if (hd_keypaths.contains(pubkey)) {
-        throw std::ios_base::failure("Duplicate Key, pubkey derivation path already provided");
-    }
-
-    KeyOriginInfo keypath;
-    DeserializeHDKeypath(s, keypath);
-
-    // Add to map
-    hd_keypaths.emplace(pubkey, std::move(keypath));
-}
-
 // Serialize a KeyOriginInfo to a stream
 template<typename Stream>
 void SerializeKeyOrigin(Stream& s, KeyOriginInfo hd_keypath)
@@ -184,19 +152,6 @@ void SerializeHDKeypath(Stream& s, KeyOriginInfo hd_keypath)
 {
     WriteCompactSize(s, (hd_keypath.path.size() + 1) * sizeof(uint32_t));
     SerializeKeyOrigin(s, hd_keypath);
-}
-
-// Serialize HD keypaths to a stream from a map
-template<typename Stream>
-void SerializeHDKeypaths(Stream& s, const std::map<CPubKey, KeyOriginInfo>& hd_keypaths, CompactSizeWriter type)
-{
-    for (const auto& keypath_pair : hd_keypaths) {
-        if (!keypath_pair.first.IsValid()) {
-            throw std::ios_base::failure("Invalid CPubKey being serialized");
-        }
-        SerializeToVector(s, type, std::span{keypath_pair.first});
-        SerializeHDKeypath(s, keypath_pair.second);
-    }
 }
 
 // Deserialize a PSBT_{IN/OUT}_MUSIG2_PARTICIPANT_PUBKEYS field
@@ -260,12 +215,7 @@ void DeserializeMuSig2ParticipantDataIdentifier(Stream& skey, CPubKey& agg_pub, 
 struct PSBTInput
 {
     CTxOut witness_utxo;
-    CScript redeem_script;
-    CScript witness_script;
-    CScript final_script_sig;
     CScriptWitness final_script_witness;
-    std::map<CPubKey, KeyOriginInfo> hd_keypaths;
-    std::map<CKeyID, SigPair> partial_sigs;
     std::map<uint160, std::vector<unsigned char>> ripemd160_preimages;
     std::map<uint256, std::vector<unsigned char>> sha256_preimages;
     std::map<uint160, std::vector<unsigned char>> hash160_preimages;
@@ -304,33 +254,12 @@ struct PSBTInput
             SerializeToVector(s, witness_utxo);
         }
 
-        if (final_script_sig.empty() && final_script_witness.IsNull()) {
-            // Write any partial signatures
-            for (const auto& sig_pair : partial_sigs) {
-                SerializeToVector(s, CompactSizeWriter(PSBT_IN_PARTIAL_SIG), std::span{sig_pair.second.first});
-                s << sig_pair.second.second;
-            }
-
+        if (final_script_witness.IsNull()) {
             // Write the sighash type
             if (sighash_type != std::nullopt) {
                 SerializeToVector(s, CompactSizeWriter(PSBT_IN_SIGHASH));
                 SerializeToVector(s, *sighash_type);
             }
-
-            // Write the redeem script
-            if (!redeem_script.empty()) {
-                SerializeToVector(s, CompactSizeWriter(PSBT_IN_REDEEMSCRIPT));
-                s << redeem_script;
-            }
-
-            // Write the witness script
-            if (!witness_script.empty()) {
-                SerializeToVector(s, CompactSizeWriter(PSBT_IN_WITNESSSCRIPT));
-                s << witness_script;
-            }
-
-            // Write any hd keypaths
-            SerializeHDKeypaths(s, hd_keypaths, CompactSizeWriter(PSBT_IN_BIP32_DERIVATION));
 
             // Write any ripemd160 preimage
             for (const auto& [hash, preimage] : ripemd160_preimages) {
@@ -441,11 +370,6 @@ struct PSBTInput
             }
         }
 
-        // Write script sig
-        if (!final_script_sig.empty()) {
-            SerializeToVector(s, CompactSizeWriter(PSBT_IN_SCRIPTSIG));
-            s << final_script_sig;
-        }
         // write script witness
         if (!final_script_witness.IsNull()) {
             SerializeToVector(s, CompactSizeWriter(PSBT_IN_SCRIPTWITNESS));
@@ -504,34 +428,6 @@ struct PSBTInput
                     }
                     UnserializeFromVector(s, witness_utxo);
                     break;
-                case PSBT_IN_PARTIAL_SIG:
-                {
-                    // Make sure that the key is the size of pubkey + 1
-                    if (key.size() != CPubKey::SIZE + 1 && key.size() != CPubKey::COMPRESSED_SIZE + 1) {
-                        throw std::ios_base::failure("Size of key was not the expected size for the type partial signature pubkey");
-                    }
-                    // Read in the pubkey from key
-                    CPubKey pubkey(key.begin() + 1, key.end());
-                    if (!pubkey.IsFullyValid()) {
-                       throw std::ios_base::failure("Invalid pubkey");
-                    }
-                    if (partial_sigs.contains(pubkey.GetID())) {
-                        throw std::ios_base::failure("Duplicate Key, input partial signature for pubkey already provided");
-                    }
-
-                    // Read in the signature from value
-                    std::vector<unsigned char> sig;
-                    s >> sig;
-
-                    // Check that the signature is validly encoded
-                    if (sig.empty() || !CheckSignatureEncoding(sig, SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_STRICTENC, nullptr)) {
-                        throw std::ios_base::failure("Signature is not a valid encoding");
-                    }
-
-                    // Add to list
-                    partial_sigs.emplace(pubkey.GetID(), SigPair(pubkey, std::move(sig)));
-                    break;
-                }
                 case PSBT_IN_SIGHASH:
                     if (!key_lookup.emplace(key).second) {
                         throw std::ios_base::failure("Duplicate Key, input sighash type already provided");
@@ -542,41 +438,6 @@ struct PSBTInput
                     UnserializeFromVector(s, sighash);
                     sighash_type = sighash;
                     break;
-                case PSBT_IN_REDEEMSCRIPT:
-                {
-                    if (!key_lookup.emplace(key).second) {
-                        throw std::ios_base::failure("Duplicate Key, input redeemScript already provided");
-                    } else if (key.size() != 1) {
-                        throw std::ios_base::failure("Input redeemScript key is more than one byte type");
-                    }
-                    s >> redeem_script;
-                    break;
-                }
-                case PSBT_IN_WITNESSSCRIPT:
-                {
-                    if (!key_lookup.emplace(key).second) {
-                        throw std::ios_base::failure("Duplicate Key, input witnessScript already provided");
-                    } else if (key.size() != 1) {
-                        throw std::ios_base::failure("Input witnessScript key is more than one byte type");
-                    }
-                    s >> witness_script;
-                    break;
-                }
-                case PSBT_IN_BIP32_DERIVATION:
-                {
-                    DeserializeHDKeypaths(s, key, hd_keypaths);
-                    break;
-                }
-                case PSBT_IN_SCRIPTSIG:
-                {
-                    if (!key_lookup.emplace(key).second) {
-                        throw std::ios_base::failure("Duplicate Key, input final scriptSig already provided");
-                    } else if (key.size() != 1) {
-                        throw std::ios_base::failure("Final scriptSig key is more than one byte type");
-                    }
-                    s >> final_script_sig;
-                    break;
-                }
                 case PSBT_IN_SCRIPTWITNESS:
                 {
                     if (!key_lookup.emplace(key).second) {
@@ -859,9 +720,6 @@ struct PSBTInput
 /** A structure for PSBTs which contains per output information */
 struct PSBTOutput
 {
-    CScript redeem_script;
-    CScript witness_script;
-    std::map<CPubKey, KeyOriginInfo> hd_keypaths;
     XOnlyPubKey m_tap_internal_key;
     std::vector<std::tuple<uint8_t, uint8_t, std::vector<unsigned char>>> m_tap_tree;
     std::map<XOnlyPubKey, std::pair<std::set<uint256>, KeyOriginInfo>> m_tap_bip32_paths;
@@ -877,21 +735,6 @@ struct PSBTOutput
 
     template <typename Stream>
     inline void Serialize(Stream& s) const {
-        // Write the redeem script
-        if (!redeem_script.empty()) {
-            SerializeToVector(s, CompactSizeWriter(PSBT_OUT_REDEEMSCRIPT));
-            s << redeem_script;
-        }
-
-        // Write the witness script
-        if (!witness_script.empty()) {
-            SerializeToVector(s, CompactSizeWriter(PSBT_OUT_WITNESSSCRIPT));
-            s << witness_script;
-        }
-
-        // Write any hd keypaths
-        SerializeHDKeypaths(s, hd_keypaths, CompactSizeWriter(PSBT_OUT_BIP32_DERIVATION));
-
         // Write proprietary things
         for (const auto& entry : m_proprietary) {
             s << entry.key;
@@ -977,31 +820,6 @@ struct PSBTOutput
             // Do stuff based on keytype "type", i.e., key checks, reading values of the
             // format "<valuelen><valuedata>" from the stream "s", and value checks
             switch(type) {
-                case PSBT_OUT_REDEEMSCRIPT:
-                {
-                    if (!key_lookup.emplace(key).second) {
-                        throw std::ios_base::failure("Duplicate Key, output redeemScript already provided");
-                    } else if (key.size() != 1) {
-                        throw std::ios_base::failure("Output redeemScript key is more than one byte type");
-                    }
-                    s >> redeem_script;
-                    break;
-                }
-                case PSBT_OUT_WITNESSSCRIPT:
-                {
-                    if (!key_lookup.emplace(key).second) {
-                        throw std::ios_base::failure("Duplicate Key, output witnessScript already provided");
-                    } else if (key.size() != 1) {
-                        throw std::ios_base::failure("Output witnessScript key is more than one byte type");
-                    }
-                    s >> witness_script;
-                    break;
-                }
-                case PSBT_OUT_BIP32_DERIVATION:
-                {
-                    DeserializeHDKeypaths(s, key, hd_keypaths);
-                    break;
-                }
                 case PSBT_OUT_TAP_INTERNAL_KEY:
                 {
                     if (!key_lookup.emplace(key).second) {
@@ -1406,7 +1224,7 @@ size_t CountPSBTUnsignedInputs(const PartiallySignedTransaction& psbt);
 
 /** Updates a PSBTOutput with information from provider.
  *
- * This fills in the redeem_script, witness_script, and hd_keypaths where possible.
+ * This fills in Taproot scripts, key paths, and MuSig2 participants where possible.
  */
 void UpdatePSBTOutput(const SigningProvider& provider, PartiallySignedTransaction& psbt, int index);
 

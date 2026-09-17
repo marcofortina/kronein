@@ -20,7 +20,7 @@ sys.path.insert(0, PATH_BASE_TEST_FUNCTIONAL)
 
 from test_framework.blocktools import get_witness_script, script_BIP34_coinbase_height, SIGNET_HEADER # noqa: E402
 from test_framework.messages import CBlock, CBlockHeader, COutPoint, CTransaction, CTxIn, CTxInWitness, CTxOut, from_binary, from_hex, ser_string, ser_uint256, tx_from_hex, MAX_SEQUENCE_NONFINAL # noqa: E402
-from test_framework.psbt import PSBT, PSBTMap, PSBT_GLOBAL_UNSIGNED_TX, PSBT_IN_FINAL_SCRIPTSIG, PSBT_IN_FINAL_SCRIPTWITNESS, PSBT_IN_SIGHASH_TYPE, PSBT_IN_WITNESS_UTXO # noqa: E402
+from test_framework.psbt import PSBT, PSBTMap, PSBT_GLOBAL_UNSIGNED_TX, PSBT_IN_FINAL_SCRIPTWITNESS, PSBT_IN_SIGHASH_TYPE, PSBT_IN_WITNESS_UTXO # noqa: E402
 from test_framework.script import CScript, CScriptOp # noqa: E402
 
 logging.basicConfig(
@@ -29,6 +29,7 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S')
 
 PSBT_SIGNET_BLOCK = b"\xfc\x06signetb"    # proprietary PSBT global field holding the block being signed
+PSBT_SIGNET_FINAL_SCRIPTSIG = 0x07  # Isolated support for bare Signet challenge solutions
 RE_MULTIMINER = re.compile(r"^(\d+)(-(\d+))?/(\d+)$")
 
 def signet_txs(block, challenge):
@@ -73,7 +74,7 @@ def get_block_from_psbt(psbt):
     return from_binary(CBlock, psbt.g.map[PSBT_SIGNET_BLOCK])
 
 def get_solution_from_psbt(psbt, emptyok=False):
-    scriptSig = psbt.i[0].map.get(PSBT_IN_FINAL_SCRIPTSIG, b"")
+    scriptSig = psbt.i[0].map.get(PSBT_SIGNET_FINAL_SCRIPTSIG, b"")
     scriptWitness = psbt.i[0].map.get(PSBT_IN_FINAL_SCRIPTWITNESS, b"\x00")
     if emptyok and len(scriptSig) == 0 and scriptWitness == b"\x00":
         return None

@@ -119,7 +119,6 @@ PSBTAnalysis AnalyzePSBT(PartiallySignedTransaction psbtx)
                 success = false;
                 break;
             } else {
-                mtx.vin[i].scriptSig = input.final_script_sig;
                 mtx.vin[i].scriptWitness = input.final_script_witness;
             }
         }

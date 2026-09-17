@@ -156,7 +156,6 @@ class WalletMiniscriptTest(BitcoinTestFramework):
         self, desc, sequence, locktime, sigs_count, stack_size, sha256_preimages
     ):
         self.log.info(f"Importing private Miniscript descriptor '{desc}'")
-        is_taproot = desc.startswith("tr(")
         desc = descsum_create(desc)
         res = self.ms_sig_wallet.importdescriptors(
             [
@@ -204,8 +203,7 @@ class WalletMiniscriptTest(BitcoinTestFramework):
             psbt = psbt.to_base64()
         res = self.ms_sig_wallet.walletprocesspsbt(psbt=psbt, finalize=False)
         psbtin = self.nodes[0].decodepsbt(res["psbt"])["inputs"][0]
-        sigs_field_name = "taproot_script_path_sigs" if is_taproot else "partial_signatures"
-        assert len(psbtin[sigs_field_name]) == sigs_count
+        assert len(psbtin["taproot_script_path_sigs"]) == sigs_count
         res = self.ms_sig_wallet.finalizepsbt(res["psbt"])
         assert res["complete"] == (stack_size is not None)
 

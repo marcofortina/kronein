@@ -649,37 +649,7 @@ const RPCResult decodepsbt_inputs{
                     {RPCResult::Type::STR, "address", /*optional=*/true, "The Bitcoin address (only if a well-defined address exists)"},
                 }},
             }},
-            {RPCResult::Type::OBJ_DYN, "partial_signatures", /*optional=*/true, "",
-            {
-                {RPCResult::Type::STR, "pubkey", "The public key and signature that corresponds to it."},
-            }},
             {RPCResult::Type::STR, "sighash", /*optional=*/true, "The sighash type to be used"},
-            {RPCResult::Type::OBJ, "redeem_script", /*optional=*/true, "",
-            {
-                {RPCResult::Type::STR, "asm", "Disassembly of the redeem script"},
-                {RPCResult::Type::STR_HEX, "hex", "The raw redeem script bytes, hex-encoded"},
-                {RPCResult::Type::STR, "type", "The type, eg 'pubkeyhash'"},
-            }},
-            {RPCResult::Type::OBJ, "witness_script", /*optional=*/true, "",
-            {
-                {RPCResult::Type::STR, "asm", "Disassembly of the witness script"},
-                {RPCResult::Type::STR_HEX, "hex", "The raw witness script bytes, hex-encoded"},
-                {RPCResult::Type::STR, "type", "The type, eg 'pubkeyhash'"},
-            }},
-            {RPCResult::Type::ARR, "bip32_derivs", /*optional=*/true, "",
-            {
-                {RPCResult::Type::OBJ, "", "",
-                {
-                    {RPCResult::Type::STR, "pubkey", "The public key with the derivation path as the value."},
-                    {RPCResult::Type::STR, "master_fingerprint", "The fingerprint of the master key"},
-                    {RPCResult::Type::STR, "path", "The path"},
-                }},
-            }},
-            {RPCResult::Type::OBJ, "final_scriptSig", /*optional=*/true, "",
-            {
-                {RPCResult::Type::STR, "asm", "Disassembly of the final signature script"},
-                {RPCResult::Type::STR_HEX, "hex", "The raw final signature script bytes, hex-encoded"},
-            }},
             {RPCResult::Type::ARR, "final_scriptwitness", /*optional=*/true, "",
             {
                 {RPCResult::Type::STR_HEX, "", "hex-encoded witness data (if any)"},
@@ -791,27 +761,6 @@ const RPCResult decodepsbt_outputs{
     {
         {RPCResult::Type::OBJ, "", "",
         {
-            {RPCResult::Type::OBJ, "redeem_script", /*optional=*/true, "",
-            {
-                {RPCResult::Type::STR, "asm", "Disassembly of the redeem script"},
-                {RPCResult::Type::STR_HEX, "hex", "The raw redeem script bytes, hex-encoded"},
-                {RPCResult::Type::STR, "type", "The type, eg 'pubkeyhash'"},
-            }},
-            {RPCResult::Type::OBJ, "witness_script", /*optional=*/true, "",
-            {
-                {RPCResult::Type::STR, "asm", "Disassembly of the witness script"},
-                {RPCResult::Type::STR_HEX, "hex", "The raw witness script bytes, hex-encoded"},
-                {RPCResult::Type::STR, "type", "The type, eg 'pubkeyhash'"},
-            }},
-            {RPCResult::Type::ARR, "bip32_derivs", /*optional=*/true, "",
-            {
-                {RPCResult::Type::OBJ, "", "",
-                {
-                    {RPCResult::Type::STR, "pubkey", "The public key this path corresponds to"},
-                    {RPCResult::Type::STR, "master_fingerprint", "The fingerprint of the master key"},
-                    {RPCResult::Type::STR, "path", "The path"},
-                }},
-            }},
             {RPCResult::Type::STR_HEX, "taproot_internal_key", /*optional=*/ true, "The hex-encoded Taproot x-only internal key"},
             {RPCResult::Type::ARR, "taproot_tree", /*optional=*/ true, "The tuples that make up the Taproot tree, in depth first search order",
             {
@@ -1001,53 +950,12 @@ static RPCHelpMan decodepsbt()
             have_all_utxos = false;
         }
 
-        // Partial sigs
-        if (!input.partial_sigs.empty()) {
-            UniValue partial_sigs(UniValue::VOBJ);
-            for (const auto& sig : input.partial_sigs) {
-                partial_sigs.pushKV(HexStr(sig.second.first), HexStr(sig.second.second));
-            }
-            in.pushKV("partial_signatures", std::move(partial_sigs));
-        }
-
         // Sighash
         if (input.sighash_type != std::nullopt) {
             in.pushKV("sighash", SighashToStr((unsigned char)*input.sighash_type));
         }
 
-        // Redeem script and witness script
-        if (!input.redeem_script.empty()) {
-            UniValue r(UniValue::VOBJ);
-            ScriptToUniv(input.redeem_script, /*out=*/r);
-            in.pushKV("redeem_script", std::move(r));
-        }
-        if (!input.witness_script.empty()) {
-            UniValue r(UniValue::VOBJ);
-            ScriptToUniv(input.witness_script, /*out=*/r);
-            in.pushKV("witness_script", std::move(r));
-        }
-
-        // keypaths
-        if (!input.hd_keypaths.empty()) {
-            UniValue keypaths(UniValue::VARR);
-            for (auto entry : input.hd_keypaths) {
-                UniValue keypath(UniValue::VOBJ);
-                keypath.pushKV("pubkey", HexStr(entry.first));
-
-                keypath.pushKV("master_fingerprint", strprintf("%08x", ReadBE32(entry.second.fingerprint)));
-                keypath.pushKV("path", WriteHDKeypath(entry.second.path));
-                keypaths.push_back(std::move(keypath));
-            }
-            in.pushKV("bip32_derivs", std::move(keypaths));
-        }
-
-        // Final scriptSig and scriptwitness
-        if (!input.final_script_sig.empty()) {
-            UniValue scriptsig(UniValue::VOBJ);
-            scriptsig.pushKV("asm", ScriptToAsmStr(input.final_script_sig, true));
-            scriptsig.pushKV("hex", HexStr(input.final_script_sig));
-            in.pushKV("final_scriptSig", std::move(scriptsig));
-        }
+        // Final script witness
         if (!input.final_script_witness.IsNull()) {
             UniValue txinwitness(UniValue::VARR);
             for (const auto& item : input.final_script_witness.stack) {
@@ -1237,31 +1145,6 @@ static RPCHelpMan decodepsbt()
     for (unsigned int i = 0; i < psbtx.outputs.size(); ++i) {
         const PSBTOutput& output = psbtx.outputs[i];
         UniValue out(UniValue::VOBJ);
-        // Redeem script and witness script
-        if (!output.redeem_script.empty()) {
-            UniValue r(UniValue::VOBJ);
-            ScriptToUniv(output.redeem_script, /*out=*/r);
-            out.pushKV("redeem_script", std::move(r));
-        }
-        if (!output.witness_script.empty()) {
-            UniValue r(UniValue::VOBJ);
-            ScriptToUniv(output.witness_script, /*out=*/r);
-            out.pushKV("witness_script", std::move(r));
-        }
-
-        // keypaths
-        if (!output.hd_keypaths.empty()) {
-            UniValue keypaths(UniValue::VARR);
-            for (auto entry : output.hd_keypaths) {
-                UniValue keypath(UniValue::VOBJ);
-                keypath.pushKV("pubkey", HexStr(entry.first));
-                keypath.pushKV("master_fingerprint", strprintf("%08x", ReadBE32(entry.second.fingerprint)));
-                keypath.pushKV("path", WriteHDKeypath(entry.second.path));
-                keypaths.push_back(std::move(keypath));
-            }
-            out.pushKV("bip32_derivs", std::move(keypaths));
-        }
-
         // Taproot internal key
         if (!output.m_tap_internal_key.IsNull()) {
             out.pushKV("taproot_internal_key", HexStr(output.m_tap_internal_key));

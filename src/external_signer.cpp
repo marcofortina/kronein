@@ -83,9 +83,6 @@ bool ExternalSigner::SignTransaction(PartiallySignedTransaction& psbtx, std::str
     std::vector<unsigned char> parsed_m_fingerprint = ParseHex(m_fingerprint);
     // Check if signer fingerprint matches any input master key fingerprint
     auto matches_signer_fingerprint = [&](const PSBTInput& input) {
-        for (const auto& entry : input.hd_keypaths) {
-            if (std::ranges::equal(parsed_m_fingerprint, entry.second.fingerprint)) return true;
-        }
         for (const auto& entry : input.m_tap_bip32_paths) {
             if (std::ranges::equal(parsed_m_fingerprint, entry.second.second.fingerprint)) return true;
         }

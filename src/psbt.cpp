@@ -55,8 +55,6 @@ bool PartiallySignedTransaction::AddInput(const CTxIn& txin, PSBTInput& psbtin)
         return false;
     }
     tx->vin.push_back(txin);
-    psbtin.partial_sigs.clear();
-    psbtin.final_script_sig.clear();
     psbtin.final_script_witness.SetNull();
     inputs.push_back(psbtin);
     return true;
@@ -79,15 +77,11 @@ bool PartiallySignedTransaction::GetInputUTXO(CTxOut& utxo, int input_index) con
 
 bool PSBTInput::IsNull() const
 {
-    return witness_utxo.IsNull() && partial_sigs.empty() && unknown.empty() && hd_keypaths.empty() && redeem_script.empty() && witness_script.empty();
+    return witness_utxo.IsNull() && unknown.empty();
 }
 
 void PSBTInput::FillSignatureData(SignatureData& sigdata) const
 {
-    if (!final_script_sig.empty()) {
-        sigdata.scriptSig = final_script_sig;
-        sigdata.complete = true;
-    }
     if (!final_script_witness.IsNull()) {
         sigdata.scriptWitness = final_script_witness;
         sigdata.complete = true;
@@ -96,16 +90,6 @@ void PSBTInput::FillSignatureData(SignatureData& sigdata) const
         return;
     }
 
-    sigdata.signatures.insert(partial_sigs.begin(), partial_sigs.end());
-    if (!redeem_script.empty()) {
-        sigdata.redeem_script = redeem_script;
-    }
-    if (!witness_script.empty()) {
-        sigdata.witness_script = witness_script;
-    }
-    for (const auto& key_pair : hd_keypaths) {
-        sigdata.misc_pubkeys.emplace(key_pair.first.GetID(), key_pair);
-    }
     if (!m_tap_key_sig.empty()) {
         sigdata.taproot_key_path_sig = m_tap_key_sig;
     }
@@ -149,30 +133,12 @@ void PSBTInput::FillSignatureData(SignatureData& sigdata) const
 void PSBTInput::FromSignatureData(const SignatureData& sigdata)
 {
     if (sigdata.complete) {
-        partial_sigs.clear();
-        hd_keypaths.clear();
-        redeem_script.clear();
-        witness_script.clear();
-
-        if (!sigdata.scriptSig.empty()) {
-            final_script_sig = sigdata.scriptSig;
-        }
         if (!sigdata.scriptWitness.IsNull()) {
             final_script_witness = sigdata.scriptWitness;
         }
         return;
     }
 
-    partial_sigs.insert(sigdata.signatures.begin(), sigdata.signatures.end());
-    if (redeem_script.empty() && !sigdata.redeem_script.empty()) {
-        redeem_script = sigdata.redeem_script;
-    }
-    if (witness_script.empty() && !sigdata.witness_script.empty()) {
-        witness_script = sigdata.witness_script;
-    }
-    for (const auto& entry : sigdata.misc_pubkeys) {
-        hd_keypaths.emplace(entry.second);
-    }
     if (!sigdata.taproot_key_path_sig.empty()) {
         m_tap_key_sig = sigdata.taproot_key_path_sig;
     }
@@ -206,20 +172,15 @@ void PSBTInput::Merge(const PSBTInput& input)
         witness_utxo = input.witness_utxo;
     }
 
-    partial_sigs.insert(input.partial_sigs.begin(), input.partial_sigs.end());
     ripemd160_preimages.insert(input.ripemd160_preimages.begin(), input.ripemd160_preimages.end());
     sha256_preimages.insert(input.sha256_preimages.begin(), input.sha256_preimages.end());
     hash160_preimages.insert(input.hash160_preimages.begin(), input.hash160_preimages.end());
     hash256_preimages.insert(input.hash256_preimages.begin(), input.hash256_preimages.end());
-    hd_keypaths.insert(input.hd_keypaths.begin(), input.hd_keypaths.end());
     unknown.insert(input.unknown.begin(), input.unknown.end());
     m_tap_script_sigs.insert(input.m_tap_script_sigs.begin(), input.m_tap_script_sigs.end());
     m_tap_scripts.insert(input.m_tap_scripts.begin(), input.m_tap_scripts.end());
     m_tap_bip32_paths.insert(input.m_tap_bip32_paths.begin(), input.m_tap_bip32_paths.end());
 
-    if (redeem_script.empty() && !input.redeem_script.empty()) redeem_script = input.redeem_script;
-    if (witness_script.empty() && !input.witness_script.empty()) witness_script = input.witness_script;
-    if (final_script_sig.empty() && !input.final_script_sig.empty()) final_script_sig = input.final_script_sig;
     if (final_script_witness.IsNull() && !input.final_script_witness.IsNull()) final_script_witness = input.final_script_witness;
     if (m_tap_key_sig.empty() && !input.m_tap_key_sig.empty()) m_tap_key_sig = input.m_tap_key_sig;
     if (m_tap_internal_key.IsNull() && !input.m_tap_internal_key.IsNull()) m_tap_internal_key = input.m_tap_internal_key;
@@ -235,15 +196,6 @@ void PSBTInput::Merge(const PSBTInput& input)
 
 void PSBTOutput::FillSignatureData(SignatureData& sigdata) const
 {
-    if (!redeem_script.empty()) {
-        sigdata.redeem_script = redeem_script;
-    }
-    if (!witness_script.empty()) {
-        sigdata.witness_script = witness_script;
-    }
-    for (const auto& key_pair : hd_keypaths) {
-        sigdata.misc_pubkeys.emplace(key_pair.first.GetID(), key_pair);
-    }
     if (!m_tap_tree.empty() && m_tap_internal_key.IsFullyValid()) {
         TaprootBuilder builder;
         for (const auto& [depth, leaf_ver, script] : m_tap_tree) {
@@ -265,15 +217,6 @@ void PSBTOutput::FillSignatureData(SignatureData& sigdata) const
 
 void PSBTOutput::FromSignatureData(const SignatureData& sigdata)
 {
-    if (redeem_script.empty() && !sigdata.redeem_script.empty()) {
-        redeem_script = sigdata.redeem_script;
-    }
-    if (witness_script.empty() && !sigdata.witness_script.empty()) {
-        witness_script = sigdata.witness_script;
-    }
-    for (const auto& entry : sigdata.misc_pubkeys) {
-        hd_keypaths.emplace(entry.second);
-    }
     if (!sigdata.tr_spenddata.internal_key.IsNull()) {
         m_tap_internal_key = sigdata.tr_spenddata.internal_key;
     }
@@ -288,17 +231,14 @@ void PSBTOutput::FromSignatureData(const SignatureData& sigdata)
 
 bool PSBTOutput::IsNull() const
 {
-    return redeem_script.empty() && witness_script.empty() && hd_keypaths.empty() && unknown.empty();
+    return unknown.empty();
 }
 
 void PSBTOutput::Merge(const PSBTOutput& output)
 {
-    hd_keypaths.insert(output.hd_keypaths.begin(), output.hd_keypaths.end());
     unknown.insert(output.unknown.begin(), output.unknown.end());
     m_tap_bip32_paths.insert(output.m_tap_bip32_paths.begin(), output.m_tap_bip32_paths.end());
 
-    if (redeem_script.empty() && !output.redeem_script.empty()) redeem_script = output.redeem_script;
-    if (witness_script.empty() && !output.witness_script.empty()) witness_script = output.witness_script;
     if (m_tap_internal_key.IsNull() && !output.m_tap_internal_key.IsNull()) m_tap_internal_key = output.m_tap_internal_key;
     if (m_tap_tree.empty() && !output.m_tap_tree.empty()) m_tap_tree = output.m_tap_tree;
     m_musig2_participants.insert(output.m_musig2_participants.begin(), output.m_musig2_participants.end());
@@ -306,7 +246,7 @@ void PSBTOutput::Merge(const PSBTOutput& output)
 
 bool PSBTInputSigned(const PSBTInput& input)
 {
-    return !input.final_script_sig.empty() || !input.final_script_witness.IsNull();
+    return !input.final_script_witness.IsNull();
 }
 
 bool PSBTInputSignedAndVerified(const PartiallySignedTransaction& psbt, unsigned int input_index, const PrecomputedTransactionData* txdata)
@@ -317,9 +257,9 @@ bool PSBTInputSignedAndVerified(const PartiallySignedTransaction& psbt, unsigned
     const CTxOut& utxo = input.witness_utxo;
 
     if (txdata) {
-        return VerifyScript(input.final_script_sig, utxo.scriptPubKey, &input.final_script_witness, STANDARD_SCRIPT_VERIFY_FLAGS, MutableTransactionSignatureChecker{&(*psbt.tx), input_index, *txdata, MissingDataBehavior::FAIL});
+        return VerifyScript(CScript{}, utxo.scriptPubKey, &input.final_script_witness, STANDARD_SCRIPT_VERIFY_FLAGS, MutableTransactionSignatureChecker{&(*psbt.tx), input_index, *txdata, MissingDataBehavior::FAIL});
     } else {
-        return VerifyScript(input.final_script_sig, utxo.scriptPubKey, &input.final_script_witness, STANDARD_SCRIPT_VERIFY_FLAGS, MutableTransactionSignatureChecker{&(*psbt.tx), input_index, MissingDataBehavior::FAIL});
+        return VerifyScript(CScript{}, utxo.scriptPubKey, &input.final_script_witness, STANDARD_SCRIPT_VERIFY_FLAGS, MutableTransactionSignatureChecker{&(*psbt.tx), input_index, MissingDataBehavior::FAIL});
     }
 }
 
@@ -350,7 +290,7 @@ void UpdatePSBTOutput(const SigningProvider& provider, PartiallySignedTransactio
     MutableTransactionSignatureCreator creator(tx, /*input_idx=*/0, SIGHASH_ALL);
     ProduceSignature(provider, creator, out.scriptPubKey, sigdata);
 
-    // Put redeem_script, witness_script, key paths, into PSBTOutput.
+    // Put Taproot scripts, key paths, and MuSig2 participants into PSBTOutput.
     psbt_out.FromSignatureData(sigdata);
 }
 
@@ -422,9 +362,6 @@ PSBTError SignPSBTInput(const SigningProvider& provider, PartiallySignedTransact
         for (const auto& [_, sig] : input.m_tap_script_sigs) {
             if (sig.size() != 65 || sig.back() != *sighash) return PSBTError::SIGHASH_MISMATCH;
         }
-        for (const auto& [_, sig] : input.partial_sigs) {
-            if (sig.second.back() != *sighash) return PSBTError::SIGHASH_MISMATCH;
-        }
     }
 
     sigdata.witness = false;
@@ -480,7 +417,6 @@ bool FinalizeAndExtractPSBT(PartiallySignedTransaction& psbtx, CMutableTransacti
 
     result = *psbtx.tx;
     for (unsigned int i = 0; i < result.vin.size(); ++i) {
-        result.vin[i].scriptSig = psbtx.inputs[i].final_script_sig;
         result.vin[i].scriptWitness = psbtx.inputs[i].final_script_witness;
     }
     return true;
