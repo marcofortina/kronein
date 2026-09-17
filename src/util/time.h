@@ -98,16 +98,6 @@ using MillisecondsDouble = std::chrono::duration<double, std::chrono::millisecon
 
 /**
  * DEPRECATED
- * Use either ClockType::now() or Now<TimePointType>() if a cast is needed.
- * ClockType is
- * - SteadyClock/std::chrono::steady_clock for steady time
- * - SystemClock/std::chrono::system_clock for system time
- * - NodeClock                             for mockable system time
- */
-int64_t GetTime();
-
-/**
- * DEPRECATED
  * Use SetMockTime with chrono type
  *
  * @param[in] nMockTimeIn Time in seconds.

@@ -316,7 +316,7 @@ void Chainstate::MaybeUpdateMempoolForReorg(
         while (it != queuedTx.rend()) {
             // ignore validation errors in resurrected transactions
             if (!fAddToMempool || (*it)->IsCoinBase() ||
-                AcceptToMemoryPool(*this, *it, GetTime(),
+                AcceptToMemoryPool(*this, *it, Now<NodeSeconds>().time_since_epoch().count(),
                     /*bypass_limits=*/true, /*test_accept=*/false).m_result_type !=
                         MempoolAcceptResult::ResultType::VALID) {
                 // If the transaction doesn't make it in to the mempool, remove any
@@ -1755,10 +1755,10 @@ PackageMempoolAcceptResult ProcessNewPackage(Chainstate& active_chainstate, CTxM
     auto result = [&]() EXCLUSIVE_LOCKS_REQUIRED(cs_main) {
         AssertLockHeld(cs_main);
         if (test_accept) {
-            auto args = MemPoolAccept::ATMPArgs::PackageTestAccept(chainparams, GetTime(), coins_to_uncache);
+            auto args = MemPoolAccept::ATMPArgs::PackageTestAccept(chainparams, Now<NodeSeconds>().time_since_epoch().count(), coins_to_uncache);
             return MemPoolAccept(pool, active_chainstate).AcceptMultipleTransactionsAndCleanup(package, args);
         } else {
-            auto args = MemPoolAccept::ATMPArgs::PackageChildWithParents(chainparams, GetTime(), coins_to_uncache, client_maxfeerate);
+            auto args = MemPoolAccept::ATMPArgs::PackageChildWithParents(chainparams, Now<NodeSeconds>().time_since_epoch().count(), coins_to_uncache, client_maxfeerate);
             return MemPoolAccept(pool, active_chainstate).AcceptPackage(package, args);
         }
     }();
@@ -4248,7 +4248,7 @@ MempoolAcceptResult ChainstateManager::ProcessTransaction(const CTransactionRef&
         state.Invalid(TxValidationResult::TX_NO_MEMPOOL, "no-mempool");
         return MempoolAcceptResult::Failure(state);
     }
-    auto result = AcceptToMemoryPool(active_chainstate, tx, GetTime(), /*bypass_limits=*/ false, test_accept);
+    auto result = AcceptToMemoryPool(active_chainstate, tx, Now<NodeSeconds>().time_since_epoch().count(), /*bypass_limits=*/ false, test_accept);
     active_chainstate.GetMempool()->check(active_chainstate.CoinsTip(), active_chainstate.m_chain.Height() + 1);
     return result;
 }

@@ -78,8 +78,6 @@ void MockableSteadyClock::ClearMockTime()
     g_mock_steady_time.store(0ms, std::memory_order_relaxed);
 }
 
-int64_t GetTime() { return Now<NodeSeconds>().time_since_epoch().count(); }
-
 std::string FormatISO8601DateTime(int64_t nTime)
 {
     const std::chrono::sys_seconds secs{std::chrono::seconds{nTime}};

@@ -119,7 +119,7 @@ bool StartLogging(const ArgsManager& args)
     }
 
     if (!LogInstance().m_log_timestamps) {
-        LogInfo("Startup time: %s", FormatISO8601DateTime(GetTime()));
+        LogInfo("Startup time: %s", FormatISO8601DateTime(Now<NodeSeconds>().time_since_epoch().count()));
     }
     LogInfo("Default data directory %s", fs::PathToString(GetDefaultDataDir()));
     LogInfo("Using data directory %s", fs::PathToString(gArgs.GetDataDirNet()));

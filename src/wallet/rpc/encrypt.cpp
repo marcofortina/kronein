@@ -76,7 +76,7 @@ RPCHelpMan walletpassphrase()
 
         pwallet->TopUpKeyPool();
 
-        pwallet->nRelockTime = GetTime() + nSleepTime;
+        pwallet->nRelockTime = Now<NodeSeconds>().time_since_epoch().count() + nSleepTime;
         relock_time = pwallet->nRelockTime;
     }
 

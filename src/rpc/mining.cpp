@@ -830,7 +830,7 @@ static RPCHelpMan getblocktemplate()
     static int64_t time_start;
     static std::unique_ptr<BlockTemplate> block_template;
     if (!pindexPrev || pindexPrev->GetBlockHash() != tip ||
-        (mempool.GetTransactionsUpdated() != nTransactionsUpdatedLast && GetTime() - time_start > 5))
+        (mempool.GetTransactionsUpdated() != nTransactionsUpdatedLast && Now<NodeSeconds>().time_since_epoch().count() - time_start > 5))
     {
         // Clear pindexPrev so future calls make a new block, despite any failures from here on
         pindexPrev = nullptr;
@@ -838,7 +838,7 @@ static RPCHelpMan getblocktemplate()
         // Store the pindexBest used before createNewBlock, to avoid races
         nTransactionsUpdatedLast = mempool.GetTransactionsUpdated();
         CBlockIndex* pindexPrevNew = chainman.m_blockman.LookupBlockIndex(tip);
-        time_start = GetTime();
+        time_start = Now<NodeSeconds>().time_since_epoch().count();
 
         // Create new block. Opt-out of cooldown mechanism, because it would add
         // a delay to each getblocktemplate call. This differs from typical

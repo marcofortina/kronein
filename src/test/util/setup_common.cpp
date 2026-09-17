@@ -398,7 +398,7 @@ void TestChain100Setup::mineBlocks(int num_blocks)
     for (int i = 0; i < num_blocks; i++) {
         std::vector<CMutableTransaction> noTxns;
         CBlock b = CreateAndProcessBlock(noTxns, scriptPubKey);
-        SetMockTime(GetTime() + 1);
+        SetMockTime(Now<NodeSeconds>().time_since_epoch().count() + 1);
         m_coinbase_txns.push_back(b.vtx[0]);
     }
 }

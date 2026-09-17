@@ -88,7 +88,7 @@ bool BanMan::IsDiscouraged(const CNetAddr& net_addr)
 
 bool BanMan::IsBanned(const CNetAddr& net_addr)
 {
-    auto current_time = GetTime();
+    auto current_time = Now<NodeSeconds>().time_since_epoch().count();
     LOCK(m_banned_mutex);
     for (const auto& it : m_banned) {
         CSubNet sub_net = it.first;
@@ -103,7 +103,7 @@ bool BanMan::IsBanned(const CNetAddr& net_addr)
 
 bool BanMan::IsBanned(const CSubNet& sub_net)
 {
-    auto current_time = GetTime();
+    auto current_time = Now<NodeSeconds>().time_since_epoch().count();
     LOCK(m_banned_mutex);
     banmap_t::iterator i = m_banned.find(sub_net);
     if (i != m_banned.end()) {
@@ -129,7 +129,7 @@ void BanMan::Discourage(const CNetAddr& net_addr)
 
 void BanMan::Ban(const CSubNet& sub_net, int64_t ban_time_offset, bool since_unix_epoch)
 {
-    CBanEntry ban_entry(GetTime());
+    CBanEntry ban_entry(Now<NodeSeconds>().time_since_epoch().count());
 
     int64_t normalized_ban_time_offset = ban_time_offset;
     bool normalized_since_unix_epoch = since_unix_epoch;
@@ -137,7 +137,7 @@ void BanMan::Ban(const CSubNet& sub_net, int64_t ban_time_offset, bool since_uni
         normalized_ban_time_offset = m_default_ban_time;
         normalized_since_unix_epoch = false;
     }
-    ban_entry.nBanUntil = (normalized_since_unix_epoch ? 0 : GetTime()) + normalized_ban_time_offset;
+    ban_entry.nBanUntil = (normalized_since_unix_epoch ? 0 : Now<NodeSeconds>().time_since_epoch().count()) + normalized_ban_time_offset;
 
     {
         LOCK(m_banned_mutex);
@@ -183,7 +183,7 @@ void BanMan::SweepBanned()
 {
     AssertLockHeld(m_banned_mutex);
 
-    int64_t now = GetTime();
+    int64_t now = Now<NodeSeconds>().time_since_epoch().count();
     bool notify_ui = false;
     banmap_t::iterator it = m_banned.begin();
     while (it != m_banned.end()) {

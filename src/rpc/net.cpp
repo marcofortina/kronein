@@ -767,7 +767,7 @@ static RPCHelpMan setban()
 
         const bool absolute{request.params[3].isNull() ? false : request.params[3].get_bool()};
 
-        if (absolute && banTime < GetTime()) {
+        if (absolute && banTime < Now<NodeSeconds>().time_since_epoch().count()) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Error: Absolute timestamp is in the past");
         }
 
@@ -819,7 +819,7 @@ static RPCHelpMan listbanned()
 
     banmap_t banMap;
     banman.GetBanned(banMap);
-    const int64_t current_time{GetTime()};
+    const int64_t current_time{Now<NodeSeconds>().time_since_epoch().count()};
 
     UniValue bannedAddresses(UniValue::VARR);
     for (const auto& entry : banMap)

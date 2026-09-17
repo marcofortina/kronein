@@ -2792,7 +2792,7 @@ void PeerManagerImpl::UpdatePeerStateForReceivedHeaders(CNode& pfrom, Peer& peer
     // are still present, however, as belt-and-suspenders.
 
     if (received_new_header && last_header.nChainWork > m_chainman.ActiveChain().Tip()->nChainWork) {
-        nodestate->m_last_block_announcement = GetTime();
+        nodestate->m_last_block_announcement = Now<NodeSeconds>().time_since_epoch().count();
     }
 
     // If we're in IBD, we want outbound peers that will serve us a useful
@@ -4319,7 +4319,7 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
         // If this was a new header with more work than our tip, update the
         // peer's last block announcement time
         if (received_new_header && pindex->nChainWork > m_chainman.ActiveChain().Tip()->nChainWork) {
-            nodestate->m_last_block_announcement = GetTime();
+            nodestate->m_last_block_announcement = Now<NodeSeconds>().time_since_epoch().count();
         }
 
         if (pindex->nStatus & BLOCK_HAVE_DATA) // Nothing to do here

@@ -588,7 +588,6 @@ BOOST_AUTO_TEST_CASE(util_mocktime)
     // Check that mock time does not change after a sleep
     for (const auto& num_sleep : {0ms, 1ms}) {
         UninterruptibleSleep(num_sleep);
-        BOOST_CHECK_EQUAL(111, GetTime()); // Deprecated time getter
         BOOST_CHECK_EQUAL(111, Now<NodeSeconds>().time_since_epoch().count());
         BOOST_CHECK_EQUAL(111, TicksSinceEpoch<std::chrono::seconds>(NodeClock::now()));
         BOOST_CHECK_EQUAL(111, TicksSinceEpoch<SecondsDouble>(Now<NodeSeconds>()));

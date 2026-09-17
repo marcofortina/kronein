@@ -26,7 +26,7 @@ bool ExternalSignerScriptPubKeyMan::SetupDescriptor(WalletBatch& batch, std::uni
     LOCK(cs_desc_man);
     assert(m_storage.IsWalletFlagSet(WALLET_FLAG_EXTERNAL_SIGNER));
 
-    int64_t creation_time = GetTime();
+    int64_t creation_time = Now<NodeSeconds>().time_since_epoch().count();
 
     // Make the descriptor
     WalletDescriptor w_desc(std::move(desc), creation_time, 0, 0, 0);

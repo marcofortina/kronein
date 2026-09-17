@@ -6,10 +6,10 @@
 
 #include <util/time.h>
 
-static void BenchTimeDeprecated(benchmark::Bench& bench)
+static void BenchNodeSecondsTicks(benchmark::Bench& bench)
 {
     bench.run([&] {
-        (void)GetTime();
+        (void)Now<NodeSeconds>().time_since_epoch().count();
     });
 }
 
@@ -36,7 +36,7 @@ static void BenchTimeMillisSys(benchmark::Bench& bench)
     });
 }
 
-BENCHMARK(BenchTimeDeprecated);
+BENCHMARK(BenchNodeSecondsTicks);
 BENCHMARK(BenchTimeMillis);
 BENCHMARK(BenchTimeMillisSys);
 BENCHMARK(BenchTimeMock);

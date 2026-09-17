@@ -80,7 +80,7 @@ FUZZ_TARGET(p2p_handshake, .init = ::initialize)
             continue;
         }
 
-        SetMockTime(GetTime() +
+        SetMockTime(Now<NodeSeconds>().time_since_epoch().count() +
                     fuzzed_data_provider.ConsumeIntegralInRange<int64_t>(
                         -std::chrono::seconds{10min}.count(), // Allow mocktime to go backwards slightly
                         std::chrono::seconds{TIMEOUT_INTERVAL}.count()));

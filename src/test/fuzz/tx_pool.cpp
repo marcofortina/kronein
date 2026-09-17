@@ -34,7 +34,7 @@ struct MockedTxPool : public CTxMemPool {
     void RollingFeeUpdate() EXCLUSIVE_LOCKS_REQUIRED(!cs)
     {
         LOCK(cs);
-        lastRollingFeeUpdate = GetTime();
+        lastRollingFeeUpdate = Now<NodeSeconds>().time_since_epoch().count();
         blockSinceLastRollingFeeBump = true;
     }
 };
@@ -109,7 +109,7 @@ void Finish(FuzzedDataProvider& fuzzed_data_provider, MockedTxPool& tx_pool, Cha
         // Now try to add those transactions back, as though a reorg happened.
         std::vector<Txid> hashes_to_update;
         for (const auto& tx : block_template->block.vtx) {
-            const auto res = AcceptToMemoryPool(chainstate, tx, GetTime(), true, /*test_accept=*/false);
+            const auto res = AcceptToMemoryPool(chainstate, tx, Now<NodeSeconds>().time_since_epoch().count(), true, /*test_accept=*/false);
             if (res.m_result_type == MempoolAcceptResult::ResultType::VALID) {
                 hashes_to_update.push_back(tx->GetHash());
             } else {
@@ -335,7 +335,7 @@ FUZZ_TARGET(tx_pool_standard, .init = initialize_tx_pool)
                    it->second.m_result_type == MempoolAcceptResult::ResultType::INVALID);
         }
 
-        const auto res = WITH_LOCK(::cs_main, return AcceptToMemoryPool(chainstate, tx, GetTime(), /*bypass_limits=*/false, /*test_accept=*/false));
+        const auto res = WITH_LOCK(::cs_main, return AcceptToMemoryPool(chainstate, tx, Now<NodeSeconds>().time_since_epoch().count(), /*bypass_limits=*/false, /*test_accept=*/false));
         const bool accepted = res.m_result_type == MempoolAcceptResult::ResultType::VALID;
         node.validation_signals->SyncWithValidationInterfaceQueue();
         node.validation_signals->UnregisterSharedValidationInterface(txr);
@@ -437,7 +437,7 @@ FUZZ_TARGET(tx_pool, .init = initialize_tx_pool)
 
         const bool bypass_limits{fuzzed_data_provider.ConsumeBool()};
         const auto tx = MakeTransactionRef(mut_tx);
-        const auto res = WITH_LOCK(::cs_main, return AcceptToMemoryPool(chainstate, tx, GetTime(), bypass_limits, /*test_accept=*/false));
+        const auto res = WITH_LOCK(::cs_main, return AcceptToMemoryPool(chainstate, tx, Now<NodeSeconds>().time_since_epoch().count(), bypass_limits, /*test_accept=*/false));
         const bool accepted = res.m_result_type == MempoolAcceptResult::ResultType::VALID;
         if (accepted) {
             txids.push_back(tx->GetHash());
