@@ -549,26 +549,29 @@ BOOST_AUTO_TEST_CASE(btck_context_tests)
 
 BOOST_AUTO_TEST_CASE(btck_block_header_tests)
 {
+    const auto block_header_data = [](std::string_view block_data) {
+        return hex_string_to_byte_vec(block_data.substr(0, 160));
+    };
+
     // Block header format: version(4) + prev_hash(32) + merkle_root(32) + timestamp(4) + bits(4) + nonce(4) = 80 bytes
-    BlockHeader header_0{hex_string_to_byte_vec("0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c")};
-    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(header_0.Hash().ToBytes()), "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f");
-    BlockHeader header_1{hex_string_to_byte_vec("010000006fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000982051fd1e4ba744bbbe680e1fee14677ba1a3c3540bf7b1cdb606e857233e0e61bc6649ffff001d01e36299")};
+    BlockHeader header_0{block_header_data(REGTEST_BLOCK_DATA[0])};
+    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(header_0.Hash().ToBytes()), "02b546c9752f33adb2a563c6caf74b78857a0ab4214c62e057d77bed74471abf");
+    BlockHeader header_1{block_header_data(REGTEST_BLOCK_DATA[1])};
     CheckHandle(header_0, header_1);
 
     // Test error handling for invalid data
     BOOST_CHECK_THROW(BlockHeader{hex_string_to_byte_vec("00")}, std::runtime_error);
     BOOST_CHECK_THROW(BlockHeader{hex_string_to_byte_vec("")}, std::runtime_error);
 
-    // Test all header field accessors using mainnet block 1
-    auto mainnet_block_1_header = hex_string_to_byte_vec("010000006fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000982051fd1e4ba744bbbe680e1fee14677ba1a3c3540bf7b1cdb606e857233e0e61bc6649ffff001d01e36299");
-    BlockHeader header{mainnet_block_1_header};
+    // Test all header field accessors using a native regtest header.
+    BlockHeader header{block_header_data(REGTEST_BLOCK_DATA[1])};
     BOOST_CHECK_EQUAL(header.Version(), 1);
-    BOOST_CHECK_EQUAL(header.Timestamp(), 1231469665);
-    BOOST_CHECK_EQUAL(header.Bits(), 0x1d00ffff);
-    BOOST_CHECK_EQUAL(header.Nonce(), 2573394689);
-    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(header.Hash().ToBytes()), "00000000839a8e6886ab5951d76f411475428afc90947ee320161bbf18eb6048");
+    BOOST_CHECK_EQUAL(header.Timestamp(), 1700000001);
+    BOOST_CHECK_EQUAL(header.Bits(), 0x207fffff);
+    BOOST_CHECK_EQUAL(header.Nonce(), 0);
+    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(header.Hash().ToBytes()), "635ef2420bd4cd1d55ae0855d22c5f89effb4ada14b074ae413af86f7d51563c");
     auto prev_hash = header.PrevHash();
-    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(prev_hash.ToBytes()), "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f");
+    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(prev_hash.ToBytes()), "02b546c9752f33adb2a563c6caf74b78857a0ab4214c62e057d77bed74471abf");
 
     auto raw_block = hex_string_to_byte_vec(REGTEST_BLOCK_DATA[0]);
     Block block{raw_block};
