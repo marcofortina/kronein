@@ -396,8 +396,8 @@ class PSBTTest(BitcoinTestFramework):
         assert_raises_rpc_error(-4, f"Maximum transaction weight must be between {min_tx_weight} and {MAX_STANDARD_TX_WEIGHT}", self.nodes[0].walletcreatefundedpsbt, [], dest_arg, 0, {"max_tx_weight": 0})
         assert_raises_rpc_error(-4, f"Maximum transaction weight must be between {min_tx_weight} and {MAX_STANDARD_TX_WEIGHT}", self.nodes[0].walletcreatefundedpsbt, [], dest_arg, 0, {"max_tx_weight": MAX_STANDARD_TX_WEIGHT + 1})
 
-        # Base transaction vsize: version (4) + locktime (4) + input count (1) + witness overhead (1) = 10 vbytes
-        base_tx_vsize = 10
+        # Base transaction vsize before the output count: version (4) + locktime (4) + input count (1) = 9 vbytes
+        base_tx_vsize = 9
         # One P2TR output: amount, script length, and 34-byte script (43 vbytes)
         p2tr_output_vsize = 43
         # 1 vbyte for output count

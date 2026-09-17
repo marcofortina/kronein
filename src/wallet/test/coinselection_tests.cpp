@@ -31,7 +31,7 @@ static CoinSelectionParams init_default_params()
         /*effective_feerate=*/CFeeRate(5000),
         /*long_term_feerate=*/CFeeRate(10'000),
         /*discard_feerate=*/CFeeRate(3000),
-        /*tx_noinputs_size=*/11 + P2TR_OUTPUT_VSIZE, // static header size + output size
+        /*tx_noinputs_size=*/10 + P2TR_OUTPUT_VSIZE, // static header size + output size
         /*avoid_partial=*/false,
     };
     dcsp.m_change_fee = /*215 sats=*/dcsp.m_effective_feerate.GetFee(dcsp.change_output_size);

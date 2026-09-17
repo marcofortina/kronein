@@ -968,8 +968,8 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
     }
     // Set the long term feerate estimate to the wallet's consolidate feerate
     coin_selection_params.m_long_term_feerate = wallet.m_consolidate_feerate;
-    // Static vsize overhead + outputs vsize. 4 nVersion, 4 nLocktime, 1 input count, 1 witness overhead (dummy, flag, stack size)
-    coin_selection_params.tx_noinputs_size = 10 + GetSizeOfCompactSize(vecSend.size()); // bytes for output count
+    // Static vsize overhead + outputs vsize: version, locktime, input count, and output count.
+    coin_selection_params.tx_noinputs_size = 9 + GetSizeOfCompactSize(vecSend.size());
 
     CAmount recipients_sum = 0;
     ReserveDestination reservedest(&wallet, OutputType::BECH32M);
