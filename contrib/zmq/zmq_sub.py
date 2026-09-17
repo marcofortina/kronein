@@ -19,8 +19,6 @@
     loop having an empty stack of futures, this creates an infinite loop.  An
     alternative is to wrap the contents of `handle` inside `while True`.
 
-    A blocking example using python 2.7 can be obtained from the git history:
-    https://github.com/bitcoin/bitcoin/blob/37a7fe9e440b83e2364d5498931253937abe9294/contrib/zmq/zmq_sub.py
 """
 
 import asyncio
@@ -28,11 +26,6 @@ import zmq
 import zmq.asyncio
 import signal
 import struct
-import sys
-
-if (sys.version_info.major, sys.version_info.minor) < (3, 5):
-    print("This example only works with Python 3.5 and greater")
-    sys.exit(1)
 
 port = 28332
 
