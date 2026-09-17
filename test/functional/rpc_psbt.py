@@ -346,6 +346,48 @@ class PSBTTest(BitcoinTestFramework):
         decoded = self.nodes[0].decodepsbt(combined)
         assert_equal(decoded["global_xpubs"], [{"xpub": xpub, "master_fingerprint": "00000000", "path": "m"}])
 
+    def test_joinpsbts_preserves_global_metadata(self):
+        self.log.info("Test that joining PSBTs preserves global xpub and proprietary records")
+
+        def global_xpub_key(extended_pubkey):
+            xpub_data, xpub_version = base58_to_byte(extended_pubkey)
+            return bytes([PSBT_GLOBAL_XPUB]) + bytes([xpub_version]) + xpub_data
+
+        tx1 = CTransaction()
+        tx1.vin = [CTxIn(outpoint=COutPoint(hash=int('aa' * 32, 16), n=0), scriptSig=b"")]
+        tx1.vout = [CTxOut(nValue=1, scriptPubKey=b"")]
+        tx2 = CTransaction()
+        tx2.vin = [CTxIn(outpoint=COutPoint(hash=int('bb' * 32, 16), n=1), scriptSig=b"")]
+        tx2.vout = [CTxOut(nValue=2, scriptPubKey=b"")]
+
+        xpub1 = "tpubD6NzVbkrYhZ4XgiXtGrdW5XDAPFCL9h7we1vwNCpn8tGbBcgfVYjXyhWo4E1xkh56hjod1RhGjxbaTLV3X4FyWuejifB9jusQ46QzG87VKp"
+        xpub2 = "tpubD6NzVbkrYhZ4WaWSyoBvQwbpLkojyoTZPRsgXELWz3Popb3qkjcJyJUGLnL4qHHoQvao8ESaAstxYSnhyswJ76uZPStJRJCTKvosUCJZL5B"
+        xpub_key1 = global_xpub_key(xpub1)
+        xpub_key2 = global_xpub_key(xpub2)
+        xpub_value = b"\x00\x00\x00\x00"
+        prop_key = bytes([PSBT_GLOBAL_PROPRIETARY]) + b"\x02\x01\x02\x00"
+
+        psbt1 = self.psbt_from_tx(tx1)
+        psbt1.g.map[xpub_key1] = xpub_value
+        psbt1.g.map[prop_key] = b"\xde\xad\xbe\xef"
+        psbt2 = self.psbt_from_tx(tx2)
+        psbt2.g.map[xpub_key2] = xpub_value
+
+        joined = PSBT.from_base64(self.nodes[0].joinpsbts([psbt1.to_base64(), psbt2.to_base64()]))
+        assert_equal(joined.g.map[xpub_key1], xpub_value)
+        assert_equal(joined.g.map[xpub_key2], xpub_value)
+        assert_equal(joined.g.map[prop_key], b"\xde\xad\xbe\xef")
+
+        # Conflicting records keep the value and origin from the first PSBT.
+        psbt2.g.map[xpub_key1] = b"\x11\x11\x11\x11"
+        psbt2.g.map[prop_key] = b"\x22\x22\x22\x22"
+        joined = self.nodes[0].joinpsbts([psbt1.to_base64(), psbt2.to_base64()])
+        decoded = self.nodes[0].decodepsbt(joined)
+        decoded_xpubs = {entry["xpub"]: entry for entry in decoded["global_xpubs"]}
+        assert_equal(decoded_xpubs[xpub1], {"xpub": xpub1, "master_fingerprint": "00000000", "path": "m"})
+        assert_equal(decoded_xpubs[xpub2], {"xpub": xpub2, "master_fingerprint": "00000000", "path": "m"})
+        assert_equal(PSBT.from_base64(joined).g.map[prop_key], b"\xde\xad\xbe\xef")
+
     def test_sighash_mismatch(self):
         self.log.info("Test sighash type mismatches")
         self.nodes[0].createwallet("sighash_mismatch")
@@ -769,6 +811,7 @@ class PSBTTest(BitcoinTestFramework):
 
         self.test_combinepsbt_preserves_proprietary_fields()
         self.test_combinepsbt_global_xpub_origin_conflict()
+        self.test_joinpsbts_preserves_global_metadata()
 
         self.log.info("Test that combining PSBTs with different transactions fails")
         tx = CTransaction()
