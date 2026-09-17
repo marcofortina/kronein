@@ -22,7 +22,6 @@ enum class PSBTError {
     UNSUPPORTED,
     INCOMPLETE,
     INVALID_TX,
-    OK,
 };
 } // namespace common
 

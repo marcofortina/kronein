@@ -541,17 +541,17 @@ std::optional<PrecomputedTransactionData> PrecomputePSBTData(const PartiallySign
     return txdata;
 }
 
-PSBTError SignPSBTInput(const SigningProvider& provider, PartiallySignedTransaction& psbt, int index, const PrecomputedTransactionData* txdata, std::optional<int> sighash,  SignatureData* out_sigdata, bool finalize)
+util::Expected<void, PSBTError> SignPSBTInput(const SigningProvider& provider, PartiallySignedTransaction& psbt, int index, const PrecomputedTransactionData* txdata, std::optional<int> sighash, SignatureData* out_sigdata, bool finalize)
 {
     PSBTInput& input = psbt.inputs.at(index);
     std::optional<CMutableTransaction> unsigned_tx = psbt.GetUnsignedTx();
     if (!unsigned_tx) {
-        return PSBTError::INVALID_TX;
+        return util::Unexpected{PSBTError::INVALID_TX};
     }
     const CMutableTransaction& tx = *unsigned_tx;
 
     if (PSBTInputSignedAndVerified(psbt, index, txdata)) {
-        return PSBTError::OK;
+        return {};
     }
 
     // Fill SignatureData with input info
@@ -559,9 +559,9 @@ PSBTError SignPSBTInput(const SigningProvider& provider, PartiallySignedTransact
     input.FillSignatureData(sigdata);
 
     // Get UTXO
-    if (input.witness_utxo.IsNull()) return PSBTError::MISSING_INPUTS;
+    if (input.witness_utxo.IsNull()) return util::Unexpected{PSBTError::MISSING_INPUTS};
     const CTxOut& utxo = input.witness_utxo;
-    if (!utxo.scriptPubKey.IsPayToTaproot()) return PSBTError::INCOMPLETE;
+    if (!utxo.scriptPubKey.IsPayToTaproot()) return util::Unexpected{PSBTError::INCOMPLETE};
 
     // Get the sighash type
     // If both the field and the parameter are provided, they must match
@@ -572,7 +572,7 @@ PSBTError SignPSBTInput(const SigningProvider& provider, PartiallySignedTransact
     Assert(sighash.has_value());
     // For user safety, the desired sighash must be provided if the PSBT wants something other than the default set in the previous line.
     if (input.sighash_type && input.sighash_type != sighash) {
-        return PSBTError::SIGHASH_MISMATCH;
+        return util::Unexpected{PSBTError::SIGHASH_MISMATCH};
     }
     // Set the PSBT sighash field when sighash is not DEFAULT or ALL
     // DEFAULT is allowed for non-taproot inputs since DEFAULT may be passed for them (e.g. the psbt being signed also has taproot inputs)
@@ -585,17 +585,17 @@ PSBTError SignPSBTInput(const SigningProvider& provider, PartiallySignedTransact
     // Check all existing signatures use the sighash type
     if (sighash == SIGHASH_DEFAULT) {
         if (!input.m_tap_key_sig.empty() && input.m_tap_key_sig.size() != 64) {
-            return PSBTError::SIGHASH_MISMATCH;
+            return util::Unexpected{PSBTError::SIGHASH_MISMATCH};
         }
         for (const auto& [_, sig] : input.m_tap_script_sigs) {
-            if (sig.size() != 64) return PSBTError::SIGHASH_MISMATCH;
+            if (sig.size() != 64) return util::Unexpected{PSBTError::SIGHASH_MISMATCH};
         }
     } else {
         if (!input.m_tap_key_sig.empty() && (input.m_tap_key_sig.size() != 65 || input.m_tap_key_sig.back() != *sighash)) {
-            return PSBTError::SIGHASH_MISMATCH;
+            return util::Unexpected{PSBTError::SIGHASH_MISMATCH};
         }
         for (const auto& [_, sig] : input.m_tap_script_sigs) {
-            if (sig.size() != 65 || sig.back() != *sighash) return PSBTError::SIGHASH_MISMATCH;
+            if (sig.size() != 65 || sig.back() != *sighash) return util::Unexpected{PSBTError::SIGHASH_MISMATCH};
         }
     }
 
@@ -616,7 +616,8 @@ PSBTError SignPSBTInput(const SigningProvider& provider, PartiallySignedTransact
         out_sigdata->missing_pubkeys = sigdata.missing_pubkeys;
     }
 
-    return sig_complete ? PSBTError::OK : PSBTError::INCOMPLETE;
+    if (!sig_complete) return util::Unexpected{PSBTError::INCOMPLETE};
+    return {};
 }
 
 bool FinalizePSBT(PartiallySignedTransaction& psbtx)
@@ -633,7 +634,7 @@ bool FinalizePSBT(PartiallySignedTransaction& psbtx)
     const PrecomputedTransactionData& txdata = *txdata_res;
     for (unsigned int i = 0; i < psbtx.inputs.size(); ++i) {
         PSBTInput& input = psbtx.inputs.at(i);
-        complete &= (SignPSBTInput(DUMMY_SIGNING_PROVIDER, psbtx, i, &txdata, input.sighash_type, nullptr, true) == PSBTError::OK);
+        complete &= SignPSBTInput(DUMMY_SIGNING_PROVIDER, psbtx, i, &txdata, input.sighash_type, nullptr, true).has_value();
     }
 
     return complete;
