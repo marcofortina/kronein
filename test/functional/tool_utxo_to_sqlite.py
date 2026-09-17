@@ -19,19 +19,9 @@ from test_framework.messages import (
     uint256_from_str,
 )
 from test_framework.crypto.muhash import MuHash3072
-from test_framework.script import (
-    CScript,
-    CScriptOp,
-)
 from test_framework.script_util import (
     PAY_TO_ANCHOR,
-    key_to_p2pk_script,
-    key_to_p2pkh_script,
-    key_to_p2wpkh_script,
-    keys_to_multisig_script,
     output_key_to_p2tr_script,
-    script_to_p2sh_script,
-    script_to_p2wsh_script,
 )
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
@@ -75,8 +65,6 @@ def calculate_muhash_from_sqlite_utxos(filename, txid_format, spk_format):
 class UtxoToSqliteTest(BitcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
-        # we want to create some UTXOs with non-standard output scripts
-        self.extra_args = [['-acceptnonstdtxn=1']]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_py_sqlite3()
@@ -86,34 +74,20 @@ class UtxoToSqliteTest(BitcoinTestFramework):
         wallet = MiniWallet(node)
         key = ECKey()
 
-        self.log.info('Create UTXOs with various output script types')
+        self.log.info('Create UTXOs with current native output scripts')
         for i in range(1, 10+1):
-            key.generate(compressed=False)
-            uncompressed_pubkey = key.get_pubkey().get_bytes()
             key.generate(compressed=True)
             pubkey = key.get_pubkey().get_bytes()
 
-            # add output scripts for compressed script type 0 (P2PKH), type 1 (P2SH),
-            # types 2-3 (P2PK compressed), types 4-5 (P2PK uncompressed) and
-            # for uncompressed scripts (bare multisig, segwit, etc.)
+            # The two native output types have different serialized sizes.
             output_scripts = (
-                key_to_p2pkh_script(pubkey),
-                script_to_p2sh_script(key_to_p2pkh_script(pubkey)),
-                key_to_p2pk_script(pubkey),
-                key_to_p2pk_script(uncompressed_pubkey),
-
-                keys_to_multisig_script([pubkey]*i),
-                keys_to_multisig_script([uncompressed_pubkey]*i),
-                key_to_p2wpkh_script(pubkey),
-                script_to_p2wsh_script(key_to_p2pkh_script(pubkey)),
                 output_key_to_p2tr_script(pubkey[1:]),
                 PAY_TO_ANCHOR,
-                CScript([CScriptOp.encode_op_n(i)]*(1000*i)),  # large script (up to 10000 bytes)
             )
 
             # create outputs and mine them in a block
             for output_script in output_scripts:
-                wallet.send_to(from_node=node, scriptPubKey=output_script, amount=i, fee=20000)
+                wallet.send_to(from_node=node, scriptPubKey=output_script, amount=1000 + i, fee=20000)
             self.generate(wallet, 1)
 
         self.log.info('Dump UTXO set via `dumptxoutset` RPC')

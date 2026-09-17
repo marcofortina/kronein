@@ -3,7 +3,6 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Useful Script constants and utils."""
-import unittest
 
 from copy import deepcopy
 
@@ -14,38 +13,21 @@ from test_framework.messages import (
     CTxInWitness,
     CTxOut,
     ser_compact_size,
-    sha256,
 )
 from test_framework.script import (
     CScript,
     OP_0,
     OP_1,
-    OP_15,
-    OP_16,
-    OP_CHECKMULTISIG,
-    OP_CHECKSIG,
-    OP_DUP,
-    OP_ELSE,
-    OP_ENDIF,
-    OP_EQUAL,
-    OP_EQUALVERIFY,
-    OP_HASH160,
-    OP_IF,
+    OP_DROP,
     OP_RETURN,
     OP_TRUE,
-    hash160,
+    taproot_construct,
 )
 
 from test_framework.util import (
     assert_greater_than_or_equal,
     assert_equal,
 )
-
-# Maximum number of potentially executed legacy signature operations in validating a transaction.
-MAX_STD_LEGACY_SIGOPS = 2_500
-
-# Maximum number of sigops per standard P2SH redeemScript.
-MAX_STD_P2SH_SIGOPS = 15
 
 # To prevent a "tx-size-small" policy rule error, a transaction has to have a
 # non-witness size of at least 65 bytes (MIN_STANDARD_TX_NONWITNESS_SIZE in
@@ -71,69 +53,11 @@ assert len(DUMMY_MIN_OP_RETURN_SCRIPT) == MIN_PADDING
 PAY_TO_ANCHOR = CScript([OP_1, bytes.fromhex("4e73")])
 ANCHOR_ADDRESS = "bcrt1pfeesnyr2tx"
 
-def key_to_p2pk_script(key):
-    key = check_key(key)
-    return CScript([key, OP_CHECKSIG])
-
-
-def keys_to_multisig_script(keys, *, k=None):
-    n = len(keys)
-    if k is None:  # n-of-n multisig by default
-        k = n
-    assert k <= n
-    checked_keys = [check_key(key) for key in keys]
-    return CScript([k] + checked_keys + [n, OP_CHECKMULTISIG])
-
-
-def keyhash_to_p2pkh_script(hash):
-    assert len(hash) == 20
-    return CScript([OP_DUP, OP_HASH160, hash, OP_EQUALVERIFY, OP_CHECKSIG])
-
-
-def scripthash_to_p2sh_script(hash):
-    assert len(hash) == 20
-    return CScript([OP_HASH160, hash, OP_EQUAL])
-
-
-def key_to_p2pkh_script(key):
-    key = check_key(key)
-    return keyhash_to_p2pkh_script(hash160(key))
-
-
-def script_to_p2sh_script(script):
-    script = check_script(script)
-    return scripthash_to_p2sh_script(hash160(script))
-
-
-def key_to_p2sh_p2wpkh_script(key):
-    key = check_key(key)
-    p2shscript = CScript([OP_0, hash160(key)])
-    return script_to_p2sh_script(p2shscript)
-
-
-def program_to_witness_script(version, program):
+def program_to_witness_script(program):
     if isinstance(program, str):
         program = bytes.fromhex(program)
-    assert 0 <= version <= 16
-    assert 2 <= len(program) <= 40
-    assert version > 0 or len(program) in [20, 32]
-    return CScript([version, program])
-
-
-def script_to_p2wsh_script(script):
-    script = check_script(script)
-    return program_to_witness_script(0, sha256(script))
-
-
-def key_to_p2wpkh_script(key):
-    key = check_key(key)
-    return program_to_witness_script(0, hash160(key))
-
-
-def script_to_p2sh_p2wsh_script(script):
-    script = check_script(script)
-    p2shscript = CScript([OP_0, sha256(script)])
-    return script_to_p2sh_script(p2shscript)
+    assert len(program) in [2, 32]
+    return CScript([OP_1, program])
 
 def bulk_vout(tx, target_vsize):
     if target_vsize < tx.get_vsize():
@@ -148,76 +72,47 @@ def bulk_vout(tx, target_vsize):
 
 def output_key_to_p2tr_script(key):
     assert len(key) == 32
-    return program_to_witness_script(1, key)
-
-
-def check_key(key):
-    if isinstance(key, str):
-        key = bytes.fromhex(key)  # Assuming this is hex string
-    if isinstance(key, bytes) and (len(key) == 33 or len(key) == 65):
-        return key
-    assert False
-
-
-def check_script(script):
-    if isinstance(script, str):
-        script = bytes.fromhex(script)  # Assuming this is hex string
-    if isinstance(script, bytes) or isinstance(script, CScript):
-        return script
-    assert False
+    return program_to_witness_script(key)
 
 
 def build_malleated_tx_package(*, parent: CTransaction, rebalance_parent_output_amount, child_amount):
     """
-    Returns a transaction package with valid witness:
-    - Parent transaction whose last output contains a script that has two spending conditions
-    - Two malleated child transactions with same txid but different wtxids because of different witnesses
+    Return a transaction package with two valid Taproot script-path spends.
+
+    The child transactions have the same txid but different wtxids because
+    they use different leaves of the same Taproot tree.
 
     Args:
         parent: Transaction with modifiable outputs. Either unsigned (sign after
         calling this function) or anyone-can-spend (e.g., MiniWallet's OP_TRUE).
     """
-    hashlock = hash160(b'Preimage')
-    witness_script = CScript([OP_IF, OP_HASH160, hashlock, OP_EQUAL, OP_ELSE, OP_TRUE, OP_ENDIF])
-    witness_program = sha256(witness_script)
-    script_pubkey = CScript([OP_0, witness_program])
+    taproot_info = taproot_construct(
+        (1).to_bytes(32, 'big'),
+        [
+            ("short-path", CScript([OP_TRUE])),
+            ("long-path", CScript([OP_TRUE, OP_DROP, OP_TRUE])),
+        ],
+    )
 
     # Append to the transaction the vout containing the script supporting 2 spending conditions
     assert_greater_than_or_equal(len(parent.vout), 1)
     last_output = parent.vout[len(parent.vout) - 1]
     assert_greater_than_or_equal(last_output.nValue, rebalance_parent_output_amount)
     last_output.nValue -= rebalance_parent_output_amount
-    parent.vout.append(CTxOut(rebalance_parent_output_amount, script_pubkey))
+    parent.vout.append(CTxOut(rebalance_parent_output_amount, taproot_info.scriptPubKey))
 
-
-    # Create 2 valid children that differ only in witness data.
-    # 1. Create a new transaction with witness solving first branch
-    child_witness_script = CScript([OP_TRUE])
-    child_witness_program = sha256(child_witness_script)
-    child_script_pubkey = CScript([OP_0, child_witness_program])
+    # Create two valid children that differ only in witness data.
     child_one = CTransaction()
-
     child_one.vin.append(CTxIn(COutPoint(int(parent.txid_hex, 16), len(parent.vout) - 1), b""))
-    child_one.vout.append(CTxOut(child_amount, child_script_pubkey))
+    child_one.vout.append(CTxOut(child_amount, taproot_info.scriptPubKey))
     child_one.wit.vtxinwit.append(CTxInWitness())
-    child_one.wit.vtxinwit[0].scriptWitness.stack = [b'Preimage', b'\x01', witness_script]
-    # 2. Create another identical transaction with witness solving second branch
+
+    def spend_leaf(tx, name):
+        leaf = taproot_info.leaves[name]
+        control = bytes([leaf.version | taproot_info.negflag]) + taproot_info.internal_pubkey + leaf.merklebranch
+        tx.wit.vtxinwit[0].scriptWitness.stack = [leaf.script, control]
+
+    spend_leaf(child_one, "short-path")
     child_two = deepcopy(child_one)
-    child_two.wit.vtxinwit[0].scriptWitness.stack = [b'', witness_script]
+    spend_leaf(child_two, "long-path")
     return parent, child_one, child_two
-
-
-class TestFrameworkScriptUtil(unittest.TestCase):
-    def test_multisig(self):
-        fake_pubkey = bytes([0]*33)
-        # check correct encoding of P2MS script with n,k <= 16
-        normal_ms_script = keys_to_multisig_script([fake_pubkey]*16, k=15)
-        self.assertEqual(len(normal_ms_script), 1 + 16*34 + 1 + 1)
-        self.assertTrue(normal_ms_script.startswith(bytes([OP_15])))
-        self.assertTrue(normal_ms_script.endswith(bytes([OP_16, OP_CHECKMULTISIG])))
-
-        # check correct encoding of P2MS script with n,k > 16
-        max_ms_script = keys_to_multisig_script([fake_pubkey]*20, k=19)
-        self.assertEqual(len(max_ms_script), 2 + 20*34 + 2 + 1)
-        self.assertTrue(max_ms_script.startswith(bytes([1, 19])))  # using OP_PUSH1
-        self.assertTrue(max_ms_script.endswith(bytes([1, 20, OP_CHECKMULTISIG])))

@@ -6,49 +6,26 @@
 from collections import namedtuple
 import unittest
 
-from test_framework.address import (
-    byte_to_base58,
-    key_to_p2pkh,
-    key_to_p2sh_p2wpkh,
-    key_to_p2wpkh,
-)
 from test_framework.key import ECKey
 from test_framework.messages import (
     CTxIn,
     CTxInWitness,
     WITNESS_SCALE_FACTOR,
-)
-from test_framework.script_util import (
-    key_to_p2pkh_script,
-    key_to_p2wpkh_script,
-    script_to_p2sh_script,
+    hash256,
 )
 
-Key = namedtuple('Key', ['privkey',
-                         'pubkey',
-                         'p2pkh_script',
-                         'p2pkh_addr',
-                         'p2wpkh_script',
-                         'p2wpkh_addr',
-                         'p2sh_p2wpkh_script',
-                         'p2sh_p2wpkh_redeem_script',
-                         'p2sh_p2wpkh_addr'])
+Key = namedtuple('Key', ['privkey', 'pubkey'])
+
+BASE58_CHARS = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
 
 def get_generate_key():
     """Generate a fresh key
 
-    Returns a named tuple of privkey, pubkey and all address and scripts."""
+    Returns a named tuple containing the private and public key."""
     privkey, pubkey = generate_keypair(wif=True)
     return Key(privkey=privkey,
-               pubkey=pubkey.hex(),
-               p2pkh_script=key_to_p2pkh_script(pubkey).hex(),
-               p2pkh_addr=key_to_p2pkh(pubkey),
-               p2wpkh_script=key_to_p2wpkh_script(pubkey).hex(),
-               p2wpkh_addr=key_to_p2wpkh(pubkey),
-               p2sh_p2wpkh_script=script_to_p2sh_script(key_to_p2wpkh_script(pubkey)).hex(),
-               p2sh_p2wpkh_redeem_script=key_to_p2wpkh_script(pubkey).hex(),
-               p2sh_p2wpkh_addr=key_to_p2sh_p2wpkh(pubkey))
+               pubkey=pubkey.hex())
 
 
 def test_address(node, address, **kwargs):
@@ -60,6 +37,37 @@ def test_address(node, address, **kwargs):
                 raise AssertionError("key {} unexpectedly returned in getaddressinfo.".format(key))
         elif addr_info[key] != value:
             raise AssertionError("key {} value {} did not match expected value {}".format(key, addr_info[key], value))
+
+def byte_to_base58(b, version):
+    result = ''
+    b = bytes([version]) + b
+    b += hash256(b)[:4]
+    value = int.from_bytes(b, 'big')
+    while value > 0:
+        result = BASE58_CHARS[value % 58] + result
+        value //= 58
+    while b[0] == 0:
+        result = BASE58_CHARS[0] + result
+        b = b[1:]
+    return result
+
+
+def base58_to_byte(s):
+    """Convert a Base58Check-encoded WIF string to its payload and version."""
+    if not s:
+        return b''
+    value = 0
+    for char in s:
+        value *= 58
+        assert char in BASE58_CHARS
+        value += BASE58_CHARS.index(char)
+    result = value.to_bytes((value.bit_length() + 7) // 8, 'big')
+    pad = len(s) - len(s.lstrip(BASE58_CHARS[0]))
+    result = b'\x00' * pad + result
+    if hash256(result[:-4])[:4] != result[-4:]:
+        raise ValueError('Invalid Base58Check checksum')
+    return result[1:-4], int(result[0])
+
 
 def bytes_to_wif(b, compressed=True):
     if compressed:

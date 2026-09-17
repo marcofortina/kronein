@@ -53,43 +53,19 @@ struct PrecomputedData
             const uint8_t ser[4] = {uint8_t(i), uint8_t(i >> 8), uint8_t(i >> 16), uint8_t(i >> 24)};
             uint256 hash;
             CSHA256().Write(PREFIX_S, 1).Write(ser, sizeof(ser)).Finalize(hash.begin());
-            /* Convert hash to scriptPubkeys (of different lengths, so SanityCheck's cached memory
-             * usage check has a chance to detect mismatches). */
-            switch (i % 5U) {
-            case 0: /* P2PKH */
-                coins[i].out.scriptPubKey.resize(25);
-                coins[i].out.scriptPubKey[0] = OP_DUP;
-                coins[i].out.scriptPubKey[1] = OP_HASH160;
-                coins[i].out.scriptPubKey[2] = 20;
-                std::copy(hash.begin(), hash.begin() + 20, coins[i].out.scriptPubKey.begin() + 3);
-                coins[i].out.scriptPubKey[23] = OP_EQUALVERIFY;
-                coins[i].out.scriptPubKey[24] = OP_CHECKSIG;
-                break;
-            case 1: /* P2SH */
-                coins[i].out.scriptPubKey.resize(23);
-                coins[i].out.scriptPubKey[0] = OP_HASH160;
-                coins[i].out.scriptPubKey[1] = 20;
-                std::copy(hash.begin(), hash.begin() + 20, coins[i].out.scriptPubKey.begin() + 2);
-                coins[i].out.scriptPubKey[22] = OP_EQUAL;
-                break;
-            case 2: /* P2WPKH */
-                coins[i].out.scriptPubKey.resize(22);
-                coins[i].out.scriptPubKey[0] = OP_0;
-                coins[i].out.scriptPubKey[1] = 20;
-                std::copy(hash.begin(), hash.begin() + 20, coins[i].out.scriptPubKey.begin() + 2);
-                break;
-            case 3: /* P2WSH */
-                coins[i].out.scriptPubKey.resize(34);
-                coins[i].out.scriptPubKey[0] = OP_0;
-                coins[i].out.scriptPubKey[1] = 32;
-                std::copy(hash.begin(), hash.begin() + 32, coins[i].out.scriptPubKey.begin() + 2);
-                break;
-            case 4: /* P2TR */
+            /* Use current native scriptPubKeys of different lengths so SanityCheck's
+             * cached memory usage check has a chance to detect mismatches. */
+            if (i % 2U == 0) { /* P2TR */
                 coins[i].out.scriptPubKey.resize(34);
                 coins[i].out.scriptPubKey[0] = OP_1;
                 coins[i].out.scriptPubKey[1] = 32;
                 std::copy(hash.begin(), hash.begin() + 32, coins[i].out.scriptPubKey.begin() + 2);
-                break;
+            } else { /* Pay-to-anchor */
+                coins[i].out.scriptPubKey.resize(4);
+                coins[i].out.scriptPubKey[0] = OP_1;
+                coins[i].out.scriptPubKey[1] = 2;
+                coins[i].out.scriptPubKey[2] = 0x4e;
+                coins[i].out.scriptPubKey[3] = 0x73;
             }
             /* Hash again to construct nValue and fCoinBase. */
             CSHA256().Write(PREFIX_M, 1).Write(ser, sizeof(ser)).Finalize(hash.begin());

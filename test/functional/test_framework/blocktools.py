@@ -8,13 +8,6 @@ import struct
 import time
 import unittest
 
-from .address import (
-    address_to_scriptpubkey,
-    key_to_p2sh_p2wpkh,
-    key_to_p2wpkh,
-    script_to_p2sh_p2wsh,
-    script_to_p2wsh,
-)
 from .messages import (
     CBlock,
     COIN,
@@ -28,7 +21,6 @@ from .messages import (
     ser_uint256,
     tx_from_hex,
     uint256_from_compact,
-    WITNESS_SCALE_FACTOR,
     MAX_SEQUENCE_NONFINAL,
 )
 from .script import (
@@ -38,17 +30,9 @@ from .script import (
     OP_0,
     OP_RETURN,
 )
-from .script_util import (
-    key_to_p2wpkh_script,
-    keys_to_multisig_script,
-    output_key_to_p2tr_script,
-    script_to_p2wsh_script,
-)
+from .script_util import output_key_to_p2tr_script
 from .util import assert_equal
 
-MAX_BLOCK_SIGOPS = 20000
-MAX_BLOCK_SIGOPS_WEIGHT = MAX_BLOCK_SIGOPS * WITNESS_SCALE_FACTOR
-MAX_STANDARD_TX_SIGOPS = 4000
 MAX_STANDARD_TX_WEIGHT = 400000
 
 # Genesis block time (regtest)
@@ -213,69 +197,6 @@ def create_tx_with_script(prevtx, n, script_sig=b"", *, amount, output_script=No
     tx.vin.append(CTxIn(COutPoint(prevtx.txid_int, n), script_sig, SEQUENCE_FINAL))
     tx.vout.append(CTxOut(amount, output_script))
     return tx
-
-def get_legacy_sigopcount_block(block, accurate=True):
-    count = 0
-    for tx in block.vtx:
-        count += get_legacy_sigopcount_tx(tx, accurate)
-    return count
-
-def get_legacy_sigopcount_tx(tx, accurate=True):
-    count = 0
-    for i in tx.vout:
-        count += i.scriptPubKey.GetSigOpCount(accurate)
-    for j in tx.vin:
-        # scriptSig might be of type bytes, so convert to CScript for the moment
-        count += CScript(j.scriptSig).GetSigOpCount(accurate)
-    return count
-
-def witness_script(use_p2wsh, pubkey):
-    """Create a scriptPubKey for a pay-to-witness TxOut.
-
-    This is either a P2WPKH output for the given pubkey, or a P2WSH output of a
-    1-of-1 multisig for the given pubkey. Returns the hex encoding of the
-    scriptPubKey."""
-    if not use_p2wsh:
-        # P2WPKH instead
-        pkscript = key_to_p2wpkh_script(pubkey)
-    else:
-        # 1-of-1 multisig
-        witness_script = keys_to_multisig_script([pubkey])
-        pkscript = script_to_p2wsh_script(witness_script)
-    return pkscript.hex()
-
-def create_witness_tx(node, use_p2wsh, utxo, pubkey, encode_p2sh, amount):
-    """Return a transaction (in hex) that spends the given utxo to a segwit output.
-
-    Optionally wrap the segwit output using P2SH."""
-    if use_p2wsh:
-        program = keys_to_multisig_script([pubkey])
-        addr = script_to_p2sh_p2wsh(program) if encode_p2sh else script_to_p2wsh(program)
-    else:
-        addr = key_to_p2sh_p2wpkh(pubkey) if encode_p2sh else key_to_p2wpkh(pubkey)
-    if not encode_p2sh:
-        assert_equal(address_to_scriptpubkey(addr).hex(), witness_script(use_p2wsh, pubkey))
-    return node.createrawtransaction([utxo], [{addr: amount}])
-
-def send_to_witness(use_p2wsh, node, utxo, pubkey, encode_p2sh, amount, sign=True, insert_redeem_script=""):
-    """Create a transaction spending a given utxo to a segwit output.
-
-    The output corresponds to the given pubkey: use_p2wsh determines whether to
-    use P2WPKH or P2WSH; encode_p2sh determines whether to wrap in P2SH.
-    sign=True will have the given node sign the transaction.
-    insert_redeem_script will be added to the scriptSig, if given."""
-    tx_to_witness = create_witness_tx(node, use_p2wsh, utxo, pubkey, encode_p2sh, amount)
-    if (sign):
-        signed = node.signrawtransactionwithwallet(tx_to_witness)
-        assert "errors" not in signed or len(["errors"]) == 0
-        return node.sendrawtransaction(signed["hex"])
-    else:
-        if (insert_redeem_script):
-            tx = tx_from_hex(tx_to_witness)
-            tx.vin[0].scriptSig += CScript([bytes.fromhex(insert_redeem_script)])
-            tx_to_witness = tx.serialize().hex()
-
-    return node.sendrawtransaction(tx_to_witness)
 
 class TestFrameworkBlockTools(unittest.TestCase):
     def test_create_coinbase(self):

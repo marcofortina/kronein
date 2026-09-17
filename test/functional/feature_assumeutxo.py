@@ -13,7 +13,6 @@ import contextlib
 from shutil import rmtree
 
 from dataclasses import dataclass
-from test_framework.address import base58_to_byte
 from test_framework.blocktools import (
     create_block,
     create_coinbase
@@ -54,7 +53,7 @@ from test_framework.wallet import (
     getnewdestination,
     MiniWallet,
 )
-from test_framework.wallet_util import bytes_to_wif
+from test_framework.wallet_util import base58_to_byte, bytes_to_wif
 from test_framework.blocktools import (
     REGTEST_N_BITS,
     REGTEST_TARGET,
