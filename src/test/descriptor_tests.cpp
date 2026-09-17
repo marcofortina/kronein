@@ -62,9 +62,11 @@ BOOST_AUTO_TEST_CASE(native_descriptor_grammar)
     const XOnlyPubKey output_key{ParseHex(INTERNAL_KEY)};
     const std::string address{EncodeDestination(WitnessV1Taproot{output_key})};
     CheckNativeDescriptor("addr(" + address + ")");
+    CheckNativeDescriptor("addr(" + EncodeDestination(PayToAnchor{}) + ")");
 
     const CScript taproot_script{GetScriptForDestination(WitnessV1Taproot{output_key})};
     CheckNativeDescriptor("raw(" + HexStr(taproot_script) + ")");
+    CheckNativeDescriptor("raw(" + HexStr(GetScriptForDestination(PayToAnchor{})) + ")");
     CheckNativeDescriptor("raw(6a0474657374)");
 }
 

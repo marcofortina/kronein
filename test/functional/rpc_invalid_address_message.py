@@ -31,6 +31,9 @@ BECH32M_INVALID_CHAR = BECH32M_VALID_TAPROOT[:8] + 'o' + BECH32M_VALID_TAPROOT[9
 
 INVALID_ADDRESS = 'asfah14i8fajz0123f'
 INVALID_ADDRESS_2 = '1q049ldschfnwystcqnsvyfpj23mpsg3jcedq9xv'
+UNSUPPORTED_P2PKH = 'mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn'
+UNSUPPORTED_P2SH = '2N2JD6wb56AfK4tfmM6PwdVmoYk2dCKf4Br'
+UNSUPPORTED_P2WPKH = 'bcrt1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqdku202'
 
 class InvalidAddressErrorMessageTest(BitcoinTestFramework):
     def set_test_params(self):
@@ -69,6 +72,9 @@ class InvalidAddressErrorMessageTest(BitcoinTestFramework):
         # Invalid address format
         self.check_invalid(INVALID_ADDRESS, 'Invalid separator position', [14])
         self.check_invalid(INVALID_ADDRESS_2, 'Invalid separator position', [0])
+        for unsupported_address in [UNSUPPORTED_P2PKH, UNSUPPORTED_P2SH, UNSUPPORTED_P2WPKH]:
+            result = self.nodes[0].validateaddress(unsupported_address)
+            assert not result['isvalid']
 
         node = self.nodes[0]
 
@@ -85,6 +91,8 @@ class InvalidAddressErrorMessageTest(BitcoinTestFramework):
         assert_raises_rpc_error(-5, "Only Taproot and pay-to-anchor Bech32m addresses are supported", node.getaddressinfo, BECH32M_INVALID_SIZE)
         assert_raises_rpc_error(-5, "Invalid prefix for Bech32m address (expected bcrt, got bc).", node.getaddressinfo, BECH32M_INVALID_PREFIX)
         assert_raises_rpc_error(-5, "Invalid separator position", node.getaddressinfo, INVALID_ADDRESS)
+        for unsupported_address in [UNSUPPORTED_P2PKH, UNSUPPORTED_P2SH, UNSUPPORTED_P2WPKH]:
+            assert_raises_rpc_error(-5, "Invalid", node.getaddressinfo, unsupported_address)
 
     def run_test(self):
         self.test_validateaddress()

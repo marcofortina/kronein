@@ -40,7 +40,7 @@ static RPCHelpMan validateaddress()
                 {RPCResult::Type::NUM, "witness_version", /*optional=*/true, "The version number of the witness program"},
                 {RPCResult::Type::STR_HEX, "witness_program", /*optional=*/true, "The hex value of the witness program"},
                 {RPCResult::Type::STR, "error", /*optional=*/true, "Error message, if any"},
-                {RPCResult::Type::ARR, "error_locations", /*optional=*/true, "Indices of likely error locations in address, if known (e.g. Bech32 errors)",
+                {RPCResult::Type::ARR, "error_locations", /*optional=*/true, "Indices of likely error locations in address, if known (e.g. Bech32m errors)",
                     {
                         {RPCResult::Type::NUM, "index", "index of a potential error"},
                     }},
@@ -155,11 +155,7 @@ static UniValue DeriveAddresses(const Descriptor* desc, int64_t range_begin, int
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Descriptor does not have a corresponding address");
             }
 
-            std::string address{EncodeDestination(dest)};
-            if (address.empty()) {
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Descriptor does not produce a Taproot address");
-            }
-            addresses.push_back(std::move(address));
+            addresses.push_back(EncodeDestination(dest));
         }
     }
 

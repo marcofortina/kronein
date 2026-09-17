@@ -11,7 +11,6 @@
 #include <qt/sendcoinsrecipient.h>
 
 #include <addresstype.h>
-#include <base58.h>
 #include <chainparams.h>
 #include <common/args.h>
 #include <interfaces/node.h>
@@ -209,9 +208,9 @@ bool parseBitcoinURI(QString uri, SendCoinsRecipient *out)
 
 QString formatBitcoinURI(const SendCoinsRecipient &info)
 {
-    bool bech_32 = info.address.startsWith(QString::fromStdString(Params().Bech32HRP() + "1"));
+    const bool is_bech32m = info.address.startsWith(QString::fromStdString(Params().Bech32HRP() + "1"));
 
-    QString ret = QString("bitcoin:%1").arg(bech_32 ? info.address.toUpper() : info.address);
+    QString ret = QString("bitcoin:%1").arg(is_bech32m ? info.address.toUpper() : info.address);
     int paramCount = 0;
 
     if (info.amount)

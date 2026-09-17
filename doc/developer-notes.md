@@ -1321,11 +1321,11 @@ A few guidelines for introducing and reviewing new RPC interfaces:
     until the wallet is caught up to the chainstate as of the RPC call's entry.
     This also makes the API much easier for RPC clients to reason about.
 
-- Use *invalid* bech32 addresses (e.g. in the constant array `EXAMPLE_ADDRESS`) for
+- Use *invalid* Bech32m addresses (e.g. in the constant array `EXAMPLE_ADDRESS`) for
   `RPCExamples` help documentation.
 
   - *Rationale*: Prevent accidental transactions by users and encourage the use
-    of bech32 addresses by default.
+    of native Bech32m addresses by default.
 
 - Use the `UNIX_EPOCH_TIME` constant when describing UNIX epoch time or
   timestamps in the documentation.
