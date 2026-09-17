@@ -201,7 +201,7 @@ class EstimateFeeTest(BitcoinTestFramework):
             for node in self.nodes:
                 node.batch(batch_sendtx_reqs)
             self.sync_mempools(wait=0.1)
-            mined = mining_node.getblock(self.generate(mining_node, 1)[0], True)["tx"]
+            mined = mining_node.getblock(self.generate(mining_node, 1)[0], 1)["tx"]
             self.update_utxo(mined)
 
     def initial_split(self, node):
@@ -288,7 +288,7 @@ class EstimateFeeTest(BitcoinTestFramework):
             self.sync_mempools(wait=0.1, nodes=[node, miner])
             for txid in txids_to_replace:
                 miner.prioritisetransaction(txid=txid, fee_delta=-COIN)
-            mined = miner.getblock(self.generate(miner, 1)[0], True)["tx"]
+            mined = miner.getblock(self.generate(miner, 1)[0], 1)["tx"]
             self.update_utxo(mined)
             # RBF the low-fee transactions
             while len(utxos_to_respend) > 0:
@@ -303,7 +303,7 @@ class EstimateFeeTest(BitcoinTestFramework):
 
         # Mine the last replacement txs
         self.sync_mempools(wait=0.1, nodes=[node, miner])
-        mined = miner.getblock(self.generate(miner, 1)[0], True)["tx"]
+        mined = miner.getblock(self.generate(miner, 1)[0], 1)["tx"]
         self.update_utxo(mined)
 
         # Only 10% of the transactions were really confirmed with a low feerate,
@@ -419,7 +419,7 @@ class EstimateFeeTest(BitcoinTestFramework):
             self.memutxo.append(tx["new_utxo"])
         self.sync_mempools(wait=0.1, nodes=[self.nodes[0], self.nodes[1], self.nodes[2]])
         if miner:
-            mined = miner.getblock(self.generate(miner, 1)[0], True)["tx"]
+            mined = miner.getblock(self.generate(miner, 1)[0], 1)["tx"]
             self.update_utxo(mined)
 
     def test_estimation_modes(self):

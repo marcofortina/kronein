@@ -1281,14 +1281,10 @@ A few guidelines for introducing and reviewing new RPC interfaces:
   - *Rationale*: Avoids surprises when switching to name-based arguments. Missing name-based arguments
   are passed as 'null'.
 
-- Try not to overload methods on argument type. E.g. don't make `getblock(true)` and `getblock("hash")`
+- Try not to overload methods on argument type. E.g. don't make `method(true)` and `method("value")`
   do different things.
 
   - *Rationale*: This is impossible to use with `bitcoin-cli`, and can be surprising to users.
-
-  - *Exception*: Some RPC calls can take both an `int` and `bool`, most notably when a bool was switched
-    to a multi-value, or due to other historical reasons. **Always** have false map to 0 and
-    true to 1 in this case.
 
 - For new RPC methods, if implementing a `verbosity` argument, use integer verbosity rather than boolean.
   Disallow usage of boolean verbosity (see `ParseVerbosity()` in [util.h](/src/rpc/util.h)).

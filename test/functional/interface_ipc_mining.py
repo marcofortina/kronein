@@ -201,7 +201,7 @@ class IPCMiningTest(BitcoinTestFramework):
                     duration = time.time() - start
                     success = res._has("result")
                 def do_fn():
-                    block_hex = self.nodes[1].getblock(node1_block_hash, False)
+                    block_hex = self.nodes[1].getblock(node1_block_hash, 0)
                     self.nodes[0].submitblock(block_hex)
                 await wait_and_do(wait_fn(), do_fn)
                 assert_equal(success, True)

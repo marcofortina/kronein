@@ -199,7 +199,7 @@ class GetTxSpendingPrevoutTest(BitcoinTestFramework):
         result = node0.gettxspendingprevout([prevout(tx1['txid'], vout=0)], return_spending_tx=True)
         assert_equal(result, [spent_out_in_block(tx1['txid'], vout=0, spending_tx_id=tx2["txid"], blockhash=blockhash, spending_tx=tx2['hex'])])
 
-        txinfo = node0.getrawtransaction(tx2["txid"], verbose = True, blockhash = blockhash)
+        txinfo = node0.getrawtransaction(tx2["txid"], verbosity=1, blockhash=blockhash)
         assert_equal(txinfo["confirmations"], 0)
         assert_equal(txinfo["in_active_chain"], False)
 

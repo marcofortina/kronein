@@ -164,7 +164,7 @@ class WalletSendTest(BitcoinTestFramework):
             tx = from_wallet.gettransaction(res["txid"])
             assert tx
             # Ensure transaction exists in the mempool:
-            tx = from_wallet.getrawtransaction(res["txid"], True)
+            tx = from_wallet.getrawtransaction(res["txid"], 1)
             assert tx
             if amount:
                 if subtract_fee_from_outputs:
