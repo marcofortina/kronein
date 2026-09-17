@@ -333,13 +333,11 @@ BOOST_AUTO_TEST_CASE(util_ParseISO8601DateTime)
     BOOST_CHECK_EQUAL(ParseISO8601DateTime("2100-12-31T23:59:59Z").value(), 4133980799);
     BOOST_CHECK_EQUAL(ParseISO8601DateTime("9999-12-31T23:59:59Z").value(), 253402300799);
 
-    // Accept edge-cases, where the time overflows. They are not produced by
-    // FormatISO8601DateTime, so this can be changed in the future, if needed.
-    // For now, keep compatibility with the previous implementation.
-    BOOST_CHECK_EQUAL(ParseISO8601DateTime("2000-01-01T99:00:00Z").value(), 947041200);
-    BOOST_CHECK_EQUAL(ParseISO8601DateTime("2000-01-01T00:99:00Z").value(), 946690740);
-    BOOST_CHECK_EQUAL(ParseISO8601DateTime("2000-01-01T00:00:99Z").value(), 946684899);
-    BOOST_CHECK_EQUAL(ParseISO8601DateTime("2000-01-01T99:99:99Z").value(), 947047239);
+    // Reject time overflows.
+    BOOST_CHECK(!ParseISO8601DateTime("2000-01-01T24:00:00Z"));
+    BOOST_CHECK(!ParseISO8601DateTime("2000-01-01T00:60:00Z"));
+    BOOST_CHECK(!ParseISO8601DateTime("2000-01-01T00:00:60Z"));
+    BOOST_CHECK(!ParseISO8601DateTime("2000-01-01T99:99:99Z"));
 
     // Reject date overflows.
     BOOST_CHECK(!ParseISO8601DateTime("2000-99-01T00:00:00Z"));

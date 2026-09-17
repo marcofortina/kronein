@@ -106,7 +106,7 @@ std::optional<int64_t> ParseISO8601DateTime(std::string_view str)
     const auto hour{ToIntegral<uint8_t>(str.substr(11, 2))};
     const auto min{ToIntegral<uint8_t>(str.substr(14, 2))};
     const auto sec{ToIntegral<uint8_t>(str.substr(17, 2))};
-    if (!year || !month || !day || !hour || !min || !sec) {
+    if (!year || !month || !day || !hour || !min || !sec || *hour > 23 || *min > 59 || *sec > 59) {
         return {};
     }
     const std::chrono::year_month_day ymd{std::chrono::year{*year}, std::chrono::month{*month}, std::chrono::day{*day}};
