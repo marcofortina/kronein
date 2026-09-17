@@ -576,26 +576,6 @@ class CScript(bytes):
 
         return "CScript([%s])" % ', '.join(ops)
 
-    def GetSigOpCount(self, fAccurate):
-        """Get the SigOp count.
-
-        fAccurate - Accurately count CHECKMULTISIG, see BIP16 for details.
-
-        Note that this is consensus-critical.
-        """
-        n = 0
-        lastOpcode = OP_INVALIDOPCODE
-        for (opcode, data, sop_idx) in self.raw_iter():
-            if opcode in (OP_CHECKSIG, OP_CHECKSIGVERIFY):
-                n += 1
-            elif opcode in (OP_CHECKMULTISIG, OP_CHECKMULTISIGVERIFY):
-                if fAccurate and (OP_1 <= lastOpcode <= OP_16):
-                    n += lastOpcode.decode_op_n()
-                else:
-                    n += 20
-            lastOpcode = opcode
-        return n
-
     def IsWitnessProgram(self):
         """A witness program is any valid CScript that consists of a 1-byte
            push opcode followed by a data push between 2 and 40 bytes."""
@@ -637,20 +617,6 @@ class TestFrameworkScript(unittest.TestCase):
         values = [0, 1, -1, -2, 127, 128, -255, 256, (1 << 15) - 1, -(1 << 16), (1 << 24) - 1, (1 << 31), 1 - (1 << 32), 1 << 40, 1500, -1500]
         for value in values:
             self.assertEqual(CScriptNum.decode(CScriptNum.encode(CScriptNum(value))), value)
-
-    def test_legacy_sigopcount(self):
-        # test repeated single sig ops
-        for n_ops in range(1, 100, 10):
-            for singlesig_op in (OP_CHECKSIG, OP_CHECKSIGVERIFY):
-                singlesigs_script = CScript([singlesig_op]*n_ops)
-                self.assertEqual(singlesigs_script.GetSigOpCount(fAccurate=False), n_ops)
-                self.assertEqual(singlesigs_script.GetSigOpCount(fAccurate=True), n_ops)
-        # test multisig op (including accurate counting, i.e. BIP16)
-        for n in range(1, 16+1):
-            for multisig_op in (OP_CHECKMULTISIG, OP_CHECKMULTISIGVERIFY):
-                multisig_script = CScript([CScriptOp.encode_op_n(n), multisig_op])
-                self.assertEqual(multisig_script.GetSigOpCount(fAccurate=False), 20)
-                self.assertEqual(multisig_script.GetSigOpCount(fAccurate=True), n)
 
 def BIP341_sha_prevouts(txTo):
     return sha256(b"".join(i.prevout.serialize() for i in txTo.vin))

@@ -402,10 +402,10 @@ class RPCPackagesTest(BitcoinTestFramework):
 
         self.log.info("Submitpackage only allows packages of 1 child with its parents")
         # Chain of 3 transactions has too many generations
-        legacy_pool = node.getrawmempool()
+        txid_pool = node.getrawmempool()
         chain_hex = [t["hex"] for t in self.wallet.create_self_transfer_chain(chain_length=3)]
         assert_raises_rpc_error(-25, "package topology disallowed", node.submitpackage, chain_hex)
-        assert_equal(legacy_pool, node.getrawmempool())
+        assert_equal(txid_pool, node.getrawmempool())
 
         assert_raises_rpc_error(-8, f"Array must contain between 1 and {MAX_PACKAGE_COUNT} transactions.", node.submitpackage, [])
         assert_raises_rpc_error(
@@ -509,7 +509,7 @@ class RPCPackagesTest(BitcoinTestFramework):
         # Relax the restrictions for both and send it; parent gets through as own subpackage
         pkg_result = node.submitpackage(chained_burn_hex, maxfeerate=minrate_btc_kvb_burn, maxburnamount=chained_txns_burn[1]["new_utxo"]["value"])
         assert "error" not in pkg_result["tx-results"][chained_txns_burn[0]["wtxid"]]
-        assert_equal(pkg_result["tx-results"][tx.wtxid_hex]["error"], "scriptpubkey")
+        assert_equal(pkg_result["tx-results"][tx.wtxid_hex]["error"], "bad-txns-non-native-output")
         assert_equal(node.getrawmempool(), [chained_txns_burn[0]["txid"]])
 
     def test_submitpackage_with_ancestors(self):
