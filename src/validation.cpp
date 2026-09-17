@@ -881,12 +881,8 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return false; // state filled in by CheckTxInputs
     }
 
-    if (m_pool.m_opts.require_standard && !AreInputsStandard(tx, m_view)) {
-        return state.Invalid(TxValidationResult::TX_INPUTS_NOT_STANDARD, "bad-txns-nonstandard-inputs");
-    }
-
-    // Check for non-standard witnesses.
-    if (tx.HasWitness() && m_pool.m_opts.require_standard && !IsWitnessStandard(tx, m_view)) {
+    // Check for non-standard Taproot witnesses.
+    if (tx.HasWitness() && m_pool.m_opts.require_standard && !IsTaprootWitnessStandard(tx, m_view)) {
         return state.Invalid(TxValidationResult::TX_WITNESS_MUTATED, "bad-witness-nonstandard");
     }
 
@@ -1097,7 +1093,7 @@ bool MemPoolAccept::PolicyScriptChecks(const ATMPArgs& args, Workspace& ws)
     // This is done last to help prevent CPU exhaustion denial-of-service attacks.
     if (!CheckInputScripts(tx, state, m_view, scriptVerifyFlags, true, false, ws.m_precomputed_txdata, GetValidationCache())) {
         // Detect a failure due to a missing witness so that p2p code can handle rejection caching appropriately.
-        if (!tx.HasWitness() && SpendsNonAnchorWitnessProg(tx, m_view)) {
+        if (!tx.HasWitness() && SpendsTaproot(tx, m_view)) {
             state.Invalid(TxValidationResult::TX_WITNESS_MISSING,
                     state.GetRejectReason(), state.GetDebugMessage());
         }

@@ -53,7 +53,7 @@ static void CCoinsCaching(benchmark::Bench& bench)
     // Benchmark.
     const CTransaction tx_1(t1);
     bench.run([&] {
-        bool success{AreInputsStandard(tx_1, coins)};
+        bool success{SpendsTaproot(tx_1, coins)};
         assert(success);
     });
 }

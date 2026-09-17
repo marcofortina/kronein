@@ -116,20 +116,14 @@ std::vector<uint32_t> GetDust(const CTransaction& tx, CFeeRate dust_relay_rate);
 */
 bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_datacarrier_bytes, const CFeeRate& dust_relay_fee, std::string& reason);
 /**
-* Check for standard transaction types
-* @param[in] mapInputs       Map of previous transactions that have outputs we're spending
-* @return True if all inputs (scriptSigs) use only standard transaction forms
-*/
-bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs);
-/**
  * Enforce the Taproot stack-item size limit and disallow annexes.
 */
-bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs);
+bool IsTaprootWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs);
 /**
- * Check whether this transaction spends any witness program but P2A, including not-yet-defined ones.
+ * Check whether this transaction spends a Taproot output.
  * May return `false` early for consensus-invalid transactions.
  */
-bool SpendsNonAnchorWitnessProg(const CTransaction& tx, const CCoinsViewCache& prevouts);
+bool SpendsTaproot(const CTransaction& tx, const CCoinsViewCache& prevouts);
 
 /** Compute the virtual transaction size (weight reinterpreted as bytes). */
 int64_t GetVirtualTransactionSize(int64_t weight);

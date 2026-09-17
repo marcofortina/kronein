@@ -121,22 +121,7 @@ bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_dat
     return true;
 }
 
-bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
-{
-    if (tx.IsCoinBase()) {
-        return true; // Coinbases don't use vin normally
-    }
-
-    for (const CTxIn& txin : tx.vin) {
-        std::vector<std::vector<unsigned char>> solutions;
-        const TxoutType type{Solver(mapInputs.AccessCoin(txin.prevout).out.scriptPubKey, solutions)};
-        if (type != TxoutType::WITNESS_V1_TAPROOT && type != TxoutType::ANCHOR) return false;
-    }
-
-    return true;
-}
-
-bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
+bool IsTaprootWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
 {
     if (tx.IsCoinBase())
         return true; // Coinbases are skipped
@@ -164,7 +149,7 @@ bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
         // - MAX_STANDARD_TAPSCRIPT_STACK_ITEM_SIZE limit for stack item size
         // - No annexes
         {
-            // Taproot spend (non-P2SH-wrapped, version 1, witness program size 32; see BIP 341)
+            // Taproot spend (witness version 1, program size 32; see BIP 341)
             std::span stack{tx.vin[i].scriptWitness.stack};
             if (stack.size() >= 2 && !stack.back().empty() && stack.back()[0] == ANNEX_TAG) {
                 // Annexes are nonstandard as long as no semantics are defined for them.
@@ -193,22 +178,20 @@ bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
     return true;
 }
 
-bool SpendsNonAnchorWitnessProg(const CTransaction& tx, const CCoinsViewCache& prevouts)
+bool SpendsTaproot(const CTransaction& tx, const CCoinsViewCache& prevouts)
 {
     if (tx.IsCoinBase()) {
         return false;
     }
 
-    int version;
-    std::vector<uint8_t> program;
     for (const auto& txin: tx.vin) {
         const auto& prev_spk{prevouts.AccessCoin(txin.prevout).out.scriptPubKey};
-
-        // Note this includes not-yet-defined witness programs.
-        if (prev_spk.IsWitnessProgram(version, program) && !prev_spk.IsPayToAnchor(version, program)) {
+        int witness_version;
+        std::vector<unsigned char> witness_program;
+        if (prev_spk.IsWitnessProgram(witness_version, witness_program) &&
+            witness_version == 1 && witness_program.size() == WITNESS_V1_TAPROOT_SIZE) {
             return true;
         }
-
     }
 
     return false;
