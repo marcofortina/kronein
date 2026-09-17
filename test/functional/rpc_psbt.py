@@ -11,7 +11,6 @@ from test_framework.blocktools import (
     MAX_STANDARD_TX_WEIGHT,
 )
 from test_framework.descriptors import descsum_create
-from test_framework.extendedkey import hardened
 from test_framework.key import H_POINT
 from test_framework.messages import (
     COutPoint,
@@ -296,7 +295,7 @@ class PSBTTest(BitcoinTestFramework):
         _, participant_pubkey = generate_keypair()
 
         # Both have a matching aggregate fingerprint but cannot derive the script pubkey: 0 derives a different key, hardened(0) cannot be derived at all
-        for index in [0, hardened(0)]:
+        for index in [0, 1 << 31]:
             tx = CTransaction()
             tx.vin = [CTxIn(outpoint=COutPoint(hash=1, n=0), scriptSig=b"")]
             psbt = self.psbt_from_tx(tx)
@@ -976,7 +975,7 @@ class PSBTTest(BitcoinTestFramework):
 
         self.log.info("Test descriptorprocesspsbt updates PSBTv2 outputs before inputs are added")
         for has_input in [False, True]:
-            output_psbt = self.nodes[2].createpsbt([utxo] if has_input else [], {address: 1})
+            output_psbt = self.nodes[2].createpsbt([utxo] if has_input else [], [{address: 1}])
             processed = self.nodes[2].descriptorprocesspsbt(
                 psbt=output_psbt,
                 descriptors=[descriptor],
