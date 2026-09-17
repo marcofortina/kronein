@@ -6,15 +6,6 @@
 
 #include <key_io.h>
 
-/* Base58 characters are:
-     "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-
-  This is:
-  - All numbers except for '0'
-  - All upper-case letters except for 'I' and 'O'
-  - All lower-case letters except for 'l'
-*/
-
 BitcoinAddressEntryValidator::BitcoinAddressEntryValidator(QObject *parent) :
     QValidator(parent)
 {
@@ -64,12 +55,12 @@ QValidator::State BitcoinAddressEntryValidator::validate(QString &input, int &po
     {
         int ch = input.at(idx).unicode();
 
-        if (((ch >= '0' && ch<='9') ||
+        if ((ch >= '0' && ch<='9') ||
             (ch >= 'a' && ch<='z') ||
-            (ch >= 'A' && ch<='Z')) &&
-            ch != 'I' && ch != 'O') // Characters invalid in both Base58 and Bech32
+            (ch >= 'A' && ch<='Z'))
         {
-            // Alphanumeric and not a 'forbidden' character
+            // Bech32m addresses are alphanumeric. The check validator below
+            // enforces case, HRP, checksum, witness version, and program size.
         }
         else
         {

@@ -7,8 +7,8 @@
 
 #include <QValidator>
 
-/** Base58 entry widget validator, checks for valid characters and
- * removes some whitespace.
+/** Bech32m entry widget validator, checks for alphanumeric characters and
+ * removes whitespace.
  */
 class BitcoinAddressEntryValidator : public QValidator
 {
