@@ -407,9 +407,7 @@ static inline JSONRPCRequest transformNamedArguments(const JSONRPCRequest& in, c
 
         if (!options.empty() || fr != argsIn.end()) {
             for (int i = 0; i < hole; ++i) {
-                // Fill hole between specified parameters with JSON nulls,
-                // but not at the end (for backwards compatibility with calls
-                // that act based on number of specified parameters).
+                // Fill unspecified parameter positions with JSON nulls.
                 out.params.push_back(UniValue());
             }
             hole = 0;
@@ -432,6 +430,14 @@ static inline JSONRPCRequest transformNamedArguments(const JSONRPCRequest& in, c
         if (!options.empty()) {
             out.params.push_back(std::move(options));
             options = UniValue{UniValue::VOBJ};
+        }
+    }
+    // Named requests use a stable positional representation, including nulls
+    // for trailing unspecified parameters. A request containing only the
+    // positional "args" array retains its original length.
+    if (initial_param) {
+        for (int i = 0; i < hole; ++i) {
+            out.params.push_back(UniValue{});
         }
     }
     // If leftover "args" param was found, use it as a source of positional

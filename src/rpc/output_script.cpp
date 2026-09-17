@@ -220,8 +220,9 @@ static RPCHelpMan deriveaddresses()
 
             int64_t range_begin = 0;
             int64_t range_end = 0;
+            const bool range_provided{!request.params[1].isNull()};
 
-            if (request.params.size() >= 2 && !request.params[1].isNull()) {
+            if (range_provided) {
                 std::tie(range_begin, range_end) = ParseDescriptorRange(request.params[1]);
             }
 
@@ -232,11 +233,11 @@ static RPCHelpMan deriveaddresses()
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, error);
             }
             auto& desc = descs.at(0);
-            if (!desc->IsRange() && request.params.size() > 1) {
+            if (!desc->IsRange() && range_provided) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Range should not be specified for an un-ranged descriptor");
             }
 
-            if (desc->IsRange() && request.params.size() == 1) {
+            if (desc->IsRange() && !range_provided) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Range must be specified for a ranged descriptor");
             }
 
