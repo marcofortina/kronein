@@ -36,7 +36,6 @@
 #include <sys/stat.h>
 
 #include <event2/buffer.h>
-#include <event2/bufferevent.h>
 #include <event2/http.h>
 #include <event2/http_struct.h>
 #include <event2/keyvalq_struct.h>
@@ -200,17 +199,6 @@ static void http_request_cb(struct evhttp_request* req, void* arg)
         }, nullptr);
     }
 
-    // Disable reading to work around a libevent bug, fixed in 2.1.9
-    // See https://github.com/libevent/libevent/commit/5ff8eb26371c4dc56f384b2de35bea2d87814779
-    // and https://github.com/bitcoin/bitcoin/pull/11593.
-    if (event_get_version_number() >= 0x02010600 && event_get_version_number() < 0x02010900) {
-        if (conn) {
-            bufferevent* bev = evhttp_connection_get_bufferevent(conn);
-            if (bev) {
-                bufferevent_disable(bev, EV_READ);
-            }
-        }
-    }
     auto hreq{std::make_shared<HTTPRequest>(req, *static_cast<const util::SignalInterrupt*>(arg))};
 
     // Early address-based allow check
@@ -593,17 +581,6 @@ void HTTPRequest::WriteReply(int nStatus, std::span<const std::byte> reply)
     auto req_copy = req;
     HTTPEvent* ev = new HTTPEvent(eventBase, true, [req_copy, nStatus]{
         evhttp_send_reply(req_copy, nStatus, nullptr, nullptr);
-        // Re-enable reading from the socket. This is the second part of the libevent
-        // workaround above.
-        if (event_get_version_number() >= 0x02010600 && event_get_version_number() < 0x02010900) {
-            evhttp_connection* conn = evhttp_request_get_connection(req_copy);
-            if (conn) {
-                bufferevent* bev = evhttp_connection_get_bufferevent(conn);
-                if (bev) {
-                    bufferevent_enable(bev, EV_READ | EV_WRITE);
-                }
-            }
-        }
     });
     ev->trigger(nullptr);
     replySent = true;
