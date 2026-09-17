@@ -1615,12 +1615,6 @@ static RPCHelpMan analyzepsbt()
                                 {
                                     {RPCResult::Type::STR_HEX, "keyid", "Public key ID, hash160 of the public key, of a public key whose BIP 32 derivation path is missing"},
                                 }},
-                                {RPCResult::Type::ARR, "signatures", /*optional=*/true, "",
-                                {
-                                    {RPCResult::Type::STR_HEX, "keyid", "Public key ID, hash160 of the public key, of a public key whose signature is missing"},
-                                }},
-                                {RPCResult::Type::STR_HEX, "redeemscript", /*optional=*/true, "Hash160 of the redeem script that is missing"},
-                                {RPCResult::Type::STR_HEX, "witnessscript", /*optional=*/true, "SHA256 of the witness script that is missing"},
                             }},
                             {RPCResult::Type::STR, "next", /*optional=*/true, "Role of the next person that this input needs to go to"},
                         }},
@@ -1662,19 +1656,6 @@ static RPCHelpMan analyzepsbt()
                 missing_pubkeys_univ.push_back(HexStr(pubkey));
             }
             missing.pushKV("pubkeys", std::move(missing_pubkeys_univ));
-        }
-        if (!input.missing_redeem_script.IsNull()) {
-            missing.pushKV("redeemscript", HexStr(input.missing_redeem_script));
-        }
-        if (!input.missing_witness_script.IsNull()) {
-            missing.pushKV("witnessscript", HexStr(input.missing_witness_script));
-        }
-        if (!input.missing_sigs.empty()) {
-            UniValue missing_sigs_univ(UniValue::VARR);
-            for (const CKeyID& pubkey : input.missing_sigs) {
-                missing_sigs_univ.push_back(HexStr(pubkey));
-            }
-            missing.pushKV("signatures", std::move(missing_sigs_univ));
         }
         if (!missing.getKeys().empty()) {
             input_univ.pushKV("missing", std::move(missing));

@@ -179,18 +179,6 @@ bool MutableTransactionSignatureCreator::CreateMuSig2AggregateSig(const std::vec
 
 static bool GetPubKey(const SigningProvider& provider, const SignatureData& sigdata, const CKeyID& address, CPubKey& pubkey)
 {
-    // Look for pubkey in all partial sigs
-    const auto it = sigdata.signatures.find(address);
-    if (it != sigdata.signatures.end()) {
-        pubkey = it->second.first;
-        return true;
-    }
-    // Look for pubkey in pubkey lists
-    const auto& pk_it = sigdata.misc_pubkeys.find(address);
-    if (pk_it != sigdata.misc_pubkeys.end()) {
-        pubkey = pk_it->second.first;
-        return true;
-    }
     const auto& tap_pk_it = sigdata.tap_pubkeys.find(address);
     if (tap_pk_it != sigdata.tap_pubkeys.end()) {
         pubkey = tap_pk_it->second.GetEvenCorrespondingCPubKey();
@@ -529,7 +517,6 @@ bool ProduceSignature(const SigningProvider& provider, const BaseSignatureCreato
     bool solved{false};
 
     if (which_type == TxoutType::WITNESS_V1_TAPROOT) {
-        sigdata.witness = true;
         solved = SignTaproot(provider, creator, WitnessV1Taproot{XOnlyPubKey{solutions[0]}}, sigdata, result);
         if (solved) {
             sigdata.scriptWitness.stack = std::move(result);
@@ -539,11 +526,8 @@ bool ProduceSignature(const SigningProvider& provider, const BaseSignatureCreato
         solved = true;
     }
 
-    if (!sigdata.witness) sigdata.scriptWitness.stack.clear();
-    sigdata.scriptSig.clear();
-
     // Test solution
-    sigdata.complete = solved && VerifyScript(sigdata.scriptSig, fromPubKey, &sigdata.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, creator.Checker());
+    sigdata.complete = solved && VerifyScript(CScript{}, fromPubKey, &sigdata.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, creator.Checker());
     return sigdata.complete;
 }
 
@@ -551,11 +535,10 @@ SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nI
 {
     SignatureData data;
     assert(tx.vin.size() > nIn);
-    data.scriptSig = tx.vin[nIn].scriptSig;
     data.scriptWitness = tx.vin[nIn].scriptWitness;
 
     MutableTransactionSignatureChecker tx_checker(&tx, nIn, MissingDataBehavior::FAIL);
-    if (VerifyScript(data.scriptSig, txout.scriptPubKey, &data.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, tx_checker)) {
+    if (VerifyScript(CScript{}, txout.scriptPubKey, &data.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, tx_checker)) {
         data.complete = true;
     }
 
@@ -564,7 +547,7 @@ SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nI
 
 void UpdateInput(CTxIn& input, const SignatureData& data)
 {
-    input.scriptSig = data.scriptSig;
+    input.scriptSig.clear();
     input.scriptWitness = data.scriptWitness;
 }
 
@@ -575,13 +558,6 @@ void SignatureData::MergeSignatureData(SignatureData sigdata)
         *this = std::move(sigdata);
         return;
     }
-    if (redeem_script.empty() && !sigdata.redeem_script.empty()) {
-        redeem_script = sigdata.redeem_script;
-    }
-    if (witness_script.empty() && !sigdata.witness_script.empty()) {
-        witness_script = sigdata.witness_script;
-    }
-    signatures.insert(std::make_move_iterator(sigdata.signatures.begin()), std::make_move_iterator(sigdata.signatures.end()));
 }
 
 namespace {

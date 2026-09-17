@@ -19,9 +19,6 @@ struct PSBTInputAnalysis {
     PSBTRole next; //!< Which of the BIP 174 roles needs to handle this input next
 
     std::vector<CKeyID> missing_pubkeys; //!< Pubkeys whose BIP32 derivation path is missing
-    std::vector<CKeyID> missing_sigs;    //!< Pubkeys whose signatures are missing
-    uint160 missing_redeem_script;       //!< Hash160 of redeem script, if missing
-    uint256 missing_witness_script;      //!< SHA256 of witness script, if missing
 };
 
 /**

@@ -34,12 +34,6 @@ void initialize_script_sign()
 FUZZ_TARGET(script_sign, .init = initialize_script_sign)
 {
     FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
-    {
-        SignatureData signature_data_1{ConsumeScript(fuzzed_data_provider)};
-        SignatureData signature_data_2{ConsumeScript(fuzzed_data_provider)};
-        signature_data_1.MergeSignatureData(signature_data_2);
-    }
-
     FillableSigningProvider provider;
     CKey k = ConsumePrivateKey(fuzzed_data_provider);
     if (k.IsValid()) {
@@ -54,9 +48,6 @@ FUZZ_TARGET(script_sign, .init = initialize_script_sign)
             SignatureData signature_data_1 = DataFromTransaction(*mutable_transaction, n_in, *tx_out);
             CTxIn input;
             UpdateInput(input, signature_data_1);
-            const CScript script = ConsumeScript(fuzzed_data_provider);
-            SignatureData signature_data_2{script};
-            signature_data_1.MergeSignatureData(signature_data_2);
         }
         if (mutable_transaction) {
             CTransaction tx_from{*mutable_transaction};

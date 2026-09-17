@@ -327,6 +327,7 @@ PSBTError SignPSBTInput(const SigningProvider& provider, PartiallySignedTransact
     // Get UTXO
     if (input.witness_utxo.IsNull()) return PSBTError::MISSING_INPUTS;
     const CTxOut& utxo = input.witness_utxo;
+    if (!utxo.scriptPubKey.IsPayToTaproot()) return PSBTError::INCOMPLETE;
 
     // Get the sighash type
     // If both the field and the parameter are provided, they must match
@@ -364,7 +365,6 @@ PSBTError SignPSBTInput(const SigningProvider& provider, PartiallySignedTransact
         }
     }
 
-    sigdata.witness = false;
     bool sig_complete;
     if (txdata == nullptr) {
         sig_complete = ProduceSignature(provider, DUMMY_SIGNATURE_CREATOR, utxo.scriptPubKey, sigdata);
@@ -372,9 +372,6 @@ PSBTError SignPSBTInput(const SigningProvider& provider, PartiallySignedTransact
         MutableTransactionSignatureCreator creator(tx, index, txdata, *sighash);
         sig_complete = ProduceSignature(provider, creator, utxo.scriptPubKey, sigdata);
     }
-    // Native inputs must always produce a witness spend.
-    if (!sigdata.witness) return PSBTError::INCOMPLETE;
-
     // If we are not finalizing, set sigdata.complete to false to not set the scriptWitness
     if (!finalize && sigdata.complete) sigdata.complete = false;
 
@@ -383,9 +380,6 @@ PSBTError SignPSBTInput(const SigningProvider& provider, PartiallySignedTransact
     // Fill in the missing info
     if (out_sigdata) {
         out_sigdata->missing_pubkeys = sigdata.missing_pubkeys;
-        out_sigdata->missing_sigs = sigdata.missing_sigs;
-        out_sigdata->missing_redeem_script = sigdata.missing_redeem_script;
-        out_sigdata->missing_witness_script = sigdata.missing_witness_script;
     }
 
     return sig_complete ? PSBTError::OK : PSBTError::INCOMPLETE;
