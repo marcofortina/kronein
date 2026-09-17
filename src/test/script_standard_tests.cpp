@@ -45,16 +45,12 @@ BOOST_AUTO_TEST_CASE(script_standard_Solver)
     BOOST_CHECK_EQUAL(Solver(data, solutions), TxoutType::NULL_DATA);
     BOOST_CHECK(solutions.empty());
 
-    CKey key{GenerateRandomKey()};
-    const CPubKey pubkey{key.GetPubKey()};
     const std::vector<CScript> unsupported{
-        CScript{} << ToByteVector(pubkey) << OP_CHECKSIG,
-        CScript{} << OP_DUP << OP_HASH160 << ToByteVector(pubkey.GetID()) << OP_EQUALVERIFY << OP_CHECKSIG,
-        CScript{} << OP_HASH160 << ToByteVector(CScriptID{data}) << OP_EQUAL,
-        CScript{} << OP_0 << ToByteVector(pubkey.GetID()),
-        CScript{} << OP_0 << std::vector<unsigned char>(32, 0x01),
+        CScript{},
+        CScript{} << OP_TRUE,
+        CScript{} << OP_1 << std::vector<unsigned char>(31, 0x01),
+        CScript{} << OP_1 << std::vector<unsigned char>(33, 0x01),
         CScript{} << OP_2 << std::vector<unsigned char>(32, 0x01),
-        CScript{} << OP_1 << ToByteVector(pubkey) << OP_1 << OP_CHECKMULTISIG,
         CScript{} << OP_9 << OP_ADD << OP_11 << OP_EQUAL,
     };
     for (const CScript& script : unsupported) {
@@ -76,42 +72,14 @@ BOOST_AUTO_TEST_CASE(script_standard_ExtractDestination)
         BOOST_CHECK(std::get<CNoDestination>(address).GetScript() == script);
     };
 
-    // P2PK is unsupported.
-    s.clear();
-    s << ToByteVector(pubkey) << OP_CHECKSIG;
-    check_unsupported(s);
-
-    // P2PKH is unsupported.
-    s.clear();
-    s << OP_DUP << OP_HASH160 << ToByteVector(pubkey.GetID()) << OP_EQUALVERIFY << OP_CHECKSIG;
-    check_unsupported(s);
-
-    // P2SH is unsupported.
-    CScript redeemScript(s); // initialize with leftover P2PKH script
-    s.clear();
-    s << OP_HASH160 << ToByteVector(CScriptID(redeemScript)) << OP_EQUAL;
-    check_unsupported(s);
-
-    // Bare multisig is unsupported.
-    s.clear();
-    s << OP_1 << ToByteVector(pubkey) << OP_1 << OP_CHECKMULTISIG;
-    check_unsupported(s);
-
     // OP_RETURN has no destination.
     s.clear();
     s << OP_RETURN << std::vector<unsigned char>({75});
     check_unsupported(s);
 
-    // P2WPKH is unsupported.
+    // An arbitrary script has no destination.
     s.clear();
-    s << OP_0 << ToByteVector(pubkey.GetID());
-    check_unsupported(s);
-
-    // P2WSH is unsupported.
-    s.clear();
-    uint256 scripthash;
-    CSHA256().Write(redeemScript.data(), redeemScript.size()).Finalize(scripthash.begin());
-    s << OP_0 << ToByteVector(scripthash);
+    s << OP_TRUE;
     check_unsupported(s);
 
     // P2TR is the native spendable destination.

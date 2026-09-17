@@ -101,7 +101,7 @@ class NativeBlockTest(BitcoinTestFramework):
         data_block.solve()
         self.submit(data_block)
 
-        self.log.info("Reject a transaction creating a pre-Taproot output")
+        self.log.info("Reject a transaction creating a non-native output")
         non_native = self.spend(spend, output_script=CScript([OP_TRUE]))
         self.submit(self.make_block(transactions=[non_native]), "bad-txns-non-native-output")
 
@@ -114,7 +114,7 @@ class NativeBlockTest(BitcoinTestFramework):
         self.submit(self.make_block(transactions=[wrong_tx_version]), "bad-tx-version")
         self.submit(self.make_block(version=2), "bad-version(0x00000002)")
 
-        self.log.info("Reject a coinbase that creates a pre-Taproot output")
+        self.log.info("Reject a coinbase that creates a non-native output")
         self.submit(self.make_block(coinbase_script=CScript([OP_TRUE])), "bad-txns-non-native-output")
 
         self.log.info("Reject malformed block structure and reward")

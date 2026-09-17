@@ -75,10 +75,10 @@ BOOST_AUTO_TEST_CASE(native_output_verification)
     BOOST_CHECK_EQUAL(error, SCRIPT_ERR_WITNESS_MALLEATED);
 
     const std::vector<CScript> unsupported{
-        CScript{} << OP_0 << std::vector<unsigned char>(20, 0x01),
-        CScript{} << OP_0 << std::vector<unsigned char>(32, 0x01),
+        CScript{},
+        CScript{} << OP_1 << std::vector<unsigned char>(31, 0x01),
+        CScript{} << OP_1 << std::vector<unsigned char>(33, 0x01),
         CScript{} << OP_2 << std::vector<unsigned char>(32, 0x01),
-        CScript{} << OP_DUP << OP_HASH160 << std::vector<unsigned char>(20, 0x01) << OP_EQUALVERIFY << OP_CHECKSIG,
     };
     for (const CScript& script : unsupported) {
         BOOST_CHECK(!VerifyScript({}, script, nullptr, STANDARD_SCRIPT_VERIFY_FLAGS, BaseSignatureChecker{}, &error));

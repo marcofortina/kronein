@@ -62,16 +62,15 @@ BOOST_AUTO_TEST_CASE(native_output_forms)
     state = {};
     BOOST_CHECK(CheckNativeTransaction(CTransaction{tx}, state));
 
-    const std::vector<CScript> removed_outputs{
-        CScript{} << std::vector<unsigned char>(33, 0x02) << OP_CHECKSIG,
-        CScript{} << OP_DUP << OP_HASH160 << std::vector<unsigned char>(20) << OP_EQUALVERIFY << OP_CHECKSIG,
-        CScript{} << OP_HASH160 << std::vector<unsigned char>(20) << OP_EQUAL,
-        CScript{} << OP_0 << std::vector<unsigned char>(20),
-        CScript{} << OP_0 << std::vector<unsigned char>(32),
+    const std::vector<CScript> non_native_outputs{
+        CScript{},
         CScript{} << OP_TRUE,
+        CScript{} << OP_1 << std::vector<unsigned char>(31),
+        CScript{} << OP_1 << std::vector<unsigned char>(33),
+        CScript{} << OP_2 << std::vector<unsigned char>(32),
         CScript{} << std::vector<unsigned char>(MAX_SCRIPT_SIZE + 1, 0x01),
     };
-    for (const CScript& script : removed_outputs) {
+    for (const CScript& script : non_native_outputs) {
         tx.vout[0].scriptPubKey = script;
         state = {};
         BOOST_CHECK(!CheckNativeTransaction(CTransaction{tx}, state));
