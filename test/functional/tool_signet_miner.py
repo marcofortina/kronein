@@ -40,18 +40,13 @@ class SignetMinerTest(BitcoinTestFramework):
     def set_test_params(self):
         self.chain = "signet"
         self.setup_clean_chain = True
-        self.num_nodes = 4
+        self.num_nodes = 1
 
         # Generate and specify a key-path Taproot signet challenge.
         internal_key = compute_xonly_pubkey(CHALLENGE_PRIVATE_KEY)[0]
         challenge = taproot_construct(internal_key).scriptPubKey
 
-        self.extra_args = [
-            [f'-signetchallenge={challenge.hex()}'],
-            ["-signetchallenge=51"], # OP_TRUE
-            ["-signetchallenge=60"], # OP_16
-            ["-signetchallenge=202cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"], # sha256("hello")
-        ]
+        self.extra_args = [[f'-signetchallenge={challenge.hex()}']]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_cli()
@@ -83,7 +78,7 @@ class SignetMinerTest(BitcoinTestFramework):
         assert_equal(node.getblockcount(), n_blocks + 1)
 
     # generate block using the signet miner tool genpsbt and solvepsbt commands
-    def mine_block_manual(self, node, *, sign):
+    def mine_block_manual(self, node):
         n_blocks = node.getblockcount()
         base_dir = self.config["environment"]["SRCDIR"]
         signet_miner_path = os.path.join(base_dir, "contrib", "signet", "miner")
@@ -102,11 +97,10 @@ class SignetMinerTest(BitcoinTestFramework):
                 '--poolnum=98',
             ], check=True, text=True, input=json.dumps(template), capture_output=True)
         psbt = genpsbt.stdout.strip()
-        if sign:
-            self.log.debug("Sign the PSBT")
-            res = node.walletprocesspsbt(psbt=psbt, sign=True, sighashtype='ALL')
-            assert res['complete']
-            psbt = res['psbt']
+        self.log.debug("Sign the PSBT")
+        res = node.walletprocesspsbt(psbt=psbt, sign=True, sighashtype='DEFAULT')
+        assert res['complete']
+        psbt = res['psbt']
         solvepsbt = subprocess.run(base_cmd + [
                 'solvepsbt',
                 f'--grind-cmd={shlex.join(util_argv)}',
@@ -124,30 +118,8 @@ class SignetMinerTest(BitcoinTestFramework):
         assert get_signet_commitment(get_segwit_commitment(node))
 
         self.log.info("Mine manually using genpsbt and solvepsbt")
-        self.mine_block_manual(node, sign=True)
+        self.mine_block_manual(node)
         assert get_signet_commitment(get_segwit_commitment(node))
-
-        node = self.nodes[1]
-        self.log.info("Signet node with trivial challenge (OP_TRUE)")
-        self.mine_block(node)
-        # MAY omit signet commitment (BIP 325). Do so for better compatibility
-        # with signet unaware mining software and hardware.
-        assert get_signet_commitment(get_segwit_commitment(node)) is None
-
-        node = self.nodes[2]
-        self.log.info("Signet node with trivial challenge (OP_16)")
-        self.mine_block(node)
-        assert get_signet_commitment(get_segwit_commitment(node)) is None
-
-        node = self.nodes[3]
-        self.log.info("Signet node with trivial challenge (push sha256 hash)")
-        self.mine_block(node)
-        assert get_signet_commitment(get_segwit_commitment(node)) is None
-
-        self.log.info("Manual mining with a trivial challenge doesn't require a PSBT")
-        self.mine_block_manual(node, sign=False)
-        assert get_signet_commitment(get_segwit_commitment(node)) is None
-
 
 if __name__ == "__main__":
     SignetMinerTest(__file__).main()

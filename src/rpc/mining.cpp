@@ -419,7 +419,7 @@ static RPCHelpMan getmininginfo()
                         {RPCResult::Type::NUM, "pooledtx", "The size of the mempool"},
                         {RPCResult::Type::STR_AMOUNT, "blockmintxfee", "Minimum feerate of packages selected for block inclusion in " + CURRENCY_UNIT + "/kvB"},
                         {RPCResult::Type::STR, "chain", "current network name (" LIST_CHAIN_NAMES ")"},
-                        {RPCResult::Type::STR_HEX, "signet_challenge", /*optional=*/true, "The block challenge (aka. block script), in hexadecimal (only present if the current network is a signet)"},
+                        {RPCResult::Type::STR_HEX, "signet_challenge", /*optional=*/true, "The P2TR block challenge scriptPubKey, in hexadecimal (only present if the current network is a signet)"},
                         {RPCResult::Type::OBJ, "next", "The next block",
                         {
                             {RPCResult::Type::NUM, "height", "The next height"},

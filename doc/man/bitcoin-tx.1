@@ -50,16 +50,13 @@ is defined by the \fB\-signetchallenge\fR parameter
 .HP
 \fB\-signetchallenge\fR
 .IP
-Blocks must satisfy the given script to be considered valid (only for
-signet networks; defaults to the global default signet test
-network challenge)
+Blocks must provide a Taproot witness satisfying this P2TR scriptPubKey
+(only for signet networks; defaults to the project Signet challenge)
 .HP
 \fB\-signetseednode\fR
 .IP
 Specify a seed node for the signet network, in the hostname[:port]
-format, e.g. sig.net:1234 (may be used multiple times to specify
-multiple seed nodes; defaults to the global default signet test
-network seed node(s))
+format, e.g. sig.net:1234 (may be used multiple times)
 .HP
 \fB\-testnet4\fR
 .IP

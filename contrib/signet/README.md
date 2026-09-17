@@ -7,16 +7,15 @@ getcoins.py
 
 A script to call a faucet to get Signet coins.
 
-Syntax: `getcoins.py [-h|--help] [-c|--cmd=<bitcoin-cli path>] [-f|--faucet=<faucet URL>] [-a|--addr=<signet Bech32m address>] [-p|--password=<faucet password>] [--] [<bitcoin-cli args>]`
+Syntax: `getcoins.py [-h|--help] [-c|--cmd=<bitcoin-cli path>] -f|--faucet=<faucet URL> [-a|--addr=<signet Bech32m address>] [-p|--password=<faucet password>] [--] [<bitcoin-cli args>]`
 
 * `--cmd` lets you customize the bitcoin-cli path. By default it will look for it in the PATH
-* `--faucet` lets you specify which faucet to use; the faucet is assumed to be compatible with https://github.com/kallewoof/bitcoin-faucet
+* `--faucet` specifies the project Signet faucet to use; the faucet is assumed to be compatible with https://github.com/kallewoof/bitcoin-faucet
 * `--addr` lets you specify a Signet Taproot address. This and `--cmd` above complement each other (i.e. you do not need `bitcoin-cli` if you use `--addr`)
 * `--password` lets you specify a faucet password; this is handy if you are in a classroom and set up your own faucet for your students; (above faucet does not limit by IP when password is enabled)
 
-If using the default network, invoking the script with no arguments should be sufficient under normal
-circumstances, but if multiple people are behind the same IP address, the faucet will by default only
-accept one claim per day. See `--password` above.
+The faucet URL is intentionally explicit because this project Signet is independent from Bitcoin's
+public Signet.
 
 miner
 =====
@@ -67,7 +66,9 @@ The --standby-delay parameter can be used to make a backup miner that only mines
 Advanced usage
 --------------
 
-The process generate follows internally is to get a block template, convert that into a PSBT, sign the PSBT, move the signature from the signed PSBT into the block template's coinbase, grind proof of work for the block, and then submit the block to the network.
+The Signet challenge must be a P2TR scriptPubKey. The generate process gets a block template, converts
+the virtual challenge spend into a PSBT, signs its Taproot input, moves the final witness into the block
+template's coinbase, grinds proof of work, and submits the block.
 
 These steps can instead be done explicitly:
 
@@ -79,5 +80,3 @@ These steps can instead be done explicitly:
       $CLI -signet -stdin submitblock
 
 This is intended to allow you to replace part of the pipeline for further experimentation (eg, to sign the block with a hardware wallet).
-
-For custom signets with a trivial challenge such as `OP_TRUE` and `OP_2` the walletprocesspsbt step can be skipped.

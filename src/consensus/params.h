@@ -41,8 +41,8 @@ struct Params {
     uint256 defaultAssumeValid;
 
     /**
-     * If true, witness commitments contain a payload equal to a Bitcoin Script solution
-     * to the signet challenge. See BIP325.
+     * If true, witness commitments contain a serialized Taproot witness satisfying
+     * the P2TR Signet challenge.
      */
     bool signet_blocks{false};
     std::vector<uint8_t> signet_challenge;

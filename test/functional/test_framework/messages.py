@@ -78,7 +78,7 @@ MAGIC_BYTES = {
     "mainnet": b"\xf9\xbe\xb4\xd9",
     "testnet4": b"\x1c\x16\x3f\x28",
     "regtest": b"\xfa\xbf\xb5\xda",
-    "signet": b"\x0a\x03\xcf\x40",
+    "signet": b"\x4c\x4a\x0e\xc6",
 }
 
 def sha256(s):

@@ -1297,7 +1297,7 @@ RPCHelpMan getblockchaininfo()
                 {RPCResult::Type::NUM, "pruneheight", /*optional=*/true, "the first block unpruned, all previous blocks were pruned (only present if pruning is enabled)"},
                 {RPCResult::Type::BOOL, "automatic_pruning", /*optional=*/true, "whether automatic pruning is enabled (only present if pruning is enabled)"},
                 {RPCResult::Type::NUM, "prune_target_size", /*optional=*/true, "the target size used by pruning (only present if automatic pruning is enabled)"},
-                {RPCResult::Type::STR_HEX, "signet_challenge", /*optional=*/true, "the block challenge (aka. block script), in hexadecimal (only present if the current network is a signet)"},
+                {RPCResult::Type::STR_HEX, "signet_challenge", /*optional=*/true, "the P2TR block challenge scriptPubKey, in hexadecimal (only present if the current network is a signet)"},
                 {RPCResult::Type::ARR, "warnings", "any network and blockchain warnings",
                     {
                         {RPCResult::Type::STR, "", "warning"},

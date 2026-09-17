@@ -67,7 +67,7 @@ DIFF_4_N_BITS = 0x1c3fffc0
 DIFF_4_TARGET = int(DIFF_1_TARGET / 4)
 assert_equal(uint256_from_compact(DIFF_4_N_BITS), DIFF_4_TARGET)
 
-# From BIP325
+# Signet commitment header
 SIGNET_HEADER = b"\xec\xc7\xda\xa2"
 
 # Number of blocks to create in temporary blockchain branch for reorg testing

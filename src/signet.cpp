@@ -17,7 +17,6 @@
 #include <util/log.h>
 
 #include <algorithm>
-#include <cstddef>
 #include <cstdint>
 #include <exception>
 #include <memory>
@@ -26,33 +25,6 @@
 #include <vector>
 
 static constexpr uint8_t SIGNET_HEADER[4] = {0xec, 0xc7, 0xda, 0xa2};
-
-static constexpr script_verify_flags BLOCK_SCRIPT_VERIFY_FLAGS = SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_NULLDUMMY;
-
-static bool SignetStackResult(const std::vector<unsigned char>& value)
-{
-    for (size_t i = 0; i < value.size(); ++i) {
-        if (value[i] != 0) return i != value.size() - 1 || value[i] != 0x80;
-    }
-    return false;
-}
-
-static bool VerifySignetChallenge(const CScript& solution, const CScript& challenge, const CScriptWitness& witness, const BaseSignatureChecker& checker)
-{
-    int witness_version;
-    std::vector<unsigned char> witness_program;
-    if (challenge.IsWitnessProgram(witness_version, witness_program)) {
-        return VerifyScript(solution, challenge, &witness, BLOCK_SCRIPT_VERIFY_FLAGS, checker);
-    }
-
-    // Signet challenges are block-authentication scripts, not transaction
-    // outputs. Keep their isolated bare-script evaluator while UTXO spends use
-    // the native-only VerifyScript path.
-    std::vector<std::vector<unsigned char>> stack;
-    if (!EvalScript(stack, solution, BLOCK_SCRIPT_VERIFY_FLAGS, checker, SigVersion::BASE)) return false;
-    if (!EvalScript(stack, challenge, BLOCK_SCRIPT_VERIFY_FLAGS, checker, SigVersion::BASE)) return false;
-    return !stack.empty() && SignetStackResult(stack.back());
-}
 
 static bool FetchAndClearCommitmentSection(const std::span<const uint8_t> header, CScript& witness_commitment, std::vector<uint8_t>& result)
 {
@@ -94,6 +66,8 @@ static uint256 ComputeModifiedMerkleRoot(const CMutableTransaction& cb, const CB
 
 std::optional<SignetTxs> SignetTxs::Create(const CBlock& block, const CScript& challenge)
 {
+    if (!challenge.IsPayToTaproot()) return std::nullopt;
+
     CMutableTransaction tx_to_spend;
     tx_to_spend.nLockTime = 0;
     tx_to_spend.vin.emplace_back(COutPoint(), CScript(OP_0), 0);
@@ -120,16 +94,14 @@ std::optional<SignetTxs> SignetTxs::Create(const CBlock& block, const CScript& c
 
     std::vector<uint8_t> signet_solution;
     if (!FetchAndClearCommitmentSection(SIGNET_HEADER, witness_commitment, signet_solution)) {
-        // no signet solution -- allow this to support OP_TRUE as trivial block challenge
-    } else {
-        try {
-            SpanReader v{signet_solution};
-            v >> tx_spending.vin[0].scriptSig;
-            v >> tx_spending.vin[0].scriptWitness.stack;
-            if (!v.empty()) return std::nullopt; // extraneous data encountered
-        } catch (const std::exception&) {
-            return std::nullopt; // parsing error
-        }
+        return std::nullopt;
+    }
+    try {
+        SpanReader v{signet_solution};
+        v >> tx_spending.vin[0].scriptWitness.stack;
+        if (!v.empty() || tx_spending.vin[0].scriptWitness.stack.empty()) return std::nullopt;
+    } catch (const std::exception&) {
+        return std::nullopt;
     }
     uint256 signet_merkle = ComputeModifiedMerkleRoot(modified_cb, block);
 
@@ -161,14 +133,13 @@ bool CheckSignetBlockSolution(const CBlock& block, const Consensus::Params& cons
         return false;
     }
 
-    const CScript& scriptSig = signet_txs->m_to_sign.vin[0].scriptSig;
     const CScriptWitness& witness = signet_txs->m_to_sign.vin[0].scriptWitness;
 
     PrecomputedTransactionData txdata;
     txdata.Init(signet_txs->m_to_sign, {signet_txs->m_to_spend.vout[0]});
     TransactionSignatureChecker sigcheck(&signet_txs->m_to_sign, /* nInIn= */ 0, txdata, MissingDataBehavior::ASSERT_FAIL);
 
-    if (!VerifySignetChallenge(scriptSig, signet_txs->m_to_spend.vout[0].scriptPubKey, witness, sigcheck)) {
+    if (!VerifyScript(CScript{}, signet_txs->m_to_spend.vout[0].scriptPubKey, &witness, SCRIPT_VERIFY_NONE, sigcheck)) {
         LogDebug(BCLog::VALIDATION, "CheckSignetBlockSolution: Errors in block (block solution invalid)\n");
         return false;
     }

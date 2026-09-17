@@ -16,7 +16,7 @@ struct Params;
 } // namespace Consensus
 
 /**
- * Extract signature and check whether a block has a valid solution
+ * Extract the Taproot witness and check whether a block has a valid solution.
  */
 bool CheckSignetBlockSolution(const CBlock& block, const Consensus::Params& consensusParams);
 
@@ -24,7 +24,7 @@ bool CheckSignetBlockSolution(const CBlock& block, const Consensus::Params& cons
  * Generate the signet tx corresponding to the given block
  *
  * The signet tx commits to everything in the block except:
- * 1. It hashes a modified merkle root with the signet signature removed.
+ * 1. It hashes a modified merkle root with the Signet witness removed.
  * 2. It skips the nonce.
  */
 class SignetTxs {
