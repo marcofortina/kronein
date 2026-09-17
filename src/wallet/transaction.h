@@ -266,9 +266,6 @@ public:
         m_cached_from_me = std::nullopt;
     }
 
-    /** True if only scriptSigs are different */
-    bool IsEquivalentTo(const CWalletTx& tx) const;
-
     bool InMempool() const;
 
     int64_t GetTxTime() const;

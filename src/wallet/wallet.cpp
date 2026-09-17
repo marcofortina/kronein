@@ -701,43 +701,6 @@ void CWallet::Close()
     GetDatabase().Close();
 }
 
-void CWallet::SyncMetaData(std::pair<TxSpends::iterator, TxSpends::iterator> range)
-{
-    // We want all the wallet transactions in range to have the same metadata as
-    // the oldest (smallest nOrderPos).
-    // So: find smallest nOrderPos:
-
-    int nMinOrderPos = std::numeric_limits<int>::max();
-    const CWalletTx* copyFrom = nullptr;
-    for (TxSpends::iterator it = range.first; it != range.second; ++it) {
-        const CWalletTx* wtx = &mapWallet.at(it->second);
-        if (wtx->nOrderPos < nMinOrderPos) {
-            nMinOrderPos = wtx->nOrderPos;
-            copyFrom = wtx;
-        }
-    }
-
-    if (!copyFrom) {
-        return;
-    }
-
-    // Now copy data from copyFrom to rest:
-    for (TxSpends::iterator it = range.first; it != range.second; ++it)
-    {
-        const Txid& hash = it->second;
-        CWalletTx* copyTo = &mapWallet.at(hash);
-        if (copyFrom == copyTo) continue;
-        assert(copyFrom && "Oldest wallet transaction in range assumed to have been found.");
-        if (!copyFrom->IsEquivalentTo(*copyTo)) continue;
-        copyTo->mapValue = copyFrom->mapValue;
-        copyTo->vOrderForm = copyFrom->vOrderForm;
-        // nTimeReceived not copied on purpose
-        copyTo->nTimeSmart = copyFrom->nTimeSmart;
-        // nOrderPos not copied on purpose
-        // cached members not copied on purpose
-    }
-}
-
 /**
  * Outpoint is spent if any non-conflicted transaction
  * spends it:
@@ -764,10 +727,6 @@ void CWallet::AddToSpends(const COutPoint& outpoint, const Txid& txid)
     mapTxSpends.insert(std::make_pair(outpoint, txid));
 
     UnlockCoin(outpoint);
-
-    std::pair<TxSpends::iterator, TxSpends::iterator> range;
-    range = mapTxSpends.equal_range(outpoint);
-    SyncMetaData(range);
 }
 
 
