@@ -61,7 +61,9 @@ void IpcPipeTest()
     // Setup: create FooImplementation object and listen for FooInterface requests
     std::promise<std::unique_ptr<mp::ProxyClient<gen::FooInterface>>> foo_promise;
     std::thread thread([&]() {
-        mp::EventLoop loop("IpcPipeTest", [](bool raise, const std::string& log) { LogInfo("LOG%i: %s", raise, log); });
+        mp::EventLoop loop("IpcPipeTest", [](mp::LogMessage log) {
+            LogInfo("LOG%i: %s", log.level == mp::Log::Raise, log.message);
+        });
         auto pipe = loop.m_io_context.provider->newTwoWayPipe();
 
         auto connection_client = std::make_unique<mp::Connection>(loop, kj::mv(pipe.ends[0]));
