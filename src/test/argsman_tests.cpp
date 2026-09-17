@@ -179,12 +179,12 @@ BOOST_FIXTURE_TEST_CASE(util_CheckValue, CheckValueTest)
     CheckValue(M::ALLOW_ANY, "-novalue=1", Expect{false}.String("0").Int(0).Bool(false).List({}));
     CheckValue(M::ALLOW_ANY, "-novalue=2", Expect{false}.String("0").Int(0).Bool(false).List({}));
     CheckValue(M::ALLOW_ANY, "-novalue=abc", Expect{true}.String("1").Int(1).Bool(true).List({"1"}));
-    CheckValue(M::ALLOW_ANY, "-value", Expect{""}.String("").Int(0).Bool(true).List({""}));
-    CheckValue(M::ALLOW_ANY, "-value=", Expect{""}.String("").Int(0).Bool(true).List({""}));
+    CheckValue(M::ALLOW_ANY, "-value", Expect{""}.String("").DefaultInt().Bool(true).List({""}));
+    CheckValue(M::ALLOW_ANY, "-value=", Expect{""}.String("").DefaultInt().Bool(true).List({""}));
     CheckValue(M::ALLOW_ANY, "-value=0", Expect{"0"}.String("0").Int(0).Bool(false).List({"0"}));
     CheckValue(M::ALLOW_ANY, "-value=1", Expect{"1"}.String("1").Int(1).Bool(true).List({"1"}));
     CheckValue(M::ALLOW_ANY, "-value=2", Expect{"2"}.String("2").Int(2).Bool(true).List({"2"}));
-    CheckValue(M::ALLOW_ANY, "-value=abc", Expect{"abc"}.String("abc").Int(0).Bool(false).List({"abc"}));
+    CheckValue(M::ALLOW_ANY, "-value=abc", Expect{"abc"}.String("abc").DefaultInt().Bool(false).List({"abc"}));
 }
 
 struct NoIncludeConfTest {
@@ -264,7 +264,7 @@ BOOST_AUTO_TEST_CASE(util_ParseInvalidParameters)
     BOOST_CHECK_EQUAL(error, "Invalid parameter -test.registered");
 }
 
-static void TestParse(const std::string& str, bool expected_bool, int64_t expected_int)
+static void TestParse(const std::string& str, bool expected_bool, std::optional<int64_t> expected_int)
 {
     TestArgsManager test;
     test.SetupArgs({{"-value", ArgsManager::ALLOW_ANY}});
@@ -274,48 +274,44 @@ static void TestParse(const std::string& str, bool expected_bool, int64_t expect
     BOOST_CHECK(test.ParseParameters(2, argv, error));
     BOOST_CHECK_EQUAL(test.GetBoolArg("-value", false), expected_bool);
     BOOST_CHECK_EQUAL(test.GetBoolArg("-value", true), expected_bool);
-    BOOST_CHECK_EQUAL(test.GetIntArg("-value", 99998), expected_int);
-    BOOST_CHECK_EQUAL(test.GetIntArg("-value", 99999), expected_int);
+    BOOST_CHECK_EQUAL(test.GetIntArg("-value", 99998), expected_int.value_or(99998));
+    BOOST_CHECK_EQUAL(test.GetIntArg("-value", 99999), expected_int.value_or(99999));
 }
 
 // Test bool and int parsing.
 BOOST_AUTO_TEST_CASE(util_ArgParsing)
 {
-    // Some of these cases could be ambiguous or surprising to users, and might
-    // be worth triggering errors or warnings in the future. But for now basic
-    // test coverage is useful to avoid breaking backwards compatibility
-    // unintentionally.
-    TestParse("", true, 0);
-    TestParse(" ", false, 0);
+    TestParse("", true, std::nullopt);
+    TestParse(" ", false, std::nullopt);
     TestParse("0", false, 0);
-    TestParse("0 ", false, 0);
-    TestParse(" 0", false, 0);
-    TestParse("+0", false, 0);
+    TestParse("0 ", false, std::nullopt);
+    TestParse(" 0", false, std::nullopt);
+    TestParse("+0", false, std::nullopt);
     TestParse("-0", false, 0);
     TestParse("5", true, 5);
-    TestParse("5 ", true, 5);
-    TestParse(" 5", true, 5);
-    TestParse("+5", true, 5);
+    TestParse("5 ", false, std::nullopt);
+    TestParse(" 5", false, std::nullopt);
+    TestParse("+5", false, std::nullopt);
     TestParse("-5", true, -5);
-    TestParse("0 5", false, 0);
-    TestParse("5 0", true, 5);
+    TestParse("0 5", false, std::nullopt);
+    TestParse("5 0", false, std::nullopt);
     TestParse("050", true, 50);
-    TestParse("0.", false, 0);
-    TestParse("5.", true, 5);
-    TestParse("0.0", false, 0);
-    TestParse("0.5", false, 0);
-    TestParse("5.0", true, 5);
-    TestParse("5.5", true, 5);
-    TestParse("x", false, 0);
-    TestParse("x0", false, 0);
-    TestParse("x5", false, 0);
-    TestParse("0x", false, 0);
-    TestParse("5x", true, 5);
-    TestParse("0x5", false, 0);
-    TestParse("false", false, 0);
-    TestParse("true", false, 0);
-    TestParse("yes", false, 0);
-    TestParse("no", false, 0);
+    TestParse("0.", false, std::nullopt);
+    TestParse("5.", false, std::nullopt);
+    TestParse("0.0", false, std::nullopt);
+    TestParse("0.5", false, std::nullopt);
+    TestParse("5.0", false, std::nullopt);
+    TestParse("5.5", false, std::nullopt);
+    TestParse("x", false, std::nullopt);
+    TestParse("x0", false, std::nullopt);
+    TestParse("x5", false, std::nullopt);
+    TestParse("0x", false, std::nullopt);
+    TestParse("5x", false, std::nullopt);
+    TestParse("0x5", false, std::nullopt);
+    TestParse("false", false, std::nullopt);
+    TestParse("true", false, std::nullopt);
+    TestParse("yes", false, std::nullopt);
+    TestParse("no", false, std::nullopt);
 }
 
 BOOST_AUTO_TEST_CASE(util_GetBoolArg)

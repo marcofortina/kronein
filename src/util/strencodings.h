@@ -19,7 +19,6 @@
 #include <charconv>
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -103,44 +102,6 @@ std::string EncodeBase32(std::string_view str, bool pad = true);
  * @return              true if port-portion is absent or within its allowed range, otherwise false
  */
 bool SplitHostPort(std::string_view in, uint16_t& portOut, std::string& hostOut);
-
-// LocaleIndependentAtoi is provided for backwards compatibility reasons.
-//
-// New code should use ToIntegral.
-//
-// The goal of LocaleIndependentAtoi is to replicate the defined behaviour of
-// std::atoi as it behaves under the "C" locale, and remove some undefined
-// behavior. If the parsed value is bigger than the integer type's maximum
-// value, or smaller than the integer type's minimum value, std::atoi has
-// undefined behavior, while this function returns the maximum or minimum
-// values, respectively.
-template <typename T>
-T LocaleIndependentAtoi(std::string_view str)
-{
-    static_assert(std::is_integral_v<T>);
-    T result;
-    // Emulate atoi(...) handling of white space and leading +/-.
-    std::string_view s = util::TrimStringView(str);
-    if (!s.empty() && s[0] == '+') {
-        if (s.length() >= 2 && s[1] == '-') {
-            return 0;
-        }
-        s = s.substr(1);
-    }
-    auto [_, error_condition] = std::from_chars(s.data(), s.data() + s.size(), result);
-    if (error_condition == std::errc::result_out_of_range) {
-        if (s.length() >= 1 && s[0] == '-') {
-            // Saturate underflow, per strtoll's behavior.
-            return std::numeric_limits<T>::min();
-        } else {
-            // Saturate overflow, per strtoll's behavior.
-            return std::numeric_limits<T>::max();
-        }
-    } else if (error_condition != std::errc{}) {
-        return 0;
-    }
-    return result;
-}
 
 /**
  * Tests if the given character is a decimal digit.

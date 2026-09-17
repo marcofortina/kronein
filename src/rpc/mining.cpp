@@ -776,7 +776,11 @@ static RPCHelpMan getblocktemplate()
             // Assume the longpollid is a block hash. If it's not then we return
             // early below.
             hashWatchedChain = ParseHashV(lpstr.substr(0, 64), "longpollid");
-            nTransactionsUpdatedLastLP = LocaleIndependentAtoi<int64_t>(lpstr.substr(64));
+            const auto tx_updates{ToIntegral<unsigned int>(lpstr.substr(64))};
+            if (!tx_updates) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid longpollid transaction counter");
+            }
+            nTransactionsUpdatedLastLP = *tx_updates;
         }
         else
         {

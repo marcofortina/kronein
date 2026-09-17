@@ -8,7 +8,7 @@ import random
 import threading
 
 from test_framework.test_framework import BitcoinTestFramework
-from test_framework.util import get_rpc_proxy
+from test_framework.util import assert_raises_rpc_error, get_rpc_proxy
 from test_framework.wallet import MiniWallet
 
 
@@ -38,6 +38,12 @@ class GetBlockTemplateLPTest(BitcoinTestFramework):
         longpollid = template['longpollid']
         template2 = self.nodes[0].getblocktemplate({'rules': ['segwit']})
         assert template2['longpollid'] == longpollid
+        assert_raises_rpc_error(
+            -8,
+            "Invalid longpollid transaction counter",
+            self.nodes[0].getblocktemplate,
+            {'longpollid': longpollid[:64] + 'invalid', 'rules': ['segwit']},
+        )
 
         self.log.info("Test that longpoll waits if we do nothing")
         thr = LongpollThread(self.nodes[0])

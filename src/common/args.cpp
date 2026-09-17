@@ -39,26 +39,12 @@ const char * const BITCOIN_SETTINGS_FILENAME = "settings.json";
 
 ArgsManager gArgs;
 
-/**
- * Interpret a string argument as a boolean.
- *
- * The definition of LocaleIndependentAtoi<int>() requires that non-numeric string values
- * like "foo", return 0. This means that if a user unintentionally supplies a
- * non-integer argument here, the return value is always false. This means that
- * -foo=false does what the user probably expects, but -foo=true is well defined
- * but does not do what they probably expected.
- *
- * The return value of LocaleIndependentAtoi<int>(...) is zero when given input not
- * representable as an int.
- *
- * For a more extensive discussion of this topic (and a wide range of opinions
- * on the Right Way to change this code), see PR12713.
- */
+/** Interpret a complete decimal integer string as a boolean. */
 static bool InterpretBool(const std::string& strValue)
 {
     if (strValue.empty())
         return true;
-    return (LocaleIndependentAtoi<int>(strValue) != 0);
+    return ToIntegral<int>(strValue).value_or(0) != 0;
 }
 
 static std::string SettingName(const std::string& arg)
@@ -502,7 +488,7 @@ std::optional<Int> SettingTo(const common::SettingsValue& value)
     if (value.isFalse()) return 0;
     if (value.isTrue()) return 1;
     if (value.isNum()) return value.getInt<Int>();
-    return LocaleIndependentAtoi<Int>(value.get_str());
+    return ToIntegral<Int>(value.get_str());
 }
 
 template <std::integral Int>

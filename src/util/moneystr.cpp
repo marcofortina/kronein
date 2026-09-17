@@ -81,7 +81,7 @@ std::optional<CAmount> ParseMoney(const std::string& money_string)
         return std::nullopt;
     if (nUnits < 0 || nUnits > COIN)
         return std::nullopt;
-    int64_t nWhole = LocaleIndependentAtoi<int64_t>(strWhole);
+    const int64_t nWhole = strWhole.empty() ? 0 : ToIntegral<int64_t>(strWhole).value();
     CAmount value = nWhole * COIN + nUnits;
 
     if (!MoneyRange(value)) {
