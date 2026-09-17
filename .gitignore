@@ -10,6 +10,9 @@
 
 *.pyc
 
+/.venv/
+/test/cache/
+
 # Only ignore unexpected patches
 *.patch
 !ci/test/*.patch
