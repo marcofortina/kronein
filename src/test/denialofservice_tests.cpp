@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(outbound_slow_chain_eviction)
 
     int64_t nStartTime = Now<NodeSeconds>().time_since_epoch().count();
     // Wait 21 minutes
-    SetMockTime(nStartTime+21*60);
+    SetMockTime(std::chrono::seconds{nStartTime + 21 * 60});
     BOOST_CHECK(peerman.SendMessages(dummyNode1)); // should result in getheaders
     {
         LOCK(dummyNode1.cs_vSend);
@@ -99,7 +99,7 @@ BOOST_AUTO_TEST_CASE(outbound_slow_chain_eviction)
         BOOST_CHECK(!to_send.empty());
     }
     // Wait 3 more minutes
-    SetMockTime(nStartTime+24*60);
+    SetMockTime(std::chrono::seconds{nStartTime + 24 * 60});
     BOOST_CHECK(peerman.SendMessages(dummyNode1)); // should result in disconnect
     BOOST_CHECK(dummyNode1.fDisconnect == true);
 
@@ -271,7 +271,7 @@ BOOST_FIXTURE_TEST_CASE(block_relay_only_eviction, OutboundTest)
     }
     BOOST_CHECK(vNodes.back()->fDisconnect == false);
 
-    SetMockTime(Now<NodeSeconds>().time_since_epoch().count() + MINIMUM_CONNECT_TIME + 1);
+    SetMockTime(Now<NodeSeconds>() + std::chrono::seconds{MINIMUM_CONNECT_TIME + 1});
     peerLogic->CheckForStaleTipAndEvictPeers();
     for (int i = 0; i < max_outbound_block_relay; ++i) {
         BOOST_CHECK(vNodes[i]->fDisconnect == false);
@@ -407,7 +407,7 @@ BOOST_AUTO_TEST_CASE(DoS_bantime)
 
     banman->ClearBanned();
     int64_t nStartTime = Now<NodeSeconds>().time_since_epoch().count();
-    SetMockTime(nStartTime); // Overrides future calls to Now<NodeSeconds>().time_since_epoch().count()
+    SetMockTime(std::chrono::seconds{nStartTime}); // Overrides future NodeClock reads.
 
     CAddress addr(ip(0xa0b0c001), NODE_NONE);
     NodeId id{0};

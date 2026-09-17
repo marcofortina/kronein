@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE(MiningInterface)
 
     // Set node time a few minutes past the testnet4 genesis block
     const int64_t genesis_time{WITH_LOCK(cs_main, return m_node.chainman->ActiveChain().Tip()->GetBlockTime())};
-    SetMockTime(genesis_time + 3 * 60);
+    SetMockTime(std::chrono::seconds{genesis_time + 3 * 60});
 
     block_template = mining->createNewBlock(options, /*cooldown=*/false);
     BOOST_REQUIRE(block_template);
@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE(MiningInterface)
     // This remains the case when exactly 20 minutes have gone by
     {
         LOCK(cs_main);
-        SetMockTime(m_node.chainman->ActiveChain().Tip()->GetBlockTime() + 20 * 60);
+        SetMockTime(std::chrono::seconds{m_node.chainman->ActiveChain().Tip()->GetBlockTime() + 20 * 60});
     }
     should_be_nullptr = block_template->waitNext(wait_options);
     BOOST_REQUIRE(should_be_nullptr == nullptr);
@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(MiningInterface)
     // difficulty is already at 1.
     {
         LOCK(cs_main);
-        SetMockTime(m_node.chainman->ActiveChain().Tip()->GetBlockTime() + 20 * 60 + 1);
+        SetMockTime(std::chrono::seconds{m_node.chainman->ActiveChain().Tip()->GetBlockTime() + 20 * 60 + 1});
     }
     block_template = block_template->waitNext(wait_options);
     BOOST_REQUIRE(block_template);

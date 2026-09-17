@@ -66,7 +66,7 @@ static RPCHelpMan setmocktime()
         throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Mocktime must be in the range [0, %s], not %s.", max_time, time));
     }
 
-    SetMockTime(time);
+    SetMockTime(std::chrono::seconds{time});
     const NodeContext& node_context{EnsureAnyNodeContext(request.context)};
     for (const auto& chain_client : node_context.chain_clients) {
         chain_client->setMockTime(time);

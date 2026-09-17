@@ -96,14 +96,6 @@ using HoursDouble = std::chrono::duration<double, std::chrono::hours::period>;
 using SecondsDouble = std::chrono::duration<double, std::chrono::seconds::period>;
 using MillisecondsDouble = std::chrono::duration<double, std::chrono::milliseconds::period>;
 
-/**
- * DEPRECATED
- * Use SetMockTime with chrono type
- *
- * @param[in] nMockTimeIn Time in seconds.
- */
-void SetMockTime(int64_t nMockTimeIn);
-
 /** For testing. Set e.g. with the setmocktime rpc, or -mocktime argument */
 void SetMockTime(std::chrono::seconds mock_time_in);
 void SetMockTime(std::chrono::time_point<NodeClock, std::chrono::seconds> mock);

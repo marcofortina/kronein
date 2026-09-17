@@ -39,7 +39,7 @@ static void BlockFilterIndexSync(benchmark::Bench& bench)
     std::vector<CMutableTransaction> noTxns;
     for (int i = 0; i < CHAIN_SIZE - 100; i++) {
         test_setup->CreateAndProcessBlock(noTxns, script);
-        SetMockTime(Now<NodeSeconds>().time_since_epoch().count() + 1);
+        SetMockTime(Now<NodeSeconds>() + 1s);
     }
     assert(WITH_LOCK(::cs_main, return test_setup->m_node.chainman->ActiveHeight() == CHAIN_SIZE));
 

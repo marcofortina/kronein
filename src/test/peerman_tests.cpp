@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(connections_desirable_service_flags)
     int tip_block_height = tip->nHeight;
     peerman->SetBestBlock(tip_block_height, std::chrono::seconds{tip_block_time});
 
-    SetMockTime(tip_block_time + 1); // Set node time to tip time
+    SetMockTime(std::chrono::seconds{tip_block_time + 1}); // Set node time to tip time
     BOOST_CHECK(peerman->GetDesirableServiceFlags(peer_flags) == NODE_NETWORK_LIMITED);
 
     // Check we don't disallow limited peers connections when we are behind but still recoverable (below the connection safety window)

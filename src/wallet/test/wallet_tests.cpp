@@ -264,7 +264,7 @@ static int64_t AddTx(ChainstateManager& chainman, CWallet& wallet, uint32_t lock
     CMutableTransaction tx;
     TxState state = TxStateInactive{};
     tx.nLockTime = lockTime;
-    SetMockTime(mockTime);
+    SetMockTime(std::chrono::seconds{mockTime});
     CBlockIndex* block = nullptr;
     if (blockTime > 0) {
         LOCK(cs_main);

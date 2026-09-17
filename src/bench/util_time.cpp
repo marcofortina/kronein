@@ -15,11 +15,11 @@ static void BenchNodeSecondsTicks(benchmark::Bench& bench)
 
 static void BenchTimeMock(benchmark::Bench& bench)
 {
-    SetMockTime(111);
+    SetMockTime(111s);
     bench.run([&] {
         (void)Now<NodeSeconds>();
     });
-    SetMockTime(0);
+    SetMockTime(0s);
 }
 
 static void BenchTimeMillis(benchmark::Bench& bench)
