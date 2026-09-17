@@ -7,7 +7,6 @@
 from random import randbytes
 import struct
 
-from test_framework.address import base58_to_byte
 from test_framework.blocktools import (
     MAX_STANDARD_TX_WEIGHT,
 )
@@ -59,6 +58,7 @@ from test_framework.util import (
     find_vout_for_address,
 )
 from test_framework.wallet_util import (
+    base58_to_byte,
     generate_keypair,
     get_generate_key,
 )
