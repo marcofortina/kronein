@@ -10,6 +10,7 @@ import time
 from test_framework.messages import (
     CBlockHeader,
     CInv,
+    MAX_GETDATA_SIZE,
     MAX_HEADERS_RESULTS,
     MAX_INV_SIZE,
     MAX_PROTOCOL_MESSAGE_LENGTH,
@@ -211,7 +212,7 @@ class InvalidMessagesTest(BitcoinTestFramework):
         self.test_oversized_msg(msg_inv([CInv(MSG_TX, 1)] * size), size)
 
     def test_oversized_getdata_msg(self):
-        size = MAX_INV_SIZE + 1
+        size = MAX_GETDATA_SIZE + 1
         self.test_oversized_msg(msg_getdata([CInv(MSG_TX, 1)] * size), size)
 
     def test_oversized_headers_msg(self):

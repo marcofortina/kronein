@@ -122,7 +122,7 @@ static constexpr auto PING_INTERVAL{2min};
 static const unsigned int MAX_LOCATOR_SZ = 101;
 /** The maximum number of entries in an 'inv' protocol message */
 static const unsigned int MAX_INV_SZ = 50000;
-/** Limit to avoid sending big packets. Not used in processing incoming GETDATA for compatibility */
+/** The maximum number of entries in a 'getdata' protocol message */
 static const unsigned int MAX_GETDATA_SZ = 1000;
 /** Number of blocks that can be requested at any given time from a single peer. */
 static const int MAX_BLOCKS_IN_TRANSIT_PER_PEER = 16;
@@ -3981,7 +3981,7 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
     if (msg_type == NetMsgType::GETDATA) {
         std::vector<CInv> vInv;
         vRecv >> vInv;
-        if (vInv.size() > MAX_INV_SZ)
+        if (vInv.size() > MAX_GETDATA_SZ)
         {
             Misbehaving(peer, strprintf("getdata message size = %u", vInv.size()));
             return;

@@ -48,6 +48,7 @@ SEQUENCE_FINAL = 0xffffffff  # Sequence number that disables nLockTime if set fo
 MAX_PROTOCOL_MESSAGE_LENGTH = 4000000  # Maximum length of incoming protocol messages
 MAX_HEADERS_RESULTS = 2000  # Number of headers sent in one getheaders result
 MAX_INV_SIZE = 50000  # Maximum number of entries in an 'inv' protocol message
+MAX_GETDATA_SIZE = 1000  # Maximum number of entries in a 'getdata' protocol message
 
 NODE_NONE = 0
 NODE_NETWORK = (1 << 0)
