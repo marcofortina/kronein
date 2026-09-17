@@ -1077,6 +1077,6 @@ void RegisterMiningRPCCommands(CRPCTable& t)
         {"hidden", &generate},
     };
     for (const auto& c : commands) {
-        t.appendCommand(c.name, &c);
+        t.appendCommand(&c);
     }
 }

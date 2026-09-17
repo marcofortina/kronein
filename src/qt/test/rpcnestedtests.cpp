@@ -43,7 +43,7 @@ void RPCNestedTests::rpcNestedTests()
     // do some test setup
     // could be moved to a more generic place when we add more tests on QT level
     for (const auto& c : vRPCCommands) {
-        tableRPC.appendCommand(c.name, &c);
+        tableRPC.appendCommand(&c);
     }
 
     TestingSetup test;

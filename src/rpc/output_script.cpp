@@ -265,6 +265,6 @@ void RegisterOutputScriptRPCCommands(CRPCTable& t)
         {"util", &getdescriptorinfo},
     };
     for (const auto& c : commands) {
-        t.appendCommand(c.name, &c);
+        t.appendCommand(&c);
     }
 }

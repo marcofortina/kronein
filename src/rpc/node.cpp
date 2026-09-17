@@ -424,6 +424,6 @@ void RegisterNodeRPCCommands(CRPCTable& t)
         {"hidden", &echoipc},
     };
     for (const auto& c : commands) {
-        t.appendCommand(c.name, &c);
+        t.appendCommand(&c);
     }
 }

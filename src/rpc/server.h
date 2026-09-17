@@ -114,16 +114,9 @@ public:
      * Appends a CRPCCommand to the dispatch table.
      *
      * Precondition: RPC server is not running
-     *
-     * Commands with different method names but the same unique_id will
-     * be considered aliases, and only the first registered method name will
-     * show up in the help text command listing. Aliased commands do not have
-     * to have the same behavior. Server and client code can distinguish
-     * between calls based on method name, and aliased commands can also
-     * register different names, types, and numbers of parameters.
      */
-    void appendCommand(const std::string& name, const CRPCCommand* pcmd);
-    bool removeCommand(const std::string& name, const CRPCCommand* pcmd);
+    void appendCommand(const CRPCCommand* pcmd);
+    bool removeCommand(const CRPCCommand* pcmd);
 };
 
 extern CRPCTable tableRPC;

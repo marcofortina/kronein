@@ -71,7 +71,7 @@ void RegisterSignerRPCCommands(CRPCTable& t)
         {"signer", &enumeratesigners},
     };
     for (const auto& c : commands) {
-        t.appendCommand(c.name, &c);
+        t.appendCommand(&c);
     }
 }
 

@@ -522,14 +522,14 @@ public:
                 throw;
             }
         };
-        ::tableRPC.appendCommand(m_command.name, &m_command);
+        ::tableRPC.appendCommand(&m_command);
     }
 
     void disconnect() final
     {
         if (m_wrapped_command) {
             m_wrapped_command = nullptr;
-            ::tableRPC.removeCommand(m_command.name, &m_command);
+            ::tableRPC.removeCommand(&m_command);
         }
     }
 

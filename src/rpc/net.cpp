@@ -1192,6 +1192,6 @@ void RegisterNetRPCCommands(CRPCTable& t)
         {"hidden", &getrawaddrman},
     };
     for (const auto& c : commands) {
-        t.appendCommand(c.name, &c);
+        t.appendCommand(&c);
     }
 }

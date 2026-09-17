@@ -244,20 +244,20 @@ static const CRPCCommand vRPCCommands[]{
 CRPCTable::CRPCTable()
 {
     for (const auto& c : vRPCCommands) {
-        appendCommand(c.name, &c);
+        appendCommand(&c);
     }
 }
 
-void CRPCTable::appendCommand(const std::string& name, const CRPCCommand* pcmd)
+void CRPCTable::appendCommand(const CRPCCommand* pcmd)
 {
     CHECK_NONFATAL(!IsRPCRunning()); // Only add commands before rpc is running
 
-    mapCommands[name].push_back(pcmd);
+    mapCommands[pcmd->name].push_back(pcmd);
 }
 
-bool CRPCTable::removeCommand(const std::string& name, const CRPCCommand* pcmd)
+bool CRPCTable::removeCommand(const CRPCCommand* pcmd)
 {
-    auto it = mapCommands.find(name);
+    auto it = mapCommands.find(pcmd->name);
     if (it != mapCommands.end()) {
         auto new_end = std::remove(it->second.begin(), it->second.end(), pcmd);
         if (it->second.end() != new_end) {

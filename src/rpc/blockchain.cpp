@@ -3341,6 +3341,6 @@ void RegisterBlockchainRPCCommands(CRPCTable& t)
         {"hidden", &syncwithvalidationinterfacequeue},
     };
     for (const auto& c : commands) {
-        t.appendCommand(c.name, &c);
+        t.appendCommand(&c);
     }
 }
