@@ -39,6 +39,10 @@ class ValidateAddressMainTest(BitcoinTestFramework):
             assert_equal(result["isvalid"], True)
             assert_equal(result["address"].lower(), address)
             assert_equal(result["scriptPubKey"], script_pub_key)
+            assert_equal(result["witness_version"], 1)
+            assert_equal(result["witness_program"], script_pub_key[4:])
+            assert "isscript" not in result
+            assert "iswitness" not in result
             assert "error" not in result
 
         for address in INVALID_DATA:

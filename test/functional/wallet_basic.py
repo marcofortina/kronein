@@ -528,7 +528,7 @@ class WalletTest(BitcoinTestFramework):
         address_info = self.nodes[0].getaddressinfo(external_address)
         assert_equal(address_info['address'], external_address)
         assert not address_info["ismine"]
-        assert address_info["isscript"]
+        assert_equal(address_info["witness_version"], 1)
         assert not address_info["ischange"]
 
         # Test getaddressinfo 'ischange' field on change address.

@@ -46,7 +46,7 @@ class KeypoolRestoreTest(BitcoinTestFramework):
             addr_extpool = self.nodes[1].getnewaddress()
 
         address_details = self.nodes[1].validateaddress(addr_extpool)
-        assert address_details["isscript"] and address_details["iswitness"]
+        assert_equal(address_details["witness_version"], 1)
 
         self.log.info("Send funds to wallet")
         self.nodes[0].sendtoaddress(addr_oldpool, 10)
