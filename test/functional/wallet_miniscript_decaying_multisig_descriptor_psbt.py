@@ -99,7 +99,7 @@ class WalletMiniscriptDecayingMultisigDescriptorPSBTTest(BitcoinTestFramework):
             # in this test each signer signs the same psbt "in series" one after the other.
             # Another option is for each signer to sign the original psbt, and then combine
             # and finalize these. In some cases this may be more optimal for coordination.
-            psbt = multisig.walletcreatefundedpsbt(inputs=[], outputs=[{receiver.getnewaddress(): amount}], feeRate=0.00010, locktime=locktime)
+            psbt = multisig.walletcreatefundedpsbt(inputs=[], outputs=[{receiver.getnewaddress(): amount}], fee_rate=10, locktime=locktime)
             # the random sample asserts that any of the signing keys can sign for the 3-of-4,
             # 2-of-4, and 1-of-4. While this is basic behavior of the miniscript thresh primitive,
             # it is a critical property of this wallet.

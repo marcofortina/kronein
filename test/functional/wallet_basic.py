@@ -186,12 +186,12 @@ class WalletTest(BitcoinTestFramework):
         unspent_0 = self.nodes[1].listunspent()[0]
         self.nodes[1].lockunspent(False, [unspent_0])
         tx = self.nodes[1].createrawtransaction([unspent_0], [{self.nodes[1].getnewaddress(): 1}])
-        self.nodes[1].fundrawtransaction(tx,{"lockUnspents": True})
+        self.nodes[1].fundrawtransaction(tx,{"lock_unspents": True})
 
         # fundrawtransaction can lock an input
         self.nodes[1].lockunspent(True, [unspent_0])
         assert_equal(len(self.nodes[1].listlockunspent()), 0)
-        tx = self.nodes[1].fundrawtransaction(tx,{"lockUnspents": True})['hex']
+        tx = self.nodes[1].fundrawtransaction(tx,{"lock_unspents": True})['hex']
         assert_equal(len(self.nodes[1].listlockunspent()), 1)
 
         # Send transaction
@@ -305,8 +305,6 @@ class WalletTest(BitcoinTestFramework):
         assert_equal(balance, node_2_bal)
         node_0_bal += amount
         assert_equal(self.nodes[0].getbalance(), node_0_bal)
-
-        assert_raises_rpc_error(-8, "Unknown named parameter feeRate", self.nodes[2].sendtoaddress, address=address, amount=1, fee_rate=1, feeRate=1)
 
         # Test setting explicit fee rate just below the minimum.
         self.log.info("Test sendmany raises 'fee rate too low' if fee_rate of 0.99999999 is passed")

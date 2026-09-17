@@ -122,9 +122,6 @@ class BumpFeeTest(BitcoinTestFramework):
         self.sync_mempools((rbf_node, peer_node))
         assert rbfid in rbf_node.getrawmempool() and rbfid in peer_node.getrawmempool()
 
-        for key in ["totalFee", "feeRate"]:
-            assert_raises_rpc_error(-3, "Unexpected key {}".format(key), rbf_node.bumpfee, rbfid, {key: NORMAL})
-
         # Bumping to just above minrelay should fail to increase the total fee enough.
         assert_raises_rpc_error(-8, "Insufficient total fee 0.00000154", rbf_node.bumpfee, rbfid, fee_rate=INSUFFICIENT)
 
@@ -767,7 +764,7 @@ def test_no_more_inputs_fails(self, rbf_node, dest_address):
     self.generatetoaddress(rbf_node, 1, dest_address)
     # spend all funds, no change output
     rbfid = rbf_node.sendall(recipients=[rbf_node.getnewaddress()])['txid']
-    assert_raises_rpc_error(-4, "Unable to create transaction. The total exceeds your balance when the 0.00001355 transaction fee is included.", rbf_node.bumpfee, rbfid)
+    assert_raises_rpc_error(-4, "Unable to create transaction. The total exceeds your balance when the 0.0000133 transaction fee is included.", rbf_node.bumpfee, rbfid)
     self.clear_mempool()
 
 

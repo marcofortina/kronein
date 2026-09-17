@@ -105,7 +105,7 @@ class WalletMuSigTest(BitcoinTestFramework):
         psbt = wallets[0].walletcreatefundedpsbt(
             outputs=[{self.def_wallet.getnewaddress(): 5}],
             inputs=[utxo],
-            changePosition=1
+            change_position=1
         )["psbt"]
 
         return wallets, psbt
@@ -221,7 +221,7 @@ class WalletMuSigTest(BitcoinTestFramework):
                 utxo = wallet.listunspent()[0]
             else:
                 assert_equal(utxo, wallet.listunspent()[0])
-        psbt = wallets[0].walletcreatefundedpsbt(outputs=[{self.def_wallet.getnewaddress(): 5}], inputs=[utxo], changePosition=1, locktime=self.nodes[0].getblockcount())["psbt"]
+        psbt = wallets[0].walletcreatefundedpsbt(outputs=[{self.def_wallet.getnewaddress(): 5}], inputs=[utxo], change_position=1, locktime=self.nodes[0].getblockcount())["psbt"]
 
         dec_psbt = self.nodes[0].decodepsbt(psbt)
         assert_equal(len(dec_psbt["inputs"]), 1)
