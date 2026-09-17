@@ -46,12 +46,6 @@ from test_framework.p2p import (
     P2PInterface,
     p2p_lock,
 )
-from test_framework.script import (
-    CScript,
-    OP_DROP,
-    OP_TRUE,
-    OP_RETURN,
-)
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_not_equal,
@@ -150,23 +144,28 @@ class CompactBlocksTest(BitcoinTestFramework):
         block.solve()
         return block
 
-    # Create 10 more anyone-can-spend utxo's for testing.
+    # Create 10 native Taproot UTXOs for testing.
     def make_utxos(self):
         block = self.build_block_on_tip(self.nodes[0])
+        block.vtx[0].vout[0].scriptPubKey = self.wallet.get_output_script()
+        block.hashMerkleRoot = block.calc_merkle_root()
+        block.solve()
         self.segwit_node.send_and_ping(msg_block(block))
         assert_equal(self.nodes[0].getbestblockhash(), block.hash_hex)
         self.generate(self.wallet, COINBASE_MATURITY)
+        self.wallet.get_utxo(txid=block.vtx[0].txid_hex, vout=0)
 
         total_value = block.vtx[0].vout[0].nValue
         out_value = total_value // 10
         tx = CTransaction()
         tx.vin.append(CTxIn(COutPoint(block.vtx[0].txid_int, 0), b''))
         for _ in range(10):
-            tx.vout.append(CTxOut(out_value, CScript([OP_TRUE])))
+            tx.vout.append(CTxOut(out_value, self.wallet.get_output_script()))
+        self.wallet.sign_tx(tx)
 
         block2 = self.build_block_on_tip(self.nodes[0])
         block2.vtx.append(tx)
-        block2.hashMerkleRoot = block2.calc_merkle_root()
+        add_witness_commitment(block2)
         block2.solve()
         self.segwit_node.send_and_ping(msg_block(block2))
         assert_equal(self.nodes[0].getbestblockhash(), block2.hash_hex)
@@ -411,11 +410,12 @@ class CompactBlocksTest(BitcoinTestFramework):
         for _ in range(num_transactions):
             tx = CTransaction()
             tx.vin.append(CTxIn(COutPoint(utxo[0], utxo[1]), b''))
-            tx.vout.append(CTxOut(utxo[2] - 1000, CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])))
+            tx.vout.append(CTxOut(utxo[2] - 1000, self.wallet.get_output_script()))
+            self.wallet.sign_tx(tx)
             utxo = [tx.txid_int, 0, tx.vout[0].nValue]
             block.vtx.append(tx)
 
-        block.hashMerkleRoot = block.calc_merkle_root()
+        add_witness_commitment(block)
         block.solve()
         return block
 
@@ -721,8 +721,7 @@ class CompactBlocksTest(BitcoinTestFramework):
         for listener in listeners:
             listener.clear_block_announcement()
 
-        # serialize without witness (this block has no witnesses anyway).
-        # TODO: repeat this test with witness tx's to a segwit node.
+        # Submit the native witness block and verify its compact announcement.
         node.submitblock(block.serialize().hex())
 
         for listener in listeners:
@@ -739,10 +738,9 @@ class CompactBlocksTest(BitcoinTestFramework):
         utxo = self.utxos[0]
 
         block = self.build_block_with_transactions(node, utxo, 5)
-        block.hashMerkleRoot = block.calc_merkle_root()
         # Drop the coinbase witness but include the witness commitment.
-        add_witness_commitment(block)
         block.vtx[0].wit.vtxinwit = []
+        block.hashMerkleRoot = block.calc_merkle_root()
         block.solve()
 
         # Now send the compact block with all transactions prefilled, and
@@ -758,7 +756,7 @@ class CompactBlocksTest(BitcoinTestFramework):
 
         # Re-establish a proper witness commitment with the coinbase witness, but
         # invalidate the last tx in the block.
-        block.vtx[4].vin[0].scriptSig = CScript([OP_RETURN])
+        block.vtx[4].wit.vtxinwit[0].scriptWitness.stack = []
         block.hashMerkleRoot = block.calc_merkle_root()
         add_witness_commitment(block)
         block.solve()
@@ -834,7 +832,7 @@ class CompactBlocksTest(BitcoinTestFramework):
 
         cmpct_block.prefilled_txn[0].tx = CTransaction(cmpct_block.prefilled_txn[0].tx)
         cmpct_block.prefilled_txn[0].tx.wit.vtxinwit = [CTxInWitness()]
-        cmpct_block.prefilled_txn[0].tx.wit.vtxinwit[0].scriptWitness.stack = [ser_uint256(0)]
+        cmpct_block.prefilled_txn[0].tx.wit.vtxinwit[0].scriptWitness.stack = [ser_uint256(1)]
 
 
         delivery_peer.send_and_ping(msg_cmpctblock(cmpct_block.to_p2p()))
