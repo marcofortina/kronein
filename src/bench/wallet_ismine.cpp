@@ -24,7 +24,7 @@
 #include <utility>
 
 namespace wallet {
-static void WalletIsMine(benchmark::Bench& bench, int num_combo = 0)
+static void WalletIsMine(benchmark::Bench& bench, int num_descriptors = 0)
 {
     const auto test_setup = MakeNoLogFileContext<TestingSetup>();
 
@@ -38,10 +38,9 @@ static void WalletIsMine(benchmark::Bench& bench, int num_combo = 0)
     auto wallet = TestCreateWallet(std::move(database), context, /*create_flags=*/0);
 
     // Fill the wallet with non-HD Taproot descriptors with random keys.
-    // This benchmarks a non-HD wallet migrated to descriptors
-    if (num_combo > 0) {
+    if (num_descriptors > 0) {
         LOCK(wallet->cs_wallet);
-        for (int i = 0; i < num_combo; ++i) {
+        for (int i = 0; i < num_descriptors; ++i) {
             CKey key;
             key.MakeNewKey(/*fCompressed=*/true);
             FlatSigningProvider keys;
@@ -64,7 +63,7 @@ static void WalletIsMine(benchmark::Bench& bench, int num_combo = 0)
 }
 
 static void WalletIsMineDescriptors(benchmark::Bench& bench) { WalletIsMine(bench); }
-static void WalletIsMineMigratedDescriptors(benchmark::Bench& bench) { WalletIsMine(bench, /*num_combo=*/2000); }
+static void WalletIsMineManyDescriptors(benchmark::Bench& bench) { WalletIsMine(bench, /*num_descriptors=*/2000); }
 BENCHMARK(WalletIsMineDescriptors);
-BENCHMARK(WalletIsMineMigratedDescriptors);
+BENCHMARK(WalletIsMineManyDescriptors);
 } // namespace wallet

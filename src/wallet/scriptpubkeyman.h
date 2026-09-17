@@ -36,7 +36,7 @@ class ScriptPubKeyMan;
 
 // Wallet storage things that ScriptPubKeyMans need in order to be able to store things to the wallet database.
 // It provides access to things that are part of the entire wallet and not specific to a ScriptPubKeyMan such as
-// wallet flags, wallet version, encryption keys, encryption status, and the database itself. This allows a
+// wallet flags, encryption keys, encryption status, and the database itself. This allows a
 // ScriptPubKeyMan to have callbacks into CWallet without causing a circular dependency.
 // WalletStorage should be the same for all ScriptPubKeyMans of a wallet.
 class WalletStorage
