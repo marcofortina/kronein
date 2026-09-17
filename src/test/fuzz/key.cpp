@@ -207,17 +207,6 @@ FUZZ_TARGET(key, .init = initialize_key)
     }
 
     {
-        std::vector<unsigned char> vch_compact_sig;
-        const bool ok_sign_compact = key.SignCompact(random_uint256, vch_compact_sig);
-        assert(ok_sign_compact);
-
-        CPubKey recover_pubkey;
-        const bool ok_recover_compact = recover_pubkey.RecoverCompact(random_uint256, vch_compact_sig);
-        assert(ok_recover_compact);
-        assert(recover_pubkey == pubkey);
-    }
-
-    {
         CPubKey child_pubkey;
         ChainCode child_chaincode;
         const bool ok = pubkey.Derive(child_pubkey, child_chaincode, 0, random_uint256);

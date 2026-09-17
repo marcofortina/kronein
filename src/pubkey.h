@@ -39,7 +39,6 @@ public:
     static constexpr unsigned int SIZE                   = 65;
     static constexpr unsigned int COMPRESSED_SIZE        = 33;
     static constexpr unsigned int SIGNATURE_SIZE         = 72;
-    static constexpr unsigned int COMPACT_SIGNATURE_SIZE = 65;
     /**
      * see www.keylength.com
      * script supports up to 75 for single byte push
@@ -212,9 +211,6 @@ public:
      * Check whether a signature is normalized (lower-S).
      */
     static bool CheckLowS(const std::vector<unsigned char>& vchSig);
-
-    //! Recover a public key from a compact signature.
-    bool RecoverCompact(const uint256& hash, const std::vector<unsigned char>& vchSig);
 
     //! Turn this public key into an uncompressed public key.
     bool Decompress();

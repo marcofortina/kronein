@@ -148,15 +148,6 @@ public:
     bool Sign(const uint256& hash, std::vector<unsigned char>& vchSig, bool grind = true, uint32_t test_case = 0) const;
 
     /**
-     * Create a compact signature (65 bytes), which allows reconstructing the used public key.
-     * The format is one header byte, followed by two times 32 bytes for the serialized r and s values.
-     * The header byte: 0x1B = first key with even y, 0x1C = first key with odd y,
-     *                  0x1D = second key with even y, 0x1E = second key with odd y,
-     *                  add 0x04 for compressed keys.
-     */
-    bool SignCompact(const uint256& hash, std::vector<unsigned char>& vchSig) const;
-
-    /**
      * Create a BIP-340 Schnorr signature, for the xonly-pubkey corresponding to *this,
      * optionally tweaked by *merkle_root. Additional nonce entropy is provided through
      * aux.
