@@ -152,7 +152,7 @@ BOOST_AUTO_TEST_CASE(descriptor_older_warnings)
         FlatSigningProvider keys;
         std::string error;
         const std::string descriptor{
-            "tr(" + std::string{INTERNAL_KEY} + ",and_v(v:pk(" + std::string{LEAF_KEY} + "),older(" + std::to_string(value) + ")))"};
+            "tr(" + std::string{INTERNAL_KEY} + ",and_v(v:pk(" + std::string{LEAF_KEY} + "),older(" + util::ToString(value) + ")))"};
         auto descriptors{Parse(descriptor, keys, error)};
         BOOST_REQUIRE_MESSAGE(!descriptors.empty(), error);
         return descriptors[0]->Warnings();

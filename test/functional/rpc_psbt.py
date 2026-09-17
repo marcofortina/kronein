@@ -32,11 +32,10 @@ from test_framework.psbt import (
     PSBT_IN_MUSIG2_PARTIAL_SIG,
     PSBT_IN_MUSIG2_PARTICIPANT_PUBKEYS,
     PSBT_IN_MUSIG2_PUB_NONCE,
-    PSBT_IN_WITNESS_UTXO,
     PSBT_OUT_MUSIG2_PARTICIPANT_PUBKEYS,
     PSBT_OUT_TAP_TREE,
 )
-from test_framework.script import CScript, SIGHASH_ALL, SIGHASH_ANYONECANPAY
+from test_framework.script import SIGHASH_ALL, SIGHASH_ANYONECANPAY
 from test_framework.script_util import MIN_STANDARD_TX_NONWITNESS_SIZE
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (

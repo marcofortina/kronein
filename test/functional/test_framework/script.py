@@ -13,7 +13,6 @@ import unittest
 from .key import TaggedHash, tweak_add_pubkey, compute_xonly_pubkey
 
 from .messages import (
-    hash256,
     ser_string,
     sha256,
 )

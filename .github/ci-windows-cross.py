@@ -93,7 +93,6 @@ def run_functional_tests():
 
 
 def run_unit_tests():
-    workspace = Path.cwd()
     # Can't use ctest here like other jobs as we don't have a CMake build tree.
     commands = [
         ["./bin/test_bitcoin-qt.exe"],

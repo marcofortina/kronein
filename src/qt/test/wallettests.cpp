@@ -214,7 +214,9 @@ std::shared_ptr<CWallet> SetupDescriptorsWallet(interfaces::Node& node, TestChai
     } else {
         key_str = EncodeSecret(test.coinbaseKey);
     }
-    auto descs = Parse("tr(" + key_str + ")", provider, error, /* require_checksum=*/ false);
+    std::string descriptor{"tr("};
+    descriptor += key_str + ')';
+    auto descs = Parse(descriptor, provider, error, /* require_checksum=*/ false);
     assert(!descs.empty());
     assert(descs.size() == 1);
     auto& desc = descs.at(0);

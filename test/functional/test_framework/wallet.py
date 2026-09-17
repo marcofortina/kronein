@@ -30,7 +30,6 @@ from test_framework.messages import (
 from test_framework.script import (
     CScript,
     OP_RETURN,
-    OP_TRUE,
     taproot_construct,
 )
 from test_framework.script_util import (
