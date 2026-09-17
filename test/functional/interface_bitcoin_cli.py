@@ -111,7 +111,7 @@ class TestBitcoinCli(BitcoinTestFramework):
 
         # This should be treated as a named parameter, as arg0 and arg1 are valid parameter names
         result = self.nodes[0].cli("-named", "echojson", 'arg0=["data=test"]', 'arg1=42').send_cli()
-        expected = [["data=test"], 42]
+        expected = [["data=test"], 42] + [None] * 8
         assert_equal(result, expected)
 
     def run_test(self):
@@ -126,12 +126,12 @@ class TestBitcoinCli(BitcoinTestFramework):
         assert_equal(cli_response, rpc_response)
 
         self.log.info("Test named arguments")
-        assert_equal(self.nodes[0].cli.echo(0, 1, arg3=3, arg5=5), ['0', '1', None, '3', None, '5'])
+        assert_equal(self.nodes[0].cli.echo(0, 1, arg3=3, arg5=5), ['0', '1', None, '3', None, '5'] + [None] * 4)
         assert_raises_rpc_error(-8, "Parameter arg1 specified twice both as positional and named argument", self.nodes[0].cli.echo, 0, 1, arg1=1)
         assert_raises_rpc_error(-8, "Parameter arg1 specified twice both as positional and named argument", self.nodes[0].cli.echo, 0, None, 2, arg1=1)
 
         self.log.info("Test that later cli named arguments values silently overwrite earlier ones")
-        assert_equal(self.nodes[0].cli("-named", "echo", "arg0=0", "arg1=1", "arg2=2", "arg1=3").send_cli(), ['0', '3', '2'])
+        assert_equal(self.nodes[0].cli("-named", "echo", "arg0=0", "arg1=1", "arg2=2", "arg1=3").send_cli(), ['0', '3', '2'] + [None] * 7)
         assert_raises_rpc_error(-8, "Parameter args specified multiple times", self.nodes[0].cli("-named", "echo", "args=[0,1,2,3]", "4", "5", "6", ).send_cli)
 
         user, password = get_auth_cookie(self.nodes[0].datadir_path, self.chain)
