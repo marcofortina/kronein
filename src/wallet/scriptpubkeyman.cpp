@@ -562,7 +562,7 @@ std::optional<PSBTError> DescriptorScriptPubKeyMan::FillPSBT(PartiallySignedTran
         }
     }
 
-    // Fill in the bip32 keypaths and redeemscripts for the outputs so that hardware wallets can identify change
+    // Fill in the Taproot keypaths for the outputs so hardware wallets can identify change.
     for (unsigned int i = 0; i < psbtx.tx->vout.size(); ++i) {
         std::unique_ptr<SigningProvider> keys = GetSolvingProvider(psbtx.tx->vout.at(i).scriptPubKey);
         if (!keys) {

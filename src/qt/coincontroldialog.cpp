@@ -424,7 +424,8 @@ void CoinControlDialog::updateLabels(CCoinControl& m_coin_control, WalletModel *
     if (nQuantity > 0)
     {
         // Bytes
-        nBytes = nBytesInputs + ((CoinControlDialog::payAmounts.size() > 0 ? CoinControlDialog::payAmounts.size() + 1 : 2) * 34) + 10; // always assume +1 output for change here
+        static constexpr unsigned int TAPROOT_OUTPUT_SIZE{43};
+        nBytes = nBytesInputs + ((CoinControlDialog::payAmounts.size() > 0 ? CoinControlDialog::payAmounts.size() + 1 : 2) * TAPROOT_OUTPUT_SIZE) + 10; // always assume +1 output for change here
         // Native transaction serialization includes one witness stack for every input. There is
         // some rounding in the per-input witness estimates, so this remains a slight overestimate.
         nBytes += nQuantity;
@@ -432,7 +433,7 @@ void CoinControlDialog::updateLabels(CCoinControl& m_coin_control, WalletModel *
         // in the subtract fee from amount case, we can tell if zero change already and subtract the bytes, so that fee calculation afterwards is accurate
         if (CoinControlDialog::fSubtractFeeFromAmount)
             if (nAmount - nPayAmount == 0)
-                nBytes -= 34;
+                nBytes -= TAPROOT_OUTPUT_SIZE;
 
         // Fee
         nPayFee = model->wallet().getMinimumFee(nBytes, m_coin_control, /*returned_target=*/nullptr, /*reason=*/nullptr);
@@ -444,20 +445,19 @@ void CoinControlDialog::updateLabels(CCoinControl& m_coin_control, WalletModel *
                 nChange -= nPayFee;
 
             if (nChange > 0) {
-                // Assumes a p2pkh script size
-                CTxOut txout(nChange, CScript() << std::vector<unsigned char>(24, 0));
+                CTxOut txout(nChange, CScript() << OP_1 << std::vector<unsigned char>(32, 0));
                 // Never create dust outputs; if we would, just add the dust to the fee.
                 if (IsDust(txout, model->node().getDustRelayFee()))
                 {
                     nPayFee += nChange;
                     nChange = 0;
                     if (CoinControlDialog::fSubtractFeeFromAmount)
-                        nBytes -= 34; // we didn't detect lack of change above
+                        nBytes -= TAPROOT_OUTPUT_SIZE; // we didn't detect lack of change above
                 }
             }
 
             if (nChange == 0 && !CoinControlDialog::fSubtractFeeFromAmount)
-                nBytes -= 34;
+                nBytes -= TAPROOT_OUTPUT_SIZE;
         }
 
         // after fee

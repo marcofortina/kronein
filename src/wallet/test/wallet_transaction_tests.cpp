@@ -33,7 +33,6 @@ BOOST_AUTO_TEST_CASE(native_wallet_tx_serialization)
 {
     CMutableTransaction tx;
     tx.vin.emplace_back();
-    tx.vin[0].scriptSig = CScript{} << OP_1;
     tx.vin[0].scriptWitness.stack = {{0x01}};
     tx.vout.emplace_back(42, CScript{} << OP_1 << std::vector<unsigned char>(32, 0x02));
 
