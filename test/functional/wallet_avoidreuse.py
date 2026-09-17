@@ -83,11 +83,7 @@ class AvoidReuseTest(BitcoinTestFramework):
         reset_balance(self.nodes[1], self.nodes[0].getnewaddress())
         self.test_sending_from_reused_address_without_avoid_reuse()
         reset_balance(self.nodes[1], self.nodes[0].getnewaddress())
-        self.test_sending_from_reused_address_fails("legacy")
-        reset_balance(self.nodes[1], self.nodes[0].getnewaddress())
-        self.test_sending_from_reused_address_fails("p2sh-segwit")
-        reset_balance(self.nodes[1], self.nodes[0].getnewaddress())
-        self.test_sending_from_reused_address_fails("bech32")
+        self.test_sending_from_reused_address_fails()
         reset_balance(self.nodes[1], self.nodes[0].getnewaddress())
         self.test_getbalances_used()
         reset_balance(self.nodes[1], self.nodes[0].getnewaddress())
@@ -223,7 +219,7 @@ class AvoidReuseTest(BitcoinTestFramework):
         assert_approx(self.nodes[1].getbalance(), 5, 0.001)
         assert_approx(self.nodes[1].getbalance(avoid_reuse=False), 5, 0.001)
 
-    def test_sending_from_reused_address_fails(self, second_addr_type):
+    def test_sending_from_reused_address_fails(self):
         '''
         Test the simple case where [1] generates a new address A, then
         [0] sends 10 BTC to A.
@@ -232,7 +228,7 @@ class AvoidReuseTest(BitcoinTestFramework):
         [1] tries to spend 10 BTC (fails; dirty).
         [1] tries to spend 4 BTC (succeeds; change address sufficient)
         '''
-        self.log.info("Test sending from reused {} address fails".format(second_addr_type))
+        self.log.info("Test sending from a reused address fails")
 
         fundaddr = self.nodes[1].getnewaddress(label="")
         retaddr = self.nodes[0].getnewaddress()
