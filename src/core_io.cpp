@@ -331,7 +331,9 @@ void ScriptToUniv(const CScript& script, UniValue& out, bool include_hex, bool i
 
     out.pushKV("asm", ScriptToAsmStr(script));
     if (include_address) {
-        out.pushKV("desc", InferDescriptor(script, provider ? *provider : DUMMY_SIGNING_PROVIDER)->ToString());
+        if (const auto descriptor{InferDescriptor(script, provider ? *provider : DUMMY_SIGNING_PROVIDER)}) {
+            out.pushKV("desc", descriptor->ToString());
+        }
     }
     if (include_hex) {
         out.pushKV("hex", HexStr(script));

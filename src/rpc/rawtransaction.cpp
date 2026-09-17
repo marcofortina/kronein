@@ -415,7 +415,7 @@ static RPCHelpMan decodescript()
             RPCResult::Type::OBJ, "", "",
             {
                 {RPCResult::Type::STR, "asm", "Disassembly of the script"},
-                {RPCResult::Type::STR, "desc", "Inferred descriptor for the script"},
+                {RPCResult::Type::STR, "desc", /*optional=*/true, "Inferred descriptor for a native output script"},
                 {RPCResult::Type::STR, "type", "The output type (e.g. " + GetAllOutputTypes() + ")"},
                 {RPCResult::Type::STR, "address", /*optional=*/true, "The Bitcoin address (only if a well-defined address exists)"},
             },
@@ -642,7 +642,7 @@ const RPCResult decodepsbt_inputs{
                 {RPCResult::Type::OBJ, "scriptPubKey", "",
                 {
                     {RPCResult::Type::STR, "asm", "Disassembly of the output script"},
-                    {RPCResult::Type::STR, "desc", "Inferred descriptor for the output"},
+                    {RPCResult::Type::STR, "desc", /*optional=*/true, "Inferred descriptor for a native output"},
                     {RPCResult::Type::STR_HEX, "hex", "The raw output script bytes, hex-encoded"},
                     {RPCResult::Type::STR, "type", "The type, eg 'pubkeyhash'"},
                     {RPCResult::Type::STR, "address", /*optional=*/true, "The Bitcoin address (only if a well-defined address exists)"},

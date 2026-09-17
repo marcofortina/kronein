@@ -99,12 +99,6 @@ BOOST_AUTO_TEST_CASE(checksum_and_inference)
     const auto inferred_data{InferDescriptor(CScript{} << OP_RETURN << std::vector<unsigned char>{'t', 'e', 's', 't'}, keys)};
     BOOST_REQUIRE(inferred_data);
     BOOST_CHECK(inferred_data->ToString().starts_with("raw("));
-
-    const auto p2pkh_bytes{ParseHex("76a914000000000000000000000000000000000000000088ac")};
-    const CScript p2pkh{p2pkh_bytes.begin(), p2pkh_bytes.end()};
-    const auto inferred_legacy{InferDescriptor(p2pkh, keys)};
-    BOOST_REQUIRE(inferred_legacy);
-    BOOST_CHECK(inferred_legacy->ToString().starts_with("raw("));
 }
 
 BOOST_AUTO_TEST_CASE(descriptor_literal_null_byte)

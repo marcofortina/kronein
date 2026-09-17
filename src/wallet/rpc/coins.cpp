@@ -636,8 +636,9 @@ RPCHelpMan listunspent()
         if (out.solvable) {
             std::unique_ptr<SigningProvider> provider = pwallet->GetSolvingProvider(scriptPubKey);
             if (provider) {
-                auto descriptor = InferDescriptor(scriptPubKey, *provider);
-                entry.pushKV("desc", descriptor->ToString());
+                if (auto descriptor{InferDescriptor(scriptPubKey, *provider)}) {
+                    entry.pushKV("desc", descriptor->ToString());
+                }
             }
         }
         PushParentDescriptors(*pwallet, scriptPubKey, entry);

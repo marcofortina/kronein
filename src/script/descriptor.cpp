@@ -2372,7 +2372,10 @@ std::unique_ptr<DescriptorImpl> InferScript(const CScript& script, ParseScriptCo
         }
     }
 
-    return std::make_unique<RawDescriptor>(script);
+    if (IsNativeOutputScript(script)) {
+        return std::make_unique<RawDescriptor>(script);
+    }
+    return nullptr;
 }
 
 

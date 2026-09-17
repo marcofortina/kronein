@@ -206,8 +206,8 @@ std::string GetDescriptorChecksum(const std::string& descriptor);
 
 /** Find a descriptor for the specified `script`, using information from `provider` where possible.
  *
- * A non-ranged descriptor which only generates the specified script will be returned in all
- * circumstances.
+ * A non-ranged descriptor which only generates the specified script will be returned for native
+ * output scripts. Non-native output scripts return nullptr.
  *
  * For public keys with key origin information, this information will be preserved in the returned
  * descriptor.
@@ -216,7 +216,7 @@ std::string GetDescriptorChecksum(const std::string& descriptor);
  *   which is IsSolvable() and encapsulates said information.
  * - Failing that, if `script` corresponds to a known address type, an "addr()" descriptor will be
  *   returned (which is not IsSolvable()).
- * - Failing that, a "raw()" descriptor is returned.
+ * - Failing that, a "raw()" descriptor is returned for a native output script.
  */
 std::unique_ptr<Descriptor> InferDescriptor(const CScript& script, const SigningProvider& provider);
 

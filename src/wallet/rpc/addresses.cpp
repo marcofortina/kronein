@@ -305,11 +305,14 @@ RPCHelpMan getaddressinfo()
     ret.pushKV("ismine", mine);
 
     if (provider) {
-        auto inferred = InferDescriptor(scriptPubKey, *provider);
-        bool solvable = inferred->IsSolvable();
-        ret.pushKV("solvable", solvable);
-        if (solvable) {
-            ret.pushKV("desc", inferred->ToString());
+        if (auto inferred{InferDescriptor(scriptPubKey, *provider)}) {
+            const bool solvable{inferred->IsSolvable()};
+            ret.pushKV("solvable", solvable);
+            if (solvable) {
+                ret.pushKV("desc", inferred->ToString());
+            }
+        } else {
+            ret.pushKV("solvable", false);
         }
     } else {
         ret.pushKV("solvable", false);

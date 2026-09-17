@@ -2205,9 +2205,12 @@ static RPCHelpMan scantxoutset()
             FlatSigningProvider provider;
             auto scripts = EvalDescriptorStringOrObject(scanobject, provider);
             for (CScript& script : scripts) {
-                std::string inferred = InferDescriptor(script, provider)->ToString();
+                auto descriptor{InferDescriptor(script, provider)};
+                if (!descriptor) {
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Descriptor produced a non-native output script");
+                }
                 needles.emplace(script);
-                descriptors.emplace(std::move(script), std::move(inferred));
+                descriptors.emplace(std::move(script), descriptor->ToString());
             }
         }
 
