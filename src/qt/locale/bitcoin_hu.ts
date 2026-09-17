@@ -226,20 +226,12 @@
         <translation type="unfinished">A tárcatitkosítás feloldásához megadott jelmondat helytelen.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">A tárcatitkosítás feldoldásához megadott jelmondat helytelen. Tartalmaz egy null karaktert (azaz egy nulla bájtot). Ha a jelmondat egy 25.0-s kiadást megelőző verzióban lett beállítva, próbálja újra beírni a karaktereket egészen — de nem beleértve — az első null karakterig. Ha sikerrel jár, kérjük állítson be egy új jelmondatot, hogy a jövőben elkerülje ezt a problémát.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">A tárca jelmondatát sikeresen megváltoztatta.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Jelmondat megváltoztatása sikertelen</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">A tárcatitkosítás feldoldásához megadott régi jelmondat helytelen. Tartalmaz egy null karaktert (azaz egy nulla bájtot). Ha a jelmondat egy 25.0-s kiadást megelőző verzióban lett beállítva, próbálja újra beírni a karaktereket egészen — de nem beleértve — az első null karakterig.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -4628,10 +4620,6 @@ Kérjük próbálja futtatni a legújabb szoftver verziót.
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">Tárcák ellenőrzése...</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">A tárca újraírása szükséges: Indítsa újra a %s-t.</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

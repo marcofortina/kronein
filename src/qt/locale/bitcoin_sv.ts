@@ -219,20 +219,12 @@ Försök igen.</translation>
         <translation type="unfinished">Lösenfrasen för dekryptering av plånboken var felaktig.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Lösenordet som angavs för plånboksavkrypteringen är felaktigt. Det innehåller ett nolltecken (det vill säga en nollbyte). Om lösenordet ställdes in med en tidigare version av denna programvara före version 25.0, försök igen med endast tecknen upp till - men inte inklusive - det första nolltecknet. Om detta lyckas, vänligen ställ in ett nytt lösenord för att undvika detta problem i framtiden.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Plånbokens lösenfras ändrades.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Misslyckades att ändra lösenfras</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Det gamla lösenordet som angavs för plånboksavkrypteringen är felaktigt. Det innehåller ett nolltecken (det vill säga en nollbyte). Om lösenordet ställdes in med en tidigare version av denna programvara före version 25.0, försök igen med endast tecknen upp till - men inte inklusive - det första nolltecknet.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -3724,10 +3716,6 @@ Gå till Fil &gt; Öppna plånbok för att läsa in en plånbok.
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">Verifierar plånboken(plånböckerna)...</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Plånboken behöver sparas om: Starta om %s för att fullfölja</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

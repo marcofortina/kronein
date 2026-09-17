@@ -219,20 +219,12 @@
         <translation type="unfinished">Nenosiri liliyoingizwa kwa ajili ya kufungua pochi sio sahihi.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Nenosiri lililowekwa kwa ajili ya kusimbua mkoba si sahihi. Ina herufi tupu (yaani - zero byte). Ikiwa kaulisiri iliwekwa na toleo la programu hii kabla ya 25.0, tafadhali jaribu tena na herufi tu hadi - lakini bila kujumuisha - herufi batili ya kwanza. Hili likifanikiwa, tafadhali weka kaulisiri mpya ili kuepuka tatizo hili katika siku zijazo.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Nenosiri la pochi limefanikiwa kubadilishwa.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Mabadiliko ya nenosiri hayajafanikiwa</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Nenosiri la zamani liliyoingizwa kwa ajili ya kufungulia pochi sio sahihi. Linabeba herufi batili (yaani - yenye byte 0 ). Kama nenosiri liliwekwa na toleo la programu hii kabla ya 25.0, tafadhali jaribu tena na herufi zote mpaka — lakini usiweka — herufi batili ya kwanza.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>

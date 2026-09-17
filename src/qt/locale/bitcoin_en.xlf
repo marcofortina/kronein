@@ -249,10 +249,6 @@
         <context-group purpose="location"><context context-type="linenumber">164</context></context-group>
         <context-group purpose="location"><context context-type="linenumber">198</context></context-group>
       </trans-unit>
-      <trans-unit id="_msg56">
-        <source xml:space="preserve">The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <context-group purpose="location"><context context-type="linenumber">167</context></context-group>
-      </trans-unit>
       <trans-unit id="_msg57">
         <source xml:space="preserve">Wallet passphrase was successfully changed.</source>
         <context-group purpose="location"><context context-type="linenumber">190</context></context-group>
@@ -261,10 +257,6 @@
         <source xml:space="preserve">Passphrase change failed</source>
         <context-group purpose="location"><context context-type="linenumber">197</context></context-group>
         <context-group purpose="location"><context context-type="linenumber">200</context></context-group>
-      </trans-unit>
-      <trans-unit id="_msg59">
-        <source xml:space="preserve">The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <context-group purpose="location"><context context-type="linenumber">201</context></context-group>
       </trans-unit>
       <trans-unit id="_msg60">
         <source xml:space="preserve">Warning: The Caps Lock key is on!</source>
@@ -5122,10 +5114,6 @@ Please try running the latest software version.
         <source xml:space="preserve">Verifying wallet(s)…</source>
         <context-group purpose="location"><context context-type="linenumber">225</context></context-group>
       </trans-unit>
-      <trans-unit id="_msg1137">
-        <source xml:space="preserve">Wallet needed to be rewritten: restart %s to complete</source>
-        <context-group purpose="location"><context context-type="linenumber">226</context></context-group>
-      </trans-unit>
       <trans-unit id="_msg1138">
         <source xml:space="preserve">Settings file could not be read</source>
         <context-group purpose="location"><context context-type="linenumber">157</context></context-group>
@@ -5133,6 +5121,22 @@ Please try running the latest software version.
       <trans-unit id="_msg1139">
         <source xml:space="preserve">Settings file could not be written</source>
         <context-group purpose="location"><context context-type="linenumber">158</context></context-group>
+      </trans-unit>
+      <trans-unit id="_msg1140">
+        <source xml:space="preserve">Address does not refer to a native output</source>
+        <context-group purpose="location"><context context-type="linenumber">19</context></context-group>
+      </trans-unit>
+      <trans-unit id="_msg1141">
+        <source xml:space="preserve">Address is not controlled by this wallet</source>
+        <context-group purpose="location"><context context-type="linenumber">20</context></context-group>
+      </trans-unit>
+      <trans-unit id="_msg1142">
+        <source xml:space="preserve">Permissions must be specified before &apos;@&apos;: &apos;%s&apos;</source>
+        <context-group purpose="location"><context context-type="linenumber">137</context></context-group>
+      </trans-unit>
+      <trans-unit id="_msg1143">
+        <source xml:space="preserve">Pre-selected input %s is not Taproot or pay-to-anchor</source>
+        <context-group purpose="location"><context context-type="linenumber">139</context></context-group>
       </trans-unit>
     </group>
   </body></file>

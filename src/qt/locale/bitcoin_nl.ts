@@ -218,20 +218,12 @@
         <translation type="unfinished">Het opgegeven wachtwoord voor de portemonnee ontsleuteling is niet correct.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">De ingevoerde wachtwoordzin voor de decodering van de portemonnee is onjuist. Het bevat een null-teken (dwz - een nulbyte). Als de wachtwoordzin is ingesteld met een versie van deze software ouder dan 25.0, probeer het dan opnieuw met alleen de tekens tot — maar niet inclusief —het eerste null-teken. Als dit lukt, stelt u een nieuwe wachtwoordzin in om dit probleem in de toekomst te voorkomen.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Portemonneewachtwoord is met succes gewijzigd.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Wijzigen van wachtwoordzin mislukt</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">De oude wachtwoordzin die is ingevoerd voor de decodering van de portemonnee is onjuist. Het bevat een null-teken (dwz - een nulbyte). Als de wachtwoordzin is ingesteld met een versie van deze software ouder dan 25.0, probeer het dan opnieuw met alleen de tekens tot — maar niet inclusief — het eerste null-teken.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -3552,10 +3544,6 @@ Ga naar Bestand &gt; Wallet openen om een wallet te laden.
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">Wallet(s) controleren...</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Wallet moest herschreven worden: Herstart %s om te voltooien</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

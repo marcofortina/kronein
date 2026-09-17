@@ -134,20 +134,12 @@
         <translation type="unfinished">ওয়ালেট আনলক ব্যর্থ</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">ওয়ালেট ডিক্রিপশনের জন্য প্রবেশ করা পাসফ্রেজটি ভুল। এটিতে একটি শূন্য অক্ষর রয়েছে (যেমন - একটি শূন্য বাইট)। যদি পাসফ্রেজটি 25.0 এর আগে এই সফ্টওয়্যারটির একটি সংস্করণের সাথে সেট করা থাকে, অনুগ্রহ করে শুধুমাত্র প্রথম শূন্য অক্ষর পর্যন্ত — কিন্তু অন্তর্ভুক্ত নয় — পর্যন্ত অক্ষর দিয়ে আবার চেষ্টা করুন। এটি সফল হলে, ভবিষ্যতে এই সমস্যাটি এড়াতে অনুগ্রহ করে একটি নতুন পাসফ্রেজ সেট করুন৷</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">ওয়ালেট পাসফ্রেজ পরিবর্তন সফল হয়েছে</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">পাসফ্রেজ পরিবর্তন ব্যর্থ হয়েছে৷</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">ওয়ালেট ডিক্রিপশনের জন্য পুরানো পাসফ্রেজটি ভুল। এটিতে একটি শূন্য অক্ষর রয়েছে (যেমন - একটি শূন্য বাইট)। যদি পাসফ্রেজটি 25.0 এর আগে এই সফ্টওয়্যারটির একটি সংস্করণের সাথে সেট করা থাকে, অনুগ্রহ করে শুধুমাত্র প্রথম শূন্য অক্ষর পর্যন্ত — কিন্তু অন্তর্ভুক্ত নয় — পর্যন্ত অক্ষর দিয়ে আবার চেষ্টা করুন।</translation>
     </message>
     </context>
 <context>

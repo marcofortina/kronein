@@ -226,20 +226,12 @@
         <translation type="unfinished">Ásetta loyniorðið, til mappuavbronglingina, er ikki rætt.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Ásetta loyniorðið, til mappuavbronglingina, er ikki rætt. Tað inniheldur ein, ella fleiri, 'null' stavir (t.e. eitt být við virðinum 0). Var mappan bronglað við eini útgávu av hesum ritbúnaðinum eldri enn 25.0, royn so aftur við øllum stavunum fram til — men ikki við — fyrsta 'null' stavi. Um tað eydnast, vinaliga ásett eitt nýtt loyniorð fyri sleppa undan hesum trupulleikanum.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Tað eydnaðist at broyta loyniorð á mappuni.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Miseydnaðist at broyta loyniorð</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Gamla loyniorðið, til mappuavbronglingina, er ikki rætt. Tað inniheldur ein, ella fleir, 'null' stavir (t.e. eitt být við virðinum 0). Var mappan bronglað við eini útgávu av hesum ritbúnaðinum eldri enn 25.0, royn so aftur við øllum stavunum fram til — men ikki við — fyrsta 'null' stavi.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -4694,10 +4686,6 @@ Vinaliga royn við nýggjastu útgávu av forritinum.
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">Sannroynir mappu(r)…</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Tørvur er at endurrita mappuna: avgreið tað við at endurbyrja %s</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

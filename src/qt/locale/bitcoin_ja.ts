@@ -227,20 +227,12 @@
         <translation type="unfinished">ウォレットの暗号化解除のパスフレーズが正しくありません。</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">ウォレットの復号のために入力されたパスフレーズが正しくありません。ヌル文字（つまりゼロバイト）が含まれています。パスフレーズを25.0より前のバージョンで設定している場合は、最初のヌル文字までの文字のみを使って再試行してください（ヌル文字は含まれません）。この方法で成功した場合は、今後この問題を回避するために新しいパスフレーズを設定してください。</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">ウォレットのパスフレーズが正常に変更されました。</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">パスフレーズの変更に失敗しました</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">ウォレットの復号のために入力された古いパスフレーズが正しくありません。ヌル文字（つまりゼロバイト）が含まれています。パスフレーズを25.0より前のバージョンで設定している場合は、最初のヌル文字までの文字のみを使って再試行してください（ヌル文字は含まれません）。</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -4675,10 +4667,6 @@ Please try running the latest software version.
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">ウォレットの検証中…</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">ウォレットの書き直しが必要です: 完了するために %s を再起動します</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

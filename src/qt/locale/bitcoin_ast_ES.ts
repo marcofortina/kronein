@@ -222,20 +222,12 @@
         <translation type="unfinished">La frase de seguridá introducida pa la descifradura de la cartera foi incorrecta.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">La frase de seguridá introducida pa la descifradura de la cartera ye incorrecta. Contién un caráuter null (es decir, un byte cero). Si la frase de seguridá foi puesta con una versión d'este software anterior a la 25.0, por favor, intenta de nuevo con solamente los carauteres hasta — pero non incluyendo — el primer caráuter null. Si ye exitósu, por favor, pon una nueva frase de seguridá pa evitar este problema n'el futuru.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">La frase de seguridá de la cartera fue cambiada con éxito.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Falló el cambiu de la frase de seguridá</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">La frase de seguridá antigua introducida pa la descifradura de la cartera ye incorrecta. Contién un caráuter null (es decir, un byte cero). Si la frase de seguridá foi puesta con una versión d'este software anterior a la 25.0, por favor, intenta de nuevo con solamente los carauteres hasta — pero non incluyendo — el primer caráuter null.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>

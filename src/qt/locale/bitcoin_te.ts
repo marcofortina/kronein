@@ -2585,10 +2585,6 @@
         <translation type="unfinished">వాలెట్(ల)ని ధృవీకరిస్తోంది...</translation>
     </message>
     <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">వాలెట్‌ని మళ్లీ వ్రాయాలి: పూర్తి చేయడానికి పునఃప్రారంభించండి %s</translation>
-    </message>
-    <message>
         <source>Settings file could not be read</source>
         <translation type="unfinished">సెట్టింగ్‌ల ఫైల్ చదవడం సాధ్యం కాలేదు</translation>
     </message>

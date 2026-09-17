@@ -209,20 +209,12 @@
         <translation type="unfinished">Lykilsetningin sem notuð var til að dulráða veskið var ekki rétt.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Aðgangsorðið sem slegið var inn fyrir afkóðun vesksins er rangt. Það inniheldur núllstaf (þ.e. - núll bæti). Ef lykilorðið var stillt með útgáfu af þessum hugbúnaði fyrir 25.0, vinsamlegast reyndu aftur með aðeins stöfunum upp að — en ekki með — fyrsta núllstafnum. Ef þetta tekst, vinsamlegast stilltu nýtt lykilorð til að forðast þetta vandamál í framtíðinni.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Það tókst að breyta lykilsetningu veskis.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Mistókst að breyta lykilorði</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Gamla lykilorðið sem slegið var inn fyrir afkóðun vesksins er rangt. Það inniheldur núllstaf (þ.e. - núll bæti). Ef lykilorðið var stillt með útgáfu af þessum hugbúnaði fyrir 25.0, vinsamlegast reyndu aftur með aðeins stöfunum upp að — en ekki með — fyrsta núllstafnum.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>

@@ -222,20 +222,12 @@
         <translation type="unfinished">Wprowadzone hasło do odszyfrowania portfela jest niepoprawne.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Hasło wprowadzone do deszyfrowania portfela jest niepoprawne. Zawiera ono znak null (tj. bajt o wartości zero). Jeśli hasło zostało ustawione za pomocą starszej wersji oprogramowania przed wersją 25.0, proszę spróbować ponownie wpisując tylko znaki do pierwszego znaku null, ale bez niego. Jeśli ta próba zakończy się sukcesem, proszę ustawić nowe hasło, aby uniknąć tego problemu w przyszłości.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Hasło do portfela zostało pomyślnie zmienione.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Zmiana hasła nie powiodła się</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Stare hasło wprowadzone do odszyfrowania portfela jest niepoprawne. Zawiera znak null (tj. zerowy bajt). Jeśli hasło zostało ustawione za pomocą wersji tego oprogramowania wcześniejszej niż 25.0, spróbuj ponownie używając tylko znaków do — ale nie włącznie — pierwszego znaku null.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -4668,10 +4660,6 @@ Spróbuj uruchomić najnowszą wersję programu.
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">Sprawdzanie portfela / portfeli…</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Portfel wymaga przepisania: zrestartuj %s aby ukończyć</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

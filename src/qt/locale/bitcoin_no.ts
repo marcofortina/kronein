@@ -222,20 +222,12 @@
         <translation type="unfinished">Passordet som ble skrevet inn for dekryptering av lommeboken var feil.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Passordet som ble skrevet inn for dekryptering av lommeboken er feil. Det inneholder et nulltegn (dvs. en null byte). Hvis passordet ble satt med en versjon av denne programvaren før 25.0, prøv igjen med bare tegnene frem til – men ikke inkludert – det første nulltegnet. Hvis dette lykkes, vennligst sett et nytt passord for å unngå dette problemet i fremtiden.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Lommebokens passord ble endret vellykket.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Endring av passord mislyktes</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Det gamle passordet som ble skrevet inn for dekryptering av lommeboken er feil. Det inneholder et nulltegn (dvs. en null byte). Hvis passordet ble satt med en versjon av denne programvaren før 25.0, prøv igjen med bare tegnene frem til – men ikke inkludert – det første nulltegnet.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>

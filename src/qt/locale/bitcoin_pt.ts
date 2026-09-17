@@ -222,20 +222,12 @@
         <translation type="unfinished">A frase de segurança introduzida para a desencriptação da carteira estava incorreta.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">A frase de segurança introduzida para a desencriptação da carteira está incorreta. Contém um carácter nulo (ou seja, um byte zero). Se a frase de segurança foi definida com uma versão deste software anterior à 25.0, tente novamente com apenas os caracteres até - mas não incluindo - o primeiro carácter nulo. Se isso for bem-sucedido, defina uma nova frase de segurança para evitar esse problema no futuro.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">A frase de segurança da carteira foi alterada com sucesso.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Falha na alteração da frase de segurança</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">A frase de segurança antiga introduzida para a desencriptação da carteira está incorreta. Contém um carácter nulo (ou seja, um byte zero). Se a frase de segurança foi definida com uma versão deste software anterior à 25.0, tente novamente com apenas os caracteres até - mas não incluindo - o primeiro carácter nulo.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -4606,10 +4598,6 @@ Vá ao menu Ficheiro &gt; Abrir carteira para carregar uma carteira
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">A verificar a(s) carteira(s)…</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Foi necessário reescrever a carteira: reinicie %s para concluir</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

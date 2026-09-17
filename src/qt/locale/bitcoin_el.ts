@@ -226,20 +226,12 @@
         <translation type="unfinished">Η φράση πρόσβασης που εισήχθη για την αποκρυπτογράφηση του πορτοφολιού δεν ήταν σωστή.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Η φράση πρόσβασης που εισήχθη για την αποκρυπτογράφηση του πορτοφολιού είναι εσφαλμένη. Περιέχει έναν μηδενικό χαρακτήρα (δηλαδή - ένα byte μηδέν). Εάν η φράση πρόσβασης ορίστηκε με μια έκδοση αυτού του λογισμικού πριν από την 25.0, δοκιμάστε ξανά μόνο με τους χαρακτήρες έως — αλλά χωρίς να συμπεριλαμβάνεται — ο πρώτος μηδενικός χαρακτήρας. Εάν αυτό είναι επιτυχές, ορίστε μια νέα φράση πρόσβασης για να αποφύγετε αυτό το ζήτημα στο μέλλον.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Η φράση πρόσβασης άλλαξε επιτυχώς.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Η αλλαγή της φράσης πρόσβασης απέτυχε</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Η παλιά φράση πρόσβασης που εισήχθη για την αποκρυπτογράφηση του πορτοφολιού είναι εσφαλμένη. Περιέχει έναν χαρακτήρα null (δηλαδή ένα μηδενικό byte). Εάν η φράση πρόσβασης είχε οριστεί με έκδοση αυτού του λογισμικού προγενέστερη της 25.0, δοκιμάστε ξανά εισάγοντας μόνο τους χαρακτήρες έως — αλλά όχι συμπεριλαμβανομένου — του πρώτου χαρακτήρα null.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -3449,10 +3441,6 @@ Go to File &gt; Open Wallet to load a wallet.
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">Επαλήθευση πορτοφολιού/ιών...</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Το πορτοφόλι χρειάζεται να ξαναγραφεί: κάντε επανεκκίνηση του %s για να ολοκληρώσετε</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

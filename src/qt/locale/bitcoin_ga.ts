@@ -234,10 +234,6 @@
         <translation type="unfinished">Theip ar athrú pasfhocail</translation>
     </message>
     <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Tá an seanphasfhrása a cuireadh isteach le haghaidh díchriptithe an sparán mícheart. Tá carachtar nialasach ann (ie - beart nialasach). Má socraíodh an pasfhrása le leagan den bhogearra seo roimh 25.0, bain triail eile as gan ach na carachtair suas go dtí — ach gan a bheith san áireamh — an chéad charachtar null.</translation>
-    </message>
-    <message>
         <source>Warning: The Caps Lock key is on!</source>
         <translation type="unfinished">Rabhadh: Tá an eochair Glas Ceannlitreacha ar!</translation>
     </message>
@@ -4714,10 +4710,6 @@ Déan iarracht an leagan bogearraí is déanaí a rith.
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">Sparán(aí) á fhíorú…</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Ba ghá an sparán a athscríobh: atosaigh %s chun críochnú</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

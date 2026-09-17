@@ -222,20 +222,12 @@
         <translation type="unfinished">بٹوے کی ڈکرپشن کے لئے درج کردہ پاس فریس غلط تھا۔</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">آپ کا والٹ کھولنے کے لیے جو خفیہ لفظ (passphrase) دیا گیا ہے وہ غلط ہے۔ اس میں ایک خالی حرف (null character) موجود ہے۔ اگر یہ خفیہ لفظ اس سافٹ ویئر کے ورژن 25.0 سے پہلے والے ورژن میں بنایا گیا تھا تو براہِ کرم پہلے خالی حرف سے پہلے تک کے حروف استعمال کرکے دوبارہ کوشش کریں۔ اگر یہ کامیاب ہوجائے تو مستقبل میں اس مسئلے سے بچنے کے لیے نیا خفیہ لفظ مقرر کرلیں۔</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">والیٹ کا پاسفریز کامیابی کے ساتھ تبدیل کردیا گیا تھا۔</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">پاس فریز کی تبدیلی ناکام ہوگئی</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">بٹوے کے ڈکرپشن کے لیے درج کیا گیا پرانا پاس فریز غلط ہے۔ اس میں ایک خالی کریکٹر ہے (یعنی - ایک صفر بائٹ)۔ اگر پاس فریز 25.0 سے پہلے اس سافٹ ویئر کے ورژن کے ساتھ سیٹ کیا گیا تھا، تو براہ کرم صرف حروف کے ساتھ دوبارہ کوشش کریں — لیکن شامل نہیں — پہلے خالی کریکٹر۔</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>

@@ -226,20 +226,12 @@
         <translation type="unfinished">ឃ្លាសម្ងាត់ ដែលបានបញ្ចូលសម្រាប់ការអ៊ិនគ្រីបកាបូបចល័តគឺមិនត្រឹមត្រូវទេ។</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">ឃ្លាសម្ងាត់ដែលបានបញ្ចូលសម្រាប់ការឌិគ្រីបកាបូបគឺមិនត្រឹមត្រូវទេ។ វាមានតួអក្សរទទេ (ឧ - សូន្យបៃ)។ ប្រសិនបើឃ្លាសម្ងាត់ត្រូវបានកំណត់ជាមួយនឹងកំណែនៃកម្មវិធីនេះមុន 25.0 សូមព្យាយាមម្តងទៀតដោយប្រើតែតួអក្សររហូតដល់ — ប៉ុន្តែមិនរាប់បញ្ចូល — តួអក្សរទទេដំបូង។ ប្រសិនបើ​វា​ជោគជ័យ សូម​កំណត់​ឃ្លាសម្ងាត់​ថ្មី ដើម្បី​ចៀសវាង​បញ្ហា​នេះ​នៅពេល​អនាគត។</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">ឃ្លាសម្ងាត់នៃកាបូបចល័ត ត្រូវបានផ្លាស់ប្តូរដោយជោគជ័យ។</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">ប្ដូរ​ឃ្លា​សម្ងាត់​បាន​បរាជ័យ</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">ឃ្លាសម្ងាត់ចាស់ដែលបានបញ្ចូលសម្រាប់ការឌិគ្រីបកាបូបគឺមិនត្រឹមត្រូវទេ។ វាមានតួអក្សរទទេ (ឧ - សូន្យបៃ)។ ប្រសិនបើឃ្លាសម្ងាត់ត្រូវបានកំណត់ជាមួយនឹងកំណែនៃកម្មវិធីនេះមុន 25.0 សូមព្យាយាមម្តងទៀតដោយប្រើតែតួអក្សររហូតដល់ — ប៉ុន្តែមិនរាប់បញ្ចូល — តួអក្សរទទេដំបូង។</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>

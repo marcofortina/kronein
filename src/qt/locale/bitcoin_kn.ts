@@ -219,20 +219,12 @@
         <translation type="unfinished">ವ್ಯಾಲೆಟ್ ಡೀಕ್ರಿಪ್ಶನ್‌ಗಾಗಿ ನಮೂದಿಸಿದ ಪಾಸ್‌ಫ್ರೇಸ್ ತಪ್ಪಾಗಿದೆ.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">ವ್ಯಾಲೆಟ್ ಡೀಕ್ರಿಪ್ಶನ್‌ಗಾಗಿ ನಮೂದಿಸಿದ ಪಾಸ್‌ಫ್ರೇಸ್ ತಪ್ಪಾಗಿದೆ. ಇದು ಶೂನ್ಯ ಅಕ್ಷರವನ್ನು ಹೊಂದಿರುತ್ತದೆ (ಅಂದರೆ - ಶೂನ್ಯ ಬೈಟ್). ಪಾಸ್‌ಫ್ರೇಸ್ ಅನ್ನು 25.0 ಕ್ಕಿಂತ ಮೊದಲು ಈ ಸಾಫ್ಟ್‌ವೇರ್‌ನ ಆವೃತ್ತಿಯೊಂದಿಗೆ ಹೊಂದಿಸಿದ್ದರೆ, ದಯವಿಟ್ಟು ಮೊದಲ ಶೂನ್ಯ ಅಕ್ಷರದವರೆಗಿನ - ಆದರೆ ಒಳಗೊಂಡಿಲ್ಲದವರೆಗಿನ ಅಕ್ಷರಗಳೊಂದಿಗೆ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ. ಇದು ಯಶಸ್ವಿಯಾದರೆ, ಭವಿಷ್ಯದಲ್ಲಿ ಈ ಸಮಸ್ಯೆಯನ್ನು ತಪ್ಪಿಸಲು ದಯವಿಟ್ಟು ಹೊಸ ಪಾಸ್‌ಫ್ರೇಸ್ ಅನ್ನು ಹೊಂದಿಸಿ.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">ವಾಲೆಟ್ ಪಾಸ್‌ಫ್ರೇಸ್ ಅನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಬದಲಾಯಿಸಲಾಗಿದೆ.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">ಪಾಸ್‌ಫ್ರೇಸ್ ಬದಲಾವಣೆ ವಿಫಲವಾಗಿದೆ</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">ವ್ಯಾಲೆಟ್ ಡೀಕ್ರಿಪ್ಶನ್‌ಗಾಗಿ ನಮೂದಿಸಿದ ಹಳೆಯ ಪಾಸ್‌ಫ್ರೇಸ್ ತಪ್ಪಾಗಿದೆ. ಇದು ಶೂನ್ಯ ಅಕ್ಷರವನ್ನು ಹೊಂದಿರುತ್ತದೆ (ಅಂದರೆ - ಶೂನ್ಯ ಬೈಟ್). ಪಾಸ್‌ಫ್ರೇಸ್ ಅನ್ನು 25.0 ಕ್ಕಿಂತ ಮೊದಲು ಈ ಸಾಫ್ಟ್‌ವೇರ್‌ನ ಆವೃತ್ತಿಯೊಂದಿಗೆ ಹೊಂದಿಸಿದ್ದರೆ, ದಯವಿಟ್ಟು ಮೊದಲ ಶೂನ್ಯ ಅಕ್ಷರದವರೆಗಿನ - ಆದರೆ ಒಳಗೊಂಡಿಲ್ಲದವರೆಗಿನ ಅಕ್ಷರಗಳೊಂದಿಗೆ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>

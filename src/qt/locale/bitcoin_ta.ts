@@ -2956,10 +2956,6 @@
         <translation type="unfinished">HTTP சேவையகத்தைத் தொடங்க முடியவில்லை. விவரங்களுக்கு debug.log ஐ பார்க்கவும்.</translation>
     </message>
     <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">வாலட் மீண்டும் எழுத படவேண்டும்: முடிக்க %s ஐ மறுதொடக்கம் செய்யுங்கள்</translation>
-    </message>
-    <message>
         <source>Settings file could not be read</source>
         <translation type="unfinished">அமைப்புகள் கோப்பைப் படிக்க முடியவில்லை</translation>
     </message>

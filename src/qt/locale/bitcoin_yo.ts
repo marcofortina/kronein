@@ -222,20 +222,12 @@
         <translation type="unfinished">Ọ̀rọ̀-ìfàṣẹsí tí o tẹ̀ sílẹ̀ fún ṣiṣí apò-owó jẹ́ aṣìṣe</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Ọ̀rọ̀-ìfàṣẹsí tí o tẹ̀ sílẹ̀ fún ṣiṣí apò-owó jẹ́ aṣìṣe. Ó ní ààmì ofo (ie – ààmì zero byte). Bí a bá ti ṣètò ọ̀rọ̀-ìfàṣẹsí yìí pẹ̀lú ẹ̀dá sọ́fitiwia yìí tó wáyé ṣáájú 25.0, jọ̀wọ́ gbìyànjú lẹ́ẹ̀kansi pẹ̀lú àwọn àmì tó wà títí dé — ṣùgbọ́n má kà ààmì ofo àkọ́kọ́. Bí èyí bá ṣàṣeyọrí, jọ̀wọ́ ṣètò ọ̀rọ̀-ìfàṣẹsí tuntun láti yá àṣìṣe yìí kúrò ní ọjọ́ iwájú.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Ọ̀rọ̀-ìfàṣẹsí apò-owó ti yí padà ní àṣeyọrí</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Ìyípadà ọ̀rọ̀-ìfàṣẹsí kò ṣàṣeyọrí</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Ọ̀rọ̀-ìfàṣẹsí atijọ́ tí o tẹ̀ sílẹ̀ fún ṣiṣí apò-owó jẹ́ aṣìṣe. Ó ní ààmì ofo (ie – ààmì zero byte). Bí a bá ti ṣètò ọ̀rọ̀-ìfàṣẹsí yìí pẹ̀lú ẹ̀dá sọ́fitiwia tó wáyé ṣáájú 25.0, jọ̀wọ́ gbìyànjú lẹ́ẹ̀kansi pẹ̀lú àwọn àmì tó wà títí dé — ṣùgbọ́n má kà ààmì ofo àkọ́kọ́.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>

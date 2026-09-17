@@ -222,20 +222,12 @@
         <translation type="unfinished">די פּאַספראַסע אריין פֿאַר די דעקריפּטיאָן פון די בייַטל איז פאַלש.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">די פּאַספראַסע אריין פֿאַר די דעקריפּטיאָן פון די בייַטל איז פאַלש. עס כּולל אַ נאַל כאַראַקטער (ד"ה - אַ נול בייט). אויב די פּאַסספראַסע איז געווען באַשטימט מיט אַ ווערסיע פון ​​​​דעם ווייכווארג איידער 25.0, ביטע פּרובירן ווידער מיט בלויז די אותיות אַרויף צו - אָבער נישט אַרייַנגערעכנט - דער ערשטער נאַל כאַראַקטער. אויב דאָס איז געראָטן, ביטע שטעלן אַ נייַע פּאַספראַסע צו ויסמיידן דעם אַרויסגעבן אין דער צוקונפֿט.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">וואַללעט פּאַספראַסע איז הצלחה געביטן.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">פּאַספראַסע טוישן ניט אַנדערש</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">די אַלט פּאַסספראַסע אריין פֿאַר די דעקריפּטיאָן פון די בייַטל איז פאַלש. עס כּולל אַ נאַל כאַראַקטער (ד"ה - אַ נול בייט). אויב די פּאַספראַסע איז געווען באַשטימט מיט אַ ווערסיע פון ​​​​דעם ווייכווארג איידער 25.0, ביטע פּרובירן ווידער מיט בלויז די אותיות אַרויף צו - אָבער נישט אַרייַנגערעכנט - דער ערשטער נאַל כאַראַקטער.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -1038,10 +1030,6 @@
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">מעַפענען קעשענע(ס)…</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">די וואָלעט דאַרף ווערן איבערגעשריבן: פאַרהייב 1%s צו פאַרענדיקן</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

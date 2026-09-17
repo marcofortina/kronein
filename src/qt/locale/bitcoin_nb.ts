@@ -3819,10 +3819,6 @@ Mangler løsningsdata for å estimere transaksjonsstørrelse</translation>
         <translation type="unfinished">Verifiserer lommebøker...</translation>
     </message>
     <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Lommeboka må skrives om: Start %s på nytt for å fullføre</translation>
-    </message>
-    <message>
         <source>Settings file could not be read</source>
         <translation type="unfinished">Filen med innstillinger kunne ikke lese</translation>
     </message>

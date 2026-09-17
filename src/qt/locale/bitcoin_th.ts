@@ -222,20 +222,12 @@
         <translation type="unfinished">วลีรหัสที่ป้อนสำหรับถอดรหัสกระเป๋าเงินไม่ถูกต้อง</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">วลีผ่านที่ป้อนเพื่อถอดรหัสกระเป๋าสตางค์ไม่ถูกต้อง เนื่องจากมีอักขระว่าง (เช่น ไบต์ศูนย์) หากวลีผ่านถูกตั้งค่าด้วยซอฟต์แวร์เวอร์ชันก่อนหน้า 25.0 กรุณาลองอีกครั้งโดยป้อนเฉพาะอักขระก่อนหน้าอักขระว่างตัวแรกเท่านั้น หากสำเร็จ กรุณาตั้งวลีผ่านใหม่เพื่อหลีกเลี่ยงปัญหานี้ในอนาคต</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">รหัสผ่านกระเป๋าเงินถูกเปลี่ยนสำเร็จเรียบร้อยแล้ว.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">การเปลี่ยนรหัสผ่านล้มเหลว</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">รหัสผ่านเก่าที่ป้อนเพื่อถอดรหัสกระเป๋าไม่ถูกต้อง มันมีอักขระว่าง (เช่น - ไบต์ศูนย์) หากรหัสผ่านถูกตั้งด้วยเวอร์ชันของซอฟต์แวร์ก่อนเวอร์ชัน 25.0 กรุณาลองใหม่โดยใช้เฉพาะอักขระจนถึง — แต่ไม่รวม — อักขระว่างตัวแรก.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>

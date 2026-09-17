@@ -226,20 +226,12 @@
         <translation type="unfinished">La frase de contraseña introducida para descifrar el monedero era incorrecta.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">La frase de contraseña ingresada para el descifrado del monedero es incorrecta. Contiene un carácter nulo (es decir, un byte cero). Si la frase de contraseña se configuró con una versión de este software anterior a la 25.0, vuelve a intentarlo solo con los caracteres hasta el primer carácter nulo, pero sin incluirlo. Si esto funciona, establece una frase de contraseña nueva para evitar este problema en el futuro.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">La frase de contraseña del monedero se cambió correctamente.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Error al cambiar la frase de contraseña</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">La frase de contraseña antigua que se ingresó para el descifrado del monedero es incorrecta. Contiene un carácter nulo (es decir, un byte cero). Si la frase de contraseña se configuró con una versión de este software anterior a la 25.0, vuelve a intentarlo solo con los caracteres hasta el primer carácter nulo, pero sin incluirlo.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -4600,10 +4592,6 @@ Intenta ejecutar la última versión del software.
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">Verificando monedero(s)…</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Es necesario reescribir el monedero: reiniciar %s para completar</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

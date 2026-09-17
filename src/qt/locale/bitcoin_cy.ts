@@ -218,20 +218,12 @@
         <translation type="unfinished">Mae'r cyfrinair ysgrifennwyd ar gyfer datgryptio'r waled yn anghywir.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Mae'r geiriau pas a nodwyd ar gyfer dad-cryptio'r waled yn anghywir. Mae'n cynnwys cymeriad null (hynny yw - bytsyn sero). Os gosodwyd y geiriau pas gyda fersiwn o'r meddalwedd hon cyn 25.0, ceisiwch eto gyda dim ond y cymeriadau hyd at — ond heb gynnwys — y cymeriad null cyntaf. Os yw hyn yn llwyddiannus, gosodwch geiriau pas newydd er mwyn osgoi'r broblem hon yn y dyfodol.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Newid cyfrinair waled yn llwyddiannus.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Method newid geiriau pas wedi methu</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Mae'r geiriau pas hen a nodwyd ar gyfer dad-cryptio'r waled yn anghywir. Mae'n cynnwys cymeriad null (hynny yw - bytsyn sero). Os gosodwyd y geiriau pas gyda fersiwn o'r meddalwedd hon cyn 25.0, ceisiwch eto gyda dim ond y cymeriadau hyd at — ond heb gynnwys — y cymeriad null cyntaf.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -1863,10 +1855,6 @@
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">Wedi gwirio'r waled(au)…</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Roedd angen ailosod y waled:%si gwblhau</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

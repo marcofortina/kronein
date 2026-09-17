@@ -222,20 +222,12 @@
         <translation type="unfinished">Phasiphrase yo dzheniswaho ya u bvisa tshipatshi yo vha yo khakhea.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Phasiphrase yo dzheniswaho ya u bvisa tshipatshi a yo ngo tea. I na tshiga tsha null (ndi uri - byte ya zero). Arali mubulo wa u dzhena wo vhewa na mbekanyamushumo ya sofuthiwee iyi phanḓa ha 25.0, kha vha lingedze hafhu nga maḽeḓere fhedzi u swika kha — fhedzi vha sa kateli — maḽeḓere a u thoma a si na mushumo. Arali zwo bvelela, kha vha vhee passphrase ntswa u itela u iledza thaidzo iyi tshifhingani tshi ḓaho.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Phasiphrase ya tshipatshi yo shandukiswa nga nḓila yo bvelelaho.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Tshanduko ya phasiphrase yo kundelwa</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Phasiphrase ya kale yo dzheniswaho ya u bvisa tshipatshi a yo ngo tea. I na tshiga tsha null (ndi uri - byte ya zero). Arali mubulo wa u dzhena wo vhewa na mbekanyamushumo ya sofuthiwee iyi phanḓa ha 25.0, kha vha lingedze hafhu nga maḽeḓere fhedzi u swika kha — fhedzi vha sa kateli — maḽeḓere a u thoma a si na mushumo.</translation>
     </message>
     </context>
 <context>

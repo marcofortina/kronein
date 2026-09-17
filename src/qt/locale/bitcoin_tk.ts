@@ -210,20 +210,12 @@
         <translation type="unfinished">Gapjygyň şifrini açmak üçin ýazylan parol sözlemi nädogry.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Gapjygyň şifrini açmak üçin ýazylan parol sözlemi nädogry. Onda nol belgi bar (meselem, nol baýt). Eger parol sözlemi bu programmanyň 25.0-dan ozalky wersiýasynda bellenen bolsa, diňe birinji nol belgä çenli, ýöne ony goşman täzeden synanyşyň. Eger şowly netijelense, indikide bu mesele bilen çaknyşmaz ýaly täze parol sözlemini belläň.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Gapjygyň parol sözlemi üstünlikli çalşyldy.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Parol sözlemini üýtgedip bolmady</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Gapjygy şifrlemek üçin girizilen öňki parol sözlemi dogry däl. Onda nol belgi bar ( meselem, nol baýt). Eger parol sözlemi bu programmanyň 25.0-dan ozalky wersiýasynda bellenen bolsa, diňe birinji nol belgä çenli we bu nol belgini goşmazdan belgiler bilen gaýtadan synanyşyň.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>

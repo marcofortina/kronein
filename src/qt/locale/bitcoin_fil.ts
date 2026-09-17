@@ -193,10 +193,6 @@
         <translation type="unfinished">Ang passphrase na inilagay para sa pag-dedekripto ng pitaka ay hindi tama</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Ang passphrase na isinumite para sa pag-decrypt ng pitaka ay mali. Naglalaman ito ng null character (halimbawa - isang zero byte). Kung ang passphrase ay itinakda gamit ang isang bersyon ng software na ito bago ang 25.0, subukan muli lamang ang mga karakter mula sa simula hanggang sa una nilalang null character. Kung magtagumpay ito, mangyaring magtakda ng bagong passphrase upang maiwasan ang isyung ito sa hinaharap.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Matagumpay na nabago ang passphrase ng walet.</translation>
     </message>
@@ -2829,10 +2825,6 @@
     <message>
         <source>User Agent comment (%s) contains unsafe characters.</source>
         <translation type="unfinished">Ang komento ng User Agent (%s) ay naglalaman ng hindi ligtas na mga character.</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Kinakailangan na muling maisulat ang walet: i-restart ang %s upang makumpleto</translation>
     </message>
     </context>
 </TS>

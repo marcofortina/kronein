@@ -223,10 +223,6 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">Cüzdan parolasının kaldırılması için girilen parola yanlış.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Cüzdan parolası başarılı bir şekilde değiştirildi</translation>
     </message>
@@ -3859,10 +3855,6 @@ Cüzdan kilidini aç.</translation>
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">Cüzdan(lar) doğrulanıyor...</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Cüzdanın tekrar yazılması gerekiyordu: işlemi tamamlamak için %s programını yeniden başlatınız</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

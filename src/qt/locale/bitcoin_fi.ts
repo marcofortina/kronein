@@ -222,20 +222,12 @@
         <translation type="unfinished">Annettu salauslause lompakon avaamiseksi oli väärä.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Lompakon salauksen purkamista varten syötetty salasana on virheellinen. Se sisältää nollamerkin (eli nollatavun). Jos salasana on asetettu ohjelmiston versiolla, joka on ennen versiota 25.0, yritä uudestaan vain merkkejä ensimmäiseen nollamerkkiin asti, mutta ei ensimmäistä nollamerkkiä lukuun ottamatta. Jos tämä onnistuu, aseta uusi salasana, jotta vältät tämän ongelman tulevaisuudessa.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Lompakon salasana vaihdettiin onnistuneesti.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Salasanan vaihto epäonnistui</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Lompakon salauksen purkamista varten syötetty vanha salasana on virheellinen. Se sisältää nollamerkin (eli nollatavun). Jos salasana on asetettu ohjelmiston versiolla, joka on ennen versiota 25.0, yritä uudestaan vain merkkejä ensimmäiseen nollamerkkiin asti, mutta ei ensimmäistä nollamerkkiä lukuun ottamatta.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -4290,10 +4282,6 @@ ilman, että käytetään mitään snapshot-tietoja. Ilmoita tästä tapauksesta
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">Varmennetaan lompakko(ita)...</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Lompakko tarvitsee uudelleenkirjoittaa: käynnistä %s uudelleen</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

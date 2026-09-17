@@ -69,14 +69,6 @@
         <translation type="unfinished">فشل تشفير المحفظة بسبب خطأ داخلي. لم يتم تشفير محفظتك.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">عبارة المرور المُدخلة لفك تشفير المحفظة غير صحيحة. تحتوي على حرف فارغ (أي بايت صفري). إذا تم ضبط عبارة المرور مع إصدار من هذا البرنامج أقدم من 25.0، يُرجى إعادة المحاولة باستخدام الأحرف حتى الحرف الفارغ الأول فقط، ولكن دون تضمينه. في حال نجاح ذلك، يُرجى تعيين عبارة مرور جديدة لتجنب هذه المشكلة في المستقبل.</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">عبارة المرور القديمة المُدخلة لفك تشفير المحفظة غير صحيحة. تحتوي على حرف فارغ (أي بايت صفري). إذا كانت عبارة المرور مُعدّة بإصدار أقدم من هذا البرنامج 25.0، يُرجى إعادة المحاولة باستخدام الأحرف حتى الحرف الفارغ الأول فقط، ولكن دون تضمينه.</translation>
-    </message>
-    <message>
         <source>Warning: The Caps Lock key is on!</source>
         <translation type="unfinished">تحذير: مفتاح Caps Lock قيد التشغيل!</translation>
     </message>

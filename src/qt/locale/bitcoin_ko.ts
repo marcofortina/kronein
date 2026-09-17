@@ -226,20 +226,12 @@
         <translation type="unfinished">지갑 복호화를 위한 암호가 틀렸습니다.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">지갑 암호화 해제를 위해 입력된 비밀문구가 정확하지 않습니다. 비밀문구가 공백 문자 (0 바이트)를 포함하고 있습니다. 만약 비밀문구가 25.0 버전 이전의 비트코인 코어 소프트웨어에 의해 설정되었다면, 비밀문구를 첫 공백 문자 이전까지 입력해보세요. 이렇게 해서 성공적으로 입력되었다면, 차후 이런 문제가 발생하지 않도록 비밀문구를 새로이 설정해 주세요.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">지갑 암호가 성공적으로 변경되었습니다.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">암호 변경에 실패하였습니다.</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">지갑 암호화 해제를 위해 입력된 예전 비밀문구가 정확하지 않습니다. 비밀문구가 공백 문자 (0 바이트)를 포함하고 있습니다. 만약 비밀문구가 25.0 버전 이전의 비트코인 코어 소프트웨어에 의해 설정되었다면, 비밀문구를 첫 공백 문자 이전까지 입력해보세요.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -4639,10 +4631,6 @@ Please try running the latest software version.
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">지갑(들) 검증 중...</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">지갑을 새로 써야 합니다:  진행을 위해 %s 를 다시 시작하십시오</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

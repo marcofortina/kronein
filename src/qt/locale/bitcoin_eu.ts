@@ -226,20 +226,12 @@
         <translation type="unfinished">Diruzorroa desenkriptatzeko sartutako pasahitza okerra da.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Zorroa deszifratzeko sartutako pasahitza ez da zuzena. Null karaktere bat dauka (hau da, zero byte bat). Pasahitza 25.0 bertsioa baino lehenagoko software-bertsio batekin ezarri bazen, saiatu berriro lehen null karaktereraino (baina hura barne hartu gabe) dauden karaktereak soilik sartzen. Horrela funtzionatzen badu, ezarri pasahitz berri bat etorkizunean arazo hori saihesteko.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Zorroaren pasahitza arrakastaz aldatu da.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Pasahitzaren aldaketa huts egin du</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Zorroa deszifratzeko sartutako pasahitz zaharra ez da zuzena. Null karaktere bat dauka (hau da, zero byte bat). Pasahitza software honen 25.0 bertsioa baino lehenagoko batean ezarri bazen, saiatu berriro lehen null karaktereraino dauden karaktereak soilik sartzen, baina karaktere hori barne hartu gabe.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -4690,10 +4682,6 @@ Mesedez, saiatu softwarearen azken bertsioa exekutatzen.
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">Zorroak egiaztatzen...</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Zorroa berridatzi behar izan da: %sberrabiarazi osatzeko</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

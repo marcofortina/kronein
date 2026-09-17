@@ -198,20 +198,12 @@
         <translation type="unfinished">Passphrase yang dimasukan untuk dekripsi dompet salah</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Frasa sandi yang dimasukkan untuk membuka dompet salah. Mengandung karakter kosong (contoh - sebuah bit kosong). Apabila frasa sandi di atur menggunakan piranti lunak sebelum versi 25.0, silahkan coba kembali dengan karakter hanya sampai dengan - tetapi tidak termasuk - karakter kosong yang pertama. Jika hal ini berhasil, silahkan atur frasa sandi yang baru untuk menghindari masalah yang sama di kemudian hari.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Kata sandi berhasil diganti.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Penggantian frasa sandi gagal</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Frasa sandi lama yang dimasukkan untuk membuka dompet salah. Mengandung karakter kosong (contoh - sebuah bit kosong). Apabila frasa sandi di atur menggunakan piranti lunak sebelum versi 25.0, silahkan coba kembali  dengan karakter hanya sampai dengan - tetapi tidak termasuk - karakter kosong yang pertama.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>

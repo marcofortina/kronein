@@ -177,20 +177,12 @@
         <translation type="unfinished">Frasa laluan dimasukki untuk dekripsi dompet adalah tidak betul.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Frasa-laluan yang dimasukkan untuk dinyahsulitkan dompet tidak tepat. Ia mengandungi karakter nul (ie- byte kosong). Jika frasa-laluan disetkan dengan versi perisian sebelum ini hingga ke 25.0, sila cuba lagi hanya dengan karakter hingga ke — tapi tak termasuk — karakter nul pertama. Jika berjaya, sila set frasa-laluan baru bagi mengelakkan isu sama pada masa depan. </translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Frasa laluan dompet berjaya ditukar.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Perubahan frasa-laluan gagal</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Frasa-laluan lama yang dimasukkan untuk dinyahsulitkan dompet tidak tepat. Ia mengandungi karakter nul (ie- byte kosong). Jika frasa-laluan disetkan dengan versi perisian sebelum ini hingga ke 25.0, sila cuba lagi hanya dengan karakter hingga ke — tapi tak termasuk — karakter nul pertama.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>

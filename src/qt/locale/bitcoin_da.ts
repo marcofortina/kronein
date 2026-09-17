@@ -3211,10 +3211,6 @@ Gå til Fil &gt; Åbn Pung for, at indlæse en pung.
         <translation type="unfinished">Bekræfter tegnebog (/bøger)...</translation>
     </message>
     <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Det var nødvendigt at genskrive tegnebogen: Genstart %s for at gennemføre</translation>
-    </message>
-    <message>
         <source>Settings file could not be read</source>
         <translation type="unfinished">Indstillingsfilen kunne ikke læses</translation>
     </message>

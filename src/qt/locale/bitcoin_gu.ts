@@ -222,20 +222,12 @@
         <translation type="unfinished">વૉલેટ ડિક્રિપ્શન માટે દાખલ કરેલ પાસફ્રેઝ ખોટો હતો.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">વૉલેટ ડિક્રિપ્શન માટે દાખલ કરેલ પાસફ્રેઝ ખોટો છે. તેમાં નલ અક્ષર (એટલે ​​કે - શૂન્ય બાઈટ) છે. જો પાસફ્રેઝ 25.0 પહેલા આ સૉફ્ટવેરના સંસ્કરણ સાથે સેટ કરવામાં આવ્યો હોય, તો કૃપા કરીને ફક્ત પ્રથમ શૂન્ય અક્ષર સુધીના અક્ષરો સાથે ફરી પ્રયાસ કરો — પરંતુ તેમાં શામેલ નથી. જો આ સફળ થાય, તો ભવિષ્યમાં આ સમસ્યાને ટાળવા માટે કૃપા કરીને નવો પાસફ્રેઝ સેટ કરો.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">વૉલેટ પાસફ્રેઝ સફળતાપૂર્વક બદલવામાં આવ્યો</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">પાસફ્રેઝ ફેરફાર નિષ્ફળ ગયો</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">વૉલેટ ડિક્રિપ્શન માટે દાખલ કરેલ જૂનો પાસફ્રેઝ ખોટો છે. તેમાં નલ અક્ષર (એટલે ​​કે - શૂન્ય બાઈટ) છે. જો પાસફ્રેઝ 25.0 પહેલા આ સૉફ્ટવેરના સંસ્કરણ સાથે સેટ કરવામાં આવ્યો હોય, તો કૃપા કરીને ફક્ત પ્રથમ શૂન્ય અક્ષર સુધીના અક્ષરો સાથે ફરી પ્રયાસ કરો — પરંતુ તેમાં શામેલ નથી.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>

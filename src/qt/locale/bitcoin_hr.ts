@@ -4005,10 +4005,6 @@ Idi na Datoteka &gt;  Otvori novčanik za učitanje novčanika.
         <translation type="unfinished">Provjeravanje novčanika...</translation>
     </message>
     <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Novčanik je trebao prepravak: ponovo pokrenite %s</translation>
-    </message>
-    <message>
         <source>Settings file could not be read</source>
         <translation type="unfinished">Datoteka postavke se ne može pročitati</translation>
     </message>

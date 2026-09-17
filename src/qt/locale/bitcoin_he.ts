@@ -3464,10 +3464,6 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">הערת צד המשתמש (%s) כוללת תווים שאינם בטוחים.</translation>
     </message>
     <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">יש לכתוב את הארנק מחדש: יש להפעיל את %s כדי להמשיך</translation>
-    </message>
-    <message>
         <source>Settings file could not be read</source>
         <translation type="unfinished">לא ניתן לקרוא את קובץ ההגדרות</translation>
     </message>

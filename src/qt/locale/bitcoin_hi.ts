@@ -210,20 +210,12 @@
         <translation type="unfinished">वॉलेट डिक्रिप्शन के लिए दर्ज किया गया पासफ़्रेज़ गलत था।</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">वॉलेट डिक्रिप्शन के लिए दर्ज पासफ़्रेज़ गलत है। इसमें एक अशक्त वर्ण (यानी - एक शून्य बाइट) होता है। यदि पासफ़्रेज़ 25.0 से पहले इस सॉफ़्टवेयर के किसी संस्करण के साथ सेट किया गया था, तो कृपया केवल पहले अशक्त वर्ण तक - लेकिन शामिल नहीं - वर्णों के साथ पुनः प्रयास करें। यदि यह सफल होता है, तो कृपया भविष्य में इस समस्या से बचने के लिए एक नया पासफ़्रेज़ सेट करें।</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">वॉलेट पासफ़्रेज़ सफलतापूर्वक बदल दिया गया.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">पदबंध परिवर्तन विफल रहा</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">वॉलेट डिक्रिप्शन के लिए दर्ज किया गया पुराना पासफ़्रेज़ गलत है। इसमें एक अशक्त वर्ण (यानी - एक शून्य बाइट) होता है। यदि पासफ़्रेज़ 25.0 से पहले इस सॉफ़्टवेयर के किसी संस्करण के साथ सेट किया गया था, तो कृपया केवल पहले अशक्त वर्ण तक - लेकिन शामिल नहीं - वर्णों के साथ पुनः प्रयास करें।</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>

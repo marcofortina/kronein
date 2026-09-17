@@ -226,20 +226,12 @@
         <translation type="unfinished">Пароль, введенный при шифровании кошелька, некорректен.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Парольная фраза, введенная для расшифрования кошелька, не подходит. Она содержит нулевой байт. Если парольная фраза была задана в программе версии ниже 25.0, пожалуйста, попробуйте ввести только символы до первого нулевого байта, не включая его. Если это сработает, смените парольную фразу, чтобы избежать этого в будущем.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Пароль кошелька успешно изменён.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Не удалось сменить пароль</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Текущий пароль, введенный для расшифрования кошелька, не подходит. Он содержит нулевой байт. Если пароль была задан в программе версии ниже 25.0, пожалуйста, попробуйте ввести только символы до первого нулевого байта, не включая его.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>

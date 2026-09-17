@@ -222,20 +222,12 @@
         <translation type="unfinished">輸入要用來解密錢包的密碼不對。</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">輸入的密碼有誤，無法解密錢包。 輸入的密碼中包含空字元（例如，零值的位元組）。 如果密碼是在此軟體早於25.0的版本上設定的，請只輸入非空字元的密碼（不包括零值元本身）再嘗試一次。 如果這樣可以成功解密，為避免未來出現問題，請設定新的密碼。</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">錢包密碼改成功了。</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">修改密碼失敗</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">輸入的舊密碼有誤，無法解密錢包。 輸入的密碼中包含空字元（例如，一個值為零的位元組）。 如果密碼是在此軟體早於25.0的版本上設定的，請只輸入密碼中首個空字元（不包括空字元本身）之前的部分來再嘗試一次。</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -4459,10 +4451,6 @@ Please try running the latest software version.
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">正在驗證錢包...</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">錢包需要重寫: 請重新啓動 %s 來完成</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

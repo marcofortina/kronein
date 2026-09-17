@@ -226,20 +226,12 @@
         <translation type="unfinished">Парольна фраза, введена для розшифрування гаманця, була неправильною.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Парольна фраза, введена для розшифрування гаманця, неправильна. Вона містить null-символ (тобто нульовий байт). Якщо парольну фразу було встановлено у версії цієї програми, старішій за 25.0, спробуйте ще раз, ввівши лише символи до, але не включаючи, першого нульового символу. У разі успіху встановіть нову парольну фразу, щоб уникнути цієї проблеми в майбутньому.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Парольну фразу гаманця успішно змінено.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Не вдалося змінити парольну фразу</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Стара парольна фраза, введена для розшифрування гаманця, неправильна. Вона містить null-символ (тобто нульовий байт). Якщо парольну фразу було встановлено у версії цієї програми, старішій за 25.0, спробуйте ще раз, ввівши лише символи до, але не включаючи, першого нульового символу.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -4775,10 +4767,6 @@ Please try running the latest software version.
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">Перевірка гаманця(ів)…</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Гаманець вимагав перезапису: перезапустіть %s для завершення</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

@@ -222,20 +222,12 @@
         <translation type="unfinished">Geslo za dešifriranje denarnice, ki ste ga vnesli, ni pravilno.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Geslo za dešifriranje denarnice, ki ste ga vnesli, ni pravilno. Vsebuje ničelni znak (ničelni bajt). Če ste geslo nastavili z tem programom z verzijo pred 25.0, prosimo, da poskusite ponovno z delom gesla pred prvim ničelnim znakom (brez slednjega). Če to uspe, prosimo, nastavite novo geslo, da se ta težava ne bi ponavljala v prihodnje.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Geslo za denarnico je bilo uspešno spremenjeno.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Sprememba gesla je spodletela.</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Geslo za dešifriranje denarnice, ki ste ga vnesli, ni pravilno. Vsebuje ničelni znak (ničelni bajt). Če ste geslo nastavili z tem programom z verzijo pred 25.0, prosimo, da poskusite ponovno z delom gesla pred prvim ničelnim znakom (brez slednjega).</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -4269,10 +4261,6 @@ Za odpiranje denarnice kliknite Datoteka &gt; Odpri denarnico
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">Preverjam denarnice ...</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Denarnica mora biti prepisana. Za zaključek ponovno zaženite %s.</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

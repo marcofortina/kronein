@@ -2899,10 +2899,6 @@
         <translation type="unfinished">Потвърждаване на портфейл(и)...</translation>
     </message>
     <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Портфейлът трябва да бъде презаписан : рестартирай %s , за да завърши</translation>
-    </message>
-    <message>
         <source>Settings file could not be read</source>
         <translation type="unfinished">Файла с настройки не може да бъде прочетен.</translation>
     </message>

@@ -226,20 +226,12 @@
         <translation type="unfinished">La phrase de passe saisie pour déchiffrer le portefeuille était erronée.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">La phrase de passe saisie pour le déchiffrement du portefeuille est erronée. Elle comporte un caractère nul (c.-à.-d. un octet de zéro). Si la phrase de passe a été définie avec une version de ce logiciel antérieure à 25.0, réessayez en ne saisissant que les caractères jusqu’au premier caractère nul, sans saisir ce dernier. En cas de réussite, définissez une nouvelle phrase de passe afin d’éviter ce problème à l’avenir.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">La phrase de passe du portefeuille a été modifiée avec succès.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Échec de changement de la phrase de passe</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">L’ancienne phrase de passe saisie pour le déchiffrement du portefeuille est erronée. Elle comporte un caractère nul (c.-à.-d. un octet de zéro). Si la phrase de passe a été définie avec une version de ce logiciel antérieure à 25.0, réessayez en ne saisissant que les caractères jusqu’au premier caractère nul, sans saisir ce dernier..</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -4646,10 +4638,6 @@ Essayez d’utiliser la version la plus récente du logiciel.
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">Vérification des portefeuilles…</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Le portefeuille devait être réécrit : redémarrer %s pour terminer l’opération.</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

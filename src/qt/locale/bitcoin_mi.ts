@@ -195,20 +195,12 @@ Right-click to edit address or label</translation>
         <translation type="unfinished">Ko te kupuhipa i whakauruhia mō te whakapau kōnae whakamāhukihuki, he hē.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Ko te kupu whakapā atu i whakauruhia mō te whakapau kōnae kore tika. Kei roto i te kupu whakapā he pūāhua kore (hei tauira - he tūmomo kore). Ki te whakapau kōnae te kupu whakapā i te wā i whakatūria ai tēnei whakamahi i mua i te 25.0, whakamātau anō ki te whakapau kōnae ki te whakakore i tēnei raruraru i te wā e whai ake nei.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Kua whakarerekētia te kupuhipa pūtea.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Kua whakapau kē te whakarerekē i te kupu whakapākehā.</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Ko te kupuhipa tawhito i whakauruhia mō te whakamāori i te wharetaonga he hē. Kei roto i te kupuhipa tētahi pūāhua kore (hei tauira - he tīmatanga kore). Ki te whakaritea te kupuhipa ki te whakamahi i tētahi wāhanga o tēnei wharepukapuka i mua i te 25.0, whakamātau anō ki te whakamahi anō me ngā pūāhua ki te — engari kāore i whakauruhia — te pūāhua tuatahi kore.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -680,10 +672,6 @@ Right-click to edit address or label</translation>
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">Whakamātau i te wharepukapuka...</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Me whakakore i te whare moni: whakamatau i te %s hei whakakore i te whakamutunga</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

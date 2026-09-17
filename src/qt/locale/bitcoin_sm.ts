@@ -222,20 +222,12 @@
         <translation type="unfinished">O le pasese na ulufale i le fa'amaoniga o le 'aofa'iga o tupe sa le sa'o.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">O le passphrase na tuʻuina mo le fa'aleagaga o le 'wallet' e le sa'o. E aofia ai se fa'amaoniga null (o le byte leai). Afai e fa'amaonia le passphrase i se lomiga o lenei polokalama i le numera 25.0, fa'amalie atu e taumafai i le fa'amaoniga o le passphrase i le vaega o le to'atele — ae le o le fa'amaoniga null muamua. Afai e manuia, fa'amalie atu e seti se passphrase fou e aloese ai i lenei fa'afitauli i le lumana'i.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Na suia ma le manuia le fa'amaoniga o le pusa.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Na failed le suia o le passphrase</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">O le fa'amaoniga tuai na ulufale mo le fa'amaoniga o le sefe o le laupapa e le sa'o. E aofia ai le karaktera null (o le byte-zero). Afai e setiina le fa'amaoniga i se lomiga o lenei polokalama i le a'o le'i 25.0, fa'amalie atu i le toe taumafai ma na'o le karaktera e o'o i le — ae le'i aofia ai — le karaktera null muamua.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>

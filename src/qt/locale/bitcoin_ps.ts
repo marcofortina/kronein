@@ -223,20 +223,12 @@
         <translation type="unfinished">د والټ د کود کولو لپاره چې پاسفریس داخل شو، غلط و</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">د والټ د رمز پټولو لپاره داخل شوی پاسفریز ناسم دی.دا یو نال کریکټر لري (یعني - صفر بایټ). که چېرې پاسفریز تنظیم شوی وی که ستاسو سره د دې سافټویر 25.0یوه نسخه مخکې له ۲۵.۰ وي، مهرباني وکړئ هڅه وکړئ بیا یوازې د کرکټرونو سره پورته پر — خو دا نه شاملول — لومړی نال کرکټر. که دا بریالی شو، مهرباني وکړئ یو نوی پاسفریز ټاکئ ترڅو په راتلونکي کې د دې ستونزې مخنیوی وشي. </translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">د والټ پاسفریز په بریالیتوب سره بدلون وموند.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">د پاسفریز بدلون ناکام شو.</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">د والټ د کوډ خلاصولو لپاره داخل شوی پخوانی پاسفریس غلط دی. دا یو نل کرکټر لري (یعنې - صفر بایټ). که چېرې پاسفریز د دې سافټویر یوه نسخه سره مخکې تنظیم شوی و 25.0, مهرباني وکړئ بیا هڅه وکړئ یوازې هغه کرکټرونه تر — پورې، خو نه په ګډون — لومړی نل کرکټر.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>

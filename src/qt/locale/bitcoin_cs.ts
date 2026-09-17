@@ -222,20 +222,12 @@
         <translation type="unfinished">Nezadal jsi správné heslo pro dešifrování peněženky.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Přístupové heslo zadané pro dešifrování peněženky je nesprávné. Obsahuje nulový znak (tj. - nulový bajt). Pokud byla přístupová fráze nastavena na verzi tohoto softwaru starší než 25.0, zkuste to znovu pouze se znaky až do prvního nulového znaku, ale ne včetně. Pokud se to podaří, nastavte novou přístupovou frázi, abyste se tomuto problému v budoucnu vyhnuli.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Heslo k peněžence bylo v pořádku změněno.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Změna hesla se nezdařila</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Stará přístupová fráze zadaná pro dešifrování peněženky je nesprávná. Obsahuje nulový znak (tj. - nulový bajt). Pokud byla přístupová fráze nastavena na verzi tohoto softwaru starší než 25.0, zkuste to znovu pouze se znaky až do prvního nulového znaku, ale ne včetně.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -3893,10 +3885,6 @@ Zkuste prosím spustit nejnovější verzi softwaru.
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">Kontroluji peněženku/y…</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Soubor s peněženkou potřeboval přepsat: restartuj %s, aby se operace dokončila</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

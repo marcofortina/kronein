@@ -222,20 +222,12 @@
         <translation type="unfinished">वालेट डिक्रिप्शनको लागि प्रविष्ट गरिएको पासफ्रेज गलत थियो।</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">वालेट डिक्रिप्सनका लागि प्रविष्ट गरिएको पासफ्रेज गलत छ। यसमा शून्य क्यारेक्टर (जस्तै - शून्य बाइट) समावेश छ। यदि पासफ्रेज यस सफ्टवेयरको संस्करण २५.० भन्दा पहिले सेट गरिएको थियो भने, पहिलो शून्य क्यारेक्टरसम्मका क्यारेक्टरहरू मात्र प्रयोग गरेर पुन: प्रयास गर्नुहोस्, तर पहिलो शून्य क्यारेक्टरलाई समावेश नगर्नुहोस्। यदि यो सफल भयो भने, भविष्यमा यो समस्या नदोहोरियोस् भन्नका लागि नयाँ पासफ्रेज सेट गर्नुहोस्।</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">वालेट पासफ्रेज सफलतापूर्वक परिवर्तन गरियो।</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">पासफ्रेज परिवर्तन असफल भयो</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">वालेट डिक्रिप्सनका लागि प्रविष्ट गरिएको पासफ्रेज गलत छ। यसमा शून्य क्यारेक्टर (जस्तै - शून्य बाइट) समावेश छ। यदि पासफ्रेज यस सफ्टवेयरको संस्करण 25.0 भन्दा पहिले सेट गरिएको थियो भने, पहिलो शून्य क्यारेक्टरसम्मका क्यारेक्टरहरू मात्र प्रयोग गरेर पुन: प्रयास गर्नुहोस्, तर पहिलो शून्य क्यारेक्टरलाई समावेश नगर्नुहोस्।</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -1024,10 +1016,6 @@
     <message>
         <source>User Agent comment (%s) contains unsafe characters.</source>
         <translation type="unfinished">प्रयोगकर्ता एजेन्टको टिप्पणी (%s) मा असुरक्षित अक्षरहरू छन् ।</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">वालेट फेरि लेख्नु आवश्यक छ: पूरा गर्न %s लाई पुन: सुरु गर्नुहोस्</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

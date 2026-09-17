@@ -223,20 +223,12 @@
         <translation type="unfinished">Parola introdusă pentru decriptarea portofelului a fost incorectă.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Fraza de acces introdusă pentru deblocarea portofelului este incorectă. Aceasta conține un caracter nul (ex - un octet zero). Dacă fraza de accesa fost setată cu o versiune de software mai veche decât 25.0, încearcă din nou doar cu caracterele de până la - dar fără a include - primul caracter nul. Dacă va funcționa, setează o nouă frază de acces pentru a evita această problemă în viitor.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Parola portofelului a fost schimbată.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Schimbarea frazei de acces a eșuat</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Vechea frază de acces introdusă pentru criptarea portofelului este incorectă. Aceasta conține un caracter nul (ex - un octet zero). Dacă fraza de accesa fost setată cu o versiune de software mai veche decât 25.0, încearcă din nou doar cu caracterele de până la - dar fără a include - primul caracter nul.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -3612,10 +3604,6 @@ Mergi la Fisiere&gt;Deschide Portofel ca sa incarci un portofel.
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">Verificând portofel(e)...</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Portofelul trebuie rescris: reporneşte %s pentru finalizare</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

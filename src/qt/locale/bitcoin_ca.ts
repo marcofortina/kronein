@@ -226,20 +226,12 @@
         <translation type="unfinished">La contrasenya introduïda per a desxifrar el moneder és incorrecta.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">La contrasenya introduïda per a desxifrar la cartera és incorrecta. Conté un caràcter nul (és a dir, un byte zero). Si la contrasenya es va establir amb una versió d'aquest programari anterior a la 25.0, si us plau, torneu-ho a provar només amb els caràcters fins a — però sense incloure — el primer caràcter nul. En cas d'èxit, si us plau, establiu una nova contrasenya per evitar aquest problema en el futur.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">La contrasenya del moneder ha estat canviada correctament.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Ha fallat el canvi de frase de pas</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">La contrasenya antiga introduïda per a desxifrar la cartera és incorrecta. Conté un caràcter nul (és a dir, un byte zero). Si la contrasenya es va establir amb una versió d'aquest programari anterior a la 25.0, si us plau, intenta-ho de nou només amb els caràcters fins a — però sense incloure — el primer caràcter nul.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -4114,10 +4106,6 @@ Ves a Arxiu &gt; Obrir Cartera per a carregar cartera.
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">Verifificant carteres...</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Cal tornar a escriure la cartera: reinicieu %s per a completar-ho</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

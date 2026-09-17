@@ -222,20 +222,12 @@
         <translation type="unfinished">La passphrase inserita per decifrare il tuo portafoglio non è corretta.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">La passphrase inserita per la decodifica del portafoglio non è corretta. Contiene un carattere nullo (cioè un byte zero). Se la passphrase è stata impostata con una versione di questo software precedente alla 25.0, si prega di riprovare con i soli caratteri fino al primo carattere nullo, escluso. In caso di successo, impostare una nuova passphrase per evitare questo problema in futuro.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">La modifica della passphrase del portafoglio è riuscita.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Modifica della passphrase non riuscita</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">La vecchia passphrase inserita per la decrittazione del portafoglio non è corretta. Contiene un carattere nullo (cioè un byte zero). Se la passphrase è stata impostata con una versione di questo software precedente alla 25.0, si prega di riprovare con i soli caratteri fino al primo carattere nullo, escluso.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>
@@ -4491,10 +4483,6 @@ Errore di sistema in fase di salvataggio del blocco nel disco: %s</translation>
     <message>
         <source>Verifying wallet(s)…</source>
         <translation type="unfinished">Verifica portafoglio(portafogli) in corso...</translation>
-    </message>
-    <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Il portafoglio necessita di essere riscritto: riavviare %s per completare</translation>
     </message>
     <message>
         <source>Settings file could not be read</source>

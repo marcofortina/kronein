@@ -226,20 +226,12 @@
         <translation type="unfinished">Il-passphrase mdaħħla għad-deċifrar tal-kartiera ma kinitx korretta.</translation>
     </message>
     <message>
-        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
-        <translation type="unfinished">Il-passphrase mdaħħla għad-decryption tal-kartiera mhix korretta. Fiha karattru null (jiġifieri - byte żero). Jekk il-passphrase ġiet issettjata b'verżjoni ta' dan il-programm qabel 25.0, jekk jogħġbok erġa' pprova bil-karattri biss sa — iżda mhux inkluż — l-ewwel karattru null. Jekk dan jirnexxi, jekk jogħġbok oħloq passphrase ġdida biex tevita din il-kwistjoni fil-futur.</translation>
-    </message>
-    <message>
         <source>Wallet passphrase was successfully changed.</source>
         <translation type="unfinished">Il-passphrase tal-kartiera nbidlet b'suċċess.</translation>
     </message>
     <message>
         <source>Passphrase change failed</source>
         <translation type="unfinished">Il-bidla fil-passphrase falliet</translation>
-    </message>
-    <message>
-        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
-        <translation type="unfinished">Il-passphrase l-antika mdaħħla għad-decryption tal-kartiera mhix korretta. Fiha karattru null (jiġifieri - byte żero). Jekk il-passphrase ġiet issettjata b'verżjoni ta' dan is-software qabel 25.0, jekk jogħġbok erġa' pprova bil-karattri biss sa — iżda mhux inkluż — l-ewwel karattru null.</translation>
     </message>
     <message>
         <source>Warning: The Caps Lock key is on!</source>

@@ -1666,10 +1666,6 @@
         <translation type="unfinished">Provjera novčanika…</translation>
     </message>
     <message>
-        <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished">Novčanik je trebao biti prepisan: ponovo pokrenite %s da biste završili</translation>
-    </message>
-    <message>
         <source>Settings file could not be read</source>
         <translation type="unfinished">Nije moguće pročitati fajl postavki</translation>
     </message>
