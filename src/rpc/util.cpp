@@ -36,7 +36,6 @@ using common::PSBTErrorString;
 using common::TransactionErrorString;
 using node::TransactionError;
 using util::Join;
-using util::SplitString;
 using util::TrimString;
 
 const std::string UNIX_EPOCH_TIME = "UNIX epoch time";
@@ -471,24 +470,17 @@ RPCHelpMan::RPCHelpMan(std::string name, std::string description, std::vector<RP
     std::map<std::string, int> param_names;
 
     for (const auto& arg : m_args) {
-        std::vector<std::string> names = SplitString(arg.m_names, '|');
-        // Should have unique named arguments
-        for (const std::string& name : names) {
-            auto& param_type = param_names[name];
-            CHECK_NONFATAL(!(param_type & POSITIONAL));
-            CHECK_NONFATAL(!(param_type & NAMED_ONLY));
-            param_type |= POSITIONAL;
-        }
+        auto& param_type = param_names[arg.m_name];
+        CHECK_NONFATAL(!(param_type & POSITIONAL));
+        CHECK_NONFATAL(!(param_type & NAMED_ONLY));
+        param_type |= POSITIONAL;
         if (arg.m_type == RPCArg::Type::OBJ_NAMED_PARAMS) {
             for (const auto& inner : arg.m_inner) {
-                std::vector<std::string> inner_names = SplitString(inner.m_names, '|');
-                for (const std::string& inner_name : inner_names) {
-                    auto& param_type = param_names[inner_name];
-                    CHECK_NONFATAL(!(param_type & POSITIONAL) || inner.m_opts.also_positional);
-                    CHECK_NONFATAL(!(param_type & NAMED));
-                    CHECK_NONFATAL(!(param_type & NAMED_ONLY));
-                    param_type |= inner.m_opts.also_positional ? NAMED : NAMED_ONLY;
-                }
+                auto& inner_param_type = param_names[inner.m_name];
+                CHECK_NONFATAL(!(inner_param_type & POSITIONAL) || inner.m_opts.also_positional);
+                CHECK_NONFATAL(!(inner_param_type & NAMED));
+                CHECK_NONFATAL(!(inner_param_type & NAMED_ONLY));
+                inner_param_type |= inner.m_opts.also_positional ? NAMED : NAMED_ONLY;
             }
         }
         // Default value type should match argument type only when defined
@@ -560,7 +552,7 @@ UniValue RPCHelpMan::HandleRequest(const JSONRPCRequest& request) const
         const auto& arg{m_args.at(i)};
         UniValue match{arg.MatchesType(request.params[i])};
         if (!match.isTrue()) {
-            arg_mismatch.pushKV(strprintf("Position %s (%s)", i + 1, arg.m_names), std::move(match));
+            arg_mismatch.pushKV(strprintf("Position %s (%s)", i + 1, arg.m_name), std::move(match));
         }
     }
     if (!arg_mismatch.empty()) {
@@ -660,10 +652,10 @@ std::vector<std::pair<std::string, bool>> RPCHelpMan::GetArgNames() const
     for (const auto& arg : m_args) {
         if (arg.m_type == RPCArg::Type::OBJ_NAMED_PARAMS) {
             for (const auto& inner : arg.m_inner) {
-                ret.emplace_back(inner.m_names, /*named_only=*/true);
+                ret.emplace_back(inner.m_name, /*named_only=*/true);
             }
         }
-        ret.emplace_back(arg.m_names, /*named_only=*/false);
+        ret.emplace_back(arg.m_name, /*named_only=*/false);
     }
     return ret;
 }
@@ -712,7 +704,7 @@ std::string RPCHelpMan::ToString() const
         if (arg.m_opts.hidden) break; // Any arg that follows is also hidden
 
         // Push named argument name and description
-        sections.m_sections.emplace_back(util::ToString(i + 1) + ". " + arg.GetFirstName(), arg.ToDescriptionString(/*is_named_arg=*/true));
+        sections.m_sections.emplace_back(util::ToString(i + 1) + ". " + arg.GetName(), arg.ToDescriptionString(/*is_named_arg=*/true));
         sections.m_max_pad = std::max(sections.m_max_pad, sections.m_sections.back().m_left.size());
 
         // Recursively push nested args
@@ -721,7 +713,7 @@ std::string RPCHelpMan::ToString() const
         // Push named-only argument sections
         if (arg.m_type == RPCArg::Type::OBJ_NAMED_PARAMS) {
             for (const auto& arg_inner : arg.m_inner) {
-                named_only_sections.PushSection({arg_inner.GetFirstName(), arg_inner.ToDescriptionString(/*is_named_arg=*/true)});
+                named_only_sections.PushSection({arg_inner.GetName(), arg_inner.ToDescriptionString(/*is_named_arg=*/true)});
                 named_only_sections.Push(arg_inner);
             }
         }
@@ -757,16 +749,10 @@ UniValue RPCHelpMan::GetArgMap() const
 
     for (int i{0}; i < int(m_args.size()); ++i) {
         const auto& arg = m_args.at(i);
-        std::vector<std::string> arg_names = SplitString(arg.m_names, '|');
-        for (const auto& arg_name : arg_names) {
-            push_back_arg_info(m_name, i, arg_name, arg.m_type);
-            if (arg.m_type == RPCArg::Type::OBJ_NAMED_PARAMS) {
-                for (const auto& inner : arg.m_inner) {
-                    std::vector<std::string> inner_names = SplitString(inner.m_names, '|');
-                    for (const std::string& inner_name : inner_names) {
-                        push_back_arg_info(m_name, i, inner_name, inner.m_type);
-                    }
-                }
+        push_back_arg_info(m_name, i, arg.m_name, arg.m_type);
+        if (arg.m_type == RPCArg::Type::OBJ_NAMED_PARAMS) {
+            for (const auto& inner : arg.m_inner) {
+                push_back_arg_info(m_name, i, inner.m_name, inner.m_type);
             }
         }
     }
@@ -818,17 +804,6 @@ UniValue RPCArg::MatchesType(const UniValue& request) const
         return strprintf("JSON value of type %s is not of expected type %s", uvTypeName(request.getType()), uvTypeName(*exp_type));
     }
     return true;
-}
-
-std::string RPCArg::GetFirstName() const
-{
-    return m_names.substr(0, m_names.find('|'));
-}
-
-std::string RPCArg::GetName() const
-{
-    CHECK_NONFATAL(std::string::npos == m_names.find('|'));
-    return m_names;
 }
 
 bool RPCArg::IsOptional() const
@@ -1122,7 +1097,7 @@ std::string RPCArg::ToStringObj(const bool oneline) const
 {
     std::string res;
     res += "\"";
-    res += GetFirstName();
+    res += GetName();
     if (oneline) {
         res += "\":";
     } else {
@@ -1163,7 +1138,7 @@ std::string RPCArg::ToString(const bool oneline) const
         if (m_opts.oneline_description[0] == '\"' && m_type != Type::STR_HEX && m_type != Type::STR && gArgs.GetBoolArg("-rpcdoccheck", DEFAULT_RPC_DOC_CHECK)) {
             throw std::runtime_error{
                 STR_INTERNAL_BUG(strprintf("non-string RPC arg \"%s\" quotes oneline_description:\n%s",
-                    m_names, m_opts.oneline_description)
+                    m_name, m_opts.oneline_description)
                 )};
         }
         return m_opts.oneline_description;
@@ -1172,13 +1147,13 @@ std::string RPCArg::ToString(const bool oneline) const
     switch (m_type) {
     case Type::STR_HEX:
     case Type::STR: {
-        return "\"" + GetFirstName() + "\"";
+        return "\"" + GetName() + "\"";
     }
     case Type::NUM:
     case Type::RANGE:
     case Type::AMOUNT:
     case Type::BOOL: {
-        return GetFirstName();
+        return GetName();
     }
     case Type::OBJ:
     case Type::OBJ_NAMED_PARAMS:

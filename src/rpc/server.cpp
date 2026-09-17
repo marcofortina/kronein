@@ -29,8 +29,6 @@
 #include <string_view>
 #include <unordered_map>
 
-using util::SplitString;
-
 static GlobalMutex g_rpc_warmup_mutex;
 static std::atomic<bool> g_rpc_running{false};
 static bool fRPCInWarmup GUARDED_BY(g_rpc_warmup_mutex) = true;
@@ -381,15 +379,8 @@ static inline JSONRPCRequest transformNamedArguments(const JSONRPCRequest& in, c
     int initial_hole_size = 0;
     const std::string* initial_param = nullptr;
     UniValue options{UniValue::VOBJ};
-    for (const auto& [argNamePattern, named_only]: argNames) {
-        std::vector<std::string> vargNames = SplitString(argNamePattern, '|');
-        auto fr = argsIn.end();
-        for (const std::string & argName : vargNames) {
-            fr = argsIn.find(argName);
-            if (fr != argsIn.end()) {
-                break;
-            }
-        }
+    for (const auto& [arg_name, named_only]: argNames) {
+        auto fr = argsIn.find(arg_name);
 
         // Handle named-only parameters by pushing them into a temporary options
         // object, and then pushing the accumulated options as the next
@@ -411,7 +402,7 @@ static inline JSONRPCRequest transformNamedArguments(const JSONRPCRequest& in, c
                 out.params.push_back(UniValue());
             }
             hole = 0;
-            if (!initial_param) initial_param = &argNamePattern;
+            if (!initial_param) initial_param = &arg_name;
         } else {
             hole += 1;
             if (out.params.empty()) initial_hole_size = hole;

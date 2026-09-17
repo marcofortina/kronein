@@ -1286,11 +1286,12 @@ A few guidelines for introducing and reviewing new RPC interfaces:
 
   - *Rationale*: This is impossible to use with `bitcoin-cli`, and can be surprising to users.
 
+- Give every RPC argument one canonical name. Argument aliases are not supported.
+
 - For new RPC methods, if implementing a `verbosity` argument, use integer verbosity rather than boolean.
   Disallow usage of boolean verbosity (see `ParseVerbosity()` in [util.h](/src/rpc/util.h)).
 
-  - *Rationale*: Integer verbosity allows for multiple values. Undocumented boolean verbosity is deprecated
-    and new RPC methods should prevent its use.
+  - *Rationale*: Integer verbosity allows for multiple values. Boolean verbosity is not supported.
 
 - Add every non-string RPC argument `(method, idx, name)` to the table `vRPCConvertParams` in `rpc/client.cpp`.
 
