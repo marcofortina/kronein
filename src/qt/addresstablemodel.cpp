@@ -24,7 +24,6 @@ struct AddressTableEntry
     enum Type {
         Sending,
         Receiving,
-        Hidden /* QSortFilterProxyModel will filter these out */
     };
 
     Type type;
@@ -53,13 +52,11 @@ struct AddressTableEntryLessThan
 };
 
 /* Determine address type from address purpose */
-constexpr AddressTableEntry::Type translateTransactionType(wallet::AddressPurpose purpose, bool isMine)
+constexpr AddressTableEntry::Type translateTransactionType(wallet::AddressPurpose purpose)
 {
-    // "refund" addresses aren't shown, and change addresses aren't returned by getAddresses at all.
     switch (purpose) {
     case wallet::AddressPurpose::SEND: return AddressTableEntry::Sending;
     case wallet::AddressPurpose::RECEIVE: return AddressTableEntry::Receiving;
-    case wallet::AddressPurpose::REFUND: return AddressTableEntry::Hidden;
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }
@@ -80,8 +77,7 @@ public:
         {
             for (const auto& address : wallet.getAddresses())
             {
-                AddressTableEntry::Type addressType = translateTransactionType(
-                        address.purpose, address.is_mine);
+                AddressTableEntry::Type addressType = translateTransactionType(address.purpose);
                 cachedAddressTable.append(AddressTableEntry(addressType,
                                   QString::fromStdString(address.name),
                                   QString::fromStdString(EncodeDestination(address.dest))));
@@ -93,7 +89,7 @@ public:
         std::sort(cachedAddressTable.begin(), cachedAddressTable.end(), AddressTableEntryLessThan());
     }
 
-    void updateEntry(const QString &address, const QString &label, bool isMine, wallet::AddressPurpose purpose, int status)
+    void updateEntry(const QString &address, const QString &label, bool /*isMine*/, wallet::AddressPurpose purpose, int status)
     {
         // Find address / label in model
         QList<AddressTableEntry>::iterator lower = std::lower_bound(
@@ -103,7 +99,7 @@ public:
         int lowerIndex = (lower - cachedAddressTable.begin());
         int upperIndex = (upper - cachedAddressTable.begin());
         bool inModel = (lower != upper);
-        AddressTableEntry::Type newEntryType = translateTransactionType(purpose, isMine);
+        AddressTableEntry::Type newEntryType = translateTransactionType(purpose);
 
         switch(status)
         {
@@ -222,8 +218,6 @@ QVariant AddressTableModel::data(const QModelIndex &index, int role) const
             return Send;
         case AddressTableEntry::Receiving:
             return Receive;
-        case AddressTableEntry::Hidden:
-            return {};
         } // no default case, so the compiler can warn about missing cases
         assert(false);
     }

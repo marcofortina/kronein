@@ -265,7 +265,6 @@ inline std::string PurposeToString(AddressPurpose p)
     switch(p) {
     case AddressPurpose::RECEIVE: return "receive";
     case AddressPurpose::SEND: return "send";
-    case AddressPurpose::REFUND: return "refund";
     } // no default case so the compiler will warn when a new enum as added
     assert(false);
 }
@@ -274,7 +273,6 @@ inline std::optional<AddressPurpose> PurposeFromString(std::string_view s)
 {
     if (s == "receive") return AddressPurpose::RECEIVE;
     else if (s == "send") return AddressPurpose::SEND;
-    else if (s == "refund") return AddressPurpose::REFUND;
     return {};
 }
 
