@@ -114,9 +114,6 @@ std::vector<std::pair<CTxDestination, CAmount>> ParseOutputs(const UniValue& out
             if (!IsValidDestination(destination)) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Bitcoin address: ") + name_);
             }
-            if (!IsNativeOutputScript(GetScriptForDestination(destination))) {
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Only Taproot addresses are supported: ") + name_);
-            }
 
             if (!destinations.insert(destination).second) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated address: ") + name_);
@@ -210,7 +207,7 @@ void ParsePrevouts(const UniValue& prevTxsUnival, FlatSigningProvider* keystore,
             COutPoint out(txid, nOut);
             std::vector<unsigned char> pkData(ParseHexO(prevOut, "scriptPubKey"));
             CScript scriptPubKey(pkData.begin(), pkData.end());
-            if (!IsNativeOutputScript(scriptPubKey)) {
+            if (!IsNativeSpendableOutputScript(scriptPubKey)) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Previous output must be Taproot or pay-to-anchor");
             }
 

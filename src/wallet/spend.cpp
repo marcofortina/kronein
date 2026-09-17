@@ -218,7 +218,7 @@ util::Result<CoinsResult> FetchSelectedInputs(const CWallet& wallet, const CCoin
             txout = *out;
         }
 
-        if (!IsNativeOutputScript(txout.scriptPubKey)) {
+        if (!IsNativeSpendableOutputScript(txout.scriptPubKey)) {
             return util::Error{strprintf(_("Pre-selected input %s is not Taproot or pay-to-anchor"), outpoint.ToString())};
         }
 
@@ -334,7 +334,7 @@ CoinsResult AvailableCoins(const CWallet& wallet,
         if (output.nValue < params.min_amount || output.nValue > params.max_amount)
             continue;
 
-        if (!IsNativeOutputScript(output.scriptPubKey)) continue;
+        if (!IsNativeSpendableOutputScript(output.scriptPubKey)) continue;
 
         // Skip manually selected coins (the caller can fetch them directly)
         if (coinControl && coinControl->HasSelected() && coinControl->IsSelected(outpoint))

@@ -53,14 +53,17 @@ BOOST_AUTO_TEST_CASE(native_output_forms)
     CMutableTransaction tx{NativeTransaction()};
     TxValidationState state;
     BOOST_CHECK(CheckNativeTransaction(CTransaction{tx}, state));
+    BOOST_CHECK(IsNativeSpendableOutputScript(tx.vout[0].scriptPubKey));
 
     tx.vout[0].scriptPubKey = GetScriptForDestination(PayToAnchor{});
     state = {};
     BOOST_CHECK(CheckNativeTransaction(CTransaction{tx}, state));
+    BOOST_CHECK(IsNativeSpendableOutputScript(tx.vout[0].scriptPubKey));
 
     tx.vout[0].scriptPubKey = CScript{} << OP_RETURN << std::vector<unsigned char>{0x01, 0x02};
     state = {};
     BOOST_CHECK(CheckNativeTransaction(CTransaction{tx}, state));
+    BOOST_CHECK(!IsNativeSpendableOutputScript(tx.vout[0].scriptPubKey));
 
     const std::vector<CScript> non_native_outputs{
         CScript{},

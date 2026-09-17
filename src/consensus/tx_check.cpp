@@ -10,15 +10,20 @@
 #include <script/interpreter.h>
 #include <script/script.h>
 
-bool IsNativeOutputScript(const CScript& script_pub_key)
+bool IsNativeSpendableOutputScript(const CScript& script_pub_key)
 {
-    const bool is_data_output{!script_pub_key.empty() && *script_pub_key.begin() == OP_RETURN};
-    if (is_data_output || script_pub_key.IsPayToAnchor()) return true;
+    if (script_pub_key.IsPayToAnchor()) return true;
 
     int witness_version;
     std::vector<unsigned char> witness_program;
     return script_pub_key.IsWitnessProgram(witness_version, witness_program) &&
            witness_version == 1 && witness_program.size() == WITNESS_V1_TAPROOT_SIZE;
+}
+
+bool IsNativeOutputScript(const CScript& script_pub_key)
+{
+    const bool is_data_output{!script_pub_key.empty() && *script_pub_key.begin() == OP_RETURN};
+    return is_data_output || IsNativeSpendableOutputScript(script_pub_key);
 }
 
 bool CheckNativeTransaction(const CTransaction& tx, TxValidationState& state)

@@ -100,6 +100,23 @@ class SignRawTransactionWithKeyTest(BitcoinTestFramework):
             [private_key],
         )
 
+        self.log.info("Reject unsupported previous output scripts")
+        for script_pub_key in ["6a00", f"0014{'00' * 20}"]:
+            prevout = {
+                "txid": "01" * 32,
+                "vout": 0,
+                "scriptPubKey": script_pub_key,
+                "amount": 1,
+            }
+            assert_raises_rpc_error(
+                -8,
+                "Previous output must be Taproot or pay-to-anchor",
+                self.nodes[0].signrawtransactionwithkey,
+                tx,
+                [private_key],
+                [prevout],
+            )
+
     def run_test(self):
         self.wallet = MiniWallet(self.nodes[0])
         self.successful_signing_test()

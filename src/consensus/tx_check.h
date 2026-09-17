@@ -21,6 +21,9 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState& state);
 /** Return whether an output uses one of the native script forms of this chain. */
 bool IsNativeOutputScript(const CScript& script_pub_key);
 
+/** Return whether an output can be spent through Taproot or pay-to-anchor. */
+bool IsNativeSpendableOutputScript(const CScript& script_pub_key);
+
 /** Enforce the native transaction format used by every transaction after genesis. */
 bool CheckNativeTransaction(const CTransaction& tx, TxValidationState& state);
 
