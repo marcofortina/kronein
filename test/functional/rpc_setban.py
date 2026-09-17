@@ -45,7 +45,7 @@ class SetBanTests(BitcoinTestFramework):
         assert not self.nodes[0].is_connected_to(self.nodes[1])
 
         # However, node 0 should be able to reconnect if it has noban permission
-        self.restart_node(1, ['-whitelist=127.0.0.1'])
+        self.restart_node(1, ['-whitelist=noban@127.0.0.1'])
         self.connect_nodes(0, 1)
         peerinfo = self.nodes[1].getpeerinfo()[0]
         assert "noban" in peerinfo["permissions"]

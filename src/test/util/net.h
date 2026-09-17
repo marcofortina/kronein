@@ -139,7 +139,6 @@ constexpr NetPermissionFlags ALL_NET_PERMISSION_FLAGS[]{
     NetPermissionFlags::NoBan,
     NetPermissionFlags::Addr,
     NetPermissionFlags::Download,
-    NetPermissionFlags::Implicit,
     NetPermissionFlags::All,
 };
 

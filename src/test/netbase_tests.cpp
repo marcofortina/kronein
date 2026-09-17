@@ -374,23 +374,15 @@ BOOST_AUTO_TEST_CASE(netpermissions_test)
     NetWhitelistPermissions whitelistPermissions;
     ConnectionDirection connection_direction;
 
-    // Detect invalid white bind
+    // Permission separator is mandatory, even when granting no permissions.
     BOOST_CHECK(!NetWhitebindPermissions::TryParse("", whitebindPermissions, error));
+    BOOST_CHECK(error.original.find("Permissions must be specified before '@'") != std::string::npos);
+    BOOST_CHECK(!NetWhitebindPermissions::TryParse("127.0.0.1:32", whitebindPermissions, error));
+    BOOST_CHECK(error.original.find("Permissions must be specified before '@'") != std::string::npos);
+    BOOST_CHECK(!NetWhitebindPermissions::TryParse("@", whitebindPermissions, error));
     BOOST_CHECK(error.original.find("Cannot resolve -whitebind address") != std::string::npos);
-    BOOST_CHECK(!NetWhitebindPermissions::TryParse("127.0.0.1", whitebindPermissions, error));
+    BOOST_CHECK(!NetWhitebindPermissions::TryParse("@127.0.0.1", whitebindPermissions, error));
     BOOST_CHECK(error.original.find("Need to specify a port with -whitebind") != std::string::npos);
-    BOOST_CHECK(!NetWhitebindPermissions::TryParse("", whitebindPermissions, error));
-
-    // If no permission flags, assume backward compatibility
-    BOOST_CHECK(NetWhitebindPermissions::TryParse("1.2.3.4:32", whitebindPermissions, error));
-    BOOST_CHECK(error.empty());
-    BOOST_CHECK_EQUAL(whitebindPermissions.m_flags, NetPermissionFlags::Implicit);
-    BOOST_CHECK(NetPermissions::HasFlag(whitebindPermissions.m_flags, NetPermissionFlags::Implicit));
-    NetPermissions::ClearFlag(whitebindPermissions.m_flags, NetPermissionFlags::Implicit);
-    BOOST_CHECK(!NetPermissions::HasFlag(whitebindPermissions.m_flags, NetPermissionFlags::Implicit));
-    BOOST_CHECK_EQUAL(whitebindPermissions.m_flags, NetPermissionFlags::None);
-    NetPermissions::AddFlag(whitebindPermissions.m_flags, NetPermissionFlags::Implicit);
-    BOOST_CHECK(NetPermissions::HasFlag(whitebindPermissions.m_flags, NetPermissionFlags::Implicit));
 
     // Can set no permissions explicitly
     BOOST_CHECK(NetWhitebindPermissions::TryParse("@1.2.3.4:32", whitebindPermissions, error));

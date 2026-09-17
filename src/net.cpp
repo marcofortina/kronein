@@ -575,10 +575,6 @@ void CConnman::AddWhitelistPermissionFlags(NetPermissionFlags& flags, std::optio
             NetPermissions::AddFlag(flags, subnet.m_flags);
         }
     }
-    if (NetPermissions::HasFlag(flags, NetPermissionFlags::Implicit)) {
-        NetPermissions::ClearFlag(flags, NetPermissionFlags::Implicit);
-        NetPermissions::AddFlag(flags, NetPermissionFlags::NoBan);
-    }
 }
 
 CService CNode::GetAddrLocal() const

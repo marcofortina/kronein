@@ -32,9 +32,9 @@ EXPECTED = [
     [['-externalip=2.2.2.2:30011', '-port=30012', f'-bind={ADDR}:30013'], 30011],
     [['-externalip=2.2.2.2:30014',                f'-bind={ADDR}:30015'], 30014],
     [['-externalip=2.2.2.2',       '-port=30016', f'-bind={ADDR}:30017',
-                                             f'-whitebind={ADDR}:30018'], 30017],
+                                             f'-whitebind=@{ADDR}:30018'], 30017],
     [['-externalip=2.2.2.2',       '-port=30019',
-                                             f'-whitebind={ADDR}:30020'], 30020],
+                                             f'-whitebind=@{ADDR}:30020'], 30020],
 ]
 
 class BindPortExternalIPTest(BitcoinTestFramework):

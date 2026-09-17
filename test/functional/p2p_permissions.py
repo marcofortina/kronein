@@ -32,12 +32,6 @@ class P2PPermissionsTests(BitcoinTestFramework):
         self.check_tx_relay()
 
         self.checkpermission(
-            # default permissions (no specific permissions)
-            ["-whitelist=127.0.0.1"],
-            # Make sure the default values in the command line documentation match the ones here
-            ["noban", "download"])
-
-        self.checkpermission(
             # Explicitly grant no permissions.
             ["-whitelist=@127.0.0.1"],
             [])
@@ -68,6 +62,7 @@ class P2PPermissionsTests(BitcoinTestFramework):
             assert_equal(peerinfo['permissions'], permissions)
 
         self.stop_node(1)
+        self.nodes[1].assert_start_raises_init_error(["-whitelist=127.0.0.1"], "Permissions must be specified before '@'", match=ErrorMatch.PARTIAL_REGEX)
         self.nodes[1].assert_start_raises_init_error(["-whitelist=in,out@127.0.0.1"], "Only direction was set, no permissions", match=ErrorMatch.PARTIAL_REGEX)
         self.nodes[1].assert_start_raises_init_error(["-whitelist=oopsie@127.0.0.1"], "Invalid P2P permission", match=ErrorMatch.PARTIAL_REGEX)
         self.nodes[1].assert_start_raises_init_error(["-whitelist=noban@127.0.0.1:230"], "Invalid netmask specified in", match=ErrorMatch.PARTIAL_REGEX)

@@ -26,48 +26,42 @@ static bool TryParsePermissionFlags(const std::string& str, NetPermissionFlags& 
     NetPermissionFlags flags = NetPermissionFlags::None;
     ConnectionDirection connection_direction = ConnectionDirection::None;
     const auto atSeparator = str.find('@');
-
-    // if '@' is not found (ie, "xxxxx"), the caller should apply implicit permissions
     if (atSeparator == std::string::npos) {
-        NetPermissions::AddFlag(flags, NetPermissionFlags::Implicit);
-        readen = 0;
+        error = strprintf(_("Permissions must be specified before '@': '%s'"), str);
+        return false;
     }
-    // else (ie, "perm1,perm2@xxxxx"), let's enumerate the permissions by splitting by ',' and calculate the flags
-    else {
-        readen = 0;
-        // permissions == perm1,perm2
-        const auto permissions = str.substr(0, atSeparator);
-        while (readen < permissions.length()) {
-            const auto commaSeparator = permissions.find(',', readen);
-            const auto len = commaSeparator == std::string::npos ? permissions.length() - readen : commaSeparator - readen;
-            // permission == perm1
-            const auto permission = permissions.substr(readen, len);
-            readen += len; // We read "perm1"
-            if (commaSeparator != std::string::npos) readen++; // We read ","
 
-            if (permission == "noban") NetPermissions::AddFlag(flags, NetPermissionFlags::NoBan);
-            else if (permission == "forcerelay") NetPermissions::AddFlag(flags, NetPermissionFlags::ForceRelay);
-            else if (permission == "download") NetPermissions::AddFlag(flags, NetPermissionFlags::Download);
-            else if (permission == "all") NetPermissions::AddFlag(flags, NetPermissionFlags::All);
-            else if (permission == "relay") NetPermissions::AddFlag(flags, NetPermissionFlags::Relay);
-            else if (permission == "addr") NetPermissions::AddFlag(flags, NetPermissionFlags::Addr);
-            else if (permission == "in") connection_direction |= ConnectionDirection::In;
-            else if (permission == "out") {
-                if (output_connection_direction == nullptr) {
-                    // Only NetWhitebindPermissions() should pass a nullptr.
-                    error = _("whitebind may only be used for incoming connections (\"out\" was passed)");
-                    return false;
-                }
-                connection_direction |= ConnectionDirection::Out;
-            }
-            else if (permission.length() == 0); // Allow empty entries
-            else {
-                error = strprintf(_("Invalid P2P permission: '%s'"), permission);
+    readen = 0;
+    const auto permissions = str.substr(0, atSeparator);
+    while (readen < permissions.length()) {
+        const auto commaSeparator = permissions.find(',', readen);
+        const auto len = commaSeparator == std::string::npos ? permissions.length() - readen : commaSeparator - readen;
+        const auto permission = permissions.substr(readen, len);
+        readen += len;
+        if (commaSeparator != std::string::npos) readen++;
+
+        if (permission == "noban") NetPermissions::AddFlag(flags, NetPermissionFlags::NoBan);
+        else if (permission == "forcerelay") NetPermissions::AddFlag(flags, NetPermissionFlags::ForceRelay);
+        else if (permission == "download") NetPermissions::AddFlag(flags, NetPermissionFlags::Download);
+        else if (permission == "all") NetPermissions::AddFlag(flags, NetPermissionFlags::All);
+        else if (permission == "relay") NetPermissions::AddFlag(flags, NetPermissionFlags::Relay);
+        else if (permission == "addr") NetPermissions::AddFlag(flags, NetPermissionFlags::Addr);
+        else if (permission == "in") connection_direction |= ConnectionDirection::In;
+        else if (permission == "out") {
+            if (output_connection_direction == nullptr) {
+                // Only NetWhitebindPermissions() should pass a nullptr.
+                error = _("whitebind may only be used for incoming connections (\"out\" was passed)");
                 return false;
             }
+            connection_direction |= ConnectionDirection::Out;
         }
-        readen++;
+        else if (permission.length() == 0); // Allow empty entries
+        else {
+            error = strprintf(_("Invalid P2P permission: '%s'"), permission);
+            return false;
+        }
     }
+    readen++;
 
     // By default, whitelist only applies to incoming connections
     if (connection_direction == ConnectionDirection::None) {

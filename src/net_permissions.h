@@ -32,9 +32,6 @@ enum class NetPermissionFlags : uint32_t {
     // unlimited amounts of addrs.
     Addr = (1U << 7),
 
-    // True if the user did not specifically set fine-grained permissions with
-    // the -whitebind or -whitelist configuration options.
-    Implicit = (1U << 31),
     All = ForceRelay | Relay | NoBan | Download | Addr,
 };
 static inline constexpr NetPermissionFlags operator|(NetPermissionFlags a, NetPermissionFlags b)
@@ -56,17 +53,6 @@ public:
     static inline void AddFlag(NetPermissionFlags& flags, NetPermissionFlags f)
     {
         flags = flags | f;
-    }
-    //! ClearFlag is only called with `f` == NetPermissionFlags::Implicit.
-    //! If that should change in the future, be aware that ClearFlag should not
-    //! be called with a subflag of a multiflag, e.g. NetPermissionFlags::Relay
-    //! or NetPermissionFlags::Download, as that would leave `flags` in an
-    //! invalid state corresponding to none of the existing flags.
-    static inline void ClearFlag(NetPermissionFlags& flags, NetPermissionFlags f)
-    {
-        assert(f == NetPermissionFlags::Implicit);
-        using t = std::underlying_type_t<NetPermissionFlags>;
-        flags = static_cast<NetPermissionFlags>(static_cast<t>(flags) & ~static_cast<t>(f));
     }
 };
 

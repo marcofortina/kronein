@@ -349,7 +349,7 @@ port will be set to x+1.
 Connect through SOCKS5 proxy, set \fB\-noproxy\fR to disable. May be a local
 file path prefixed with 'unix:' if the proxy supports it. Could
 end in =network to set the proxy only for that network. The
-network can be any of ipv4, ipv6, tor or cjdns. (default:
+network can be any of ipv4, ipv6, onion or cjdns. (default:
 disabled)
 .HP
 \fB\-proxyrandomize\fR
@@ -379,7 +379,7 @@ Tor control host and port to use if onion listening enabled (default:
 .IP
 Tor control port password (default: empty)
 .HP
-\fB\-whitebind=\fR<[permissions@]addr>
+\fB\-whitebind=\fR<permissions@addr>
 .IP
 Bind to the given address and add permission flags to the peers
 connecting to it. Use [host]:port notation for IPv6. Allowed
@@ -390,10 +390,10 @@ and unlimited transaction announcements), download (allow
 getheaders during IBD, no disconnect after maxuploadtarget
 limit), addr (responses to GETADDR avoid hitting the cache and
 contain random records with the most up\-to\-date info). Specify
-multiple permissions separated by commas (default:
-download,noban). Can be specified multiple times.
+multiple permissions separated by commas, or use an empty list to
+grant none. Can be specified multiple times.
 .HP
-\fB\-whitelist=\fR<[permissions@]IP address or network>
+\fB\-whitelist=\fR<permissions@IP address or network>
 .IP
 Add permission flags to the peers using the given IP address (e.g.
 1.2.3.4) or CIDR\-notated network (e.g. 1.2.3.0/24). Uses the same
