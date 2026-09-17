@@ -637,7 +637,6 @@ void btck_precomputed_transaction_data_destroy(btck_PrecomputedTransactionData* 
 }
 
 int btck_script_pubkey_verify(const btck_ScriptPubkey* script_pubkey,
-                              const int64_t amount,
                               const btck_Transaction* tx_to,
                               const btck_PrecomputedTransactionData* precomputed_txdata,
                               const unsigned int input_index,
@@ -659,7 +658,7 @@ int btck_script_pubkey_verify(const btck_ScriptPubkey* script_pubkey,
                                btck_ScriptPubkey::get(script_pubkey),
                                &tx.vin[input_index].scriptWitness,
                                GetBlockScriptFlags(),
-                               TransactionSignatureChecker(&tx, input_index, amount, txdata, MissingDataBehavior::FAIL),
+                               TransactionSignatureChecker(&tx, input_index, txdata, MissingDataBehavior::FAIL),
                                nullptr);
     return result ? 1 : 0;
 }

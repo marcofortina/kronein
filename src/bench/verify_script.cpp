@@ -45,8 +45,8 @@ static void VerifyScriptBench(benchmark::Bench& bench)
     assert(SignTransaction(tx_spend, &provider, coins, SIGHASH_ALL, input_errors));
 
     PrecomputedTransactionData txdata;
-    txdata.Init(tx_spend, std::vector<CTxOut>{tx_credit.vout[0]}, /*force=*/true);
-    const MutableTransactionSignatureChecker checker{&tx_spend, 0, tx_credit.vout[0].nValue, txdata, MissingDataBehavior::ASSERT_FAIL};
+    txdata.Init(tx_spend, std::vector<CTxOut>{tx_credit.vout[0]});
+    const MutableTransactionSignatureChecker checker{&tx_spend, 0, txdata, MissingDataBehavior::ASSERT_FAIL};
 
     // Benchmark.
     bench.run([&] {

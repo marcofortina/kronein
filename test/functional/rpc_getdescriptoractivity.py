@@ -8,7 +8,7 @@ from decimal import Decimal
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import assert_equal, assert_raises_rpc_error
 from test_framework.messages import COIN
-from test_framework.wallet import MiniWallet, MiniWalletMode, getnewdestination
+from test_framework.wallet import MiniWallet, getnewdestination
 
 
 class GetBlocksActivityTest(BitcoinTestFramework):
@@ -30,7 +30,6 @@ class GetBlocksActivityTest(BitcoinTestFramework):
         self.test_invalid_descriptor(node, wallet)
         self.test_confirmed_and_unconfirmed(node, wallet)
         self.test_receive_then_spend(node, wallet)
-        self.test_no_address(node, wallet)
         self.test_required_args(node)
 
     def test_no_activity(self, node):
@@ -41,7 +40,7 @@ class GetBlocksActivityTest(BitcoinTestFramework):
 
     def test_activity_in_block(self, node, wallet):
         self.log.info("Test that receive activity is correctly reported in a mined block")
-        _, spk_1, addr_1 = getnewdestination(address_type='bech32m')
+        _, spk_1, addr_1 = getnewdestination()
         txid = wallet.send_to(from_node=node, scriptPubKey=spk_1, amount=1 * COIN)['txid']
         blockhash = self.generate(node, 1)[0]
 
@@ -203,35 +202,6 @@ class GetBlocksActivityTest(BitcoinTestFramework):
         # Test that duplicating a blockhash yields the same result.
         assert_equal(result, node.getdescriptoractivity(
             [blockhash_1, blockhash_2, blockhash_2], [wallet.get_descriptor()], True))
-
-    def test_no_address(self, node, wallet):
-        self.log.info("Test that activity is still reported for scripts without an associated address")
-        raw_wallet = MiniWallet(self.nodes[0], mode=MiniWalletMode.RAW_P2PK)
-        self.generate(raw_wallet, 100)
-
-        no_addr_tx = raw_wallet.send_self_transfer(from_node=node)
-        raw_desc = raw_wallet.get_descriptor()
-
-        blockhash = self.generate(node, 1)[0]
-
-        result = node.getdescriptoractivity([blockhash], [raw_desc], False)
-
-        assert_equal(len(result['activity']), 2)
-
-        a1 = result['activity'][0]
-        a2 = result['activity'][1]
-
-        assert a1['type'] == "spend"
-        assert a1['blockhash'] == blockhash
-        # sPK lacks address.
-        assert_equal(list(a1['prevout_spk'].keys()), ['asm', 'desc', 'hex', 'type'])
-        assert a1['amount'] == no_addr_tx["fee"] + Decimal(no_addr_tx["tx"].vout[0].nValue) / COIN
-
-        assert a2['type'] == "receive"
-        assert a2['blockhash'] == blockhash
-        # sPK lacks address.
-        assert_equal(list(a2['output_spk'].keys()), ['asm', 'desc', 'hex', 'type'])
-        assert a2['amount'] == Decimal(no_addr_tx["tx"].vout[0].nValue) / COIN
 
     def test_required_args(self, node):
         self.log.info("Test that required arguments must be passed")

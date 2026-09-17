@@ -166,7 +166,7 @@ bool CheckSignetBlockSolution(const CBlock& block, const Consensus::Params& cons
 
     PrecomputedTransactionData txdata;
     txdata.Init(signet_txs->m_to_sign, {signet_txs->m_to_spend.vout[0]});
-    TransactionSignatureChecker sigcheck(&signet_txs->m_to_sign, /* nInIn= */ 0, /* amountIn= */ signet_txs->m_to_spend.vout[0].nValue, txdata, MissingDataBehavior::ASSERT_FAIL);
+    TransactionSignatureChecker sigcheck(&signet_txs->m_to_sign, /* nInIn= */ 0, txdata, MissingDataBehavior::ASSERT_FAIL);
 
     if (!VerifySignetChallenge(scriptSig, signet_txs->m_to_spend.vout[0].scriptPubKey, witness, sigcheck)) {
         LogDebug(BCLog::VALIDATION, "CheckSignetBlockSolution: Errors in block (block solution invalid)\n");

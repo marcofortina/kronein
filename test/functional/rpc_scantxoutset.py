@@ -53,7 +53,7 @@ class ScantxoutsetTest(BitcoinTestFramework):
         assert_equal(sum(u["coinbase"] for u in coinbase_scan["unspents"]), 49)
 
         self.log.info("Create native Taproot UTXOs")
-        direct_destinations = [getnewdestination("bech32m") for _ in range(3)]
+        direct_destinations = [getnewdestination() for _ in range(3)]
         for (_, _, address), amount in zip(direct_destinations, [0.001, 0.002, 0.004]):
             self.sendtodestination(address, amount)
 

@@ -31,8 +31,6 @@ public:
     virtual ~BaseSignatureCreator() = default;
     virtual const BaseSignatureChecker& Checker() const =0;
 
-    /** Create a singular (non-script) signature. */
-    virtual bool CreateSig(const SigningProvider& provider, std::vector<unsigned char>& vchSig, const CKeyID& keyid, const CScript& scriptCode, SigVersion sigversion) const =0;
     virtual bool CreateSchnorrSig(const SigningProvider& provider, std::vector<unsigned char>& sig, const XOnlyPubKey& pubkey, const uint256* leaf_hash, const uint256* merkle_root, SigVersion sigversion) const =0;
     virtual std::vector<uint8_t> CreateMuSig2Nonce(const SigningProvider& provider, const CPubKey& aggregate_pubkey, const CPubKey& script_pubkey, const CPubKey& part_pubkey, const uint256* leaf_hash, const uint256* merkle_root, SigVersion sigversion, const SignatureData& sigdata) const =0;
     virtual bool CreateMuSig2PartialSig(const SigningProvider& provider, uint256& partial_sig, const CPubKey& aggregate_pubkey, const CPubKey& script_pubkey, const CPubKey& part_pubkey, const uint256* leaf_hash, const std::vector<std::pair<uint256, bool>>& tweaks, SigVersion sigversion, const SignatureData& sigdata) const =0;
@@ -45,17 +43,15 @@ class MutableTransactionSignatureCreator : public BaseSignatureCreator
     const CMutableTransaction& m_txto;
     unsigned int nIn;
     int nHashType;
-    CAmount amount;
     const MutableTransactionSignatureChecker checker;
     const PrecomputedTransactionData* m_txdata;
 
     std::optional<uint256> ComputeSchnorrSignatureHash(const uint256* leaf_hash, SigVersion sigversion) const;
 
 public:
-    MutableTransactionSignatureCreator(const CMutableTransaction& tx LIFETIMEBOUND, unsigned int input_idx, const CAmount& amount, int hash_type);
-    MutableTransactionSignatureCreator(const CMutableTransaction& tx LIFETIMEBOUND, unsigned int input_idx, const CAmount& amount, const PrecomputedTransactionData* txdata, int hash_type);
+    MutableTransactionSignatureCreator(const CMutableTransaction& tx LIFETIMEBOUND, unsigned int input_idx, int hash_type);
+    MutableTransactionSignatureCreator(const CMutableTransaction& tx LIFETIMEBOUND, unsigned int input_idx, const PrecomputedTransactionData* txdata, int hash_type);
     const BaseSignatureChecker& Checker() const override { return checker; }
-    bool CreateSig(const SigningProvider& provider, std::vector<unsigned char>& vchSig, const CKeyID& keyid, const CScript& scriptCode, SigVersion sigversion) const override;
     bool CreateSchnorrSig(const SigningProvider& provider, std::vector<unsigned char>& sig, const XOnlyPubKey& pubkey, const uint256* leaf_hash, const uint256* merkle_root, SigVersion sigversion) const override;
     std::vector<uint8_t> CreateMuSig2Nonce(const SigningProvider& provider, const CPubKey& aggregate_pubkey, const CPubKey& script_pubkey, const CPubKey& part_pubkey, const uint256* leaf_hash, const uint256* merkle_root, SigVersion sigversion, const SignatureData& sigdata) const override;
     bool CreateMuSig2PartialSig(const SigningProvider& provider, uint256& partial_sig, const CPubKey& aggregate_pubkey, const CPubKey& script_pubkey, const CPubKey& part_pubkey, const uint256* leaf_hash, const std::vector<std::pair<uint256, bool>>& tweaks, SigVersion sigversion, const SignatureData& sigdata) const override;
@@ -64,10 +60,8 @@ public:
 
 /** A signature checker that accepts all signatures */
 extern const BaseSignatureChecker& DUMMY_CHECKER;
-/** A signature creator that just produces 71-byte empty signatures. */
+/** A signature creator that produces 64-byte dummy Schnorr signatures. */
 extern const BaseSignatureCreator& DUMMY_SIGNATURE_CREATOR;
-/** A signature creator that just produces 72-byte empty signatures. */
-extern const BaseSignatureCreator& DUMMY_MAXIMUM_SIGNATURE_CREATOR;
 
 typedef std::pair<CPubKey, std::vector<unsigned char>> SigPair;
 

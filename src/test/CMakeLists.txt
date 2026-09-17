@@ -96,7 +96,6 @@ add_executable(test_bitcoin
   serfloat_tests.cpp
   serialize_tests.cpp
   settings_tests.cpp
-  sighash_tests.cpp
   skiplist_tests.cpp
   sock_tests.cpp
   span_tests.cpp
@@ -139,7 +138,6 @@ target_json_data_sources(test_bitcoin
   data/base58_encode_decode.json
   data/bip341_wallet_vectors.json
   data/blockfilters.json
-  data/sighash.json
 )
 target_raw_data_sources(test_bitcoin NAMESPACE test::data
   data/asmap.raw

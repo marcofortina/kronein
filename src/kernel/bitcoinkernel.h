@@ -630,7 +630,6 @@ BITCOINKERNEL_API btck_ScriptPubkey* BITCOINKERNEL_WARN_UNUSED_RESULT btck_scrip
  * pubkey. The precomputed data must contain every spent output of tx_to.
  *
  * @param[in] script_pubkey      Non-null, script pubkey to be spent.
- * @param[in] amount             Amount of the script pubkey's associated output.
  * @param[in] tx_to              Non-null, transaction spending the script_pubkey.
  * @param[in] precomputed_txdata Precomputed data for tx_to containing all spent outputs.
  * @param[in] input_index        Index of the input in tx_to spending the script_pubkey.
@@ -639,11 +638,10 @@ BITCOINKERNEL_API btck_ScriptPubkey* BITCOINKERNEL_WARN_UNUSED_RESULT btck_scrip
  */
 BITCOINKERNEL_API int BITCOINKERNEL_WARN_UNUSED_RESULT btck_script_pubkey_verify(
     const btck_ScriptPubkey* script_pubkey,
-    int64_t amount,
     const btck_Transaction* tx_to,
     const btck_PrecomputedTransactionData* precomputed_txdata,
     unsigned int input_index,
-    btck_ScriptVerifyStatus* status) BITCOINKERNEL_ARG_NONNULL(1, 3);
+    btck_ScriptVerifyStatus* status) BITCOINKERNEL_ARG_NONNULL(1, 2);
 
 /**
  * @brief Serializes the script pubkey through the passed in callback to bytes.

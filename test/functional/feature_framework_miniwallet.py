@@ -13,7 +13,6 @@ from test_framework.util import (
 )
 from test_framework.wallet import (
     MiniWallet,
-    MiniWalletMode,
 )
 
 
@@ -22,8 +21,7 @@ class FeatureFrameworkMiniWalletTest(BitcoinTestFramework):
         self.num_nodes = 1
 
     def test_tx_padding(self):
-        """Verify that MiniWallet's transaction padding (`target_vsize` parameter)
-           works accurately with all modes."""
+        """Verify that MiniWallet's transaction padding is accurate."""
         for mode_name, wallet in self.wallets:
             self.log.info(f"Test tx padding with MiniWallet mode {mode_name}...")
             utxo = wallet.get_utxo(mark_as_spent=False)
@@ -52,9 +50,7 @@ class FeatureFrameworkMiniWalletTest(BitcoinTestFramework):
     def run_test(self):
         node = self.nodes[0]
         self.wallets = [
-            ("ADDRESS_OP_TRUE", MiniWallet(node, mode=MiniWalletMode.ADDRESS_OP_TRUE)),
-            ("RAW_OP_TRUE",     MiniWallet(node, mode=MiniWalletMode.RAW_OP_TRUE)),
-            ("RAW_P2PK",        MiniWallet(node, mode=MiniWalletMode.RAW_P2PK)),
+            ("NATIVE_TAPROOT", MiniWallet(node)),
         ]
         for _, wallet in self.wallets:
             self.generate(wallet, 10)

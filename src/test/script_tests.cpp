@@ -132,7 +132,7 @@ BOOST_AUTO_TEST_CASE(bip341_keypath_test_vectors)
         }
 
         PrecomputedTransactionData txdata;
-        txdata.Init(tx, std::vector<CTxOut>{utxos}, /*force=*/true);
+        txdata.Init(tx, std::vector<CTxOut>{utxos});
 
         BOOST_CHECK(txdata.m_bip341_taproot_ready);
         BOOST_CHECK_EQUAL(HexStr(txdata.m_spent_amounts_single_hash), vec["intermediary"]["hashAmounts"].get_str());
@@ -159,7 +159,7 @@ BOOST_AUTO_TEST_CASE(bip341_keypath_test_vectors)
 
             FlatSigningProvider provider;
             provider.keys[key.GetPubKey().GetID()] = key;
-            MutableTransactionSignatureCreator creator{tx, input_index, utxos[input_index].nValue, &txdata, hash_type};
+            MutableTransactionSignatureCreator creator{tx, input_index, &txdata, hash_type};
             std::vector<unsigned char> signature;
             BOOST_CHECK(creator.CreateSchnorrSig(provider, signature, pubkey, nullptr, &merkle_root, SigVersion::TAPROOT));
             BOOST_CHECK_EQUAL(HexStr(signature), input["expected"]["witness"][0].get_str());

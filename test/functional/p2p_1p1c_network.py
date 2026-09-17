@@ -27,7 +27,6 @@ from test_framework.util import (
 )
 from test_framework.wallet import (
     MiniWallet,
-    MiniWalletMode,
 )
 
 class PackageRelayTest(BitcoinTestFramework):
@@ -73,35 +72,30 @@ class PackageRelayTest(BitcoinTestFramework):
         # 1: Basic 1-parent-1-child package, parent 0sat/vB, child 999sat/vB
         package_hex_1, parent_1, child_1 = self.create_basic_1p1c(self.wallet)
 
-        # 2: same as 1, parent's txid is the same as its wtxid.
-        package_hex_2, parent_2, child_2 = self.create_basic_1p1c(self.wallet_nonsegwit)
-
-        # 3: 2-parent-1-child package. Both parents are above mempool min feerate. No package submission happens.
+        # 2: 2-parent-1-child package. Both parents are above mempool min feerate. No package submission happens.
         # We require packages to be child-with-parents and only allow 1-parent-1-child packages.
         package_hex_3, parent_31, _parent_32, child_3 = self.create_package_2p1c(self.wallet)
 
-        # 4: parent + child package where the child spends 2 different outputs from the parent.
+        # 3: parent + child package where the child spends 2 different outputs from the parent.
         package_hex_4, parent_4, child_4 = self.create_package_2outs(self.wallet)
 
         # Assemble return results
-        packages_to_submit = [package_hex_1, package_hex_2, package_hex_3, package_hex_4]
+        packages_to_submit = [package_hex_1, package_hex_3, package_hex_4]
         # node0: sender
         # node1: pre-received the children (orphans, will be dropped on peer disconnect)
         # node3: pre-received the parents (too low fee)
         # All nodes receive parent_31 ahead of time.
         txns_to_send = [
             [],
-            [child_1, child_2, parent_31, child_3, child_4],
+            [child_1, parent_31, child_3, child_4],
             [parent_31],
-            [parent_1, parent_2, parent_31, parent_4]
+            [parent_1, parent_31, parent_4]
         ]
 
         return packages_to_submit, txns_to_send
 
     def run_test(self):
         self.wallet = MiniWallet(self.nodes[1])
-        self.wallet_nonsegwit = MiniWallet(self.nodes[2], mode=MiniWalletMode.RAW_P2PK)
-        self.generate(self.wallet_nonsegwit, 10)
         self.generate(self.wallet, 120)
 
         # Create the transactions.
@@ -121,7 +115,7 @@ class PackageRelayTest(BitcoinTestFramework):
         for i, node in enumerate(self.nodes):
             # node1 has non-empty orphanage as well
             if i == 1:
-                assert_equal(len(self.nodes[i].getorphantxs()), 4)
+                assert_equal(len(self.nodes[i].getorphantxs()), 3)
             else:
                 assert_equal(self.nodes[i].getorphantxs(), [])
 
@@ -139,7 +133,7 @@ class PackageRelayTest(BitcoinTestFramework):
             assert_equal(submitpackage_result["package_msg"], "success")
 
         self.log.info("Wait for mempools to sync")
-        self.wait_until(lambda: len(self.nodes[0].getrawmempool()) == 9)
+        self.wait_until(lambda: len(self.nodes[0].getrawmempool()) == 7)
         self.sync_mempools()
 
 

@@ -22,43 +22,18 @@
 
 typedef std::vector<unsigned char> valtype;
 
-MutableTransactionSignatureCreator::MutableTransactionSignatureCreator(const CMutableTransaction& tx, unsigned int input_idx, const CAmount& amount, int hash_type)
-    : m_txto{tx}, nIn{input_idx}, nHashType{hash_type}, amount{amount}, checker{&m_txto, nIn, amount, MissingDataBehavior::FAIL},
+MutableTransactionSignatureCreator::MutableTransactionSignatureCreator(const CMutableTransaction& tx, unsigned int input_idx, int hash_type)
+    : m_txto{tx}, nIn{input_idx}, nHashType{hash_type}, checker{&m_txto, nIn, MissingDataBehavior::FAIL},
       m_txdata(nullptr)
 {
 }
 
-MutableTransactionSignatureCreator::MutableTransactionSignatureCreator(const CMutableTransaction& tx, unsigned int input_idx, const CAmount& amount, const PrecomputedTransactionData* txdata, int hash_type)
-    : m_txto{tx}, nIn{input_idx}, nHashType{hash_type}, amount{amount},
-      checker{txdata ? MutableTransactionSignatureChecker{&m_txto, nIn, amount, *txdata, MissingDataBehavior::FAIL} :
-                       MutableTransactionSignatureChecker{&m_txto, nIn, amount, MissingDataBehavior::FAIL}},
+MutableTransactionSignatureCreator::MutableTransactionSignatureCreator(const CMutableTransaction& tx, unsigned int input_idx, const PrecomputedTransactionData* txdata, int hash_type)
+    : m_txto{tx}, nIn{input_idx}, nHashType{hash_type},
+      checker{txdata ? MutableTransactionSignatureChecker{&m_txto, nIn, *txdata, MissingDataBehavior::FAIL} :
+                       MutableTransactionSignatureChecker{&m_txto, nIn, MissingDataBehavior::FAIL}},
       m_txdata(txdata)
 {
-}
-
-bool MutableTransactionSignatureCreator::CreateSig(const SigningProvider& provider, std::vector<unsigned char>& vchSig, const CKeyID& address, const CScript& scriptCode, SigVersion sigversion) const
-{
-    assert(sigversion == SigVersion::BASE || sigversion == SigVersion::WITNESS_V0);
-
-    CKey key;
-    if (!provider.GetKey(address, key))
-        return false;
-
-    // Signing with uncompressed keys is disabled in witness scripts
-    if (sigversion == SigVersion::WITNESS_V0 && !key.IsCompressed())
-        return false;
-
-    // Signing without known amount does not work in witness scripts.
-    if (sigversion == SigVersion::WITNESS_V0 && !MoneyRange(amount)) return false;
-
-    // BASE/WITNESS_V0 signatures don't support explicit SIGHASH_DEFAULT, use SIGHASH_ALL instead.
-    const int hashtype = nHashType == SIGHASH_DEFAULT ? SIGHASH_ALL : nHashType;
-
-    uint256 hash = SignatureHash(scriptCode, m_txto, nIn, hashtype, amount, sigversion, m_txdata);
-    if (!key.Sign(hash, vchSig))
-        return false;
-    vchSig.push_back((unsigned char)hashtype);
-    return true;
 }
 
 std::optional<uint256> MutableTransactionSignatureCreator::ComputeSchnorrSignatureHash(const uint256* leaf_hash, SigVersion sigversion) const
@@ -579,7 +554,7 @@ SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nI
     data.scriptSig = tx.vin[nIn].scriptSig;
     data.scriptWitness = tx.vin[nIn].scriptWitness;
 
-    MutableTransactionSignatureChecker tx_checker(&tx, nIn, txout.nValue, MissingDataBehavior::FAIL);
+    MutableTransactionSignatureChecker tx_checker(&tx, nIn, MissingDataBehavior::FAIL);
     if (VerifyScript(data.scriptSig, txout.scriptPubKey, &data.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, tx_checker)) {
         data.complete = true;
     }
@@ -615,7 +590,6 @@ class DummySignatureChecker final : public BaseSignatureChecker
 {
 public:
     DummySignatureChecker() = default;
-    bool CheckECDSASignature(const std::vector<unsigned char>& sig, const std::vector<unsigned char>& vchPubKey, const CScript& scriptCode, SigVersion sigversion) const override { return sig.size() != 0; }
     bool CheckSchnorrSignature(std::span<const unsigned char> sig, std::span<const unsigned char> pubkey, SigVersion sigversion, ScriptExecutionData& execdata, ScriptError* serror) const override { return sig.size() != 0; }
     bool CheckLockTime(const CScriptNum& nLockTime) const override { return true; }
     bool CheckSequence(const CScriptNum& nSequence) const override { return true; }
@@ -626,27 +600,8 @@ const BaseSignatureChecker& DUMMY_CHECKER = DummySignatureChecker();
 
 namespace {
 class DummySignatureCreator final : public BaseSignatureCreator {
-private:
-    char m_r_len = 32;
-    char m_s_len = 32;
 public:
-    DummySignatureCreator(char r_len, char s_len) : m_r_len(r_len), m_s_len(s_len) {}
     const BaseSignatureChecker& Checker() const override { return DUMMY_CHECKER; }
-    bool CreateSig(const SigningProvider& provider, std::vector<unsigned char>& vchSig, const CKeyID& keyid, const CScript& scriptCode, SigVersion sigversion) const override
-    {
-        // Create a dummy signature that is a valid DER-encoding
-        vchSig.assign(m_r_len + m_s_len + 7, '\000');
-        vchSig[0] = 0x30;
-        vchSig[1] = m_r_len + m_s_len + 4;
-        vchSig[2] = 0x02;
-        vchSig[3] = m_r_len;
-        vchSig[4] = 0x01;
-        vchSig[4 + m_r_len] = 0x02;
-        vchSig[5 + m_r_len] = m_s_len;
-        vchSig[6 + m_r_len] = 0x01;
-        vchSig[6 + m_r_len + m_s_len] = SIGHASH_ALL;
-        return true;
-    }
     bool CreateSchnorrSig(const SigningProvider& provider, std::vector<unsigned char>& sig, const XOnlyPubKey& pubkey, const uint256* leaf_hash, const uint256* tweak, SigVersion sigversion) const override
     {
         sig.assign(64, '\000');
@@ -672,8 +627,7 @@ public:
 
 }
 
-const BaseSignatureCreator& DUMMY_SIGNATURE_CREATOR = DummySignatureCreator(32, 32);
-const BaseSignatureCreator& DUMMY_MAXIMUM_SIGNATURE_CREATOR = DummySignatureCreator(33, 32);
+const BaseSignatureCreator& DUMMY_SIGNATURE_CREATOR = DummySignatureCreator();
 
 bool SignTransaction(CMutableTransaction& mtx, const SigningProvider* keystore, const std::map<COutPoint, Coin>& coins, int nHashType, std::map<int, bilingual_str>& input_errors)
 {
@@ -689,14 +643,14 @@ bool SignTransaction(CMutableTransaction& mtx, const SigningProvider* keystore, 
         CTxIn& txin = mtx.vin[i];
         auto coin = coins.find(txin.prevout);
         if (coin == coins.end() || coin->second.IsSpent()) {
-            txdata.Init(txConst, /*spent_outputs=*/{}, /*force=*/true);
+            txdata.Init(txConst, /*spent_outputs=*/{});
             break;
         } else {
             spent_outputs.emplace_back(coin->second.out.nValue, coin->second.out.scriptPubKey);
         }
     }
     if (spent_outputs.size() == mtx.vin.size()) {
-        txdata.Init(txConst, std::move(spent_outputs), true);
+        txdata.Init(txConst, std::move(spent_outputs));
     }
 
     // Sign what we can:
@@ -713,7 +667,7 @@ bool SignTransaction(CMutableTransaction& mtx, const SigningProvider* keystore, 
         SignatureData sigdata = DataFromTransaction(mtx, i, coin->second.out);
         // Only sign SIGHASH_SINGLE if there's a corresponding output:
         if (!fHashSingle || (i < mtx.vout.size())) {
-            ProduceSignature(*keystore, MutableTransactionSignatureCreator(mtx, i, amount, &txdata, nHashType), prevPubKey, sigdata);
+            ProduceSignature(*keystore, MutableTransactionSignatureCreator(mtx, i, &txdata, nHashType), prevPubKey, sigdata);
         }
 
         UpdateInput(txin, sigdata);
@@ -725,7 +679,7 @@ bool SignTransaction(CMutableTransaction& mtx, const SigningProvider* keystore, 
         }
 
         ScriptError serror = SCRIPT_ERR_OK;
-        if (!sigdata.complete && !VerifyScript(txin.scriptSig, prevPubKey, &txin.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, TransactionSignatureChecker(&txConst, i, amount, txdata, MissingDataBehavior::FAIL), &serror)) {
+        if (!sigdata.complete && !VerifyScript(txin.scriptSig, prevPubKey, &txin.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, TransactionSignatureChecker(&txConst, i, txdata, MissingDataBehavior::FAIL), &serror)) {
             if (serror == SCRIPT_ERR_INVALID_STACK_OPERATION) {
                 // Unable to sign input and verification failed (possible attempt to partially sign).
                 input_errors[i] = Untranslated("Unable to sign input, invalid stack size (possibly missing key)");

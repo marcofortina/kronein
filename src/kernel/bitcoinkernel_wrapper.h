@@ -313,8 +313,7 @@ private:
     ScriptPubkeyApi() = default;
 
 public:
-    bool Verify(int64_t amount,
-                const Transaction& tx_to,
+    bool Verify(const Transaction& tx_to,
                 const PrecomputedTransactionData* precomputed_txdata,
                 unsigned int input_index,
                 ScriptVerifyStatus& status) const;
@@ -567,15 +566,13 @@ public:
 };
 
 template <typename Derived>
-bool ScriptPubkeyApi<Derived>::Verify(int64_t amount,
-                                      const Transaction& tx_to,
+bool ScriptPubkeyApi<Derived>::Verify(const Transaction& tx_to,
                                       const PrecomputedTransactionData* precomputed_txdata,
                                       unsigned int input_index,
                                       ScriptVerifyStatus& status) const
 {
     auto result = btck_script_pubkey_verify(
         impl(),
-        amount,
         tx_to.get(),
         precomputed_txdata ? precomputed_txdata->get() : nullptr,
         input_index,

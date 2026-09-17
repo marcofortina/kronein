@@ -125,11 +125,6 @@ struct PrecomputedTransactionData
     //! Whether the 5 fields above are initialized.
     bool m_bip341_taproot_ready = false;
 
-    // BIP143 precomputed data (double-SHA256).
-    uint256 hashPrevouts, hashSequence, hashOutputs;
-    //! Whether the 3 fields above are initialized.
-    bool m_bip143_segwit_ready = false;
-
     std::vector<CTxOut> m_spent_outputs;
     //! Whether m_spent_outputs is initialized.
     bool m_spent_outputs_ready = false;
@@ -139,12 +134,9 @@ struct PrecomputedTransactionData
     /** Initialize this PrecomputedTransactionData with transaction data.
      *
      * @param[in]   tx             The transaction for which data is being precomputed.
-     * @param[in]   spent_outputs  The CTxOuts being spent, one for each tx.vin, in order.
-     * @param[in]   force          Whether to precompute data for all optional features,
-     *                             regardless of what is in the inputs (used at signing
-     *                             time, when the inputs aren't filled in yet). */
+     * @param[in]   spent_outputs  The CTxOuts being spent, one for each tx.vin, in order. */
     template <class T>
-    void Init(const T& tx, std::vector<CTxOut>&& spent_outputs, bool force = false);
+    void Init(const T& tx, std::vector<CTxOut>&& spent_outputs);
 
     template <class T>
     explicit PrecomputedTransactionData(const T& tx);
@@ -152,10 +144,9 @@ struct PrecomputedTransactionData
 
 enum class SigVersion
 {
-    BASE = 0,        //!< Bare scripts and BIP16 P2SH-wrapped redeemscripts
-    WITNESS_V0 = 1,  //!< Witness v0 (P2WPKH and P2WSH); see BIP 141
-    TAPROOT = 2,     //!< Witness v1 with 32-byte program, not BIP16 P2SH-wrapped, key path spending; see BIP 341
-    TAPSCRIPT = 3,   //!< Witness v1 with 32-byte program, not BIP16 P2SH-wrapped, script path spending, leaf version 0xc0; see BIP 342
+    BASE = 0,      //!< Isolated bare scripts, used only for non-native Signet challenges
+    TAPROOT = 1,   //!< Native key path spending; see BIP 341
+    TAPSCRIPT = 2, //!< Native script path spending; see BIP 342
 };
 
 struct ScriptExecutionData
@@ -187,8 +178,6 @@ struct ScriptExecutionData
 };
 
 /** Signature hash sizes */
-static constexpr size_t WITNESS_V0_SCRIPTHASH_SIZE = 32;
-static constexpr size_t WITNESS_V0_KEYHASH_SIZE = 20;
 static constexpr size_t WITNESS_V1_TAPROOT_SIZE = 32;
 
 static constexpr uint8_t TAPROOT_LEAF_MASK = 0xfe;
@@ -202,8 +191,8 @@ extern const HashWriter HASHER_TAPSIGHASH; //!< Hasher with tag "TapSighash" pre
 extern const HashWriter HASHER_TAPLEAF;    //!< Hasher with tag "TapLeaf" pre-fed to it.
 extern const HashWriter HASHER_TAPBRANCH;  //!< Hasher with tag "TapBranch" pre-fed to it.
 
-/** Data structure to cache SHA256 midstates for the ECDSA sighash calculations
- *  (bare, P2SH, P2WPKH, P2WSH). */
+/** Data structure to cache SHA256 midstates for isolated Signet ECDSA
+ * signature-hash calculations. */
 class SigHashCache
 {
     /** For each sighash mode (ALL, SINGLE, NONE, ALL|ANYONE, SINGLE|ANYONE, NONE|ANYONE),
@@ -222,7 +211,7 @@ public:
 };
 
 template <class T>
-uint256 SignatureHash(const CScript& scriptCode, const T& txTo, unsigned int nIn, int32_t nHashType, const CAmount& amount, SigVersion sigversion, const PrecomputedTransactionData* cache = nullptr, SigHashCache* sighash_cache = nullptr);
+uint256 ECDSASignatureHash(const CScript& script_code, const T& tx_to, unsigned int input_index, int32_t hash_type, SigHashCache* cache = nullptr);
 
 class BaseSignatureChecker
 {
@@ -269,7 +258,6 @@ private:
     const T* txTo;
     const MissingDataBehavior m_mdb;
     unsigned int nIn;
-    const CAmount amount;
     const PrecomputedTransactionData* txdata;
     mutable SigHashCache m_sighash_cache;
 
@@ -278,8 +266,8 @@ protected:
     virtual bool VerifySchnorrSignature(std::span<const unsigned char> sig, const XOnlyPubKey& pubkey, const uint256& sighash) const;
 
 public:
-    GenericTransactionSignatureChecker(const T* txToIn, unsigned int nInIn, const CAmount& amountIn, MissingDataBehavior mdb) : txTo(txToIn), m_mdb(mdb), nIn(nInIn), amount(amountIn), txdata(nullptr) {}
-    GenericTransactionSignatureChecker(const T* txToIn, unsigned int nInIn, const CAmount& amountIn, const PrecomputedTransactionData& txdataIn, MissingDataBehavior mdb) : txTo(txToIn), m_mdb(mdb), nIn(nInIn), amount(amountIn), txdata(&txdataIn) {}
+    GenericTransactionSignatureChecker(const T* txToIn, unsigned int nInIn, MissingDataBehavior mdb) : txTo(txToIn), m_mdb(mdb), nIn(nInIn), txdata(nullptr) {}
+    GenericTransactionSignatureChecker(const T* txToIn, unsigned int nInIn, const PrecomputedTransactionData& txdataIn, MissingDataBehavior mdb) : txTo(txToIn), m_mdb(mdb), nIn(nInIn), txdata(&txdataIn) {}
     bool CheckECDSASignature(const std::vector<unsigned char>& scriptSig, const std::vector<unsigned char>& vchPubKey, const CScript& scriptCode, SigVersion sigversion) const override;
     bool CheckSchnorrSignature(std::span<const unsigned char> sig, std::span<const unsigned char> pubkey, SigVersion sigversion, ScriptExecutionData& execdata, ScriptError* serror = nullptr) const override;
     bool CheckLockTime(const CScriptNum& nLockTime) const override;

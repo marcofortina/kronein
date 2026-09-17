@@ -6,7 +6,6 @@
 
 from copy import deepcopy
 from decimal import Decimal
-from enum import Enum
 from typing import (
     Any,
     Optional,
@@ -14,17 +13,11 @@ from typing import (
 from test_framework.address import (
     address_to_scriptpubkey,
     create_deterministic_address_bcrt1_p2tr_op_true,
-    key_to_p2pkh,
-    key_to_p2sh_p2wpkh,
-    key_to_p2wpkh,
     output_key_to_p2tr,
 )
 from test_framework.blocktools import COINBASE_MATURITY
 from test_framework.descriptors import descsum_create
-from test_framework.key import (
-    ECKey,
-    compute_xonly_pubkey,
-)
+from test_framework.key import compute_xonly_pubkey
 from test_framework.messages import (
     COIN,
     COutPoint,
@@ -36,18 +29,12 @@ from test_framework.messages import (
 )
 from test_framework.script import (
     CScript,
-    OP_NOP,
     OP_RETURN,
     OP_TRUE,
-    sign_input_legacy,
     taproot_construct,
 )
 from test_framework.script_util import (
     bulk_vout,
-    key_to_p2pk_script,
-    key_to_p2pkh_script,
-    key_to_p2sh_p2wpkh_script,
-    key_to_p2wpkh_script,
 )
 from test_framework.util import (
     assert_equal,
@@ -58,53 +45,16 @@ from test_framework.wallet_util import generate_keypair
 
 DEFAULT_FEE = Decimal("0.0001")
 
-class MiniWalletMode(Enum):
-    """Determines the transaction type the MiniWallet is creating and spending.
-
-    For most purposes, the default mode ADDRESS_OP_TRUE should be sufficient;
-    it simply uses a fixed bech32m P2TR address whose coins are spent with a
-    witness stack of OP_TRUE, i.e. following an anyone-can-spend policy.
-    However, if the transactions need to be modified by the user (e.g. prepending
-    scriptSig for testing opcodes that are activated by a soft-fork), or the txs
-    should contain an actual signature, the raw modes RAW_OP_TRUE and RAW_P2PK
-    can be useful. In order to avoid mixing of UTXOs between different MiniWallet
-    instances, a tag name can be passed to the default mode, to create different
-    output scripts. Note that the UTXOs from the pre-generated test chain can
-    only be spent if no tag is passed. Summary of modes:
-
-                    |      output       |           |  tx is   | can modify |  needs
-         mode       |    description    |  address  | standard | scriptSig  | signing
-    ----------------+-------------------+-----------+----------+------------+----------
-    ADDRESS_OP_TRUE | anyone-can-spend  |  bech32m  |   yes    |    no      |   no
-    RAW_OP_TRUE     | anyone-can-spend  |  - (raw)  |   no     |    yes     |   no
-    RAW_P2PK        | pay-to-public-key |  - (raw)  |   yes    |    yes     |   yes
-    """
-    ADDRESS_OP_TRUE = 1
-    RAW_OP_TRUE = 2
-    RAW_P2PK = 3
-
-
 class MiniWallet:
-    def __init__(self, test_node, *, mode=MiniWalletMode.ADDRESS_OP_TRUE, tag_name=None):
+    """Minimal native Taproot wallet for functional tests."""
+
+    def __init__(self, test_node, *, tag_name=None):
         self._test_node = test_node
         self._utxos = []
-        self._mode = mode
 
-        assert isinstance(mode, MiniWalletMode)
-        if mode == MiniWalletMode.RAW_OP_TRUE:
-            assert tag_name is None
-            self._scriptPubKey = bytes(CScript([OP_TRUE]))
-        elif mode == MiniWalletMode.RAW_P2PK:
-            # use simple deterministic private key (k=1)
-            assert tag_name is None
-            self._priv_key = ECKey()
-            self._priv_key.set((1).to_bytes(32, 'big'), True)
-            pub_key = self._priv_key.get_pubkey()
-            self._scriptPubKey = key_to_p2pk_script(pub_key.get_bytes())
-        elif mode == MiniWalletMode.ADDRESS_OP_TRUE:
-            internal_key = None if tag_name is None else compute_xonly_pubkey(hash256(tag_name.encode()))[0]
-            self._address, self._taproot_info = create_deterministic_address_bcrt1_p2tr_op_true(internal_key)
-            self._scriptPubKey = address_to_scriptpubkey(self._address)
+        internal_key = None if tag_name is None else compute_xonly_pubkey(hash256(tag_name.encode()))[0]
+        self._address, self._taproot_info = create_deterministic_address_bcrt1_p2tr_op_true(internal_key)
+        self._scriptPubKey = address_to_scriptpubkey(self._address)
 
         # When the pre-mined test framework chain is used, it contains coinbase
         # outputs to the MiniWallet's default address in blocks 76-100
@@ -166,32 +116,15 @@ class MiniWallet:
         for tx in txs:
             self.scan_tx(tx)
 
-    def sign_tx(self, tx, fixed_length=True):
-        if self._mode == MiniWalletMode.RAW_P2PK:
-            # for exact fee calculation, create only signatures with fixed size by default (>49.89% probability):
-            # 65 bytes: high-R val (33 bytes) + low-S val (32 bytes)
-            # with the DER header/skeleton data of 6 bytes added, plus 2 bytes scriptSig overhead
-            # (OP_PUSHn and SIGHASH_ALL), this leads to a scriptSig target size of 73 bytes
-            tx.vin[0].scriptSig = b''
-            while not len(tx.vin[0].scriptSig) == 73:
-                tx.vin[0].scriptSig = b''
-                sign_input_legacy(tx, 0, self._scriptPubKey, self._priv_key)
-                if not fixed_length:
-                    break
-        elif self._mode == MiniWalletMode.RAW_OP_TRUE:
-            for i in tx.vin:
-                i.scriptSig = CScript([OP_NOP] * 43)  # pad to identical size
-        elif self._mode == MiniWalletMode.ADDRESS_OP_TRUE:
-            tx.wit.vtxinwit = [CTxInWitness()] * len(tx.vin)
-            for i in tx.wit.vtxinwit:
-                assert_equal(len(self._taproot_info.leaves), 1)
-                leaf_info = list(self._taproot_info.leaves.values())[0]
-                i.scriptWitness.stack = [
-                    leaf_info.script,
-                    bytes([leaf_info.version | self._taproot_info.negflag]) + self._taproot_info.internal_pubkey,
-                ]
-        else:
-            assert False
+    def sign_tx(self, tx):
+        tx.wit.vtxinwit = [CTxInWitness()] * len(tx.vin)
+        for i in tx.wit.vtxinwit:
+            assert_equal(len(self._taproot_info.leaves), 1)
+            leaf_info = list(self._taproot_info.leaves.values())[0]
+            i.scriptWitness.stack = [
+                leaf_info.script,
+                bytes([leaf_info.version | self._taproot_info.negflag]) + self._taproot_info.internal_pubkey,
+            ]
 
     def generate(self, num_blocks, **kwargs):
         """Generate blocks with coinbase outputs to the internal address, and call rescan_utxos"""
@@ -213,7 +146,6 @@ class MiniWallet:
         return descsum_create(f'raw({self._scriptPubKey.hex()})')
 
     def get_address(self):
-        assert_equal(self._mode, MiniWalletMode.ADDRESS_OP_TRUE)
         return self._address
 
     def get_utxo(self, *, txid: str = '', vout: Optional[int] = None, mark_as_spent=True, confirmed_only=False) -> dict:
@@ -361,14 +293,7 @@ class MiniWallet:
         assert fee_rate >= 0
         assert fee >= 0
         # calculate fee
-        if self._mode == MiniWalletMode.ADDRESS_OP_TRUE:
-            vsize = Decimal(104)  # Taproot anyone-can-spend
-        elif self._mode == MiniWalletMode.RAW_OP_TRUE:
-            vsize = Decimal(105)  # raw anyone-can-spend with a mandatory empty witness stack
-        elif self._mode == MiniWalletMode.RAW_P2PK:
-            vsize = Decimal(169)  # P2PK (73 bytes scriptSig + 35 bytes scriptPubKey + 60 bytes other + empty witness stack)
-        else:
-            assert False
+        vsize = Decimal(104)  # Taproot anyone-can-spend
         if target_vsize and not fee:  # respect fee_rate if target vsize is passed
             fee = get_fee(target_vsize, fee_rate)
         send_value = utxo_to_spend["value"] - (fee or (fee_rate * vsize / 1000))
@@ -419,27 +344,11 @@ class MiniWallet:
         return chain
 
 
-def getnewdestination(address_type='bech32m'):
-    """Generate a random destination of the specified type and return the
-       corresponding public key, scriptPubKey and address. Supported types are
-       'legacy', 'p2sh-segwit', 'bech32' and 'bech32m'. Can be used when a random
-       destination is needed, but no compiled wallet is available (e.g. as
-       replacement to the getnewaddress/getaddressinfo RPCs)."""
+def getnewdestination():
+    """Generate a random native Taproot destination."""
     key, pubkey = generate_keypair()
-    if address_type == 'legacy':
-        scriptpubkey = key_to_p2pkh_script(pubkey)
-        address = key_to_p2pkh(pubkey)
-    elif address_type == 'p2sh-segwit':
-        scriptpubkey = key_to_p2sh_p2wpkh_script(pubkey)
-        address = key_to_p2sh_p2wpkh(pubkey)
-    elif address_type == 'bech32':
-        scriptpubkey = key_to_p2wpkh_script(pubkey)
-        address = key_to_p2wpkh(pubkey)
-    elif address_type == 'bech32m':
-        tap = taproot_construct(compute_xonly_pubkey(key.get_bytes())[0])
-        pubkey = tap.output_pubkey
-        scriptpubkey = tap.scriptPubKey
-        address = output_key_to_p2tr(pubkey)
-    else:
-        assert False
+    tap = taproot_construct(compute_xonly_pubkey(key.get_bytes())[0])
+    pubkey = tap.output_pubkey
+    scriptpubkey = tap.scriptPubKey
+    address = output_key_to_p2tr(pubkey)
     return pubkey, scriptpubkey, address

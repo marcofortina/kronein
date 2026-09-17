@@ -302,25 +302,20 @@ public:
 };
 }
 
-static bool EvalChecksigPreTapscript(const valtype& vchSig, const valtype& vchPubKey, CScript::const_iterator pbegincodehash, CScript::const_iterator pend, script_verify_flags flags, const BaseSignatureChecker& checker, SigVersion sigversion, ScriptError* serror, bool& fSuccess)
+static bool EvalChecksigBase(const valtype& vchSig, const valtype& vchPubKey, CScript::const_iterator pbegincodehash, CScript::const_iterator pend, script_verify_flags flags, const BaseSignatureChecker& checker, ScriptError* serror, bool& fSuccess)
 {
-    assert(sigversion == SigVersion::BASE || sigversion == SigVersion::WITNESS_V0);
-
     // Subset of script starting at the most recent codeseparator
     CScript scriptCode(pbegincodehash, pend);
 
-    // Drop the signature in pre-segwit scripts but not segwit scripts
-    if (sigversion == SigVersion::BASE) {
-        int found = FindAndDelete(scriptCode, CScript() << vchSig);
-        if (found > 0 && (flags & SCRIPT_VERIFY_CONST_SCRIPTCODE))
-            return set_error(serror, SCRIPT_ERR_SIG_FINDANDDELETE);
-    }
+    int found = FindAndDelete(scriptCode, CScript() << vchSig);
+    if (found > 0 && (flags & SCRIPT_VERIFY_CONST_SCRIPTCODE))
+        return set_error(serror, SCRIPT_ERR_SIG_FINDANDDELETE);
 
-    if (!CheckSignatureEncoding(vchSig, flags, serror) || !CheckPubKeyEncoding(vchPubKey, flags, sigversion, serror)) {
+    if (!CheckSignatureEncoding(vchSig, flags, serror) || !CheckPubKeyEncoding(vchPubKey, flags, SigVersion::BASE, serror)) {
         //serror is set
         return false;
     }
-    fSuccess = checker.CheckECDSASignature(vchSig, vchPubKey, scriptCode, sigversion);
+    fSuccess = checker.CheckECDSASignature(vchSig, vchPubKey, scriptCode, SigVersion::BASE);
 
     if (!fSuccess && (flags & SCRIPT_VERIFY_NULLFAIL) && vchSig.size())
         return set_error(serror, SCRIPT_ERR_SIG_NULLFAIL);
@@ -377,8 +372,7 @@ static bool EvalChecksig(const valtype& sig, const valtype& pubkey, CScript::con
 {
     switch (sigversion) {
     case SigVersion::BASE:
-    case SigVersion::WITNESS_V0:
-        return EvalChecksigPreTapscript(sig, pubkey, pbegincodehash, pend, flags, checker, sigversion, serror, success);
+        return EvalChecksigBase(sig, pubkey, pbegincodehash, pend, flags, checker, serror, success);
     case SigVersion::TAPSCRIPT:
         return EvalChecksigTapscript(sig, pubkey, execdata, flags, checker, sigversion, serror, success);
     case SigVersion::TAPROOT:
@@ -399,7 +393,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
     static const valtype vchTrue(1, 1);
 
     // sigversion cannot be TAPROOT here, as it admits no script execution.
-    assert(sigversion == SigVersion::BASE || sigversion == SigVersion::WITNESS_V0 || sigversion == SigVersion::TAPSCRIPT);
+    assert(sigversion == SigVersion::BASE || sigversion == SigVersion::TAPSCRIPT);
 
     CScript::const_iterator pc = script.begin();
     CScript::const_iterator pend = script.end();
@@ -409,7 +403,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
     ConditionStack vfExec;
     std::vector<valtype> altstack;
     set_error(serror, SCRIPT_ERR_UNKNOWN_ERROR);
-    if ((sigversion == SigVersion::BASE || sigversion == SigVersion::WITNESS_V0) && script.size() > MAX_SCRIPT_SIZE) {
+    if (sigversion == SigVersion::BASE && script.size() > MAX_SCRIPT_SIZE) {
         return set_error(serror, SCRIPT_ERR_SCRIPT_SIZE);
     }
     int nOpCount = 0;
@@ -431,7 +425,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
             if (vchPushValue.size() > MAX_SCRIPT_ELEMENT_SIZE)
                 return set_error(serror, SCRIPT_ERR_PUSH_SIZE);
 
-            if (sigversion == SigVersion::BASE || sigversion == SigVersion::WITNESS_V0) {
+            if (sigversion == SigVersion::BASE) {
                 // Note how OP_RESERVED does not count towards the opcode limit.
                 if (opcode > OP_16 && ++nOpCount > MAX_OPS_PER_SCRIPT) {
                     return set_error(serror, SCRIPT_ERR_OP_COUNT);
@@ -1051,7 +1045,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                 case OP_CHECKSIGADD:
                 {
                     // OP_CHECKSIGADD is only available in Tapscript
-                    if (sigversion == SigVersion::BASE || sigversion == SigVersion::WITNESS_V0) return set_error(serror, SCRIPT_ERR_BAD_OPCODE);
+                    if (sigversion == SigVersion::BASE) return set_error(serror, SCRIPT_ERR_BAD_OPCODE);
 
                     // (sig num pubkey -- num)
                     if (stack.size() < 3) return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
@@ -1105,7 +1099,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     // Subset of script starting at the most recent codeseparator
                     CScript scriptCode(pbegincodehash, pend);
 
-                    // Drop the signature in pre-segwit scripts but not segwit scripts
+                    // Remove signatures from the isolated bare Signet challenge script.
                     for (int k = 0; k < nSigsCount; k++)
                     {
                         valtype& vchSig = stacktop(-isig-k);
@@ -1367,7 +1361,7 @@ uint256 GetSpentScriptsSHA256(const std::vector<CTxOut>& outputs_spent)
 } // namespace
 
 template <class T>
-void PrecomputedTransactionData::Init(const T& txTo, std::vector<CTxOut>&& spent_outputs, bool force)
+void PrecomputedTransactionData::Init(const T& txTo, std::vector<CTxOut>&& spent_outputs)
 {
     assert(!m_spent_outputs_ready);
 
@@ -1377,40 +1371,10 @@ void PrecomputedTransactionData::Init(const T& txTo, std::vector<CTxOut>&& spent
         m_spent_outputs_ready = true;
     }
 
-    // Determine which precomputation-impacting features this transaction uses.
-    bool uses_bip143_segwit = force;
-    bool uses_bip341_taproot = force;
-    for (size_t inpos = 0; inpos < txTo.vin.size() && !(uses_bip143_segwit && uses_bip341_taproot); ++inpos) {
-        if (!txTo.vin[inpos].scriptWitness.IsNull()) {
-            if (m_spent_outputs_ready && m_spent_outputs[inpos].scriptPubKey.size() == 2 + WITNESS_V1_TAPROOT_SIZE &&
-                m_spent_outputs[inpos].scriptPubKey[0] == OP_1) {
-                // Treat every witness-bearing spend with 34-byte scriptPubKey that starts with OP_1 as a Taproot
-                // spend. This only works if spent_outputs was provided as well, but if it wasn't, actual validation
-                // will fail anyway. A non-native scriptPubKey is rejected during transaction validation.
-                uses_bip341_taproot = true;
-            } else {
-                // Treat every spend that's not known to native witness v1 as a Witness v0 spend. This branch may
-                // also be taken for unknown witness versions, but it is harmless, and being precise would require
-                // P2SH evaluation to find the redeemScript.
-                uses_bip143_segwit = true;
-            }
-        }
-        if (uses_bip341_taproot && uses_bip143_segwit) break; // No need to scan further if we already need all.
-    }
-
-    if (uses_bip143_segwit || uses_bip341_taproot) {
-        // Computations shared between both sighash schemes.
-        m_prevouts_single_hash = GetPrevoutsSHA256(txTo);
-        m_sequences_single_hash = GetSequencesSHA256(txTo);
-        m_outputs_single_hash = GetOutputsSHA256(txTo);
-    }
-    if (uses_bip143_segwit) {
-        hashPrevouts = SHA256Uint256(m_prevouts_single_hash);
-        hashSequence = SHA256Uint256(m_sequences_single_hash);
-        hashOutputs = SHA256Uint256(m_outputs_single_hash);
-        m_bip143_segwit_ready = true;
-    }
-    if (uses_bip341_taproot && m_spent_outputs_ready) {
+    m_prevouts_single_hash = GetPrevoutsSHA256(txTo);
+    m_sequences_single_hash = GetSequencesSHA256(txTo);
+    m_outputs_single_hash = GetOutputsSHA256(txTo);
+    if (m_spent_outputs_ready) {
         m_spent_amounts_single_hash = GetSpentAmountsSHA256(m_spent_outputs);
         m_spent_scripts_single_hash = GetSpentScriptsSHA256(m_spent_outputs);
         m_bip341_taproot_ready = true;
@@ -1424,8 +1388,8 @@ PrecomputedTransactionData::PrecomputedTransactionData(const T& txTo)
 }
 
 // explicit instantiation
-template void PrecomputedTransactionData::Init(const CTransaction& txTo, std::vector<CTxOut>&& spent_outputs, bool force);
-template void PrecomputedTransactionData::Init(const CMutableTransaction& txTo, std::vector<CTxOut>&& spent_outputs, bool force);
+template void PrecomputedTransactionData::Init(const CTransaction& txTo, std::vector<CTxOut>&& spent_outputs);
+template void PrecomputedTransactionData::Init(const CMutableTransaction& txTo, std::vector<CTxOut>&& spent_outputs);
 template PrecomputedTransactionData::PrecomputedTransactionData(const CTransaction& txTo);
 template PrecomputedTransactionData::PrecomputedTransactionData(const CMutableTransaction& txTo);
 
@@ -1537,8 +1501,6 @@ bool SignatureHashSchnorr(uint256& hash_out, ScriptExecutionData& execdata, cons
 
 int SigHashCache::CacheIndex(int32_t hash_type) const noexcept
 {
-    // Note that we do not distinguish between BASE and WITNESS_V0 to determine the cache index,
-    // because no input can simultaneously use both.
     return 3 * !!(hash_type & SIGHASH_ANYONECANPAY) +
            2 * ((hash_type & 0x1f) == SIGHASH_SINGLE) +
            1 * ((hash_type & 0x1f) == SIGHASH_NONE);
@@ -1563,82 +1525,35 @@ void SigHashCache::Store(int32_t hash_type, const CScript& script_code, const Ha
 }
 
 template <class T>
-uint256 SignatureHash(const CScript& scriptCode, const T& txTo, unsigned int nIn, int32_t nHashType, const CAmount& amount, SigVersion sigversion, const PrecomputedTransactionData* cache, SigHashCache* sighash_cache)
+uint256 ECDSASignatureHash(const CScript& script_code, const T& tx_to, unsigned int input_index, int32_t hash_type, SigHashCache* cache)
 {
-    assert(nIn < txTo.vin.size());
+    assert(input_index < tx_to.vin.size());
 
-    if (sigversion != SigVersion::WITNESS_V0) {
-        // Check for invalid use of SIGHASH_SINGLE
-        if ((nHashType & 0x1f) == SIGHASH_SINGLE) {
-            if (nIn >= txTo.vout.size()) {
-                //  nOut out of range
-                return uint256::ONE;
-            }
+    if ((hash_type & 0x1f) == SIGHASH_SINGLE) {
+        if (input_index >= tx_to.vout.size()) {
+            return uint256::ONE;
         }
     }
 
     HashWriter ss{};
 
     // Try to compute using cached SHA256 midstate.
-    if (sighash_cache && sighash_cache->Load(nHashType, scriptCode, ss)) {
+    if (cache && cache->Load(hash_type, script_code, ss)) {
         // Add sighash type and hash.
-        ss << nHashType;
+        ss << hash_type;
         return ss.GetHash();
     }
 
-    if (sigversion == SigVersion::WITNESS_V0) {
-        uint256 hashPrevouts;
-        uint256 hashSequence;
-        uint256 hashOutputs;
-        const bool cacheready = cache && cache->m_bip143_segwit_ready;
-
-        if (!(nHashType & SIGHASH_ANYONECANPAY)) {
-            hashPrevouts = cacheready ? cache->hashPrevouts : SHA256Uint256(GetPrevoutsSHA256(txTo));
-        }
-
-        if (!(nHashType & SIGHASH_ANYONECANPAY) && (nHashType & 0x1f) != SIGHASH_SINGLE && (nHashType & 0x1f) != SIGHASH_NONE) {
-            hashSequence = cacheready ? cache->hashSequence : SHA256Uint256(GetSequencesSHA256(txTo));
-        }
-
-        if ((nHashType & 0x1f) != SIGHASH_SINGLE && (nHashType & 0x1f) != SIGHASH_NONE) {
-            hashOutputs = cacheready ? cache->hashOutputs : SHA256Uint256(GetOutputsSHA256(txTo));
-        } else if ((nHashType & 0x1f) == SIGHASH_SINGLE && nIn < txTo.vout.size()) {
-            HashWriter inner_ss{};
-            inner_ss << txTo.vout[nIn];
-            hashOutputs = inner_ss.GetHash();
-        }
-
-        // Version
-        ss << txTo.version;
-        // Input prevouts/nSequence (none/all, depending on flags)
-        ss << hashPrevouts;
-        ss << hashSequence;
-        // The input being signed (replacing the scriptSig with scriptCode + amount)
-        // The prevout may already be contained in hashPrevout, and the nSequence
-        // may already be contain in hashSequence.
-        ss << txTo.vin[nIn].prevout;
-        ss << scriptCode;
-        ss << amount;
-        ss << txTo.vin[nIn].nSequence;
-        // Outputs (none/one/all, depending on flags)
-        ss << hashOutputs;
-        // Locktime
-        ss << txTo.nLockTime;
-    } else {
-        // Wrapper to serialize only the necessary parts of the transaction being signed
-        CTransactionSignatureSerializer<T> txTmp(txTo, scriptCode, nIn, nHashType);
-
-        // Serialize
-        ss << txTmp;
-    }
+    CTransactionSignatureSerializer<T> tx_tmp(tx_to, script_code, input_index, hash_type);
+    ss << tx_tmp;
 
     // If a cache object was provided, store the midstate there.
-    if (sighash_cache != nullptr) {
-        sighash_cache->Store(nHashType, scriptCode, ss);
+    if (cache != nullptr) {
+        cache->Store(hash_type, script_code, ss);
     }
 
     // Add sighash type and hash.
-    ss << nHashType;
+    ss << hash_type;
     return ss.GetHash();
 }
 
@@ -1657,6 +1572,7 @@ bool GenericTransactionSignatureChecker<T>::VerifySchnorrSignature(std::span<con
 template <class T>
 bool GenericTransactionSignatureChecker<T>::CheckECDSASignature(const std::vector<unsigned char>& vchSigIn, const std::vector<unsigned char>& vchPubKey, const CScript& scriptCode, SigVersion sigversion) const
 {
+    assert(sigversion == SigVersion::BASE);
     CPubKey pubkey(vchPubKey);
     if (!pubkey.IsValid())
         return false;
@@ -1668,10 +1584,7 @@ bool GenericTransactionSignatureChecker<T>::CheckECDSASignature(const std::vecto
     int nHashType = vchSig.back();
     vchSig.pop_back();
 
-    // Witness sighashes need the amount.
-    if (sigversion == SigVersion::WITNESS_V0 && amount < 0) return HandleMissingData(m_mdb);
-
-    uint256 sighash = SignatureHash(scriptCode, *txTo, nIn, nHashType, amount, sigversion, this->txdata, &m_sighash_cache);
+    uint256 sighash = ECDSASignatureHash(scriptCode, *txTo, nIn, nHashType, &m_sighash_cache);
 
     if (!VerifyECDSASignature(vchSig, pubkey, sighash))
         return false;

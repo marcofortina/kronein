@@ -36,7 +36,6 @@ from test_framework.util import (
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.wallet import (
     MiniWallet,
-    MiniWalletMode,
 )
 
 # Time to bump forward (using setmocktime) before waiting for the node to send getdata(tx) in response
@@ -263,20 +262,20 @@ class OrphanHandlingTest(BitcoinTestFramework):
         # Sends the orphans
         peer_orphans = node.add_p2p_connection(PeerTxRelayer())
 
-        confirmed_utxos = [self.wallet_nonsegwit.get_utxo() for _ in range(4)]
+        confirmed_utxos = [self.wallet_secondary.get_utxo() for _ in range(4)]
         assert all([utxo["confirmations"] > 0 for utxo in confirmed_utxos])
         self.log.info("Test handling of multiple orphans with missing parents that are already being requested")
         # Parent of child_A only
-        missing_parent_A = self.wallet_nonsegwit.create_self_transfer(utxo_to_spend=confirmed_utxos[0])
+        missing_parent_A = self.wallet_secondary.create_self_transfer(utxo_to_spend=confirmed_utxos[0])
         # Parents of child_A and child_B
-        missing_parent_AB = self.wallet_nonsegwit.create_self_transfer(utxo_to_spend=confirmed_utxos[1])
-        inflight_parent_AB = self.wallet_nonsegwit.create_self_transfer(utxo_to_spend=confirmed_utxos[2])
+        missing_parent_AB = self.wallet_secondary.create_self_transfer(utxo_to_spend=confirmed_utxos[1])
+        inflight_parent_AB = self.wallet_secondary.create_self_transfer(utxo_to_spend=confirmed_utxos[2])
         # Parent of child_B only
-        missing_parent_B = self.wallet_nonsegwit.create_self_transfer(utxo_to_spend=confirmed_utxos[3])
-        child_A = self.wallet_nonsegwit.create_self_transfer_multi(
+        missing_parent_B = self.wallet_secondary.create_self_transfer(utxo_to_spend=confirmed_utxos[3])
+        child_A = self.wallet_secondary.create_self_transfer_multi(
             utxos_to_spend=[missing_parent_A["new_utxo"], missing_parent_AB["new_utxo"], inflight_parent_AB["new_utxo"]]
         )
-        child_B = self.wallet_nonsegwit.create_self_transfer_multi(
+        child_B = self.wallet_secondary.create_self_transfer_multi(
             utxos_to_spend=[missing_parent_B["new_utxo"], missing_parent_AB["new_utxo"], inflight_parent_AB["new_utxo"]]
         )
 
@@ -308,10 +307,10 @@ class OrphanHandlingTest(BitcoinTestFramework):
         peer = node.add_p2p_connection(PeerTxRelayer())
 
         self.log.info("Test handling of an orphan with a parent who is another orphan")
-        missing_grandparent = self.wallet_nonsegwit.create_self_transfer()
-        missing_parent_orphan = self.wallet_nonsegwit.create_self_transfer(utxo_to_spend=missing_grandparent["new_utxo"])
-        missing_parent = self.wallet_nonsegwit.create_self_transfer()
-        orphan = self.wallet_nonsegwit.create_self_transfer_multi(utxos_to_spend=[missing_parent["new_utxo"], missing_parent_orphan["new_utxo"]])
+        missing_grandparent = self.wallet_secondary.create_self_transfer()
+        missing_parent_orphan = self.wallet_secondary.create_self_transfer(utxo_to_spend=missing_grandparent["new_utxo"])
+        missing_parent = self.wallet_secondary.create_self_transfer()
+        orphan = self.wallet_secondary.create_self_transfer_multi(utxos_to_spend=[missing_parent["new_utxo"], missing_parent_orphan["new_utxo"]])
 
         # The node should put missing_parent_orphan into the orphanage and request missing_grandparent
         self.relay_transaction(peer, missing_parent_orphan["tx"])
@@ -667,8 +666,8 @@ class OrphanHandlingTest(BitcoinTestFramework):
 
     def run_test(self):
         self.nodes[0].setmocktime(int(time.time()))
-        self.wallet_nonsegwit = MiniWallet(self.nodes[0], mode=MiniWalletMode.RAW_P2PK)
-        self.generate(self.wallet_nonsegwit, 10)
+        self.wallet_secondary = MiniWallet(self.nodes[0], tag_name="orphan-secondary")
+        self.generate(self.wallet_secondary, 10)
         self.wallet = MiniWallet(self.nodes[0])
         self.generate(self.wallet, 160)
 

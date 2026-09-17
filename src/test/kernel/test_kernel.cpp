@@ -218,12 +218,10 @@ void run_verify_test(
     const ScriptPubkey& spent_script_pubkey,
     const Transaction& spending_tx,
     const PrecomputedTransactionData* precomputed_txdata,
-    int64_t amount,
     unsigned int input_index)
 {
     auto status = ScriptVerifyStatus::OK;
     BOOST_CHECK(spent_script_pubkey.Verify(
-        amount,
         spending_tx,
         precomputed_txdata,
         input_index,
@@ -496,7 +494,6 @@ BOOST_AUTO_TEST_CASE(btck_script_verify_tests)
         /*spent_script_pubkey=*/taproot_spent_script_pubkey,
         /*spending_tx=*/taproot_spending_tx,
         /*precomputed_txdata=*/&taproot_precomputed_txdata,
-        /*amount=*/100000000,
         /*input_index=*/0);
 }
 
@@ -992,7 +989,7 @@ BOOST_AUTO_TEST_CASE(btck_chainman_regtest_tests)
             ScriptVerifyStatus status = ScriptVerifyStatus::OK;
             const PrecomputedTransactionData precomputed_txdata{transaction, spent_outputs};
             for (size_t i{0}; i < inputs.size(); ++i) {
-                BOOST_CHECK(spent_outputs[i].GetScriptPubkey().Verify(spent_outputs[i].Amount(), transaction, &precomputed_txdata, i, status));
+                BOOST_CHECK(spent_outputs[i].GetScriptPubkey().Verify(transaction, &precomputed_txdata, i, status));
             }
         }
     }
