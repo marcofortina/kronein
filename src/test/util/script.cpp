@@ -8,13 +8,6 @@
 
 #include <stdexcept>
 
-bool IsValidFlagCombination(script_verify_flags flags)
-{
-    if (flags & SCRIPT_VERIFY_CLEANSTACK && ~flags & (SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS)) return false;
-    if (flags & SCRIPT_VERIFY_WITNESS && ~flags & SCRIPT_VERIFY_P2SH) return false;
-    return true;
-}
-
 script_verify_flags ParseScriptFlags(std::string flag_string)
 {
     script_verify_flags flags{SCRIPT_VERIFY_NONE};

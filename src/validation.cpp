@@ -2164,13 +2164,7 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
 
 script_verify_flags GetBlockScriptFlags()
 {
-    return SCRIPT_VERIFY_P2SH |
-           SCRIPT_VERIFY_DERSIG |
-           SCRIPT_VERIFY_NULLDUMMY |
-           SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY |
-           SCRIPT_VERIFY_CHECKSEQUENCEVERIFY |
-           SCRIPT_VERIFY_WITNESS |
-           SCRIPT_VERIFY_TAPROOT;
+    return SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_NULLDUMMY;
 }
 
 

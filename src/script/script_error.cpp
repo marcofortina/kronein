@@ -59,20 +59,14 @@ std::string ScriptErrorString(const ScriptError serror)
             return "Non-canonical DER signature";
         case SCRIPT_ERR_MINIMALDATA:
             return "Data push larger than necessary";
-        case SCRIPT_ERR_SIG_PUSHONLY:
-            return "Only push operators allowed in signatures";
         case SCRIPT_ERR_SIG_HIGH_S:
             return "Non-canonical signature: S value is unnecessarily high";
         case SCRIPT_ERR_SIG_NULLDUMMY:
             return "Dummy CHECKMULTISIG argument must be zero";
-        case SCRIPT_ERR_MINIMALIF:
-            return "OP_IF/NOTIF argument must be minimal";
         case SCRIPT_ERR_SIG_NULLFAIL:
             return "Signature must be zero for failed CHECK(MULTI)SIG operation";
         case SCRIPT_ERR_DISCOURAGE_UPGRADABLE_NOPS:
             return "NOPx reserved for soft-fork upgrades";
-        case SCRIPT_ERR_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM:
-            return "Witness version reserved for soft-fork upgrades";
         case SCRIPT_ERR_DISCOURAGE_UPGRADABLE_TAPROOT_VERSION:
             return "Taproot version reserved for soft-fork upgrades";
         case SCRIPT_ERR_DISCOURAGE_OP_SUCCESS:
@@ -91,12 +85,6 @@ std::string ScriptErrorString(const ScriptError serror)
             return "Witness program hash mismatch";
         case SCRIPT_ERR_WITNESS_MALLEATED:
             return "Witness requires empty scriptSig";
-        case SCRIPT_ERR_WITNESS_MALLEATED_P2SH:
-            return "Witness requires only-redeemscript scriptSig";
-        case SCRIPT_ERR_WITNESS_UNEXPECTED:
-            return "Witness provided for non-witness script";
-        case SCRIPT_ERR_WITNESS_PUBKEYTYPE:
-            return "Using non-compressed keys in segwit";
         case SCRIPT_ERR_SCHNORR_SIG_SIZE:
             return "Invalid Schnorr signature size";
         case SCRIPT_ERR_SCHNORR_SIG_HASHTYPE:

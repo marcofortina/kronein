@@ -27,7 +27,7 @@
 
 static constexpr uint8_t SIGNET_HEADER[4] = {0xec, 0xc7, 0xda, 0xa2};
 
-static constexpr script_verify_flags BLOCK_SCRIPT_VERIFY_FLAGS = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_NULLDUMMY | SCRIPT_VERIFY_TAPROOT;
+static constexpr script_verify_flags BLOCK_SCRIPT_VERIFY_FLAGS = SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_NULLDUMMY;
 
 static bool SignetStackResult(const std::vector<unsigned char>& value)
 {

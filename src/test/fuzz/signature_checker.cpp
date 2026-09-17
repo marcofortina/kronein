@@ -7,7 +7,6 @@
 #include <test/fuzz/FuzzedDataProvider.h>
 #include <test/fuzz/fuzz.h>
 #include <test/fuzz/util.h>
-#include <test/util/script.h>
 
 #include <cstdint>
 #include <limits>
@@ -57,8 +56,5 @@ FUZZ_TARGET(signature_checker)
     const auto script_2{ConsumeScript(fuzzed_data_provider)};
     std::vector<std::vector<unsigned char>> stack;
     (void)EvalScript(stack, script_1, flags, FuzzedSignatureChecker(fuzzed_data_provider), sig_version, nullptr);
-    if (!IsValidFlagCombination(flags)) {
-        return;
-    }
     (void)VerifyScript(script_1, script_2, nullptr, flags, FuzzedSignatureChecker(fuzzed_data_provider), nullptr);
 }

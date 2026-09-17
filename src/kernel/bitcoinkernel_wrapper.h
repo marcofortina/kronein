@@ -79,77 +79,8 @@ enum class BlockValidationResult : btck_BlockValidationResult {
 
 enum class ScriptVerifyStatus : btck_ScriptVerifyStatus {
     OK = btck_ScriptVerifyStatus_OK,
-    ERROR_INVALID_FLAGS_COMBINATION = btck_ScriptVerifyStatus_ERROR_INVALID_FLAGS_COMBINATION,
     ERROR_SPENT_OUTPUTS_REQUIRED = btck_ScriptVerifyStatus_ERROR_SPENT_OUTPUTS_REQUIRED,
 };
-
-enum class ScriptVerificationFlags : btck_ScriptVerificationFlags {
-    NONE = btck_ScriptVerificationFlags_NONE,
-    P2SH = btck_ScriptVerificationFlags_P2SH,
-    DERSIG = btck_ScriptVerificationFlags_DERSIG,
-    NULLDUMMY = btck_ScriptVerificationFlags_NULLDUMMY,
-    CHECKLOCKTIMEVERIFY = btck_ScriptVerificationFlags_CHECKLOCKTIMEVERIFY,
-    CHECKSEQUENCEVERIFY = btck_ScriptVerificationFlags_CHECKSEQUENCEVERIFY,
-    WITNESS = btck_ScriptVerificationFlags_WITNESS,
-    TAPROOT = btck_ScriptVerificationFlags_TAPROOT,
-    ALL = btck_ScriptVerificationFlags_ALL
-};
-
-template <typename T>
-struct is_bitmask_enum : std::false_type {
-};
-
-template <>
-struct is_bitmask_enum<ScriptVerificationFlags> : std::true_type {
-};
-
-template <typename T>
-concept BitmaskEnum = is_bitmask_enum<T>::value;
-
-template <BitmaskEnum T>
-constexpr T operator|(T lhs, T rhs)
-{
-    return static_cast<T>(
-        static_cast<std::underlying_type_t<T>>(lhs) | static_cast<std::underlying_type_t<T>>(rhs));
-}
-
-template <BitmaskEnum T>
-constexpr T operator&(T lhs, T rhs)
-{
-    return static_cast<T>(
-        static_cast<std::underlying_type_t<T>>(lhs) & static_cast<std::underlying_type_t<T>>(rhs));
-}
-
-template <BitmaskEnum T>
-constexpr T operator^(T lhs, T rhs)
-{
-    return static_cast<T>(
-        static_cast<std::underlying_type_t<T>>(lhs) ^ static_cast<std::underlying_type_t<T>>(rhs));
-}
-
-template <BitmaskEnum T>
-constexpr T operator~(T value)
-{
-    return static_cast<T>(~static_cast<std::underlying_type_t<T>>(value));
-}
-
-template <BitmaskEnum T>
-constexpr T& operator|=(T& lhs, T rhs)
-{
-    return lhs = lhs | rhs;
-}
-
-template <BitmaskEnum T>
-constexpr T& operator&=(T& lhs, T rhs)
-{
-    return lhs = lhs & rhs;
-}
-
-template <BitmaskEnum T>
-constexpr T& operator^=(T& lhs, T rhs)
-{
-    return lhs = lhs ^ rhs;
-}
 
 template <typename T>
 T check(T ptr)
@@ -386,7 +317,6 @@ public:
                 const Transaction& tx_to,
                 const PrecomputedTransactionData* precomputed_txdata,
                 unsigned int input_index,
-                ScriptVerificationFlags flags,
                 ScriptVerifyStatus& status) const;
 
     std::vector<std::byte> ToBytes() const
@@ -641,7 +571,6 @@ bool ScriptPubkeyApi<Derived>::Verify(int64_t amount,
                                       const Transaction& tx_to,
                                       const PrecomputedTransactionData* precomputed_txdata,
                                       unsigned int input_index,
-                                      ScriptVerificationFlags flags,
                                       ScriptVerifyStatus& status) const
 {
     auto result = btck_script_pubkey_verify(
@@ -650,7 +579,6 @@ bool ScriptPubkeyApi<Derived>::Verify(int64_t amount,
         tx_to.get(),
         precomputed_txdata ? precomputed_txdata->get() : nullptr,
         input_index,
-        static_cast<btck_ScriptVerificationFlags>(flags),
         reinterpret_cast<btck_ScriptVerifyStatus*>(&status));
     return result == 1;
 }

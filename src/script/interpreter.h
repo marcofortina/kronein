@@ -47,9 +47,6 @@ enum
 static constexpr script_verify_flags SCRIPT_VERIFY_NONE{0};
 
 enum class script_verify_flag_name : uint8_t {
-    // Evaluate P2SH subscripts (BIP16).
-    SCRIPT_VERIFY_P2SH,
-
     // Passing a non-strict-DER signature or one with undefined hashtype to a checksig operation causes script failure.
     // Evaluating a pubkey that is not (0x04 + 64 bytes) or (0x02 or 0x03 + 32 bytes) by checksig causes script failure.
     // (not used or intended as a consensus rule).
@@ -64,9 +61,6 @@ enum class script_verify_flag_name : uint8_t {
 
     // verify dummy stack item consumed by CHECKMULTISIG is of zero-length (BIP62 rule 7).
     SCRIPT_VERIFY_NULLDUMMY,
-
-    // Using a non-push operator in the scriptSig causes script failure (BIP62 rule 2).
-    SCRIPT_VERIFY_SIGPUSHONLY,
 
     // Require minimal encodings for all push operations (OP_0... OP_16, OP_1NEGATE where possible, direct
     // pushes up to 75 bytes, OP_PUSHDATA up to 255 bytes, OP_PUSHDATA2 for anything larger). Evaluating
@@ -86,54 +80,13 @@ enum class script_verify_flag_name : uint8_t {
     // are not subject to this rule.
     SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS,
 
-    // Require that only a single stack element remains after evaluation. This changes the success criterion from
-    // "At least one stack element must remain, and when interpreted as a boolean, it must be true" to
-    // "Exactly one stack element must remain, and when interpreted as a boolean, it must be true".
-    // (BIP62 rule 6)
-    // Note: CLEANSTACK should never be used without P2SH or WITNESS.
-    // Note: WITNESS_V0 and TAPSCRIPT script execution have behavior similar to CLEANSTACK as part of their
-    //       consensus rules. It is automatic there and does not need this flag.
-    SCRIPT_VERIFY_CLEANSTACK,
-
-    // Verify CHECKLOCKTIMEVERIFY
-    //
-    // See BIP65 for details.
-    SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY,
-
-    // support CHECKSEQUENCEVERIFY opcode
-    //
-    // See BIP112 for details
-    SCRIPT_VERIFY_CHECKSEQUENCEVERIFY,
-
-    // Support segregated witness
-    //
-    SCRIPT_VERIFY_WITNESS,
-
-    // Making v1-v16 witness program non-standard
-    //
-    SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM,
-
-    // Segwit script only: Require the argument of OP_IF/NOTIF to be exactly 0x01 or empty vector
-    //
-    // Note: TAPSCRIPT script execution has behavior similar to MINIMALIF as part of its consensus
-    //       rules. It is automatic there and does not depend on this flag.
-    SCRIPT_VERIFY_MINIMALIF,
-
     // Signature(s) must be empty vector if a CHECK(MULTI)SIG operation failed
     //
     SCRIPT_VERIFY_NULLFAIL,
 
-    // Public keys in segregated witness scripts must be compressed
-    //
-    SCRIPT_VERIFY_WITNESS_PUBKEYTYPE,
-
     // Making OP_CODESEPARATOR and FindAndDelete fail any non-segwit scripts
     //
     SCRIPT_VERIFY_CONST_SCRIPTCODE,
-
-    // Taproot/Tapscript validation (BIPs 341 & 342)
-    //
-    SCRIPT_VERIFY_TAPROOT,
 
     // Making unknown Taproot leaf versions non-standard
     //

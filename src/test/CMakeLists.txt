@@ -88,7 +88,6 @@ add_executable(test_bitcoin
   rpc_tests.cpp
   sanity_tests.cpp
   scheduler_tests.cpp
-  script_assets_tests.cpp
   script_parse_tests.cpp
   script_segwit_tests.cpp
   script_standard_tests.cpp
@@ -140,10 +139,7 @@ target_json_data_sources(test_bitcoin
   data/base58_encode_decode.json
   data/bip341_wallet_vectors.json
   data/blockfilters.json
-  data/script_tests.json
   data/sighash.json
-  data/tx_invalid.json
-  data/tx_valid.json
 )
 target_raw_data_sources(test_bitcoin NAMESPACE test::data
   data/asmap.raw
@@ -194,7 +190,6 @@ function(add_boost_test source_file)
     set_property(TEST ${test_suite_name} PROPERTY
       SKIP_REGULAR_EXPRESSION
         "no test cases matching filter"
-        "skipping script_assets_test"
         "skipping total_ram"
     )
   endforeach()

@@ -461,28 +461,7 @@ typedef struct {
  */
 typedef uint8_t btck_ScriptVerifyStatus;
 #define btck_ScriptVerifyStatus_OK ((btck_ScriptVerifyStatus)(0))
-#define btck_ScriptVerifyStatus_ERROR_INVALID_FLAGS_COMBINATION ((btck_ScriptVerifyStatus)(1)) //!< The flags were combined in an invalid way.
-#define btck_ScriptVerifyStatus_ERROR_SPENT_OUTPUTS_REQUIRED ((btck_ScriptVerifyStatus)(2))    //!< The taproot flag was set, so valid spent_outputs have to be provided.
-
-/**
- * Script verification flags that may be composed with each other.
- */
-typedef uint32_t btck_ScriptVerificationFlags;
-#define btck_ScriptVerificationFlags_NONE ((btck_ScriptVerificationFlags)(0))
-#define btck_ScriptVerificationFlags_P2SH ((btck_ScriptVerificationFlags)(1U << 0))                 //!< evaluate P2SH (BIP16) subscripts
-#define btck_ScriptVerificationFlags_DERSIG ((btck_ScriptVerificationFlags)(1U << 2))               //!< enforce strict DER (BIP66) compliance
-#define btck_ScriptVerificationFlags_NULLDUMMY ((btck_ScriptVerificationFlags)(1U << 4))            //!< enforce NULLDUMMY (BIP147)
-#define btck_ScriptVerificationFlags_CHECKLOCKTIMEVERIFY ((btck_ScriptVerificationFlags)(1U << 9))  //!< enable CHECKLOCKTIMEVERIFY (BIP65)
-#define btck_ScriptVerificationFlags_CHECKSEQUENCEVERIFY ((btck_ScriptVerificationFlags)(1U << 10)) //!< enable CHECKSEQUENCEVERIFY (BIP112)
-#define btck_ScriptVerificationFlags_WITNESS ((btck_ScriptVerificationFlags)(1U << 11))             //!< enable WITNESS (BIP141)
-#define btck_ScriptVerificationFlags_TAPROOT ((btck_ScriptVerificationFlags)(1U << 17))             //!< enable TAPROOT (BIPs 341 & 342)
-#define btck_ScriptVerificationFlags_ALL ((btck_ScriptVerificationFlags)(btck_ScriptVerificationFlags_P2SH |                \
-                                                                         btck_ScriptVerificationFlags_DERSIG |              \
-                                                                         btck_ScriptVerificationFlags_NULLDUMMY |           \
-                                                                         btck_ScriptVerificationFlags_CHECKLOCKTIMEVERIFY | \
-                                                                         btck_ScriptVerificationFlags_CHECKSEQUENCEVERIFY | \
-                                                                         btck_ScriptVerificationFlags_WITNESS |             \
-                                                                         btck_ScriptVerificationFlags_TAPROOT))
+#define btck_ScriptVerifyStatus_ERROR_SPENT_OUTPUTS_REQUIRED ((btck_ScriptVerifyStatus)(1)) //!< Valid spent outputs are required for native Taproot verification.
 
 typedef uint8_t btck_ChainType;
 #define btck_ChainType_MAINNET ((btck_ChainType)(0))
@@ -647,20 +626,14 @@ BITCOINKERNEL_API btck_ScriptPubkey* BITCOINKERNEL_WARN_UNUSED_RESULT btck_scrip
     const btck_ScriptPubkey* script_pubkey) BITCOINKERNEL_ARG_NONNULL(1);
 
 /**
- * @brief Verify if the input at input_index of tx_to spends the script pubkey
- * under the constraints specified by flags. If the
- * `btck_ScriptVerificationFlags_WITNESS` flag is set in the flags bitfield, the
- * amount parameter is used. If the taproot flag is set, the precomputed data
- * must contain the spent outputs.
+ * @brief Verify if the input at input_index of tx_to spends the native script
+ * pubkey. The precomputed data must contain every spent output of tx_to.
  *
  * @param[in] script_pubkey      Non-null, script pubkey to be spent.
- * @param[in] amount             Amount of the script pubkey's associated output. May be zero if
- *                               the witness flag is not set.
+ * @param[in] amount             Amount of the script pubkey's associated output.
  * @param[in] tx_to              Non-null, transaction spending the script_pubkey.
- * @param[in] precomputed_txdata Nullable if the taproot flag is not set. Otherwise, precomputed data
- *                               for tx_to with the spent outputs must be provided.
+ * @param[in] precomputed_txdata Precomputed data for tx_to containing all spent outputs.
  * @param[in] input_index        Index of the input in tx_to spending the script_pubkey.
- * @param[in] flags              Bitfield of btck_ScriptVerificationFlags controlling validation constraints.
  * @param[out] status            Nullable, will be set to an error code if the operation fails, or OK otherwise.
  * @return                       1 if the script is valid, 0 otherwise.
  */
@@ -670,7 +643,6 @@ BITCOINKERNEL_API int BITCOINKERNEL_WARN_UNUSED_RESULT btck_script_pubkey_verify
     const btck_Transaction* tx_to,
     const btck_PrecomputedTransactionData* precomputed_txdata,
     unsigned int input_index,
-    btck_ScriptVerificationFlags flags,
     btck_ScriptVerifyStatus* status) BITCOINKERNEL_ARG_NONNULL(1, 3);
 
 /**

@@ -227,7 +227,6 @@ void run_verify_test(
         spending_tx,
         precomputed_txdata,
         input_index,
-        ScriptVerificationFlags::ALL,
         status));
     BOOST_CHECK(status == ScriptVerifyStatus::OK);
 }
@@ -993,7 +992,7 @@ BOOST_AUTO_TEST_CASE(btck_chainman_regtest_tests)
             ScriptVerifyStatus status = ScriptVerifyStatus::OK;
             const PrecomputedTransactionData precomputed_txdata{transaction, spent_outputs};
             for (size_t i{0}; i < inputs.size(); ++i) {
-                BOOST_CHECK(spent_outputs[i].GetScriptPubkey().Verify(spent_outputs[i].Amount(), transaction, &precomputed_txdata, i, ScriptVerificationFlags::ALL, status));
+                BOOST_CHECK(spent_outputs[i].GetScriptPubkey().Verify(spent_outputs[i].Amount(), transaction, &precomputed_txdata, i, status));
             }
         }
     }

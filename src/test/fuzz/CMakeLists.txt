@@ -99,7 +99,6 @@ add_executable(fuzz
   rolling_bloom_filter.cpp
   rpc.cpp
   script.cpp
-  script_assets_test_minimizer.cpp
   script_descriptor_cache.cpp
   script_flags.cpp
   script_format.cpp

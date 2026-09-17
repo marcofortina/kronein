@@ -2,14 +2,16 @@
 # Copyright (c) 2019-present The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-# Test Taproot softfork (BIPs 340-342)
+# Test the chain's native Taproot/Tapscript rules (BIPs 340-342).
+
+from collections import namedtuple
+import random
 
 from test_framework.blocktools import (
     COINBASE_MATURITY,
     create_coinbase,
     create_block,
     add_witness_commitment,
-    MAX_BLOCK_SIGOPS_WEIGHT,
 )
 from test_framework.messages import (
     COutPoint,
@@ -17,23 +19,14 @@ from test_framework.messages import (
     CTxIn,
     CTxInWitness,
     CTxOut,
-    SEQUENCE_FINAL,
     tx_from_hex,
-    WITNESS_SCALE_FACTOR,
 )
 from test_framework.script import (
     ANNEX_TAG,
-    BIP341_sha_amounts,
-    BIP341_sha_outputs,
-    BIP341_sha_prevouts,
-    BIP341_sha_scriptpubkeys,
-    BIP341_sha_sequences,
     CScript,
     CScriptNum,
     CScriptOp,
-    hash256,
     LEAF_VERSION_TAPSCRIPT,
-    LegacySignatureMsg,
     LOCKTIME_THRESHOLD,
     MAX_SCRIPT_ELEMENT_SIZE,
     OP_0,
@@ -47,8 +40,6 @@ from test_framework.script import (
     OP_8,
     OP_9,
     OP_10,
-    OP_11,
-    OP_12,
     OP_16,
     OP_2DROP,
     OP_2DUP,
@@ -79,23 +70,13 @@ from test_framework.script import (
     SIGHASH_SINGLE,
     SIGHASH_ANYONECANPAY,
     SEQUENCE_LOCKTIME_DISABLE_FLAG,
-    SegwitV0SignatureMsg,
     TaggedHash,
     TaprootSignatureMsg,
     is_op_success,
     taproot_construct,
 )
-from test_framework.script_util import (
-    key_to_p2pk_script,
-    key_to_p2pkh_script,
-    key_to_p2wpkh_script,
-    keyhash_to_p2pkh_script,
-    script_to_p2sh_script,
-    script_to_p2wsh_script,
-)
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
-    assert_not_equal,
     assert_raises_rpc_error,
     assert_equal,
 )
@@ -105,22 +86,8 @@ from test_framework.key import (
     compute_xonly_pubkey,
     sign_schnorr,
     tweak_add_privkey,
-    ECKey,
 )
 from test_framework.crypto import secp256k1
-from test_framework.address import (
-    hash160,
-    program_to_witness,
-)
-from collections import OrderedDict, namedtuple
-import json
-import hashlib
-import os
-import random
-
-# Whether or not to output generated test vectors, in JSON format.
-GEN_TEST_VECTORS = False
-
 # === Framework for building spending transactions. ===
 #
 # The computation is represented as a "context" dict, whose entries store potentially-unevaluated expressions that
@@ -185,12 +152,8 @@ def override(expr, **kwargs):
 # === Implementations for the various default expressions in DEFAULT_CONTEXT ===
 
 def default_hashtype(ctx):
-    """Default expression for "hashtype": SIGHASH_DEFAULT for taproot, SIGHASH_ALL otherwise."""
-    mode = get(ctx, "mode")
-    if mode == "taproot":
-        return SIGHASH_DEFAULT
-    else:
-        return SIGHASH_ALL
+    """Default expression for "hashtype"."""
+    return SIGHASH_DEFAULT
 
 def default_tapleaf(ctx):
     """Default expression for "tapleaf": looking up leaf in tap[2]."""
@@ -220,58 +183,23 @@ def default_controlblock(ctx):
     """Default expression for "controlblock": combine leafversion, negflag, pubkey_internal, merklebranch."""
     return bytes([get(ctx, "leafversion") + get(ctx, "negflag")]) + get(ctx, "pubkey_internal") + get(ctx, "merklebranch")
 
-def default_scriptcode_suffix(ctx):
-    """Default expression for "scriptcode_suffix", the actually used portion of the scriptcode."""
-    scriptcode = get(ctx, "scriptcode")
-    codesepnum = get(ctx, "codesepnum")
-    if codesepnum == -1:
-        return scriptcode
-    codeseps = 0
-    for (opcode, data, sop_idx) in scriptcode.raw_iter():
-        if opcode == OP_CODESEPARATOR:
-            if codeseps == codesepnum:
-                return CScript(scriptcode[sop_idx+1:])
-            codeseps += 1
-    assert False
-
 def default_sigmsg(ctx):
-    """Default expression for "sigmsg": depending on mode, compute BIP341, BIP143, or legacy sigmsg."""
+    """Default expression for the BIP341 signature message."""
     tx = get(ctx, "tx")
     idx = get(ctx, "idx")
     hashtype = get(ctx, "hashtype_actual")
-    mode = get(ctx, "mode")
-    if mode == "taproot":
-        # BIP341 signature hash
-        utxos = get(ctx, "utxos")
-        annex = get(ctx, "annex")
-        if get(ctx, "leaf") is not None:
-            codeseppos = get(ctx, "codeseppos")
-            leaf_ver = get(ctx, "leafversion")
-            script = get(ctx, "script_taproot")
-            return TaprootSignatureMsg(tx, utxos, hashtype, idx, scriptpath=True, leaf_script=script, leaf_ver=leaf_ver, codeseparator_pos=codeseppos, annex=annex)
-        else:
-            return TaprootSignatureMsg(tx, utxos, hashtype, idx, scriptpath=False, annex=annex)
-    elif mode == "witv0":
-        # BIP143 signature hash
-        scriptcode = get(ctx, "scriptcode_suffix")
-        utxos = get(ctx, "utxos")
-        return SegwitV0SignatureMsg(scriptcode, tx, idx, hashtype, utxos[idx].nValue)
-    else:
-        # Pre-segwit signature hash
-        scriptcode = get(ctx, "scriptcode_suffix")
-        return LegacySignatureMsg(scriptcode, tx, idx, hashtype)[0]
+    utxos = get(ctx, "utxos")
+    annex = get(ctx, "annex")
+    if get(ctx, "leaf") is not None:
+        codeseppos = get(ctx, "codeseppos")
+        leaf_ver = get(ctx, "leafversion")
+        script = get(ctx, "script_taproot")
+        return TaprootSignatureMsg(tx, utxos, hashtype, idx, scriptpath=True, leaf_script=script, leaf_ver=leaf_ver, codeseparator_pos=codeseppos, annex=annex)
+    return TaprootSignatureMsg(tx, utxos, hashtype, idx, scriptpath=False, annex=annex)
 
 def default_sighash(ctx):
-    """Default expression for "sighash": depending on mode, compute tagged hash or dsha256 of sigmsg."""
-    msg = get(ctx, "sigmsg")
-    mode = get(ctx, "mode")
-    if mode == "taproot":
-        return TaggedHash("TapSighash", msg)
-    else:
-        if msg is None:
-            return (1).to_bytes(32, 'little')
-        else:
-            return hash256(msg)
+    """Default expression for the tagged Taproot signature hash."""
+    return TaggedHash("TapSighash", get(ctx, "sigmsg"))
 
 def default_tweak(ctx):
     """Default expression for "tweak": None if a leaf is specified, tap[0] otherwise."""
@@ -289,27 +217,20 @@ def default_key_tweaked(ctx):
         return tweak_add_privkey(key, tweak)
 
 def default_signature(ctx):
-    """Default expression for "signature": BIP340 signature or ECDSA signature depending on mode."""
+    """Default expression for a BIP340 signature."""
     sighash = get(ctx, "sighash")
     deterministic = get(ctx, "deterministic")
-    if get(ctx, "mode") == "taproot":
-        key = get(ctx, "key_tweaked")
-        flip_r = get(ctx, "flag_flip_r")
-        flip_p = get(ctx, "flag_flip_p")
-        aux = bytes([0] * 32)
-        if not deterministic:
-            aux = random.getrandbits(256).to_bytes(32, 'big')
-        return sign_schnorr(key, sighash, flip_r=flip_r, flip_p=flip_p, aux=aux)
-    else:
-        key = get(ctx, "key")
-        return key.sign_ecdsa(sighash, rfc6979=deterministic)
+    key = get(ctx, "key_tweaked")
+    flip_r = get(ctx, "flag_flip_r")
+    flip_p = get(ctx, "flag_flip_p")
+    aux = bytes([0] * 32)
+    if not deterministic:
+        aux = random.getrandbits(256).to_bytes(32, 'big')
+    return sign_schnorr(key, sighash, flip_r=flip_r, flip_p=flip_p, aux=aux)
 
 def default_hashtype_actual(ctx):
-    """Default expression for "hashtype_actual": hashtype, unless mismatching SIGHASH_SINGLE in taproot."""
+    """Default expression for "hashtype_actual", accounting for a mismatching SIGHASH_SINGLE."""
     hashtype = get(ctx, "hashtype")
-    mode = get(ctx, "mode")
-    if mode != "taproot":
-        return hashtype
     idx = get(ctx, "idx")
     tx = get(ctx, "tx")
     if hashtype & 3 == SIGHASH_SINGLE and idx >= len(tx.vout):
@@ -318,9 +239,8 @@ def default_hashtype_actual(ctx):
 
 def default_bytes_hashtype(ctx):
     """Default expression for "bytes_hashtype": bytes([hashtype_actual]) if not 0, b"" otherwise."""
-    mode = get(ctx, "mode")
     hashtype_actual = get(ctx, "hashtype_actual")
-    if mode != "taproot" or hashtype_actual != 0:
+    if hashtype_actual != 0:
         return bytes([hashtype_actual])
     else:
         return bytes()
@@ -344,35 +264,13 @@ def default_witness_taproot(ctx):
     else:
         return get(ctx, "inputs") + [bytes(get(ctx, "script_taproot")), get(ctx, "controlblock")] + suffix_annex
 
-def default_witness_witv0(ctx):
-    """Default expression for "witness_witv0", consisting of inputs and witness script, as needed."""
-    script = get(ctx, "script_witv0")
-    inputs = get(ctx, "inputs")
-    if script is None:
-        return inputs
-    else:
-        return inputs + [script]
-
 def default_witness(ctx):
-    """Default expression for "witness", delegating to "witness_taproot" or "witness_witv0" as needed."""
-    mode = get(ctx, "mode")
-    if mode == "taproot":
-        return get(ctx, "witness_taproot")
-    elif mode == "witv0":
-        return get(ctx, "witness_witv0")
-    else:
-        return []
+    """Default expression for the Taproot witness."""
+    return get(ctx, "witness_taproot")
 
 def default_scriptsig(ctx):
-    """Default expression for "scriptsig", consisting of inputs and redeemscript, as needed."""
-    scriptsig = []
-    mode = get(ctx, "mode")
-    if mode == "legacy":
-        scriptsig = get(ctx, "inputs")
-    redeemscript = get(ctx, "script_p2sh")
-    if redeemscript is not None:
-        scriptsig += [bytes(redeemscript)]
-    return scriptsig
+    """Native witness transactions always use an empty scriptSig."""
+    return []
 
 # The default context object.
 DEFAULT_CONTEXT = {
@@ -385,8 +283,6 @@ DEFAULT_CONTEXT = {
     # == Expressions you'll generally only override for intentionally invalid spends. ==
     # The witness stack for spending a taproot output.
     "witness_taproot": default_witness_taproot,
-    # The witness stack for spending a P2WPKH/P2WSH output.
-    "witness_witv0": default_witness_witv0,
     # The script inputs for a taproot key path spend.
     "inputs_keypath": default_inputs_keypath,
     # The actual hashtype to use (usually equal to hashtype, but in taproot SIGHASH_SINGLE is not always allowed).
@@ -395,14 +291,12 @@ DEFAULT_CONTEXT = {
     "bytes_hashtype": default_bytes_hashtype,
     # A full script signature (bytes including hashtype, if needed)
     "sign": default_sign,
-    # An ECDSA or Schnorr signature (excluding hashtype byte).
+    # A Schnorr signature (excluding hashtype byte).
     "signature": default_signature,
     # The 32-byte tweaked key (equal to key for script path spends, or key+tweak for key path spends).
     "key_tweaked": default_key_tweaked,
     # The tweak to use (None for script path spends, the actual tweak for key path spends).
     "tweak": default_tweak,
-    # The part of the scriptcode after the last executed OP_CODESEPARATOR.
-    "scriptcode_suffix": default_scriptcode_suffix,
     # The sigmsg value (preimage of sighash)
     "sigmsg": default_sigmsg,
     # The sighash value (32 bytes)
@@ -429,16 +323,10 @@ DEFAULT_CONTEXT = {
     # == Parameters that can be changed without invalidating, but do have a default: ==
     # The hashtype (as an integer).
     "hashtype": default_hashtype,
-    # The annex (only when mode=="taproot").
+    # The optional Taproot annex.
     "annex": None,
-    # The codeseparator position (only when mode=="taproot").
+    # The Taproot codeseparator position.
     "codeseppos": 0xffffffff,
-    # Which OP_CODESEPARATOR is the last executed one in the script (in legacy/P2SH/P2WSH).
-    "codesepnum": -1,
-    # The redeemscript to add to the scriptSig (if P2SH; None implies not P2SH).
-    "script_p2sh": None,
-    # The script to add to the witness in (if P2WSH; None implies P2WPKH)
-    "script_witv0": None,
     # The leaf to use in taproot spends (if script path spend; None implies key path spend).
     "leaf": None,
     # The input arguments to provide to the executed script
@@ -447,13 +335,11 @@ DEFAULT_CONTEXT = {
     "deterministic": False,
 
     # == Parameters to be set before evaluation: ==
-    # - mode: what spending style to use ("taproot", "witv0", or "legacy").
-    # - key: the (untweaked) private key to sign with (ECKey object for ECDSA, 32 bytes for Schnorr).
-    # - tap: the TaprootInfo object (see taproot_construct; needed in mode=="taproot").
+    # - key: the untweaked 32-byte private key used for Schnorr signing.
+    # - tap: the TaprootInfo object (see taproot_construct).
     # - tx: the transaction to sign.
-    # - utxos: the UTXOs being spent (needed in mode=="witv0" and mode=="taproot").
+    # - utxos: the UTXOs being spent.
     # - idx: the input position being signed.
-    # - scriptcode: the scriptcode to include in legacy and witv0 sighashes.
 }
 
 def flatten(lst):
@@ -500,81 +386,24 @@ def spend(tx, idx, utxos, **kwargs):
 #   - The spent UTXOs by this transaction (list of CTxOut)
 #   - Whether to produce a valid spend (bool)
 # - A string with an expected error message for failure case if known
-# - The (pre-taproot) sigops weight consumed by a successful spend
 # - Whether this spend cannot fail
 # - Whether this test demands being placed in a txin with no corresponding txout (for testing SIGHASH_SINGLE behavior)
 
-Spender = namedtuple("Spender", "script,comment,is_standard,sat_function,err_msg,sigops_weight,no_fail,need_vin_vout_mismatch")
+Spender = namedtuple("Spender", "script,comment,is_standard,sat_function,err_msg,no_fail,need_vin_vout_mismatch")
 
 
-def make_spender(comment, *, tap=None, witv0=False, script=None, pkh=None, p2sh=False, spk_mutate_pre_p2sh=None, failure=None, standard=True, err_msg=None, sigops_weight=0, need_vin_vout_mismatch=False, **kwargs):
+def make_spender(comment, *, tap, failure=None, standard=True, err_msg=None, need_vin_vout_mismatch=False, **kwargs):
     """Helper for constructing Spender objects using the context signing framework.
 
-    * tap: a TaprootInfo object (see taproot_construct), for Taproot spends (cannot be combined with pkh, witv0, or script)
-    * witv0: boolean indicating the use of witness v0 spending (needs one of script or pkh)
-    * script: the actual script executed (for bare/P2WSH/P2SH spending)
-    * pkh: the public key for P2PKH or P2WPKH spending
-    * p2sh: whether the output is P2SH wrapper (this is supported even for Taproot, where it makes the output unencumbered)
-    * spk_mutate_pre_psh: a callable to be applied to the script (before potentially P2SH-wrapping it)
+    * tap: a TaprootInfo object (see taproot_construct)
     * failure: a dict of entries to override in the context when intentionally failing to spend (if None, no_fail will be set)
     * standard: whether the (valid version of) spending is expected to be standard
     * err_msg: a string with an expected error message for failure (or None, if not cared about)
-    * sigops_weight: the pre-taproot sigops weight consumed by a successful spend
     * need_vin_vout_mismatch: whether this test requires being tested in a transaction input that has no corresponding
                               transaction output.
     """
 
-    conf = dict()
-
-    # Compute scriptPubKey and set useful defaults based on the inputs.
-    if witv0:
-        assert tap is None
-        conf["mode"] = "witv0"
-        if pkh is not None:
-            # P2WPKH
-            assert script is None
-            pubkeyhash = hash160(pkh)
-            spk = key_to_p2wpkh_script(pkh)
-            conf["scriptcode"] = keyhash_to_p2pkh_script(pubkeyhash)
-            conf["script_witv0"] = None
-            conf["inputs"] = [getter("sign"), pkh]
-        elif script is not None:
-            # P2WSH
-            spk = script_to_p2wsh_script(script)
-            conf["scriptcode"] = script
-            conf["script_witv0"] = script
-        else:
-            assert False
-    elif tap is None:
-        conf["mode"] = "legacy"
-        if pkh is not None:
-            # P2PKH
-            assert script is None
-            pubkeyhash = hash160(pkh)
-            spk = keyhash_to_p2pkh_script(pubkeyhash)
-            conf["scriptcode"] = spk
-            conf["inputs"] = [getter("sign"), pkh]
-        elif script is not None:
-            # bare
-            spk = script
-            conf["scriptcode"] = script
-        else:
-            assert False
-    else:
-        assert script is None
-        conf["mode"] = "taproot"
-        conf["tap"] = tap
-        spk = tap.scriptPubKey
-
-    if spk_mutate_pre_p2sh is not None:
-        spk = spk_mutate_pre_p2sh(spk)
-
-    if p2sh:
-        # P2SH wrapper can be combined with anything else
-        conf["script_p2sh"] = spk
-        spk = script_to_p2sh_script(spk)
-
-    conf = {**conf, **kwargs}
+    conf = {"tap": tap, **kwargs}
 
     def sat_fn(tx, idx, utxos, valid):
         if valid:
@@ -583,7 +412,7 @@ def make_spender(comment, *, tap=None, witv0=False, script=None, pkh=None, p2sh=
             assert failure is not None
             return spend(tx, idx, utxos, **{**conf, **failure})
 
-    return Spender(script=spk, comment=comment, is_standard=standard, sat_function=sat_fn, err_msg=err_msg, sigops_weight=sigops_weight, no_fail=failure is None, need_vin_vout_mismatch=need_vin_vout_mismatch)
+    return Spender(script=tap.scriptPubKey, comment=comment, is_standard=standard, sat_function=sat_fn, err_msg=err_msg, no_fail=failure is None, need_vin_vout_mismatch=need_vin_vout_mismatch)
 
 def add_spender(spenders, *args, **kwargs):
     """Make a spender using make_spender, and add it to spenders."""
@@ -642,7 +471,7 @@ ERR_WITNESS_PROGRAM_WITNESS_EMPTY = {"err_msg": "Witness program was passed an e
 ERR_CHECKSIGVERIFY = {"err_msg": "Script failed an OP_CHECKSIGVERIFY operation"}
 ERR_SCRIPT_NUM = {"err_msg": "Script number overflowed or is non-minimally encoded"}
 
-VALID_SIGHASHES_ECDSA = [
+VALID_EXPLICIT_SIGHASHES = [
     SIGHASH_ALL,
     SIGHASH_NONE,
     SIGHASH_SINGLE,
@@ -651,7 +480,7 @@ VALID_SIGHASHES_ECDSA = [
     SIGHASH_ANYONECANPAY + SIGHASH_SINGLE
 ]
 
-VALID_SIGHASHES_TAPROOT = [SIGHASH_DEFAULT] + VALID_SIGHASHES_ECDSA
+VALID_SIGHASHES_TAPROOT = [SIGHASH_DEFAULT] + VALID_EXPLICIT_SIGHASHES
 
 VALID_SIGHASHES_TAPROOT_SINGLE = [
     SIGHASH_SINGLE,
@@ -672,7 +501,7 @@ MIN_FEE = 50000
 
 
 def spenders_taproot_active():
-    """Return a list of Spenders for testing post-Taproot activation behavior."""
+    """Return spenders covering the native Taproot consensus behavior."""
 
     secs = [generate_privkey() for _ in range(8)]
     pubs = [compute_xonly_pubkey(sec)[0] for sec in secs]
@@ -839,28 +668,6 @@ def spenders_taproot_active():
         # Verify that an invalid signature is not allowed, not even when the CHECKSIG* is expected to fail.
         add_spender(spenders, "siglen/invalid_cs_neg", tap=tap, key=secs[2], leaf="cs_neg", hashtype=hashtype, **SINGLE_SIG, sign=b"", failure={"sign": default_sign, "sighash": bitflipper(default_sighash)}, **ERR_SCHNORR_SIG)
         add_spender(spenders, "siglen/invalid_csa_neg", tap=tap, key=secs[2], leaf="csa_neg", hashtype=hashtype, **SINGLE_SIG, sign=b"", failure={"sign": default_sign, "sighash": bitflipper(default_sighash)}, **ERR_SCHNORR_SIG)
-
-    # == Test that BIP341 spending only applies to witness version 1, program length 32, no P2SH ==
-
-    for p2sh in [False, True]:
-        for witver in range(1, 17):
-            for witlen in [20, 31, 32, 33]:
-                def mutate(spk):
-                    prog = spk[2:]
-                    assert len(prog) == 32
-                    if witlen < 32:
-                        prog = prog[0:witlen]
-                    elif witlen > 32:
-                        prog += bytes([0 for _ in range(witlen - 32)])
-                    return CScript([CScriptOp.encode_op_n(witver), prog])
-                scripts = [("s0", CScript([pubs[0], OP_CHECKSIG])), ("dummy", CScript([OP_RETURN]))]
-                tap = taproot_construct(pubs[1], scripts)
-                if not p2sh and witver == 1 and witlen == 32:
-                    add_spender(spenders, "applic/keypath", p2sh=p2sh, spk_mutate_pre_p2sh=mutate, tap=tap, key=secs[1], **SIGHASH_BITFLIP, **ERR_SCHNORR_SIG)
-                    add_spender(spenders, "applic/scriptpath", p2sh=p2sh, leaf="s0", spk_mutate_pre_p2sh=mutate, tap=tap, key=secs[0], **SINGLE_SIG, failure={"leaf": "dummy"}, **ERR_OP_RETURN)
-                else:
-                    add_spender(spenders, "applic/keypath", p2sh=p2sh, spk_mutate_pre_p2sh=mutate, tap=tap, key=secs[1], standard=False)
-                    add_spender(spenders, "applic/scriptpath", p2sh=p2sh, leaf="s0", spk_mutate_pre_p2sh=mutate, tap=tap, key=secs[0], **SINGLE_SIG, standard=False)
 
     # == Test various aspects of BIP341 spending paths ==
 
@@ -1215,57 +1022,7 @@ def spenders_taproot_active():
     tap = taproot_construct(pubs[0], [("leaf", CScript([pubs[1], OP_CHECKSIG, pubs[1], OP_CHECKSIGADD, OP_2, OP_EQUAL])), zero_fn])
     add_spender(spenders, "case24765", tap=tap, leaf="leaf", inputs=[getter("sign"), getter("sign")], key=secs[1], no_fail=True)
 
-    # == Legacy tests ==
-
-    # Also add a few legacy spends into the mix, so that transactions which combine taproot and pre-taproot spends get tested too.
-    for compressed in [False, True]:
-        eckey1, pubkey1 = generate_keypair(compressed=compressed)
-        eckey2, _ = generate_keypair(compressed=compressed)
-        for p2sh in [False, True]:
-            for witv0 in [False, True]:
-                for hashtype in VALID_SIGHASHES_ECDSA + [random.randrange(0x04, 0x80), random.randrange(0x84, 0x100)]:
-                    standard = (hashtype in VALID_SIGHASHES_ECDSA) and (compressed or not witv0)
-                    add_spender(spenders, "legacy/pk-wrongkey", hashtype=hashtype, p2sh=p2sh, witv0=witv0, standard=standard, script=key_to_p2pk_script(pubkey1), **SINGLE_SIG, key=eckey1, failure={"key": eckey2}, sigops_weight=4-3*witv0, **ERR_EVAL_FALSE)
-                    add_spender(spenders, "legacy/pkh-sighashflip", hashtype=hashtype, p2sh=p2sh, witv0=witv0, standard=standard, pkh=pubkey1, key=eckey1, **SIGHASH_BITFLIP, sigops_weight=4-3*witv0, **ERR_EVAL_FALSE)
-
-    # Verify that OP_CHECKSIGADD wasn't accidentally added to pre-taproot validation logic.
-    for p2sh in [False, True]:
-        for witv0 in [False, True]:
-            for hashtype in VALID_SIGHASHES_ECDSA + [random.randrange(0x04, 0x80), random.randrange(0x84, 0x100)]:
-                standard = hashtype in VALID_SIGHASHES_ECDSA and (p2sh or witv0)
-                add_spender(spenders, "compat/nocsa", hashtype=hashtype, p2sh=p2sh, witv0=witv0, standard=standard, script=CScript([OP_IF, OP_11, pubkey1, OP_CHECKSIGADD, OP_12, OP_EQUAL, OP_ELSE, pubkey1, OP_CHECKSIG, OP_ENDIF]), key=eckey1, sigops_weight=4-3*witv0, inputs=[getter("sign"), b''], failure={"inputs": [getter("sign"), b'\x01']}, **ERR_BAD_OPCODE)
-
     # == sighash caching tests ==
-
-    # Sighash caching in legacy.
-    for p2sh in [False, True]:
-        for witv0 in [False, True]:
-            eckey1, pubkey1 = generate_keypair(compressed=compressed)
-            for _ in range(10):
-                # Construct a script with 20 checksig operations (10 sighash types, each 2 times),
-                # randomly ordered and interleaved with 4 OP_CODESEPARATORS.
-                ops = [1, 2, 3, 0x21, 0x42, 0x63, 0x81, 0x83, 0xe1, 0xc2, -1, -1] * 2
-                # Make sure no OP_CODESEPARATOR appears last.
-                while True:
-                    random.shuffle(ops)
-                    if ops[-1] != -1:
-                        break
-                script = [pubkey1]
-                inputs = []
-                codeseps = -1
-                for pos, op in enumerate(ops):
-                    if op == -1:
-                        codeseps += 1
-                        script.append(OP_CODESEPARATOR)
-                    elif pos + 1 != len(ops):
-                        script += [OP_TUCK, OP_CHECKSIGVERIFY]
-                        inputs.append(getter("sign", codesepnum=codeseps, hashtype=op))
-                    else:
-                        script += [OP_CHECKSIG]
-                        inputs.append(getter("sign", codesepnum=codeseps, hashtype=op))
-                inputs.reverse()
-                script = CScript(script)
-                add_spender(spenders, "sighashcache/legacy", p2sh=p2sh, witv0=witv0, standard=False, script=script, inputs=inputs, key=eckey1, sigops_weight=12*8*(4-3*witv0), no_fail=True)
 
     # Sighash caching in tapscript.
     for _ in range(10):
@@ -1303,7 +1060,7 @@ def spenders_taproot_active():
 
 
 def spenders_taproot_nonstandard():
-    """Spenders for testing that post-activation Taproot rules may be nonstandard."""
+    """Spenders covering Taproot constructs that are valid but nonstandard."""
 
     spenders = []
 
@@ -1358,54 +1115,12 @@ def sample_spenders():
     # New scripts=[] can be defined, and rinse-repeated as necessary until the spenders list is returned for execution
     return spenders
 
-# Consensus validation flags to use in dumps for tests with "legacy/" or "inactive/" prefix.
-LEGACY_FLAGS = "P2SH,DERSIG,CHECKLOCKTIMEVERIFY,CHECKSEQUENCEVERIFY,WITNESS,NULLDUMMY"
-# Consensus validation flags to use in dumps for all other tests.
-TAPROOT_FLAGS = "P2SH,DERSIG,CHECKLOCKTIMEVERIFY,CHECKSEQUENCEVERIFY,WITNESS,NULLDUMMY,TAPROOT"
-
-def dump_json_test(tx, input_utxos, idx, success, failure):
-    spender = input_utxos[idx].spender
-    # Determine flags to dump
-    flags = LEGACY_FLAGS if spender.comment.startswith("legacy/") or spender.comment.startswith("inactive/") else TAPROOT_FLAGS
-
-    fields = [
-        ("tx", tx.serialize().hex()),
-        ("prevouts", [x.output.serialize().hex() for x in input_utxos]),
-        ("index", idx),
-        ("flags", flags),
-        ("comment", spender.comment)
-    ]
-
-    # The "final" field indicates that a spend should be always valid, even with more validation flags enabled
-    # than the listed ones. Use standardness as a proxy for this (which gives a conservative underestimate).
-    if spender.is_standard:
-        fields.append(("final", True))
-
-    def dump_witness(wit):
-        return OrderedDict([("scriptSig", wit[0].hex()), ("witness", [x.hex() for x in wit[1]])])
-    if success is not None:
-        fields.append(("success", dump_witness(success)))
-    if failure is not None:
-        fields.append(("failure", dump_witness(failure)))
-
-    # Write the dump to $TEST_DUMP_DIR/x/xyz... where x,y,z,... are the SHA1 sum of the dump (which makes the
-    # file naming scheme compatible with fuzzing infrastructure).
-    dump = json.dumps(OrderedDict(fields)) + ",\n"
-    sha1 = hashlib.sha1(dump.encode("utf-8")).hexdigest()
-    dirname = os.environ.get("TEST_DUMP_DIR", ".") + ("/%s" % sha1[0])
-    os.makedirs(dirname, exist_ok=True)
-    with open(dirname + ("/%s" % sha1), 'w') as f:
-        f.write(dump)
 
 # Data type to keep track of UTXOs, where they were created, and how to spend them.
 UTXOData = namedtuple('UTXOData', 'outpoint,output,spender')
 
 
 class TaprootTest(BitcoinTestFramework):
-    def add_options(self, parser):
-        parser.add_argument("--dumptests", dest="dump_tests", default=False, action="store_true",
-                            help="Dump generated test cases to directory set by TEST_DUMP_DIR environment variable")
-
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
 
@@ -1413,15 +1128,9 @@ class TaprootTest(BitcoinTestFramework):
         self.num_nodes = 1
         self.setup_clean_chain = True
 
-    def block_submit(self, node, txs, msg, err_msg, cb_pubkey=None, fees=0, sigops_weight=0, witness=False, accept=False):
+    def block_submit(self, node, txs, msg, err_msg, cb_pubkey=None, fees=0, witness=False, accept=False):
 
-        # Deplete block of any non-tapscript sigops using a single additional 0-value coinbase output.
-        # It is not impossible to fit enough tapscript sigops to hit the old 80k limit without
-        # busting txin-level limits. We simply have to account for the p2pk outputs in all
-        # transactions.
-        extra_output_script = CScript(bytes([OP_CHECKSIG]*((MAX_BLOCK_SIGOPS_WEIGHT - sigops_weight) // WITNESS_SCALE_FACTOR)))
-
-        coinbase_tx = create_coinbase(self.lastblockheight + 1, pubkey=cb_pubkey, extra_output_script=extra_output_script, fees=fees)
+        coinbase_tx = create_coinbase(self.lastblockheight + 1, pubkey=cb_pubkey, fees=fees)
         block = create_block(self.tip, coinbase_tx, self.lastblocktime + 1, txlist=txs)
         witness and add_witness_commitment(block)
         block.solve()
@@ -1450,7 +1159,7 @@ class TaprootTest(BitcoinTestFramework):
 
         Steps:
             1) Generate an appropriate UTXO for each spender to test spend conditions
-            2) Generate 100 random addresses of all wallet types: pkh/sh_wpkh/wpkh
+            2) Generate random native wallet addresses
             3) Select random number of inputs from (1)
             4) Select random number of addresses from (2) as outputs
 
@@ -1524,7 +1233,7 @@ class TaprootTest(BitcoinTestFramework):
                     normal_utxos.append(utxodata)
                 done += 1
             # Mine into a block
-            self.block_submit(node, [fund_tx], "Funding tx", None, random.choice(host_pubkeys), 10000, MAX_BLOCK_SIGOPS_WEIGHT, True, True)
+            self.block_submit(node, [fund_tx], "Funding tx", None, cb_pubkey=random.choice(host_pubkeys), fees=10000, witness=True, accept=True)
 
         # Consume groups of choice(input_coins) from utxos in a tx, testing the spenders.
         self.log.info("- Running %i spending tests" % done)
@@ -1577,7 +1286,6 @@ class TaprootTest(BitcoinTestFramework):
             in_value = amount - fee
             tx.vin = [CTxIn(outpoint=utxo.outpoint, nSequence=random.randint(min_sequence, 0xffffffff)) for utxo in input_utxos]
             tx.wit.vtxinwit = [CTxInWitness() for _ in range(len(input_utxos))]
-            sigops_weight = sum(utxo.spender.sigops_weight for utxo in input_utxos)
             self.log.debug("Test: %s" % (", ".join(utxo.spender.comment for utxo in input_utxos)))
 
             # Add 1 to 4 random outputs (but constrained by inputs that require mismatching outputs)
@@ -1593,13 +1301,11 @@ class TaprootTest(BitcoinTestFramework):
                     tx.vout[-1].nValue = random.randint(DUST_LIMIT, in_value)
                 in_value -= tx.vout[-1].nValue
                 tx.vout[-1].scriptPubKey = random.choice(host_spks)
-                sigops_weight += CScript(tx.vout[-1].scriptPubKey).GetSigOpCount(False) * WITNESS_SCALE_FACTOR
             fee += in_value
             assert fee >= 0
 
             # Select coinbase pubkey
             cb_pubkey = random.choice(host_pubkeys)
-            sigops_weight += 1 * WITNESS_SCALE_FACTOR
 
             # Precompute one satisfying and one failing scriptSig/witness for each input.
             input_data = []
@@ -1610,9 +1316,6 @@ class TaprootTest(BitcoinTestFramework):
                 if not input_utxos[i].spender.no_fail:
                     fail = fn(tx, i, [utxo.output for utxo in input_utxos], False)
                 input_data.append((fail, success))
-                if self.options.dump_tests:
-                    dump_json_test(tx, input_utxos, i, success, fail)
-
             # Sign each input incorrectly once on each complete signing pass, except the very last.
             for fail_input in list(range(len(input_utxos))) + [None]:
                 # Skip trying to fail at spending something that can't be made to fail.
@@ -1636,7 +1339,7 @@ class TaprootTest(BitcoinTestFramework):
                 else:
                     assert_raises_rpc_error(-26, None, node.sendrawtransaction, tx.serialize().hex(), 0)
                 # Submit in a block
-                self.block_submit(node, [tx], msg, witness=True, accept=fail_input is None, cb_pubkey=cb_pubkey, fees=fee, sigops_weight=sigops_weight, err_msg=expected_fail_msg)
+                self.block_submit(node, [tx], msg, witness=True, accept=fail_input is None, cb_pubkey=cb_pubkey, fees=fee, err_msg=expected_fail_msg)
 
             if (len(spenders) - left) // 200 > (len(spenders) - left - len(input_utxos)) // 200:
                 self.log.info("  - %i tests done" % (len(spenders) - left))
@@ -1646,237 +1349,10 @@ class TaprootTest(BitcoinTestFramework):
         assert len(mismatching_utxos) == 0
         self.log.info("  - Done")
 
-    def gen_test_vectors(self):
-        """Run a scenario that corresponds (and optionally produces) to BIP341 test vectors."""
-
-        self.log.info("Unit test scenario...")
-
-        # Deterministically mine coins to OP_TRUE in block 1
-        assert_equal(self.nodes[0].getblockcount(), 0)
-        coinbase = CTransaction()
-        coinbase.version = 1
-        coinbase.vin = [CTxIn(COutPoint(0, 0xffffffff), CScript([OP_1, OP_1]), SEQUENCE_FINAL)]
-        coinbase.vout = [CTxOut(5000000000, CScript([OP_1]))]
-        coinbase.nLockTime = 0
-        assert coinbase.txid_hex == "f60c73405d499a956d3162e3483c395526ef78286458a4cb17b125aa92e49b20"
-        # Mine it
-        block = create_block(hashprev=int(self.nodes[0].getbestblockhash(), 16), coinbase=coinbase)
-        block.solve()
-        self.nodes[0].submitblock(block.serialize().hex())
-        assert_equal(self.nodes[0].getblockcount(), 1)
-        self.generate(self.nodes[0], COINBASE_MATURITY)
-
-        SEED = 317
-        VALID_LEAF_VERS = list(range(0xc0, 0x100, 2)) + [0x66, 0x7e, 0x80, 0x84, 0x96, 0x98, 0xba, 0xbc, 0xbe]
-        # Generate private keys
-        prvs = [hashlib.sha256(SEED.to_bytes(2, 'big') + bytes([i])).digest() for i in range(100)]
-        # Generate corresponding public x-only pubkeys
-        pubs = [compute_xonly_pubkey(prv)[0] for prv in prvs]
-        # Generate taproot objects
-        inner_keys = [pubs[i] for i in range(7)]
-
-        script_lists = [
-            None,
-            [("0", CScript([pubs[50], OP_CHECKSIG]), LEAF_VERSION_TAPSCRIPT)],
-            [("0", CScript([pubs[51], OP_CHECKSIG]), LEAF_VERSION_TAPSCRIPT)],
-            [("0", CScript([pubs[52], OP_CHECKSIG]), LEAF_VERSION_TAPSCRIPT), ("1", CScript([b"BIP341"]), VALID_LEAF_VERS[pubs[99][0] % 41])],
-            [("0", CScript([pubs[53], OP_CHECKSIG]), LEAF_VERSION_TAPSCRIPT), ("1", CScript([b"Taproot"]), VALID_LEAF_VERS[pubs[99][1] % 41])],
-            [("0", CScript([pubs[54], OP_CHECKSIG]), LEAF_VERSION_TAPSCRIPT),
-                [("1", CScript([pubs[55], OP_CHECKSIG]), LEAF_VERSION_TAPSCRIPT), ("2", CScript([pubs[56], OP_CHECKSIG]), LEAF_VERSION_TAPSCRIPT)]
-            ],
-            [("0", CScript([pubs[57], OP_CHECKSIG]), LEAF_VERSION_TAPSCRIPT),
-                [("1", CScript([pubs[58], OP_CHECKSIG]), LEAF_VERSION_TAPSCRIPT), ("2", CScript([pubs[59], OP_CHECKSIG]), LEAF_VERSION_TAPSCRIPT)]
-            ],
-        ]
-        taps = [taproot_construct(inner_keys[i], script_lists[i]) for i in range(len(inner_keys))]
-
-        # Require negated taps[0]
-        assert taps[0].negflag
-        # Require one negated and one non-negated in taps 1 and 2.
-        assert_not_equal(taps[1].negflag, taps[2].negflag)
-        # Require one negated and one non-negated in taps 3 and 4.
-        assert_not_equal(taps[3].negflag, taps[4].negflag)
-        # Require one negated and one non-negated in taps 5 and 6.
-        assert_not_equal(taps[5].negflag, taps[6].negflag)
-
-        cblks = [{leaf: get({**DEFAULT_CONTEXT, 'tap': taps[i], 'leaf': leaf}, 'controlblock') for leaf in taps[i].leaves} for i in range(7)]
-        # Require one swapped and one unswapped in taps 3 and 4.
-        assert_not_equal((cblks[3]['0'][33:65] < cblks[3]['1'][33:65]), (cblks[4]['0'][33:65] < cblks[4]['1'][33:65]))
-        # Require one swapped and one unswapped in taps 5 and 6, both at the top and child level.
-        assert_not_equal((cblks[5]['0'][33:65] < cblks[5]['1'][65:]), (cblks[6]['0'][33:65] < cblks[6]['1'][65:]))
-        assert_not_equal((cblks[5]['1'][33:65] < cblks[5]['2'][33:65]), (cblks[6]['1'][33:65] < cblks[6]['2'][33:65]))
-        # Require within taps 5 (and thus also 6) that one level is swapped and the other is not.
-        assert_not_equal((cblks[5]['0'][33:65] < cblks[5]['1'][65:]), (cblks[5]['1'][33:65] < cblks[5]['2'][33:65]))
-
-        # Compute a deterministic set of scriptPubKeys
-        tap_spks = []
-        old_spks = []
-        spend_info = {}
-        # First, taproot scriptPubKeys, for the tap objects constructed above
-        for i, tap in enumerate(taps):
-            tap_spks.append(tap.scriptPubKey)
-            d = {'key': prvs[i], 'tap': tap, 'mode': 'taproot'}
-            spend_info[tap.scriptPubKey] = d
-        # Then, a number of deterministically generated (keys 0x1,0x2,0x3) with 2x P2PKH, 1x P2WPKH spks.
-        for i in range(1, 4):
-            prv = ECKey()
-            prv.set(i.to_bytes(32, 'big'), True)
-            pub = prv.get_pubkey().get_bytes()
-            d = {"key": prv}
-            d["scriptcode"] = key_to_p2pkh_script(pub)
-            d["inputs"] = [getter("sign"), pub]
-            if i < 3:
-                # P2PKH
-                d['spk'] = key_to_p2pkh_script(pub)
-                d['mode'] = 'legacy'
-            else:
-                # P2WPKH
-                d['spk'] = key_to_p2wpkh_script(pub)
-                d['mode'] = 'witv0'
-            old_spks.append(d['spk'])
-            spend_info[d['spk']] = d
-
-        # Construct a deterministic chain of transactions creating UTXOs to the test's spk's (so that they
-        # come from distinct txids).
-        txn = []
-        lasttxid = coinbase.txid_int
-        amount = 5000000000
-        for i, spk in enumerate(old_spks + tap_spks):
-            val = 42000000 * (i + 7)
-            tx = CTransaction()
-            tx.version = 1
-            tx.vin = [CTxIn(COutPoint(lasttxid, i & 1), CScript([]), SEQUENCE_FINAL)]
-            tx.vout = [CTxOut(val, spk), CTxOut(amount - val, CScript([OP_1]))]
-            if i & 1:
-                tx.vout = list(reversed(tx.vout))
-            tx.nLockTime = 0
-            amount -= val
-            lasttxid = tx.txid_int
-            txn.append(tx)
-            spend_info[spk]['prevout'] = COutPoint(tx.txid_int, i & 1)
-            spend_info[spk]['utxo'] = CTxOut(val, spk)
-        # Mine those transactions
-        self.init_blockinfo(self.nodes[0])
-        self.block_submit(self.nodes[0], txn, "Crediting txn", None, sigops_weight=10, accept=True)
-
-        # scriptPubKey computation
-        tests = {"version": 1}
-        spk_tests = tests.setdefault("scriptPubKey", [])
-        for i, tap in enumerate(taps):
-            test_case = {}
-            given = test_case.setdefault("given", {})
-            given['internalPubkey'] = tap.internal_pubkey.hex()
-
-            def pr(node):
-                if node is None:
-                    return None
-                elif isinstance(node, tuple):
-                    return {"id": int(node[0]), "script": node[1].hex(), "leafVersion": node[2]}
-                elif len(node) == 1:
-                    return pr(node[0])
-                elif len(node) == 2:
-                    return [pr(node[0]), pr(node[1])]
-                else:
-                    assert False
-
-            given['scriptTree'] = pr(script_lists[i])
-            intermediary = test_case.setdefault("intermediary", {})
-            if len(tap.leaves):
-                leafhashes = intermediary.setdefault('leafHashes', [None] * len(tap.leaves))
-                for leaf in tap.leaves:
-                    leafhashes[int(leaf)] = tap.leaves[leaf].leaf_hash.hex()
-            intermediary['merkleRoot'] = tap.merkle_root.hex() if tap.merkle_root else None
-            intermediary['tweak'] = tap.tweak.hex()
-            intermediary['tweakedPubkey'] = tap.output_pubkey.hex()
-            expected = test_case.setdefault("expected", {})
-            expected['scriptPubKey'] = tap.scriptPubKey.hex()
-            expected['bip350Address'] = program_to_witness(1, bytes(tap.output_pubkey), True)
-            if len(tap.leaves):
-                control_blocks = expected.setdefault("scriptPathControlBlocks", [None] * len(tap.leaves))
-                for leaf in tap.leaves:
-                    ctx = {**DEFAULT_CONTEXT, 'tap': tap, 'leaf': leaf}
-                    control_blocks[int(leaf)] = get(ctx, "controlblock").hex()
-            spk_tests.append(test_case)
-
-        # Construct a deterministic transaction spending all outputs created above.
-        tx = CTransaction()
-        tx.vin = []
-        inputs = []
-        input_spks = [tap_spks[0], tap_spks[1], old_spks[0], tap_spks[2], tap_spks[5], old_spks[2], tap_spks[6], tap_spks[3], tap_spks[4]]
-        sequences = [0, SEQUENCE_FINAL, SEQUENCE_FINAL, 0xfffffffe, 0xfffffffe, 0, 0, SEQUENCE_FINAL, SEQUENCE_FINAL]
-        hashtypes = [SIGHASH_SINGLE, SIGHASH_SINGLE|SIGHASH_ANYONECANPAY, SIGHASH_ALL, SIGHASH_ALL, SIGHASH_DEFAULT, SIGHASH_ALL, SIGHASH_NONE, SIGHASH_NONE|SIGHASH_ANYONECANPAY, SIGHASH_ALL|SIGHASH_ANYONECANPAY]
-        for i, spk in enumerate(input_spks):
-            tx.vin.append(CTxIn(spend_info[spk]['prevout'], CScript(), sequences[i]))
-            inputs.append(spend_info[spk]['utxo'])
-        tx.vout.append(CTxOut(1000000000, old_spks[1]))
-        tx.vout.append(CTxOut(3410000000, pubs[98]))
-        tx.nLockTime = 500000000
-        precomputed = {
-            "hashAmounts": BIP341_sha_amounts(inputs),
-            "hashPrevouts": BIP341_sha_prevouts(tx),
-            "hashScriptPubkeys": BIP341_sha_scriptpubkeys(inputs),
-            "hashSequences": BIP341_sha_sequences(tx),
-            "hashOutputs": BIP341_sha_outputs(tx)
-        }
-        keypath_tests = tests.setdefault("keyPathSpending", [])
-        tx_test = {}
-        global_given = tx_test.setdefault("given", {})
-        global_given['rawUnsignedTx'] = tx.serialize().hex()
-        utxos_spent = global_given.setdefault("utxosSpent", [])
-        for i in range(len(input_spks)):
-            utxos_spent.append({"scriptPubKey": inputs[i].scriptPubKey.hex(), "amountSats": inputs[i].nValue})
-        global_intermediary = tx_test.setdefault("intermediary", {})
-        for key in sorted(precomputed.keys()):
-            global_intermediary[key] = precomputed[key].hex()
-        test_list = tx_test.setdefault('inputSpending', [])
-        for i in range(len(input_spks)):
-            ctx = {
-                **DEFAULT_CONTEXT,
-                **spend_info[input_spks[i]],
-                'tx': tx,
-                'utxos': inputs,
-                'idx': i,
-                'hashtype': hashtypes[i],
-                'deterministic': True
-            }
-            if ctx['mode'] == 'taproot':
-                test_case = {}
-                given = test_case.setdefault("given", {})
-                given['txinIndex'] = i
-                given['internalPrivkey'] = get(ctx, 'key').hex()
-                if get(ctx, "tap").merkle_root != bytes():
-                    given['merkleRoot'] = get(ctx, "tap").merkle_root.hex()
-                else:
-                    given['merkleRoot'] = None
-                given['hashType'] = get(ctx, "hashtype")
-                intermediary = test_case.setdefault("intermediary", {})
-                intermediary['internalPubkey'] = get(ctx, "tap").internal_pubkey.hex()
-                intermediary['tweak'] = get(ctx, "tap").tweak.hex()
-                intermediary['tweakedPrivkey'] = get(ctx, "key_tweaked").hex()
-                sigmsg = get(ctx, "sigmsg")
-                intermediary['sigMsg'] = sigmsg.hex()
-                intermediary['precomputedUsed'] = [key for key in sorted(precomputed.keys()) if sigmsg.count(precomputed[key])]
-                intermediary['sigHash'] = get(ctx, "sighash").hex()
-                expected = test_case.setdefault("expected", {})
-                expected['witness'] = [get(ctx, "sign").hex()]
-                test_list.append(test_case)
-            tx.wit.vtxinwit.append(CTxInWitness())
-            tx.vin[i].scriptSig = CScript(flatten(get(ctx, "scriptsig")))
-            tx.wit.vtxinwit[i].scriptWitness.stack = flatten(get(ctx, "witness"))
-        aux = tx_test.setdefault("auxiliary", {})
-        aux['fullySignedTx'] = tx.serialize().hex()
-        keypath_tests.append(tx_test)
-        assert_equal(hashlib.sha256(tx.serialize()).hexdigest(), "368505613478c88f5be84b03da4236161eee141dfca8a3c1ce12d10f8b637c31")
-        # Mine the spending transaction
-        self.block_submit(self.nodes[0], [tx], "Spending txn", None, sigops_weight=10000, accept=True, witness=True)
-
-        if GEN_TEST_VECTORS:
-            print(json.dumps(tests, indent=4, sort_keys=False))
 
     def run_test(self):
-        self.gen_test_vectors()
-
-        self.log.info("Post-activation tests...")
+        self.log.info("Native Taproot tests...")
+        self.generate(self.nodes[0], COINBASE_MATURITY + 1)
 
         # New sub-tests not checking standardness can be added to consensus_spenders
         # to allow for increased coverage across input types.

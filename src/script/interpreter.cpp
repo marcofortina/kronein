@@ -83,18 +83,6 @@ bool static IsCompressedOrUncompressedPubKey(const valtype &vchPubKey) {
     return true;
 }
 
-bool static IsCompressedPubKey(const valtype &vchPubKey) {
-    if (vchPubKey.size() != CPubKey::COMPRESSED_SIZE) {
-        //  Non-canonical public key: invalid length for compressed key
-        return false;
-    }
-    if (vchPubKey[0] != 0x02 && vchPubKey[0] != 0x03) {
-        //  Non-canonical public key: invalid prefix for compressed key
-        return false;
-    }
-    return true;
-}
-
 /**
  * A canonical signature exists of: <30> <total len> <02> <len R> <R> <02> <len S> <S> <hashtype>
  * Where R and S are not negative (their first byte has its highest bit not set), and not
@@ -218,10 +206,6 @@ bool CheckSignatureEncoding(const std::vector<unsigned char> &vchSig, script_ver
 bool static CheckPubKeyEncoding(const valtype &vchPubKey, script_verify_flags flags, const SigVersion &sigversion, ScriptError* serror) {
     if ((flags & SCRIPT_VERIFY_STRICTENC) != 0 && !IsCompressedOrUncompressedPubKey(vchPubKey)) {
         return set_error(serror, SCRIPT_ERR_PUBKEYTYPE);
-    }
-    // Only compressed keys are accepted in segwit
-    if ((flags & SCRIPT_VERIFY_WITNESS_PUBKEYTYPE) != 0 && sigversion == SigVersion::WITNESS_V0 && !IsCompressedPubKey(vchPubKey)) {
-        return set_error(serror, SCRIPT_ERR_WITNESS_PUBKEYTYPE);
     }
     return true;
 }
@@ -521,11 +505,6 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
 
                 case OP_CHECKLOCKTIMEVERIFY:
                 {
-                    if (!(flags & SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY)) {
-                        // not enabled; treat as a NOP2
-                        break;
-                    }
-
                     if (stack.size() < 1)
                         return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
 
@@ -560,11 +539,6 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
 
                 case OP_CHECKSEQUENCEVERIFY:
                 {
-                    if (!(flags & SCRIPT_VERIFY_CHECKSEQUENCEVERIFY)) {
-                        // not enabled; treat as a NOP3
-                        break;
-                    }
-
                     if (stack.size() < 1)
                         return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
 
@@ -617,13 +591,6 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                             if (vch.size() > 1 || (vch.size() == 1 && vch[0] != 1)) {
                                 return set_error(serror, SCRIPT_ERR_TAPSCRIPT_MINIMALIF);
                             }
-                        }
-                        // Under witness v0 rules it is only a policy rule, enabled through SCRIPT_VERIFY_MINIMALIF.
-                        if (sigversion == SigVersion::WITNESS_V0 && (flags & SCRIPT_VERIFY_MINIMALIF)) {
-                            if (vch.size() > 1)
-                                return set_error(serror, SCRIPT_ERR_MINIMALIF);
-                            if (vch.size() == 1 && vch[0] != 1)
-                                return set_error(serror, SCRIPT_ERR_MINIMALIF);
                         }
                         fValue = CastToBool(vch);
                         if (opcode == OP_NOTIF)
@@ -1419,8 +1386,7 @@ void PrecomputedTransactionData::Init(const T& txTo, std::vector<CTxOut>&& spent
                 m_spent_outputs[inpos].scriptPubKey[0] == OP_1) {
                 // Treat every witness-bearing spend with 34-byte scriptPubKey that starts with OP_1 as a Taproot
                 // spend. This only works if spent_outputs was provided as well, but if it wasn't, actual validation
-                // will fail anyway. Note that this branch may trigger for scriptPubKeys that aren't actually segwit
-                // but in that case validation will fail as SCRIPT_ERR_WITNESS_UNEXPECTED anyway.
+                // will fail anyway. A non-native scriptPubKey is rejected during transaction validation.
                 uses_bip341_taproot = true;
             } else {
                 // Treat every spend that's not known to native witness v1 as a Witness v0 spend. This branch may
@@ -1987,24 +1953,14 @@ const std::map<std::string, script_verify_flag_name>& ScriptFlagNamesToEnum()
 {
 #define FLAG_NAME(flag) {std::string(#flag), SCRIPT_VERIFY_##flag}
     static const std::map<std::string, script_verify_flag_name> g_names_to_enum{
-        FLAG_NAME(P2SH),
         FLAG_NAME(STRICTENC),
         FLAG_NAME(DERSIG),
         FLAG_NAME(LOW_S),
-        FLAG_NAME(SIGPUSHONLY),
         FLAG_NAME(MINIMALDATA),
         FLAG_NAME(NULLDUMMY),
         FLAG_NAME(DISCOURAGE_UPGRADABLE_NOPS),
-        FLAG_NAME(CLEANSTACK),
-        FLAG_NAME(MINIMALIF),
         FLAG_NAME(NULLFAIL),
-        FLAG_NAME(CHECKLOCKTIMEVERIFY),
-        FLAG_NAME(CHECKSEQUENCEVERIFY),
-        FLAG_NAME(WITNESS),
-        FLAG_NAME(DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM),
-        FLAG_NAME(WITNESS_PUBKEYTYPE),
         FLAG_NAME(CONST_SCRIPTCODE),
-        FLAG_NAME(TAPROOT),
         FLAG_NAME(DISCOURAGE_UPGRADABLE_PUBKEYTYPE),
         FLAG_NAME(DISCOURAGE_OP_SUCCESS),
         FLAG_NAME(DISCOURAGE_UPGRADABLE_TAPROOT_VERSION),

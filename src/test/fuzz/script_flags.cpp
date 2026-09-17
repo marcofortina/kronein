@@ -8,7 +8,6 @@
 #include <serialize.h>
 #include <streams.h>
 #include <test/fuzz/fuzz.h>
-#include <test/util/script.h>
 
 #include <cassert>
 #include <ios>
@@ -35,8 +34,6 @@ FUZZ_TARGET(script_flags)
         ds >> verify_flags;
 
         assert(verify_flags == script_verify_flags::from_int(verify_flags.as_int()));
-
-        if (!IsValidFlagCombination(verify_flags)) return;
 
         script_verify_flags fuzzed_flags;
         ds >> fuzzed_flags;
@@ -68,8 +65,6 @@ FUZZ_TARGET(script_flags)
             } else {
                 verify_flags |= fuzzed_flags;
             }
-            if (!IsValidFlagCombination(verify_flags)) return;
-
             ScriptError serror_fuzzed;
             const bool ret_fuzzed = VerifyScript(tx.vin.at(i).scriptSig, prevout.scriptPubKey, &tx.vin.at(i).scriptWitness, verify_flags, checker, &serror_fuzzed);
             assert(ret_fuzzed == (serror_fuzzed == SCRIPT_ERR_OK));
