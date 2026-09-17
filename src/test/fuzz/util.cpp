@@ -47,7 +47,7 @@ std::chrono::seconds ConsumeDuration(FuzzedDataProvider& fuzzed_data_provider, s
 CMutableTransaction ConsumeTransaction(FuzzedDataProvider& fuzzed_data_provider, const std::optional<std::vector<Txid>>& prevout_txids, const int max_num_in, const int max_num_out) noexcept
 {
     CMutableTransaction tx_mut;
-    const auto p2wsh_op_true = fuzzed_data_provider.ConsumeBool();
+    const auto p2tr_op_true = fuzzed_data_provider.ConsumeBool();
     tx_mut.version = fuzzed_data_provider.ConsumeBool() ?
                           CTransaction::CURRENT_VERSION :
                           fuzzed_data_provider.ConsumeIntegral<uint32_t>();
@@ -60,10 +60,10 @@ CMutableTransaction ConsumeTransaction(FuzzedDataProvider& fuzzed_data_provider,
                                     Txid::FromUint256(ConsumeUInt256(fuzzed_data_provider));
         const auto index_out = fuzzed_data_provider.ConsumeIntegralInRange<uint32_t>(0, max_num_out);
         const auto sequence = ConsumeSequence(fuzzed_data_provider);
-        const auto script_sig = p2wsh_op_true ? CScript{} : ConsumeScript(fuzzed_data_provider);
+        const auto script_sig = p2tr_op_true ? CScript{} : ConsumeScript(fuzzed_data_provider);
         CScriptWitness script_wit;
-        if (p2wsh_op_true) {
-            script_wit.stack = std::vector<std::vector<uint8_t>>{WITNESS_STACK_ELEM_OP_TRUE};
+        if (p2tr_op_true) {
+            script_wit.stack = P2TR_OP_TRUE_WITNESS_STACK;
         } else {
             script_wit = ConsumeScriptWitness(fuzzed_data_provider);
         }
@@ -77,9 +77,9 @@ CMutableTransaction ConsumeTransaction(FuzzedDataProvider& fuzzed_data_provider,
     }
     for (int i = 0; i < num_out; ++i) {
         const auto amount = fuzzed_data_provider.ConsumeIntegralInRange<CAmount>(-10, 50 * COIN + 10);
-        const auto script_pk = p2wsh_op_true ?
-                                   P2WSH_OP_TRUE :
-                                   ConsumeScript(fuzzed_data_provider, /*maybe_p2wsh=*/true);
+        const auto script_pk = p2tr_op_true ?
+                                   P2TR_OP_TRUE :
+                                   ConsumeScript(fuzzed_data_provider, /*maybe_p2tr=*/true);
         tx_mut.vout.emplace_back(amount, script_pk);
     }
     return tx_mut;
@@ -95,7 +95,7 @@ CScriptWitness ConsumeScriptWitness(FuzzedDataProvider& fuzzed_data_provider, co
     return ret;
 }
 
-CScript ConsumeScript(FuzzedDataProvider& fuzzed_data_provider, const bool maybe_p2wsh) noexcept
+CScript ConsumeScript(FuzzedDataProvider& fuzzed_data_provider, const bool maybe_p2tr) noexcept
 {
     CScript r_script{};
     {
@@ -148,13 +148,7 @@ CScript ConsumeScript(FuzzedDataProvider& fuzzed_data_provider, const bool maybe
                 });
         }
     }
-    if (maybe_p2wsh && fuzzed_data_provider.ConsumeBool()) {
-        uint256 script_hash;
-        CSHA256().Write(r_script.data(), r_script.size()).Finalize(script_hash.begin());
-        r_script.clear();
-        r_script << OP_0 << ToByteVector(script_hash);
-    }
-    return r_script;
+    return maybe_p2tr && fuzzed_data_provider.ConsumeBool() ? P2TR_OP_TRUE : r_script;
 }
 
 uint32_t ConsumeSequence(FuzzedDataProvider& fuzzed_data_provider) noexcept

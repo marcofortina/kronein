@@ -44,7 +44,7 @@ void initialize_tx_pool()
     SetMockTime(WITH_LOCK(g_setup->m_node.chainman->GetMutex(), return g_setup->m_node.chainman->ActiveTip()->Time()));
 
     BlockAssembler::Options options;
-    options.coinbase_output_script = P2WSH_EMPTY;
+    options.coinbase_output_script = P2TR_OP_TRUE;
     options.include_dummy_extranonce = true;
 
     for (int i = 0; i < 2 * COINBASE_MATURITY; ++i) {
@@ -261,7 +261,7 @@ FUZZ_TARGET(ephemeral_package_eval, .init = initialize_tx_pool)
                     // Create input
                     CTxIn in;
                     in.prevout = outpoint;
-                    in.scriptWitness.stack = P2WSH_EMPTY_TRUE_STACK;
+                    in.scriptWitness.stack = P2TR_OP_TRUE_WITNESS_STACK;
 
                     tx_mut.vin.push_back(in);
                 }
@@ -269,13 +269,13 @@ FUZZ_TARGET(ephemeral_package_eval, .init = initialize_tx_pool)
                 const auto amount_fee = fuzzed_data_provider.ConsumeIntegralInRange<CAmount>(0, amount_in);
                 const auto amount_out = (amount_in - amount_fee) / num_out;
                 for (int i = 0; i < num_out; ++i) {
-                    tx_mut.vout.emplace_back(amount_out, P2WSH_EMPTY);
+                    tx_mut.vout.emplace_back(amount_out, P2TR_OP_TRUE);
                 }
 
                 // Note output amounts can naturally drop to dust on their own.
                 if (!outpoint_to_rbf && fuzzed_data_provider.ConsumeBool()) {
                     uint32_t dust_index = fuzzed_data_provider.ConsumeIntegralInRange<uint32_t>(0, num_out);
-                    tx_mut.vout.insert(tx_mut.vout.begin() + dust_index, CTxOut(0, P2WSH_EMPTY));
+                    tx_mut.vout.insert(tx_mut.vout.begin() + dust_index, CTxOut(0, P2TR_OP_TRUE));
                 }
 
                 auto tx = MakeTransactionRef(tx_mut);
@@ -404,13 +404,11 @@ FUZZ_TARGET(tx_package_eval, .init = initialize_tx_pool)
                     // Create input
                     const auto sequence = ConsumeSequence(fuzzed_data_provider);
                     const auto script_sig = CScript{};
-                    const auto script_wit_stack = fuzzed_data_provider.ConsumeBool() ? P2WSH_EMPTY_TRUE_STACK : P2WSH_EMPTY_TWO_STACK;
-
                     CTxIn in;
                     in.prevout = outpoint;
                     in.nSequence = sequence;
                     in.scriptSig = script_sig;
-                    in.scriptWitness.stack = script_wit_stack;
+                    in.scriptWitness.stack = P2TR_OP_TRUE_WITNESS_STACK;
 
                     tx_mut.vin.push_back(in);
                 }
@@ -429,7 +427,7 @@ FUZZ_TARGET(tx_package_eval, .init = initialize_tx_pool)
                 const auto amount_fee = fuzzed_data_provider.ConsumeIntegralInRange<CAmount>(0, amount_in);
                 const auto amount_out = (amount_in - amount_fee) / num_out;
                 for (int i = 0; i < num_out; ++i) {
-                    tx_mut.vout.emplace_back(amount_out, P2WSH_EMPTY);
+                    tx_mut.vout.emplace_back(amount_out, P2TR_OP_TRUE);
                 }
                 auto tx = MakeTransactionRef(tx_mut);
                 // Restore previously removed outpoints, except in-package outpoints

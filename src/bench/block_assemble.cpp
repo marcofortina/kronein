@@ -27,9 +27,9 @@ static void AssembleBlock(benchmark::Bench& bench)
     const auto test_setup = MakeNoLogFileContext<const TestingSetup>();
 
     CScriptWitness witness;
-    witness.stack.push_back(WITNESS_STACK_ELEM_OP_TRUE);
+    witness.stack = P2TR_OP_TRUE_WITNESS_STACK;
     BlockAssembler::Options options;
-    options.coinbase_output_script = P2WSH_OP_TRUE;
+    options.coinbase_output_script = P2TR_OP_TRUE;
     options.include_dummy_extranonce = true;
 
     // Collect some loose transactions that spend the coinbases of our mined blocks
@@ -39,7 +39,7 @@ static void AssembleBlock(benchmark::Bench& bench)
         CMutableTransaction tx;
         tx.vin.emplace_back(MineBlock(test_setup->m_node, options));
         tx.vin.back().scriptWitness = witness;
-        tx.vout.emplace_back(1337, P2WSH_OP_TRUE);
+        tx.vout.emplace_back(1337, P2TR_OP_TRUE);
         if (NUM_BLOCKS - b >= COINBASE_MATURITY)
             txs.at(b) = MakeTransactionRef(tx);
     }
@@ -63,7 +63,7 @@ static void BlockAssemblerAddPackageTxns(benchmark::Bench& bench)
     testing_setup->PopulateMempool(det_rand, /*num_transactions=*/1000, /*submit=*/true);
     BlockAssembler::Options assembler_options;
     assembler_options.test_block_validity = false;
-    assembler_options.coinbase_output_script = P2WSH_OP_TRUE;
+    assembler_options.coinbase_output_script = P2TR_OP_TRUE;
 
     bench.run([&] {
         PrepareBlock(testing_setup->m_node, assembler_options);

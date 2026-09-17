@@ -5,34 +5,31 @@
 #ifndef BITCOIN_TEST_UTIL_SCRIPT_H
 #define BITCOIN_TEST_UTIL_SCRIPT_H
 
-#include <crypto/sha256.h>
 #include <script/script.h>
 #include <script/verify_flags.h>
 
 #include <string>
 
-static const std::vector<uint8_t> WITNESS_STACK_ELEM_OP_TRUE{uint8_t{OP_TRUE}};
 static const CScript P2TR_DUMMY{CScript{} << OP_1 << std::vector<unsigned char>(32)};
-static const CScript P2WSH_OP_TRUE{
-    CScript{}
-    << OP_0
-    << ToByteVector([] {
-           uint256 hash;
-           CSHA256().Write(WITNESS_STACK_ELEM_OP_TRUE.data(), WITNESS_STACK_ELEM_OP_TRUE.size()).Finalize(hash.begin());
-           return hash;
-       }())};
-
-static const std::vector<uint8_t> EMPTY{};
-static const CScript P2WSH_EMPTY{
-    CScript{}
-    << OP_0
-    << ToByteVector([] {
-           uint256 hash;
-           CSHA256().Write(EMPTY.data(), EMPTY.size()).Finalize(hash.begin());
-           return hash;
-       }())};
-static const std::vector<std::vector<uint8_t>> P2WSH_EMPTY_TRUE_STACK{{static_cast<uint8_t>(OP_TRUE)}, {}};
-static const std::vector<std::vector<uint8_t>> P2WSH_EMPTY_TWO_STACK{{static_cast<uint8_t>(OP_2)}, {}};
+static const std::vector<uint8_t> TAPROOT_OP_TRUE_LEAF{uint8_t{OP_TRUE}};
+static const std::vector<uint8_t> TAPROOT_OP_TRUE_OUTPUT_KEY{
+    0x29, 0x13, 0xb2, 0x52, 0xfe, 0x53, 0x78, 0x30,
+    0xf8, 0x43, 0xbf, 0xdc, 0x5f, 0xa7, 0xd2, 0x0b,
+    0xa4, 0x86, 0x39, 0xa8, 0x7c, 0x86, 0xff, 0x83,
+    0x7b, 0x92, 0xd0, 0x83, 0xc5, 0x5a, 0xd7, 0xc1,
+};
+static const CScript P2TR_OP_TRUE{CScript{} << OP_1 << TAPROOT_OP_TRUE_OUTPUT_KEY};
+static const std::vector<uint8_t> TAPROOT_OP_TRUE_CONTROL_BLOCK{
+    0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x01,
+};
+static const std::vector<std::vector<uint8_t>> P2TR_OP_TRUE_WITNESS_STACK{
+    TAPROOT_OP_TRUE_LEAF,
+    TAPROOT_OP_TRUE_CONTROL_BLOCK,
+};
 
 script_verify_flags ParseScriptFlags(std::string flags);
 

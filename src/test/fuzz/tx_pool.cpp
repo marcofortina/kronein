@@ -46,7 +46,7 @@ void initialize_tx_pool()
     SetMockTime(WITH_LOCK(g_setup->m_node.chainman->GetMutex(), return g_setup->m_node.chainman->ActiveTip()->Time()));
 
     BlockAssembler::Options options;
-    options.coinbase_output_script = P2WSH_OP_TRUE;
+    options.coinbase_output_script = P2TR_OP_TRUE;
     options.include_dummy_extranonce = true;
 
     for (int i = 0; i < 2 * COINBASE_MATURITY; ++i) {
@@ -279,12 +279,11 @@ FUZZ_TARGET(tx_pool_standard, .init = initialize_tx_pool)
                 // Create input
                 const auto sequence = ConsumeSequence(fuzzed_data_provider);
                 const auto script_sig = CScript{};
-                const auto script_wit_stack = std::vector<std::vector<uint8_t>>{WITNESS_STACK_ELEM_OP_TRUE};
                 CTxIn in;
                 in.prevout = outpoint;
                 in.nSequence = sequence;
                 in.scriptSig = script_sig;
-                in.scriptWitness.stack = script_wit_stack;
+                in.scriptWitness.stack = P2TR_OP_TRUE_WITNESS_STACK;
 
                 tx_mut.vin.push_back(in);
             }
@@ -292,7 +291,7 @@ FUZZ_TARGET(tx_pool_standard, .init = initialize_tx_pool)
             const auto amount_fee = fuzzed_data_provider.ConsumeIntegralInRange<CAmount>(-1000, amount_in);
             const auto amount_out = (amount_in - amount_fee) / num_out;
             for (int i = 0; i < num_out; ++i) {
-                tx_mut.vout.emplace_back(amount_out, P2WSH_OP_TRUE);
+                tx_mut.vout.emplace_back(amount_out, P2TR_OP_TRUE);
             }
 
             auto tx = MakeTransactionRef(tx_mut);
