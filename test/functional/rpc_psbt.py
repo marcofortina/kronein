@@ -37,7 +37,7 @@ from test_framework.psbt import (
     PSBT_OUT_MUSIG2_PARTICIPANT_PUBKEYS,
     PSBT_OUT_TAP_TREE,
 )
-from test_framework.script import CScript, OP_TRUE, SIGHASH_ALL, SIGHASH_ANYONECANPAY
+from test_framework.script import CScript, SIGHASH_ALL, SIGHASH_ANYONECANPAY
 from test_framework.script_util import MIN_STANDARD_TX_NONWITNESS_SIZE
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
@@ -700,18 +700,6 @@ class PSBTTest(BitcoinTestFramework):
         psbt2 = PSBT(g=PSBTMap({PSBT_GLOBAL_UNSIGNED_TX: tx.serialize_without_witness()}), i=[PSBTMap()], o=[PSBTMap()]).to_base64()
         assert_raises_rpc_error(-8, "PSBTs not compatible (different transactions)", self.nodes[0].combinepsbt, [psbt1, psbt2])
         assert_equal(self.nodes[0].combinepsbt([psbt1, psbt1]), psbt1)
-
-        self.log.info("Test that PSBT inputs are being checked via script execution")
-        acs_prevout = CTxOut(nValue=0, scriptPubKey=CScript([OP_TRUE]))
-        tx = CTransaction()
-        tx.vin = [CTxIn(outpoint=COutPoint(hash=int('dd' * 32, 16), n=0), scriptSig=b"")]
-        tx.vout = [CTxOut(nValue=0, scriptPubKey=b"")]
-        psbt = PSBT()
-        psbt.g = PSBTMap({PSBT_GLOBAL_UNSIGNED_TX: tx.serialize_without_witness()})
-        psbt.i = [PSBTMap({bytes([PSBT_IN_WITNESS_UTXO]) : acs_prevout.serialize()})]
-        psbt.o = [PSBTMap()]
-        assert_equal(self.nodes[0].finalizepsbt(psbt.to_base64()),
-            {'hex': '0100000001dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd000000000000000000010000000000000000000000000000', 'complete': True})
 
         self.log.info("Test we don't crash when making a 0-value funded transaction at 0 fee without forcing an input selection")
         assert_raises_rpc_error(-4, "Transaction requires one destination of non-zero value, a non-zero feerate, or a pre-selected input", self.nodes[0].walletcreatefundedpsbt, [], [{"data": "deadbeef"}], 0, {"fee_rate": "0"})

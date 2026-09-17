@@ -44,8 +44,6 @@ FUZZ_TARGET(script_ops)
     }
     const CScript& script = script_mut;
     (void)script.HasValidOps();
-    (void)script.IsPayToScriptHash();
-    (void)script.IsPayToWitnessScriptHash();
     (void)script.IsPushOnly();
     (void)script.IsUnspendable();
     {

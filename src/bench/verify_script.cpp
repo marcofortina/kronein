@@ -2,64 +2,61 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <addresstype.h>
 #include <bench/bench.h>
-#include <hash.h>
+#include <coins.h>
 #include <key.h>
 #include <primitives/transaction.h>
+#include <policy/policy.h>
 #include <pubkey.h>
 #include <script/interpreter.h>
 #include <script/script.h>
+#include <script/sign.h>
+#include <script/signingprovider.h>
 #include <span.h>
 #include <test/util/transaction_utils.h>
 #include <uint256.h>
+#include <util/translation.h>
 
-#include <array>
 #include <cassert>
 #include <cstdint>
+#include <map>
 #include <vector>
 
-// Microbenchmark for verification of a basic P2WPKH script. Can be easily
-// modified to measure performance of other types of scripts.
+// Microbenchmark for verification of a Taproot key-path spend.
 static void VerifyScriptBench(benchmark::Bench& bench)
 {
     ECC_Context ecc_context{};
 
-    const script_verify_flags flags{SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH};
-    const int witnessversion = 0;
-
-    // Key pair.
     CKey key;
-    static const std::array<unsigned char, 32> vchKey = {
-        {
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
-        }
-    };
-    key.Set(vchKey.begin(), vchKey.end(), false);
-    CPubKey pubkey = key.GetPubKey();
-    uint160 pubkeyHash;
-    CHash160().Write(pubkey).Finalize(pubkeyHash);
+    key.MakeNewKey(/*fCompressed=*/true);
+    const CPubKey pubkey{key.GetPubKey()};
+    FlatSigningProvider provider;
+    provider.keys.emplace(pubkey.GetID(), key);
+    provider.pubkeys.emplace(pubkey.GetID(), pubkey);
 
-    // Script.
-    CScript scriptPubKey = CScript() << witnessversion << ToByteVector(pubkeyHash);
-    CScript scriptSig;
-    CScript witScriptPubkey = CScript() << OP_DUP << OP_HASH160 << ToByteVector(pubkeyHash) << OP_EQUALVERIFY << OP_CHECKSIG;
-    const CMutableTransaction& txCredit = BuildCreditingTransaction(scriptPubKey, 1);
-    CMutableTransaction txSpend = BuildSpendingTransaction(scriptSig, CScriptWitness(), CTransaction(txCredit));
-    CScriptWitness& witness = txSpend.vin[0].scriptWitness;
-    witness.stack.emplace_back();
-    key.Sign(SignatureHash(witScriptPubkey, txSpend, 0, SIGHASH_ALL, txCredit.vout[0].nValue, SigVersion::WITNESS_V0), witness.stack.back());
-    witness.stack.back().push_back(static_cast<unsigned char>(SIGHASH_ALL));
-    witness.stack.push_back(ToByteVector(pubkey));
+    const CScript script_pub_key{GetScriptForDestination(WitnessV1Taproot{XOnlyPubKey{pubkey}})};
+    const CMutableTransaction tx_credit{BuildCreditingTransaction(script_pub_key, 1)};
+    CMutableTransaction tx_spend{BuildSpendingTransaction({}, {}, CTransaction{tx_credit})};
+
+    std::map<COutPoint, Coin> coins;
+    coins.emplace(tx_spend.vin[0].prevout, Coin{tx_credit.vout[0], /*nHeightIn=*/1, /*fCoinBaseIn=*/false});
+    std::map<int, bilingual_str> input_errors;
+    assert(SignTransaction(tx_spend, &provider, coins, SIGHASH_ALL, input_errors));
+
+    PrecomputedTransactionData txdata;
+    txdata.Init(tx_spend, std::vector<CTxOut>{tx_credit.vout[0]}, /*force=*/true);
+    const MutableTransactionSignatureChecker checker{&tx_spend, 0, tx_credit.vout[0].nValue, txdata, MissingDataBehavior::ASSERT_FAIL};
 
     // Benchmark.
     bench.run([&] {
         ScriptError err;
         bool success = VerifyScript(
-            txSpend.vin[0].scriptSig,
-            txCredit.vout[0].scriptPubKey,
-            &txSpend.vin[0].scriptWitness,
-            flags,
-            MutableTransactionSignatureChecker(&txSpend, 0, txCredit.vout[0].nValue, MissingDataBehavior::ASSERT_FAIL),
+            tx_spend.vin[0].scriptSig,
+            tx_credit.vout[0].scriptPubKey,
+            &tx_spend.vin[0].scriptWitness,
+            STANDARD_SCRIPT_VERIFY_FLAGS,
+            checker,
             &err);
         assert(err == SCRIPT_ERR_OK);
         assert(success);
@@ -82,7 +79,7 @@ static void VerifyNestedIfScript(benchmark::Bench& bench)
     bench.run([&] {
         auto stack_copy = stack;
         ScriptError error;
-        bool ret = EvalScript(stack_copy, script, 0, BaseSignatureChecker(), SigVersion::BASE, &error);
+        bool ret = EvalScript(stack_copy, script, 0, BaseSignatureChecker(), SigVersion::TAPSCRIPT, &error);
         assert(ret);
     });
 }

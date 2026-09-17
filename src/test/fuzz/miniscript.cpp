@@ -313,7 +313,7 @@ const struct KeyComparator {
     }
 } KEY_COMP;
 
-// A dummy scriptsig to pass to VerifyScript (we always use Segwit v0).
+// Native witness spends always use an empty scriptSig.
 const CScript DUMMY_SCRIPTSIG;
 
 /** Information about a yet to be constructed Miniscript node. */
@@ -1214,13 +1214,11 @@ void FuzzInitSmart()
 /** Fuzz target that runs TestNode on nodes generated using ConsumeNodeStable. */
 FUZZ_TARGET(miniscript_stable, .init = FuzzInit)
 {
-    // Run it under both P2WSH and Tapscript contexts.
-    for (const auto script_ctx: {MsCtx::P2WSH, MsCtx::TAPSCRIPT}) {
-        FuzzedDataProvider provider(buffer.data(), buffer.size());
-        TestNode(script_ctx, GenNode(script_ctx, [&](Type needed_type) {
-            return ConsumeNodeStable(script_ctx, provider, needed_type);
-        }, ""_mst), provider);
-    }
+    constexpr auto script_ctx{MsCtx::TAPSCRIPT};
+    FuzzedDataProvider provider(buffer.data(), buffer.size());
+    TestNode(script_ctx, GenNode(script_ctx, [&](Type needed_type) {
+        return ConsumeNodeStable(script_ctx, provider, needed_type);
+    }, ""_mst), provider);
 }
 
 /** Fuzz target that runs TestNode on nodes generated using ConsumeNodeSmart. */
@@ -1230,7 +1228,7 @@ FUZZ_TARGET(miniscript_smart, .init = FuzzInitSmart)
     static constexpr std::array<Type, 4> BASE_TYPES{"B"_mst, "V"_mst, "K"_mst, "W"_mst};
 
     FuzzedDataProvider provider(buffer.data(), buffer.size());
-    const auto script_ctx{(MsCtx)provider.ConsumeBool()};
+    constexpr auto script_ctx{MsCtx::TAPSCRIPT};
     TestNode(script_ctx, GenNode(script_ctx, [&](Type needed_type) {
         return ConsumeNodeSmart(script_ctx, provider, needed_type);
     }, PickValue(provider, BASE_TYPES), true), provider);

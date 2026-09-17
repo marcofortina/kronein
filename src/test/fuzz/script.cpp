@@ -87,8 +87,6 @@ FUZZ_TARGET(script, .init = initialize_script)
 
     (void)script.HasValidOps();
     (void)script.IsPayToAnchor();
-    (void)script.IsPayToScriptHash();
-    (void)script.IsPayToWitnessScriptHash();
     (void)script.IsPushOnly();
 
     {

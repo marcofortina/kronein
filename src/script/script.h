@@ -527,13 +527,11 @@ public:
      */
     static bool IsPayToAnchor(int version, const std::vector<unsigned char>& program);
 
-    bool IsPayToScriptHash() const;
-    bool IsPayToWitnessScriptHash() const;
     bool IsWitnessProgram(int& version, std::vector<unsigned char>& program) const;
 
     bool IsPayToTaproot() const;
 
-    /** Called by IsStandardTx and P2SH/BIP62 VerifyScript (which makes it consensus-critical). */
+    /** Check whether every opcode is a data push. */
     bool IsPushOnly(const_iterator pc) const;
     bool IsPushOnly() const;
 

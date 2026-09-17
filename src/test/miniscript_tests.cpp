@@ -484,8 +484,7 @@ void Test(const std::string& ms, const std::string& hexscript, const std::string
           std::optional<uint32_t> max_tap_wit_size,
           std::optional<uint32_t> stack_exec)
 {
-    KeyConverter wsh_converter(miniscript::MiniscriptContext::P2WSH);
-    Test(ms, hexscript, mode, wsh_converter, opslimit, stacklimit, max_wit_size, stack_exec);
+    (void)max_wit_size;
     KeyConverter tap_converter(miniscript::MiniscriptContext::TAPSCRIPT);
     Test(ms, hextapscript == "=" ? hexscript : hextapscript, mode, tap_converter, opslimit, stacklimit, max_tap_wit_size, stack_exec);
 }
