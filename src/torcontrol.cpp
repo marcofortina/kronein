@@ -390,17 +390,12 @@ void TorController::get_socks_cb(TorControlConnection& _conn, const TorControlRe
         LogWarning("tor: Get SOCKS port command failed; error code %d", reply.code);
     }
 
-    CService resolved;
-    Assume(!resolved.IsValid());
-    if (!socks_location.empty()) {
-        resolved = LookupNumeric(socks_location, DEFAULT_TOR_SOCKS_PORT);
-    }
+    const CService resolved = LookupNumeric(socks_location);
     if (!resolved.IsValid()) {
-        // Fallback to old behaviour
-        resolved = LookupNumeric("127.0.0.1", DEFAULT_TOR_SOCKS_PORT);
+        LogWarning("tor: Cannot configure onion proxy without a valid SOCKS listener");
+        return;
     }
 
-    Assume(resolved.IsValid());
     LogDebug(BCLog::TOR, "Configuring onion proxy for %s\n", resolved.ToStringAddrPort());
 
     // Add Tor as proxy for .onion addresses.
