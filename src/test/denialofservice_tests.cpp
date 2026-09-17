@@ -149,7 +149,7 @@ BOOST_FIXTURE_TEST_CASE(stale_tip_peer_management, OutboundTest)
     CConnman::Options options;
     options.m_max_automatic_connections = DEFAULT_MAX_PEER_CONNECTIONS;
 
-    const auto time_init{GetTime<std::chrono::seconds>()};
+    const auto time_init{Now<NodeSeconds>()};
     SetMockTime(time_init);
     const auto time_later{time_init + 3 * std::chrono::seconds{m_node.chainman->GetConsensus().nPowTargetSpacing} + 1s};
     connman->Init(options);
@@ -281,7 +281,7 @@ BOOST_FIXTURE_TEST_CASE(block_relay_only_eviction, OutboundTest)
     // Update the last block time for the extra peer,
     // and check that the next youngest peer gets evicted.
     vNodes.back()->fDisconnect = false;
-    vNodes.back()->m_last_block_time = GetTime<std::chrono::seconds>();
+    vNodes.back()->m_last_block_time = Now<NodeSeconds>().time_since_epoch();
 
     peerLogic->CheckForStaleTipAndEvictPeers();
     for (int i = 0; i < max_outbound_block_relay - 1; ++i) {

@@ -742,7 +742,7 @@ QString formatDurationStr(std::chrono::seconds dur)
 
 QString FormatPeerAge(std::chrono::seconds time_connected)
 {
-    const auto time_now{GetTime<std::chrono::seconds>()};
+    const auto time_now{Now<NodeSeconds>().time_since_epoch()};
     const auto age{time_now - time_connected};
     if (age >= 24h) return QObject::tr("%1 d").arg(age / 24h);
     if (age >= 1h) return QObject::tr("%1 h").arg(age / 1h);

@@ -359,7 +359,7 @@ struct Peer {
      *  permit self-announcement. */
     double m_addr_token_bucket GUARDED_BY(NetEventsInterface::g_msgproc_mutex){1.0};
     /** When m_addr_token_bucket was last updated */
-    std::chrono::microseconds m_addr_token_timestamp GUARDED_BY(NetEventsInterface::g_msgproc_mutex){GetTime<std::chrono::microseconds>()};
+    std::chrono::microseconds m_addr_token_timestamp GUARDED_BY(NetEventsInterface::g_msgproc_mutex){Now<NodeMicroseconds>().time_since_epoch()};
     /** Total number of addresses that were dropped due to rate limiting. */
     std::atomic<uint64_t> m_addr_rate_limited{0};
     /** Total number of addresses that were processed (excludes rate-limited ones). */
@@ -1166,7 +1166,7 @@ void PeerManagerImpl::RemoveBlockRequest(const uint256& hash, std::optional<Node
 
         if (state.vBlocksInFlight.begin() == list_it) {
             // First block on the queue was received, update the start download time for the next one
-            state.m_downloading_since = std::max(state.m_downloading_since, GetTime<std::chrono::microseconds>());
+            state.m_downloading_since = std::max(state.m_downloading_since, Now<NodeMicroseconds>().time_since_epoch());
         }
         state.vBlocksInFlight.erase(list_it);
 
@@ -1206,7 +1206,7 @@ bool PeerManagerImpl::BlockRequested(NodeId nodeid, const CBlockIndex& block, st
             {&block, std::unique_ptr<PartiallyDownloadedBlock>(pit ? new PartiallyDownloadedBlock(&m_mempool) : nullptr)});
     if (state->vBlocksInFlight.size() == 1) {
         // We're starting a block download (batch) from this peer.
-        state->m_downloading_since = GetTime<std::chrono::microseconds>();
+        state->m_downloading_since = Now<NodeMicroseconds>().time_since_epoch();
         m_peers_downloading_from++;
     }
     auto itInFlight = mapBlocksInFlight.insert(std::make_pair(hash, std::make_pair(nodeid, it)));
@@ -1280,14 +1280,14 @@ bool PeerManagerImpl::TipMayBeStale()
     AssertLockHeld(cs_main);
     const Consensus::Params& consensusParams = m_chainparams.GetConsensus();
     if (m_last_tip_update.load() == 0s) {
-        m_last_tip_update = GetTime<std::chrono::seconds>();
+        m_last_tip_update = Now<NodeSeconds>().time_since_epoch();
     }
-    return m_last_tip_update.load() < GetTime<std::chrono::seconds>() - std::chrono::seconds{consensusParams.nPowTargetSpacing * 3} && mapBlocksInFlight.empty();
+    return m_last_tip_update.load() < Now<NodeSeconds>().time_since_epoch() - std::chrono::seconds{consensusParams.nPowTargetSpacing * 3} && mapBlocksInFlight.empty();
 }
 
 int64_t PeerManagerImpl::ApproximateBestBlockDepth() const
 {
-    return (GetTime<std::chrono::seconds>() - m_best_block_time.load()).count() / m_chainparams.GetConsensus().nPowTargetSpacing;
+    return (Now<NodeSeconds>().time_since_epoch() - m_best_block_time.load()).count() / m_chainparams.GetConsensus().nPowTargetSpacing;
 }
 
 bool PeerManagerImpl::CanDirectFetch()
@@ -1506,7 +1506,7 @@ void PeerManagerImpl::PushNodeVersion(CNode& pnode, const Peer& peer)
     } else {
         const CAddress& addr{pnode.addr};
         my_services = peer.m_our_services;
-        my_time = count_seconds(GetTime<std::chrono::seconds>());
+        my_time = count_seconds(Now<NodeSeconds>().time_since_epoch());
         your_services = addr.nServices;
         your_addr = addr.IsRoutable() && !IsProxy(addr) ? CService{addr} : CService{};
         my_user_agent = strSubVersion;
@@ -1744,7 +1744,7 @@ bool PeerManagerImpl::GetNodeStateStats(NodeId nodeid, CNodeStateStats& stats) c
     // the caller can immediately detect that this is happening.
     auto ping_wait{0us};
     if ((0 != peer->m_ping_nonce_sent) && (0 != peer->m_ping_start.load().count())) {
-        ping_wait = GetTime<std::chrono::microseconds>() - peer->m_ping_start.load();
+        ping_wait = Now<NodeMicroseconds>().time_since_epoch() - peer->m_ping_start.load();
     }
 
     if (auto tx_relay = peer->GetTxRelay(); tx_relay != nullptr) {
@@ -1999,7 +1999,7 @@ void PeerManagerImpl::BlockConnected(
 {
     // Update this for all chainstate roles so that we don't mistakenly see peers
     // helping us do background IBD as having a stale tip.
-    m_last_tip_update = GetTime<std::chrono::seconds>();
+    m_last_tip_update = Now<NodeSeconds>().time_since_epoch();
 
     // In case the dynamic timeout was doubled once or more, reduce it slowly back to its default value
     auto stalling_timeout = m_block_stalling_timeout.load();
@@ -2217,7 +2217,7 @@ void PeerManagerImpl::RelayAddress(NodeId originator,
     // Use deterministic randomness to send to the same nodes for 24 hours
     // at a time so the m_addr_knowns of the chosen nodes prevent repeats
     const uint64_t hash_addr{CServiceHash(0, 0)(addr)};
-    const auto current_time{GetTime<std::chrono::seconds>()};
+    const auto current_time{Now<NodeSeconds>().time_since_epoch()};
     // Adding address hash makes exact rotation time different per address, while preserving periodicity.
     const uint64_t time_addr{(static_cast<uint64_t>(count_seconds(current_time)) + hash_addr) / count_seconds(ROTATE_ADDR_RELAY_DEST_INTERVAL)};
     const CSipHasher hasher{m_connman.GetDeterministicRandomizer(RANDOMIZER_ID_ADDRESS_RELAY)
@@ -3301,7 +3301,7 @@ void PeerManagerImpl::ProcessBlock(CNode& node, const std::shared_ptr<const CBlo
     bool new_block{false};
     m_chainman.ProcessNewBlock(block, force_processing, min_pow_checked, &new_block);
     if (new_block) {
-        node.m_last_block_time = GetTime<std::chrono::seconds>();
+        node.m_last_block_time = Now<NodeSeconds>().time_since_epoch();
         // In case this block came from a different peer than we requested
         // from, we can erase the block request now anyway (as we just stored
         // this block to disk).
@@ -3824,7 +3824,7 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
         const auto current_a_time{Now<NodeSeconds>()};
 
         // Update/increment addr rate limiting bucket.
-        const auto current_time{GetTime<std::chrono::microseconds>()};
+        const auto current_time{Now<NodeMicroseconds>().time_since_epoch()};
         if (peer.m_addr_token_bucket < MAX_ADDR_PROCESSING_TOKEN_BUCKET) {
             // Don't increment bucket if it's already full
             const auto time_diff = std::max(current_time - peer.m_addr_token_timestamp, 0us);
@@ -3905,7 +3905,7 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
 
         LOCK2(cs_main, m_tx_download_mutex);
 
-        const auto current_time{GetTime<std::chrono::microseconds>()};
+        const auto current_time{Now<NodeMicroseconds>().time_since_epoch()};
         uint256* best_block{nullptr};
 
         for (CInv& inv : vInv) {
@@ -4011,7 +4011,7 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
                 MakeAndPushMessage(pfrom, NetMsgType::TX, TX_WITH_WITNESS(*pushed_tx));
 
                 peer.m_ping_queued = true; // Ensure a ping will be sent: mimic a request via RPC.
-                MaybeSendPing(pfrom, peer, GetTime<std::chrono::microseconds>());
+                MaybeSendPing(pfrom, peer, Now<NodeMicroseconds>().time_since_epoch());
             } else {
                 LogDebug(BCLog::PRIVBROADCAST, "Disconnecting: got an unexpected GETDATA message, peer=%d%s",
                          pfrom.GetId(), fLogIPs ? strprintf(", peeraddr=%s", pfrom.addr.ToStringAddrPort()) : "");
@@ -4235,7 +4235,7 @@ void PeerManagerImpl::ProcessMessage(Peer& peer, CNode& pfrom, const std::string
 
         if (result.m_result_type == MempoolAcceptResult::ResultType::VALID) {
             ProcessValidTx(pfrom.GetId(), ptx, result.m_replaced_transactions);
-            pfrom.m_last_tx_time = GetTime<std::chrono::seconds>();
+            pfrom.m_last_tx_time = Now<NodeSeconds>().time_since_epoch();
         }
         if (state.IsInvalid()) {
             if (auto package_to_validate{ProcessInvalidTx(pfrom.GetId(), ptx, state, /*first_time_failure=*/true)}) {
@@ -5043,7 +5043,7 @@ void PeerManagerImpl::CheckForStaleTipAndEvictPeers()
 {
     LOCK(cs_main);
 
-    auto now{GetTime<std::chrono::seconds>()};
+    auto now{Now<NodeSeconds>().time_since_epoch()};
 
     EvictExtraOutboundPeers(now);
 
@@ -5278,7 +5278,7 @@ bool PeerManagerImpl::SendMessages(CNode& node)
     if (!node.fSuccessfullyConnected || node.fDisconnect)
         return true;
 
-    const auto current_time{GetTime<std::chrono::microseconds>()};
+    const auto current_time{Now<NodeMicroseconds>().time_since_epoch()};
 
     // The logic below does not apply to private broadcast peers, so skip it.
     // Also in CConnman::PushMessage() we make sure that unwanted messages are
@@ -5647,8 +5647,8 @@ bool PeerManagerImpl::SendMessages(CNode& node)
         }
 
         // Check that outbound peers have reasonable chains
-        // GetTime() is used by this anti-DoS logic so we can test this using mocktime
-        ConsiderEviction(node, peer, GetTime<std::chrono::seconds>());
+        // NodeClock is used by this anti-DoS logic so we can test it using mocktime.
+        ConsiderEviction(node, peer, Now<NodeSeconds>().time_since_epoch());
 
         //
         // Message: getdata (blocks)

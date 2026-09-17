@@ -334,7 +334,7 @@ public:
 
         // Move mock time forward so the best index gets updated only when we are not at the blocking height
         if (block.height == m_blocking_height - 1 || block.height > m_blocking_height) {
-            SetMockTime(GetTime<std::chrono::seconds>() + 31s);
+            SetMockTime(Now<NodeSeconds>() + 31s);
         }
 
         return true;
@@ -344,7 +344,7 @@ public:
 BOOST_FIXTURE_TEST_CASE(index_reorg_crash, BuildChainTestingSetup)
 {
     // Enable mock time
-    SetMockTime(GetTime<std::chrono::minutes>());
+    SetMockTime(Now<NodeMinutes>());
 
     std::promise<void> promise;
     std::shared_future<void> blocker(promise.get_future());

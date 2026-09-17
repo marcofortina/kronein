@@ -23,6 +23,9 @@ struct NodeClock : public std::chrono::system_clock {
     static time_point from_time_t(std::time_t) = delete;      // unused
 };
 using NodeSeconds = std::chrono::time_point<NodeClock, std::chrono::seconds>;
+using NodeMinutes = std::chrono::time_point<NodeClock, std::chrono::minutes>;
+using NodeMilliseconds = std::chrono::time_point<NodeClock, std::chrono::milliseconds>;
+using NodeMicroseconds = std::chrono::time_point<NodeClock, std::chrono::microseconds>;
 
 using SteadyClock = std::chrono::steady_clock;
 using SteadySeconds = std::chrono::time_point<std::chrono::steady_clock, std::chrono::seconds>;
@@ -127,13 +130,6 @@ T Now()
 {
     return std::chrono::time_point_cast<typename T::duration>(T::clock::now());
 }
-/** DEPRECATED, see GetTime */
-template <typename T>
-T GetTime()
-{
-    return Now<std::chrono::time_point<NodeClock, T>>().time_since_epoch();
-}
-
 /**
  * ISO 8601 formatting is preferred. Use the FormatISO8601{DateTime,Date}
  * helper functions if possible.

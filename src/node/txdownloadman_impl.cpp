@@ -387,7 +387,7 @@ node::RejectedTxTodo TxDownloadManagerImpl::MempoolRejectedTx(const CTransaction
                 std::erase_if(unique_parents, [&](const auto& txid) {
                     return AlreadyHaveTx(txid, /*include_reconsiderable=*/false);
                 });
-                const auto now{GetTime<std::chrono::microseconds>()};
+                const auto now{Now<NodeMicroseconds>().time_since_epoch()};
                 const auto& wtxid = ptx->GetWitnessHash();
                 // Potentially flip add_extra_compact_tx to false if tx is already in orphanage, which
                 // means it was already added to vExtraTxnForCompact.

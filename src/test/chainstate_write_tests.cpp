@@ -37,12 +37,12 @@ BOOST_FIXTURE_TEST_CASE(chainstate_write_interval, TestingSetup)
     BOOST_CHECK(!sub->m_did_flush);
 
     // The periodic flush interval is between 50 and 70 minutes (inclusive)
-    SetMockTime(GetTime<std::chrono::minutes>() + DATABASE_WRITE_INTERVAL_MIN - 1min);
+    SetMockTime(Now<NodeMinutes>() + DATABASE_WRITE_INTERVAL_MIN - 1min);
     chainstate.FlushStateToDisk(state_dummy, FlushStateMode::PERIODIC);
     m_node.validation_signals->SyncWithValidationInterfaceQueue();
     BOOST_CHECK(!sub->m_did_flush);
 
-    SetMockTime(GetTime<std::chrono::minutes>() + DATABASE_WRITE_INTERVAL_MAX);
+    SetMockTime(Now<NodeMinutes>() + DATABASE_WRITE_INTERVAL_MAX);
     chainstate.FlushStateToDisk(state_dummy, FlushStateMode::PERIODIC);
     m_node.validation_signals->SyncWithValidationInterfaceQueue();
     BOOST_CHECK(sub->m_did_flush);

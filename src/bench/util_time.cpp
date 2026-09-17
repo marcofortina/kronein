@@ -17,7 +17,7 @@ static void BenchTimeMock(benchmark::Bench& bench)
 {
     SetMockTime(111);
     bench.run([&] {
-        (void)GetTime<std::chrono::seconds>();
+        (void)Now<NodeSeconds>();
     });
     SetMockTime(0);
 }
@@ -25,7 +25,7 @@ static void BenchTimeMock(benchmark::Bench& bench)
 static void BenchTimeMillis(benchmark::Bench& bench)
 {
     bench.run([&] {
-        (void)GetTime<std::chrono::milliseconds>();
+        (void)Now<NodeMilliseconds>();
     });
 }
 

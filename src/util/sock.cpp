@@ -250,7 +250,7 @@ void Sock::SendComplete(std::span<const unsigned char> data,
                         std::chrono::milliseconds timeout,
                         CThreadInterrupt& interrupt) const
 {
-    const auto deadline = GetTime<std::chrono::milliseconds>() + timeout;
+    const auto deadline = Now<NodeMilliseconds>() + timeout;
     size_t sent{0};
 
     for (;;) {
@@ -268,7 +268,7 @@ void Sock::SendComplete(std::span<const unsigned char> data,
             }
         }
 
-        const auto now = GetTime<std::chrono::milliseconds>();
+        const auto now = Now<NodeMilliseconds>();
 
         if (now >= deadline) {
             throw std::runtime_error(strprintf(
@@ -299,7 +299,7 @@ std::string Sock::RecvUntilTerminator(uint8_t terminator,
                                       CThreadInterrupt& interrupt,
                                       size_t max_data) const
 {
-    const auto deadline = GetTime<std::chrono::milliseconds>() + timeout;
+    const auto deadline = Now<NodeMilliseconds>() + timeout;
     std::string data;
     bool terminator_found{false};
 
@@ -358,7 +358,7 @@ std::string Sock::RecvUntilTerminator(uint8_t terminator,
             }
         }
 
-        const auto now = GetTime<std::chrono::milliseconds>();
+        const auto now = Now<NodeMilliseconds>();
 
         if (now >= deadline) {
             throw std::runtime_error(strprintf(

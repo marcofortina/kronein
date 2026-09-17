@@ -421,7 +421,7 @@ BOOST_AUTO_TEST_CASE(DoS_mapOrphans)
     MakeNewKeyWithFastRandomContext(key, m_rng);
 
     // Freeze time for length of test
-    auto now{GetTime<std::chrono::seconds>()};
+    auto now{Now<NodeSeconds>()};
     SetMockTime(now);
 
     std::vector<CTransactionRef> orphans_added;

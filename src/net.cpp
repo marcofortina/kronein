@@ -657,7 +657,7 @@ void CNode::CopyStats(CNodeStats& stats)
 bool CNode::ReceiveMsgBytes(std::span<const uint8_t> msg_bytes, bool& complete)
 {
     complete = false;
-    const auto time = GetTime<std::chrono::microseconds>();
+    const auto time = Now<NodeMicroseconds>().time_since_epoch();
     LOCK(cs_vRecv);
     m_last_recv = std::chrono::duration_cast<std::chrono::seconds>(time);
     nRecvBytes += msg_bytes.size();
@@ -1317,7 +1317,7 @@ std::pair<size_t, bool> CConnman::SocketSendData(CNode& node) const
             nBytes = node.m_sock->Send(data.data(), data.size(), flags);
         }
         if (nBytes > 0) {
-            node.m_last_send = GetTime<std::chrono::seconds>();
+            node.m_last_send = Now<NodeSeconds>().time_since_epoch();
             node.nSendBytes += nBytes;
             // Notify transport that bytes have been processed.
             node.m_transport->MarkBytesSent(nBytes);
@@ -1778,7 +1778,7 @@ void CConnman::SocketHandlerConnected(const std::vector<CNode*>& nodes,
 {
     AssertLockNotHeld(m_total_bytes_sent_mutex);
 
-    auto now = GetTime<std::chrono::microseconds>();
+    auto now = Now<NodeMicroseconds>().time_since_epoch();
 
     for (CNode* pnode : nodes) {
         if (m_interrupt_net->interrupted()) {
@@ -2211,7 +2211,7 @@ void CConnman::ThreadOpenConnections(const std::vector<std::string> connect, std
     }
 
     // Initiate network connections
-    auto start = GetTime<std::chrono::microseconds>();
+    auto start = Now<NodeMicroseconds>().time_since_epoch();
 
     // Minimum time before next feeler connection (in microseconds).
     auto next_feeler = start + rng.rand_exp_duration(FEELER_INTERVAL);
@@ -2262,7 +2262,7 @@ void CConnman::ThreadOpenConnections(const std::vector<std::string> connect, std
             // 60 seconds for any of those sources to populate addrman.
             bool add_fixed_seeds_now = false;
             // It is cheapest to check if enough time has passed first.
-            if (GetTime<std::chrono::seconds>() > start + std::chrono::minutes{1}) {
+            if (Now<NodeSeconds>().time_since_epoch() > start + std::chrono::minutes{1}) {
                 add_fixed_seeds_now = true;
                 LogInfo("Adding fixed seeds as 60 seconds have passed and addrman is empty for at least one reachable network\n");
             }
@@ -2352,7 +2352,7 @@ void CConnman::ThreadOpenConnections(const std::vector<std::string> connect, std
         }
 
         ConnectionType conn_type = ConnectionType::OUTBOUND_FULL_RELAY;
-        auto now = GetTime<std::chrono::microseconds>();
+        auto now = Now<NodeMicroseconds>().time_since_epoch();
         bool anchor = false;
         bool fFeeler = false;
         std::optional<Network> preferred_net;
@@ -3348,7 +3348,7 @@ std::vector<CAddress> CConnman::GetAddressesUnsafe(size_t max_addresses, size_t 
 std::vector<CAddress> CConnman::GetAddresses(CNode& requestor, size_t max_addresses, size_t max_pct)
 {
     uint64_t network_id = requestor.m_network_key;
-    const auto current_time = GetTime<std::chrono::microseconds>();
+    const auto current_time = Now<NodeMicroseconds>().time_since_epoch();
     auto r = m_addr_response_caches.emplace(network_id, CachedAddrResponse{});
     CachedAddrResponse& cache_entry = r.first->second;
     if (cache_entry.m_cache_entry_expiration < current_time) { // If emplace() added new one it has expiration 0.
@@ -3517,7 +3517,7 @@ void CConnman::RecordBytesSent(uint64_t bytes)
 
     nTotalBytesSent += bytes;
 
-    const auto now = GetTime<std::chrono::seconds>();
+    const auto now = Now<NodeSeconds>().time_since_epoch();
     if (nMaxOutboundCycleStartTime + MAX_UPLOAD_TIMEFRAME < now)
     {
         // timeframe expired, reset cycle
@@ -3558,7 +3558,7 @@ std::chrono::seconds CConnman::GetMaxOutboundTimeLeftInCycle_() const
         return MAX_UPLOAD_TIMEFRAME;
 
     const std::chrono::seconds cycleEndTime = nMaxOutboundCycleStartTime + MAX_UPLOAD_TIMEFRAME;
-    const auto now = GetTime<std::chrono::seconds>();
+    const auto now = Now<NodeSeconds>().time_since_epoch();
     return (cycleEndTime < now) ? 0s : cycleEndTime - now;
 }
 
@@ -3629,7 +3629,7 @@ CNode::CNode(NodeId idIn,
     : m_transport{MakeTransport(idIn, conn_type_in == ConnectionType::INBOUND)},
       m_permission_flags{node_opts.permission_flags},
       m_sock{sock},
-      m_connected{GetTime<std::chrono::seconds>()},
+      m_connected{Now<NodeSeconds>().time_since_epoch()},
       addr{addrIn},
       addrBind{addrBindIn},
       m_addr_name{addrNameIn.empty() ? addr.ToStringAddrPort() : addrNameIn},
@@ -3811,7 +3811,7 @@ static void CaptureMessageToFile(const CAddress& addr,
     // not at socket receive/send time.
     // This ensures that the messages are always in order from an application
     // layer (processing) perspective.
-    auto now = GetTime<std::chrono::microseconds>();
+    auto now = Now<NodeMicroseconds>().time_since_epoch();
 
     // Windows folder names cannot include a colon
     std::string clean_addr = addr.ToStringAddrPort();
