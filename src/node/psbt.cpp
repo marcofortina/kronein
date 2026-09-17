@@ -25,7 +25,6 @@ PSBTAnalysis AnalyzePSBT(PartiallySignedTransaction psbtx)
     const PrecomputedTransactionData txdata = PrecomputePSBTData(psbtx);
 
     for (unsigned int i = 0; i < psbtx.tx->vin.size(); ++i) {
-        PSBTInput& input = psbtx.inputs[i];
         PSBTInputAnalysis& input_analysis = result.inputs[i];
 
         // We set next role here and ratchet backwards as required
@@ -41,10 +40,6 @@ PSBTAnalysis AnalyzePSBT(PartiallySignedTransaction psbtx)
             in_amt += utxo.nValue;
             input_analysis.has_utxo = true;
         } else {
-            if (input.non_witness_utxo && psbtx.tx->vin[i].prevout.n >= input.non_witness_utxo->vout.size()) {
-                result.SetInvalid(strprintf("PSBT is not valid. Input %u specifies invalid prevout", i));
-                return result;
-            }
             input_analysis.has_utxo = false;
             input_analysis.is_final = false;
             input_analysis.next = PSBTRole::UPDATER;

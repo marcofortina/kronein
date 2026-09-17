@@ -72,26 +72,14 @@ bool PartiallySignedTransaction::AddOutput(const CTxOut& txout, const PSBTOutput
 bool PartiallySignedTransaction::GetInputUTXO(CTxOut& utxo, int input_index) const
 {
     const PSBTInput& input = inputs[input_index];
-    uint32_t prevout_index = tx->vin[input_index].prevout.n;
-    if (input.non_witness_utxo) {
-        if (prevout_index >= input.non_witness_utxo->vout.size()) {
-            return false;
-        }
-        if (input.non_witness_utxo->GetHash() != tx->vin[input_index].prevout.hash) {
-            return false;
-        }
-        utxo = input.non_witness_utxo->vout[prevout_index];
-    } else if (!input.witness_utxo.IsNull()) {
-        utxo = input.witness_utxo;
-    } else {
-        return false;
-    }
+    if (input.witness_utxo.IsNull()) return false;
+    utxo = input.witness_utxo;
     return true;
 }
 
 bool PSBTInput::IsNull() const
 {
-    return !non_witness_utxo && witness_utxo.IsNull() && partial_sigs.empty() && unknown.empty() && hd_keypaths.empty() && redeem_script.empty() && witness_script.empty();
+    return witness_utxo.IsNull() && partial_sigs.empty() && unknown.empty() && hd_keypaths.empty() && redeem_script.empty() && witness_script.empty();
 }
 
 void PSBTInput::FillSignatureData(SignatureData& sigdata) const
@@ -214,7 +202,6 @@ void PSBTInput::FromSignatureData(const SignatureData& sigdata)
 
 void PSBTInput::Merge(const PSBTInput& input)
 {
-    if (!non_witness_utxo && input.non_witness_utxo) non_witness_utxo = input.non_witness_utxo;
     if (witness_utxo.IsNull() && !input.witness_utxo.IsNull()) {
         witness_utxo = input.witness_utxo;
     }
@@ -324,25 +311,10 @@ bool PSBTInputSigned(const PSBTInput& input)
 
 bool PSBTInputSignedAndVerified(const PartiallySignedTransaction& psbt, unsigned int input_index, const PrecomputedTransactionData* txdata)
 {
-    CTxOut utxo;
     assert(input_index < psbt.inputs.size());
     const PSBTInput& input = psbt.inputs[input_index];
-
-    if (input.non_witness_utxo) {
-        // If we're taking our information from a non-witness UTXO, verify that it matches the prevout.
-        COutPoint prevout = psbt.tx->vin[input_index].prevout;
-        if (prevout.n >= input.non_witness_utxo->vout.size()) {
-            return false;
-        }
-        if (input.non_witness_utxo->GetHash() != prevout.hash) {
-            return false;
-        }
-        utxo = input.non_witness_utxo->vout[prevout.n];
-    } else if (!input.witness_utxo.IsNull()) {
-        utxo = input.witness_utxo;
-    } else {
-        return false;
-    }
+    if (input.witness_utxo.IsNull()) return false;
+    const CTxOut& utxo = input.witness_utxo;
 
     if (txdata) {
         return VerifyScript(input.final_script_sig, utxo.scriptPubKey, &input.final_script_witness, STANDARD_SCRIPT_VERIFY_FLAGS, MutableTransactionSignatureChecker{&(*psbt.tx), input_index, *txdata, MissingDataBehavior::FAIL});
@@ -413,29 +385,8 @@ PSBTError SignPSBTInput(const SigningProvider& provider, PartiallySignedTransact
     input.FillSignatureData(sigdata);
 
     // Get UTXO
-    bool require_witness_sig = false;
-    CTxOut utxo;
-
-    if (input.non_witness_utxo) {
-        // If we're taking our information from a non-witness UTXO, verify that it matches the prevout.
-        COutPoint prevout = tx.vin[index].prevout;
-        if (prevout.n >= input.non_witness_utxo->vout.size()) {
-            return PSBTError::MISSING_INPUTS;
-        }
-        if (input.non_witness_utxo->GetHash() != prevout.hash) {
-            return PSBTError::MISSING_INPUTS;
-        }
-        utxo = input.non_witness_utxo->vout[prevout.n];
-    } else if (!input.witness_utxo.IsNull()) {
-        utxo = input.witness_utxo;
-        // When we're taking our information from a witness UTXO, we can't verify it is actually data from
-        // the output being spent. This is safe in case a witness signature is produced (which includes this
-        // information directly in the hash), but not for non-witness signatures. Remember that we require
-        // a witness signature in this situation.
-        require_witness_sig = true;
-    } else {
-        return PSBTError::MISSING_INPUTS;
-    }
+    if (input.witness_utxo.IsNull()) return PSBTError::MISSING_INPUTS;
+    const CTxOut& utxo = input.witness_utxo;
 
     // Get the sighash type
     // If both the field and the parameter are provided, they must match
@@ -484,21 +435,13 @@ PSBTError SignPSBTInput(const SigningProvider& provider, PartiallySignedTransact
         MutableTransactionSignatureCreator creator(tx, index, txdata, *sighash);
         sig_complete = ProduceSignature(provider, creator, utxo.scriptPubKey, sigdata);
     }
-    // Verify that a witness signature was produced in case one was required.
-    if (require_witness_sig && !sigdata.witness) return PSBTError::INCOMPLETE;
+    // Native inputs must always produce a witness spend.
+    if (!sigdata.witness) return PSBTError::INCOMPLETE;
 
     // If we are not finalizing, set sigdata.complete to false to not set the scriptWitness
     if (!finalize && sigdata.complete) sigdata.complete = false;
 
     input.FromSignatureData(sigdata);
-
-    // If we have a witness signature, put a witness UTXO.
-    if (sigdata.witness) {
-        input.witness_utxo = utxo;
-        // We can remove the non_witness_utxo if and only if there are no non-segwit or segwit v0
-        // inputs in this transaction. Since this requires inspecting the entire transaction, this
-        // is something for the caller to deal with (i.e. FillPSBT).
-    }
 
     // Fill in the missing info
     if (out_sigdata) {
@@ -509,43 +452,6 @@ PSBTError SignPSBTInput(const SigningProvider& provider, PartiallySignedTransact
     }
 
     return sig_complete ? PSBTError::OK : PSBTError::INCOMPLETE;
-}
-
-void RemoveUnnecessaryTransactions(PartiallySignedTransaction& psbtx)
-{
-    // Figure out if any non_witness_utxos should be dropped
-    std::vector<unsigned int> to_drop;
-    for (unsigned int i = 0; i < psbtx.inputs.size(); ++i) {
-        const auto& input = psbtx.inputs.at(i);
-        int wit_ver;
-        std::vector<unsigned char> wit_prog;
-        if (input.witness_utxo.IsNull() || !input.witness_utxo.scriptPubKey.IsWitnessProgram(wit_ver, wit_prog)) {
-            // There's a non-segwit input, so we cannot drop any non_witness_utxos
-            to_drop.clear();
-            break;
-        }
-        if (wit_ver == 0) {
-            // Segwit v0, so we cannot drop any non_witness_utxos
-            to_drop.clear();
-            break;
-        }
-        // non_witness_utxos cannot be dropped if the sighash type includes SIGHASH_ANYONECANPAY
-        // Since callers should have called SignPSBTInput which updates the sighash type in the PSBT, we only
-        // need to look at that field. If it is not present, then we can assume SIGHASH_DEFAULT or SIGHASH_ALL.
-        if (input.sighash_type != std::nullopt && (*input.sighash_type & 0x80) == SIGHASH_ANYONECANPAY) {
-            to_drop.clear();
-            break;
-        }
-
-        if (input.non_witness_utxo) {
-            to_drop.push_back(i);
-        }
-    }
-
-    // Drop the non_witness_utxos that we can drop
-    for (unsigned int i : to_drop) {
-        psbtx.inputs.at(i).non_witness_utxo = nullptr;
-    }
 }
 
 bool FinalizePSBT(PartiallySignedTransaction& psbtx)

@@ -20,7 +20,7 @@ sys.path.insert(0, PATH_BASE_TEST_FUNCTIONAL)
 
 from test_framework.blocktools import get_witness_script, script_BIP34_coinbase_height, SIGNET_HEADER # noqa: E402
 from test_framework.messages import CBlock, CBlockHeader, COutPoint, CTransaction, CTxIn, CTxInWitness, CTxOut, from_binary, from_hex, ser_string, ser_uint256, tx_from_hex, MAX_SEQUENCE_NONFINAL # noqa: E402
-from test_framework.psbt import PSBT, PSBTMap, PSBT_GLOBAL_UNSIGNED_TX, PSBT_IN_FINAL_SCRIPTSIG, PSBT_IN_FINAL_SCRIPTWITNESS, PSBT_IN_NON_WITNESS_UTXO, PSBT_IN_SIGHASH_TYPE # noqa: E402
+from test_framework.psbt import PSBT, PSBTMap, PSBT_GLOBAL_UNSIGNED_TX, PSBT_IN_FINAL_SCRIPTSIG, PSBT_IN_FINAL_SCRIPTWITNESS, PSBT_IN_SIGHASH_TYPE, PSBT_IN_WITNESS_UTXO # noqa: E402
 from test_framework.script import CScript, CScriptOp # noqa: E402
 
 logging.basicConfig(
@@ -134,7 +134,7 @@ def generate_psbt(block, signet_spk):
     psbt.g = PSBTMap( {PSBT_GLOBAL_UNSIGNED_TX: signme.serialize_without_witness(),
                        PSBT_SIGNET_BLOCK: block.serialize()
                      } )
-    psbt.i = [ PSBTMap( {PSBT_IN_NON_WITNESS_UTXO: spendme.serialize(),
+    psbt.i = [ PSBTMap( {PSBT_IN_WITNESS_UTXO: spendme.vout[0].serialize(),
                          PSBT_IN_SIGHASH_TYPE: bytes([1,0,0,0])})
              ]
     psbt.o = [ PSBTMap() ]

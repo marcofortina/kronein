@@ -129,49 +129,21 @@ PartiallySignedTransaction ProcessPSBT(const std::string& psbt_string, const std
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, strprintf("TX decode failed %s", error));
     }
 
-    if (g_txindex) g_txindex->BlockUntilSyncedToCurrentChain();
     const NodeContext& node = EnsureAnyNodeContext(context);
 
-    // If we can't find the corresponding full transaction for all of our inputs,
-    // this will be used to find just the utxos for the segwit inputs for which
-    // the full transaction isn't found
+    // Fetch the spent outputs from the mempool or UTXO set.
     std::map<COutPoint, Coin> coins;
-
-    // Fetch previous transactions:
-    // First, look in the txindex and the mempool
     for (unsigned int i = 0; i < psbtx.tx->vin.size(); ++i) {
-        PSBTInput& psbt_input = psbtx.inputs.at(i);
-        const CTxIn& tx_in = psbtx.tx->vin.at(i);
-
-        // The `non_witness_utxo` is the whole previous transaction
-        if (psbt_input.non_witness_utxo) continue;
-
-        CTransactionRef tx;
-
-        // Look in the txindex
-        if (g_txindex) {
-            uint256 block_hash;
-            g_txindex->FindTx(tx_in.prevout.hash, block_hash, tx);
-        }
-        // If we still don't have it look in the mempool
-        if (!tx) {
-            tx = node.mempool->get(tx_in.prevout.hash);
-        }
-        if (tx) {
-            psbt_input.non_witness_utxo = tx;
-        } else {
-            coins[tx_in.prevout]; // Create empty map entry keyed by prevout
+        if (psbtx.inputs.at(i).witness_utxo.IsNull()) {
+            coins[psbtx.tx->vin.at(i).prevout];
         }
     }
 
-    // If we still haven't found all of the inputs, look for the missing ones in the utxo set
     if (!coins.empty()) {
         FindCoins(node, coins);
         for (unsigned int i = 0; i < psbtx.tx->vin.size(); ++i) {
             PSBTInput& input = psbtx.inputs.at(i);
-
-            // If there are still missing utxos, add them if they were found in the utxo set
-            if (!input.non_witness_utxo) {
+            if (input.witness_utxo.IsNull()) {
                 const CTxIn& tx_in = psbtx.tx->vin.at(i);
                 const Coin& coin = coins.at(tx_in.prevout);
                 if (!coin.out.IsNull() &&
@@ -203,8 +175,6 @@ PartiallySignedTransaction ProcessPSBT(const std::string& psbt_string, const std
     for (unsigned int i = 0; i < psbtx.tx->vout.size(); ++i) {
         UpdatePSBTOutput(provider, psbtx, i);
     }
-
-    RemoveUnnecessaryTransactions(psbtx);
 
     return psbtx;
 }
@@ -667,10 +637,6 @@ const RPCResult decodepsbt_inputs{
     {
         {RPCResult::Type::OBJ, "", "",
         {
-            {RPCResult::Type::OBJ, "non_witness_utxo", /*optional=*/true, "Decoded network transaction for non-witness UTXOs",
-            {
-                {RPCResult::Type::ELISION, "",""},
-            }},
             {RPCResult::Type::OBJ, "witness_utxo", /*optional=*/true, "Transaction output for witness UTXOs",
             {
                 {RPCResult::Type::NUM, "amount", "The value in " + CURRENCY_UNIT},
@@ -1021,15 +987,6 @@ static RPCHelpMan decodepsbt()
             out.pushKV("scriptPubKey", std::move(o));
 
             in.pushKV("witness_utxo", std::move(out));
-
-            have_a_utxo = true;
-        }
-        if (input.non_witness_utxo) {
-            txout = input.non_witness_utxo->vout[psbtx.tx->vin[i].prevout.n];
-
-            UniValue non_wit(UniValue::VOBJ);
-            TxToUniv(*input.non_witness_utxo, /*block_hash=*/uint256(), /*entry=*/non_wit, /*include_hex=*/false);
-            in.pushKV("non_witness_utxo", std::move(non_wit));
 
             have_a_utxo = true;
         }

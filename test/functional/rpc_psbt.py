@@ -32,7 +32,6 @@ from test_framework.psbt import (
     PSBT_IN_MUSIG2_PARTIAL_SIG,
     PSBT_IN_MUSIG2_PARTICIPANT_PUBKEYS,
     PSBT_IN_MUSIG2_PUB_NONCE,
-    PSBT_IN_NON_WITNESS_UTXO,
     PSBT_IN_WITNESS_UTXO,
     PSBT_OUT_MUSIG2_PARTICIPANT_PUBKEYS,
     PSBT_OUT_TAP_TREE,
@@ -90,8 +89,8 @@ class PSBTTest(BitcoinTestFramework):
         signed_psbt_incomplete = wallet.walletprocesspsbt(psbt=signed_psbt_obj.to_base64(), finalize=False)
         assert signed_psbt_incomplete["complete"] is False
 
-    def test_utxo_conversion(self):
-        self.log.info("Check that non-witness UTXOs are removed for segwit v1+ inputs")
+    def test_native_utxo(self):
+        self.log.info("Check that PSBT inputs use the spent native output")
         mining_node = self.nodes[2]
         offline_node = self.nodes[0]
         online_node = self.nodes[1]
@@ -118,17 +117,10 @@ class PSBTTest(BitcoinTestFramework):
         utxos = wonline.listunspent(addresses=[offline_addr])
         raw = wonline.createrawtransaction([{"txid":utxos[0]["txid"], "vout":utxos[0]["vout"]}],[{online_addr:0.9999}])
         psbt = wonline.walletprocesspsbt(online_node.converttopsbt(raw))["psbt"]
-        assert "not_witness_utxo" not in mining_node.decodepsbt(psbt)["inputs"][0]
+        assert "witness_utxo" in mining_node.decodepsbt(psbt)["inputs"][0]
 
-        # add non-witness UTXO manually
-        psbt_new = PSBT.from_base64(psbt)
-        prev_tx = wonline.gettransaction(utxos[0]["txid"])["hex"]
-        psbt_new.i[0].map[PSBT_IN_NON_WITNESS_UTXO] = bytes.fromhex(prev_tx)
-        assert "non_witness_utxo" in mining_node.decodepsbt(psbt_new.to_base64())["inputs"][0]
-
-        # Have the offline node sign the PSBT (which will remove the non-witness UTXO)
-        signed_psbt = offline_node.walletprocesspsbt(psbt_new.to_base64())
-        assert "non_witness_utxo" not in mining_node.decodepsbt(signed_psbt["psbt"])["inputs"][0]
+        # Have the offline node sign the PSBT using the spent output.
+        signed_psbt = offline_node.walletprocesspsbt(psbt)
 
         # Make sure we can mine the resulting transaction
         txid = mining_node.sendrawtransaction(signed_psbt["hex"])
@@ -595,7 +587,7 @@ class PSBTTest(BitcoinTestFramework):
         # Empty combiner test
         assert_raises_rpc_error(-8, "Parameter 'txs' cannot be empty", self.nodes[0].combinepsbt, [])
 
-        self.test_utxo_conversion()
+        self.test_native_utxo()
         self.test_psbt_incomplete_after_invalid_modification()
 
         self.test_input_confs_control()

@@ -34,7 +34,6 @@ static constexpr uint8_t PSBT_GLOBAL_VERSION = 0xFB;
 static constexpr uint8_t PSBT_GLOBAL_PROPRIETARY = 0xFC;
 
 // Input types
-static constexpr uint8_t PSBT_IN_NON_WITNESS_UTXO = 0x00;
 static constexpr uint8_t PSBT_IN_WITNESS_UTXO = 0x01;
 static constexpr uint8_t PSBT_IN_PARTIAL_SIG = 0x02;
 static constexpr uint8_t PSBT_IN_SIGHASH = 0x03;
@@ -260,7 +259,6 @@ void DeserializeMuSig2ParticipantDataIdentifier(Stream& skey, CPubKey& agg_pub, 
 /** A structure for PSBTs which contain per-input information */
 struct PSBTInput
 {
-    CTransactionRef non_witness_utxo;
     CTxOut witness_utxo;
     CScript redeem_script;
     CScript witness_script;
@@ -300,11 +298,7 @@ struct PSBTInput
 
     template <typename Stream>
     inline void Serialize(Stream& s) const {
-        // Write the utxo
-        if (non_witness_utxo) {
-            SerializeToVector(s, CompactSizeWriter(PSBT_IN_NON_WITNESS_UTXO));
-            SerializeToVector(s, TX_WITH_WITNESS(non_witness_utxo));
-        }
+        // Write the spent output.
         if (!witness_utxo.IsNull()) {
             SerializeToVector(s, CompactSizeWriter(PSBT_IN_WITNESS_UTXO));
             SerializeToVector(s, witness_utxo);
@@ -502,16 +496,6 @@ struct PSBTInput
             // Do stuff based on keytype "type", i.e., key checks, reading values of the
             // format "<valuelen><valuedata>" from the stream "s", and value checks
             switch(type) {
-                case PSBT_IN_NON_WITNESS_UTXO:
-                {
-                    if (!key_lookup.emplace(key).second) {
-                        throw std::ios_base::failure("Duplicate Key, input non-witness utxo already provided");
-                    } else if (key.size() != 1) {
-                        throw std::ios_base::failure("Non-witness utxo key is more than one byte type");
-                    }
-                    UnserializeFromVector(s, TX_WITH_WITNESS(non_witness_utxo));
-                    break;
-                }
                 case PSBT_IN_WITNESS_UTXO:
                     if (!key_lookup.emplace(key).second) {
                         throw std::ios_base::failure("Duplicate Key, input witness utxo already provided");
@@ -1364,16 +1348,6 @@ struct PartiallySignedTransaction
             PSBTInput input;
             s >> input;
             inputs.push_back(input);
-
-            // Make sure the non-witness utxo matches the outpoint
-            if (input.non_witness_utxo) {
-                if (input.non_witness_utxo->GetHash() != tx->vin[i].prevout.hash) {
-                    throw std::ios_base::failure("Non-witness UTXO does not match outpoint hash");
-                }
-                if (tx->vin[i].prevout.n >= input.non_witness_utxo->vout.size()) {
-                    throw std::ios_base::failure("Input specifies output index that does not exist");
-                }
-            }
             ++i;
         }
         // Make sure that the number of inputs matches the number of inputs in the transaction
@@ -1426,9 +1400,6 @@ bool PSBTInputSignedAndVerified(const PartiallySignedTransaction& psbt, unsigned
  * multiple SignPSBTInput calls). If it is nullptr, a dummy signature will be created.
  **/
 [[nodiscard]] PSBTError SignPSBTInput(const SigningProvider& provider, PartiallySignedTransaction& psbt, int index, const PrecomputedTransactionData* txdata, std::optional<int> sighash = std::nullopt, SignatureData* out_sigdata = nullptr, bool finalize = true);
-
-/**  Reduces the size of the PSBT by dropping unnecessary `non_witness_utxos` (i.e. complete previous transactions) from a psbt when all inputs are segwit v1. */
-void RemoveUnnecessaryTransactions(PartiallySignedTransaction& psbtx);
 
 /** Counts the unsigned inputs of a PSBT. */
 size_t CountPSBTUnsignedInputs(const PartiallySignedTransaction& psbt);

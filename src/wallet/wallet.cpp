@@ -2048,15 +2048,15 @@ std::optional<PSBTError> CWallet::FillPSBT(PartiallySignedTransaction& psbtx, bo
             continue;
         }
 
-        // If we have no utxo, grab it from the wallet.
-        if (!input.non_witness_utxo) {
+        // If the spent output is missing, grab it from the wallet transaction.
+        if (input.witness_utxo.IsNull()) {
             const Txid& txhash = txin.prevout.hash;
             const auto it = mapWallet.find(txhash);
             if (it != mapWallet.end()) {
                 const CWalletTx& wtx = it->second;
-                // We only need the non_witness_utxo, which is a superset of the witness_utxo.
-                //   The signing code will switch to the smaller witness_utxo if this is ok.
-                input.non_witness_utxo = wtx.tx;
+                if (txin.prevout.n < wtx.tx->vout.size()) {
+                    input.witness_utxo = wtx.tx->vout[txin.prevout.n];
+                }
             }
         }
     }
@@ -2075,8 +2075,6 @@ std::optional<PSBTError> CWallet::FillPSBT(PartiallySignedTransaction& psbtx, bo
             (*n_signed) += n_signed_this_spkm;
         }
     }
-
-    RemoveUnnecessaryTransactions(psbtx);
 
     // Complete if every input is now signed
     complete = true;

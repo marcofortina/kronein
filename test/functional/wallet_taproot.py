@@ -352,7 +352,6 @@ class WalletTaprootTest(BitcoinTestFramework):
                 decoded = wallet.decodepsbt(res["psbt"])
                 if pattern.startswith("tr("):
                     for psbtin in decoded["inputs"]:
-                        assert "non_witness_utxo" not in psbtin
                         assert "witness_utxo" in psbtin
                         assert "taproot_internal_key" in psbtin
                         assert "taproot_bip32_derivs" in psbtin
