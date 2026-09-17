@@ -14,21 +14,15 @@
 #include <cassert>
 #include <cstring>
 
-/// Maximum witness program length for Bech32m addresses.
-static constexpr std::size_t BECH32M_WITNESS_PROG_MAX_LEN{40};
-
 namespace {
 class DestinationEncoder
 {
 private:
     const CChainParams& m_params;
 
-    std::string EncodeWitness(unsigned int version, const std::vector<unsigned char>& program) const
+    std::string EncodeWitnessV1(const std::vector<unsigned char>& program) const
     {
-        if (version < 1 || version > 16 || program.size() < 2 || program.size() > BECH32M_WITNESS_PROG_MAX_LEN) {
-            return {};
-        }
-        std::vector<unsigned char> data{static_cast<unsigned char>(version)};
+        std::vector<unsigned char> data{1};
         data.reserve(1 + (program.size() * 8 + 4) / 5);
         ConvertBits<8, 5, true>([&](unsigned char c) { data.push_back(c); }, program.begin(), program.end());
         return bech32::Encode(m_params.Bech32HRP(), data);
@@ -47,7 +41,7 @@ public:
 
     std::string operator()(const PayToAnchor& anchor) const
     {
-        return EncodeWitness(anchor.GetWitnessVersion(), anchor.GetWitnessProgram());
+        return EncodeWitnessV1(anchor.GetWitnessProgram());
     }
 
     template <typename T>
@@ -67,8 +61,7 @@ CTxDestination DecodeDestination(const std::string& str, const CChainParams& par
             error_str = strprintf("Invalid prefix for Bech32m address (expected %s, got %s).", params.Bech32HRP(), dec.hrp);
             return CNoDestination();
         }
-        const int version{dec.data[0]};
-        if (version < 1 || version > 16) {
+        if (dec.data[0] != 1) {
             error_str = "Invalid Bech32m address witness version";
             return CNoDestination();
         }
@@ -77,18 +70,12 @@ CTxDestination DecodeDestination(const std::string& str, const CChainParams& par
         data.reserve(((dec.data.size() - 1) * 5) / 8);
         if (ConvertBits<5, 8, false>([&](unsigned char c) { data.push_back(c); }, dec.data.begin() + 1, dec.data.end())) {
             if (data.size() == WitnessV1Taproot::size()) {
-                if (version == 1) {
-                    WitnessV1Taproot tap;
-                    std::copy(data.begin(), data.end(), tap.begin());
-                    return tap;
-                }
+                WitnessV1Taproot tap;
+                std::copy(data.begin(), data.end(), tap.begin());
+                return tap;
             }
-            if (CScript::IsPayToAnchor(version, data)) {
+            if (CScript::IsPayToAnchor(1, data)) {
                 return PayToAnchor{};
-            }
-            if (data.size() < 2 || data.size() > BECH32M_WITNESS_PROG_MAX_LEN) {
-                error_str = strprintf("Invalid Bech32m address program size (%d bytes)", data.size());
-                return CNoDestination();
             }
             error_str = "Only Taproot and pay-to-anchor Bech32m addresses are supported";
             return CNoDestination();

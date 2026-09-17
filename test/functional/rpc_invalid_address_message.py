@@ -54,7 +54,7 @@ class InvalidAddressErrorMessageTest(BitcoinTestFramework):
             assert_equal(res['error_locations'], [])
 
     def test_validateaddress(self):
-        self.check_invalid(BECH32M_INVALID_SIZE, "Invalid Bech32m address program size (41 bytes)")
+        self.check_invalid(BECH32M_INVALID_SIZE, "Only Taproot and pay-to-anchor Bech32m addresses are supported")
         self.check_invalid(BECH32M_INVALID_PREFIX, 'Invalid prefix for Bech32m address (expected bcrt, got bc).')
         self.check_invalid(BECH32M_TOO_LONG, 'Bech32 string too long', list(range(90, len(BECH32M_TOO_LONG))))
         self.check_invalid(BECH32M_ONE_ERROR, 'Invalid Bech32m checksum', [9])
@@ -82,7 +82,7 @@ class InvalidAddressErrorMessageTest(BitcoinTestFramework):
     def test_getaddressinfo(self):
         node = self.nodes[0]
 
-        assert_raises_rpc_error(-5, "Invalid Bech32m address program size (41 bytes)", node.getaddressinfo, BECH32M_INVALID_SIZE)
+        assert_raises_rpc_error(-5, "Only Taproot and pay-to-anchor Bech32m addresses are supported", node.getaddressinfo, BECH32M_INVALID_SIZE)
         assert_raises_rpc_error(-5, "Invalid prefix for Bech32m address (expected bcrt, got bc).", node.getaddressinfo, BECH32M_INVALID_PREFIX)
         assert_raises_rpc_error(-5, "Invalid separator position", node.getaddressinfo, INVALID_ADDRESS)
 
