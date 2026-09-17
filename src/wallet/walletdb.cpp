@@ -487,7 +487,12 @@ static DBErrors LoadAddressBookRecords(CWallet* pwallet, DatabaseBatch& batch) E
         key >> strAddress;
         std::string label;
         value >> label;
-        pwallet->m_address_book[DecodeDestination(strAddress)].SetLabel(label);
+        const CTxDestination dest{DecodeDestination(strAddress)};
+        if (!IsValidDestination(dest)) {
+            err = strprintf("Error: Invalid address '%s' in address book.", strAddress);
+            return DBErrors::CORRUPT;
+        }
+        pwallet->m_address_book[dest].SetLabel(label);
         return DBErrors::LOAD_OK;
     });
     result = std::max(result, name_res.m_result);
@@ -504,7 +509,12 @@ static DBErrors LoadAddressBookRecords(CWallet* pwallet, DatabaseBatch& batch) E
             err = strprintf("Error: Invalid purpose '%s' for address '%s'.", purpose_str, strAddress);
             return DBErrors::CORRUPT;
         }
-        pwallet->m_address_book[DecodeDestination(strAddress)].purpose = purpose;
+        const CTxDestination dest{DecodeDestination(strAddress)};
+        if (!IsValidDestination(dest)) {
+            err = strprintf("Error: Invalid address '%s' in address book.", strAddress);
+            return DBErrors::CORRUPT;
+        }
+        pwallet->m_address_book[dest].purpose = purpose;
         return DBErrors::LOAD_OK;
     });
     result = std::max(result, purpose_res.m_result);
@@ -524,18 +534,23 @@ static DBErrors LoadAddressBookRecords(CWallet* pwallet, DatabaseBatch& batch) E
         key >> strKey;
         value >> strValue;
         const CTxDestination& dest{DecodeDestination(strAddress)};
+        if (!IsValidDestination(dest)) {
+            err = strprintf("Error: Invalid address '%s' in destination data.", strAddress);
+            return DBErrors::CORRUPT;
+        }
         if (strKey.compare("used") == 0) {
-            // Load "used" key indicating if an IsMine address has
-            // previously been spent from with avoid_reuse option enabled.
-            // The strValue is not used for anything currently, but could
-            // hold more information in the future. Current values are just
-            // "1" or "p" for present (which was written prior to
-            // f5ba424cd44619d9b9be88b8593d69a7ba96db26).
+            if (strValue != "1") {
+                err = strprintf("Error: Invalid previously spent value for address '%s'.", strAddress);
+                return DBErrors::CORRUPT;
+            }
             pwallet->LoadAddressPreviouslySpent(dest);
         } else if (strKey.starts_with("rr")) {
             // Load "rr##" keys where ## is a decimal number, and strValue
             // is a serialized RecentRequestEntry object.
             pwallet->LoadAddressReceiveRequest(dest, strKey.substr(2), strValue);
+        } else {
+            err = strprintf("Error: Unknown destination data key '%s' for address '%s'.", strKey, strAddress);
+            return DBErrors::CORRUPT;
         }
         return DBErrors::LOAD_OK;
     });
