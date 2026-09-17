@@ -10,26 +10,26 @@
 
 using namespace util::hex_literals;
 
-static void Bech32Encode(benchmark::Bench& bench)
+static void Bech32mEncode(benchmark::Bench& bench)
 {
     constexpr std::array<uint8_t, 32> v{"c97f5a67ec381b760aeaf67573bc164845ff39a3bb26a1cee401ac67243b48db"_hex_u8};
-    std::vector<unsigned char> tmp = {0};
+    std::vector<unsigned char> tmp = {1};
     tmp.reserve(1 + v.size() * 8 / 5);
     ConvertBits<8, 5, true>([&](unsigned char c) { tmp.push_back(c); }, v.begin(), v.end());
     bench.batch(v.size()).unit("byte").run([&] {
-        bech32::Encode(bech32::Encoding::BECH32, "bc", tmp);
+        bech32::Encode("bc", tmp);
     });
 }
 
 
-static void Bech32Decode(benchmark::Bench& bench)
+static void Bech32mDecode(benchmark::Bench& bench)
 {
-    std::string addr = "bc1qkallence7tjawwvy0dwt4twc62qjgaw8f4vlhyd006d99f09";
+    std::string addr = "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqc8gma6";
     bench.batch(addr.size()).unit("byte").run([&] {
         bech32::Decode(addr);
     });
 }
 
 
-BENCHMARK(Bech32Encode);
-BENCHMARK(Bech32Decode);
+BENCHMARK(Bech32mEncode);
+BENCHMARK(Bech32mDecode);

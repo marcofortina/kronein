@@ -12,26 +12,6 @@
 
 BOOST_AUTO_TEST_SUITE(bech32_tests)
 
-BOOST_AUTO_TEST_CASE(bech32_testvectors_valid)
-{
-    static const std::string CASES[] = {
-        "A12UEL5L",
-        "a12uel5l",
-        "an83characterlonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbio1tt5tgs",
-        "abcdef1qpzry9x8gf2tvdw0s3jn54khce6mua7lmqqqxw",
-        "11qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqc8247j",
-        "split1checkupstagehandshakeupstreamerranterredcaperred2y9e3w",
-        "?1ezyfcl",
-    };
-    for (const std::string& str : CASES) {
-        const auto dec = bech32::Decode(str);
-        BOOST_CHECK(dec.encoding == bech32::Encoding::BECH32);
-        std::string recode = bech32::Encode(bech32::Encoding::BECH32, dec.hrp, dec.data);
-        BOOST_CHECK(!recode.empty());
-        BOOST_CHECK(CaseInsensitiveEqual(str, recode));
-    }
-}
-
 BOOST_AUTO_TEST_CASE(bech32m_testvectors_valid)
 {
     static const std::string CASES[] = {
@@ -45,62 +25,10 @@ BOOST_AUTO_TEST_CASE(bech32m_testvectors_valid)
     };
     for (const std::string& str : CASES) {
         const auto dec = bech32::Decode(str);
-        BOOST_CHECK(dec.encoding == bech32::Encoding::BECH32M);
-        std::string recode = bech32::Encode(bech32::Encoding::BECH32M, dec.hrp, dec.data);
+        BOOST_CHECK(dec.valid);
+        std::string recode = bech32::Encode(dec.hrp, dec.data);
         BOOST_CHECK(!recode.empty());
         BOOST_CHECK(CaseInsensitiveEqual(str, recode));
-    }
-}
-
-BOOST_AUTO_TEST_CASE(bech32_testvectors_invalid)
-{
-    static const std::string CASES[] = {
-        " 1nwldj5",
-        "\x7f""1axkwrx",
-        "\x80""1eym55h",
-        "an84characterslonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbio1569pvx",
-        "pzry9x0s0muk",
-        "1pzry9x0s0muk",
-        "x1b4n0q5v",
-        "li1dgmt3",
-        "de1lg7wt\xff",
-        "A1G7SGD8",
-        "10a06t8",
-        "1qzzfhee",
-        "a12UEL5L",
-        "A12uEL5L",
-        "abcdef1qpzrz9x8gf2tvdw0s3jn54khce6mua7lmqqqxw",
-        "test1zg69w7y6hn0aqy352euf40x77qddq3dc",
-    };
-    static const std::pair<std::string, std::vector<int>> ERRORS[] = {
-        {"Invalid character or mixed case", {0}},
-        {"Invalid character or mixed case", {0}},
-        {"Invalid character or mixed case", {0}},
-        {"Bech32 string too long", {90}},
-        {"Missing separator", {}},
-        {"Invalid separator position", {0}},
-        {"Invalid Base 32 character", {2}},
-        {"Invalid separator position", {2}},
-        {"Invalid character or mixed case", {8}},
-        {"Invalid checksum", {}}, // The checksum is calculated using the uppercase form so the entire string is invalid, not just a few characters
-        {"Invalid separator position", {0}},
-        {"Invalid separator position", {0}},
-        {"Invalid character or mixed case", {3, 4, 5, 7}},
-        {"Invalid character or mixed case", {3}},
-        {"Invalid Bech32 checksum", {11}},
-        {"Invalid Bech32 checksum", {9, 16}},
-    };
-    static_assert(std::size(CASES) == std::size(ERRORS), "Bech32 CASES and ERRORS should have the same length");
-
-    int i = 0;
-    for (const std::string& str : CASES) {
-        const auto& err = ERRORS[i];
-        const auto dec = bech32::Decode(str);
-        BOOST_CHECK(dec.encoding == bech32::Encoding::INVALID);
-        auto [error, error_locations] = bech32::LocateErrors(str);
-        BOOST_CHECK_EQUAL(err.first, error);
-        BOOST_CHECK(err.second == error_locations);
-        i++;
     }
 }
 
@@ -148,7 +76,7 @@ BOOST_AUTO_TEST_CASE(bech32m_testvectors_invalid)
     for (const std::string& str : CASES) {
         const auto& err = ERRORS[i];
         const auto dec = bech32::Decode(str);
-        BOOST_CHECK(dec.encoding == bech32::Encoding::INVALID);
+        BOOST_CHECK(!dec.valid);
         auto [error, error_locations] = bech32::LocateErrors(str);
         BOOST_CHECK_EQUAL(err.first, error);
         BOOST_CHECK(err.second == error_locations);

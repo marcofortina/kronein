@@ -31,7 +31,7 @@ private:
         std::vector<unsigned char> data{static_cast<unsigned char>(version)};
         data.reserve(1 + (program.size() * 8 + 4) / 5);
         ConvertBits<8, 5, true>([&](unsigned char c) { data.push_back(c); }, program.begin(), program.end());
-        return bech32::Encode(bech32::Encoding::BECH32M, m_params.Bech32HRP(), data);
+        return bech32::Encode(m_params.Bech32HRP(), data);
     }
 
 public:
@@ -42,7 +42,7 @@ public:
         std::vector<unsigned char> data = {1};
         data.reserve(53);
         ConvertBits<8, 5, true>([&](unsigned char c) { data.push_back(c); }, tap.begin(), tap.end());
-        return bech32::Encode(bech32::Encoding::BECH32M, m_params.Bech32HRP(), data);
+        return bech32::Encode(m_params.Bech32HRP(), data);
     }
 
     std::string operator()(const PayToAnchor& anchor) const
@@ -58,7 +58,7 @@ CTxDestination DecodeDestination(const std::string& str, const CChainParams& par
 {
     error_str = "";
     const auto dec = bech32::Decode(str);
-    if (dec.encoding == bech32::Encoding::BECH32M) {
+    if (dec.valid) {
         if (dec.data.empty()) {
             error_str = "Empty Bech32m data section";
             return CNoDestination();

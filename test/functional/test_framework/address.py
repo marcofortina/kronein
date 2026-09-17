@@ -44,9 +44,8 @@ def create_deterministic_address_bcrt1_p2tr_op_true(explicit_internal_key=None):
 def program_to_witness(version, program, main=False):
     if (type(program) is str):
         program = bytes.fromhex(program)
-    assert 0 <= version <= 16
+    assert version == 1
     assert 2 <= len(program) <= 40
-    assert version > 0 or len(program) in [20, 32]
     return encode_segwit_address("bc" if main else "bcrt", version, program)
 
 def output_key_to_p2tr(key, main=False):

@@ -15,22 +15,22 @@
 
 FUZZ_TARGET(bech32_random_decode)
 {
-    auto limit = bech32::CharLimit::BECH32;
+    auto limit = bech32::MAX_LENGTH;
     FuzzedDataProvider fdp(buffer.data(), buffer.size());
     auto random_string = fdp.ConsumeRandomLengthString(limit + 1);
     auto decoded = bech32::Decode(random_string, limit);
 
     if (decoded.hrp.empty()) {
-        assert(decoded.encoding == bech32::Encoding::INVALID);
+        assert(!decoded.valid);
         assert(decoded.data.empty());
     } else {
-        assert(decoded.encoding != bech32::Encoding::INVALID);
-        auto reencoded = bech32::Encode(decoded.encoding, decoded.hrp, decoded.data);
+        assert(decoded.valid);
+        auto reencoded = bech32::Encode(decoded.hrp, decoded.data);
         assert(CaseInsensitiveEqual(random_string, reencoded));
     }
 }
 
-// https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki and https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
+// https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
 std::string GenerateRandomHRP(FuzzedDataProvider& fdp)
 {
     std::string hrp;
@@ -55,15 +55,13 @@ FUZZ_TARGET(bech32_roundtrip)
     ConvertBits<8, 5, true>([&](auto c) { converted_input.push_back(c); }, input_chars.begin(), input_chars.end());
 
     auto size = converted_input.size() + hrp.length() + std::string({bech32::SEPARATOR}).size() + bech32::CHECKSUM_SIZE;
-    if (size <= bech32::CharLimit::BECH32) {
-        for (auto encoding: {bech32::Encoding::BECH32, bech32::Encoding::BECH32M}) {
-            auto encoded = bech32::Encode(encoding, hrp, converted_input);
-            assert(!encoded.empty());
+    if (size <= bech32::MAX_LENGTH) {
+        auto encoded = bech32::Encode(hrp, converted_input);
+        assert(!encoded.empty());
 
-            const auto decoded = bech32::Decode(encoded);
-            assert(decoded.encoding == encoding);
-            assert(decoded.hrp == hrp);
-            assert(decoded.data == converted_input);
-        }
+        const auto decoded = bech32::Decode(encoded);
+        assert(decoded.valid);
+        assert(decoded.hrp == hrp);
+        assert(decoded.data == converted_input);
     }
 }
