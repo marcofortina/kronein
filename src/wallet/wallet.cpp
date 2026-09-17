@@ -1555,10 +1555,7 @@ bool CWallet::IsWalletFlagSet(uint64_t flag) const
 bool CWallet::LoadWalletFlags(uint64_t flags)
 {
     LOCK(cs_wallet);
-    if (((flags & KNOWN_WALLET_FLAGS) >> 32) ^ (flags >> 32)) {
-        // contains unknown non-tolerable wallet flags
-        return false;
-    }
+    if (flags & ~KNOWN_WALLET_FLAGS) return false;
     m_wallet_flags = flags;
 
     return true;
@@ -1568,8 +1565,7 @@ void CWallet::InitWalletFlags(uint64_t flags)
 {
     LOCK(cs_wallet);
 
-    // We should never be writing unknown non-tolerable wallet flags
-    assert(((flags & KNOWN_WALLET_FLAGS) >> 32) == (flags >> 32));
+    assert((flags & ~KNOWN_WALLET_FLAGS) == 0);
     // This should only be used once, when creating a new wallet - so current flags are expected to be blank
     assert(m_wallet_flags == 0);
 
@@ -1578,11 +1574,6 @@ void CWallet::InitWalletFlags(uint64_t flags)
     }
 
     if (!LoadWalletFlags(flags)) assert(false);
-}
-
-uint64_t CWallet::GetWalletFlags() const
-{
-    return m_wallet_flags;
 }
 
 void CWallet::MaybeUpdateBirthTime(int64_t time)

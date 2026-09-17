@@ -13,9 +13,6 @@
 namespace wallet {
 
 enum WalletFlags : uint64_t {
-    // wallet flags in the upper section (> 1 << 31) will lead to not opening the wallet if flag is unknown
-    // unknown wallet flags in the lower section <= (1 << 31) will be tolerated
-
     // will categorize coins as clean (not reused) and dirty (reused), and handle
     // them with privacy considerations in mind
     WALLET_FLAG_AVOID_REUSE = (1ULL << 0),

@@ -879,9 +879,6 @@ public:
     void InitWalletFlags(uint64_t flags);
     /** Loads the flags into the wallet. (used by LoadWallet) */
     bool LoadWalletFlags(uint64_t flags);
-    //! Retrieve all of the wallet's flags
-    uint64_t GetWalletFlags() const;
-
     /** Return wallet name for use in logs, will return "default wallet" if the wallet has no name. */
     std::string LogName() const override
     {

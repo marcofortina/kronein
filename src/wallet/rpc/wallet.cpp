@@ -106,18 +106,9 @@ static RPCHelpMan getwalletinfo()
         obj.pushKV("birthtime", birthtime);
     }
 
-    // Push known flags
     UniValue flags(UniValue::VARR);
-    uint64_t wallet_flags = pwallet->GetWalletFlags();
-    for (uint64_t i = 0; i < 64; ++i) {
-        uint64_t flag = uint64_t{1} << i;
-        if (flag & wallet_flags) {
-            if (flag & KNOWN_WALLET_FLAGS) {
-                flags.push_back(WALLET_FLAG_TO_STRING.at(WalletFlags{flag}));
-            } else {
-                flags.push_back(strprintf("unknown_flag_%u", i));
-            }
-        }
+    for (const auto& [flag, name] : WALLET_FLAG_TO_STRING) {
+        if (pwallet->IsWalletFlagSet(flag)) flags.push_back(name);
     }
     obj.pushKV("flags", flags);
 
