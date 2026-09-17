@@ -218,11 +218,9 @@ As Doxygen recognizes the comments by the delimiters (`/**` and `*/` in this cas
 To describe a class, use the same construct above the class definition:
 ```c++
 /**
- * Alerts are for notifying old versions if they become too obsolete and
- * need to upgrade. The message is displayed in the status bar.
- * @see GetWarnings()
+ * Description of the class responsibility.
  */
-class CAlert
+class Example
 ```
 
 To describe a member or variable use:
@@ -1156,15 +1154,14 @@ The `mem` value shows how many files are mmap'ed, and the `fd` value shows how
 many file descriptors these files are using. You should check that `fd` is a
 small number (usually 0 on 64-bit hosts).
 
-See the notes in the `SetMaxOpenFiles()` function in `dbwrapper.cc` for more
+See the notes in the `SetMaxOpenFiles()` function in `dbwrapper.cpp` for more
 details.
 
 ### Consensus Compatibility
 
-It is possible for LevelDB changes to inadvertently change consensus
-compatibility between nodes. This happened in Bitcoin 0.8 (when LevelDB was
-first introduced). When upgrading LevelDB, you should review the upstream changes
-to check for issues affecting consensus compatibility.
+LevelDB changes can inadvertently change consensus behavior between nodes. When
+upgrading LevelDB, review the upstream changes for issues that could affect
+consensus.
 
 For example, if LevelDB had a bug that accidentally prevented a key from being
 returned in an edge case, and that bug was fixed upstream, the bug "fix" would
