@@ -922,7 +922,7 @@ static RPCHelpMan decodepsbt()
     }
 
     // PSBT version
-    result.pushKV("psbt_version", psbtx.GetVersion());
+    result.pushKV("psbt_version", PSBT_VERSION);
 
     // Proprietary
     UniValue proprietary(UniValue::VARR);

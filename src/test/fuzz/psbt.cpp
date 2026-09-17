@@ -33,8 +33,6 @@ FUZZ_TARGET(psbt)
     PartiallySignedTransaction psbt_mut = *psbt_res;
     const PartiallySignedTransaction psbt = psbt_mut;
 
-    Assert(psbt.GetVersion() == PSBT_VERSION);
-
     // A PSBT must roundtrip.
     std::vector<uint8_t> psbt_ser;
     VectorWriter{psbt_ser, 0, psbt};

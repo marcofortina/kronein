@@ -99,15 +99,13 @@ class PSBT:
         self.g = g if g is not None else PSBTMap()
         self.i = i if i is not None else []
         self.o = o if o is not None else []
-        self.version = 2
 
     def deserialize(self, f):
         assert f.read(5) == b"psbt\xff"
         self.g = from_binary(PSBTMap, f)
 
         assert PSBT_GLOBAL_VERSION in self.g.map
-        self.version = struct.unpack("<I", self.g.map[PSBT_GLOBAL_VERSION])[0]
-        assert self.version == 2
+        assert struct.unpack("<I", self.g.map[PSBT_GLOBAL_VERSION])[0] == 2
         assert PSBT_GLOBAL_INPUT_COUNT in self.g.map
         assert PSBT_GLOBAL_OUTPUT_COUNT in self.g.map
         in_count = deser_compact_size(BytesIO(self.g.map[PSBT_GLOBAL_INPUT_COUNT]))
@@ -121,7 +119,6 @@ class PSBT:
         assert isinstance(self.g, PSBTMap)
         assert isinstance(self.i, list) and all(isinstance(x, PSBTMap) for x in self.i)
         assert isinstance(self.o, list) and all(isinstance(x, PSBTMap) for x in self.o)
-        assert self.version == 2
         self.g.map[PSBT_GLOBAL_VERSION] = struct.pack("<I", 2)
         self.g.map[PSBT_GLOBAL_INPUT_COUNT] = ser_compact_size(len(self.i))
         self.g.map[PSBT_GLOBAL_OUTPUT_COUNT] = ser_compact_size(len(self.o))
@@ -133,7 +130,6 @@ class PSBT:
         """
         Remove all fields except those required by PSBTv2.
         """
-        assert self.version == 2
         self.g = PSBTMap(map={
             PSBT_GLOBAL_TX_VERSION: self.g.map[PSBT_GLOBAL_TX_VERSION],
             PSBT_GLOBAL_INPUT_COUNT: self.g.map[PSBT_GLOBAL_INPUT_COUNT],
