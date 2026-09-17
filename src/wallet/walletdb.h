@@ -44,13 +44,12 @@ enum class DBErrors : int
 {
     LOAD_OK = 0,
     NEED_RESCAN = 1,
-    NEED_REWRITE = 2,
-    EXTERNAL_SIGNER_SUPPORT_REQUIRED = 3,
-    NONCRITICAL_ERROR = 4,
-    TOO_NEW = 5,
-    UNKNOWN_DESCRIPTOR = 6,
-    LOAD_FAIL = 7,
-    CORRUPT = 8,
+    EXTERNAL_SIGNER_SUPPORT_REQUIRED = 2,
+    NONCRITICAL_ERROR = 3,
+    TOO_NEW = 4,
+    UNKNOWN_DESCRIPTOR = 5,
+    LOAD_FAIL = 6,
+    CORRUPT = 7,
 };
 
 namespace DBKeys {
@@ -65,7 +64,6 @@ extern const std::string NAME;
 extern const std::string ORDERPOSNEXT;
 extern const std::string PURPOSE;
 extern const std::string TX;
-extern const std::string VERSION;
 extern const std::string WALLETDESCRIPTOR;
 extern const std::string WALLETDESCRIPTORCKEY;
 extern const std::string WALLETDESCRIPTORKEY;
