@@ -58,7 +58,7 @@ class SignRawTransactionWithWalletTest(BitcoinTestFramework):
 
         3) The transaction has no complete set of signatures
         4) Three script verification errors occurred
-        5) Script verification errors have certain properties ("txid", "vout", "scriptSig", "sequence", "error")
+        5) Script verification errors have certain properties ("txid", "vout", "witness", "sequence", "error")
         6) The verification errors refer to every input"""
         self.log.info("Test script verification errors")
         privKeys = ['cUeKHd5orzT3mz8P9pxyREHfsWtVfgsfDjiZZBcjUBAaGk1BTj7N']
@@ -109,7 +109,6 @@ class SignRawTransactionWithWalletTest(BitcoinTestFramework):
         assert 'txid' in rawTxSigned['errors'][0]
         assert 'vout' in rawTxSigned['errors'][0]
         assert 'witness' in rawTxSigned['errors'][0]
-        assert 'scriptSig' in rawTxSigned['errors'][0]
         assert 'sequence' in rawTxSigned['errors'][0]
         assert 'error' in rawTxSigned['errors'][0]
 
@@ -140,7 +139,6 @@ class SignRawTransactionWithWalletTest(BitcoinTestFramework):
         assert 'txid' in rawTxSigned['errors'][0]
         assert 'vout' in rawTxSigned['errors'][0]
         assert 'witness' in rawTxSigned['errors'][0]
-        assert 'scriptSig' in rawTxSigned['errors'][0]
         assert 'sequence' in rawTxSigned['errors'][0]
         assert 'error' in rawTxSigned['errors'][0]
 

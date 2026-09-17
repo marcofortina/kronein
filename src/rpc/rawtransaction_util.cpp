@@ -176,7 +176,6 @@ static void TxInErrorToJSON(const CTxIn& txin, UniValue& vErrorsRet, const std::
         witness.push_back(HexStr(txin.scriptWitness.stack[i]));
     }
     entry.pushKV("witness", std::move(witness));
-    entry.pushKV("scriptSig", HexStr(txin.scriptSig));
     entry.pushKV("sequence", txin.nSequence);
     entry.pushKV("error", strMessage);
     vErrorsRet.push_back(std::move(entry));

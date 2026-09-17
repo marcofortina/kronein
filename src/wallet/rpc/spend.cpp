@@ -716,8 +716,7 @@ RPCHelpMan fundrawtransaction()
                                             {"vout", RPCArg::Type::NUM, RPCArg::Optional::NO, "The output index"},
                                             {"weight", RPCArg::Type::NUM, RPCArg::Optional::NO, "The maximum weight for this input, "
                                                 "including the weight of the outpoint and sequence number. "
-                                                "Note that serialized signature sizes are not guaranteed to be consistent, "
-                                                "so the maximum DER signatures size of 73 bytes should be used when considering ECDSA signatures."
+                                                "Taproot Schnorr signatures are 64 bytes, or 65 bytes with a non-default sighash. "
                                                 "Remember to convert serialized sizes to weight units when necessary."},
                                         },
                                     },
@@ -812,7 +811,7 @@ RPCHelpMan signrawtransactionwithwallet()
                             },
                         },
                     },
-                    {"sighashtype", RPCArg::Type::STR, RPCArg::Default{"DEFAULT for Taproot, ALL otherwise"}, "The signature hash type. Must be one of\n"
+                    {"sighashtype", RPCArg::Type::STR, RPCArg::Default{"DEFAULT"}, "The signature hash type. Must be one of\n"
             "       \"DEFAULT\"\n"
             "       \"ALL\"\n"
             "       \"NONE\"\n"
@@ -836,7 +835,6 @@ RPCHelpMan signrawtransactionwithwallet()
                                 {
                                     {RPCResult::Type::STR_HEX, "witness", ""},
                                 }},
-                                {RPCResult::Type::STR_HEX, "scriptSig", "The hex-encoded signature script"},
                                 {RPCResult::Type::NUM, "sequence", "Script sequence number"},
                                 {RPCResult::Type::STR, "error", "Verification or signing error related to the input"},
                             }},
@@ -1144,8 +1142,7 @@ RPCHelpMan send()
                             {"sequence", RPCArg::Type::NUM, RPCArg::DefaultHint{"depends on the value of the 'replaceable' and 'locktime' arguments"}, "The sequence number"},
                             {"weight", RPCArg::Type::NUM, RPCArg::DefaultHint{"Calculated from wallet and solving data"}, "The maximum weight for this input, "
                                         "including the weight of the outpoint and sequence number. "
-                                        "Note that signature sizes are not guaranteed to be consistent, "
-                                        "so the maximum DER signatures size of 73 bytes should be used when considering ECDSA signatures."
+                                        "Taproot Schnorr signatures are 64 bytes, or 65 bytes with a non-default sighash. "
                                         "Remember to convert serialized sizes to weight units when necessary."},
                           }},
                         },
@@ -1495,7 +1492,7 @@ RPCHelpMan walletprocesspsbt()
                 {
                     {"psbt", RPCArg::Type::STR, RPCArg::Optional::NO, "The transaction base64 string"},
                     {"sign", RPCArg::Type::BOOL, RPCArg::Default{true}, "Also sign the transaction when updating (requires wallet to be unlocked)"},
-                    {"sighashtype", RPCArg::Type::STR, RPCArg::Default{"DEFAULT for Taproot, ALL otherwise"}, "The signature hash type to sign with if not specified by the PSBT. Must be one of\n"
+                    {"sighashtype", RPCArg::Type::STR, RPCArg::Default{"DEFAULT"}, "The signature hash type to sign with if not specified by the PSBT. Must be one of\n"
             "       \"DEFAULT\"\n"
             "       \"ALL\"\n"
             "       \"NONE\"\n"
@@ -1587,8 +1584,7 @@ RPCHelpMan walletcreatefundedpsbt()
                                     {"sequence", RPCArg::Type::NUM, RPCArg::DefaultHint{"depends on the value of the 'locktime' and 'options.replaceable' arguments"}, "The sequence number"},
                                     {"weight", RPCArg::Type::NUM, RPCArg::DefaultHint{"Calculated from wallet and solving data"}, "The maximum weight for this input, "
                                         "including the weight of the outpoint and sequence number. "
-                                        "Note that signature sizes are not guaranteed to be consistent, "
-                                        "so the maximum DER signatures size of 73 bytes should be used when considering ECDSA signatures."
+                                        "Taproot Schnorr signatures are 64 bytes, or 65 bytes with a non-default sighash. "
                                         "Remember to convert serialized sizes to weight units when necessary."},
                                 },
                             },

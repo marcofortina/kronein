@@ -647,7 +647,7 @@ public:
      * @param[in]  sign whether to sign or not
      * @param[in]  bip32derivs whether to fill in bip32 derivation information if available
      * @param[out] n_signed the number of inputs signed by this wallet
-     * @param[in] finalize whether to create the final scriptSig or scriptWitness if possible
+     * @param[in] finalize whether to create the final scriptWitness if possible
      * return error
      */
     std::optional<common::PSBTError> FillPSBT(PartiallySignedTransaction& psbtx,
