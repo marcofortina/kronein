@@ -50,12 +50,11 @@ static void TestDescriptor(const Descriptor& desc, FlatSigningProvider& sig_prov
         assert(desc.ScriptSize() == out_scripts.back().size());
     }
 
-    const auto max_sat_maxsig{desc.MaxSatisfactionWeight(true)};
-    const auto max_sat_nonmaxsig{desc.MaxSatisfactionWeight(true)};
+    const auto max_sat_weight{desc.MaxSatisfactionWeight()};
     const auto max_elems{desc.MaxSatisfactionElems()};
     // We must be able to estimate the maximum satisfaction size for any solvable descriptor.
     const bool is_nonsolvable{!*is_solvable};
-    const bool is_input_size_info_set{max_sat_maxsig && max_sat_nonmaxsig && max_elems};
+    const bool is_input_size_info_set{max_sat_weight && max_elems};
     assert(is_input_size_info_set || is_nonsolvable);
 
     auto max_key_expr = desc.GetMaxKeyExpr();

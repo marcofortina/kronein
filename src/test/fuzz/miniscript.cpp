@@ -774,7 +774,7 @@ std::optional<NodeInfo> ConsumeNodeSmart(FuzzedDataProvider& provider, Type type
             } else {
                 // If we hit a thresh with 2 subnodes, artificially extend it to any number
                 // (2 or larger) by replicating the type of the last subnode.
-                children = provider.ConsumeIntegralInRange<uint32_t>(2, MAX_OPS_PER_SCRIPT / 2);
+                children = provider.ConsumeIntegralInRange<uint32_t>(2, MAX_STACK_SIZE / 2);
             }
             auto k = provider.ConsumeIntegralInRange<uint32_t>(1, children);
             std::vector<Type> subs = subt;
@@ -885,7 +885,7 @@ std::optional<Node> GenNode(MsCtx script_ctx, F ConsumeNode, Type root_type, boo
                 ops += 1;
                 break;
             }
-            if (ops > MAX_OPS_PER_SCRIPT) return {};
+            if (ops > MAX_STACK_SIZE) return {};
             auto subtypes = node_info->subtypes;
             todo.back().second = std::move(node_info);
             todo.reserve(todo.size() + subtypes.size());
@@ -1044,11 +1044,8 @@ void TestNode(const MsCtx script_ctx, const std::optional<Node>& node, FuzzedDat
         bool res = VerifyScript(DUMMY_SCRIPTSIG, script_pubkey, &witness_nonmal, STANDARD_SCRIPT_VERIFY_FLAGS, CHECKER_CTX, &serror);
         // Non-malleable satisfactions are guaranteed to be valid if ValidSatisfactions().
         if (node->ValidSatisfactions()) assert(res);
-        // More detailed: non-malleable satisfactions must be valid, or could fail with ops count error (if CheckOpsLimit failed),
-        // or with a stack size error (if CheckStackSize check failed).
-        assert(res ||
-               (!node->CheckOpsLimit() && serror == ScriptError::SCRIPT_ERR_OP_COUNT) ||
-               (!node->CheckStackSize() && serror == ScriptError::SCRIPT_ERR_STACK_SIZE));
+        // A non-malleable satisfaction may fail the Tapscript stack size limit.
+        assert(res || (!node->CheckStackSize() && serror == ScriptError::SCRIPT_ERR_STACK_SIZE));
     }
 
     if (mal_success && (!nonmal_success || witness_mal.stack != witness_nonmal.stack)) {
@@ -1057,9 +1054,8 @@ void TestNode(const MsCtx script_ctx, const std::optional<Node>& node, FuzzedDat
         SatisfactionToWitness(witness_mal, script, builder);
         ScriptError serror;
         bool res = VerifyScript(DUMMY_SCRIPTSIG, script_pubkey, &witness_mal, STANDARD_SCRIPT_VERIFY_FLAGS, CHECKER_CTX, &serror);
-        // Malleable satisfactions are not guaranteed to be valid under any conditions, but they can only
-        // fail due to stack or ops limits.
-        assert(res || serror == ScriptError::SCRIPT_ERR_OP_COUNT || serror == ScriptError::SCRIPT_ERR_STACK_SIZE);
+        // Malleable satisfactions may fail the Tapscript stack size limit.
+        assert(res || serror == ScriptError::SCRIPT_ERR_STACK_SIZE);
     }
 
     if (node->IsSane()) {

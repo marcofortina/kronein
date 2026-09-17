@@ -31,7 +31,7 @@ public:
     bool ExpandFromCache(int pos, const DescriptorCache& read_cache, std::vector<CScript>& output_scripts, FlatSigningProvider& out) const override { return false; }
     void ExpandPrivate(int pos, const SigningProvider& provider, FlatSigningProvider& out) const override {}
     std::optional<int64_t> ScriptSize() const override { return {}; }
-    std::optional<int64_t> MaxSatisfactionWeight(bool) const override { return {}; }
+    std::optional<int64_t> MaxSatisfactionWeight() const override { return {}; }
     std::optional<int64_t> MaxSatisfactionElems() const override { return {}; }
     void GetPubKeys(std::set<CPubKey>& pubkeys, std::set<CExtPubKey>& ext_pubs) const override {}
     std::vector<std::string> Warnings() const override { return {}; }

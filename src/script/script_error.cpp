@@ -19,24 +19,14 @@ std::string ScriptErrorString(const ScriptError serror)
             return "Script failed an OP_VERIFY operation";
         case SCRIPT_ERR_EQUALVERIFY:
             return "Script failed an OP_EQUALVERIFY operation";
-        case SCRIPT_ERR_CHECKMULTISIGVERIFY:
-            return "Script failed an OP_CHECKMULTISIGVERIFY operation";
         case SCRIPT_ERR_CHECKSIGVERIFY:
             return "Script failed an OP_CHECKSIGVERIFY operation";
         case SCRIPT_ERR_NUMEQUALVERIFY:
             return "Script failed an OP_NUMEQUALVERIFY operation";
-        case SCRIPT_ERR_SCRIPT_SIZE:
-            return "Script is too big";
         case SCRIPT_ERR_PUSH_SIZE:
             return "Push value size limit exceeded";
-        case SCRIPT_ERR_OP_COUNT:
-            return "Operation limit exceeded";
         case SCRIPT_ERR_STACK_SIZE:
             return "Stack size limit exceeded";
-        case SCRIPT_ERR_SIG_COUNT:
-            return "Signature count negative or greater than pubkey count";
-        case SCRIPT_ERR_PUBKEY_COUNT:
-            return "Pubkey count negative or limit exceeded";
         case SCRIPT_ERR_BAD_OPCODE:
             return "Opcode missing or not understood";
         case SCRIPT_ERR_DISABLED_OPCODE:
@@ -53,18 +43,8 @@ std::string ScriptErrorString(const ScriptError serror)
             return "Negative locktime";
         case SCRIPT_ERR_UNSATISFIED_LOCKTIME:
             return "Locktime requirement not satisfied";
-        case SCRIPT_ERR_SIG_HASHTYPE:
-            return "Signature hash type missing or not understood";
-        case SCRIPT_ERR_SIG_DER:
-            return "Non-canonical DER signature";
         case SCRIPT_ERR_MINIMALDATA:
             return "Data push larger than necessary";
-        case SCRIPT_ERR_SIG_HIGH_S:
-            return "Non-canonical signature: S value is unnecessarily high";
-        case SCRIPT_ERR_SIG_NULLDUMMY:
-            return "Dummy CHECKMULTISIG argument must be zero";
-        case SCRIPT_ERR_SIG_NULLFAIL:
-            return "Signature must be zero for failed CHECK(MULTI)SIG operation";
         case SCRIPT_ERR_DISCOURAGE_UPGRADABLE_NOPS:
             return "NOPx reserved for soft-fork upgrades";
         case SCRIPT_ERR_DISCOURAGE_UPGRADABLE_TAPROOT_VERSION:
@@ -73,8 +53,6 @@ std::string ScriptErrorString(const ScriptError serror)
             return "OP_SUCCESSx reserved for soft-fork upgrades";
         case SCRIPT_ERR_DISCOURAGE_UPGRADABLE_PUBKEYTYPE:
             return "Public key version reserved for soft-fork upgrades";
-        case SCRIPT_ERR_PUBKEYTYPE:
-            return "Public key is neither compressed or uncompressed";
         case SCRIPT_ERR_CLEANSTACK:
             return "Stack size must be exactly one after execution";
         case SCRIPT_ERR_WITNESS_PROGRAM_WRONG_LENGTH:
@@ -101,10 +79,6 @@ std::string ScriptErrorString(const ScriptError serror)
             return "OP_IF/NOTIF argument must be minimal in tapscript";
         case SCRIPT_ERR_TAPSCRIPT_EMPTY_PUBKEY:
             return "Empty public key in tapscript";
-        case SCRIPT_ERR_OP_CODESEPARATOR:
-            return "Using OP_CODESEPARATOR in non-witness script";
-        case SCRIPT_ERR_SIG_FINDANDDELETE:
-            return "Signature is found in scriptCode";
         case SCRIPT_ERR_SCRIPTNUM:
             return "Script number overflowed or is non-minimally encoded";
         case SCRIPT_ERR_UNKNOWN_ERROR:

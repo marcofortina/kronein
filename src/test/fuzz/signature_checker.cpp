@@ -23,11 +23,6 @@ public:
     {
     }
 
-    bool CheckECDSASignature(const std::vector<unsigned char>& scriptSig, const std::vector<unsigned char>& vchPubKey, const CScript& scriptCode, SigVersion sigversion) const override
-    {
-        return m_fuzzed_data_provider.ConsumeBool();
-    }
-
     bool CheckSchnorrSignature(std::span<const unsigned char> sig, std::span<const unsigned char> pubkey, SigVersion sigversion, ScriptExecutionData& execdata, ScriptError* serror = nullptr) const override
     {
         return m_fuzzed_data_provider.ConsumeBool();
@@ -54,6 +49,9 @@ FUZZ_TARGET(signature_checker)
     const auto script_1{ConsumeScript(fuzzed_data_provider)};
     const auto script_2{ConsumeScript(fuzzed_data_provider)};
     std::vector<std::vector<unsigned char>> stack;
-    (void)EvalScript(stack, script_1, flags, FuzzedSignatureChecker(fuzzed_data_provider), SigVersion::BASE, nullptr);
+    ScriptExecutionData execdata;
+    execdata.m_validation_weight_left_init = true;
+    execdata.m_validation_weight_left = std::numeric_limits<int64_t>::max();
+    (void)EvalScript(stack, script_1, flags, FuzzedSignatureChecker(fuzzed_data_provider), execdata, nullptr);
     (void)VerifyScript(script_1, script_2, nullptr, flags, FuzzedSignatureChecker(fuzzed_data_provider), nullptr);
 }

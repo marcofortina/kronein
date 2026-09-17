@@ -660,8 +660,6 @@ bool SignTransaction(CMutableTransaction& mtx, const SigningProvider* keystore, 
             if (serror == SCRIPT_ERR_INVALID_STACK_OPERATION) {
                 // Unable to sign input and verification failed (possible attempt to partially sign).
                 input_errors[i] = Untranslated("Unable to sign input, invalid stack size (possibly missing key)");
-            } else if (serror == SCRIPT_ERR_SIG_NULLFAIL) {
-                input_errors[i] = Untranslated("Signature verification failed with a non-empty signature");
             } else {
                 input_errors[i] = Untranslated(ScriptErrorString(serror));
             }

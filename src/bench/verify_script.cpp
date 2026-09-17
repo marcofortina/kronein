@@ -78,8 +78,9 @@ static void VerifyNestedIfScript(benchmark::Bench& bench)
     }
     bench.run([&] {
         auto stack_copy = stack;
+        ScriptExecutionData execdata;
         ScriptError error;
-        bool ret = EvalScript(stack_copy, script, 0, BaseSignatureChecker(), SigVersion::TAPSCRIPT, &error);
+        bool ret = EvalScript(stack_copy, script, 0, BaseSignatureChecker(), execdata, &error);
         assert(ret);
     });
 }

@@ -156,11 +156,8 @@ struct Descriptor {
     /** Get the size of the scriptPubKey for this descriptor. */
     virtual std::optional<int64_t> ScriptSize() const = 0;
 
-    /** Get the maximum size of a satisfaction for this descriptor, in weight units.
-     *
-     * @param use_max_sig Whether to assume ECDSA signatures will have a high-r.
-     */
-    virtual std::optional<int64_t> MaxSatisfactionWeight(bool use_max_sig) const = 0;
+    /** Get the maximum size of a satisfaction for this descriptor, in weight units. */
+    virtual std::optional<int64_t> MaxSatisfactionWeight() const = 0;
 
     /** Get the maximum size number of stack elements for satisfying this descriptor. */
     virtual std::optional<int64_t> MaxSatisfactionElems() const = 0;

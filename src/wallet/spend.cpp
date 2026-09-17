@@ -50,7 +50,7 @@ static constexpr size_t OUTPUT_GROUP_MAX_ENTRIES{100};
  * @param desc The output script descriptor of the coin spent by this input.
  */
 static std::optional<int64_t> MaxInputWeight(const Descriptor& desc) {
-    if (const auto sat_weight = desc.MaxSatisfactionWeight(/*use_max_sig=*/false)) {
+    if (const auto sat_weight = desc.MaxSatisfactionWeight()) {
         if (const auto elems_count = desc.MaxSatisfactionElems()) {
             // Account for the size of the scriptsig and the number of elements on the witness stack.
             // Native inputs always have an empty scriptSig and a witness stack.

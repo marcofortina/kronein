@@ -18,7 +18,6 @@
 #include <shared_mutex>
 #include <vector>
 
-class CPubKey;
 class CTransaction;
 class XOnlyPubKey;
 
@@ -31,15 +30,14 @@ static constexpr size_t DEFAULT_SCRIPT_EXECUTION_CACHE_BYTES{DEFAULT_VALIDATION_
 static_assert(DEFAULT_VALIDATION_CACHE_BYTES == DEFAULT_SIGNATURE_CACHE_BYTES + DEFAULT_SCRIPT_EXECUTION_CACHE_BYTES);
 
 /**
- * Valid signature cache, to avoid doing expensive ECDSA signature checking
+ * Valid signature cache, to avoid doing expensive Schnorr signature checking
  * twice for every transaction (once when accepted into memory pool, and
  * again when accepted into the block chain)
  */
 class SignatureCache
 {
 private:
-    //! Entries are SHA256(nonce || 'E' or 'S' || 31 zero bytes || signature hash || public key || signature):
-    CSHA256 m_salted_hasher_ecdsa;
+    //! Entries are SHA256(nonce || 'S' || 31 zero bytes || signature hash || public key || signature):
     CSHA256 m_salted_hasher_schnorr;
     typedef CuckooCache::cache<uint256, SignatureCacheHasher> map_type;
     map_type setValid;
@@ -50,8 +48,6 @@ public:
 
     SignatureCache(const SignatureCache&) = delete;
     SignatureCache& operator=(const SignatureCache&) = delete;
-
-    void ComputeEntryECDSA(uint256& entry, const uint256 &hash, const std::vector<unsigned char>& vchSig, const CPubKey& pubkey) const;
 
     void ComputeEntrySchnorr(uint256& entry, const uint256 &hash, std::span<const unsigned char> sig, const XOnlyPubKey& pubkey) const;
 
@@ -69,7 +65,6 @@ private:
 public:
     CachingTransactionSignatureChecker(const CTransaction* txToIn, unsigned int nInIn, bool storeIn, SignatureCache& signature_cache, PrecomputedTransactionData& txdataIn) : TransactionSignatureChecker(txToIn, nInIn, txdataIn, MissingDataBehavior::ASSERT_FAIL), store(storeIn), m_signature_cache(signature_cache)  {}
 
-    bool VerifyECDSASignature(const std::vector<unsigned char>& vchSig, const CPubKey& vchPubKey, const uint256& sighash) const override;
     bool VerifySchnorrSignature(std::span<const unsigned char> sig, const XOnlyPubKey& pubkey, const uint256& sighash) const override;
 };
 

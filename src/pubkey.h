@@ -179,7 +179,7 @@ public:
      * that the coordinates correspond to a point on the curve (see IsFullyValid()
      * for that instead).
      *
-     * Note that this is consensus critical as CheckECDSASignature() calls it!
+     * Callers that require a curve point must additionally use IsFullyValid().
      */
     bool IsValid() const
     {

@@ -998,14 +998,10 @@ public:
 
     std::optional<int64_t> ScriptSize() const override { return {}; }
 
-    /** A helper for MaxSatisfactionWeight.
-     *
-     * @param use_max_sig Whether to assume ECDSA signatures will have a high-r.
-     * @return The maximum size of the satisfaction in raw bytes (with no witness meaning).
-     */
-    virtual std::optional<int64_t> MaxSatSize(bool use_max_sig) const { return {}; }
+    /** Return the maximum size of the satisfaction in raw bytes (with no witness meaning). */
+    virtual std::optional<int64_t> MaxSatSize() const { return {}; }
 
-    std::optional<int64_t> MaxSatisfactionWeight(bool) const override { return {}; }
+    std::optional<int64_t> MaxSatisfactionWeight() const override { return {}; }
 
     std::optional<int64_t> MaxSatisfactionElems() const override { return {}; }
 
@@ -1125,10 +1121,10 @@ public:
 
     std::optional<int64_t> ScriptSize() const override { return 1 + 32 + 1; }
 
-    std::optional<int64_t> MaxSatSize(bool) const override { return 1 + 65; }
+    std::optional<int64_t> MaxSatSize() const override { return 1 + 65; }
 
-    std::optional<int64_t> MaxSatisfactionWeight(bool use_max_sig) const override {
-        return *MaxSatSize(use_max_sig) * WITNESS_SCALE_FACTOR;
+    std::optional<int64_t> MaxSatisfactionWeight() const override {
+        return *MaxSatSize() * WITNESS_SCALE_FACTOR;
     }
 
     std::optional<int64_t> MaxSatisfactionElems() const override { return 1; }
@@ -1167,7 +1163,7 @@ public:
         return (1 + 32 + 1) * n_keys + BuildScript(m_threshold).size() + 1;
     }
 
-    std::optional<int64_t> MaxSatSize(bool use_max_sig) const override {
+    std::optional<int64_t> MaxSatSize() const override {
         return (1 + 65) * m_threshold + (m_pubkey_args.size() - m_threshold);
     }
 
@@ -1249,7 +1245,7 @@ public:
     }
     std::optional<int64_t> ScriptSize() const override { return 1 + 1 + 32; }
 
-    std::optional<int64_t> MaxSatisfactionWeight(bool) const override {
+    std::optional<int64_t> MaxSatisfactionWeight() const override {
         // FIXME: We assume keypath spend, which can lead to very large underestimations.
         return 1 + 65;
     }
@@ -1386,9 +1382,8 @@ public:
 
     std::optional<int64_t> ScriptSize() const override { return m_node.ScriptSize(); }
 
-    std::optional<int64_t> MaxSatSize(bool) const override
+    std::optional<int64_t> MaxSatSize() const override
     {
-        // For Miniscript we always assume high-R ECDSA signatures.
         return m_node.GetWitnessSize();
     }
 
@@ -1424,7 +1419,7 @@ public:
     RawTRDescriptor(std::unique_ptr<PubkeyProvider> output_key) : DescriptorImpl(Vector(std::move(output_key)), "rawtr") {}
     std::optional<int64_t> ScriptSize() const override { return 1 + 1 + 32; }
 
-    std::optional<int64_t> MaxSatisfactionWeight(bool) const override {
+    std::optional<int64_t> MaxSatisfactionWeight() const override {
         // We can't know whether there is a script path, so assume key path spend.
         return 1 + 65;
     }

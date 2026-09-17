@@ -97,14 +97,6 @@ FUZZ_TARGET(script, .init = initialize_script)
         DecompressScript(decompressed_script, fuzzed_data_provider.ConsumeIntegral<unsigned int>(), compressed_script);
     }
 
-    const std::optional<CScript> other_script = ConsumeDeserializable<CScript>(fuzzed_data_provider);
-    if (other_script) {
-        {
-            CScript script_mut{script};
-            (void)FindAndDelete(script_mut, *other_script);
-        }
-    }
-
     (void)GetOpName(ConsumeOpcodeType(fuzzed_data_provider));
     (void)ScriptErrorString(static_cast<ScriptError>(fuzzed_data_provider.ConsumeIntegralInRange<int>(0, SCRIPT_ERR_ERROR_COUNT)));
 

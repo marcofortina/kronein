@@ -1492,9 +1492,6 @@ public:
     //! Return the number of ops in the script (not counting the dynamic ones that depend on execution).
     uint32_t GetStaticOps() const { return ops.count; }
 
-    //! Check the ops limit of this script against the consensus limit.
-    bool CheckOpsLimit() const { return true; }
-
     /** Whether this node is of type B, K or W. (That is, anything but V.) */
     bool IsBKW() const {
         return !((GetType() & "BKW"_mst) == ""_mst);
@@ -1609,7 +1606,7 @@ public:
     bool CheckDuplicateKey() const { return has_duplicate_keys && !*has_duplicate_keys; }
 
     //! Whether successful non-malleable satisfactions are guaranteed to be valid.
-    bool ValidSatisfactions() const { return IsValid() && CheckOpsLimit() && CheckStackSize(); }
+    bool ValidSatisfactions() const { return IsValid() && CheckStackSize(); }
 
     //! Whether the apparent policy of this node matches its script semantics. Doesn't guarantee it is a safe script on its own.
     bool IsSaneSubexpression() const { return ValidSatisfactions() && IsNonMalleable() && CheckTimeLocksMix() && CheckDuplicateKey(); }

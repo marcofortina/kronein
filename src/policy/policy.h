@@ -78,22 +78,16 @@ static constexpr unsigned int MAX_DUST_OUTPUTS_PER_TX{1};
  * Note that this does not affect consensus validity; see GetBlockScriptFlags()
  * for that.
  */
-static constexpr script_verify_flags MANDATORY_SCRIPT_VERIFY_FLAGS{SCRIPT_VERIFY_DERSIG |
-                                                                  SCRIPT_VERIFY_NULLDUMMY};
+static constexpr script_verify_flags MANDATORY_SCRIPT_VERIFY_FLAGS{SCRIPT_VERIFY_NONE};
 
 /**
  * Standard script verification flags that relayed transactions must comply with.
  */
-static constexpr script_verify_flags STANDARD_SCRIPT_VERIFY_FLAGS{MANDATORY_SCRIPT_VERIFY_FLAGS |
-                                                             SCRIPT_VERIFY_STRICTENC |
-                                                             SCRIPT_VERIFY_MINIMALDATA |
-                                                             SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS |
-                                                             SCRIPT_VERIFY_NULLFAIL |
-                                                             SCRIPT_VERIFY_LOW_S |
-                                                             SCRIPT_VERIFY_CONST_SCRIPTCODE |
-                                                             SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_TAPROOT_VERSION |
-                                                             SCRIPT_VERIFY_DISCOURAGE_OP_SUCCESS |
-                                                             SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_PUBKEYTYPE};
+static constexpr script_verify_flags STANDARD_SCRIPT_VERIFY_FLAGS{SCRIPT_VERIFY_MINIMALDATA |
+                                                                  SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS |
+                                                                  SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_TAPROOT_VERSION |
+                                                                  SCRIPT_VERIFY_DISCOURAGE_OP_SUCCESS |
+                                                                  SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_PUBKEYTYPE};
 
 /** For convenience, standard but not mandatory verify flags. */
 static constexpr script_verify_flags STANDARD_NOT_MANDATORY_VERIFY_FLAGS{STANDARD_SCRIPT_VERIFY_FLAGS & ~MANDATORY_SCRIPT_VERIFY_FLAGS};

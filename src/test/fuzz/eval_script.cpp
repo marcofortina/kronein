@@ -25,5 +25,8 @@ FUZZ_TARGET(eval_script)
     }();
     const CScript script(script_bytes.begin(), script_bytes.end());
     std::vector<std::vector<unsigned char>> stack;
-    (void)EvalScript(stack, script, flags, BaseSignatureChecker(), SigVersion::BASE, nullptr);
+    ScriptExecutionData execdata;
+    execdata.m_validation_weight_left_init = true;
+    execdata.m_validation_weight_left = std::numeric_limits<int64_t>::max();
+    (void)EvalScript(stack, script, flags, BaseSignatureChecker(), execdata, nullptr);
 }

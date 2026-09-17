@@ -19,7 +19,6 @@
 #include <optional>
 #include <vector>
 
-class CPubKey;
 class CScript;
 class CScriptNum;
 class XOnlyPubKey;
@@ -47,21 +46,6 @@ enum
 static constexpr script_verify_flags SCRIPT_VERIFY_NONE{0};
 
 enum class script_verify_flag_name : uint8_t {
-    // Passing a non-strict-DER signature or one with undefined hashtype to a checksig operation causes script failure.
-    // Evaluating a pubkey that is not (0x04 + 64 bytes) or (0x02 or 0x03 + 32 bytes) by checksig causes script failure.
-    // (not used or intended as a consensus rule).
-    SCRIPT_VERIFY_STRICTENC,
-
-    // Passing a non-strict-DER signature to a checksig operation causes script failure (BIP62 rule 1)
-    SCRIPT_VERIFY_DERSIG,
-
-    // Passing a non-strict-DER signature or one with S > order/2 to a checksig operation causes script failure
-    // (BIP62 rule 5).
-    SCRIPT_VERIFY_LOW_S,
-
-    // verify dummy stack item consumed by CHECKMULTISIG is of zero-length (BIP62 rule 7).
-    SCRIPT_VERIFY_NULLDUMMY,
-
     // Require minimal encodings for all push operations (OP_0... OP_16, OP_1NEGATE where possible, direct
     // pushes up to 75 bytes, OP_PUSHDATA up to 255 bytes, OP_PUSHDATA2 for anything larger). Evaluating
     // any other push causes the script to fail (BIP62 rule 3).
@@ -79,14 +63,6 @@ enum class script_verify_flag_name : uint8_t {
     // NOPs that have associated forks to give them new meaning (CLTV, CSV)
     // are not subject to this rule.
     SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS,
-
-    // Signature(s) must be empty vector if a CHECK(MULTI)SIG operation failed
-    //
-    SCRIPT_VERIFY_NULLFAIL,
-
-    // Making OP_CODESEPARATOR and FindAndDelete fail any non-segwit scripts
-    //
-    SCRIPT_VERIFY_CONST_SCRIPTCODE,
 
     // Making unknown Taproot leaf versions non-standard
     //
@@ -110,8 +86,6 @@ static constexpr int MAX_SCRIPT_VERIFY_FLAGS_BITS = static_cast<int>(SCRIPT_VERI
 static_assert(0 < MAX_SCRIPT_VERIFY_FLAGS_BITS && MAX_SCRIPT_VERIFY_FLAGS_BITS <= 63);
 
 static constexpr script_verify_flags::value_type MAX_SCRIPT_VERIFY_FLAGS = ((script_verify_flags::value_type{1} << MAX_SCRIPT_VERIFY_FLAGS_BITS) - 1);
-
-bool CheckSignatureEncoding(const std::vector<unsigned char> &vchSig, script_verify_flags flags, ScriptError* serror);
 
 struct PrecomputedTransactionData
 {
@@ -144,9 +118,8 @@ struct PrecomputedTransactionData
 
 enum class SigVersion
 {
-    BASE = 0,      //!< Isolated bare scripts, used only for non-native Signet challenges
-    TAPROOT = 1,   //!< Native key path spending; see BIP 341
-    TAPSCRIPT = 2, //!< Native script path spending; see BIP 342
+    TAPROOT,   //!< Native key path spending; see BIP 341
+    TAPSCRIPT, //!< Native script path spending; see BIP 342
 };
 
 struct ScriptExecutionData
@@ -191,36 +164,9 @@ extern const HashWriter HASHER_TAPSIGHASH; //!< Hasher with tag "TapSighash" pre
 extern const HashWriter HASHER_TAPLEAF;    //!< Hasher with tag "TapLeaf" pre-fed to it.
 extern const HashWriter HASHER_TAPBRANCH;  //!< Hasher with tag "TapBranch" pre-fed to it.
 
-/** Data structure to cache SHA256 midstates for isolated Signet ECDSA
- * signature-hash calculations. */
-class SigHashCache
-{
-    /** For each sighash mode (ALL, SINGLE, NONE, ALL|ANYONE, SINGLE|ANYONE, NONE|ANYONE),
-     *  optionally store a scriptCode which the hash is for, plus a midstate for the SHA256
-     *  computation just before adding the hash_type itself. */
-    std::optional<std::pair<CScript, HashWriter>> m_cache_entries[6];
-
-    /** Given a hash_type, find which of the 6 cache entries is to be used. */
-    int CacheIndex(int32_t hash_type) const noexcept;
-
-public:
-    /** Load into writer the SHA256 midstate if found in this cache. */
-    [[nodiscard]] bool Load(int32_t hash_type, const CScript& script_code, HashWriter& writer) const noexcept;
-    /** Store into this cache object the provided SHA256 midstate. */
-    void Store(int32_t hash_type, const CScript& script_code, const HashWriter& writer) noexcept;
-};
-
-template <class T>
-uint256 ECDSASignatureHash(const CScript& script_code, const T& tx_to, unsigned int input_index, int32_t hash_type, SigHashCache* cache = nullptr);
-
 class BaseSignatureChecker
 {
 public:
-    virtual bool CheckECDSASignature(const std::vector<unsigned char>& scriptSig, const std::vector<unsigned char>& vchPubKey, const CScript& scriptCode, SigVersion sigversion) const
-    {
-        return false;
-    }
-
     virtual bool CheckSchnorrSignature(std::span<const unsigned char> sig, std::span<const unsigned char> pubkey, SigVersion sigversion, ScriptExecutionData& execdata, ScriptError* serror = nullptr) const
     {
         return false;
@@ -259,16 +205,13 @@ private:
     const MissingDataBehavior m_mdb;
     unsigned int nIn;
     const PrecomputedTransactionData* txdata;
-    mutable SigHashCache m_sighash_cache;
 
 protected:
-    virtual bool VerifyECDSASignature(const std::vector<unsigned char>& vchSig, const CPubKey& vchPubKey, const uint256& sighash) const;
     virtual bool VerifySchnorrSignature(std::span<const unsigned char> sig, const XOnlyPubKey& pubkey, const uint256& sighash) const;
 
 public:
     GenericTransactionSignatureChecker(const T* txToIn, unsigned int nInIn, MissingDataBehavior mdb) : txTo(txToIn), m_mdb(mdb), nIn(nInIn), txdata(nullptr) {}
     GenericTransactionSignatureChecker(const T* txToIn, unsigned int nInIn, const PrecomputedTransactionData& txdataIn, MissingDataBehavior mdb) : txTo(txToIn), m_mdb(mdb), nIn(nInIn), txdata(&txdataIn) {}
-    bool CheckECDSASignature(const std::vector<unsigned char>& scriptSig, const std::vector<unsigned char>& vchPubKey, const CScript& scriptCode, SigVersion sigversion) const override;
     bool CheckSchnorrSignature(std::span<const unsigned char> sig, std::span<const unsigned char> pubkey, SigVersion sigversion, ScriptExecutionData& execdata, ScriptError* serror = nullptr) const override;
     bool CheckLockTime(const CScriptNum& nLockTime) const override;
     bool CheckSequence(const CScriptNum& nSequence) const override;
@@ -284,11 +227,6 @@ protected:
 
 public:
     DeferringSignatureChecker(const BaseSignatureChecker& checker) : m_checker(checker) {}
-
-    bool CheckECDSASignature(const std::vector<unsigned char>& scriptSig, const std::vector<unsigned char>& vchPubKey, const CScript& scriptCode, SigVersion sigversion) const override
-    {
-        return m_checker.CheckECDSASignature(scriptSig, vchPubKey, scriptCode, sigversion);
-    }
 
     bool CheckSchnorrSignature(std::span<const unsigned char> sig, std::span<const unsigned char> pubkey, SigVersion sigversion, ScriptExecutionData& execdata, ScriptError* serror = nullptr) const override
     {
@@ -314,11 +252,8 @@ uint256 ComputeTapbranchHash(std::span<const unsigned char> a, std::span<const u
  *  Requires control block to have valid length (33 + k*32, with k in {0,1,..,128}). */
 uint256 ComputeTaprootMerkleRoot(std::span<const unsigned char> control, const uint256& tapleaf_hash);
 
-bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& script, script_verify_flags flags, const BaseSignatureChecker& checker, SigVersion sigversion, ScriptExecutionData& execdata, ScriptError* error = nullptr);
-bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& script, script_verify_flags flags, const BaseSignatureChecker& checker, SigVersion sigversion, ScriptError* error = nullptr);
+bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& script, script_verify_flags flags, const BaseSignatureChecker& checker, ScriptExecutionData& execdata, ScriptError* error = nullptr);
 bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, const CScriptWitness* witness, script_verify_flags flags, const BaseSignatureChecker& checker, ScriptError* serror = nullptr);
-
-int FindAndDelete(CScript& script, const CScript& b);
 
 const std::map<std::string, script_verify_flag_name>& ScriptFlagNamesToEnum();
 
