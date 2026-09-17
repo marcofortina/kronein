@@ -521,7 +521,7 @@ std::optional<PrecomputedTransactionData> PrecomputePSBTData(const PartiallySign
     return txdata;
 }
 
-util::Expected<void, PSBTError> SignPSBTInput(const SigningProvider& provider, PartiallySignedTransaction& psbt, int index, const PrecomputedTransactionData* txdata, std::optional<int> sighash, SignatureData* out_sigdata, bool finalize)
+util::Expected<void, PSBTError> SignPSBTInput(const SigningProvider& provider, PartiallySignedTransaction& psbt, int index, const PrecomputedTransactionData* txdata, const common::PSBTFillOptions& options, SignatureData* out_sigdata)
 {
     PSBTInput& input = psbt.inputs.at(index);
     std::optional<CMutableTransaction> unsigned_tx = psbt.GetUnsignedTx();
@@ -543,22 +543,13 @@ util::Expected<void, PSBTError> SignPSBTInput(const SigningProvider& provider, P
     const CTxOut& utxo = input.witness_utxo;
     if (!utxo.scriptPubKey.IsPayToTaproot()) return util::Unexpected{PSBTError::INCOMPLETE};
 
-    // Get the sighash type
-    // If both the field and the parameter are provided, they must match
-    // If only the parameter is provided, use it and add it to the PSBT if it is other than SIGHASH_DEFAULT
-    // for all input types, and not SIGHASH_ALL for non-taproot input types.
-    // If neither are provided, use SIGHASH_DEFAULT if it is taproot, and SIGHASH_ALL for everything else.
-    if (!sighash) sighash = utxo.scriptPubKey.IsPayToTaproot() ? SIGHASH_DEFAULT : SIGHASH_ALL;
-    Assert(sighash.has_value());
+    // Taproot is the only supported spend type, so DEFAULT is the only implicit sighash.
+    const int sighash{options.sighash_type.value_or(SIGHASH_DEFAULT)};
     // For user safety, the desired sighash must be provided if the PSBT wants something other than the default set in the previous line.
     if (input.sighash_type && input.sighash_type != sighash) {
         return util::Unexpected{PSBTError::SIGHASH_MISMATCH};
     }
-    // Set the PSBT sighash field when sighash is not DEFAULT or ALL
-    // DEFAULT is allowed for non-taproot inputs since DEFAULT may be passed for them (e.g. the psbt being signed also has taproot inputs)
-    // Note that signing already aliases DEFAULT to ALL for non-taproot inputs.
-    if (utxo.scriptPubKey.IsPayToTaproot() ? sighash != SIGHASH_DEFAULT :
-                                            (sighash != SIGHASH_DEFAULT && sighash != SIGHASH_ALL)) {
+    if (sighash != SIGHASH_DEFAULT) {
         input.sighash_type = sighash;
     }
 
@@ -571,11 +562,11 @@ util::Expected<void, PSBTError> SignPSBTInput(const SigningProvider& provider, P
             if (sig.size() != 64) return util::Unexpected{PSBTError::SIGHASH_MISMATCH};
         }
     } else {
-        if (!input.m_tap_key_sig.empty() && (input.m_tap_key_sig.size() != 65 || input.m_tap_key_sig.back() != *sighash)) {
+        if (!input.m_tap_key_sig.empty() && (input.m_tap_key_sig.size() != 65 || input.m_tap_key_sig.back() != sighash)) {
             return util::Unexpected{PSBTError::SIGHASH_MISMATCH};
         }
         for (const auto& [_, sig] : input.m_tap_script_sigs) {
-            if (sig.size() != 65 || sig.back() != *sighash) return util::Unexpected{PSBTError::SIGHASH_MISMATCH};
+            if (sig.size() != 65 || sig.back() != sighash) return util::Unexpected{PSBTError::SIGHASH_MISMATCH};
         }
     }
 
@@ -583,11 +574,11 @@ util::Expected<void, PSBTError> SignPSBTInput(const SigningProvider& provider, P
     if (txdata == nullptr) {
         sig_complete = ProduceSignature(provider, DUMMY_SIGNATURE_CREATOR, utxo.scriptPubKey, sigdata);
     } else {
-        MutableTransactionSignatureCreator creator(tx, index, txdata, *sighash);
+        MutableTransactionSignatureCreator creator(tx, index, txdata, sighash);
         sig_complete = ProduceSignature(provider, creator, utxo.scriptPubKey, sigdata);
     }
     // If we are not finalizing, set sigdata.complete to false to not set the scriptWitness
-    if (!finalize && sigdata.complete) sigdata.complete = false;
+    if (!options.finalize && sigdata.complete) sigdata.complete = false;
 
     input.FromSignatureData(sigdata);
 
@@ -614,7 +605,7 @@ bool FinalizePSBT(PartiallySignedTransaction& psbtx)
     const PrecomputedTransactionData& txdata = *txdata_res;
     for (unsigned int i = 0; i < psbtx.inputs.size(); ++i) {
         PSBTInput& input = psbtx.inputs.at(i);
-        complete &= SignPSBTInput(DUMMY_SIGNING_PROVIDER, psbtx, i, &txdata, input.sighash_type, nullptr, true).has_value();
+        complete &= SignPSBTInput(DUMMY_SIGNING_PROVIDER, psbtx, i, &txdata, {.sighash_type = input.sighash_type, .finalize = true}).has_value();
     }
 
     return complete;

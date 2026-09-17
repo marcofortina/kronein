@@ -13,6 +13,8 @@
 #ifndef BITCOIN_COMMON_TYPES_H
 #define BITCOIN_COMMON_TYPES_H
 
+#include <optional>
+
 namespace common {
 enum class PSBTError {
     MISSING_INPUTS,
@@ -22,6 +24,14 @@ enum class PSBTError {
     UNSUPPORTED,
     INCOMPLETE,
     INVALID_TX,
+};
+
+/** Instructions for how a PSBT should be signed or filled with information. */
+struct PSBTFillOptions {
+    bool sign{true};
+    std::optional<int> sighash_type{std::nullopt};
+    bool finalize{true};
+    bool bip32_derivs{true};
 };
 } // namespace common
 
