@@ -5,7 +5,6 @@
 #ifndef BITCOIN_WALLET_COINCONTROL_H
 #define BITCOIN_WALLET_COINCONTROL_H
 
-#include <outputtype.h>
 #include <policy/feerate.h>
 #include <policy/fees/block_policy_estimator.h>
 #include <primitives/transaction.h>

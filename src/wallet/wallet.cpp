@@ -27,7 +27,6 @@
 #include <key_io.h>
 #include <logging.h>
 #include <node/types.h>
-#include <outputtype.h>
 #include <policy/feerate.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
@@ -1510,7 +1509,7 @@ bool CWallet::IsHDEnabled() const
 bool CWallet::CanGetAddresses(bool internal) const
 {
     LOCK(cs_wallet);
-    auto spk_man = GetScriptPubKeyMan(OutputType::BECH32M, internal);
+    auto spk_man = GetScriptPubKeyMan(internal);
     return spk_man && spk_man->CanGetAddresses(internal);
 }
 
@@ -2066,8 +2065,8 @@ DBErrors CWallet::PopulateWalletFromDB(bilingual_str& error, std::vector<bilingu
     DBErrors nLoadWalletRet = WalletBatch(GetDatabase()).LoadWallet(this);
 
     if (m_spk_managers.empty()) {
-        assert(m_external_spk_managers.empty());
-        assert(m_internal_spk_managers.empty());
+        assert(m_external_spk_manager == nullptr);
+        assert(m_internal_spk_manager == nullptr);
     }
 
     const auto wallet_file = m_database->Filename();
@@ -2256,12 +2255,7 @@ size_t CWallet::KeypoolCountExternalKeys() const
 {
     AssertLockHeld(cs_wallet);
 
-    unsigned int count = 0;
-    for (auto spk_man : m_external_spk_managers) {
-        count += spk_man.second->GetKeyPoolSize();
-    }
-
-    return count;
+    return m_external_spk_manager ? m_external_spk_manager->GetKeyPoolSize() : 0;
 }
 
 unsigned int CWallet::GetKeyPoolSize() const
@@ -2285,15 +2279,15 @@ bool CWallet::TopUpKeyPool(unsigned int kpSize)
     return res;
 }
 
-util::Result<CTxDestination> CWallet::GetNewDestination(const OutputType type, const std::string& label)
+util::Result<CTxDestination> CWallet::GetNewDestination(const std::string& label)
 {
     LOCK(cs_wallet);
-    auto spk_man = GetScriptPubKeyMan(type, /*internal=*/false);
+    auto spk_man = GetScriptPubKeyMan(/*internal=*/false);
     if (!spk_man) {
-        return util::Error{strprintf(_("Error: No %s addresses available."), FormatOutputType(type))};
+        return util::Error{_("Error: No addresses available.")};
     }
 
-    auto op_dest = spk_man->GetNewDestination(type);
+    auto op_dest = spk_man->GetNewDestination();
     if (op_dest) {
         SetAddressBook(*op_dest, label, AddressPurpose::RECEIVE);
     }
@@ -2301,11 +2295,11 @@ util::Result<CTxDestination> CWallet::GetNewDestination(const OutputType type, c
     return op_dest;
 }
 
-util::Result<CTxDestination> CWallet::GetNewChangeDestination(const OutputType type)
+util::Result<CTxDestination> CWallet::GetNewChangeDestination()
 {
     LOCK(cs_wallet);
 
-    ReserveDestination reservedest(this, type);
+    ReserveDestination reservedest(this);
     auto op_dest = reservedest.GetReservedDestination(true);
     if (op_dest) reservedest.KeepDestination();
 
@@ -2367,14 +2361,14 @@ std::set<std::string> CWallet::ListAddrBookLabels(const std::optional<AddressPur
 
 util::Result<CTxDestination> ReserveDestination::GetReservedDestination(bool internal)
 {
-    m_spk_man = pwallet->GetScriptPubKeyMan(type, internal);
+    m_spk_man = pwallet->GetScriptPubKeyMan(internal);
     if (!m_spk_man) {
-        return util::Error{strprintf(_("Error: No %s addresses available."), FormatOutputType(type))};
+        return util::Error{_("Error: No addresses available.")};
     }
 
     if (nIndex == -1) {
         int64_t index;
-        auto op_address = m_spk_man->GetReservedDestination(type, internal, index);
+        auto op_address = m_spk_man->GetReservedDestination(internal, index);
         if (!op_address) return op_address;
         nIndex = index;
         address = *op_address;
@@ -2384,9 +2378,6 @@ util::Result<CTxDestination> ReserveDestination::GetReservedDestination(bool int
 
 void ReserveDestination::KeepDestination()
 {
-    if (nIndex != -1) {
-        m_spk_man->KeepDestination(nIndex, type);
-    }
     nIndex = -1;
     address = CNoDestination();
 }
@@ -2394,7 +2385,7 @@ void ReserveDestination::KeepDestination()
 void ReserveDestination::ReturnDestination()
 {
     if (nIndex != -1) {
-        m_spk_man->ReturnDestination(nIndex, fInternal, address);
+        m_spk_man->ReturnDestination(nIndex, address);
     }
     nIndex = -1;
     address = CNoDestination();
@@ -3043,20 +3034,14 @@ bool CWallet::Unlock(const CKeyingMaterial& vMasterKeyIn)
 std::set<ScriptPubKeyMan*> CWallet::GetActiveScriptPubKeyMans() const
 {
     std::set<ScriptPubKeyMan*> spk_mans;
-    for (const auto& [_, spk_man] : m_external_spk_managers) spk_mans.insert(spk_man);
-    for (const auto& [_, spk_man] : m_internal_spk_managers) spk_mans.insert(spk_man);
+    if (m_external_spk_manager) spk_mans.insert(m_external_spk_manager);
+    if (m_internal_spk_manager) spk_mans.insert(m_internal_spk_manager);
     return spk_mans;
 }
 
 bool CWallet::IsActiveScriptPubKeyMan(const ScriptPubKeyMan& spkm) const
 {
-    for (const auto& [_, ext_spkm] : m_external_spk_managers) {
-        if (ext_spkm == &spkm) return true;
-    }
-    for (const auto& [_, int_spkm] : m_internal_spk_managers) {
-        if (int_spkm == &spkm) return true;
-    }
-    return false;
+    return m_external_spk_manager == &spkm || m_internal_spk_manager == &spkm;
 }
 
 std::set<ScriptPubKeyMan*> CWallet::GetAllScriptPubKeyMans() const
@@ -3068,14 +3053,9 @@ std::set<ScriptPubKeyMan*> CWallet::GetAllScriptPubKeyMans() const
     return spk_mans;
 }
 
-ScriptPubKeyMan* CWallet::GetScriptPubKeyMan(const OutputType& type, bool internal) const
+ScriptPubKeyMan* CWallet::GetScriptPubKeyMan(bool internal) const
 {
-    const std::map<OutputType, ScriptPubKeyMan*>& spk_managers = internal ? m_internal_spk_managers : m_external_spk_managers;
-    std::map<OutputType, ScriptPubKeyMan*>::const_iterator it = spk_managers.find(type);
-    if (it == spk_managers.end()) {
-        return nullptr;
-    }
-    return it->second;
+    return internal ? m_internal_spk_manager : m_external_spk_manager;
 }
 
 std::set<ScriptPubKeyMan*> CWallet::GetScriptPubKeyMans(const CScript& script) const
@@ -3183,7 +3163,7 @@ DescriptorScriptPubKeyMan& CWallet::LoadDescriptorScriptPubKeyMan(uint256 id, Wa
     return *spk_manager;
 }
 
-DescriptorScriptPubKeyMan& CWallet::SetupDescriptorScriptPubKeyMan(WalletBatch& batch, const CExtKey& master_key, const OutputType& output_type, bool internal)
+DescriptorScriptPubKeyMan& CWallet::SetupDescriptorScriptPubKeyMan(WalletBatch& batch, const CExtKey& master_key, bool internal)
 {
     AssertLockHeld(cs_wallet);
     auto spk_manager = std::unique_ptr<DescriptorScriptPubKeyMan>(new DescriptorScriptPubKeyMan(*this, m_keypool_size));
@@ -3195,11 +3175,11 @@ DescriptorScriptPubKeyMan& CWallet::SetupDescriptorScriptPubKeyMan(WalletBatch& 
             throw std::runtime_error(std::string(__func__) + ": Could not encrypt new descriptors");
         }
     }
-    spk_manager->SetupDescriptorGeneration(batch, master_key, output_type, internal);
+    spk_manager->SetupDescriptorGeneration(batch, master_key, internal);
     DescriptorScriptPubKeyMan* out = spk_manager.get();
     uint256 id = spk_manager->GetID();
     AddScriptPubKeyMan(id, std::move(spk_manager));
-    AddActiveScriptPubKeyManWithDb(batch, id, output_type, internal);
+    AddActiveScriptPubKeyManWithDb(batch, id, internal);
     return *out;
 }
 
@@ -3207,7 +3187,7 @@ void CWallet::SetupDescriptorScriptPubKeyMans(WalletBatch& batch, const CExtKey&
 {
     AssertLockHeld(cs_wallet);
     for (bool internal : {false, true}) {
-        SetupDescriptorScriptPubKeyMan(batch, master_key, OutputType::BECH32M, internal);
+        SetupDescriptorScriptPubKeyMan(batch, master_key, internal);
     }
 }
 
@@ -3225,6 +3205,21 @@ void CWallet::SetupOwnDescriptorScriptPubKeyMans(WalletBatch& batch)
     master_key.SetSeed(seed_key);
 
     SetupDescriptorScriptPubKeyMans(batch, master_key);
+}
+
+static bool IsNativeDescriptor(const Descriptor& descriptor, const SigningProvider& signing_provider)
+{
+    std::vector<CScript> scripts;
+    FlatSigningProvider expanded;
+    if (!descriptor.Expand(0, signing_provider, scripts, expanded) || scripts.empty()) return false;
+
+    return std::ranges::all_of(scripts, [](const CScript& script) {
+        int witness_version;
+        std::vector<unsigned char> witness_program;
+        return script.IsWitnessProgram(witness_version, witness_program) &&
+               ((witness_version == 1 && witness_program.size() == WITNESS_V1_TAPROOT_SIZE) ||
+                script.IsPayToAnchor(witness_version, witness_program));
+    });
 }
 
 void CWallet::SetupDescriptorScriptPubKeyMans()
@@ -3262,14 +3257,14 @@ void CWallet::SetupDescriptorScriptPubKeyMans()
                     throw std::runtime_error(std::string(__func__) + ": Invalid descriptor \"" + desc_str + "\" (" + desc_error + ")");
                 }
                 auto& desc = descs.at(0);
-                if (desc->GetOutputType() != OutputType::BECH32M) {
+                if (!desc->IsSolvable() || !desc->IsRange() || !IsNativeDescriptor(*desc, keys)) {
                     continue;
                 }
                 auto spk_manager = std::unique_ptr<ExternalSignerScriptPubKeyMan>(new ExternalSignerScriptPubKeyMan(*this, m_keypool_size));
                 spk_manager->SetupDescriptor(batch, std::move(desc));
                 uint256 id = spk_manager->GetID();
                 AddScriptPubKeyMan(id, std::move(spk_manager));
-                AddActiveScriptPubKeyManWithDb(batch, id, OutputType::BECH32M, internal);
+                AddActiveScriptPubKeyManWithDb(batch, id, internal);
                 taproot_descriptor_added = true;
             }
             if (!taproot_descriptor_added) throw std::runtime_error(std::string(__func__) + ": External signer did not provide a Taproot descriptor");
@@ -3280,51 +3275,45 @@ void CWallet::SetupDescriptorScriptPubKeyMans()
     }
 }
 
-void CWallet::AddActiveScriptPubKeyMan(uint256 id, OutputType type, bool internal)
+void CWallet::AddActiveScriptPubKeyMan(uint256 id, bool internal)
 {
     WalletBatch batch(GetDatabase());
-    return AddActiveScriptPubKeyManWithDb(batch, id, type, internal);
+    return AddActiveScriptPubKeyManWithDb(batch, id, internal);
 }
 
-void CWallet::AddActiveScriptPubKeyManWithDb(WalletBatch& batch, uint256 id, OutputType type, bool internal)
+void CWallet::AddActiveScriptPubKeyManWithDb(WalletBatch& batch, uint256 id, bool internal)
 {
-    if (type != OutputType::BECH32M) {
-        throw std::invalid_argument("Only Taproot ScriptPubKeyMans can be active");
-    }
-    if (!batch.WriteActiveScriptPubKeyMan(static_cast<uint8_t>(type), id, internal)) {
+    if (!batch.WriteActiveScriptPubKeyMan(id, internal)) {
         throw std::runtime_error(std::string(__func__) + ": writing active ScriptPubKeyMan id failed");
     }
-    LoadActiveScriptPubKeyMan(id, type, internal);
+    LoadActiveScriptPubKeyMan(id, internal);
 }
 
-void CWallet::LoadActiveScriptPubKeyMan(uint256 id, OutputType type, bool internal)
+void CWallet::LoadActiveScriptPubKeyMan(uint256 id, bool internal)
 {
-    WalletLogPrintf("Setting spkMan to active: id = %s, type = %s, internal = %s\n", id.ToString(), FormatOutputType(type), internal ? "true" : "false");
-    auto& spk_mans = internal ? m_internal_spk_managers : m_external_spk_managers;
-    auto& spk_mans_other = internal ? m_external_spk_managers : m_internal_spk_managers;
+    WalletLogPrintf("Setting spkMan to active: id = %s, internal = %s\n", id.ToString(), internal ? "true" : "false");
+    auto& spk_man_active = internal ? m_internal_spk_manager : m_external_spk_manager;
+    auto& spk_man_other = internal ? m_external_spk_manager : m_internal_spk_manager;
     auto spk_man = m_spk_managers.at(id).get();
-    spk_mans[type] = spk_man;
+    spk_man_active = spk_man;
 
-    const auto it = spk_mans_other.find(type);
-    if (it != spk_mans_other.end() && it->second == spk_man) {
-        spk_mans_other.erase(type);
-    }
+    if (spk_man_other == spk_man) spk_man_other = nullptr;
 
     NotifyCanGetAddressesChanged();
 }
 
-void CWallet::DeactivateScriptPubKeyMan(uint256 id, OutputType type, bool internal)
+void CWallet::DeactivateScriptPubKeyMan(uint256 id, bool internal)
 {
-    auto spk_man = GetScriptPubKeyMan(type, internal);
+    auto spk_man = GetScriptPubKeyMan(internal);
     if (spk_man != nullptr && spk_man->GetID() == id) {
-        WalletLogPrintf("Deactivate spkMan: id = %s, type = %s, internal = %s\n", id.ToString(), FormatOutputType(type), internal ? "true" : "false");
+        WalletLogPrintf("Deactivate spkMan: id = %s, internal = %s\n", id.ToString(), internal ? "true" : "false");
         WalletBatch batch(GetDatabase());
-        if (!batch.EraseActiveScriptPubKeyMan(static_cast<uint8_t>(type), internal)) {
+        if (!batch.EraseActiveScriptPubKeyMan(internal)) {
             throw std::runtime_error(std::string(__func__) + ": erasing active ScriptPubKeyMan id failed");
         }
 
-        auto& spk_mans = internal ? m_internal_spk_managers : m_external_spk_managers;
-        spk_mans.erase(type);
+        auto& spk_man_active = internal ? m_internal_spk_manager : m_external_spk_manager;
+        spk_man_active = nullptr;
     }
 
     NotifyCanGetAddressesChanged();
@@ -3357,33 +3346,14 @@ std::optional<bool> CWallet::IsInternalScriptPubKeyMan(ScriptPubKeyMan* spk_man)
         throw std::runtime_error(std::string(__func__) + ": unexpected ScriptPubKeyMan type.");
     }
 
-    LOCK(desc_spk_man->cs_desc_man);
-    const auto& type = desc_spk_man->GetWalletDescriptor().descriptor->GetOutputType();
-    assert(type.has_value());
-
-    return GetScriptPubKeyMan(*type, /* internal= */ true) == desc_spk_man;
-}
-
-static bool IsNativeDescriptor(const WalletDescriptor& desc, const FlatSigningProvider& signing_provider)
-{
-    std::vector<CScript> scripts;
-    FlatSigningProvider expanded;
-    if (!desc.descriptor->Expand(0, signing_provider, scripts, expanded) || scripts.empty()) return false;
-
-    return std::ranges::all_of(scripts, [](const CScript& script) {
-        int witness_version;
-        std::vector<unsigned char> witness_program;
-        return script.IsWitnessProgram(witness_version, witness_program) &&
-               ((witness_version == 1 && witness_program.size() == WITNESS_V1_TAPROOT_SIZE) ||
-                script.IsPayToAnchor(witness_version, witness_program));
-    });
+    return GetScriptPubKeyMan(/*internal=*/true) == desc_spk_man;
 }
 
 util::Result<std::reference_wrapper<DescriptorScriptPubKeyMan>> CWallet::AddWalletDescriptor(WalletDescriptor& desc, const FlatSigningProvider& signing_provider, const std::string& label, bool internal)
 {
     AssertLockHeld(cs_wallet);
 
-    if (!IsNativeDescriptor(desc, signing_provider)) {
+    if (!IsNativeDescriptor(*desc.descriptor, signing_provider)) {
         return util::Error{_("Only Taproot and pay-to-anchor descriptors are supported")};
     }
 

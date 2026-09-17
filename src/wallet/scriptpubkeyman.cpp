@@ -6,7 +6,6 @@
 #include <key_io.h>
 #include <logging.h>
 #include <node/types.h>
-#include <outputtype.h>
 #include <script/descriptor.h>
 #include <script/script.h>
 #include <script/sign.h>
@@ -27,7 +26,7 @@ using util::ToString;
 
 namespace wallet {
 
-util::Result<CTxDestination> DescriptorScriptPubKeyMan::GetNewDestination(const OutputType type)
+util::Result<CTxDestination> DescriptorScriptPubKeyMan::GetNewDestination()
 {
     // Returns true if this descriptor supports getting new addresses. Conditions where we may be unable to fetch them (e.g. locked) are caught later
     if (!CanGetAddresses()) {
@@ -35,12 +34,6 @@ util::Result<CTxDestination> DescriptorScriptPubKeyMan::GetNewDestination(const 
     }
     {
         LOCK(cs_desc_man);
-        std::optional<OutputType> desc_addr_type = m_wallet_descriptor.descriptor->GetOutputType();
-        assert(desc_addr_type);
-        if (type != *desc_addr_type) {
-            throw std::runtime_error(std::string(__func__) + ": Types are inconsistent. Stored type does not match type of newly generated address");
-        }
-
         TopUp();
 
         // Get the scriptPubKey from the descriptor
@@ -126,15 +119,15 @@ bool DescriptorScriptPubKeyMan::Encrypt(const CKeyingMaterial& master_key, Walle
     return true;
 }
 
-util::Result<CTxDestination> DescriptorScriptPubKeyMan::GetReservedDestination(const OutputType type, bool internal, int64_t& index)
+util::Result<CTxDestination> DescriptorScriptPubKeyMan::GetReservedDestination(bool internal, int64_t& index)
 {
     LOCK(cs_desc_man);
-    auto op_dest = GetNewDestination(type);
+    auto op_dest = GetNewDestination();
     index = m_wallet_descriptor.next_index - 1;
     return op_dest;
 }
 
-void DescriptorScriptPubKeyMan::ReturnDestination(int64_t index, bool internal, const CTxDestination& addr)
+void DescriptorScriptPubKeyMan::ReturnDestination(int64_t index, const CTxDestination& addr)
 {
     LOCK(cs_desc_man);
     // Only return when the index was the most recent
@@ -337,7 +330,7 @@ bool DescriptorScriptPubKeyMan::AddDescriptorKeyWithDB(WalletBatch& batch, const
     }
 }
 
-bool DescriptorScriptPubKeyMan::SetupDescriptorGeneration(WalletBatch& batch, const CExtKey& master_key, OutputType addr_type, bool internal)
+bool DescriptorScriptPubKeyMan::SetupDescriptorGeneration(WalletBatch& batch, const CExtKey& master_key, bool internal)
 {
     LOCK(cs_desc_man);
 
@@ -346,7 +339,7 @@ bool DescriptorScriptPubKeyMan::SetupDescriptorGeneration(WalletBatch& batch, co
         return false;
     }
 
-    m_wallet_descriptor = GenerateWalletDescriptor(master_key.Neuter(), addr_type, internal);
+    m_wallet_descriptor = GenerateWalletDescriptor(master_key.Neuter(), internal);
 
     // Store the master private key, and descriptor
     if (!AddDescriptorKeyWithDB(batch, master_key.key, master_key.key.GetPubKey())) {

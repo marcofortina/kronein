@@ -68,7 +68,7 @@ static void add_coin(CoinsResult& available_coins, CWallet& wallet, const CAmoun
     tx.vout.resize(nInput + 1);
     tx.vout[nInput].nValue = nValue;
     if (spendable) {
-        tx.vout[nInput].scriptPubKey = GetScriptForDestination(*Assert(wallet.GetNewDestination(OutputType::BECH32M, "")));
+        tx.vout[nInput].scriptPubKey = GetScriptForDestination(*Assert(wallet.GetNewDestination("")));
     }
     Txid txid = tx.GetHash();
 
@@ -77,7 +77,7 @@ static void add_coin(CoinsResult& available_coins, CWallet& wallet, const CAmoun
     assert(ret.second);
     CWalletTx& wtx = (*ret.first).second;
     const auto& txout = wtx.tx->vout.at(nInput);
-    available_coins.Add(OutputType::BECH32M, {COutPoint(wtx.GetHash(), nInput), txout, nAge, custom_size == 0 ? CalculateMaximumSignedInputSize(txout, &wallet, /*coin_control=*/nullptr) : custom_size, /*solvable=*/true, /*safe=*/true, wtx.GetTxTime(), fIsFromMe, feerate});
+    available_coins.Add({COutPoint(wtx.GetHash(), nInput), txout, nAge, custom_size == 0 ? CalculateMaximumSignedInputSize(txout, &wallet, /*coin_control=*/nullptr) : custom_size, /*solvable=*/true, /*safe=*/true, wtx.GetTxTime(), fIsFromMe, feerate});
 }
 
 // Helpers
@@ -150,9 +150,9 @@ inline std::vector<OutputGroup>& KnapsackGroupOutputs(const CoinsResult& availab
         /*tx_noinputs_size=*/ 0,
         /*avoid_partial=*/ false,
     };
-    static OutputGroupTypeMap static_groups;
+    static Groups static_groups;
     static_groups = GroupOutputs(wallet, available_coins, coin_selection_params, {{filter}})[filter];
-    return static_groups.all_groups.mixed_group;
+    return static_groups.mixed_group;
 }
 
 static std::unique_ptr<CWallet> NewWallet(const node::NodeContext& m_node, const std::string& wallet_name = "")
@@ -175,7 +175,7 @@ BOOST_AUTO_TEST_CASE(bnb_search_test)
     // Behavior tests //
     ////////////////////
 
-    // Make sure that effective value is working in AttemptSelection when BnB is used
+    // Make sure that effective value is working in coin selection when BnB is used
     CoinSelectionParams coin_selection_params_bnb{
         rand,
         /*change_output_size=*/ 43,
@@ -223,8 +223,8 @@ BOOST_AUTO_TEST_CASE(bnb_search_test)
         COutput select_coin = available_coins.All().at(0);
         coin_control.Select(select_coin.outpoint);
         CoinsResult selected_input;
-        selected_input.Add(OutputType::BECH32M, select_coin);
-        available_coins.Erase({available_coins.coins[OutputType::BECH32M].begin()->outpoint});
+        selected_input.Add(select_coin);
+        available_coins.Erase({available_coins.coins.begin()->outpoint});
 
         LOCK(wallet->cs_wallet);
         const auto result10 = SelectCoins(*wallet, available_coins, selected_input, 10 * CENT, coin_control, coin_selection_params_bnb);
@@ -254,8 +254,8 @@ BOOST_AUTO_TEST_CASE(bnb_search_test)
         COutput select_coin = available_coins.All().at(1); // pre select 9 coin
         coin_control.Select(select_coin.outpoint);
         CoinsResult selected_input;
-        selected_input.Add(OutputType::BECH32M, select_coin);
-        available_coins.Erase({(++available_coins.coins[OutputType::BECH32M].begin())->outpoint});
+        selected_input.Add(select_coin);
+        available_coins.Erase({(++available_coins.coins.begin())->outpoint});
         const auto result13 = SelectCoins(*wallet, available_coins, selected_input, 10 * CENT, coin_control, coin_selection_params_bnb);
         BOOST_CHECK(EquivalentResult(expected_result, *result13));
     }
@@ -939,7 +939,7 @@ static util::Result<SelectionResult> CoinGrinder(const CAmount& target,
 {
     std::unique_ptr<CWallet> wallet = NewWallet(m_node);
     CoinEligibilityFilter filter(0, 0, 0); // accept all coins without ancestors
-    Groups group = GroupOutputs(*wallet, coin_setup(*wallet), cs_params, {{filter}})[filter].all_groups;
+    Groups group = GroupOutputs(*wallet, coin_setup(*wallet), cs_params, {filter})[filter];
     return CoinGrinder(group.positive_group, target, cs_params.m_min_change_target, max_selection_weight);
 }
 
@@ -1192,7 +1192,7 @@ static util::Result<SelectionResult> SelectCoinsSRD(const CAmount& target,
 {
     std::unique_ptr<CWallet> wallet = NewWallet(m_node);
     CoinEligibilityFilter filter(0, 0, 0); // accept all coins without ancestors
-    Groups group = GroupOutputs(*wallet, coin_setup(*wallet), cs_params, {{filter}})[filter].all_groups;
+    Groups group = GroupOutputs(*wallet, coin_setup(*wallet), cs_params, {filter})[filter];
     return SelectCoinsSRD(group.positive_group, target, cs_params.m_change_fee, cs_params.rng_fast, max_selection_weight);
 }
 
@@ -1426,7 +1426,7 @@ BOOST_AUTO_TEST_CASE(SelectCoins_effective_value_test)
 
     LOCK(wallet->cs_wallet);
     const auto preset_inputs = *Assert(FetchSelectedInputs(*wallet, cc, cs_params));
-    available_coins.Erase({available_coins.coins[OutputType::BECH32M].begin()->outpoint});
+    available_coins.Erase({available_coins.coins.begin()->outpoint});
 
     const auto result = SelectCoins(*wallet, available_coins, preset_inputs, target, cc, cs_params);
     BOOST_CHECK(!result);

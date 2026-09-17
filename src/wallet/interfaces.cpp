@@ -154,7 +154,7 @@ public:
     util::Result<CTxDestination> getNewDestination(const std::string& label) override
     {
         LOCK(m_wallet->cs_wallet);
-        return m_wallet->GetNewDestination(OutputType::BECH32M, label);
+        return m_wallet->GetNewDestination(label);
     }
     bool getPubKey(const CScript& script, const CKeyID& address, CPubKey& pub_key) override
     {

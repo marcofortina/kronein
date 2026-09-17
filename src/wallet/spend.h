@@ -18,6 +18,7 @@
 #include <optional>
 #include <set>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace wallet {
@@ -36,28 +37,20 @@ TxSize CalculateMaximumSignedTxSize(const CTransaction& tx, const CWallet* walle
 TxSize CalculateMaximumSignedTxSize(const CTransaction& tx, const CWallet* wallet, const CCoinControl* coin_control = nullptr) EXCLUSIVE_LOCKS_REQUIRED(wallet->cs_wallet);
 
 /**
- * COutputs available for spending, stored by OutputType.
- * This struct is really just a wrapper around OutputType vectors with a convenient
- * method for concatenating and returning all COutputs as one vector.
- *
- * Size(), Clear(), Erase(), Shuffle(), and Add() methods are implemented to
- * allow easy interaction with the struct.
+ * COutputs available for spending.
  */
 struct CoinsResult {
-    std::map<OutputType, std::vector<COutput>> coins;
+    std::vector<COutput> coins;
 
-    /** Concatenate and return all COutputs as one vector */
-    std::vector<COutput> All() const;
+    std::vector<COutput>& All() & { return coins; }
+    const std::vector<COutput>& All() const & { return coins; }
+    std::vector<COutput> All() && { return std::move(coins); }
 
-    /** The following methods are provided so that CoinsResult can mimic a vector,
-     * i.e., methods can work with individual OutputType vectors or on the entire object */
-    size_t Size() const;
-    /** Return how many different output types this struct stores */
-    size_t TypesCount() const { return coins.size(); }
+    size_t Size() const { return coins.size(); }
     void Clear();
     void Erase(const std::unordered_set<COutPoint, SaltedOutpointHasher>& coins_to_remove);
     void Shuffle(FastRandomContext& rng_fast);
-    void Add(OutputType type, const COutput& out);
+    void Add(const COutput& out);
 
     CAmount GetTotalAmount() const { return total_amount; }
     std::optional<CAmount> GetEffectiveTotalAmount() const { return total_effective_amount; }
@@ -89,7 +82,7 @@ struct CoinFilterParams {
 };
 
 /**
- * Populate the CoinsResult struct with vectors of available COutputs, organized by OutputType.
+ * Populate the CoinsResult struct with available COutputs.
  */
 CoinsResult AvailableCoins(const CWallet& wallet,
                            const CCoinControl* coinControl = nullptr,
@@ -106,37 +99,13 @@ const CTxOut& FindNonChangeParentOutput(const CWallet& wallet, const COutPoint& 
  */
 std::map<CTxDestination, std::vector<COutput>> ListCoins(const CWallet& wallet) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);
 
-struct SelectionFilter {
-    CoinEligibilityFilter filter;
-    bool allow_mixed_output_types{true};
-};
-
 /**
 * Group coins by the provided filters.
 */
 FilteredOutputGroups GroupOutputs(const CWallet& wallet,
                           const CoinsResult& coins,
                           const CoinSelectionParams& coin_sel_params,
-                          const std::vector<SelectionFilter>& filters);
-
-/**
- * Attempt to find a valid input set that preserves privacy by not mixing OutputTypes.
- * `ChooseSelectionResult()` will be called on each OutputType individually and the best
- * the solution (according to the waste metric) will be chosen. If a valid input cannot be found from any
- * single OutputType, fallback to running `ChooseSelectionResult()` over all available coins.
- *
- * @param[in]  chain                     The chain interface to get information on bump fees for unconfirmed UTXOs
- * @param[in]  nTargetValue              The target value
- * @param[in]  groups                    The grouped outputs mapped by coin eligibility filters
- * @param[in]  coin_selection_params     Parameters for the coin selection
- * @param[in]  allow_mixed_output_types  Relax restriction that SelectionResults must be of the same OutputType
- * returns                               If successful, a SelectionResult containing the input set
- *                                       If failed, returns (1) an empty error message if the target was not reached (general "Insufficient funds")
- *                                                  or (2) a specific error message if there was something particularly wrong (e.g. a selection
- *                                                  result that surpassed the tx max weight size).
- */
-util::Result<SelectionResult> AttemptSelection(interfaces::Chain& chain, const CAmount& nTargetValue, OutputGroupTypeMap& groups,
-                        const CoinSelectionParams& coin_selection_params, bool allow_mixed_output_types);
+                          const std::vector<CoinEligibilityFilter>& filters);
 
 /**
  * Attempt to find a valid input set that meets the provided eligibility filter and target.
@@ -164,7 +133,7 @@ util::Result<CoinsResult> FetchSelectedInputs(const CWallet& wallet, const CCoin
 /**
  * Select a set of coins such that nTargetValue is met; never select unconfirmed coins if they are not ours
  * @param[in]   wallet                 The wallet which provides data necessary to spend the selected coins
- * @param[in]   available_coins        The struct of coins, organized by OutputType, available for selection prior to filtering
+ * @param[in]   available_coins        The coins available for selection prior to filtering
  * @param[in]   nTargetValue           The target value
  * @param[in]   coin_selection_params  Parameters for this coin selection such as feerates, whether to avoid partial spends,
  *                                     and whether to subtract the fee from the outputs.

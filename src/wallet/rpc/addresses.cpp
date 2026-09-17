@@ -49,7 +49,7 @@ RPCHelpMan getnewaddress()
     // Parse the label first so we don't generate a key if there's an error
     const std::string label{LabelFromValue(request.params[0])};
 
-    auto op_dest = pwallet->GetNewDestination(OutputType::BECH32M, label);
+    auto op_dest = pwallet->GetNewDestination(label);
     if (!op_dest) {
         throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, util::ErrorString(op_dest).original);
     }
@@ -84,7 +84,7 @@ RPCHelpMan getrawchangeaddress()
         throw JSONRPCError(RPC_WALLET_ERROR, "Error: This wallet has no available keys");
     }
 
-    auto op_dest = pwallet->GetNewChangeDestination(OutputType::BECH32M);
+    auto op_dest = pwallet->GetNewChangeDestination();
     if (!op_dest) {
         throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, util::ErrorString(op_dest).original);
     }

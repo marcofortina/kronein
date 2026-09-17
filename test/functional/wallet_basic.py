@@ -505,7 +505,7 @@ class WalletTest(BitcoinTestFramework):
         total_txs = len(self.nodes[0].listtransactions("*", 99999))
 
         # Try with walletrejectlongchains
-        # Double chain limit but require combining inputs, so we pass AttemptSelection
+        # Double chain limit but require combining inputs, so coin selection succeeds
         self.stop_node(0)
         extra_args = ["-walletrejectlongchains", "-limitclustercount=" + str(2 * chainlimit)]
         self.start_node(0, extra_args=extra_args)

@@ -28,9 +28,8 @@ fs::path GetWalletDir()
     return path;
 }
 
-WalletDescriptor GenerateWalletDescriptor(const CExtPubKey& master_key, const OutputType& addr_type, bool internal)
+WalletDescriptor GenerateWalletDescriptor(const CExtPubKey& master_key, bool internal)
 {
-    assert(addr_type == OutputType::BECH32M);
     int64_t creation_time = Now<NodeSeconds>().time_since_epoch().count();
 
     std::string xpub = EncodeExtPubKey(master_key);

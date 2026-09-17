@@ -19,7 +19,6 @@ static void TestDescriptor(const Descriptor& desc, FlatSigningProvider& sig_prov
 {
     // Trivial helpers.
     (void)desc.IsRange();
-    (void)desc.GetOutputType();
 
     if (is_ranged.has_value()) {
         assert(desc.IsRange() == *is_ranged);
@@ -55,9 +54,9 @@ static void TestDescriptor(const Descriptor& desc, FlatSigningProvider& sig_prov
     const auto max_sat_nonmaxsig{desc.MaxSatisfactionWeight(true)};
     const auto max_elems{desc.MaxSatisfactionElems()};
     // We must be able to estimate the maximum satisfaction size for any solvable descriptor.
-    const bool is_nontop_or_nonsolvable{!*is_solvable || !desc.GetOutputType()};
+    const bool is_nonsolvable{!*is_solvable};
     const bool is_input_size_info_set{max_sat_maxsig && max_sat_nonmaxsig && max_elems};
-    assert(is_input_size_info_set || is_nontop_or_nonsolvable);
+    assert(is_input_size_info_set || is_nonsolvable);
 
     auto max_key_expr = desc.GetMaxKeyExpr();
     auto key_count = desc.GetKeyCount();

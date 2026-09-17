@@ -5,7 +5,6 @@
 #include <chainparams.h>
 #include <key.h>
 #include <key_io.h>
-#include <outputtype.h>
 #include <policy/policy.h>
 #include <pubkey.h>
 #include <rpc/util.h>

@@ -54,17 +54,16 @@ struct FuzzedWallet {
                 assert(!wallet->GetDescriptorScriptPubKeyMan(w_desc));
                 LOCK(wallet->cs_wallet);
                 auto& spk_manager = Assert(wallet->AddWalletDescriptor(w_desc, keys, /*label=*/"", internal))->get();
-                wallet->AddActiveScriptPubKeyMan(spk_manager.GetID(), *Assert(w_desc.descriptor->GetOutputType()), internal);
+                wallet->AddActiveScriptPubKeyMan(spk_manager.GetID(), internal);
             }
         }
     }
     CTxDestination GetDestination(FuzzedDataProvider& fuzzed_data_provider)
     {
-        auto type{fuzzed_data_provider.PickValueInArray(OUTPUT_TYPES)};
         if (fuzzed_data_provider.ConsumeBool()) {
-            return *Assert(wallet->GetNewDestination(type, ""));
+            return *Assert(wallet->GetNewDestination(""));
         } else {
-            return *Assert(wallet->GetNewChangeDestination(type));
+            return *Assert(wallet->GetNewChangeDestination());
         }
     }
     CScript GetScriptPubKey(FuzzedDataProvider& fuzzed_data_provider) { return GetScriptForDestination(GetDestination(fuzzed_data_provider)); }

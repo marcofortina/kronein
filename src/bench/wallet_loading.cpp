@@ -5,7 +5,6 @@
 #include <addresstype.h>
 #include <bench/bench.h>
 #include <consensus/amount.h>
-#include <outputtype.h>
 #include <primitives/transaction.h>
 #include <test/util/setup_common.h>
 #include <util/check.h>
@@ -25,7 +24,7 @@ namespace wallet{
 static void AddTx(CWallet& wallet)
 {
     CMutableTransaction mtx;
-    mtx.vout.emplace_back(COIN, GetScriptForDestination(*Assert(wallet.GetNewDestination(OutputType::BECH32M, ""))));
+    mtx.vout.emplace_back(COIN, GetScriptForDestination(*Assert(wallet.GetNewDestination(""))));
     mtx.vin.emplace_back();
 
     wallet.AddToWallet(MakeTransactionRef(mtx), TxStateInactive{});

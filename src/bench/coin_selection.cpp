@@ -6,7 +6,6 @@
 #include <consensus/amount.h>
 #include <interfaces/chain.h>
 #include <node/context.h>
-#include <outputtype.h>
 #include <policy/feerate.h>
 #include <policy/policy.h>
 #include <primitives/transaction.h>
@@ -27,7 +26,7 @@
 #include <vector>
 
 using node::NodeContext;
-using wallet::AttemptSelection;
+using wallet::ChooseSelectionResult;
 using wallet::CHANGE_LOWER;
 using wallet::COutput;
 using wallet::CWallet;
@@ -74,7 +73,7 @@ static void CoinSelection(benchmark::Bench& bench)
     wallet::CoinsResult available_coins;
     for (const auto& wtx : wtxs) {
         const auto txout = wtx->tx->vout.at(0);
-        available_coins.coins[OutputType::BECH32M].emplace_back(COutPoint(wtx->GetHash(), 0), txout, /*depth=*/6 * 24, CalculateMaximumSignedInputSize(txout, &wallet, /*coin_control=*/nullptr), /*solvable=*/true, /*safe=*/true, wtx->GetTxTime(), /*from_me=*/true, /*fees=*/ 0);
+        available_coins.coins.emplace_back(COutPoint(wtx->GetHash(), 0), txout, /*depth=*/6 * 24, CalculateMaximumSignedInputSize(txout, &wallet, /*coin_control=*/nullptr), /*solvable=*/true, /*safe=*/true, wtx->GetTxTime(), /*from_me=*/true, /*fees=*/ 0);
     }
 
     const CoinEligibilityFilter filter_standard(1, 6, 0);
@@ -90,9 +89,9 @@ static void CoinSelection(benchmark::Bench& bench)
         /*tx_noinputs_size=*/ 0,
         /*avoid_partial=*/ false,
     };
-    auto group = wallet::GroupOutputs(wallet, available_coins, coin_selection_params, {{filter_standard}})[filter_standard];
+    auto group = wallet::GroupOutputs(wallet, available_coins, coin_selection_params, {filter_standard})[filter_standard];
     bench.run([&] {
-        auto result = AttemptSelection(wallet.chain(), 1002.99 * COIN, group, coin_selection_params, /*allow_mixed_output_types=*/true);
+        auto result = ChooseSelectionResult(wallet.chain(), 1002.99 * COIN, group, coin_selection_params);
         assert(result);
         assert(result->GetSelectedValue() == 1003 * COIN);
         assert(result->GetInputSet().size() == 2);

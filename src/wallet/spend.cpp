@@ -155,65 +155,38 @@ TxSize CalculateMaximumSignedTxSize(const CTransaction &tx, const CWallet *walle
     return CalculateMaximumSignedTxSize(tx, wallet, txouts, coin_control);
 }
 
-size_t CoinsResult::Size() const
+void CoinsResult::Clear()
 {
-    size_t size{0};
-    for (const auto& it : coins) {
-        size += it.second.size();
-    }
-    return size;
-}
-
-std::vector<COutput> CoinsResult::All() const
-{
-    std::vector<COutput> all;
-    all.reserve(Size());
-    for (const auto& it : coins) {
-        all.insert(all.end(), it.second.begin(), it.second.end());
-    }
-    return all;
-}
-
-void CoinsResult::Clear() {
     coins.clear();
+    total_amount = 0;
+    total_effective_amount.reset();
 }
 
 void CoinsResult::Erase(const std::unordered_set<COutPoint, SaltedOutpointHasher>& coins_to_remove)
 {
-    for (auto& [type, vec] : coins) {
-        auto remove_it = std::remove_if(vec.begin(), vec.end(), [&](const COutput& coin) {
-            // remove it if it's on the set
-            if (!coins_to_remove.contains(coin.outpoint)) return false;
+    auto remove_it = std::remove_if(coins.begin(), coins.end(), [&](const COutput& coin) {
+        if (!coins_to_remove.contains(coin.outpoint)) return false;
 
-            // update cached amounts
-            total_amount -= coin.txout.nValue;
-            if (coin.HasEffectiveValue() && total_effective_amount.has_value()) total_effective_amount = *total_effective_amount - coin.GetEffectiveValue();
-            return true;
-        });
-        vec.erase(remove_it, vec.end());
-    }
+        total_amount -= coin.txout.nValue;
+        if (coin.HasEffectiveValue() && total_effective_amount.has_value()) total_effective_amount = *total_effective_amount - coin.GetEffectiveValue();
+        return true;
+    });
+    coins.erase(remove_it, coins.end());
 }
 
 void CoinsResult::Shuffle(FastRandomContext& rng_fast)
 {
-    for (auto& it : coins) {
-        std::shuffle(it.second.begin(), it.second.end(), rng_fast);
-    }
+    std::shuffle(coins.begin(), coins.end(), rng_fast);
 }
 
-void CoinsResult::Add(OutputType type, const COutput& out)
+void CoinsResult::Add(const COutput& out)
 {
-    coins[type].emplace_back(out);
+    coins.emplace_back(out);
     total_amount += out.txout.nValue;
     if (out.HasEffectiveValue()) {
         total_effective_amount = total_effective_amount.has_value() ?
                 *total_effective_amount + out.GetEffectiveValue() : out.GetEffectiveValue();
     }
-}
-
-static OutputType GetOutputType(TxoutType type)
-{
-    return type == TxoutType::WITNESS_V1_TAPROOT ? OutputType::BECH32M : OutputType::UNKNOWN;
 }
 
 // Fetch and validate the coin control selected inputs.
@@ -260,7 +233,7 @@ util::Result<CoinsResult> FetchSelectedInputs(const CWallet& wallet, const CCoin
         /* Set some defaults for depth, solvable, safe, time, and from_me as these don't matter for preset inputs since no selection is being done. */
         COutput output(outpoint, txout, /*depth=*/0, input_bytes, /*solvable=*/true, /*safe=*/true, /*time=*/0, /*from_me=*/false, coin_selection_params.m_effective_feerate);
         output.ApplyBumpFee(map_of_bump_fees.at(output.outpoint));
-        result.Add(OutputType::UNKNOWN, output);
+        result.Add(output);
     }
     return result;
 }
@@ -387,12 +360,8 @@ CoinsResult AvailableCoins(const CWallet& wallet,
         bool solvable = input_bytes > -1;
 
         // Obtain script type
-        std::vector<std::vector<uint8_t>> script_solutions;
-        TxoutType type = Solver(output.scriptPubKey, script_solutions);
-
-        auto available_output_type = GetOutputType(type);
         auto available_output = COutput(outpoint, output, nDepth, input_bytes, solvable, tx_safe, wtx.GetTxTime(), tx_from_me, feerate);
-        result.Add(available_output_type, available_output);
+        result.Add(available_output);
 
         outpoints.push_back(outpoint);
 
@@ -412,10 +381,8 @@ CoinsResult AvailableCoins(const CWallet& wallet,
     if (feerate.has_value()) {
         std::map<COutPoint, CAmount> map_of_bump_fees = wallet.chain().calculateIndividualBumpFees(outpoints, feerate.value());
 
-        for (auto& [_, outputs] : result.coins) {
-            for (auto& output : outputs) {
-                output.ApplyBumpFee(map_of_bump_fees.at(output.outpoint));
-            }
+        for (auto& output : result.coins) {
+            output.ApplyBumpFee(map_of_bump_fees.at(output.outpoint));
         }
     }
 
@@ -462,33 +429,32 @@ std::map<CTxDestination, std::vector<COutput>> ListCoins(const CWallet& wallet)
 FilteredOutputGroups GroupOutputs(const CWallet& wallet,
                           const CoinsResult& coins,
                           const CoinSelectionParams& coin_sel_params,
-                          const std::vector<SelectionFilter>& filters,
+                          const std::vector<CoinEligibilityFilter>& filters,
                           std::vector<OutputGroup>& ret_discarded_groups)
 {
     FilteredOutputGroups filtered_groups;
+    const auto push_group = [](Groups& groups, const OutputGroup& group, bool insert_positive, bool insert_mixed) {
+        if (group.m_outputs.empty()) return;
+        if (insert_positive && group.GetSelectionAmount() > 0) groups.positive_group.emplace_back(group);
+        if (insert_mixed) groups.mixed_group.emplace_back(group);
+    };
 
     if (!coin_sel_params.m_avoid_partial_spends) {
         // Allowing partial spends means no grouping. Each COutput gets its own OutputGroup
-        for (const auto& [type, outputs] : coins.coins) {
-            for (const COutput& output : outputs) {
-                // Get mempool info
-                size_t ancestors, cluster_count;
-                wallet.chain().getTransactionAncestry(output.outpoint.hash, ancestors, cluster_count);
+        for (const COutput& output : coins.coins) {
+            size_t ancestors, cluster_count;
+            wallet.chain().getTransactionAncestry(output.outpoint.hash, ancestors, cluster_count);
 
-                // Create a new group per output and add it to the all groups vector
-                OutputGroup group(coin_sel_params);
-                group.Insert(std::make_shared<COutput>(output), ancestors, cluster_count);
+            OutputGroup group(coin_sel_params);
+            group.Insert(std::make_shared<COutput>(output), ancestors, cluster_count);
 
-                // Each filter maps to a different set of groups
-                bool accepted = false;
-                for (const auto& sel_filter : filters) {
-                    const auto& filter = sel_filter.filter;
-                    if (!group.EligibleForSpending(filter)) continue;
-                    filtered_groups[filter].Push(group, type, /*insert_positive=*/true, /*insert_mixed=*/true);
-                    accepted = true;
-                }
-                if (!accepted) ret_discarded_groups.emplace_back(group);
+            bool accepted = false;
+            for (const auto& filter : filters) {
+                if (!group.EligibleForSpending(filter)) continue;
+                push_group(filtered_groups[filter], group, /*insert_positive=*/true, /*insert_mixed=*/true);
+                accepted = true;
             }
+            if (!accepted) ret_discarded_groups.emplace_back(group);
         }
         return filtered_groups;
     }
@@ -499,11 +465,11 @@ FilteredOutputGroups GroupOutputs(const CWallet& wallet,
     // For each COutput, we check if the scriptPubKey is in the map, and if it is, the COutput is added
     // to the last OutputGroup in the vector for the scriptPubKey. When the last OutputGroup has
     // OUTPUT_GROUP_MAX_ENTRIES COutputs, a new OutputGroup is added to the end of the vector.
-    typedef std::map<std::pair<CScript, OutputType>, std::vector<OutputGroup>> ScriptPubKeyToOutgroup;
+    using ScriptPubKeyToOutgroup = std::map<CScript, std::vector<OutputGroup>>;
     const auto& insert_output = [&](
-            const std::shared_ptr<COutput>& output, OutputType type, size_t ancestors, size_t cluster_count,
+            const std::shared_ptr<COutput>& output, size_t ancestors, size_t cluster_count,
             ScriptPubKeyToOutgroup& groups_map) {
-        std::vector<OutputGroup>& groups = groups_map[std::make_pair(output->txout.scriptPubKey,type)];
+        std::vector<OutputGroup>& groups = groups_map[output->txout.scriptPubKey];
 
         if (groups.size() == 0) {
             // No OutputGroups for this scriptPubKey yet, add one
@@ -527,20 +493,16 @@ FilteredOutputGroups GroupOutputs(const CWallet& wallet,
 
     ScriptPubKeyToOutgroup spk_to_groups_map;
     ScriptPubKeyToOutgroup spk_to_positive_groups_map;
-    for (const auto& [type, outs] : coins.coins) {
-        for (const COutput& output : outs) {
-            size_t ancestors, cluster_count;
-            wallet.chain().getTransactionAncestry(output.outpoint.hash, ancestors, cluster_count);
+    for (const COutput& output : coins.coins) {
+        size_t ancestors, cluster_count;
+        wallet.chain().getTransactionAncestry(output.outpoint.hash, ancestors, cluster_count);
 
-            const auto& shared_output = std::make_shared<COutput>(output);
-            // Filter for positive only before adding the output
-            if (output.GetEffectiveValue() > 0) {
-                insert_output(shared_output, type, ancestors, cluster_count, spk_to_positive_groups_map);
-            }
-
-            // 'All' groups
-            insert_output(shared_output, type, ancestors, cluster_count, spk_to_groups_map);
+        const auto& shared_output = std::make_shared<COutput>(output);
+        if (output.GetEffectiveValue() > 0) {
+            insert_output(shared_output, ancestors, cluster_count, spk_to_positive_groups_map);
         }
+
+        insert_output(shared_output, ancestors, cluster_count, spk_to_groups_map);
     }
 
     // Now we go through the entire maps and pull out the OutputGroups
@@ -552,8 +514,7 @@ FilteredOutputGroups GroupOutputs(const CWallet& wallet,
 
                 // Each filter maps to a different set of groups
                 bool accepted = false;
-                for (const auto& sel_filter : filters) {
-                    const auto& filter = sel_filter.filter;
+                for (const auto& filter : filters) {
                     if (!group.EligibleForSpending(filter)) continue;
 
                     // Don't include partial groups if there are full groups too and we don't want partial groups
@@ -561,9 +522,7 @@ FilteredOutputGroups GroupOutputs(const CWallet& wallet,
                         continue;
                     }
 
-                    OutputType type = script.second;
-                    // Either insert the group into the positive-only groups or the mixed ones.
-                    filtered_groups[filter].Push(group, type, positive_only, /*insert_mixed=*/!positive_only);
+                    push_group(filtered_groups[filter], group, positive_only, /*insert_mixed=*/!positive_only);
                     accepted = true;
                 }
                 if (!accepted) ret_discarded_groups.emplace_back(group);
@@ -580,7 +539,7 @@ FilteredOutputGroups GroupOutputs(const CWallet& wallet,
 FilteredOutputGroups GroupOutputs(const CWallet& wallet,
                                   const CoinsResult& coins,
                                   const CoinSelectionParams& params,
-                                  const std::vector<SelectionFilter>& filters)
+                                  const std::vector<CoinEligibilityFilter>& filters)
 {
     std::vector<OutputGroup> unused;
     return GroupOutputs(wallet, coins, params, filters, unused);
@@ -588,33 +547,6 @@ FilteredOutputGroups GroupOutputs(const CWallet& wallet,
 
 // Returns true if the result contains an error and the message is not empty
 static bool HasErrorMsg(const util::Result<SelectionResult>& res) { return !util::ErrorString(res).empty(); }
-
-util::Result<SelectionResult> AttemptSelection(interfaces::Chain& chain, const CAmount& nTargetValue, OutputGroupTypeMap& groups,
-                               const CoinSelectionParams& coin_selection_params, bool allow_mixed_output_types)
-{
-    // Run coin selection on each OutputType and compute the Waste Metric
-    std::vector<SelectionResult> results;
-    for (auto& [type, group] : groups.groups_by_type) {
-        auto result{ChooseSelectionResult(chain, nTargetValue, group, coin_selection_params)};
-        // If any specific error message appears here, then something particularly wrong happened.
-        if (HasErrorMsg(result)) return result; // So let's return the specific error.
-        // Append the favorable result.
-        if (result) results.push_back(*result);
-    }
-    // If we have at least one solution for funding the transaction without mixing, choose the minimum one according to waste metric
-    // and return the result
-    if (results.size() > 0) return *std::min_element(results.begin(), results.end());
-
-    // If we can't fund the transaction from any individual OutputType, run coin selection one last time
-    // over all available coins, which would allow mixing.
-    // If TypesCount() <= 1, there is nothing to mix.
-    if (allow_mixed_output_types && groups.TypesCount() > 1) {
-        return ChooseSelectionResult(chain, nTargetValue, groups.all_groups, coin_selection_params);
-    }
-    // Either mixing is not allowed and we couldn't find a solution from any single OutputType, or mixing was allowed and we still couldn't
-    // find a solution using all available coins
-    return util::Error();
-};
 
 util::Result<SelectionResult> ChooseSelectionResult(interfaces::Chain& chain, const CAmount& nTargetValue, Groups& groups, const CoinSelectionParams& coin_selection_params)
 {
@@ -779,18 +711,18 @@ util::Result<SelectionResult> AutomaticCoinSelection(const CWallet& wallet, Coin
     // permissive CoinEligibilityFilter.
     {
         // Place coins eligibility filters on a scope increasing order.
-        std::vector<SelectionFilter> ordered_filters{
+        std::vector<CoinEligibilityFilter> ordered_filters{
                 // If possible, fund the transaction with confirmed UTXOs only. Prefer at least six
                 // confirmations on outputs received from other wallets and only spend confirmed change.
-                {CoinEligibilityFilter(1, 6, 0), /*allow_mixed_output_types=*/false},
-                {CoinEligibilityFilter(1, 1, 0)},
+                CoinEligibilityFilter(1, 6, 0),
+                CoinEligibilityFilter(1, 1, 0),
         };
         const auto add_filter = [&ordered_filters](CoinEligibilityFilter filter) {
-            const auto same_filter = [&filter](const SelectionFilter& candidate) {
-                return !(filter < candidate.filter) && !(candidate.filter < filter);
+            const auto same_filter = [&filter](const CoinEligibilityFilter& candidate) {
+                return !(filter < candidate) && !(candidate < filter);
             };
             if (std::none_of(ordered_filters.begin(), ordered_filters.end(), same_filter)) {
-                ordered_filters.push_back({filter});
+                ordered_filters.push_back(filter);
             }
         };
         // Fall back to using zero confirmation change (but with as few ancestors in the mempool as
@@ -802,19 +734,19 @@ util::Result<SelectionResult> AutomaticCoinSelection(const CWallet& wallet, Coin
             // If partial groups are allowed, relax the requirement of spending OutputGroups (groups
             // of UTXOs sent to the same address, which are obviously controlled by a single wallet)
             // in their entirety.
-            ordered_filters.push_back({CoinEligibilityFilter(0, 1, max_ancestors-1, max_cluster_count-1, /*include_partial=*/true)});
+            ordered_filters.emplace_back(0, 1, max_ancestors-1, max_cluster_count-1, /*include_partial=*/true);
             // Try with unsafe inputs if they are allowed. This may spend unconfirmed outputs
             // received from other wallets.
             if (coin_selection_params.m_include_unsafe_inputs) {
-                ordered_filters.push_back({CoinEligibilityFilter(/*conf_mine=*/0, /*conf_theirs=*/0, max_ancestors-1, max_cluster_count-1, /*include_partial=*/true)});
+                ordered_filters.emplace_back(/*conf_mine=*/0, /*conf_theirs=*/0, max_ancestors-1, max_cluster_count-1, /*include_partial=*/true);
             }
             // Try with unlimited ancestors/clusters. The transaction will still need to meet
             // local mempool cluster policy to be accepted and broadcast, but
             // OutputGroups use heuristics that may overestimate.
             if (!fRejectLongChains) {
-                ordered_filters.push_back({CoinEligibilityFilter(0, 1, std::numeric_limits<uint64_t>::max(),
-                                                                   std::numeric_limits<uint64_t>::max(),
-                                                                   /*include_partial=*/true)});
+                ordered_filters.emplace_back(0, 1, std::numeric_limits<uint64_t>::max(),
+                                              std::numeric_limits<uint64_t>::max(),
+                                              /*include_partial=*/true);
             }
         }
 
@@ -843,11 +775,10 @@ util::Result<SelectionResult> AutomaticCoinSelection(const CWallet& wallet, Coin
         // future: add "error level" so the worst one can be picked instead.
         std::vector<util::Result<SelectionResult>> res_detailed_errors;
         CoinSelectionParams updated_selection_params = coin_selection_params;
-        for (const auto& select_filter : ordered_filters) {
-            auto it = filtered_groups.find(select_filter.filter);
+        for (const auto& filter : ordered_filters) {
+            auto it = filtered_groups.find(filter);
             if (it == filtered_groups.end()) continue;
-            if (auto res{AttemptSelection(wallet.chain(), value_to_select, it->second,
-                                          updated_selection_params, select_filter.allow_mixed_output_types)}) {
+            if (auto res{ChooseSelectionResult(wallet.chain(), value_to_select, it->second, updated_selection_params)}) {
                 return res; // result found
             } else {
                 // If any specific error message appears here, then something particularly wrong might have happened.
@@ -972,7 +903,7 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
     coin_selection_params.tx_noinputs_size = 9 + GetSizeOfCompactSize(vecSend.size());
 
     CAmount recipients_sum = 0;
-    ReserveDestination reservedest(&wallet, OutputType::BECH32M);
+    ReserveDestination reservedest(&wallet);
     unsigned int outputs_to_subtract_fee_from = 0; // The number of outputs which we are subtracting the fee from
     for (const auto& recipient : vecSend) {
         if (IsDust(recipient, wallet.chain().relayDustFee())) {

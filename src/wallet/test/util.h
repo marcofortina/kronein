@@ -14,7 +14,6 @@
 class ArgsManager;
 class CChain;
 class CKey;
-enum class OutputType;
 namespace interfaces {
 class Chain;
 } // namespace interfaces
@@ -39,8 +38,8 @@ std::unique_ptr<WalletDatabase> DuplicateMockDatabase(WalletDatabase& database);
 
 /** Returns a new encoded Taproot destination from the wallet. */
 std::string getnewaddress(CWallet& w);
-/** Returns a new destination, of an specific type, from the wallet */
-CTxDestination getNewDestination(CWallet& w, OutputType output_type);
+/** Returns a new destination from the wallet. */
+CTxDestination getNewDestination(CWallet& w);
 
 using MockableData = std::map<SerializeData, SerializeData, std::less<>>;
 

@@ -5,7 +5,6 @@
 #ifndef BITCOIN_SCRIPT_DESCRIPTOR_H
 #define BITCOIN_SCRIPT_DESCRIPTOR_H
 
-#include <outputtype.h>
 #include <script/script.h>
 #include <script/sign.h>
 #include <script/signingprovider.h>
@@ -153,9 +152,6 @@ struct Descriptor {
      * @param[out] out Any private keys available for the specified `pos`.
      */
     virtual void ExpandPrivate(int pos, const SigningProvider& provider, FlatSigningProvider& out) const = 0;
-
-    /** @return The OutputType of the scriptPubKey(s) produced by this descriptor. Or nullopt if indeterminate (multiple or none) */
-    virtual std::optional<OutputType> GetOutputType() const = 0;
 
     /** Get the size of the scriptPubKey for this descriptor. */
     virtual std::optional<int64_t> ScriptSize() const = 0;

@@ -996,8 +996,6 @@ public:
         }
     }
 
-    std::optional<OutputType> GetOutputType() const override { return std::nullopt; }
-
     std::optional<int64_t> ScriptSize() const override { return {}; }
 
     /** A helper for MaxSatisfactionWeight.
@@ -1083,10 +1081,6 @@ public:
     AddressDescriptor(CTxDestination destination) : DescriptorImpl({}, "addr"), m_destination(std::move(destination)) {}
     bool IsSolvable() const final { return false; }
 
-    std::optional<OutputType> GetOutputType() const override
-    {
-        return OutputTypeFromDestination(m_destination);
-    }
     bool ToPrivateString(const SigningProvider& arg, std::string& out) const final { return false; }
 
     std::optional<int64_t> ScriptSize() const override { return GetScriptForDestination(m_destination).size(); }
@@ -1107,12 +1101,6 @@ public:
     RawDescriptor(CScript script) : DescriptorImpl({}, "raw"), m_script(std::move(script)) {}
     bool IsSolvable() const final { return false; }
 
-    std::optional<OutputType> GetOutputType() const override
-    {
-        CTxDestination dest;
-        ExtractDestination(m_script, dest);
-        return OutputTypeFromDestination(dest);
-    }
     bool ToPrivateString(const SigningProvider& arg, std::string& out) const final { return false; }
 
     std::optional<int64_t> ScriptSize() const override { return m_script.size(); }
@@ -1259,8 +1247,6 @@ public:
     {
         assert(m_subdescriptor_args.size() == m_depths.size());
     }
-    std::optional<OutputType> GetOutputType() const override { return OutputType::BECH32M; }
-
     std::optional<int64_t> ScriptSize() const override { return 1 + 1 + 32; }
 
     std::optional<int64_t> MaxSatisfactionWeight(bool) const override {
@@ -1436,8 +1422,6 @@ protected:
     }
 public:
     RawTRDescriptor(std::unique_ptr<PubkeyProvider> output_key) : DescriptorImpl(Vector(std::move(output_key)), "rawtr") {}
-    std::optional<OutputType> GetOutputType() const override { return OutputType::BECH32M; }
-
     std::optional<int64_t> ScriptSize() const override { return 1 + 1 + 32; }
 
     std::optional<int64_t> MaxSatisfactionWeight(bool) const override {

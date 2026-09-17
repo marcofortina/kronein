@@ -467,35 +467,27 @@ BOOST_FIXTURE_TEST_CASE(ListCoinsTest, ListCoinsTestingSetup)
     BOOST_CHECK_EQUAL(list.begin()->second.size(), 1U);
 }
 
-void TestCoinsResult(ListCoinsTest& context, OutputType out_type, CAmount amount,
-                     std::map<OutputType, size_t>& expected_coins_sizes)
+void TestCoinsResult(ListCoinsTest& context, CAmount amount, size_t expected_coins_size)
 {
     LOCK(context.wallet->cs_wallet);
-    util::Result<CTxDestination> dest = Assert(context.wallet->GetNewDestination(out_type, ""));
+    util::Result<CTxDestination> dest = Assert(context.wallet->GetNewDestination(""));
     CWalletTx& wtx = context.AddTx(CRecipient{*dest, amount, /*fSubtractFeeFromAmount=*/true});
     CoinFilterParams filter;
     filter.skip_locked = false;
     CoinsResult available_coins = AvailableCoins(*context.wallet, nullptr, std::nullopt, filter);
     // Lock outputs so they are not spent in follow-up transactions
     for (uint32_t i = 0; i < wtx.tx->vout.size(); i++) context.wallet->LockCoin({wtx.GetHash(), i}, /*persist=*/false);
-    for (const auto& [type, size] : expected_coins_sizes) BOOST_CHECK_EQUAL(size, available_coins.coins[type].size());
+    BOOST_CHECK_EQUAL(expected_coins_size, available_coins.Size());
 }
 
-BOOST_FIXTURE_TEST_CASE(BasicOutputTypesTest, ListCoinsTest)
+BOOST_FIXTURE_TEST_CASE(BasicAvailableCoinsTest, ListCoinsTest)
 {
-    std::map<OutputType, size_t> expected_coins_sizes;
-    for (const auto& out_type : OUTPUT_TYPES) { expected_coins_sizes[out_type] = 0U; }
-
     // Verify our wallet has one usable Taproot coinbase UTXO before starting.
-    expected_coins_sizes[OutputType::BECH32M] = 1U;
     CoinsResult available_coins = WITH_LOCK(wallet->cs_wallet, return AvailableCoins(*wallet));
-    BOOST_CHECK_EQUAL(available_coins.Size(), expected_coins_sizes[OutputType::BECH32M]);
-    BOOST_CHECK_EQUAL(available_coins.coins[OutputType::BECH32M].size(), expected_coins_sizes[OutputType::BECH32M]);
+    BOOST_CHECK_EQUAL(available_coins.Size(), 1U);
 
-    // Create a native Taproot self transfer and verify that all entries are
-    // placed in the Bech32m bucket. We expect the recipient and change UTXOs.
-    expected_coins_sizes[OutputType::BECH32M] = 2U;
-    TestCoinsResult(*this, OutputType::BECH32M, 1 * COIN, expected_coins_sizes);
+    // Create a native Taproot self transfer. We expect the recipient and change UTXOs.
+    TestCoinsResult(*this, 1 * COIN, /*expected_coins_size=*/2U);
 }
 
 BOOST_FIXTURE_TEST_CASE(wallet_disableprivkeys, TestChain100Setup)
@@ -503,7 +495,7 @@ BOOST_FIXTURE_TEST_CASE(wallet_disableprivkeys, TestChain100Setup)
     const std::shared_ptr<CWallet> wallet = std::make_shared<CWallet>(m_node.chain.get(), "", CreateMockableWalletDatabase());
     LOCK(wallet->cs_wallet);
     wallet->SetWalletFlag(WALLET_FLAG_DISABLE_PRIVATE_KEYS);
-    BOOST_CHECK(!wallet->GetNewDestination(OutputType::BECH32M, ""));
+    BOOST_CHECK(!wallet->GetNewDestination(""));
 }
 
 // Explicit calculation used to test the wallet's fallback input size.

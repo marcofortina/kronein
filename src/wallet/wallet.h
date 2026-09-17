@@ -13,7 +13,6 @@
 #include <kernel/cs_main.h>
 #include <logging.h>
 #include <node/types.h>
-#include <outputtype.h>
 #include <policy/feerate.h>
 #include <primitives/transaction.h>
 #include <primitives/transaction_identifier.h>
@@ -186,21 +185,15 @@ class ReserveDestination
 protected:
     //! The wallet to reserve from
     const CWallet* const pwallet;
-    //! The ScriptPubKeyMan to reserve from. Based on type when GetReservedDestination is called
+    //! The ScriptPubKeyMan to reserve from
     ScriptPubKeyMan* m_spk_man{nullptr};
-    OutputType const type;
     //! The index of the address's key in the keypool
     int64_t nIndex{-1};
     //! The destination
     CTxDestination address;
-    //! Whether this is from the internal (change output) keypool
-    bool fInternal{false};
-
 public:
     //! Construct a ReserveDestination object. This does NOT reserve an address yet
-    explicit ReserveDestination(CWallet* pwallet, OutputType type)
-      : pwallet(pwallet)
-      , type(type) { }
+    explicit ReserveDestination(CWallet* pwallet) : pwallet(pwallet) {}
 
     ReserveDestination(const ReserveDestination&) = delete;
     ReserveDestination& operator=(const ReserveDestination&) = delete;
@@ -393,8 +386,8 @@ private:
      */
     int m_last_block_processed_height GUARDED_BY(cs_wallet) = -1;
 
-    std::map<OutputType, ScriptPubKeyMan*> m_external_spk_managers;
-    std::map<OutputType, ScriptPubKeyMan*> m_internal_spk_managers;
+    ScriptPubKeyMan* m_external_spk_manager{nullptr};
+    ScriptPubKeyMan* m_internal_spk_manager{nullptr};
 
     // Indexed by a unique identifier produced by each ScriptPubKeyMan using
     // ScriptPubKeyMan::GetID. In many cases it will be the hash of an internal structure
@@ -405,7 +398,7 @@ private:
     void AddScriptPubKeyMan(const uint256& id, std::unique_ptr<ScriptPubKeyMan> spkm_man);
 
     // Same as 'AddActiveScriptPubKeyMan' but designed for use within a batch transaction context
-    void AddActiveScriptPubKeyManWithDb(WalletBatch& batch, uint256 id, OutputType type, bool internal);
+    void AddActiveScriptPubKeyManWithDb(WalletBatch& batch, uint256 id, bool internal);
 
     /** Store wallet flags */
     void SetWalletFlagWithDB(WalletBatch& batch, uint64_t flags);
@@ -737,8 +730,8 @@ public:
      */
     void MarkDestinationsDirty(const std::set<CTxDestination>& destinations) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
-    util::Result<CTxDestination> GetNewDestination(OutputType type, const std::string& label);
-    util::Result<CTxDestination> GetNewChangeDestination(OutputType type);
+    util::Result<CTxDestination> GetNewDestination(const std::string& label);
+    util::Result<CTxDestination> GetNewChangeDestination();
 
     bool IsMine(const CTxDestination& dest) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool IsMine(const CScript& script) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
@@ -902,15 +895,15 @@ public:
         WalletLogPrintf("m_address_book.size() = %u\n",  m_address_book.size());
     };
 
-    //! Returns all unique ScriptPubKeyMans in m_internal_spk_managers and m_external_spk_managers
+    //! Returns the active internal and external ScriptPubKeyMans
     std::set<ScriptPubKeyMan*> GetActiveScriptPubKeyMans() const;
     bool IsActiveScriptPubKeyMan(const ScriptPubKeyMan& spkm) const;
 
     //! Returns all unique ScriptPubKeyMans
     std::set<ScriptPubKeyMan*> GetAllScriptPubKeyMans() const;
 
-    //! Get the ScriptPubKeyMan for the given OutputType and internal/external chain.
-    ScriptPubKeyMan* GetScriptPubKeyMan(const OutputType& type, bool internal) const;
+    //! Get the active ScriptPubKeyMan for the internal or external chain.
+    ScriptPubKeyMan* GetScriptPubKeyMan(bool internal) const;
 
     //! Get all the ScriptPubKeyMans for a script
     std::set<ScriptPubKeyMan*> GetScriptPubKeyMans(const CScript& script) const;
@@ -953,26 +946,23 @@ public:
     //! Instantiate a descriptor ScriptPubKeyMan from the WalletDescriptor and load it
     DescriptorScriptPubKeyMan& LoadDescriptorScriptPubKeyMan(uint256 id, WalletDescriptor& desc);
 
-    //! Adds the active ScriptPubKeyMan for the specified type and internal. Writes it to the wallet file
+    //! Adds the active ScriptPubKeyMan for the specified chain. Writes it to the wallet file.
     //! @param[in] id The unique id for the ScriptPubKeyMan
-    //! @param[in] type The OutputType this ScriptPubKeyMan provides addresses for
     //! @param[in] internal Whether this ScriptPubKeyMan provides change addresses
-    void AddActiveScriptPubKeyMan(uint256 id, OutputType type, bool internal);
+    void AddActiveScriptPubKeyMan(uint256 id, bool internal);
 
-    //! Loads an active ScriptPubKeyMan for the specified type and internal. (used by LoadWallet)
+    //! Loads an active ScriptPubKeyMan for the specified chain. (used by LoadWallet)
     //! @param[in] id The unique id for the ScriptPubKeyMan
-    //! @param[in] type The OutputType this ScriptPubKeyMan provides addresses for
     //! @param[in] internal Whether this ScriptPubKeyMan provides change addresses
-    void LoadActiveScriptPubKeyMan(uint256 id, OutputType type, bool internal);
+    void LoadActiveScriptPubKeyMan(uint256 id, bool internal);
 
-    //! Remove specified ScriptPubKeyMan from set of active SPK managers. Writes the change to the wallet file.
+    //! Remove the specified ScriptPubKeyMan from the active chain. Writes the change to the wallet file.
     //! @param[in] id The unique id for the ScriptPubKeyMan
-    //! @param[in] type The OutputType this ScriptPubKeyMan provides addresses for
     //! @param[in] internal Whether this ScriptPubKeyMan provides change addresses
-    void DeactivateScriptPubKeyMan(uint256 id, OutputType type, bool internal);
+    void DeactivateScriptPubKeyMan(uint256 id, bool internal);
 
     //! Create new DescriptorScriptPubKeyMan and add it to the wallet
-    DescriptorScriptPubKeyMan& SetupDescriptorScriptPubKeyMan(WalletBatch& batch, const CExtKey& master_key, const OutputType& output_type, bool internal) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    DescriptorScriptPubKeyMan& SetupDescriptorScriptPubKeyMan(WalletBatch& batch, const CExtKey& master_key, bool internal) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     //! Create new DescriptorScriptPubKeyMans and add them to the wallet
     void SetupDescriptorScriptPubKeyMans(WalletBatch& batch, const CExtKey& master_key) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     void SetupDescriptorScriptPubKeyMans() EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
@@ -988,7 +978,7 @@ public:
     //! @return contains value only for active DescriptorScriptPubKeyMan, otherwise undefined
     std::optional<bool> IsInternalScriptPubKeyMan(ScriptPubKeyMan* spk_man) const;
 
-    //! Add a descriptor to the wallet, return a ScriptPubKeyMan & associated output type
+    //! Add a descriptor to the wallet and return its ScriptPubKeyMan
     util::Result<std::reference_wrapper<DescriptorScriptPubKeyMan>> AddWalletDescriptor(WalletDescriptor& desc, const FlatSigningProvider& signing_provider, const std::string& label, bool internal) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     //! Whether the (external) signer performs R-value signature grinding

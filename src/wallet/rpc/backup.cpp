@@ -272,11 +272,9 @@ static UniValue ProcessDescriptorImport(CWallet& wallet, const UniValue& data, c
 
             // Set descriptor as active if necessary
             if (active) {
-                wallet.AddActiveScriptPubKeyMan(spk_manager.GetID(), OutputType::BECH32M, desc_internal);
+                wallet.AddActiveScriptPubKeyMan(spk_manager.GetID(), desc_internal);
             } else {
-                if (w_desc.descriptor->GetOutputType()) {
-                    wallet.DeactivateScriptPubKeyMan(spk_manager.GetID(), *w_desc.descriptor->GetOutputType(), desc_internal);
-                }
+                wallet.DeactivateScriptPubKeyMan(spk_manager.GetID(), desc_internal);
             }
         }
 
@@ -304,7 +302,7 @@ RPCHelpMan importdescriptors()
                             {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
                                 {
                                     {"desc", RPCArg::Type::STR, RPCArg::Optional::NO, "Descriptor to import."},
-                                    {"active", RPCArg::Type::BOOL, RPCArg::Default{false}, "Set this descriptor to be the active descriptor for the corresponding output type/externality"},
+                                    {"active", RPCArg::Type::BOOL, RPCArg::Default{false}, "Set this descriptor to be active for its external or internal chain"},
                                     {"range", RPCArg::Type::RANGE, RPCArg::Optional::OMITTED, "If a ranged descriptor is used, this specifies the end or the range (in the form [begin,end]) to import"},
                                     {"next_index", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "If a ranged descriptor is set to active, this specifies the next index to generate addresses from"},
                                     {"timestamp", RPCArg::Type::NUM, RPCArg::Optional::NO, "Time from which to start rescanning the blockchain for this descriptor, in " + UNIX_EPOCH_TIME + "\n"

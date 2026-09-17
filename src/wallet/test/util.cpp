@@ -108,13 +108,12 @@ std::unique_ptr<WalletDatabase> DuplicateMockDatabase(WalletDatabase& database)
 
 std::string getnewaddress(CWallet& w)
 {
-    constexpr auto output_type = OutputType::BECH32M;
-    return EncodeDestination(getNewDestination(w, output_type));
+    return EncodeDestination(getNewDestination(w));
 }
 
-CTxDestination getNewDestination(CWallet& w, OutputType output_type)
+CTxDestination getNewDestination(CWallet& w)
 {
-    return *Assert(w.GetNewDestination(output_type, ""));
+    return *Assert(w.GetNewDestination(""));
 }
 
 MockableCursor::MockableCursor(const MockableData& records, bool pass, std::span<const std::byte> prefix)

@@ -119,16 +119,16 @@ bool WalletBatch::WriteOrderPosNext(int64_t nOrderPosNext)
     return WriteIC(DBKeys::ORDERPOSNEXT, nOrderPosNext);
 }
 
-bool WalletBatch::WriteActiveScriptPubKeyMan(uint8_t type, const uint256& id, bool internal)
+bool WalletBatch::WriteActiveScriptPubKeyMan(const uint256& id, bool internal)
 {
-    std::string key = internal ? DBKeys::ACTIVEINTERNALSPK : DBKeys::ACTIVEEXTERNALSPK;
-    return WriteIC(make_pair(key, type), id);
+    const std::string& key{internal ? DBKeys::ACTIVEINTERNALSPK : DBKeys::ACTIVEEXTERNALSPK};
+    return WriteIC(key, id);
 }
 
-bool WalletBatch::EraseActiveScriptPubKeyMan(uint8_t type, bool internal)
+bool WalletBatch::EraseActiveScriptPubKeyMan(bool internal)
 {
-    const std::string key{internal ? DBKeys::ACTIVEINTERNALSPK : DBKeys::ACTIVEEXTERNALSPK};
-    return EraseIC(make_pair(key, type));
+    const std::string& key{internal ? DBKeys::ACTIVEINTERNALSPK : DBKeys::ACTIVEEXTERNALSPK};
+    return EraseIC(key);
 }
 
 bool WalletBatch::WriteDescriptorKey(const uint256& desc_id, const CPubKey& pubkey, const CPrivKey& privkey)
@@ -326,10 +326,6 @@ static DBErrors LoadDescriptorWalletRecords(CWallet* pwallet, DatabaseBatch& bat
             strErr += "The database might be corrupted or contain an invalid descriptor.";
             // Also include error details
             strErr = strprintf("%s\nDetails: %s", strErr, e.what());
-            return DBErrors::UNKNOWN_DESCRIPTOR;
-        }
-        if (desc.descriptor->GetOutputType() != OutputType::BECH32M) {
-            strErr = "Only Taproot descriptors are supported";
             return DBErrors::UNKNOWN_DESCRIPTOR;
         }
         DescriptorScriptPubKeyMan& spkm = pwallet->LoadDescriptorScriptPubKeyMan(id, desc);
@@ -639,35 +635,15 @@ static DBErrors LoadTxRecords(CWallet* pwallet, DatabaseBatch& batch) EXCLUSIVE_
 static DBErrors LoadActiveSPKMs(CWallet* pwallet, DatabaseBatch& batch) EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet)
 {
     AssertLockHeld(pwallet->cs_wallet);
-    DBErrors result = DBErrors::LOAD_OK;
 
-    // Load spk records
-    std::set<std::pair<OutputType, bool>> seen_spks;
-    for (const auto& spk_key : {DBKeys::ACTIVEEXTERNALSPK, DBKeys::ACTIVEINTERNALSPK}) {
-        LoadResult spkm_res = LoadRecords(pwallet, batch, spk_key,
-            [&seen_spks, &spk_key] (CWallet* pwallet, DataStream& key, DataStream& value, std::string& strErr) {
-            uint8_t output_type;
-            key >> output_type;
-            uint256 id;
-            value >> id;
-
-            bool internal = spk_key == DBKeys::ACTIVEINTERNALSPK;
-            const auto type = static_cast<OutputType>(output_type);
-            if (type != OutputType::BECH32M) {
-                strErr = "Only Taproot ScriptPubKeyMans can be active";
-                return DBErrors::CORRUPT;
-            }
-            auto [it, insert] = seen_spks.emplace(type, internal);
-            if (!insert) {
-                strErr = "Multiple ScriptpubKeyMans specified for a single type";
-                return DBErrors::CORRUPT;
-            }
-            pwallet->LoadActiveScriptPubKeyMan(id, type, /*internal=*/internal);
-            return DBErrors::LOAD_OK;
-        });
-        result = std::max(result, spkm_res.m_result);
+    for (bool internal : {false, true}) {
+        const std::string& key{internal ? DBKeys::ACTIVEINTERNALSPK : DBKeys::ACTIVEEXTERNALSPK};
+        uint256 id;
+        if (batch.Read(key, id)) {
+            pwallet->LoadActiveScriptPubKeyMan(id, internal);
+        }
     }
-    return result;
+    return DBErrors::LOAD_OK;
 }
 
 static DBErrors LoadDecryptionKeys(CWallet* pwallet, DatabaseBatch& batch) EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet)

@@ -13,7 +13,6 @@
 #include <kernel/chain.h>
 #include <kernel/types.h>
 #include <node/blockstorage.h>
-#include <outputtype.h>
 #include <policy/feerate.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
@@ -110,7 +109,7 @@ struct PreSelectInputs {
     // future: this could have external inputs as well.
 };
 
-static void WalletCreateTx(benchmark::Bench& bench, const OutputType output_type, bool allow_other_inputs, std::optional<PreSelectInputs> preset_inputs)
+static void WalletCreateTx(benchmark::Bench& bench, bool allow_other_inputs, std::optional<PreSelectInputs> preset_inputs)
 {
     const auto test_setup = MakeNoLogFileContext<const TestingSetup>();
 
@@ -123,7 +122,7 @@ static void WalletCreateTx(benchmark::Bench& bench, const OutputType output_type
     }
 
     // Generate destinations
-    const auto dest{getNewDestination(wallet, output_type)};
+    const auto dest{getNewDestination(wallet)};
 
     // Generate chain; each coinbase will have two outputs to fill-up the wallet
     const auto& params = Params();
@@ -148,7 +147,7 @@ static void WalletCreateTx(benchmark::Bench& bench, const OutputType output_type
         const auto& res = WITH_LOCK(wallet.cs_wallet,
                                     return wallet::AvailableCoins(wallet, /*coinControl=*/nullptr, /*feerate=*/std::nullopt, filter_coins));
         for (int i=0; i < preset_inputs->num_of_internal_inputs; i++) {
-            const auto& coin{res.coins.at(output_type)[i]};
+            const auto& coin{res.coins[i]};
             target += coin.txout.nValue;
             coin_control.Select(coin.outpoint);
         }
@@ -165,7 +164,7 @@ static void WalletCreateTx(benchmark::Bench& bench, const OutputType output_type
     });
 }
 
-static void AvailableCoins(benchmark::Bench& bench, const std::vector<OutputType>& output_type)
+static void AvailableCoins(benchmark::Bench& bench)
 {
     const auto test_setup = MakeNoLogFileContext<const TestingSetup>();
     // Set clock to genesis block, so the descriptors/keys creation time don't interfere with the blocks scanning process.
@@ -177,19 +176,13 @@ static void AvailableCoins(benchmark::Bench& bench, const std::vector<OutputType
     }
 
     // Generate destinations
-    std::vector<CScript> dest_wallet;
-    dest_wallet.reserve(output_type.size());
-    for (auto type : output_type) {
-        dest_wallet.emplace_back(GetScriptForDestination(getNewDestination(wallet, type)));
-    }
+    const CScript dest_wallet{GetScriptForDestination(getNewDestination(wallet))};
 
     // Generate chain; each coinbase will have two outputs to fill-up the wallet
     const auto& params = Params();
     unsigned int chain_size = 1000;
-    for (unsigned int i = 0; i < chain_size / dest_wallet.size(); ++i) {
-        for (const auto& dest : dest_wallet) {
-            generateFakeBlock(params, test_setup->m_node, wallet, dest);
-        }
+    for (unsigned int i = 0; i < chain_size; ++i) {
+        generateFakeBlock(params, test_setup->m_node, wallet, dest_wallet);
     }
 
     // Check available balance
@@ -203,13 +196,13 @@ static void AvailableCoins(benchmark::Bench& bench, const std::vector<OutputType
     });
 }
 
-static void WalletCreateTxUseOnlyPresetInputs(benchmark::Bench& bench) { WalletCreateTx(bench, OutputType::BECH32M, /*allow_other_inputs=*/false,
+static void WalletCreateTxUseOnlyPresetInputs(benchmark::Bench& bench) { WalletCreateTx(bench, /*allow_other_inputs=*/false,
                                                                                         {{/*num_of_internal_inputs=*/4}}); }
 
-static void WalletCreateTxUsePresetInputsAndCoinSelection(benchmark::Bench& bench) { WalletCreateTx(bench, OutputType::BECH32M, /*allow_other_inputs=*/true,
+static void WalletCreateTxUsePresetInputsAndCoinSelection(benchmark::Bench& bench) { WalletCreateTx(bench, /*allow_other_inputs=*/true,
                                                                                                     {{/*num_of_internal_inputs=*/4}}); }
 
-static void WalletAvailableCoins(benchmark::Bench& bench) { AvailableCoins(bench, {OutputType::BECH32M}); }
+static void WalletAvailableCoins(benchmark::Bench& bench) { AvailableCoins(bench); }
 
 BENCHMARK(WalletCreateTxUseOnlyPresetInputs);
 BENCHMARK(WalletCreateTxUsePresetInputsAndCoinSelection);

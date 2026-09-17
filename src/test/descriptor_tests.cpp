@@ -5,7 +5,6 @@
 #include <addresstype.h>
 #include <consensus/tx_check.h>
 #include <key_io.h>
-#include <outputtype.h>
 #include <script/descriptor.h>
 #include <script/script.h>
 #include <script/signingprovider.h>
@@ -38,11 +37,6 @@ void CheckNativeDescriptor(const std::string& descriptor, bool ranged = false)
     BOOST_REQUIRE(descriptors[0]->Expand(/*pos=*/0, keys, scripts, expanded));
     BOOST_REQUIRE_EQUAL(scripts.size(), 1U);
     BOOST_CHECK(IsNativeOutputScript(scripts[0]));
-    const auto output_type{descriptors[0]->GetOutputType()};
-    if (scripts[0].empty() || scripts[0][0] != OP_RETURN) {
-        BOOST_REQUIRE(output_type.has_value());
-        BOOST_CHECK_EQUAL(static_cast<int>(*output_type), static_cast<int>(OutputType::BECH32M));
-    }
 }
 
 } // namespace

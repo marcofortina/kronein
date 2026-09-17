@@ -29,8 +29,6 @@
 #include <optional>
 #include <unordered_map>
 
-enum class OutputType;
-
 namespace wallet {
 class ScriptPubKeyMan;
 
@@ -90,16 +88,15 @@ protected:
 public:
     explicit ScriptPubKeyMan(WalletStorage& storage) : m_storage(storage) {}
     virtual ~ScriptPubKeyMan() = default;
-    virtual util::Result<CTxDestination> GetNewDestination(const OutputType type) { return util::Error{Untranslated("Not supported")}; }
+    virtual util::Result<CTxDestination> GetNewDestination() { return util::Error{Untranslated("Not supported")}; }
     virtual bool IsMine(const CScript& script) const { return false; }
 
     //! Check that the given decryption key is valid for this ScriptPubKeyMan, i.e. it decrypts all of the keys handled by it.
     virtual bool CheckDecryptionKey(const CKeyingMaterial& master_key) { return false; }
     virtual bool Encrypt(const CKeyingMaterial& master_key, WalletBatch* batch) { return false; }
 
-    virtual util::Result<CTxDestination> GetReservedDestination(const OutputType type, bool internal, int64_t& index) { return util::Error{Untranslated("Not supported")}; }
-    virtual void KeepDestination(int64_t index, const OutputType& type) {}
-    virtual void ReturnDestination(int64_t index, bool internal, const CTxDestination& addr) {}
+    virtual util::Result<CTxDestination> GetReservedDestination(bool internal, int64_t& index) { return util::Error{Untranslated("Not supported")}; }
+    virtual void ReturnDestination(int64_t index, const CTxDestination& addr) {}
 
     /** Fills internal address pool. Use within ScriptPubKeyMan implementations should be used sparingly and only
       * when something from the address pool is removed, excluding GetNewDestination and GetReservedDestination.
@@ -226,14 +223,14 @@ public:
 
     mutable RecursiveMutex cs_desc_man;
 
-    util::Result<CTxDestination> GetNewDestination(OutputType type) override;
+    util::Result<CTxDestination> GetNewDestination() override;
     bool IsMine(const CScript& script) const override;
 
     bool CheckDecryptionKey(const CKeyingMaterial& master_key) override;
     bool Encrypt(const CKeyingMaterial& master_key, WalletBatch* batch) override;
 
-    util::Result<CTxDestination> GetReservedDestination(OutputType type, bool internal, int64_t& index) override;
-    void ReturnDestination(int64_t index, bool internal, const CTxDestination& addr) override;
+    util::Result<CTxDestination> GetReservedDestination(bool internal, int64_t& index) override;
+    void ReturnDestination(int64_t index, const CTxDestination& addr) override;
 
     // Tops up the descriptor cache and m_map_script_pub_keys. The cache is stored in the wallet file
     // and is used to expand the descriptor in GetNewDestination. DescriptorScriptPubKeyMan relies
@@ -246,7 +243,7 @@ public:
     bool IsHDEnabled() const override;
 
     //! Setup descriptors based on the given CExtkey
-    bool SetupDescriptorGeneration(WalletBatch& batch, const CExtKey& master_key, OutputType addr_type, bool internal);
+    bool SetupDescriptorGeneration(WalletBatch& batch, const CExtKey& master_key, bool internal);
 
     bool HavePrivateKeys() const override;
     bool HasPrivKey(const CKeyID& keyid) const EXCLUSIVE_LOCKS_REQUIRED(cs_desc_man);
