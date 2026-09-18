@@ -4,9 +4,9 @@ Expectations for DNS Seed operators
 Kronein Core attempts to minimize the level of trust in DNS seeds,
 but DNS seeds still pose a small amount of risk for the network.
 As such, DNS seeds must be run by entities which have some minimum
-level of trust within the Bitcoin community.
+level of trust within the Kronein community.
 
-Other implementations of Bitcoin software may also use the same
+Other implementations of Kronein software may also use the same
 seeds and may be more exposed. In light of this exposure, this
 document establishes some basic expectations for operating dnsseeds.
 
@@ -26,7 +26,7 @@ urgent technical necessity and disclosed.
 3. The results may not be served with a DNS TTL of less than one minute.
 
 4. Any logging of DNS queries should be only that which is necessary
-for the operation of the service or urgent health of the Bitcoin
+for the operation of the service or urgent health of the Kronein
 network and must not be retained longer than necessary nor disclosed
 to any third party.
 
@@ -42,9 +42,9 @@ details of their operating practices.
 related to the DNS seed operation.
 
 If these expectations cannot be satisfied the operator should
-discontinue providing services and contact the active Bitcoin
+discontinue providing services and contact the active Kronein
 Core development team as well as posting on
-[bitcoin-dev](https://groups.google.com/g/bitcoindev).
+[kronein-dev](https://groups.google.com/g/kroneindev).
 
 Behavior outside of these expectations may be reasonable in some
 situations but should be discussed in public in advance.

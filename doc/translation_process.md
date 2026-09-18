@@ -40,9 +40,9 @@ This also updates `src/qt/bitcoinstrings.cpp` and
 Edit affected `.ts` catalogs with Qt Linguist or as reviewed XML changes.
 Preserve placeholders such as `%1`, `%n`, `%s`, and markup exactly. Proper
 names use `Kronein`, while monetary unit labels use `KNE`, `mKNE`, and `µKNE`.
-The formal PSBT expansion “Partially Signed Bitcoin Transaction” and the
-currently inherited `bitcoin:` URI scheme are not translated as Kronein
-protocol names.
+The user-facing PSBT expansion is “Partially Signed Kronein Transaction,” and
+payment requests use the `kronein:` URI scheme. The PSBT acronym and data
+format remain compatible with the inherited Bitcoin Core implementation.
 
 Validate every catalog by compiling the translation resources:
 

@@ -8,8 +8,9 @@ transactions and participates in the Kronein peer-to-peer network.
 
 Kronein is a new blockchain derived from Bitcoin Core source code. It has no
 upgrade path from Bitcoin and is not intended to accept Bitcoin blocks,
-transactions, wallets, or addresses. The inherited executable names remain in
-place during the current development phase.
+transactions, wallets, or addresses. User-facing executables use the `kronein`
+prefix; selected source filenames and internal build targets retain upstream
+names to keep the ongoing protocol migration reviewable.
 
 The network is under active development and is not ready for production use.
 The genesis blocks, proof-of-work and monetary parameters, network identifiers,

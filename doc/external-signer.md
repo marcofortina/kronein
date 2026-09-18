@@ -11,10 +11,10 @@ When using a hardware wallet, consult the manufacturer website for (alternative)
 Start Kronein Core:
 
 ```sh
-$ bitcoind -signer=../HWI/hwi.py
+$ kroneind -signer=../HWI/hwi.py
 ```
 
-`bitcoin node` can also be substituted for `bitcoind`.
+`kronein node` can also be substituted for `kroneind`.
 
 ### Device setup
 
@@ -25,7 +25,7 @@ Follow the hardware manufacturers instructions for the initial device setup, as 
 Get a list of signing devices / services:
 
 ```
-$ bitcoin-cli enumeratesigners
+$ kronein-cli enumeratesigners
 {
   "signers": [
     {
@@ -39,28 +39,28 @@ The master key fingerprint is used to identify a device.
 Create a wallet, this automatically imports the public keys:
 
 ```sh
-$ bitcoin-cli createwallet "hww" true true "" true true true
+$ kronein-cli createwallet "hww" true true "" true true true
 ```
 
-`bitcoin rpc` can also be substituted for `bitcoin-cli`.
+`kronein rpc` can also be substituted for `kronein-cli`.
 
 ### Verify an address
 
 Display an address on the device:
 
 ```sh
-$ bitcoin-cli -rpcwallet=<wallet> getnewaddress
-$ bitcoin-cli -rpcwallet=<wallet> walletdisplayaddress <address>
+$ kronein-cli -rpcwallet=<wallet> getnewaddress
+$ kronein-cli -rpcwallet=<wallet> walletdisplayaddress <address>
 ```
 
 Replace `<address>` with the result of `getnewaddress`.
 
 ### Spending
 
-Under the hood this uses a [Partially Signed Bitcoin Transaction](psbt.md).
+Under the hood this uses a [Partially Signed Kronein Transaction](psbt.md).
 
 ```sh
-$ bitcoin-cli -rpcwallet=<wallet> sendtoaddress <address> <amount>
+$ kronein-cli -rpcwallet=<wallet> sendtoaddress <address> <amount>
 ```
 
 This prompts your hardware wallet to sign, and fail if it's not connected. If successful
@@ -76,7 +76,7 @@ In order to be compatible with Kronein Core any signer command should conform to
 
 Prerequisite knowledge:
 * [Output Descriptors](descriptors.md)
-* Partially Signed Bitcoin Transaction ([PSBT](psbt.md))
+* Partially Signed Kronein Transaction ([PSBT](psbt.md))
 
 ### `enumerate` (required)
 

@@ -6,7 +6,7 @@ To quickly get started fuzzing Kronein Core using [libFuzzer](https://llvm.org/d
 
 ```sh
 $ git clone https://github.com/marcofortina/kronein.git
-$ cd bitcoin/
+$ cd kronein/
 $ cmake --preset=libfuzzer
 $ cmake --build build_fuzz
 $ FUZZ=process_message build_fuzz/bin/fuzz
@@ -76,7 +76,7 @@ block^@M-^?M-^?M-^?M-^?M-^?nM-^?M-^?
 
 In this case the fuzzer managed to create a `block` message which when passed to `ProcessMessage(...)` increased coverage.
 
-It is possible to specify `bitcoind` arguments to the `fuzz` executable.
+It is possible to specify `kroneind` arguments to the `fuzz` executable.
 Depending on the test, they may be ignored or consumed and alter the behavior
 of the test. Just make sure to use double-dash to distinguish them from the
 fuzzer's own arguments:
@@ -201,7 +201,7 @@ To quickly get started fuzzing Kronein Core using [afl++](https://github.com/AFL
 
 ```sh
 $ git clone https://github.com/marcofortina/kronein.git
-$ cd bitcoin/
+$ cd kronein/
 $ git clone https://github.com/AFLplusplus/AFLplusplus
 $ make -C AFLplusplus/ source-only
 # If afl-clang-lto is not available, see
@@ -228,7 +228,7 @@ To quickly get started fuzzing Kronein Core using [Honggfuzz](https://github.com
 
 ```sh
 $ git clone https://github.com/marcofortina/kronein.git
-$ cd bitcoin/
+$ cd kronein/
 $ git clone https://github.com/google/honggfuzz
 $ cd honggfuzz/
 $ make

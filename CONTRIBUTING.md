@@ -126,7 +126,7 @@ the pull request affects. Valid areas as:
 
   - `consensus` for changes to consensus critical code
   - `doc` for changes to the documentation
-  - `qt` or `gui` for changes to bitcoin-qt
+  - `qt` or `gui` for changes to kronein-qt
   - `log` for changes to log messages
   - `mining` for changes to the mining code
   - `net` or `p2p` for changes to the peer-to-peer network code
@@ -275,7 +275,7 @@ workload on reviewing.
 
 The following applies to code changes to the Kronein Core project (and related
 projects such as libsecp256k1), and is not to be confused with unrelated
-Bitcoin Network Protocol consensus changes.
+Kronein Network Protocol consensus changes.
 
 Whether a pull request is merged into Kronein Core rests with the project merge
 maintainers.

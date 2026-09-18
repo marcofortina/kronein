@@ -1,6 +1,6 @@
 # Windows / MSVC Build Guide
 
-This guide describes how to build bitcoind, command-line utilities, and GUI on Windows using Microsoft Visual Studio.
+This guide describes how to build kroneind, command-line utilities, and GUI on Windows using Microsoft Visual Studio.
 
 For cross-compiling options, please see [`build-windows.md`](./build-windows.md).
 
@@ -42,7 +42,7 @@ To install Python, run:
 winget install python3
 ```
 
-### 2. Clone Bitcoin Repository
+### 2. Clone Kronein Repositorysitory
 
 `git` should already be installed as a component of Visual Studio. If not, download and install [Git for Windows](https://git-scm.com/downloads/win).
 

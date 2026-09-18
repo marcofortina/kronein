@@ -30,12 +30,12 @@ information. For development there exist a [bpftrace Reference Guide], a
 
 ## Examples
 
-The bpftrace examples contain a relative path to the `bitcoind` binary. By
+The bpftrace examples contain a relative path to the `kroneind` binary. By
 default, the scripts should be run from the repository-root and assume a
-self-compiled `bitcoind` binary. The paths in the examples can be changed, for
+self-compiled `kroneind` binary. The paths in the examples can be changed, for
 example, to point to release builds if needed. See the
 [Kronein Core USDT documentation] on how to list available tracepoints in your
-`bitcoind` binary.
+`kroneind` binary.
 
 [Kronein Core USDT documentation]: ../../doc/tracing.md#listing-available-tracepoints
 
@@ -82,7 +82,7 @@ about the connection. Peers can be selected individually to view recent P2P
 messages.
 
 ```
-$ python3 contrib/tracing/p2p_monitor.py $(pidof bitcoind)
+$ python3 contrib/tracing/p2p_monitor.py $(pidof kroneind)
 ```
 
 Lists selectable peers and traffic and connection information.
@@ -134,7 +134,7 @@ A BCC Python script showcasing eBPF and USDT limitations when passing data
 larger than about 32kb. Based on the `net:inbound_message` and
 `net:outbound_message` tracepoints.
 
-Bitcoin P2P messages can be larger than 32kb (e.g. `tx`, `block`, ...). The
+Kronein P2P messages can be larger than 32kb (e.g. `tx`, `block`, ...). The
 eBPF VM's stack is limited to 512 bytes, and we can't allocate more than about
 32kb for a P2P message in the eBPF VM. The **message data is cut off** when the
 message is larger than MAX_MSG_DATA_LENGTH (see script). This can be detected
@@ -150,7 +150,7 @@ lost. BCC prints: `Possibly lost 2 samples` on lost messages.
 
 
 ```
-$ python3 contrib/tracing/log_raw_p2p_msgs.py $(pidof bitcoind)
+$ python3 contrib/tracing/log_raw_p2p_msgs.py $(pidof kroneind)
 ```
 
 ```
@@ -188,7 +188,7 @@ In a different terminal, starting Kronein Core in SigNet mode and with
 re-indexing enabled.
 
 ```
-$ ./build/bin/bitcoind -signet -reindex
+$ ./build/bin/kroneind -signet -reindex
 ```
 
 This produces the following output.
@@ -221,7 +221,7 @@ A BCC Python script to log the UTXO cache flushes. Based on the
 `utxocache:flush` tracepoint.
 
 ```bash
-$ python3 contrib/tracing/log_utxocache_flush.py $(pidof bitcoind)
+$ python3 contrib/tracing/log_utxocache_flush.py $(pidof kroneind)
 ```
 
 ```
@@ -280,7 +280,7 @@ comprising a timestamp along with all event data available via the event's
 tracepoint.
 
 ```console
-$ python3 contrib/tracing/mempool_monitor.py $(pidof bitcoind)
+$ python3 contrib/tracing/mempool_monitor.py $(pidof kroneind)
 ```
 
 ```

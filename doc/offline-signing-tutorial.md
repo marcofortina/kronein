@@ -26,7 +26,7 @@ from all networks.
 Create and encrypt a wallet on the offline host:
 
 ```sh
-[offline]$ ./build/bin/bitcoin-cli -signet -named createwallet \
+[offline]$ ./build/bin/kronein-cli -signet -named createwallet \
     wallet_name="offline_wallet" \
     passphrase="use-a-strong-passphrase"
 ```
@@ -35,7 +35,7 @@ Export its public descriptors. The default `listdescriptors` result does not
 include private keys:
 
 ```sh
-[offline]$ ./build/bin/bitcoin-cli -signet \
+[offline]$ ./build/bin/kronein-cli -signet \
     -rpcwallet=offline_wallet listdescriptors \
     | jq '.descriptors' > descriptors.json
 ```
@@ -49,7 +49,7 @@ export made with `listdescriptors true`; that form contains private keys.
 Create a blank wallet with private keys disabled:
 
 ```sh
-[online]$ ./build/bin/bitcoin-cli -signet -named createwallet \
+[online]$ ./build/bin/kronein-cli -signet -named createwallet \
     wallet_name="watch_only_wallet" \
     disable_private_keys=true \
     blank=true
@@ -58,7 +58,7 @@ Create a blank wallet with private keys disabled:
 Import the public descriptors:
 
 ```sh
-[online]$ ./build/bin/bitcoin-cli -signet \
+[online]$ ./build/bin/kronein-cli -signet \
     -rpcwallet=watch_only_wallet importdescriptors \
     "$(cat descriptors.json)"
 ```
@@ -67,7 +67,7 @@ Every returned entry must report `"success": true`. Confirm that newly derived
 addresses are native Bech32m addresses:
 
 ```sh
-[online]$ ./build/bin/bitcoin-cli -signet \
+[online]$ ./build/bin/kronein-cli -signet \
     -rpcwallet=watch_only_wallet getnewaddress
 ```
 
@@ -82,7 +82,7 @@ selects inputs and creates Taproot change automatically:
 
 ```sh
 [online]$ DESTINATION='tb1p...'
-[online]$ ./build/bin/bitcoin-cli -signet \
+[online]$ ./build/bin/kronein-cli -signet \
     -rpcwallet=watch_only_wallet \
     -named walletcreatefundedpsbt \
     outputs="[{\"$DESTINATION\":0.009}]" \
@@ -92,9 +92,9 @@ selects inputs and creates Taproot change automatically:
 Inspect the transaction before moving it offline:
 
 ```sh
-[online]$ ./build/bin/bitcoin-cli -signet decodepsbt \
+[online]$ ./build/bin/kronein-cli -signet decodepsbt \
     "$(cat unsigned.psbt)"
-[online]$ ./build/bin/bitcoin-cli -signet analyzepsbt \
+[online]$ ./build/bin/kronein-cli -signet analyzepsbt \
     "$(cat unsigned.psbt)"
 ```
 
@@ -107,14 +107,14 @@ Decode the PSBT again on the offline host and compare it with the information
 verified online:
 
 ```sh
-[offline]$ ./build/bin/bitcoin-cli -signet decodepsbt \
+[offline]$ ./build/bin/kronein-cli -signet decodepsbt \
     "$(cat unsigned.psbt)"
 ```
 
 Unlock the wallet only for the time needed to sign:
 
 ```sh
-[offline]$ ./build/bin/bitcoin-cli -signet \
+[offline]$ ./build/bin/kronein-cli -signet \
     -rpcwallet=offline_wallet walletpassphrase \
     "use-a-strong-passphrase" 60
 ```
@@ -122,7 +122,7 @@ Unlock the wallet only for the time needed to sign:
 Update, sign, and finalize the PSBT:
 
 ```sh
-[offline]$ ./build/bin/bitcoin-cli -signet \
+[offline]$ ./build/bin/kronein-cli -signet \
     -rpcwallet=offline_wallet walletprocesspsbt \
     "$(cat unsigned.psbt)" > signed.json
 ```
@@ -140,14 +140,14 @@ be handled carefully.
 Optionally inspect the finalized transaction:
 
 ```sh
-[online]$ ./build/bin/bitcoin-cli -signet decoderawtransaction \
+[online]$ ./build/bin/kronein-cli -signet decoderawtransaction \
     "$(jq -r '.hex' signed.json)"
 ```
 
 Broadcast it:
 
 ```sh
-[online]$ ./build/bin/bitcoin-cli -signet sendrawtransaction \
+[online]$ ./build/bin/kronein-cli -signet sendrawtransaction \
     "$(jq -r '.hex' signed.json)"
 ```
 

@@ -11,7 +11,7 @@ not yet been frozen, so it must not be used to secure funds.
 
 Setup
 -----
-Unpack the files into a directory and run bitcoin-qt.exe. Executable names are
+Unpack the files into a directory and run kronein-qt.exe. Executable names are
 temporarily inherited from the upstream codebase.
 
 Kronein Core downloads and validates the complete Kronein blockchain. Storage and

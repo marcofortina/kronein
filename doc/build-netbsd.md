@@ -2,7 +2,7 @@
 
 **Updated for NetBSD [10.1](https://netbsd.org/releases/formal-10/NetBSD-10.1.html)**
 
-This guide describes how to build bitcoind, command-line utilities, and GUI on NetBSD.
+This guide describes how to build kroneind, command-line utilities, and GUI on NetBSD.
 
 ## Preparation
 
@@ -49,7 +49,7 @@ Compile with `-DENABLE_IPC=OFF` if you do not need IPC functionality.
 
 See [dependencies.md](dependencies.md) for a complete overview.
 
-### 2. Clone Bitcoin Repo
+### 2. Clone Kronein Repository
 
 Clone the Kronein Core repository to a directory. All build scripts and commands will run from this directory.
 

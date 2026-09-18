@@ -1,6 +1,6 @@
 # PSBT Howto for Kronein Core
 
-The RPC interface uses Partially Signed Bitcoin Transactions (PSBTs). This
+The RPC interface uses Partially Signed Kronein Transactions (PSBTs). This
 codebase supports only PSBT version 2, as specified in
 [BIP 370](https://github.com/bitcoin/bips/blob/master/bip-0370.mediawiki), with
 the common PSBT fields and roles defined by

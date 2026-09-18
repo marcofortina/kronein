@@ -11,7 +11,7 @@ eBPF and USDT Overview
 ======================
 
                 ┌──────────────────┐            ┌──────────────┐
-                │ tracing script   │            │ bitcoind     │
+                │ tracing script   │            │ kroneind     │
                 │==================│      2.    │==============│
                 │  eBPF  │ tracing │      hooks │              │
                 │  code  │ logic   │      into┌─┤►tracepoint 1─┼───┐ 3.
@@ -421,7 +421,7 @@ maximum expected string size if known.
 
 ## Listing available tracepoints
 
-Multiple tools can list the available tracepoints in a `bitcoind` binary with
+Multiple tools can list the available tracepoints in a `kroneind` binary with
 USDT support.
 
 ### GDB - GNU Project Debugger
@@ -429,13 +429,13 @@ USDT support.
 To list probes in Kronein Core, use `info probes` in `gdb`:
 
 ```
-$ gdb ./build/bin/bitcoind
+$ gdb ./build/bin/kroneind
 …
 (gdb) info probes
 Type Provider   Name             Where              Semaphore Object
-stap net        inbound_message  0x000000000014419e 0x0000000000d29bd2 /build/bin/bitcoind
-stap net        outbound_message 0x0000000000107c05 0x0000000000d29bd0 /build/bin/bitcoind
-stap validation block_connected  0x00000000002fb10c 0x0000000000d29bd8 /build/bin/bitcoind
+stap net        inbound_message  0x000000000014419e 0x0000000000d29bd2 /build/bin/kroneind
+stap net        outbound_message 0x0000000000107c05 0x0000000000d29bd0 /build/bin/kroneind
+stap validation block_connected  0x00000000002fb10c 0x0000000000d29bd8 /build/bin/kroneind
 …
 ```
 
@@ -445,7 +445,7 @@ The `readelf` tool can be used to display the USDT tracepoints in Kronein Core.
 Look for the notes with the description `NT_STAPSDT`.
 
 ```
-$ readelf -n ./build/bin/bitcoind | grep NT_STAPSDT -A 4 -B 2
+$ readelf -n ./build/bin/kroneind | grep NT_STAPSDT -A 4 -B 2
 Displaying notes found in: .note.stapsdt
   Owner                 Data size	Description
   stapsdt              0x0000005d	NT_STAPSDT (SystemTap probe descriptors)
@@ -469,7 +469,7 @@ between distributions. For example, on
 [ubuntu binary]: https://github.com/iovisor/bcc/blob/master/INSTALL.md#ubuntu---binary
 
 ```
-$ tplist -l ./build/bin/bitcoind -v
+$ tplist -l ./build/bin/kroneind -v
 b'net':b'outbound_message' [sema 0xd29bd0]
   1 location(s)
   6 argument(s)

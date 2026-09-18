@@ -11,7 +11,7 @@ When following your systems build instructions, make sure to install the `Qt` de
 To run:
 
 ```sh
-./build/bin/bitcoin-qt
+./build/bin/kronein-qt
 ```
 
 ## Files and Directories
@@ -34,7 +34,7 @@ To run:
 
 #### bitcoingui.(h/cpp)
 
-- Represents the main window of the Bitcoin UI.
+- Represents the main window of the Kronein UI.
 
 #### \*model.(h/cpp)
 
@@ -51,7 +51,7 @@ To run:
 
 #### paymentserver.(h/cpp)
 
-- (Deprecated) Used to process BIP21 payment URI requests. Also handles URI-based application switching (e.g. when following a bitcoin:... link from a browser).
+- (Deprecated) Used to process BIP21-compatible payment URI requests. Also handles URI-based application switching (e.g. when following a kronein:... link from a browser).
 
 #### walletview.(h/cpp)
 
@@ -101,7 +101,7 @@ sudo apt-get install qtcreator
 1. Make sure you've installed all dependencies specified in your systems build instructions
 2. Follow the compile instructions for your system, adding the `-DCMAKE_BUILD_TYPE=Debug` build flag
 3. Start Qt Creator. At the start page, do: `New` -> `Import Project` -> `Import Existing Project`
-4. Enter `bitcoin-qt` as the Project Name and enter the absolute path to `src/qt` as Location
+4. Enter `kronein-qt` as the Project Name and enter the absolute path to `src/qt` as Location
 5. Check over the file selection, you may need to select the `forms` directory (necessary if you intend to edit *.ui files)
 6. Confirm the `Summary` page
 7. In the `Projects` tab, select `Manage Kits...`
@@ -119,6 +119,6 @@ sudo apt-get install qtcreator
  - Under `Compilers`: select `"GCC (x86 64bit in /usr/bin)"`
  - Under `Debuggers`: select `"GDB"` as debugger
 
-8. While in the `Projects` tab, ensure that you have the `bitcoin-qt` executable specified under `Run`
- - If the executable is not specified: click `"Choose..."`, navigate to `build/bin`, and select `bitcoin-qt`
+8. While in the `Projects` tab, ensure that you have the `kronein-qt` executable specified under `Run`
+ - If the executable is not specified: click `"Choose..."`, navigate to `build/bin`, and select `kronein-qt`
 9. You're all set! Start developing, building, and debugging the Kronein Core GUI

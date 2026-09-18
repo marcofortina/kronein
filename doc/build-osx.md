@@ -2,7 +2,7 @@
 
 **Updated for MacOS [26](https://www.apple.com/os/macos/)**
 
-This guide describes how to build bitcoind, command-line utilities, and GUI on macOS.
+This guide describes how to build kroneind, command-line utilities, and GUI on macOS.
 
 ## Preparation
 
@@ -183,43 +183,43 @@ cmake --build build --target deploy
 
 ## Running Kronein Core
 
-Kronein Core should now be available at `./build/bin/bitcoind`.
-If you compiled support for the GUI, it should be available at `./build/bin/bitcoin-qt`.
+Kronein Core should now be available at `./build/bin/kroneind`.
+If you compiled support for the GUI, it should be available at `./build/bin/kronein-qt`.
 
-There is also a multifunction command line interface at `./build/bin/bitcoin`
-supporting subcommands like `bitcoin node`, `bitcoin gui`, `bitcoin rpc`, and
-others that can be listed with `bitcoin help`.
+There is also a multifunction command line interface at `./build/bin/kronein`
+supporting subcommands like `kronein node`, `kronein gui`, `kronein rpc`, and
+others that can be listed with `kronein help`.
 
-The first time you run `bitcoind` or `bitcoin-qt`, it will start downloading the blockchain.
+The first time you run `kroneind` or `kronein-qt`, it will start downloading the blockchain.
 This process could take many hours, or even days on slower than average systems.
 
 By default, blockchain and wallet data files will be stored in:
 
 ``` bash
-/Users/${USER}/Library/Application Support/Bitcoin/
+/Users/${USER}/Library/Application Support/Kronein/
 ```
 
 Before running, you may create an empty configuration file:
 
 ```shell
-mkdir -p "/Users/${USER}/Library/Application Support/Bitcoin"
+mkdir -p "/Users/${USER}/Library/Application Support/Kronein"
 
-touch "/Users/${USER}/Library/Application Support/Bitcoin/bitcoin.conf"
+touch "/Users/${USER}/Library/Application Support/Kronein/kronein.conf"
 
-chmod 600 "/Users/${USER}/Library/Application Support/Bitcoin/bitcoin.conf"
+chmod 600 "/Users/${USER}/Library/Application Support/Kronein/kronein.conf"
 ```
 
 You can monitor the download process by looking at the debug.log file:
 
 ```shell
-tail -f $HOME/Library/Application\ Support/Bitcoin/debug.log
+tail -f $HOME/Library/Application\ Support/Kronein/debug.log
 ```
 
 ## Other commands:
 
 ```shell
-./build/bin/bitcoind -daemon      # Starts the bitcoin daemon.
-./build/bin/bitcoin-cli --help    # Outputs a list of command-line options.
-./build/bin/bitcoin-cli help      # Outputs a list of RPC commands when the daemon is running.
-./build/bin/bitcoin-qt -server # Starts the bitcoin-qt server mode, allows bitcoin-cli control
+./build/bin/kroneind -daemon      # Starts the Kronein daemon.
+./build/bin/kronein-cli --help    # Outputs a list of command-line options.
+./build/bin/kronein-cli help      # Outputs a list of RPC commands when the daemon is running.
+./build/bin/kronein-qt -server # Starts the kronein-qt server mode, allows kronein-cli control
 ```

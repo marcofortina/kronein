@@ -20,15 +20,15 @@ The following are some helpful notes on how to run Kronein Core on your native p
 
 Unpack the files into a directory and run:
 
-- `bin/bitcoin-qt` (GUI) or
-- `bin/bitcoind` (headless)
-- `bin/bitcoin` (wrapper command)
+- `bin/kronein-qt` (GUI) or
+- `bin/kroneind` (headless)
+- `bin/kronein` (wrapper command)
 
-The `bitcoin` command supports subcommands like `bitcoin gui`, `bitcoin node`, and `bitcoin rpc` exposing different functionality. Subcommands can be listed with `bitcoin help`.
+The `kronein` command supports subcommands like `kronein gui`, `kronein node`, and `kronein rpc` exposing different functionality. Subcommands can be listed with `kronein help`.
 
 ### Windows
 
-Unpack the files into a directory, and then run bitcoin-qt.exe.
+Unpack the files into a directory, and then run kronein-qt.exe.
 
 ### macOS
 
@@ -77,7 +77,7 @@ The Kronein repository's [root README](/README.md) contains relevant information
 
 ### Miscellaneous
 - [Assets Attribution](assets-attribution.md)
-- [bitcoin.conf Configuration File](bitcoin-conf.md)
+- [kronein.conf Configuration File](kronein-conf.md)
 - [CJDNS Support](cjdns.md)
 - [Files](files.md)
 - [Fuzz-testing](fuzzing.md)

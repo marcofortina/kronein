@@ -211,10 +211,9 @@ This example lists the steps necessary to setup and build a command line only di
 
     pacman --sync --needed capnproto cmake boost gcc git libevent make python sqlite
     git clone https://github.com/marcofortina/kronein.git
-    cd bitcoin/
+    cd kronein/
     cmake -B build
     cmake --build build
     ctest --test-dir build
-    ./build/bin/bitcoind
-    ./build/bin/bitcoin help
-
+    ./build/bin/kroneind
+    ./build/bin/kronein help

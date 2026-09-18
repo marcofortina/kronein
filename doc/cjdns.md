@@ -95,7 +95,7 @@ to allow multiple networks, e.g. onlynet=cjdns, onlynet=i2p, onlynet=onion.
 
 CJDNS support was inherited from Bitcoin Core, where it was added in version
 23.0, and there may be fewer
-CJDNS peers than Tor or IP ones. You can use `bitcoin-cli -addrinfo` to see the
+CJDNS peers than Tor or IP ones. You can use `kronein-cli -addrinfo` to see the
 number of CJDNS addresses known to your node.
 
 In general, a node can be run with both an onion service and CJDNS (or any/all
@@ -110,9 +110,9 @@ There are several ways to see your CJDNS address in Kronein Core:
 - in the "Local addresses" output of CLI `-netinfo`
 - in the "localaddresses" output of RPC `getnetworkinfo`
 
-To see which CJDNS peers your node is connected to, use `bitcoin-cli -netinfo 4`
-or the `getpeerinfo` RPC (i.e. `bitcoin-cli getpeerinfo`).
+To see which CJDNS peers your node is connected to, use `kronein-cli -netinfo 4`
+or the `getpeerinfo` RPC (i.e. `kronein-cli getpeerinfo`).
 
-You can use the `getnodeaddresses` RPC to fetch a number of CJDNS peers known to your node; run `bitcoin-cli help getnodeaddresses` for details.
+You can use the `getnodeaddresses` RPC to fetch a number of CJDNS peers known to your node; run `kronein-cli help getnodeaddresses` for details.
 
-`bitcoin rpc` can also be substituted for `bitcoin-cli`.
+`kronein rpc` can also be substituted for `kronein-cli`.

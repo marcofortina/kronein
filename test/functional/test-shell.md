@@ -8,8 +8,8 @@ The `TestShell` submodule extends the `BitcoinTestFramework` functionality to
 external interactive environments for prototyping and educational purposes. Just
 like `BitcoinTestFramework`, the `TestShell` allows the user to:
 
-* Manage regtest bitcoind subprocesses.
-* Access RPC interfaces of the underlying bitcoind instances.
+* Manage regtest kroneind subprocesses.
+* Access RPC interfaces of the underlying kroneind instances.
 * Log events to the functional test logging utility.
 
 The `TestShell` can be useful in interactive environments where it is necessary
@@ -20,7 +20,7 @@ user inputs. Such environments include the Python3 command line interpreter or
 ## 1. Requirements
 
 * Python3
-* `bitcoind` built in the same repository as the `TestShell`.
+* `kroneind` built in the same repository as the `TestShell`.
 
 ## 2. Importing `TestShell` from the Kronein Core repository
 
@@ -33,11 +33,11 @@ must be used.
 
 ```
 >>> import sys
->>> sys.path.insert(0, "/path/to/bitcoin/build/test/functional")
+>>> sys.path.insert(0, "/path/to/kronein/build/test/functional")
 >>> from test_framework.test_shell import TestShell
 ```
 
-The following `TestShell` methods manage the lifetime of the underlying bitcoind
+The following `TestShell` methods manage the lifetime of the underlying kroneind
 processes and logging utilities.
 
 * `TestShell().setup()`
@@ -55,7 +55,7 @@ The following sections demonstrate how to initialize, run, and shut down a
 
 ```
 >>> test = TestShell().setup(num_nodes=2, setup_clean_chain=True)
-20XX-XX-XXTXX:XX:XX.XXXXXXX TestFramework (INFO): Initializing test directory /path/to/bitcoin_func_test_XXXXXXX
+20XX-XX-XXTXX:XX:XX.XXXXXXX TestFramework (INFO): Initializing test directory /path/to/kronein_func_test_XXXXXXX
 ```
 The `TestShell` forwards all functional test parameters of the parent
 `BitcoinTestFramework` object. The full set of argument keywords which can be
@@ -64,7 +64,7 @@ used to initialize the `TestShell` can be found in [section
 
 **Note: Running multiple instances of `TestShell` is not allowed.** Running a
 single process also ensures that logging remains consolidated in the same
-temporary folder. If you need more bitcoind nodes than set by default (1),
+temporary folder. If you need more kroneind nodes than set by default (1),
 simply increase the `num_nodes` parameter during setup.
 
 ```
@@ -75,10 +75,10 @@ TestShell is already running!
 ## 4. Interacting with the `TestShell`
 
 Unlike the `BitcoinTestFramework` class, the `TestShell` keeps the underlying
-Bitcoind subprocesses (nodes) and logging utilities running until the user
+Kroneind subprocesses (nodes) and logging utilities running until the user
 explicitly shuts down the `TestShell` object.
 
-During the time between the `setup` and `shutdown` calls, all `bitcoind` node
+During the time between the `setup` and `shutdown` calls, all `kroneind` node
 processes and `BitcoinTestFramework` convenience methods can be accessed
 interactively.
 
@@ -131,18 +131,18 @@ test-framework**. Modules such as
 [key.py](/test/functional/test_framework/key.py),
 [script.py](/test/functional/test_framework/script.py) and
 [messages.py](/test/functional/test_framework/messages.py) are particularly
-useful in constructing objects which can be passed to the bitcoind nodes managed
+useful in constructing objects which can be passed to the kroneind nodes managed
 by a running `TestShell` object.
 
 ## 5. Shutting the `TestShell` down
 
-Shutting down the `TestShell` will safely tear down all running bitcoind
+Shutting down the `TestShell` will safely tear down all running kroneind
 instances and remove all temporary data and logging directories.
 
 ```
 >>> test.shutdown()
 20XX-XX-XXTXX:XX:XX.XXXXXXX TestFramework (INFO): Stopping nodes
-20XX-XX-XXTXX:XX:XX.XXXXXXX TestFramework (INFO): Cleaning up /path/to/bitcoin_func_test_XXXXXXX on exit
+20XX-XX-XXTXX:XX:XX.XXXXXXX TestFramework (INFO): Cleaning up /path/to/kronein_func_test_XXXXXXX on exit
 20XX-XX-XXTXX:XX:XX.XXXXXXX TestFramework (INFO): Tests successful
 ```
 To prevent the logs from being removed after a shutdown, simply set the
@@ -151,15 +151,15 @@ To prevent the logs from being removed after a shutdown, simply set the
 >>> test.options.nocleanup = True
 >>> test.shutdown()
 20XX-XX-XXTXX:XX:XX.XXXXXXX TestFramework (INFO): Stopping nodes
-20XX-XX-XXTXX:XX:XX.XXXXXXX TestFramework (INFO): Not cleaning up dir /path/to/bitcoin_func_test_XXXXXXX on exit
+20XX-XX-XXTXX:XX:XX.XXXXXXX TestFramework (INFO): Not cleaning up dir /path/to/kronein_func_test_XXXXXXX on exit
 20XX-XX-XXTXX:XX:XX.XXXXXXX TestFramework (INFO): Tests successful
 ```
 
-The following utility consolidates logs from the bitcoind nodes and the
+The following utility consolidates logs from the kroneind nodes and the
 underlying `BitcoinTestFramework`:
 
-* `/path/to/bitcoin/build/test/functional/combine_logs.py
-  '/path/to/bitcoin_func_test_XXXXXXX'`
+* `/path/to/kronein/build/test/functional/combine_logs.py
+  '/path/to/kronein_func_test_XXXXXXX'`
 
 ## 6. Custom `TestShell` parameters
 
@@ -172,19 +172,19 @@ can be called after the TestShell is shut down.
 
 | Test parameter key | Default Value | Description |
 |---|---|---|
-| `bind_to_localhost_only` | `True` | Binds bitcoind P2P services to `127.0.0.1` if set to `True`.|
-| `cachedir` | `"/path/to/bitcoin/build/test/cache"` | Sets the bitcoind datadir directory. |
-| `chain`  | `"regtest"` | Sets the chain-type for the underlying test bitcoind processes. |
-| `configfile` | `"/path/to/bitcoin/build/test/config.ini"` | Sets the location of the test framework config file. |
-| `coveragedir` | `None` | Records bitcoind RPC test coverage into this directory if set. |
+| `bind_to_localhost_only` | `True` | Binds kroneind P2P services to `127.0.0.1` if set to `True`.|
+| `cachedir` | `"/path/to/kronein/build/test/cache"` | Sets the kroneind datadir directory. |
+| `chain`  | `"regtest"` | Sets the chain-type for the underlying test kroneind processes. |
+| `configfile` | `"/path/to/kronein/build/test/config.ini"` | Sets the location of the test framework config file. |
+| `coveragedir` | `None` | Records kroneind RPC test coverage into this directory if set. |
 | `loglevel` | `INFO` | Logs events at this level and higher. Can be set to `DEBUG`, `INFO`, `WARNING`, `ERROR` or `CRITICAL`. |
 | `nocleanup` | `False` | Cleans up temporary test directory if set to `True` during `shutdown`. |
-| `num_nodes` | `1` | Sets the number of initialized bitcoind processes. |
+| `num_nodes` | `1` | Sets the number of initialized kroneind processes. |
 | `perf` | False | Profiles running nodes with `perf` for the duration of the test if set to `True`. |
-| `rpc_timeout` | `60` | Sets the RPC server timeout for the underlying bitcoind processes. |
+| `rpc_timeout` | `60` | Sets the RPC server timeout for the underlying kroneind processes. |
 | `setup_clean_chain` | `False` | A 200-block-long chain is initialized from cache by default. Instead, `setup_clean_chain` initializes an empty blockchain if set to `True`. |
 | `randomseed` | Random Integer | `TestShell().options.randomseed` is a member of `TestShell` which can be accessed during a test to seed a random generator. User can override default with a constant value for reproducible test runs. |
-| `supports_cli` | `False` | Whether the bitcoin-cli utility is compiled and available for the test. |
+| `supports_cli` | `False` | Whether the kronein-cli utility is compiled and available for the test. |
 | `tmpdir` | `"/var/folders/.../"` | Sets directory for test logs. Will be deleted upon a successful test run unless `nocleanup` is set to `True` |
 | `trace_rpc` | `False` | Logs all RPC calls if set to `True`. |
-| `usecli` | `False` | Uses the bitcoin-cli interface for all bitcoind commands instead of directly calling the RPC server. Requires `supports_cli`. |
+| `usecli` | `False` | Uses the kronein-cli interface for all kroneind commands instead of directly calling the RPC server. Requires `supports_cli`. |

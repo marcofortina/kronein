@@ -2,7 +2,7 @@
 
 **Updated for OpenBSD [7.8](https://www.openbsd.org/78.html)**
 
-This guide describes how to build bitcoind, command-line utilities, and GUI on OpenBSD.
+This guide describes how to build kroneind, command-line utilities, and GUI on OpenBSD.
 
 ## Preparation
 
@@ -31,7 +31,7 @@ Compile with `-DENABLE_IPC=OFF` if you do not need IPC functionality.
 
 See [dependencies.md](dependencies.md) for a complete overview.
 
-### 2. Clone Bitcoin Repo
+### 2. Clone Kronein Repository
 Clone the Kronein Core repository to a directory. All build scripts and commands will run from this directory.
 ``` bash
 git clone https://github.com/marcofortina/kronein.git
