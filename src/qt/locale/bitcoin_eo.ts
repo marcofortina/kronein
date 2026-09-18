@@ -401,8 +401,8 @@
         <translation type="unfinished">Langeto-breto</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Peti pagon (kreas QR-kodojn kaj URI-ojn kun prefikso bitcoin:)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Peti pagon (kreas QR-kodojn kaj URI-ojn kun prefikso kronein:)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -932,7 +932,7 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
+        <source>Open Kronein URI</source>
         <translation type="unfinished">Malfermi na la URI de bitmono</translation>
     </message>
     <message>
@@ -1156,7 +1156,7 @@
         <translation type="unfinished">Eraro dum pagopeto</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
+        <source>Cannot start kronein: click-to-pay handler</source>
         <translation type="unfinished">Ne eblas lanĉi la ilon 'klaki-por-pagi'</translation>
     </message>
     <message>

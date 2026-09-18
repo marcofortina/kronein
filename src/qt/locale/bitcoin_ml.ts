@@ -497,7 +497,7 @@
         <translation type="unfinished">നിങ്ങളെപ്പോലുള്ള ഉപയോക്താക്കളുമായി കണക്റ്റുചെയ്യുന്നു....</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
         <translation type="unfinished">പേയ്‌മെന്റുകൾ അഭ്യർത്ഥിക്കുക (QR കോഡുകളും ബിറ്റ്കോയിനും സൃഷ്ടിക്കുന്നു: URI- കൾ)</translation>
     </message>
     <message>
@@ -544,11 +544,11 @@
         <translation type="unfinished">കാലികമാണ്</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
+        <source>Load Partially Signed Kronein Transaction</source>
         <translation type="unfinished">ഭാഗികമായി ഒപ്പിട്ട ബിറ്റ്കോയിൻ ഇടപാട് ലോഡുചെയ്യുക</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
         <translation type="unfinished">ക്ലിപ്പ്ബോർഡിൽ നിന്ന് ഭാഗികമായി ഒപ്പിട്ട ബിറ്റ്കോയിൻ ഇടപാട് ലോഡുചെയ്യുക</translation>
     </message>
     <message>
@@ -568,7 +568,7 @@
         <translation type="unfinished">&amp;വിലാസങ്ങൾ അയയ്ക്കുന്നു</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
+        <source>Open a kronein: URI</source>
         <translation type="unfinished">ഒരു ബിറ്റ്കോയിൻ തുറക്കുക: URI</translation>
     </message>
     <message>
@@ -1167,8 +1167,8 @@
         <translation type="unfinished">യു‌ആർ‌ഐ കൈകാര്യം ചെയ്യൽ</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">'bitcoin://' എന്നത് ശരിയായ ഒരു URI അല്ല .പകരം 'bitcoin:' ഉപയോഗിക്കൂ </translation>
+        <source>'kronein://' is not a valid URI. Use 'kronein:' instead.</source>
+        <translation type="unfinished">'kronein://' എന്നത് ശരിയായ ഒരു URI അല്ല .പകരം 'kronein:' ഉപയോഗിക്കൂ </translation>
     </message>
     <message>
         <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>

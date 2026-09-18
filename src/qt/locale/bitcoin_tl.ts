@@ -475,8 +475,8 @@
         <translation type="unfinished">Kumokonekta sa mga ♦peers♦...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Humiling ng mga bayad (gumagawa ng ♦QR codes♦ at ♦bitcoin: URIs♦)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Humiling ng mga bayad (gumagawa ng ♦QR codes♦ at ♦kronein: URIs♦)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -530,12 +530,12 @@
         <translation type="unfinished">napapapanahon</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
-        <translation type="unfinished">Ang ♦Load♦ ay Bahagyang Napirmahan na Transaksyon sa ♦Bitcoin♦</translation>
+        <source>Load Partially Signed Kronein Transaction</source>
+        <translation type="unfinished">Ang ♦Load♦ ay Bahagyang Napirmahan na Transaksyon sa ♦Kronein♦</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
-        <translation type="unfinished">Ang ♦Load♦ ay Bahagyang Napirmahan na Transaksyon sa ♦Bitcoin♦ mula sa ♦clipboard♦</translation>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
+        <translation type="unfinished">Ang ♦Load♦ ay Bahagyang Napirmahan na Transaksyon sa ♦Kronein♦ mula sa ♦clipboard♦</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -554,8 +554,8 @@
         <translation type="unfinished">&amp;Pagtatanggapan na mga ♦address♦</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Buksan ang ♦bitcoin: URI♦</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">Buksan ang ♦kronein: URI♦</translation>
     </message>
     <message>
         <source>Open Wallet</source>

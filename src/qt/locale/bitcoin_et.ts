@@ -446,7 +446,7 @@
         <translation type="unfinished">Sünkroniseerin võrguga...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
         <translation type="unfinished">Loo maksepäring (genereerib QR koodid ja bitcoini: URId)</translation>
     </message>
     <message>
@@ -996,8 +996,8 @@
         <translation type="unfinished">Maksepäringu tõrge</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
-        <translation type="unfinished">Bitcoin ei käivitu: vajuta-maksa toiming</translation>
+        <source>Cannot start kronein: click-to-pay handler</source>
+        <translation type="unfinished">Kronein ei käivitu: vajuta-maksa toiming</translation>
     </message>
     <message>
         <source>URI handling</source>

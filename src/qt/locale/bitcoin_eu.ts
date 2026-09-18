@@ -593,8 +593,8 @@
         <translation type="unfinished">Pareekin konektatzen...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Ordainketak eskatu (QR kodeak eta bitcoin: URIak sortzen ditu)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Ordainketak eskatu (QR kodeak eta kronein: URIak sortzen ditu)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -648,16 +648,16 @@
         <translation type="unfinished">Eguneratua</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
-        <translation type="unfinished">Zati batean sinatutako Bitcoin transakzioa kargatu</translation>
+        <source>Load Partially Signed Kronein Transaction</source>
+        <translation type="unfinished">Zati batean sinatutako Kronein transakzioa kargatu</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
         <translation type="unfinished">kargatu PSBT arbeletik...</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
-        <translation type="unfinished">Kargatu zati batean sinatutako Bitcoin transakzioa arbeletik.</translation>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
+        <translation type="unfinished">Kargatu zati batean sinatutako Kronein transakzioa arbeletik.</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -676,8 +676,8 @@
         <translation type="unfinished">&amp;Helbideak jasotzen</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Ireki bitcoin bat: URI</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">Ireki Kronein bat: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -1476,8 +1476,8 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
-        <translation type="unfinished">Ireki bitcoin URIa</translation>
+        <source>Open Kronein URI</source>
+        <translation type="unfinished">Ireki Kronein URIa</translation>
     </message>
     <message>
         <source>URI:</source>
@@ -2034,16 +2034,16 @@
         <translation type="unfinished">Ordainketa eskaera akatsa</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
-        <translation type="unfinished">Ezin da Bitcoin abiarazi: klik-ordaintzeko kudeatzailea.</translation>
+        <source>Cannot start kronein: click-to-pay handler</source>
+        <translation type="unfinished">Ezin da Kronein abiarazi: klik-ordaintzeko kudeatzailea.</translation>
     </message>
     <message>
         <source>URI handling</source>
         <translation type="unfinished">URI kudeaketa</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">'bitcoin://' ez da URI balioduna. Erabili 'bitcoin:' horren ordez.</translation>
+        <source>'kronein://' is not a valid URI. Use 'kronein:' instead.</source>
+        <translation type="unfinished">'kronein://' ez da URI balioduna. Erabili 'kronein:' horren ordez.</translation>
     </message>
     <message>
         <source>Cannot process payment request because BIP70 is not supported.
@@ -3012,8 +3012,8 @@ Oharra: Komisioa byte bakoitzeko kalkulatzen denez, "100 satoshi kvB bakoitzeko"
         <translation type="unfinished">Sortu sinatu gabea</translation>
     </message>
     <message>
-        <source>Creates a Partially Signed Bitcoin Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
-        <translation type="unfinished">Partzialki Sinatutako Bitcoin Transakzio (PSBT) bat sortzen du, adibidez, lineaz kanpoko %1 zorro batekin edo PSBT bateragarria den hardware-zorro batekin erabiltzeko.</translation>
+        <source>Creates a Partially Signed Kronein Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <translation type="unfinished">Partzialki Sinatutako Kronein Transakzio (PSBT) bat sortzen du, adibidez, lineaz kanpoko %1 zorro batekin edo PSBT bateragarria den hardware-zorro batekin erabiltzeko.</translation>
     </message>
     <message>
         <source>%1 to '%2'</source>
@@ -3068,9 +3068,9 @@ Oharra: Komisioa byte bakoitzeko kalkulatzen denez, "100 satoshi kvB bakoitzeko"
         <translation type="unfinished">Komisioa geroago handitu dezakezu (Replace-By-Fee seinaleztapena, BIP-125).</translation>
     </message>
     <message>
-        <source>Please, review your transaction proposal. This will produce a Partially Signed Bitcoin Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction proposal. This will produce a Partially Signed Kronein Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can only create a PSBT. This string is displayed when private keys are disabled and an external signer is not available.</extracomment>
-        <translation type="unfinished">Mesedez, berrikusi zure transakzio-proposamena. Honek Zati Batez Sinatutako Bitcoin Transakzio bat (PSBT) sortuko du, eta hori gorde edo kopiatu dezakezu, ondoren sinatzeko, adibidez, lineaz kanpoko %1 zorro batekin edo PSBT bateragarria den hardware zorro batekin.</translation>
+        <translation type="unfinished">Mesedez, berrikusi zure transakzio-proposamena. Honek Zati Batez Sinatutako Kronein Transakzio bat (PSBT) sortuko du, eta hori gorde edo kopiatu dezakezu, ondoren sinatzeko, adibidez, lineaz kanpoko %1 zorro batekin edo PSBT bateragarria den hardware zorro batekin.</translation>
     </message>
     <message>
         <source>%1 from wallet '%2'</source>
@@ -3082,10 +3082,10 @@ Oharra: Komisioa byte bakoitzeko kalkulatzen denez, "100 satoshi kvB bakoitzeko"
         <translation type="unfinished">Transakzio hau sortu nahi duzu?</translation>
     </message>
     <message>
-        <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Bitcoin Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Kronein Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can send their transaction or create a PSBT. This string is displayed when both private keys and PSBT controls are enabled.</extracomment>
         <translation type="unfinished">Euskara Jasoa dijo:
-Mesedez, berrikusi zure transakzioa. Transakzio hau sor eta bidali dezakezu, edo bestela, Partzialki Sinatutako Bitcoin Transakzio (PSBT) bat sor dezakezu; hori gorde edo kopiatu, eta ondoren, adibidez, lineaz kanpoko %1 zorro batekin edo PSBT bateragarria den hardware-zorro batekin sinatu.</translation>
+Mesedez, berrikusi zure transakzioa. Transakzio hau sor eta bidali dezakezu, edo bestela, Partzialki Sinatutako Kronein Transakzio (PSBT) bat sor dezakezu; hori gorde edo kopiatu, eta ondoren, adibidez, lineaz kanpoko %1 zorro batekin edo PSBT bateragarria den hardware-zorro batekin sinatu.</translation>
     </message>
     <message>
         <source>Please, review your transaction.</source>
@@ -3235,7 +3235,7 @@ Mesedez, berrikusi zure transakzioa. Transakzio hau sor eta bidali dezakezu, edo
         <translation type="unfinished">Sartu helbide honetarako etiketa bat erabilitako helbideen zerrendara gehitzeko</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
         <translation type="unfinished">Kronein: URIari erantsitako mezua, transakzioarekin batera gordeko dena zure kontsultarako. Oharra: Mezu hau ez da Kronein sarean zehar bidaliko.</translation>
     </message>
 </context>

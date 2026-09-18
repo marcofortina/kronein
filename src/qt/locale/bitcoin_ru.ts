@@ -575,8 +575,8 @@
         <translation type="unfinished">Подключение к узлам...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Запросить платеж (генерирует QR коды и bitcoin: URIs)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Запросить платеж (генерирует QR коды и kronein: URIs)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -631,7 +631,7 @@
         <translation type="unfinished">Синхронизировано</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
+        <source>Load Partially Signed Kronein Transaction</source>
         <translation type="unfinished">Загрузить частично подписанные биткоин-транзакции (PSBT)</translation>
     </message>
     <message>
@@ -639,7 +639,7 @@
         <translation type="unfinished">Загрузить PSBT из &amp;буфера обмена…</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
         <translation type="unfinished">Загрузить частично подписанную биткоин-транзакцию из буфера обмена</translation>
     </message>
     <message>
@@ -659,8 +659,8 @@
         <translation type="unfinished">&amp;Адреса для получения</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Открыть URI протокола bitcoin:</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">Открыть URI протокола kronein:</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -1423,8 +1423,8 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
-        <translation type="unfinished">Открыть URI bitcoin</translation>
+        <source>Open Kronein URI</source>
+        <translation type="unfinished">Открыть URI Kronein</translation>
     </message>
     </context>
 <context>

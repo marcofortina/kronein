@@ -481,8 +481,8 @@
         <translation type="unfinished">Conectando con pares…</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Solicitar pagamientos (xenera códigos QR y bitcoin: URIs)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Solicitar pagamientos (xenera códigos QR y kronein: URIs)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -531,16 +531,16 @@
         <translation type="unfinished">Actualizáu</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
-        <translation type="unfinished">Cargar Transacción de Bitcoin Parcialmente Firmada</translation>
+        <source>Load Partially Signed Kronein Transaction</source>
+        <translation type="unfinished">Cargar Transacción de Kronein Parcialmente Firmada</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
         <translation type="unfinished">Cargar PSBT dende el &amp;portapapeles…</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
-        <translation type="unfinished">Cargar Transacción de Bitcoin Parcialmente Firmada dende el portapapeles</translation>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
+        <translation type="unfinished">Cargar Transacción de Kronein Parcialmente Firmada dende el portapapeles</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -559,8 +559,8 @@
         <translation type="unfinished">&amp;Direcciones de recepción</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Abrir un bitcoin: URI</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">Abrir un kronein: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>

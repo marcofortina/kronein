@@ -364,8 +364,8 @@ once_cell = "1.18"</translation>
         <translation type="unfinished">Lajsta szkart</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Żōndej płatu (gyneruje kod QR jak tyż URI bitcoin:)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Żōndej płatu (gyneruje kod QR jak tyż URI kronein:)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -1032,8 +1032,8 @@ once_cell = "1.18"</translation>
         <translation type="unfinished">Bedynōng URI</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">'bitcoin://' to niyma nŏleżne URI. Użyj 'bitcoin:'.</translation>
+        <source>'kronein://' is not a valid URI. Use 'kronein:' instead.</source>
+        <translation type="unfinished">'kronein://' to niyma nŏleżne URI. Użyj 'kronein:'.</translation>
     </message>
     </context>
 <context>
@@ -1398,8 +1398,8 @@ once_cell = "1.18"</translation>
         <translation type="unfinished">Wiadōmość:</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
-        <translation type="unfinished">Wiadōmość, kerŏ ôstała prziwstōnŏ do URI bitcoin:, kerŏ bydzie przechowowanŏ z transakcyjōm w cylach informacyjnych. Napōmniynie: Ta wiadōmość niy bydzie rozszyrzowanŏ w necu Kronein.</translation>
+        <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <translation type="unfinished">Wiadōmość, kerŏ ôstała prziwstōnŏ do URI kronein:, kerŏ bydzie przechowowanŏ z transakcyjōm w cylach informacyjnych. Napōmniynie: Ta wiadōmość niy bydzie rozszyrzowanŏ w necu Kronein.</translation>
     </message>
 </context>
 <context>

@@ -562,7 +562,7 @@
         <translation type="unfinished">Kobler til likemannsnettverket...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
         <translation type="unfinished">Be om betalinger (genererer QR-koder og bitcoin-URIer)</translation>
     </message>
     <message>
@@ -617,12 +617,12 @@
         <translation type="unfinished">Oppdatert</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
-        <translation type="unfinished">Last delvis signert Bitcoin transaksjon</translation>
+        <source>Load Partially Signed Kronein Transaction</source>
+        <translation type="unfinished">Last delvis signert Kronein transaksjon</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
-        <translation type="unfinished">Last Delvis Signert Bitcoin Transaksjon fra utklippstavle</translation>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
+        <translation type="unfinished">Last Delvis Signert Kronein Transaksjon fra utklippstavle</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -641,8 +641,8 @@
         <translation type="unfinished">&amp;Mottaker adresser</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Åpne en bitcoin: URI</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">Åpne en kronein: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -1371,8 +1371,8 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
-        <translation type="unfinished">Åpne bitcoin URI</translation>
+        <source>Open Kronein URI</source>
+        <translation type="unfinished">Åpne Kronein URI</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -1821,16 +1821,16 @@
         <translation type="unfinished">Feil ved betalingsforespørsel</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
-        <translation type="unfinished">Kan ikke starte bitcoin: Klikk-og-betal håndterer</translation>
+        <source>Cannot start kronein: click-to-pay handler</source>
+        <translation type="unfinished">Kan ikke starte kronein: Klikk-og-betal håndterer</translation>
     </message>
     <message>
         <source>URI handling</source>
         <translation type="unfinished">URI-håndtering</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">'bitcoin: //' er ikke en gyldig URI. Bruk 'bitcoin:' i stedet.</translation>
+        <source>'kronein://' is not a valid URI. Use 'kronein:' instead.</source>
+        <translation type="unfinished">'kronein: //' er ikke en gyldig URI. Bruk 'kronein:' i stedet.</translation>
     </message>
     <message>
         <source>Cannot process payment request because BIP70 is not supported.
@@ -2669,8 +2669,8 @@ Hvis du får denne feilen burde du be forretningsdrivende om å tilby en BIP21 k
         <translation type="unfinished">Cr &amp; eate Usignert</translation>
     </message>
     <message>
-        <source>Creates a Partially Signed Bitcoin Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
-        <translation type="unfinished">Oppretter en delvis signert Bitcoin-transaksjon (PSBT) for bruk med f.eks. en offline%1 lommebok eller en PSBT-kompatibel maskinvarelommebok.</translation>
+        <source>Creates a Partially Signed Kronein Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <translation type="unfinished">Oppretter en delvis signert Kronein-transaksjon (PSBT) for bruk med f.eks. en offline%1 lommebok eller en PSBT-kompatibel maskinvarelommebok.</translation>
     </message>
     <message>
         <source>%1 to '%2'</source>
@@ -2721,9 +2721,9 @@ Hvis du får denne feilen burde du be forretningsdrivende om å tilby en BIP21 k
         <translation type="unfinished">Du kan øke gebyret senere (signaliserer Replace-By-Fee, BIP-125).</translation>
     </message>
     <message>
-        <source>Please, review your transaction proposal. This will produce a Partially Signed Bitcoin Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction proposal. This will produce a Partially Signed Kronein Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can only create a PSBT. This string is displayed when private keys are disabled and an external signer is not available.</extracomment>
-        <translation type="unfinished">Se over ditt transaksjonsforslag. Dette kommer til å produsere en Delvis Signert Bitcoin Transaksjon (PSBT) som du kan lagre eller kopiere og så signere med f.eks. en offline %1 lommebok, eller en PSBT kompatibel hardware lommebok.</translation>
+        <translation type="unfinished">Se over ditt transaksjonsforslag. Dette kommer til å produsere en Delvis Signert Kronein Transaksjon (PSBT) som du kan lagre eller kopiere og så signere med f.eks. en offline %1 lommebok, eller en PSBT kompatibel hardware lommebok.</translation>
     </message>
     <message>
         <source>Do you want to create this transaction?</source>
@@ -2858,7 +2858,7 @@ Hvis du får denne feilen burde du be forretningsdrivende om å tilby en BIP21 k
         <translation type="unfinished">Skriv inn en merkelapp for denne adressen for å legge den til listen av brukte adresser</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
         <translation type="unfinished">En melding som var tilknyttet bitcoinen: URI vil bli lagret med transaksjonen for din oversikt. Denne meldingen vil ikke bli sendt over Kronein-nettverket.</translation>
     </message>
 </context>

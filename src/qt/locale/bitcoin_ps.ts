@@ -511,7 +511,7 @@
         <translation type="unfinished">د همکارانو سره نښلول…</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
         <translation type="unfinished">د تادیاتو غوښتنه کول (QR کوډونه او بټ کوین: URI جوړوي</translation>
     </message>
     <message>
@@ -570,7 +570,7 @@
         <translation type="unfinished">کنټرول + Q</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
+        <source>Load Partially Signed Kronein Transaction</source>
         <translation type="unfinished">جزوي لاسلیک شوی بټ کوین معامله پورته کړئ</translation>
     </message>
     <message>
@@ -578,7 +578,7 @@
         <translation type="unfinished">PSBT له &amp; څخه بار کړئ</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
         <translation type="unfinished">د کلیپ بورډ څخه نیمګړی لاسلیک شوی بټ کوین معامله پورته کړئ</translation>
     </message>
     <message>
@@ -598,7 +598,7 @@
         <translation type="unfinished">او د ترلاسه کولو پته</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
+        <source>Open a kronein: URI</source>
         <translation type="unfinished">یو بټ کوین: URI پرانیزئ</translation>
     </message>
     <message>
@@ -1387,7 +1387,7 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
+        <source>Open Kronein URI</source>
         <translation type="unfinished">بټ کوین URI پرانیزئ</translation>
     </message>
     <message>

@@ -495,8 +495,8 @@
         <translation type="unfinished">Forbinder til knuder...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Anmod om betalinger (genererer QR-koder og “bitcoin:”-URI'er)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Anmod om betalinger (genererer QR-koder og “kronein:”-URI'er)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -546,16 +546,16 @@
         <translation type="unfinished">Opdateret</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
-        <translation type="unfinished">Indlæs Partvist Signeret Bitcoin-Transaktion</translation>
+        <source>Load Partially Signed Kronein Transaction</source>
+        <translation type="unfinished">Indlæs Partvist Signeret Kronein-Transaktion</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
         <translation type="unfinished">Indlæs PSBT fra &amp;clipboard</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
-        <translation type="unfinished">Indlæs Partvist Signeret Bitcoin-Transaktion fra udklipsholder</translation>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
+        <translation type="unfinished">Indlæs Partvist Signeret Kronein-Transaktion fra udklipsholder</translation>
     </message>
     <message>
         <source>Open node debugging and diagnostic console</source>
@@ -570,8 +570,8 @@
         <translation type="unfinished">&amp;Modtageradresser</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Åbn en bitcoin:-URI</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">Åbn en kronein:-URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -1278,7 +1278,7 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
+        <source>Open Kronein URI</source>
         <translation type="unfinished">Åbn bitcoin-URI</translation>
     </message>
     <message>
@@ -2197,7 +2197,7 @@ Bemærk: Da gebyret beregnes på per-byte-basis, ville en gebyrsats på "100 sat
         <translation type="unfinished">L&amp;av usigneret</translation>
     </message>
     <message>
-        <source>Creates a Partially Signed Bitcoin Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Creates a Partially Signed Kronein Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <translation type="unfinished">Laver en delvist signeret bitcointransaktion (forkortet PSBT) som kan bruges med f.eks. en offline %1 tegnebog. De kan også bruges med PSBT-kompatible hardwaretegnebøger.</translation>
     </message>
     <message>
@@ -2253,9 +2253,9 @@ Bemærk: Da gebyret beregnes på per-byte-basis, ville en gebyrsats på "100 sat
         <translation type="unfinished">Du kan øge gebyret senere (signalerer erstat-med-gebyr, BIP-125).</translation>
     </message>
     <message>
-        <source>Please, review your transaction proposal. This will produce a Partially Signed Bitcoin Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction proposal. This will produce a Partially Signed Kronein Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can only create a PSBT. This string is displayed when private keys are disabled and an external signer is not available.</extracomment>
-        <translation type="unfinished">Gennemse venligst dit transaktionsforslag. Dette vil producere en Partvist Signeret Bitcoin Transaktion (PSBT), som du kan gemme eller kopiere, og så signere med f.eks. en offline %1 pung, eller en PSBT-kompatibel maskinelpung.</translation>
+        <translation type="unfinished">Gennemse venligst dit transaktionsforslag. Dette vil producere en Partvist Signeret Kronein Transaktion (PSBT), som du kan gemme eller kopiere, og så signere med f.eks. en offline %1 pung, eller en PSBT-kompatibel maskinelpung.</translation>
     </message>
     <message>
         <source>Do you want to create this transaction?</source>
@@ -2263,9 +2263,9 @@ Bemærk: Da gebyret beregnes på per-byte-basis, ville en gebyrsats på "100 sat
         <translation type="unfinished">Vil du oprette denne transaktion?</translation>
     </message>
     <message>
-        <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Bitcoin Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Kronein Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can send their transaction or create a PSBT. This string is displayed when both private keys and PSBT controls are enabled.</extracomment>
-        <translation type="unfinished">Gennemgå venligst din transaktion. Du kan oprette og sende denne transaktion eller oprette en delvist underskrevet Bitcoin-transaktion (PSBT), som du kan gemme eller kopiere og derefter underskrive med, f.eks. en offline %1 tegnebog eller en PSBT-kompatibel hardwaretegnebog.</translation>
+        <translation type="unfinished">Gennemgå venligst din transaktion. Du kan oprette og sende denne transaktion eller oprette en delvist underskrevet Kronein-transaktion (PSBT), som du kan gemme eller kopiere og derefter underskrive med, f.eks. en offline %1 tegnebog eller en PSBT-kompatibel hardwaretegnebog.</translation>
     </message>
     <message>
         <source>Please, review your transaction.</source>

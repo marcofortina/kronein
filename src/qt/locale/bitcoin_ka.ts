@@ -543,8 +543,8 @@
         <translation type="unfinished">მიმდინარეობს ბლოკების დამუშავება დისკზე…</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">გადახდის მოთხოვნა (შეიქმნება QR-კოდები და bitcoin: ბმულები)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">გადახდის მოთხოვნა (შეიქმნება QR-კოდები და kronein: ბმულები)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -594,7 +594,7 @@
         <translation type="unfinished">განახლებულია</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
+        <source>Load Partially Signed Kronein Transaction</source>
         <translation type="unfinished">ნაწილობრივ ხელმოწერილი ბიტკოინის ტრანზაქციის ჩატვირთვა</translation>
     </message>
     <message>
@@ -614,7 +614,7 @@
         <translation type="unfinished">მისამართების მიღება</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
+        <source>Open a kronein: URI</source>
         <translation type="unfinished">გახსენით ბიტკოინი: URI</translation>
     </message>
     <message>
@@ -1226,7 +1226,7 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
+        <source>Open Kronein URI</source>
         <translation type="unfinished">გახსენით ბიტკოინის URI</translation>
     </message>
     <message>
@@ -1553,16 +1553,16 @@
         <translation type="unfinished">გადახდის მოთხოვნის შეცდომა</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
-        <translation type="unfinished">ვერ გაიშვა bitcoin: click-to-pay</translation>
+        <source>Cannot start kronein: click-to-pay handler</source>
+        <translation type="unfinished">ვერ გაიშვა kronein: click-to-pay</translation>
     </message>
     <message>
         <source>URI handling</source>
         <translation type="unfinished">URI-ების დამუშავება</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">„bitcoin://“ არ არის სწორი URI. ამის ნაცვლად გამოიყენეთ „bitcoin:“.</translation>
+        <source>'kronein://' is not a valid URI. Use 'kronein:' instead.</source>
+        <translation type="unfinished">„kronein://“ არ არის სწორი URI. ამის ნაცვლად გამოიყენეთ „kronein:“.</translation>
     </message>
     <message>
         <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
@@ -2259,7 +2259,7 @@
         <translation type="unfinished">შეიყვანეთ ამ მისამართის ნიშნული გამოყენებული მისამართების სიაში დასამატებლად</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
         <translation type="unfinished">მესიჯი, რომელიც თან ერთვის მონეტებს:  URI, რომელიც შეინახება ტრანსაქციასთან ერთად თქვენთვის. შენიშვნა: მესიჯი არ გაყვება გადახდას ბითქოინის ქსელში.</translation>
     </message>
 </context>

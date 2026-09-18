@@ -557,8 +557,8 @@
         <translation type="unfinished">Pirlarga ulanish...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Тўловлар (QR кодлари ва bitcoin ёрдамида яратишлар: URI’лар) сўраш</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Тўловлар (QR кодлари ва Kronein ёрдамида яратишлар: URI’лар) сўраш</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -616,7 +616,7 @@
         <translation type="unfinished">formatini olib tashlash(Ctrl+Q)</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
+        <source>Load Partially Signed Kronein Transaction</source>
         <translation type="unfinished">Qisman signlangan Bitkoin tranzaksiyasini yuklash</translation>
     </message>
     <message>
@@ -624,7 +624,7 @@
         <translation type="unfinished">&amp;Nusxalanganlar dan PSBT ni yuklash</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
         <translation type="unfinished">Nusxalanganlar qisman signlangan Bitkoin tranzaksiyalarini yuklash</translation>
     </message>
     <message>
@@ -644,7 +644,7 @@
         <translation type="unfinished">&amp;Qabul qilish manzillari</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
+        <source>Open a kronein: URI</source>
         <translation type="unfinished">Bitkoinni ochish: URI</translation>
     </message>
     <message>
@@ -1432,7 +1432,7 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
+        <source>Open Kronein URI</source>
         <translation type="unfinished">Bitkoin URI sini ochish</translation>
     </message>
     <message>

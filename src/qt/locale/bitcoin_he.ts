@@ -565,8 +565,8 @@
         <translation type="unfinished">מתחבר לעמיתים</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">בקשת תשלומים (יצירה של קודים מסוג QR וסכימות כתובות משאב של :bitcoin)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">בקשת תשלומים (יצירה של קודים מסוג QR וסכימות כתובות משאב של :Kronein)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -620,7 +620,7 @@
         <translation type="unfinished">עדכני</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
+        <source>Load Partially Signed Kronein Transaction</source>
         <translation type="unfinished">העלה עיסקת ביטקוין חתומה חלקית</translation>
     </message>
     <message>
@@ -628,7 +628,7 @@
         <translation type="unfinished">העלאת PSBT מהקליפבורד...</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
         <translation type="unfinished">טעינת עסקת ביטקוין חתומה חלקית מלוח הגזירים</translation>
     </message>
     <message>
@@ -648,7 +648,7 @@
         <translation type="unfinished">&amp;כתובות לקבלה</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
+        <source>Open a kronein: URI</source>
         <translation type="unfinished">פתיחת ביטקוין: כתובת משאב</translation>
     </message>
     <message>
@@ -1346,7 +1346,7 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
+        <source>Open Kronein URI</source>
         <translation type="unfinished">פתיחת כתובת משאב ביטקוין</translation>
     </message>
     <message>
@@ -1782,16 +1782,16 @@
         <translation type="unfinished">שגיאת בקשת תשלום</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
-        <translation type="unfinished">לא ניתן להפעיל את המקשר bitcoin: click-to-pay</translation>
+        <source>Cannot start kronein: click-to-pay handler</source>
+        <translation type="unfinished">לא ניתן להפעיל את המקשר kronein: click-to-pay</translation>
     </message>
     <message>
         <source>URI handling</source>
         <translation type="unfinished">טיפול בכתובות</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">'//:bitcoin' אינה כתובת תקנית. נא להשתמש ב־"bitcoin:‎"‏ במקום.</translation>
+        <source>'kronein://' is not a valid URI. Use 'kronein:' instead.</source>
+        <translation type="unfinished">'//:Kronein' אינה כתובת תקנית. נא להשתמש ב־"kronein:‎"‏ במקום.</translation>
     </message>
     <message>
         <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
@@ -2482,7 +2482,7 @@
         <translation type="unfinished">י&amp;צירת לא חתומה</translation>
     </message>
     <message>
-        <source>Creates a Partially Signed Bitcoin Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Creates a Partially Signed Kronein Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <translation type="unfinished">יוצר עסקת ביטקוין חתומה חלקית (PSBT) לשימוש עם ארנק %1 לא מחובר למשל, או עם PSBT ארנק חומרה תואם.</translation>
     </message>
     <message>
@@ -2515,7 +2515,7 @@
         <translation type="unfinished">תוכלו להגדיל את העמלה מאוחר יותר (איתות Replace-By-Fee, BIP-125).</translation>
     </message>
     <message>
-        <source>Please, review your transaction proposal. This will produce a Partially Signed Bitcoin Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction proposal. This will produce a Partially Signed Kronein Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can only create a PSBT. This string is displayed when private keys are disabled and an external signer is not available.</extracomment>
         <translation type="unfinished">בבקשה לסקור את העיסקה המוצעת. הדבר יצור עיסקת ביטקוין חתומה חלקית (PSBT) אשר ניתן לשמור או להעתיק ואז לחתום עם למשל ארנק לא מקוון %1, או עם ארנק חומרה תואם-PSBT.</translation>
     </message>
@@ -2647,7 +2647,7 @@
         <translation type="unfinished">יש לתת תווית לכתובת זו כדי להוסיף אותה לרשימת הכתובות בשימוש</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
         <translation type="unfinished">הודעה שצורפה לביטקוין: כתובת שתאוחסן בהעברה לצורך מעקב מצדך. לתשומת לבך: הודעה זו לא תישלח ברשת הביטקוין.</translation>
     </message>
 </context>

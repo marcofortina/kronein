@@ -517,8 +517,8 @@
         <translation type="unfinished">Cysylltu â chydweithwyr…</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Gofyn taliadau (creu côd QR a bitcoin: URIs)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Gofyn taliadau (creu côd QR a kronein: URIs)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -575,16 +575,16 @@
         <translation type="unfinished">Cyfamserol</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
-        <translation type="unfinished">Llwytho Trafodiad Bitcoin wedi'i Llofnodi'n Rhanol</translation>
+        <source>Load Partially Signed Kronein Transaction</source>
+        <translation type="unfinished">Llwytho Trafodiad Kronein wedi'i Llofnodi'n Rhanol</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
         <translation type="unfinished">Llwytho PSBT o &amp;glipbwrdd…</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
-        <translation type="unfinished">Llwytho Trafodiad Bitcoin wedi'i Llofnodi'n Rhanol o glipbwrdd</translation>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
+        <translation type="unfinished">Llwytho Trafodiad Kronein wedi'i Llofnodi'n Rhanol o glipbwrdd</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -603,8 +603,8 @@
         <translation type="unfinished">&amp;Derbyn cyfeiriadau</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Agor bitcoin: URI</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">Agor kronein: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>

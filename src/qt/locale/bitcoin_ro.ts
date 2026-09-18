@@ -560,7 +560,7 @@
         <translation type="unfinished">Conectarea cu colaboratorii...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
         <translation type="unfinished">Cereţi plăţi (generează coduri QR şi bitcoin-uri: URls)</translation>
     </message>
     <message>
@@ -620,16 +620,16 @@
         <translation type="unfinished">Ctr+Q</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
-        <translation type="unfinished">Încărcați Tranzacția Bitcoin Parțial Semnată</translation>
+        <source>Load Partially Signed Kronein Transaction</source>
+        <translation type="unfinished">Încărcați Tranzacția Kronein Parțial Semnată</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
         <translation type="unfinished">Incarca PSBT din &amp;notite</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
-        <translation type="unfinished">Încărcați Tranzacția Bitcoin Parțial Semnată din clipboard</translation>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
+        <translation type="unfinished">Încărcați Tranzacția Kronein Parțial Semnată din clipboard</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -648,8 +648,8 @@
         <translation type="unfinished">&amp;Adresele de primire</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Deschidere bitcoin: o adresa URI sau o cerere de plată</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">Deschidere kronein: o adresa URI sau o cerere de plată</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -1408,8 +1408,8 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
-        <translation type="unfinished">DeschidețI Bitcoin URI</translation>
+        <source>Open Kronein URI</source>
+        <translation type="unfinished">DeschidețI Kronein URI</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -1808,16 +1808,16 @@
         <translation type="unfinished">Eroare la cererea de plată</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
-        <translation type="unfinished">Bitcoin nu poate porni: click-to-pay handler</translation>
+        <source>Cannot start kronein: click-to-pay handler</source>
+        <translation type="unfinished">Kronein nu poate porni: click-to-pay handler</translation>
     </message>
     <message>
         <source>URI handling</source>
         <translation type="unfinished">Gestionare URI</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">'bitcoin://' nu este un URI valid. Folositi 'bitcoin:' in loc.</translation>
+        <source>'kronein://' is not a valid URI. Use 'kronein:' instead.</source>
+        <translation type="unfinished">'kronein://' nu este un URI valid. Folositi 'kronein:' in loc.</translation>
     </message>
     <message>
         <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
@@ -2748,8 +2748,8 @@ Pentru mai multe informații privind folosirea consolei, tastează %6.
         <translation type="unfinished">Introduceţi eticheta pentru ca această adresa să fie introdusă în lista de adrese folosite</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
-        <translation type="unfinished">un mesaj a fost ataşat la bitcoin: URI care va fi stocat cu tranzacţia pentru referinţa dvs. Notă: Acest mesaj nu va fi trimis către reţeaua Kronein.</translation>
+        <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <translation type="unfinished">un mesaj a fost ataşat la kronein: URI care va fi stocat cu tranzacţia pentru referinţa dvs. Notă: Acest mesaj nu va fi trimis către reţeaua Kronein.</translation>
     </message>
 </context>
 <context>

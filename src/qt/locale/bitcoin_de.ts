@@ -599,8 +599,8 @@
         <translation type="unfinished">Verbinde mit Peers...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Zahlungen anfordern (erzeugt QR-Codes und "bitcoin:"-URIs)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Zahlungen anfordern (erzeugt QR-Codes und "kronein:"-URIs)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -654,8 +654,8 @@
         <translation type="unfinished">Auf aktuellem Stand</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
-        <translation type="unfinished">Lade teilsignierte Bitcoin-Transaktion</translation>
+        <source>Load Partially Signed Kronein Transaction</source>
+        <translation type="unfinished">Lade teilsignierte Kronein-Transaktion</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -1365,8 +1365,8 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
-        <translation type="unfinished">Öffne bitcoin URI</translation>
+        <source>Open Kronein URI</source>
+        <translation type="unfinished">Öffne Kronein URI</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -1911,16 +1911,16 @@
         <translation type="unfinished">Fehler bei der Zahlungsanforderung</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
-        <translation type="unfinished">Kann Bitcoin nicht starten: Klicken-zum-Bezahlen-Verarbeiter</translation>
+        <source>Cannot start kronein: click-to-pay handler</source>
+        <translation type="unfinished">Kann Kronein nicht starten: Klicken-zum-Bezahlen-Verarbeiter</translation>
     </message>
     <message>
         <source>URI handling</source>
         <translation type="unfinished">URI-Verarbeitung</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">'bitcoin://' ist kein gültiger URL. Bitte 'bitcoin:' nutzen.</translation>
+        <source>'kronein://' is not a valid URI. Use 'kronein:' instead.</source>
+        <translation type="unfinished">'kronein://' ist kein gültiger URL. Bitte 'kronein:' nutzen.</translation>
     </message>
     <message>
         <source>Cannot process payment request because BIP70 is not supported.
@@ -2872,8 +2872,8 @@ Hinweis: Da die Gebühr auf Basis der Bytes berechnet wird, führt eine Gebühre
         <translation type="unfinished">Unsigniert &amp;erzeugen</translation>
     </message>
     <message>
-        <source>Creates a Partially Signed Bitcoin Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
-        <translation type="unfinished">Erzeugt eine teilsignierte Bitcoin Transaktion (PSBT) zur Benutzung mit z.B. einem Offline %1 Wallet oder einem kompatiblen Hardware Wallet.</translation>
+        <source>Creates a Partially Signed Kronein Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <translation type="unfinished">Erzeugt eine teilsignierte Kronein Transaktion (PSBT) zur Benutzung mit z.B. einem Offline %1 Wallet oder einem kompatiblen Hardware Wallet.</translation>
     </message>
     <message>
         <source>%1 to '%2'</source>
@@ -2928,9 +2928,9 @@ Hinweis: Da die Gebühr auf Basis der Bytes berechnet wird, führt eine Gebühre
         <translation type="unfinished">Sie können die Gebühr später erhöhen (signalisiert Replace-By-Fee, BIP-125).</translation>
     </message>
     <message>
-        <source>Please, review your transaction proposal. This will produce a Partially Signed Bitcoin Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction proposal. This will produce a Partially Signed Kronein Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can only create a PSBT. This string is displayed when private keys are disabled and an external signer is not available.</extracomment>
-        <translation type="unfinished">Überprüfen Sie bitte Ihr Transaktionsvorhaben. Dadurch wird eine Partiell Signierte Bitcoin-Transaktion (PSBT) erstellt, die Sie speichern oder kopieren und dann z. B. mit einer Offline-Wallet %1 oder einer PSBT-kompatible Hardware-Wallet nutzen können.</translation>
+        <translation type="unfinished">Überprüfen Sie bitte Ihr Transaktionsvorhaben. Dadurch wird eine Partiell Signierte Kronein-Transaktion (PSBT) erstellt, die Sie speichern oder kopieren und dann z. B. mit einer Offline-Wallet %1 oder einer PSBT-kompatible Hardware-Wallet nutzen können.</translation>
     </message>
     <message>
         <source>%1 from wallet '%2'</source>
@@ -2942,9 +2942,9 @@ Hinweis: Da die Gebühr auf Basis der Bytes berechnet wird, führt eine Gebühre
         <translation type="unfinished">Möchtest du diese Transaktion erstellen?</translation>
     </message>
     <message>
-        <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Bitcoin Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Kronein Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can send their transaction or create a PSBT. This string is displayed when both private keys and PSBT controls are enabled.</extracomment>
-        <translation type="unfinished">Bitte überprüfen Sie Ihre Transaktion. Sie können diese Transaktion erstellen und versenden oder eine Partiell Signierte Bitcoin Transaction (PSBT) erstellen, die Sie speichern oder kopieren und dann z.B. mit einer offline %1 Wallet oder einer PSBT-kompatiblen Hardware-Wallet signieren können.</translation>
+        <translation type="unfinished">Bitte überprüfen Sie Ihre Transaktion. Sie können diese Transaktion erstellen und versenden oder eine Partiell Signierte Kronein Transaction (PSBT) erstellen, die Sie speichern oder kopieren und dann z.B. mit einer offline %1 Wallet oder einer PSBT-kompatiblen Hardware-Wallet signieren können.</translation>
     </message>
     <message>
         <source>Please, review your transaction.</source>
@@ -3088,8 +3088,8 @@ Hinweis: Da die Gebühr auf Basis der Bytes berechnet wird, führt eine Gebühre
         <translation type="unfinished">Bezeichnung für diese Adresse eingeben, um sie zur Liste bereits verwendeter Adressen hinzuzufügen.</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
-        <translation type="unfinished">Eine an die "bitcoin:"-URI angefügte Nachricht, die zusammen mit der Transaktion gespeichert wird. Hinweis: Diese Nachricht wird nicht über das Kronein-Netzwerk gesendet.</translation>
+        <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <translation type="unfinished">Eine an die "kronein:"-URI angefügte Nachricht, die zusammen mit der Transaktion gespeichert wird. Hinweis: Diese Nachricht wird nicht über das Kronein-Netzwerk gesendet.</translation>
     </message>
 </context>
 <context>

@@ -492,7 +492,7 @@
         <translation type="unfinished">ಗೆಳೆಯರೊಂದಿಗೆ ಸಂಪರ್ಕಿಸಲಾಗುತ್ತಿದೆ...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
         <translation type="unfinished">ಪಾವತಿಗಳನ್ನು ವಿನಂತಿಸಿ (QR ಕೋಡ್‌ಗಳು ಮತ್ತು ಬಿಟ್‌ಕಾಯಿನ್‌ಗಳನ್ನು ಉತ್ಪಾದಿಸುತ್ತದೆ: URI ಗಳು)</translation>
     </message>
     <message>

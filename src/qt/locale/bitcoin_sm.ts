@@ -517,8 +517,8 @@
         <translation type="unfinished">Faʻatasi ma uō…</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Talosaga mo totogi (faʻatupuina ni QR code ma bitcoin: URIs)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Talosaga mo totogi (faʻatupuina ni QR code ma kronein: URIs)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -573,16 +573,16 @@
         <translation type="unfinished">I le taimi nei</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
-        <translation type="unfinished">Laʻu le Galuega Fa'amaonia Bitcoin i le vaega</translation>
+        <source>Load Partially Signed Kronein Transaction</source>
+        <translation type="unfinished">Laʻu le Galuega Fa'amaonia Kronein i le vaega</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
         <translation type="unfinished">Loli PSBT mai le &amp;clipboard…</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
-        <translation type="unfinished">La'uina le Galuega Bitcoin na'o le vaega o lo'o sainia mai le pepa kopi</translation>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
+        <translation type="unfinished">La'uina le Galuega Kronein na'o le vaega o lo'o sainia mai le pepa kopi</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -601,8 +601,8 @@
         <translation type="unfinished">&amp;Tuuina atu i le tuatusi</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Tuuina se bitcoin: URI</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">Tuuina se kronein: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -1384,8 +1384,8 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
-        <translation type="unfinished">Tatala le URI o le Bitcoin</translation>
+        <source>Open Kronein URI</source>
+        <translation type="unfinished">Tatala le URI o le Kronein</translation>
     </message>
     <message>
         <source>URI:</source>

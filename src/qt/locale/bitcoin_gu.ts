@@ -576,7 +576,7 @@
         <translation type="unfinished">સાથીદારોએ સાથે જોડાઈ…</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
         <translation type="unfinished">ચુકવણીની વિનંતી કરો (QR કોડ અને બિટકોઈન જનરેટ કરે છે: URI)</translation>
     </message>
     <message>
@@ -631,7 +631,7 @@
         <translation type="unfinished">આજ સુધીનુ</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
+        <source>Load Partially Signed Kronein Transaction</source>
         <translation type="unfinished">આંશિક રીતે સહી કરેલ બિટકોઈન ટ્રાન્ઝેક્શન લોડ કરો</translation>
     </message>
     <message>
@@ -639,7 +639,7 @@
         <translation type="unfinished">&amp;ક્લિપબોર્ડ માંથી PSBT લોડ કરો...</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
         <translation type="unfinished">ક્લિપબોર્ડથી આંશિક રીતે સહી કરેલ બિટકોઈન ટ્રાન્ઝેક્શન લોડ કરો</translation>
     </message>
     <message>
@@ -659,7 +659,7 @@
         <translation type="unfinished">&amp;પ્રાપ્ત સરનામાં</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
+        <source>Open a kronein: URI</source>
         <translation type="unfinished">બીટકોઈન ખોલો: URI</translation>
     </message>
     <message>
@@ -1455,7 +1455,7 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
+        <source>Open Kronein URI</source>
         <translation type="unfinished">બિટકોઈન URI ખોલો</translation>
     </message>
     <message>
@@ -2001,7 +2001,7 @@
         <translation type="unfinished">ચુકવણી વિનંતી ભૂલ</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
+        <source>Cannot start kronein: click-to-pay handler</source>
         <translation type="unfinished">બિટકોઇન શરૂ કરી શકતા નથી: ક્લિક-ટુ-પે હેન્ડલર</translation>
     </message>
     <message>
@@ -2009,8 +2009,8 @@
         <translation type="unfinished">URI હેન્ડલિંગ</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">'bitcoin://' એ માન્ય URI નથી. તેના બદલે 'bitcoin:' નો ઉપયોગ કરો.</translation>
+        <source>'kronein://' is not a valid URI. Use 'kronein:' instead.</source>
+        <translation type="unfinished">'kronein://' એ માન્ય URI નથી. તેના બદલે 'kronein:' નો ઉપયોગ કરો.</translation>
     </message>
     <message>
         <source>Cannot process payment request because BIP70 is not supported.

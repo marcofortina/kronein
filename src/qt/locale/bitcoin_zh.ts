@@ -76,7 +76,7 @@
 <context>
     <name>BitcoinGUI</name>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
         <translation type="unfinished">请求支付(生成二维码和比特币链接)</translation>
     </message>
     <message>
@@ -98,7 +98,7 @@
         </translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
+        <source>Load Partially Signed Kronein Transaction</source>
         <translation type="unfinished">加载部分签名比特币交易（PSBT）</translation>
     </message>
     <message>

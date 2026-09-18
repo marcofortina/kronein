@@ -493,8 +493,8 @@
         <translation type="unfinished">Kuunganisha na wenzako wa kushirikiana...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Omba malipo (huzalisha nambari za QR na bitcoin: URIs)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Omba malipo (huzalisha nambari za QR na kronein: URIs)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -548,16 +548,16 @@
         <translation type="unfinished">Imesasishwa</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
-        <translation type="unfinished">Pakia Muamala wa Bitcoin Uliosainiwa Kiasi</translation>
+        <source>Load Partially Signed Kronein Transaction</source>
+        <translation type="unfinished">Pakia Muamala wa Kronein Uliosainiwa Kiasi</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
         <translation type="unfinished">Pakia PSBT kutoka &amp;clipboard...</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
-        <translation type="unfinished">Pakia Muamala wa Bitcoin Uliosainiwa Kiasi kutoka kwenye ubao wa kunakili</translation>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
+        <translation type="unfinished">Pakia Muamala wa Kronein Uliosainiwa Kiasi kutoka kwenye ubao wa kunakili</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -576,8 +576,8 @@
         <translation type="unfinished">&amp;Inapokea anwani</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Fungua bitcoin: URI</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">Fungua kronein: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>

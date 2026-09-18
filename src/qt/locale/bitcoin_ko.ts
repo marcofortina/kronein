@@ -596,8 +596,8 @@
         <translation type="unfinished">피어에 연결 중...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">지불 요청하기 (QR 코드와 bitcoin을 생성합니다: URIs)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">지불 요청하기 (QR 코드와 Kronein을 생성합니다: URIs)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -654,7 +654,7 @@
         <translation type="unfinished">Crtl + Q</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
+        <source>Load Partially Signed Kronein Transaction</source>
         <translation type="unfinished">부분적으로 서명된 비트코인 트랜잭션 불러오기</translation>
     </message>
     <message>
@@ -662,7 +662,7 @@
         <translation type="unfinished">PSBT 혹은 클립보드에서 불러오기</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
         <translation type="unfinished">클립보드로부터 부분적으로 서명된 비트코인 트랜잭션 불러오기</translation>
     </message>
     <message>
@@ -682,8 +682,8 @@
         <translation type="unfinished">받는 주소들(&amp;R)</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">bitcoin 열기: URI</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">Kronein 열기: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -1469,7 +1469,7 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
+        <source>Open Kronein URI</source>
         <translation type="unfinished">비트코인 URI 열기</translation>
     </message>
     <message>
@@ -2023,7 +2023,7 @@
         <translation type="unfinished">지불 요청 오류</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
+        <source>Cannot start kronein: click-to-pay handler</source>
         <translation type="unfinished">비트코인을 시작할 수 없습니다: 지급을 위한 클릭 핸들러</translation>
     </message>
     <message>
@@ -2031,8 +2031,8 @@
         <translation type="unfinished">URI 핸들링</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">'bitcoin://"은 잘못된 URI입니다. 'bitcoin:'을 사용하십시오.</translation>
+        <source>'kronein://' is not a valid URI. Use 'kronein:' instead.</source>
+        <translation type="unfinished">'kronein://"은 잘못된 URI입니다. 'kronein:'을 사용하십시오.</translation>
     </message>
     <message>
         <source>Cannot process payment request because BIP70 is not supported.
@@ -2993,7 +2993,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">사인되지 않은 것을 생성(&amp;e)</translation>
     </message>
     <message>
-        <source>Creates a Partially Signed Bitcoin Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Creates a Partially Signed Kronein Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <translation type="unfinished">오프라인 %1 지갑 또는 PSBT가 호환되는 하드웨어 지갑과의 사용을 위한 '부분적으로 서명 된 비트 코인 트랜잭션(PSBT)'를 생성합니다.</translation>
     </message>
     <message>
@@ -3049,7 +3049,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">추후에 거래 수수료를 올릴 수 있습니다 ('수수료로-대체', BIP-125 지원)</translation>
     </message>
     <message>
-        <source>Please, review your transaction proposal. This will produce a Partially Signed Bitcoin Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction proposal. This will produce a Partially Signed Kronein Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can only create a PSBT. This string is displayed when private keys are disabled and an external signer is not available.</extracomment>
         <translation type="unfinished">거래 제안을 검토해 주십시오. 이것은 당신이 저장하거나 복사한 뒤 e.g. 오프라인 %1 지갑 또는 PSBT 호환 하드웨어 지갑으로 서명할 수 있는 PSBT (부분적으로 서명된 비트코인 트랜잭션)를 생성할 것입니다.</translation>
     </message>
@@ -3063,9 +3063,9 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">이 트랜잭션을 생성하겠습니까?</translation>
     </message>
     <message>
-        <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Bitcoin Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Kronein Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can send their transaction or create a PSBT. This string is displayed when both private keys and PSBT controls are enabled.</extracomment>
-        <translation type="unfinished">당신의 트랜잭션을 검토하세요. 당신은 트랜잭션을 생성하고 보낼 수 있습니다. 혹은 부분적으로 서명된 비트코인 트랜잭션 (PSBT, Partially Signed Bitcoin Transaction)을 생성하고, 저장하거나 복사하여 오프라인 %1지갑으로 서명할수도 있습니다. PSBT가 적용되는 하드월렛으로 서명할 수도 있습니다. </translation>
+        <translation type="unfinished">당신의 트랜잭션을 검토하세요. 당신은 트랜잭션을 생성하고 보낼 수 있습니다. 혹은 부분적으로 서명된 비트코인 트랜잭션 (PSBT, Partially Signed Kronein Transaction)을 생성하고, 저장하거나 복사하여 오프라인 %1지갑으로 서명할수도 있습니다. PSBT가 적용되는 하드월렛으로 서명할 수도 있습니다. </translation>
     </message>
     <message>
         <source>Please, review your transaction.</source>
@@ -3209,8 +3209,8 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">이 주소에 라벨을 입력하면 사용된 주소 목록에 라벨이 표시됩니다</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
-        <translation type="unfinished">bitcoin: URI에 추가된 메시지는 참고를 위해 거래내역과 함께 저장될 것입니다. Note: 이 메시지는 비트코인 네트워크로 전송되지 않습니다.</translation>
+        <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <translation type="unfinished">kronein: URI에 추가된 메시지는 참고를 위해 거래내역과 함께 저장될 것입니다. Note: 이 메시지는 비트코인 네트워크로 전송되지 않습니다.</translation>
     </message>
 </context>
 <context>

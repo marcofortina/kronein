@@ -575,7 +575,7 @@
         <translation type="unfinished">ساتھیوں سے منسلک کرنے</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
         <translation type="unfinished">ادائیگی کی درخواست کریں: ( کوئیک رسپانس ( کیو۔آر ) کوڈ اور بٹ کوائن ( یونیورسل ادائیگیوں کا نظام) کے ذریعے سے</translation>
     </message>
     <message>
@@ -630,7 +630,7 @@
         <translation type="unfinished">سب سے نیا</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
+        <source>Load Partially Signed Kronein Transaction</source>
         <translation type="unfinished">جزوی طور پر دستخط شدہ بٹ کوائن ٹرانزیکشن لوڈ کریں۔</translation>
     </message>
     <message>
@@ -638,7 +638,7 @@
         <translation type="unfinished">PSBT کو &amp;clipboard سے لوڈ کریں...</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
         <translation type="unfinished">کلپ بورڈ سے جزوی طور پر دستخط شدہ بٹ کوائن ٹرانزیکشن لوڈ کریں۔</translation>
     </message>
     <message>
@@ -658,7 +658,7 @@
         <translation type="unfinished">اور پتے وصول کرنا</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
+        <source>Open a kronein: URI</source>
         <translation type="unfinished">بٹ کوائن کا یو۔آر۔آئی۔ کھولیں</translation>
     </message>
     <message>
@@ -1360,7 +1360,7 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
+        <source>Open Kronein URI</source>
         <translation type="unfinished">بٹ کوائن URI کھولیں۔</translation>
     </message>
     <message>
@@ -1806,7 +1806,7 @@
         <translation type="unfinished">ادائیگی کی درخواست کی خرابی۔</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
+        <source>Cannot start kronein: click-to-pay handler</source>
         <translation type="unfinished">کوائن شروع نہیں کیا جا سکتا: کلک کرکے ادائیگی کرنے والا ہینڈلر۔</translation>
     </message>
     <message>

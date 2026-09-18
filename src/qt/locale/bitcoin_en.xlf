@@ -497,7 +497,7 @@
         <context-group purpose="location"><context context-type="linenumber">1092</context></context-group>
       </trans-unit>
       <trans-unit id="_msg112">
-        <source xml:space="preserve">Request payments (generates QR codes and bitcoin: URIs)</source>
+        <source xml:space="preserve">Request payments (generates QR codes and kronein: URIs)</source>
         <context-group purpose="location"><context context-type="linenumber">273</context></context-group>
       </trans-unit>
       <trans-unit id="_msg113">
@@ -558,7 +558,7 @@
         <context-group purpose="location"><context context-type="linenumber">301</context></context-group>
       </trans-unit>
       <trans-unit id="_msg126">
-        <source xml:space="preserve">Load Partially Signed Bitcoin Transaction</source>
+        <source xml:space="preserve">Load Partially Signed Kronein Transaction</source>
         <context-group purpose="location"><context context-type="linenumber">323</context></context-group>
       </trans-unit>
       <trans-unit id="_msg127">
@@ -566,7 +566,7 @@
         <context-group purpose="location"><context context-type="linenumber">324</context></context-group>
       </trans-unit>
       <trans-unit id="_msg128">
-        <source xml:space="preserve">Load Partially Signed Bitcoin Transaction from clipboard</source>
+        <source xml:space="preserve">Load Partially Signed Kronein Transaction from clipboard</source>
         <context-group purpose="location"><context context-type="linenumber">325</context></context-group>
       </trans-unit>
       <trans-unit id="_msg129">
@@ -586,7 +586,7 @@
         <context-group purpose="location"><context context-type="linenumber">335</context></context-group>
       </trans-unit>
       <trans-unit id="_msg133">
-        <source xml:space="preserve">Open a bitcoin: URI</source>
+        <source xml:space="preserve">Open a kronein: URI</source>
         <context-group purpose="location"><context context-type="linenumber">339</context></context-group>
       </trans-unit>
       <trans-unit id="_msg134">
@@ -1421,7 +1421,7 @@
   <file original="../forms/openuridialog.ui" datatype="x-trolltech-designer-ui" source-language="en"><body>
     <group restype="x-trolltech-linguist-context" resname="OpenURIDialog">
       <trans-unit id="_msg311">
-        <source xml:space="preserve">Open bitcoin URI</source>
+        <source xml:space="preserve">Open Kronein URI</source>
         <context-group purpose="location"><context context-type="linenumber">14</context></context-group>
       </trans-unit>
       <trans-unit id="_msg312">
@@ -2043,7 +2043,7 @@
         <context-group purpose="location"><context context-type="linenumber">145</context></context-group>
       </trans-unit>
       <trans-unit id="_msg449">
-        <source xml:space="preserve">Cannot start bitcoin: click-to-pay handler</source>
+        <source xml:space="preserve">Cannot start kronein: click-to-pay handler</source>
         <context-group purpose="location"><context context-type="linenumber">146</context></context-group>
       </trans-unit>
       <trans-unit id="_msg450">
@@ -2054,7 +2054,7 @@
         <context-group purpose="location"><context context-type="linenumber">223</context></context-group>
       </trans-unit>
       <trans-unit id="_msg451">
-        <source xml:space="preserve">&apos;bitcoin://&apos; is not a valid URI. Use &apos;bitcoin:&apos; instead.</source>
+        <source xml:space="preserve">&apos;kronein://&apos; is not a valid URI. Use &apos;kronein:&apos; instead.</source>
         <context-group purpose="location"><context context-type="linenumber">194</context></context-group>
       </trans-unit>
       <trans-unit id="_msg452">
@@ -3358,7 +3358,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
         <context-group purpose="location"><context context-type="linenumber">209</context></context-group>
       </trans-unit>
       <trans-unit id="_msg724">
-        <source xml:space="preserve">Creates a Partially Signed Bitcoin Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source xml:space="preserve">Creates a Partially Signed Kronein Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <context-group purpose="location"><context context-type="linenumber">210</context></context-group>
       </trans-unit>
       <trans-unit id="_msg725">
@@ -3414,7 +3414,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
         <context-group purpose="location"><context context-type="linenumber">356</context></context-group>
       </trans-unit>
       <trans-unit id="_msg737">
-        <source xml:space="preserve">Please, review your transaction proposal. This will produce a Partially Signed Bitcoin Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source xml:space="preserve">Please, review your transaction proposal. This will produce a Partially Signed Kronein Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <context-group purpose="location"><context context-type="linenumber">325</context></context-group>
         <note annotates="source" from="developer">Text to inform a user attempting to create a transaction of their current options. At this stage, a user can only create a PSBT. This string is displayed when private keys are disabled and an external signer is not available.</note>
       </trans-unit>
@@ -3428,7 +3428,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
         <note annotates="source" from="developer">Message displayed when attempting to create a transaction. Cautionary text to prompt the user to verify that the displayed transaction details represent the transaction the user intends to create.</note>
       </trans-unit>
       <trans-unit id="_msg740">
-        <source xml:space="preserve">Please, review your transaction. You can create and send this transaction or create a Partially Signed Bitcoin Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source xml:space="preserve">Please, review your transaction. You can create and send this transaction or create a Partially Signed Kronein Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <context-group purpose="location"><context context-type="linenumber">330</context></context-group>
         <note annotates="source" from="developer">Text to inform a user attempting to create a transaction of their current options. At this stage, a user can send their transaction or create a PSBT. This string is displayed when both private keys and PSBT controls are enabled.</note>
       </trans-unit>
@@ -3580,7 +3580,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
         <context-group purpose="location"><context context-type="linenumber">173</context></context-group>
       </trans-unit>
       <trans-unit id="_msg774">
-        <source xml:space="preserve">A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <source xml:space="preserve">A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
         <context-group purpose="location"><context context-type="linenumber">202</context></context-group>
       </trans-unit>
       <trans-unit id="_msg775">

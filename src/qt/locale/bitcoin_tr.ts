@@ -559,8 +559,8 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">Eşlere Bağlanılıyor...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Ödeme isteyin (QR kodları ve bitcoin: URI'ler üretir)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Ödeme isteyin (QR kodları ve kronein: URI'ler üretir)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -609,16 +609,16 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">Güncel</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
-        <translation type="unfinished">Kısmen İmzalanmış Bitcoin İşlemini Yükle </translation>
+        <source>Load Partially Signed Kronein Transaction</source>
+        <translation type="unfinished">Kısmen İmzalanmış Kronein İşlemini Yükle </translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
         <translation type="unfinished">PSBT'yi &amp;panodan yükle...</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
-        <translation type="unfinished">Kısmen İmzalanmış Bitcoin işlemini panodan yükle</translation>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
+        <translation type="unfinished">Kısmen İmzalanmış Kronein işlemini panodan yükle</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -637,8 +637,8 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">&amp; Adresler alınıyor</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Bitcoin’i aç.</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">Kronein’i aç.</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -1378,8 +1378,8 @@ Cüzdan kilidini aç.</translation>
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
-        <translation type="unfinished">Bitcoin URI aç</translation>
+        <source>Open Kronein URI</source>
+        <translation type="unfinished">Kronein URI aç</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -1872,16 +1872,16 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">Ödeme isteği hatası</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
-        <translation type="unfinished">Bitcoin başlatılamadı: tıkla-ve-öde yöneticisi</translation>
+        <source>Cannot start kronein: click-to-pay handler</source>
+        <translation type="unfinished">Kronein başlatılamadı: tıkla-ve-öde yöneticisi</translation>
     </message>
     <message>
         <source>URI handling</source>
         <translation type="unfinished">URI yönetimi</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">'bitcoin://' geçerli bir URI değil. Onun yerine 'bitcoin:' kullanın.</translation>
+        <source>'kronein://' is not a valid URI. Use 'kronein:' instead.</source>
+        <translation type="unfinished">'kronein://' geçerli bir URI değil. Onun yerine 'kronein:' kullanın.</translation>
     </message>
     <message>
         <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
@@ -2692,9 +2692,9 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">Bu işlemi oluşturmak ister misiniz?</translation>
     </message>
     <message>
-        <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Bitcoin Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Kronein Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can send their transaction or create a PSBT. This string is displayed when both private keys and PSBT controls are enabled.</extracomment>
-        <translation type="unfinished">Lütfen işleminizi gözden geçirin. Bu işlemi oluşturabilir ve gönderebilir veya örneğin çevrimdışı bir %1 cüzdanı veya PSBT uyumlu bir donanım cüzdanı gibi kaydedebileceğiniz veya kopyalayabileceğiniz ve ardından imzalayabileceğiniz bir Kısmen İmzalı Bitcoin İşlemi (PSBT) oluşturabilirsiniz.</translation>
+        <translation type="unfinished">Lütfen işleminizi gözden geçirin. Bu işlemi oluşturabilir ve gönderebilir veya örneğin çevrimdışı bir %1 cüzdanı veya PSBT uyumlu bir donanım cüzdanı gibi kaydedebileceğiniz veya kopyalayabileceğiniz ve ardından imzalayabileceğiniz bir Kısmen İmzalı Kronein İşlemi (PSBT) oluşturabilirsiniz.</translation>
     </message>
     <message>
         <source>Please, review your transaction.</source>
@@ -2825,8 +2825,8 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">Kullanılmış adres listesine eklemek için bu adrese bir etiket girin</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
-        <translation type="unfinished">Referans için bitcoin: URI'siyle iliştirilmiş işlemle birlikte depolanacak bir ileti. Not: Bu mesaj Kronein ağı üzerinden gönderilmeyecektir.</translation>
+        <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <translation type="unfinished">Referans için kronein: URI'siyle iliştirilmiş işlemle birlikte depolanacak bir ileti. Not: Bu mesaj Kronein ağı üzerinden gönderilmeyecektir.</translation>
     </message>
 </context>
 <context>

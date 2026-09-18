@@ -525,7 +525,7 @@
         <translation type="unfinished">Поврзување со врсници...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
         <translation type="unfinished">Барање за плаќања (создава QR-кодови и биткоин: URI)</translation>
     </message>
     <message>
@@ -581,7 +581,7 @@
         <translation type="unfinished">Во тек</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
+        <source>Load Partially Signed Kronein Transaction</source>
         <translation type="unfinished">Вчитајте делумно потпишана биткоин-трансакција</translation>
     </message>
     <message>
@@ -589,7 +589,7 @@
         <translation type="unfinished">Вчитајте PSBT од &amp;клипбордот...</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
         <translation type="unfinished">Вчитајте делумно потпишана биткоин-трансакција од клипбордот</translation>
     </message>
     <message>
@@ -609,7 +609,7 @@
         <translation type="unfinished">&amp;Примање на адреси</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
+        <source>Open a kronein: URI</source>
         <translation type="unfinished">Отвори биткоин: URI</translation>
     </message>
     <message>

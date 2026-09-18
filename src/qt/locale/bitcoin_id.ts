@@ -420,8 +420,8 @@
         <translation type="unfinished">Menghubungkan ke peers...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Permintaan pembayaran (membuat kode QR dan bitcoin: URIs)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Permintaan pembayaran (membuat kode QR dan kronein: URIs)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -474,16 +474,16 @@
         <translation type="unfinished">Terbaru</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
-        <translation type="unfinished">Muat transaksi Bitcoin yang ditandatangani seperapat</translation>
+        <source>Load Partially Signed Kronein Transaction</source>
+        <translation type="unfinished">Muat transaksi Kronein yang ditandatangani seperapat</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
         <translation type="unfinished">Masukkan PSBT dari &amp;clipboard</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
-        <translation type="unfinished">Muat transaksi Bitcoin yang ditandatangani seperapat dari clipboard</translation>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
+        <translation type="unfinished">Muat transaksi Kronein yang ditandatangani seperapat dari clipboard</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -494,8 +494,8 @@
         <translation type="unfinished">Buka konsol debug dan diagnosa node</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Buka URI bitcoin:</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">Buka URI kronein:</translation>
     </message>
     <message>
         <source>Close wallet</source>

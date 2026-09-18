@@ -358,8 +358,8 @@
 </translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Request payments (generates QR codes and bitcoin: URIs)
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Request payments (generates QR codes and kronein: URIs)
 </translation>
     </message>
     <message>

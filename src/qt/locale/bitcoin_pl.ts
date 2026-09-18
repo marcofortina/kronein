@@ -585,7 +585,7 @@
         <translation type="unfinished">Łączenie z uczestnikami sieci…</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
         <translation type="unfinished">Żądaj płatności (generuje kod QR oraz bitcoinowe URI)</translation>
     </message>
     <message>
@@ -641,16 +641,16 @@
         <translation type="unfinished">Aktualny</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
-        <translation type="unfinished">Załaduj częściowo podpisaną transakcję Bitcoin</translation>
+        <source>Load Partially Signed Kronein Transaction</source>
+        <translation type="unfinished">Załaduj częściowo podpisaną transakcję Kronein</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
         <translation type="unfinished">Wczytaj PSBT ze &amp;schowka…</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
-        <translation type="unfinished">Załaduj częściowo podpisaną transakcję Bitcoin ze schowka</translation>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
+        <translation type="unfinished">Załaduj częściowo podpisaną transakcję Kronein ze schowka</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -669,8 +669,8 @@
         <translation type="unfinished">Ad&amp;resy odbiorcze</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Otwórz URI bitcoin:</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">Otwórz URI kronein:</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -1470,8 +1470,8 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
-        <translation type="unfinished">Otwórz bitcoin URI</translation>
+        <source>Open Kronein URI</source>
+        <translation type="unfinished">Otwórz Kronein URI</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -2022,8 +2022,8 @@
         <translation type="unfinished">Obsługa URI</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">'bitcoin://' nie jest poprawnym URI. Użyj 'bitcoin:'.</translation>
+        <source>'kronein://' is not a valid URI. Use 'kronein:' instead.</source>
+        <translation type="unfinished">'kronein://' nie jest poprawnym URI. Użyj 'kronein:'.</translation>
     </message>
     <message>
         <source>Cannot process payment request because BIP70 is not supported.
@@ -2988,7 +2988,7 @@ Uwaga: Ponieważ opłata jest naliczana za każdy bajt, opłata "100 satoshi za 
         <translation type="unfinished">&amp;Utwórz niepodpisaną transakcję</translation>
     </message>
     <message>
-        <source>Creates a Partially Signed Bitcoin Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Creates a Partially Signed Kronein Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <translation type="unfinished">Tworzy częściowo podpisaną transakcję (ang. PSBT) używaną np. offline z portfelem %1 lub z innym portfelem zgodnym z PSBT.</translation>
     </message>
     <message>
@@ -3044,7 +3044,7 @@ Uwaga: Ponieważ opłata jest naliczana za każdy bajt, opłata "100 satoshi za 
         <translation type="unfinished">Możesz później zwiększyć opłatę (sygnalizuje Replace-By-Fee(RBF), BIP-125).</translation>
     </message>
     <message>
-        <source>Please, review your transaction proposal. This will produce a Partially Signed Bitcoin Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction proposal. This will produce a Partially Signed Kronein Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can only create a PSBT. This string is displayed when private keys are disabled and an external signer is not available.</extracomment>
         <translation type="unfinished">Proszę przejrzeć propozycję transakcji. Zostanie utworzona częściowo podpisana transakcja (ang. PSBT), którą można skopiować, a następnie podpisać np. offline z portfelem %1 lub z innym portfelem zgodnym z PSBT.</translation>
     </message>
@@ -3058,9 +3058,9 @@ Uwaga: Ponieważ opłata jest naliczana za każdy bajt, opłata "100 satoshi za 
         <translation type="unfinished">Czy chcesz utworzyć tę transakcję?</translation>
     </message>
     <message>
-        <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Bitcoin Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Kronein Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can send their transaction or create a PSBT. This string is displayed when both private keys and PSBT controls are enabled.</extracomment>
-        <translation type="unfinished">Proszę przejrzeć transakcję. Możesz utworzyć i wysłać tę transakcję lub utworzyć częściowo podpisaną transakcję Bitcoin (PSBT), którą możesz zapisać lub skopiować, a następnie podpisać np. offline z portfelem %1 lub z kompatybilnym sprzętowo portfelem PSBT.</translation>
+        <translation type="unfinished">Proszę przejrzeć transakcję. Możesz utworzyć i wysłać tę transakcję lub utworzyć częściowo podpisaną transakcję Kronein (PSBT), którą możesz zapisać lub skopiować, a następnie podpisać np. offline z portfelem %1 lub z kompatybilnym sprzętowo portfelem PSBT.</translation>
     </message>
     <message>
         <source>Please, review your transaction.</source>
@@ -3205,8 +3205,8 @@ Uwaga: Ponieważ opłata jest naliczana za każdy bajt, opłata "100 satoshi za 
         <translation type="unfinished">Wprowadź etykietę dla tego adresu by dodać go do listy użytych adresów</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
-        <translation type="unfinished">Wiadomość, która została dołączona do URI bitcoin:, która będzie przechowywana wraz z transakcją w celach informacyjnych. Uwaga: Ta wiadomość nie będzie rozsyłana w sieci Kronein.</translation>
+        <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <translation type="unfinished">Wiadomość, która została dołączona do URI kronein:, która będzie przechowywana wraz z transakcją w celach informacyjnych. Uwaga: Ta wiadomość nie będzie rozsyłana w sieci Kronein.</translation>
     </message>
 </context>
 <context>

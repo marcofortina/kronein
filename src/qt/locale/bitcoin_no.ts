@@ -499,8 +499,8 @@
         <translation type="unfinished">Kobler til jevnaldrende…</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Be om betalinger (genererer QR-koder og bitcoin: URIs)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Be om betalinger (genererer QR-koder og kronein: URIs)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -554,16 +554,16 @@
         <translation type="unfinished">Oppdatert</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
-        <translation type="unfinished">Last inn delvis signert Bitcoin-transaksjon</translation>
+        <source>Load Partially Signed Kronein Transaction</source>
+        <translation type="unfinished">Last inn delvis signert Kronein-transaksjon</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
         <translation type="unfinished">Last inn PSBT fra &amp;utklippstavle…</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
-        <translation type="unfinished">Last inn delvis signert Bitcoin-transaksjon fra utklippstavlen</translation>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
+        <translation type="unfinished">Last inn delvis signert Kronein-transaksjon fra utklippstavlen</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -582,8 +582,8 @@
         <translation type="unfinished">&amp;Mottaksadresser</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Åpne en bitcoin: URI</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">Åpne en kronein: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>

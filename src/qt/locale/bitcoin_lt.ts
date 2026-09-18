@@ -462,8 +462,8 @@
         <translation type="unfinished">Kortelių įrankinė</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Reikalauti mokėjimų (sukuria QR kodus ir bitcoin: URI)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Reikalauti mokėjimų (sukuria QR kodus ir kronein: URI)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -514,12 +514,12 @@
         <translation type="unfinished">Atnaujinta</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
-        <translation type="unfinished">Užkraukite dalinai pasirašytą Bitcoin transakciją</translation>
+        <source>Load Partially Signed Kronein Transaction</source>
+        <translation type="unfinished">Užkraukite dalinai pasirašytą Kronein transakciją</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
-        <translation type="unfinished">Užkraukite dalinai pasirašytas Bitcoin transakcijas iš iškarpinės...</translation>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
+        <translation type="unfinished">Užkraukite dalinai pasirašytas Kronein transakcijas iš iškarpinės...</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -1456,16 +1456,16 @@
         <translation type="unfinished">Mokėjimo užklausos klaida</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
-        <translation type="unfinished">Negalima paleisti bitcoin: paspauskite sumokėti tvarkytojui</translation>
+        <source>Cannot start kronein: click-to-pay handler</source>
+        <translation type="unfinished">Negalima paleisti kronein: paspauskite sumokėti tvarkytojui</translation>
     </message>
     <message>
         <source>URI handling</source>
         <translation type="unfinished">URI tvarkymas</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">„bitcoin: //“ nėra galiojantis URI. Vietoj to naudokite „bitcoin:“.</translation>
+        <source>'kronein://' is not a valid URI. Use 'kronein:' instead.</source>
+        <translation type="unfinished">„kronein: //“ nėra galiojantis URI. Vietoj to naudokite „kronein:“.</translation>
     </message>
     <message>
         <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
@@ -2239,8 +2239,8 @@
         <translation type="unfinished">Įveskite šio adreso etiketę, kad ją pridėtumėte prie naudojamų adresų sąrašo</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
-        <translation type="unfinished">Pranešimas, kuris buvo pridėtas prie bitcoin: URI, kuris bus saugomas kartu su sandoriu jūsų nuoroda. Pastaba: šis pranešimas nebus išsiųstas per „Kronein“ tinklą.</translation>
+        <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <translation type="unfinished">Pranešimas, kuris buvo pridėtas prie kronein: URI, kuris bus saugomas kartu su sandoriu jūsų nuoroda. Pastaba: šis pranešimas nebus išsiųstas per „Kronein“ tinklą.</translation>
     </message>
 </context>
 <context>

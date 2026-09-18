@@ -497,8 +497,8 @@
         <translation type="unfinished">Connectando con compañeiros...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Solicitar pagamentos (xera códigos QR e bitcoin: URIs)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Solicitar pagamentos (xera códigos QR e kronein: URIs)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -568,8 +568,8 @@
         <translation type="unfinished">&amp;Enderezos de recepción</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Abre una URI de Bitcoin</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">Abre una URI de Kronein</translation>
     </message>
     <message>
         <source>Open Wallet</source>

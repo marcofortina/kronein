@@ -485,7 +485,7 @@
         <translation type="unfinished">Connectando con compañeiros...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
         <translation type="unfinished">Solicita pagamentos (xera un código QR e bitocin : URIs)</translation>
     </message>
     <message>
@@ -552,8 +552,8 @@
         <translation type="unfinished">&amp;Enderezos de recepción</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Abre una URI de Bitcoin</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">Abre una URI de Kronein</translation>
     </message>
     <message>
         <source>Open Wallet</source>

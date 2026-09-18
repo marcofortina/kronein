@@ -481,8 +481,8 @@
         <translation type="unfinished">İştirakçılara qoşulur...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Ödəmə tələbi (QR-kodlar və Bitcoin URI-ləri yaradılır):</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Ödəmə tələbi (QR-kodlar və Kronein URI-ləri yaradılır):</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -535,16 +535,16 @@
         <translation type="unfinished">Eyniləşdirildi</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
-        <translation type="unfinished">Qismən imzalanmış Bitcoin köçürmələrini yükləyin</translation>
+        <source>Load Partially Signed Kronein Transaction</source>
+        <translation type="unfinished">Qismən imzalanmış Kronein köçürmələrini yükləyin</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
         <translation type="unfinished">PSBT-i &amp;mübadilə yaddaşından yükləyin...</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
-        <translation type="unfinished">Qismən İmzalanmış Bitcoin Köçürməsini (PSBT) mübadilə yaddaşından yükləmək</translation>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
+        <translation type="unfinished">Qismən İmzalanmış Kronein Köçürməsini (PSBT) mübadilə yaddaşından yükləmək</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -563,8 +563,8 @@
         <translation type="unfinished">&amp;Qəbul etmək üçün ünvanlar</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Bitcoin açın: URI</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">Kronein açın: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>

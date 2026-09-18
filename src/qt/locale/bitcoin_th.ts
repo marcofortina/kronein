@@ -625,8 +625,8 @@
         <translation type="unfinished">กำลังประมวลผลบล็อกบนดิสก์...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">เรียกเก็บ การชำระเงิน (สร้าง QR codes และ bitcoin: URIs)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">เรียกเก็บ การชำระเงิน (สร้าง QR codes และ kronein: URIs)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -675,16 +675,16 @@
         <translation type="unfinished">ทันสมัย</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
-        <translation type="unfinished">โหลดธุรกรรม Bitcoin ที่ลงนามบางส่วน</translation>
+        <source>Load Partially Signed Kronein Transaction</source>
+        <translation type="unfinished">โหลดธุรกรรม Kronein ที่ลงนามบางส่วน</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
         <translation type="unfinished">โหลด PSBT จาก &amp;คลิปบอร์ด…</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
-        <translation type="unfinished">โหลดธุรกรรม Bitcoin ที่ลงนามบางส่วนจากคลิปบอร์ด</translation>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
+        <translation type="unfinished">โหลดธุรกรรม Kronein ที่ลงนามบางส่วนจากคลิปบอร์ด</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -703,7 +703,7 @@
         <translation type="unfinished">&amp;ตัวเลือกคำสั่งในบรรทัดคำสั่ง</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
+        <source>Open a kronein: URI</source>
         <translation type="unfinished">เปิดบิตคอยน์: URI</translation>
     </message>
     <message>
@@ -1318,7 +1318,7 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
+        <source>Open Kronein URI</source>
         <translation type="unfinished">เปิด URI ของบิตคอยน์</translation>
     </message>
     <message>
@@ -1874,7 +1874,7 @@
         <translation type="unfinished">ข้อผิดพลาดในการขอชำระเงิน</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
+        <source>Cannot start kronein: click-to-pay handler</source>
         <translation type="unfinished">ไม่สามารถเริ่มต้นบิตคอยน์: ตัวจัดการคลิกเพื่อจ่าย</translation>
     </message>
     <message>
@@ -1882,8 +1882,8 @@
         <translation type="unfinished">การจัดการ URI</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">'bitcoin://' ไม่ใช่ URI ที่ถูกต้อง ใช้ 'bitcoin:' แทน</translation>
+        <source>'kronein://' is not a valid URI. Use 'kronein:' instead.</source>
+        <translation type="unfinished">'kronein://' ไม่ใช่ URI ที่ถูกต้อง ใช้ 'kronein:' แทน</translation>
     </message>
     <message>
         <source>Cannot process payment request because BIP70 is not supported.

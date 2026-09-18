@@ -554,7 +554,7 @@
         <translation type="unfinished">Deňdeşlere baglanylýar...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
         <translation type="unfinished">Tölegleri sora (QR kodlary we bitkoin: URIleri döredýär)</translation>
     </message>
     <message>
@@ -609,7 +609,7 @@
         <translation type="unfinished">Döwrebap</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
+        <source>Load Partially Signed Kronein Transaction</source>
         <translation type="unfinished">Bölekleýýin gol çekilen bitkoin geleşigini ýükle</translation>
     </message>
     <message>
@@ -617,7 +617,7 @@
         <translation type="unfinished">&amp;alyş-çalyş panelinden BGÇBA ýükle…</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
         <translation type="unfinished">Bölekleýin gol çekilen bitkoin geleşigini alyş-çalyş panelinden ýükle</translation>
     </message>
     <message>
@@ -637,7 +637,7 @@
         <translation type="unfinished">&amp;Kabul edýän salgylar</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
+        <source>Open a kronein: URI</source>
         <translation type="unfinished">Bitkoin aç: URI</translation>
     </message>
     <message>
@@ -1421,7 +1421,7 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
+        <source>Open Kronein URI</source>
         <translation type="unfinished">Bitkoin URI aç</translation>
     </message>
     <message>
@@ -1946,7 +1946,7 @@
         <translation type="unfinished">Töleg talabynda ýalňyşlyk</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
+        <source>Cannot start kronein: click-to-pay handler</source>
         <translation type="unfinished">Bitkoini başlap bolanok: click-to-pay işleýjisi</translation>
     </message>
     <message>
@@ -1954,8 +1954,8 @@
         <translation type="unfinished">URI işlemeklik</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">'bitcoin://' dogry URI däl. Onuň ýerine 'bitcoin:' ulanyň.</translation>
+        <source>'kronein://' is not a valid URI. Use 'kronein:' instead.</source>
+        <translation type="unfinished">'kronein://' dogry URI däl. Onuň ýerine 'kronein:' ulanyň.</translation>
     </message>
     <message>
         <source>Cannot process payment request because BIP70 is not supported.

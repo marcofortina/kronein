@@ -487,8 +487,8 @@ U ṱanganya ṱhoho (%1%)...</translation>
         <translation type="unfinished">U ṱumana na thangana dza murole...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Humbelani mbadelo (u bveledza khoudu dza QR na bitcoin: URI)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Humbelani mbadelo (u bveledza khoudu dza QR na kronein: URI)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>

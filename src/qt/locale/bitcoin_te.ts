@@ -542,7 +542,7 @@
         <translation type="unfinished">తోటివారితో కలుస్తుంది…</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
         <translation type="unfinished">చెల్లింపులను అభ్యర్థించండి (QR కోడ్‌లు మరియు బిట్‌కాయిన్‌లను ఉత్పత్తి చేస్తుంది: URIలు)</translation>
     </message>
     <message>
@@ -597,7 +597,7 @@
         <translation type="unfinished">తాజాగా ఉంది</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
+        <source>Load Partially Signed Kronein Transaction</source>
         <translation type="unfinished">పాక్షికంగా సంతకం చేసిన బిట్‌కాయిన్ లావాదేవీని లోడ్ చేయండి</translation>
     </message>
     <message>
@@ -605,7 +605,7 @@
         <translation type="unfinished">&amp;క్లిప్‌బోర్డ్ నుండి PSBTని లోడ్ చేయండి...</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
         <translation type="unfinished">క్లిప్‌బోర్డ్ నుండి పాక్షికంగా సంతకం చేసిన బిట్‌కాయిన్ లావాదేవీని లోడ్ చేయండి</translation>
     </message>
     <message>
@@ -625,7 +625,7 @@
         <translation type="unfinished">&amp;చిరునామాలను స్వీకరిస్తోంది</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
+        <source>Open a kronein: URI</source>
         <translation type="unfinished">బిట్‌కాయిన్‌ను తెరవండి: URI</translation>
     </message>
     <message>
@@ -1365,7 +1365,7 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
+        <source>Open Kronein URI</source>
         <translation type="unfinished">బిట్‌కాయిన్ URIని తెరవండి</translation>
     </message>
     <message>
@@ -1853,7 +1853,7 @@
         <translation type="unfinished">చెల్లింపు అభ్యర్ధన లోపం</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
+        <source>Cannot start kronein: click-to-pay handler</source>
         <translation type="unfinished">బిట్‌కాయిన్‌ను ప్రారంభించడం సాధ్యం కాదు: క్లిక్-టు-పే హ్యాండ్లర్</translation>
     </message>
     <message>
@@ -1861,8 +1861,8 @@
         <translation type="unfinished">URI నిర్వహణ</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">'bitcoin://' చెల్లుబాటు అయ్యే URI కాదు. బదులుగా 'bitcoin:' ఉపయోగించండి.</translation>
+        <source>'kronein://' is not a valid URI. Use 'kronein:' instead.</source>
+        <translation type="unfinished">'kronein://' చెల్లుబాటు అయ్యే URI కాదు. బదులుగా 'kronein:' ఉపయోగించండి.</translation>
     </message>
     <message>
         <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>

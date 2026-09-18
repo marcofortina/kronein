@@ -565,7 +565,7 @@
         <translation type="unfinished">Свързване с рояк...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
         <translation type="unfinished">Изискване на плащания(генерира QR кодове и биткойн: URIs)</translation>
     </message>
     <message>
@@ -624,16 +624,16 @@
         <translation type="unfinished">Ctrl+Q </translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
-        <translation type="unfinished">Заредете частично подписана Bitcoin трансакция</translation>
+        <source>Load Partially Signed Kronein Transaction</source>
+        <translation type="unfinished">Заредете частично подписана Kronein трансакция</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
         <translation type="unfinished">Заредете PSBT (частично подписана Kronein трансакция) от &amp;клипборд...</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
-        <translation type="unfinished">Заредете частично подписана Bitcoin трансакция от клипборд</translation>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
+        <translation type="unfinished">Заредете частично подписана Kronein трансакция от клипборд</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -652,8 +652,8 @@
         <translation type="unfinished">&amp;Получаване на адреси</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Отвори bitcoin: URI</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">Отвори kronein: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -1448,8 +1448,8 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
-        <translation type="unfinished">Отвори bitcoin URI </translation>
+        <source>Open Kronein URI</source>
+        <translation type="unfinished">Отвори Kronein URI </translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -1851,7 +1851,7 @@
         <translation type="unfinished">Възникна грешка по време назаявката за плащане</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
+        <source>Cannot start kronein: click-to-pay handler</source>
         <translation type="unfinished">Биткойн не можe да се стартира: click-to-pay handler</translation>
     </message>
     <message>

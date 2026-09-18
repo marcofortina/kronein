@@ -580,8 +580,8 @@
         <translation type="unfinished">Yhdistetään vertaisiin...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Pyydä maksuja (Luo QR koodit ja bitcoin: URIt)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Pyydä maksuja (Luo QR koodit ja kronein: URIt)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -635,7 +635,7 @@
         <translation type="unfinished">Rahansiirtohistoria on ajan tasalla</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
+        <source>Load Partially Signed Kronein Transaction</source>
         <translation type="unfinished">Lataa osittain allekirjoitettu bitcoin-siirtotapahtuma</translation>
     </message>
     <message>
@@ -643,7 +643,7 @@
         <translation type="unfinished">Lataa PSBT &amp;leikepöydältä…</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
         <translation type="unfinished">Lataa osittain allekirjoitettu bitcoin-siirtotapahtuma leikepöydältä</translation>
     </message>
     <message>
@@ -663,8 +663,8 @@
         <translation type="unfinished">&amp;Vastaanotto-osoitteet</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Avaa bitcoin: URI</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">Avaa kronein: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -1463,8 +1463,8 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
-        <translation type="unfinished">Avaa bitcoin URI</translation>
+        <source>Open Kronein URI</source>
+        <translation type="unfinished">Avaa Kronein URI</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -2017,16 +2017,16 @@
         <translation type="unfinished">Maksupyyntövirhe</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
-        <translation type="unfinished">Bitcoinia ei voi käynnistää: klikkaa-maksaaksesi -käsittelijän virhe</translation>
+        <source>Cannot start kronein: click-to-pay handler</source>
+        <translation type="unfinished">Kroneinia ei voi käynnistää: klikkaa-maksaaksesi -käsittelijän virhe</translation>
     </message>
     <message>
         <source>URI handling</source>
         <translation type="unfinished">URI käsittely</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">'bitcoin://' ei ole kelvollinen URI. Käytä 'bitcoin:' sen sijaan.</translation>
+        <source>'kronein://' is not a valid URI. Use 'kronein:' instead.</source>
+        <translation type="unfinished">'kronein://' ei ole kelvollinen URI. Käytä 'kronein:' sen sijaan.</translation>
     </message>
     <message>
         <source>Cannot process payment request because BIP70 is not supported.
@@ -2991,7 +2991,7 @@ Huom: Koska maksu lasketaan per tavu, "100 satoshin per kB" maksunopeus 500 virt
         <translation type="unfinished">L&amp;uo allekirjoittamaton</translation>
     </message>
     <message>
-        <source>Creates a Partially Signed Bitcoin Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Creates a Partially Signed Kronein Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <translation type="unfinished">Luo osittain allekirjoitetun bitcoin-siirtotapahtuman (PSBT) käytettäväksi mm. offline %1 lompakko tai PSBT-yhteensopiva hardware-lompakko.</translation>
     </message>
     <message>
@@ -3043,9 +3043,9 @@ Huom: Koska maksu lasketaan per tavu, "100 satoshin per kB" maksunopeus 500 virt
         <translation type="unfinished">Voit korottaa palkkiota myöhemmin (osoittaa Replace-By-Fee:tä, BIP-125).</translation>
     </message>
     <message>
-        <source>Please, review your transaction proposal. This will produce a Partially Signed Bitcoin Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction proposal. This will produce a Partially Signed Kronein Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can only create a PSBT. This string is displayed when private keys are disabled and an external signer is not available.</extracomment>
-        <translation type="unfinished">Ole hyvä ja tarkista siirtoehdotuksesi. Tämä luo osittain allekirjoitetun Bitcoin-siirron (PBST), jonka voit tallentaa tai kopioida ja sitten allekirjoittaa esim. verkosta irrannaisella %1-lompakolla tai PBST-yhteensopivalla laitteistolompakolla.</translation>
+        <translation type="unfinished">Ole hyvä ja tarkista siirtoehdotuksesi. Tämä luo osittain allekirjoitetun Kronein-siirron (PBST), jonka voit tallentaa tai kopioida ja sitten allekirjoittaa esim. verkosta irrannaisella %1-lompakolla tai PBST-yhteensopivalla laitteistolompakolla.</translation>
     </message>
     <message>
         <source>%1 from wallet '%2'</source>
@@ -3057,9 +3057,9 @@ Huom: Koska maksu lasketaan per tavu, "100 satoshin per kB" maksunopeus 500 virt
         <translation type="unfinished">Haluatko luoda tämän siirtotapahtuman?</translation>
     </message>
     <message>
-        <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Bitcoin Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Kronein Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can send their transaction or create a PSBT. This string is displayed when both private keys and PSBT controls are enabled.</extracomment>
-        <translation type="unfinished">Ole hyvä ja tarkista tapahtumasi. Voit luoda ja lähettää tämän tapahtuman tai luoda osittain allekirjoitetun Bitcoin-tapahtuman (PSBT), jonka voit tallentaa tai kopioida ja allekirjoittaa esimerkiksi offline-ympäristössä%1lompakkoosi tai PSBT-yhteensopivalla laitteistolompakolla.</translation>
+        <translation type="unfinished">Ole hyvä ja tarkista tapahtumasi. Voit luoda ja lähettää tämän tapahtuman tai luoda osittain allekirjoitetun Kronein-tapahtuman (PSBT), jonka voit tallentaa tai kopioida ja allekirjoittaa esimerkiksi offline-ympäristössä%1lompakkoosi tai PSBT-yhteensopivalla laitteistolompakolla.</translation>
     </message>
     <message>
         <source>Please, review your transaction.</source>
@@ -3203,8 +3203,8 @@ Huom: Koska maksu lasketaan per tavu, "100 satoshin per kB" maksunopeus 500 virt
         <translation type="unfinished">Aseta nimi tälle osoitteelle lisätäksesi sen käytettyjen osoitteiden listalle.</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
-        <translation type="unfinished">Viesti joka liitettiin bitcoin: URI:iin tallennetaan rahansiirtoon viitteeksi. Tätä viestiä ei lähetetä Kronein-verkkoon.</translation>
+        <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <translation type="unfinished">Viesti joka liitettiin kronein: URI:iin tallennetaan rahansiirtoon viitteeksi. Tätä viestiä ei lähetetä Kronein-verkkoon.</translation>
     </message>
 </context>
 <context>

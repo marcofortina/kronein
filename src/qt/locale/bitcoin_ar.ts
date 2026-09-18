@@ -404,7 +404,7 @@
         <translation type="unfinished">الاتصال بالأقران ...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
         <translation type="unfinished">أطلب دفعات (يولد كودات الرمز المربع وبيت كوين: العناوين المعطاة)</translation>
     </message>
     <message>
@@ -463,7 +463,7 @@
         <translation type="unfinished">محدث</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
+        <source>Load Partially Signed Kronein Transaction</source>
         <translation type="unfinished">تحميل معاملة بتكوين الموقعة جزئيًا</translation>
     </message>
     <message>
@@ -471,7 +471,7 @@
         <translation type="unfinished">‫تحميل معاملة بتكوين موقعة جزئيا (‫PSBT) من &amp;الحافظة…‬</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
         <translation type="unfinished">‫تحميل معاملة بتكوين موقعة جزئيًا ‫(‫PSBT) من الحافظة‬</translation>
     </message>
     <message>
@@ -491,7 +491,7 @@
         <translation type="unfinished">‫&amp;عناوين الإستلام‬</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
+        <source>Open a kronein: URI</source>
         <translation type="unfinished">‫افتح رابط بتكوين: URI‬</translation>
     </message>
     <message>
@@ -1435,7 +1435,7 @@
         <translation type="unfinished">خطأ في طلب الدفع</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
+        <source>Cannot start kronein: click-to-pay handler</source>
         <translation type="unfinished">لا يمكن تشغيل بتكوين: معالج النقر للدفع</translation>
     </message>
     <message>
@@ -1443,8 +1443,8 @@
         <translation type="unfinished">التعامل مع العنوان</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">'bitcoin://' هو ليس عنوان URL صالح. استعمل 'bitcoin:' بدلا من ذلك.</translation>
+        <source>'kronein://' is not a valid URI. Use 'kronein:' instead.</source>
+        <translation type="unfinished">'kronein://' هو ليس عنوان URL صالح. استعمل 'kronein:' بدلا من ذلك.</translation>
     </message>
     <message>
         <source>Cannot process payment request because BIP70 is not supported.
@@ -1613,7 +1613,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished">نسخ التعديل</translation>
     </message>
     <message>
-        <source>Creates a Partially Signed Bitcoin Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Creates a Partially Signed Kronein Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <translation type="unfinished">‫أنشئ معاملة بتكوين موقعة جزئيا (PSBT) للاستعمال مع محفظة %1 غير متصلة بالشبكة مثلا، أو محفظة خارجية متوافقة مع الـ(PSBT).‬</translation>
     </message>
     <message>

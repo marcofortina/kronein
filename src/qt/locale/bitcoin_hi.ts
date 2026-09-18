@@ -524,7 +524,7 @@
         <translation type="unfinished">क्लिपबोर्ड से PSBT लोड करें…</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
         <translation type="unfinished">क्लिपबोर्ड से आंशिक रूप से हस्ताक्षरित बिटकॉइन लेनदेन लोड करें</translation>
     </message>
     <message>
@@ -540,7 +540,7 @@
         <translation type="unfinished">&amp;प्राप्त करने वाले पते</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
+        <source>Open a kronein: URI</source>
         <translation type="unfinished">एक बिटकॉइन: URI खोलें</translation>
     </message>
     <message>
@@ -1667,7 +1667,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">&amp;अहस्ताक्षरित बनाएं</translation>
     </message>
     <message>
-        <source>Creates a Partially Signed Bitcoin Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Creates a Partially Signed Kronein Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <translation type="unfinished">उदाहरण के लिए उपयोग के लिए आंशिक रूप से हस्ताक्षरित बिटकॉइन लेनदेन (PSBT) बनाता है। एक ऑफ़लाइन% 1 %1  वॉलेट, या एक PSBT-संगत हार्डवेयर वॉलेट।</translation>
     </message>
     <message>
@@ -1715,7 +1715,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">आप बाद में शुल्क बढ़ा सकते हैं (सिग्नलस रिप्लेसमेंट-बाय-फी, बीआईपी-125)।</translation>
     </message>
     <message>
-        <source>Please, review your transaction proposal. This will produce a Partially Signed Bitcoin Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction proposal. This will produce a Partially Signed Kronein Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can only create a PSBT. This string is displayed when private keys are disabled and an external signer is not available.</extracomment>
         <translation type="unfinished">कृपया, अपने लेनदेन प्रस्ताव की समीक्षा करें। यह एक आंशिक रूप से हस्ताक्षरित बिटकॉइन लेनदेन (PSBT) का उत्पादन करेगा जिसे आप सहेज सकते हैं या कॉपी कर सकते हैं और फिर उदा। एक ऑफ़लाइन %1  वॉलेट, या एक PSBT-संगत हार्डवेयर वॉलेट।</translation>
     </message>
@@ -1729,7 +1729,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">क्या आप यह लेन-देन बनाना चाहते हैं?</translation>
     </message>
     <message>
-        <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Bitcoin Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Kronein Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can send their transaction or create a PSBT. This string is displayed when both private keys and PSBT controls are enabled.</extracomment>
         <translation type="unfinished">कृपया, अपने लेन-देन की समीक्षा करें। आप इस लेन-देन को बना और भेज सकते हैं या आंशिक रूप से हस्ताक्षरित बिटकॉइन लेनदेन (पीएसबीटी) बना सकते हैं, जिसे आप सहेज सकते हैं या कॉपी कर सकते हैं और फिर हस्ताक्षर कर सकते हैं, उदाहरण के लिए, ऑफ़लाइन %1 वॉलेट, या पीएसबीटी-संगत हार्डवेयर वॉलेट।</translation>
     </message>
@@ -1880,7 +1880,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">इस पते के लिए उपयोग किए गए पतों की सूची में जोड़ने के लिए एक लेबल दर्ज करें</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
         <translation type="unfinished">एक संदेश जो बिटकॉइन से जुड़ा था: यूआरआई जो आपके संदर्भ के लिए लेनदेन के साथ संग्रहीत किया जाएगा। नोट: यह संदेश बिटकॉइन नेटवर्क पर नहीं भेजा जाएगा।</translation>
     </message>
 </context>

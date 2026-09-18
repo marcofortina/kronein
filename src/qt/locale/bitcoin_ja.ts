@@ -598,8 +598,8 @@
         <translation type="unfinished">ピアに接続中…</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">支払いをリクエストする（QRコードと bitcoin:で始まるURIを生成する）</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">支払いをリクエストする（QRコードと kronein:で始まるURIを生成する）</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -652,7 +652,7 @@
         <translation type="unfinished">ブロックは最新</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
+        <source>Load Partially Signed Kronein Transaction</source>
         <translation type="unfinished">部分的に署名されたビットコインのトランザクションを読み込み</translation>
     </message>
     <message>
@@ -660,7 +660,7 @@
         <translation type="unfinished">PSBTをクリップボードから読む…</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
         <translation type="unfinished">部分的に署名されたビットコインのトランザクションをクリップボードから読み込み</translation>
     </message>
     <message>
@@ -680,8 +680,8 @@
         <translation type="unfinished">受取用アドレス一覧(&amp;R)...</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">bitcoin: URIを開く</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">kronein: URIを開く</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -1471,8 +1471,8 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
-        <translation type="unfinished">bitcoin URIを開く</translation>
+        <source>Open Kronein URI</source>
+        <translation type="unfinished">Kronein URIを開く</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -2019,16 +2019,16 @@
         <translation type="unfinished">支払いリクエストのエラー</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
-        <translation type="unfinished">Bitcoin を起動できません: click-to-pay handler</translation>
+        <source>Cannot start kronein: click-to-pay handler</source>
+        <translation type="unfinished">Kronein を起動できません: click-to-pay handler</translation>
     </message>
     <message>
         <source>URI handling</source>
         <translation type="unfinished">URIの処理</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">'bitcoin://' は正しいURIではありません｡ 'bitcoin:'を使用してください｡</translation>
+        <source>'kronein://' is not a valid URI. Use 'kronein:' instead.</source>
+        <translation type="unfinished">'kronein://' は正しいURIではありません｡ 'kronein:'を使用してください｡</translation>
     </message>
     <message>
         <source>Cannot process payment request because BIP70 is not supported.
@@ -2997,7 +2997,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">未署名で作成(&amp;e)</translation>
     </message>
     <message>
-        <source>Creates a Partially Signed Bitcoin Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Creates a Partially Signed Kronein Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <translation type="unfinished">オフラインの %1 ウォレット、あるいはPSBTに対応したハードウェアウォレットで使用するためのPSBT(部分的に署名された取引)を作成します。</translation>
     </message>
     <message>
@@ -3053,9 +3053,9 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">手数料は後から上乗せ可能です(Replace-By-Fee(手数料の上乗せ: BIP-125)機能が有効)。</translation>
     </message>
     <message>
-        <source>Please, review your transaction proposal. This will produce a Partially Signed Bitcoin Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction proposal. This will produce a Partially Signed Kronein Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can only create a PSBT. This string is displayed when private keys are disabled and an external signer is not available.</extracomment>
-        <translation type="unfinished">取引の提案を確認してください。これにより、部分的に署名されたBitcoin取引（PSBT）が作成されます。これを保存するかコピーして例えばオフラインの %1 ウォレットやPSBTを扱えるハードウェアウォレットで残りの署名が出来ます。</translation>
+        <translation type="unfinished">取引の提案を確認してください。これにより、部分的に署名されたKronein取引（PSBT）が作成されます。これを保存するかコピーして例えばオフラインの %1 ウォレットやPSBTを扱えるハードウェアウォレットで残りの署名が出来ます。</translation>
     </message>
     <message>
         <source>%1 from wallet '%2'</source>
@@ -3067,9 +3067,9 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">この取引を作成しますか？</translation>
     </message>
     <message>
-        <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Bitcoin Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Kronein Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can send their transaction or create a PSBT. This string is displayed when both private keys and PSBT controls are enabled.</extracomment>
-        <translation type="unfinished">取引を確認してください。 この取引を作成して送信するか、部分的に署名されたBitcoin取引（Partially Signed Bitcoin Transaction: PSBT）を作成できます。これを保存またはコピーして、オフラインの %1 ウォレットやPSBT互換のハードウェアウォレットなどで署名できます。</translation>
+        <translation type="unfinished">取引を確認してください。 この取引を作成して送信するか、部分的に署名されたKronein取引（Partially Signed Kronein Transaction: PSBT）を作成できます。これを保存またはコピーして、オフラインの %1 ウォレットやPSBT互換のハードウェアウォレットなどで署名できます。</translation>
     </message>
     <message>
         <source>Please, review your transaction.</source>
@@ -3218,8 +3218,8 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">このアドレスに対するラベルを入力することで、送金したことがあるアドレスの一覧に追加することができます</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
-        <translation type="unfinished">bitcoin URIに添付されていたメッセージです。これは参照用として取引とともに保存されます。注意: メッセージは Kronein ネットワーク上へ送信されません。</translation>
+        <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <translation type="unfinished">Kronein URIに添付されていたメッセージです。これは参照用として取引とともに保存されます。注意: メッセージは Kronein ネットワーク上へ送信されません。</translation>
     </message>
 </context>
 <context>

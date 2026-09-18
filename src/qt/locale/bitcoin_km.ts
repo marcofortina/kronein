@@ -549,7 +549,7 @@
         <translation type="unfinished">កំពុងភ្ជាប់ទៅមិត្តភក្ដិ...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
         <translation type="unfinished">សំណើរទូរទាត់​(បង្កើតកូដ QR និង ប៊ីតខញ: URLs)</translation>
     </message>
     <message>
@@ -596,7 +596,7 @@
         <translation type="unfinished">ទាន់ពេល និង ទាន់សម័យ</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
+        <source>Load Partially Signed Kronein Transaction</source>
         <translation type="unfinished">បង្ហាញប្រត្តិបត្តិការប៊ីតខញដែលបានចុះហត្ថលេខាដោយផ្នែក</translation>
     </message>
     <message>
@@ -604,7 +604,7 @@
         <translation type="unfinished">ផ្ទុក PSBT ពី &amp;clipboard...</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
         <translation type="unfinished">បង្ហាញប្រត្តិបត្តិការប៊ីតខញដែលបានចុះហត្ថលេខាដោយផ្នែកពីក្ដារតម្រៀប</translation>
     </message>
     <message>
@@ -612,7 +612,7 @@
         <translation type="unfinished">អាសយដ្ឋានទទួល</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
+        <source>Open a kronein: URI</source>
         <translation type="unfinished">បើកប៊ីតខញមួយៈ URl</translation>
     </message>
     <message>
@@ -1296,7 +1296,7 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
+        <source>Open Kronein URI</source>
         <translation type="unfinished">បើកប៊ីតខញ​URl</translation>
     </message>
     <message>
@@ -2341,7 +2341,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">អ្នកអាចបង្កើនកម្រៃពេលក្រោយ( សញ្ញា ជំនួសដោយកម្រៃ BIP-125)។</translation>
     </message>
     <message>
-        <source>Please, review your transaction proposal. This will produce a Partially Signed Bitcoin Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction proposal. This will produce a Partially Signed Kronein Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can only create a PSBT. This string is displayed when private keys are disabled and an external signer is not available.</extracomment>
         <translation type="unfinished">សូមពិនិត្យសំណើរប្រត្តិបត្តិការរបស់អ្នកឡើងវិញ។ វានឹងបង្កើតប្រត្តិបត្តិការប៊ីតខញដែលបានចុះហត្ថលេខាដោយផ្នែក (PSBT) ដែលអ្នកអាចរក្សាទុក ឬថតចម្លង រួចហើយសូមចុះហត្ថលេខា។ ឧទាហរណ៏ កាបូបអេឡិចត្រូនិចដែលមិនមានភ្ជាប់អ៊ីនធឺណេត %1 ឬកាបូបដែលមានផ្នែករឹងដែលអាចធ្វើការជាមួយ​ PSBT។</translation>
     </message>
@@ -2351,9 +2351,9 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">តើអ្នកចង់បង្កើតប្រតិបត្តិការនេះទេ?</translation>
     </message>
     <message>
-        <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Bitcoin Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Kronein Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can send their transaction or create a PSBT. This string is displayed when both private keys and PSBT controls are enabled.</extracomment>
-        <translation type="unfinished">សូមពិនិត្យមើលប្រតិបត្តិការរបស់អ្នក។ អ្នកអាចបង្កើត និងផ្ញើប្រតិបត្តិការនេះ ឬបង្កើតប្រតិបត្តិការ Bitcoin ដែលបានចុះហត្ថលេខាដោយផ្នែក (PSBT) ដែលអ្នកអាចរក្សាទុក ឬចម្លងហើយបន្ទាប់មកចុះហត្ថលេខាជាមួយ ឧ. %1កាបូបក្រៅបណ្តាញ ឬកាបូបហាដវែដែលត្រូវគ្នាជាមួយ PSBT ។</translation>
+        <translation type="unfinished">សូមពិនិត្យមើលប្រតិបត្តិការរបស់អ្នក។ អ្នកអាចបង្កើត និងផ្ញើប្រតិបត្តិការនេះ ឬបង្កើតប្រតិបត្តិការ Kronein ដែលបានចុះហត្ថលេខាដោយផ្នែក (PSBT) ដែលអ្នកអាចរក្សាទុក ឬចម្លងហើយបន្ទាប់មកចុះហត្ថលេខាជាមួយ ឧ. %1កាបូបក្រៅបណ្តាញ ឬកាបូបហាដវែដែលត្រូវគ្នាជាមួយ PSBT ។</translation>
     </message>
     <message>
         <source>Please, review your transaction.</source>

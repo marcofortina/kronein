@@ -587,8 +587,8 @@
         <translation type="unfinished">Sambindur við javningar…</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Umbið gjald (framleiður QR kotu og bitcoin: URI'ir)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Umbið gjald (framleiður QR kotu og kronein: URI'ir)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -642,16 +642,16 @@
         <translation type="unfinished">Javnsettur</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
-        <translation type="unfinished">Innles Partvís Undirritaða Bitcoin Flyting</translation>
+        <source>Load Partially Signed Kronein Transaction</source>
+        <translation type="unfinished">Innles Partvís Undirritaða Kronein Flyting</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
         <translation type="unfinished">Innles PSBT av setiborði…</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
-        <translation type="unfinished">Innles Partvís Undirritaða Bitcoin Flyting av setiborði</translation>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
+        <translation type="unfinished">Innles Partvís Undirritaða Kronein Flyting av setiborði</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -670,8 +670,8 @@
         <translation type="unfinished">&amp;Inngjaldsadressur</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Innles eitt bitcoin: URI</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">Innles eitt kronein: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -1470,8 +1470,8 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
-        <translation type="unfinished">Innles bitcoin URI</translation>
+        <source>Open Kronein URI</source>
+        <translation type="unfinished">Innles Kronein URI</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -2020,16 +2020,16 @@
         <translation type="unfinished">Gjaldsumbøn villa</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
-        <translation type="unfinished">Bar ikki til at byrja bitcoin: click-to-pay handfaran</translation>
+        <source>Cannot start kronein: click-to-pay handler</source>
+        <translation type="unfinished">Bar ikki til at byrja kronein: click-to-pay handfaran</translation>
     </message>
     <message>
         <source>URI handling</source>
         <translation type="unfinished">URI handfaring</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">"bitcoin://" er ikki eitt gildigt URI. Brúka ístaðin 'bitcoin:'.</translation>
+        <source>'kronein://' is not a valid URI. Use 'kronein:' instead.</source>
+        <translation type="unfinished">"kronein://" er ikki eitt gildigt URI. Brúka ístaðin 'kronein:'.</translation>
     </message>
     <message>
         <source>Cannot process payment request because BIP70 is not supported.
@@ -2989,8 +2989,8 @@ Gev gætur: Av tí at avgjaldið verður roknað fyri hvørt být, fer ein avgja
         <translation type="unfinished">Ger &amp;óundirritaða flyting</translation>
     </message>
     <message>
-        <source>Creates a Partially Signed Bitcoin Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
-        <translation type="unfinished">Ger eina Partvís Undirritaða Bitcoin Flyting (PSBT) at nýta við t.d. einum avlinju-%1 mappu, ella eini tólbúnaðarmappu við PSBT hentleika.</translation>
+        <source>Creates a Partially Signed Kronein Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <translation type="unfinished">Ger eina Partvís Undirritaða Kronein Flyting (PSBT) at nýta við t.d. einum avlinju-%1 mappu, ella eini tólbúnaðarmappu við PSBT hentleika.</translation>
     </message>
     <message>
         <source>%1 to '%2'</source>
@@ -3045,9 +3045,9 @@ Gev gætur: Av tí at avgjaldið verður roknað fyri hvørt být, fer ein avgja
         <translation type="unfinished">Tú hevur møgulleika at hækka avgjaldið seinni (signalerar Replace-By-Fee, BIP-125).</translation>
     </message>
     <message>
-        <source>Please, review your transaction proposal. This will produce a Partially Signed Bitcoin Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction proposal. This will produce a Partially Signed Kronein Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can only create a PSBT. This string is displayed when private keys are disabled and an external signer is not available.</extracomment>
-        <translation type="unfinished">Vinaliga met um flytingaruppskotið. Hetta ger eina partvís undirritaða bitcoin flyting (PSBT), ið tú kanst goyma ella avrita og síðani undirrita við t.d. eini avlinju %1 mappu, ella eini tólbúnaðarmappu við PSBT hentleika.</translation>
+        <translation type="unfinished">Vinaliga met um flytingaruppskotið. Hetta ger eina partvís undirritaða Kronein flyting (PSBT), ið tú kanst goyma ella avrita og síðani undirrita við t.d. eini avlinju %1 mappu, ella eini tólbúnaðarmappu við PSBT hentleika.</translation>
     </message>
     <message>
         <source>%1 from wallet '%2'</source>
@@ -3059,9 +3059,9 @@ Gev gætur: Av tí at avgjaldið verður roknað fyri hvørt být, fer ein avgja
         <translation type="unfinished">Ynskir tú at fremja hesa flyting?</translation>
     </message>
     <message>
-        <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Bitcoin Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Kronein Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can send their transaction or create a PSBT. This string is displayed when both private keys and PSBT controls are enabled.</extracomment>
-        <translation type="unfinished">Vinaliga met um flytingina. Tú kanst gera og senda flytingina, ella gera eina partvís undirritaða bitcoin flyting (PSBT), ið tú kanst goyma ella avrita og síðani undirrita við t.d. eini avlinju %1 mappu, ella eini tólbúnaðarmappu við PSBT hentleika.</translation>
+        <translation type="unfinished">Vinaliga met um flytingina. Tú kanst gera og senda flytingina, ella gera eina partvís undirritaða Kronein flyting (PSBT), ið tú kanst goyma ella avrita og síðani undirrita við t.d. eini avlinju %1 mappu, ella eini tólbúnaðarmappu við PSBT hentleika.</translation>
     </message>
     <message>
         <source>Please, review your transaction.</source>
@@ -3223,8 +3223,8 @@ Gev gætur: Av tí at avgjaldið verður roknað fyri hvørt být, fer ein avgja
         <translation type="unfinished">Inntøppa eitt spjaldur ið verður knýtt at hesi adressuni í útgjaldsadressuskránni</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
-        <translation type="unfinished">Eini boð, ið vóru partur at bitcoin: URI'inum, ið verða goymd saman við flytingini, og sum tú kann brúka sum tilvísing. Hav í huga: Boðini verða ikki send, við gjaldinum, umvegis Kronein netið.</translation>
+        <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <translation type="unfinished">Eini boð, ið vóru partur at kronein: URI'inum, ið verða goymd saman við flytingini, og sum tú kann brúka sum tilvísing. Hav í huga: Boðini verða ikki send, við gjaldinum, umvegis Kronein netið.</translation>
     </message>
 </context>
 <context>

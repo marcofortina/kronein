@@ -538,8 +538,8 @@
         <translation type="unfinished">Konnessjoni ma' sħabhom...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Itlob ħlasijiet (jiġġenera kodiċijiet QR u bitcoin: URIs)</translation>
+        <source>Request payments (generates QR codes and kronein: URIs)</source>
+        <translation type="unfinished">Itlob ħlasijiet (jiġġenera kodiċijiet QR u kronein: URIs)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -595,16 +595,16 @@
         <translation type="unfinished">Aġġornat</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction</source>
-        <translation type="unfinished">Tagħbija Transazzjoni Bitcoin iffirmata parzjalment</translation>
+        <source>Load Partially Signed Kronein Transaction</source>
+        <translation type="unfinished">Tagħbija Transazzjoni Kronein iffirmata parzjalment</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
         <translation type="unfinished">Tagħbija PSBT minn &amp;clipboard...</translation>
     </message>
     <message>
-        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
-        <translation type="unfinished">Tagħbija Transazzjoni Bitcoin iffirmata parzjalment mill-clipboard</translation>
+        <source>Load Partially Signed Kronein Transaction from clipboard</source>
+        <translation type="unfinished">Tagħbija Transazzjoni Kronein iffirmata parzjalment mill-clipboard</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -623,8 +623,8 @@
         <translation type="unfinished">&amp;Riċeviment indirizzi</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Iftaħ bitcoin: URI</translation>
+        <source>Open a kronein: URI</source>
+        <translation type="unfinished">Iftaħ kronein: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -1349,8 +1349,8 @@
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open bitcoin URI</source>
-        <translation type="unfinished">Iftaħ URI tal-bitcoin</translation>
+        <source>Open Kronein URI</source>
+        <translation type="unfinished">Iftaħ URI tal-Kronein</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
