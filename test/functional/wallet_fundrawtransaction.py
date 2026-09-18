@@ -765,7 +765,7 @@ class RawTransactionsTest(BitcoinTestFramework):
         outputs = {}
         rawtx = recipient.createrawtransaction([], [{wallet.getnewaddress(): 177.99899260}])
 
-        # Make 1800 0.1 BTC outputs. The amount that we target for funding is in
+        # Make 1800 0.1 KNE outputs. The amount that we target for funding is in
         # the BnB range when these outputs are used.  However if these outputs
         # are selected, the transaction will end up being too large, so it
         # shouldn't use BnB and instead fall back to Knapsack but that behavior
@@ -861,7 +861,7 @@ class RawTransactionsTest(BitcoinTestFramework):
     def test_add_inputs_default_value(self):
         self.log.info("Test 'add_inputs' default value")
 
-        # Create and fund the wallet with 5 BTC
+        # Create and fund the wallet with 5 KNE
         self.nodes[2].createwallet("test_preset_inputs")
         wallet = self.nodes[2].get_wallet_rpc("test_preset_inputs")
         addr1 = wallet.getnewaddress()
@@ -892,7 +892,7 @@ class RawTransactionsTest(BitcoinTestFramework):
         # Select an input manually, which doesn't cover the entire output amount and
         # verify that the dynamically set 'add_inputs=false' value works.
 
-        # Fund wallet with 2 outputs, 5 BTC each.
+        # Fund wallet with 2 outputs, 5 KNE each.
         addr2 = wallet.getnewaddress()
         source_tx = self.nodes[0].send(outputs=[{addr1: 5}, {addr2: 5}], change_position=0, fee_rate=self.fee_rate_sats_per_vb)
         self.generate(self.nodes[0], 1)
@@ -986,7 +986,7 @@ class RawTransactionsTest(BitcoinTestFramework):
     def test_preset_inputs_selection(self):
         self.log.info('Test wallet preset inputs are not double-counted or reused in coin selection')
 
-        # Create and fund the wallet with 4 UTXO of 5 BTC each (20 BTC total)
+        # Create and fund the wallet with 4 UTXO of 5 KNE each (20 KNE total)
         self.nodes[2].createwallet("test_preset_inputs_selection")
         wallet = self.nodes[2].get_wallet_rpc("test_preset_inputs_selection")
         outputs = {}
@@ -1008,16 +1008,16 @@ class RawTransactionsTest(BitcoinTestFramework):
             "fee_rate": self.fee_rate_sats_per_vb
         }
 
-        # Attempt to send 29 BTC from a wallet that only has 20 BTC. The wallet should exclude
+        # Attempt to send 29 KNE from a wallet that only has 20 KNE. The wallet should exclude
         # the preset inputs from the pool of available coins, realize that there is not enough
-        # money to fund the 29 BTC payment, and fail with "Insufficient funds".
+        # money to fund the 29 KNE payment, and fail with "Insufficient funds".
         #
-        # Even with SFFO, the wallet can only afford to send 20 BTC.
+        # Even with SFFO, the wallet can only afford to send 20 KNE.
         # If the wallet does not properly exclude preset inputs from the pool of available coins
         # prior to coin selection, it may create a transaction that does not fund the full payment
         # amount or, through SFFO, incorrectly reduce the recipient's amount by the difference
-        # between the original target and the wrongly counted inputs (in this case 9 BTC)
-        # so that the recipient's amount is no longer equal to the user's selected target of 29 BTC.
+        # between the original target and the wrongly counted inputs (in this case 9 KNE)
+        # so that the recipient's amount is no longer equal to the user's selected target of 29 KNE.
 
         # First case, use 'subtract_fee_from_outputs = true'
         assert_raises_rpc_error(-4, "Insufficient funds", wallet.send, outputs=[{wallet.getnewaddress(): 29}], options=options)
@@ -1125,13 +1125,13 @@ class RawTransactionsTest(BitcoinTestFramework):
         assert txid1 in mempool
 
         self.log.info("Fail to craft a new TX with minconf above highest one")
-        # Create a replacement tx to 'final_tx1' that has 1 BTC target instead of 0.1.
+        # Create a replacement tx to 'final_tx1' that has 1 KNE target instead of 0.1.
         raw_tx2 = wallet.createrawtransaction([{'txid': utxo1['txid'], 'vout': utxo1['vout']}], [{target_address: 1}])
         assert_raises_rpc_error(-4, "Insufficient funds", wallet.fundrawtransaction, raw_tx2, {'add_inputs': True, 'minconf': 3, 'fee_rate': 10})
 
         self.log.info("Fail to broadcast a new TX with maxconf 0 due to BIP125 rules to verify it actually chose unconfirmed outputs")
-        # Now fund 'raw_tx2' to fulfill the total target (1 BTC) by using all the wallet unconfirmed outputs.
-        # As it was created with the first unconfirmed output, 'raw_tx2' only has 0.1 BTC covered (need to fund 0.9 BTC more).
+        # Now fund 'raw_tx2' to fulfill the total target (1 KNE) by using all the wallet unconfirmed outputs.
+        # As it was created with the first unconfirmed output, 'raw_tx2' only has 0.1 KNE covered (need to fund 0.9 KNE more).
         # So, the selection process, to cover the amount, will pick up the 'final_tx1' output as well, which is an output of the tx that this
         # new tx is replacing!. So, once we send it to the mempool, it will return a "bad-txns-spends-conflicting-tx"
         # because the input will no longer exist once the first tx gets replaced by this new one).
@@ -1163,7 +1163,7 @@ class RawTransactionsTest(BitcoinTestFramework):
         self.nodes[1].createwallet("cannot_cover_fees")
         wallet = self.nodes[1].get_wallet_rpc("cannot_cover_fees")
 
-        # Set up wallet with 2 utxos: 0.3 BTC and 0.15 BTC
+        # Set up wallet with 2 utxos: 0.3 KNE and 0.15 KNE
         default_wallet.sendtoaddress(wallet.getnewaddress(), 0.3)
         txid2 = default_wallet.sendtoaddress(wallet.getnewaddress(), 0.15)
         self.generate(self.nodes[0], 1)
@@ -1171,28 +1171,28 @@ class RawTransactionsTest(BitcoinTestFramework):
         amount_with_fee_err_msg = "The total exceeds your balance when the {} transaction fee is included."
 
         self.log.info("Test without preselected inputs")
-        self.log.info("Attempt to send 0.45 BTC without SFFO")
+        self.log.info("Attempt to send 0.45 KNE without SFFO")
         rawtx = wallet.createrawtransaction(inputs=[], outputs=[{default_wallet.getnewaddress(): 0.45}])
         assert_raises_rpc_error(-4, amount_with_fee_err_msg.format("0.00000053"), wallet.fundrawtransaction, rawtx, options={"fee_rate":1})
 
-        self.log.info("Send 0.45 BTC with SFFO")
+        self.log.info("Send 0.45 KNE with SFFO")
         wallet.fundrawtransaction(rawtx, options={"subtract_fee_from_outputs":[0]})
 
-        self.log.info("Attempt to send 0.45 BTC by restricting coin selection with minconf=6")
+        self.log.info("Attempt to send 0.45 KNE by restricting coin selection with minconf=6")
         assert_raises_rpc_error(-4, "Insufficient funds", wallet.fundrawtransaction, rawtx, options={"minconf":6})
 
         self.log.info("Test with preselected inputs")
-        self.log.info("Attempt to send 0.45 BTC preselecting 0.15 BTC utxo")
+        self.log.info("Attempt to send 0.45 KNE preselecting 0.15 KNE utxo")
         rawtx = wallet.createrawtransaction(inputs=[{"txid": txid2, "vout": vout2}], outputs=[{default_wallet.getnewaddress(): 0.45}])
         assert_raises_rpc_error(-4, amount_with_fee_err_msg.format("0.00000053"), wallet.fundrawtransaction, rawtx, options={"fee_rate":1})
 
-        self.log.info("Send 0.45 BTC preselecting 0.15 BTC utxo with SFFO")
+        self.log.info("Send 0.45 KNE preselecting 0.15 KNE utxo with SFFO")
         wallet.fundrawtransaction(hexstring=rawtx, options={"subtract_fee_from_outputs":[0]})
 
-        self.log.info("Attempt to send 0.15 BTC using only the 0.15 BTC preselected utxo")
+        self.log.info("Attempt to send 0.15 KNE using only the 0.15 KNE preselected utxo")
         rawtx = wallet.createrawtransaction(inputs=[{"txid": txid2, "vout": vout2}], outputs=[{default_wallet.getnewaddress(): 0.15}])
         assert_raises_rpc_error(-4, ERR_NOT_ENOUGH_PRESET_INPUTS, wallet.fundrawtransaction, rawtx, options={"fee_rate":1, "add_inputs":False})
-        self.log.info("Send 0.15 BTC using only the 0.15 BTC preselected utxo with SFFO")
+        self.log.info("Send 0.15 KNE using only the 0.15 KNE preselected utxo with SFFO")
         wallet.fundrawtransaction(hexstring=rawtx, options={"subtract_fee_from_outputs":[0], "add_inputs":False})
 
 

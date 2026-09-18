@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # Copyright (c) 2018-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Test bitcoin-wallet."""
+"""Test kronein-wallet."""
 
 import os
 import stat
@@ -122,7 +123,7 @@ class ToolWalletTest(BitcoinTestFramework):
         self.assert_tool_output(load_output, *args)
         assert (self.nodes[0].wallets_path / wallet_name).is_dir()
 
-        self.assert_tool_output("The dumpfile may contain private keys. To ensure the safety of your Bitcoin, do not share the dumpfile.\n", '-wallet={}'.format(wallet_name), '-dumpfile={}'.format(rt_dumppath), 'dump')
+        self.assert_tool_output("The dumpfile may contain private keys. To ensure the safety of your KNE, do not share the dumpfile.\n", '-wallet={}'.format(wallet_name), '-dumpfile={}'.format(rt_dumppath), 'dump')
 
         wallet_dat = self.nodes[0].wallets_path / wallet_name / "wallet.dat"
         self.assert_is_sqlite(wallet_dat)
@@ -130,11 +131,11 @@ class ToolWalletTest(BitcoinTestFramework):
     def test_invalid_tool_commands_and_args(self):
         self.log.info('Testing that various invalid commands raise with specific error messages')
         self.assert_raises_tool_error("Error parsing command line arguments: Invalid command 'foo'", 'foo')
-        # `bitcoin-wallet help` raises an error. Use `bitcoin-wallet -help`.
+        # `kronein-wallet help` raises an error. Use `kronein-wallet -help`.
         self.assert_raises_tool_error("Error parsing command line arguments: Invalid command 'help'", 'help')
         self.assert_raises_tool_error('Error: Additional arguments provided (create). Methods do not take arguments. Please refer to `-help`.', 'info', 'create')
         self.assert_raises_tool_error('Error parsing command line arguments: Invalid parameter -foo', '-foo')
-        self.assert_raises_tool_error('No method provided. Run `bitcoin-wallet -help` for valid methods.')
+        self.assert_raises_tool_error('No method provided. Run `kronein-wallet -help` for valid methods.')
         self.assert_raises_tool_error('Wallet name must be provided when creating a new wallet.', 'create')
         self.assert_raises_tool_error('Wallet name must be provided when creating a new wallet.', 'createfromdump')
         error = f"SQLiteDatabase: Unable to obtain an exclusive lock on the database, is it being used by another instance of {self.config['environment']['CLIENT_NAME']}?"
@@ -256,7 +257,7 @@ class ToolWalletTest(BitcoinTestFramework):
 
         self.log.info('Checking basic dump')
         wallet_dump = self.nodes[0].datadir_path / "wallet.dump"
-        self.assert_tool_output('The dumpfile may contain private keys. To ensure the safety of your Bitcoin, do not share the dumpfile.\n', '-wallet=todump', '-dumpfile={}'.format(wallet_dump), 'dump')
+        self.assert_tool_output('The dumpfile may contain private keys. To ensure the safety of your KNE, do not share the dumpfile.\n', '-wallet=todump', '-dumpfile={}'.format(wallet_dump), 'dump')
 
         dump_data = self.read_dump(wallet_dump)
         orig_dump = dump_data.copy()
@@ -391,7 +392,7 @@ class ToolWalletTest(BitcoinTestFramework):
         self.stop_node(0)
 
         wallet_dump = self.nodes[0].datadir_path / "bigrecords.dump"
-        self.assert_tool_output("The dumpfile may contain private keys. To ensure the safety of your Bitcoin, do not share the dumpfile.\n", "-wallet=bigrecords", f"-dumpfile={wallet_dump}", "dump")
+        self.assert_tool_output("The dumpfile may contain private keys. To ensure the safety of your KNE, do not share the dumpfile.\n", "-wallet=bigrecords", f"-dumpfile={wallet_dump}", "dump")
         dump = self.read_dump(wallet_dump)
         for k,v in dump.items():
             if tx["hex"] in v:

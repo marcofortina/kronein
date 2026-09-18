@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://opensource.org/license/mit/.
 
@@ -97,11 +98,11 @@ def check_manifests(ci_type):
         return
 
     release_dir = Path.cwd() / "build" / "bin" / "Release"
-    manifest_path = release_dir / "bitcoind.manifest"
+    manifest_path = release_dir / "kroneind.manifest"
     cmd_bitcoind_manifest = [
         "mt.exe",
         "-nologo",
-        f"-inputresource:{release_dir / 'bitcoind.exe'}",
+        f"-inputresource:{release_dir / 'kroneind.exe'}",
         f"-out:{manifest_path}",
     ]
     run(cmd_bitcoind_manifest)
@@ -109,9 +110,9 @@ def check_manifests(ci_type):
 
     skips = {  # Skip as they currently do not have manifests
         "fuzz.exe",
-        "bench_bitcoin.exe",
-        "test_bitcoin-qt.exe",
-        "bitcoin-chainstate.exe",
+        "bench_kronein.exe",
+        "test_kronein-qt.exe",
+        "kronein-chainstate.exe",
     }
     for entry in release_dir.iterdir():
         if entry.suffix.lower() != ".exe":
@@ -155,14 +156,14 @@ def run_tests(ci_type):
 
     if ci_type == "standard":
         test_envs = {
-            "BITCOIN_BIN": "bitcoin.exe",
-            "BITCOIND": "bitcoind.exe",
-            "BITCOINCLI": "bitcoin-cli.exe",
-            "BITCOIN_BENCH": "bench_bitcoin.exe",
-            "BITCOINTX": "bitcoin-tx.exe",
-            "BITCOINUTIL": "bitcoin-util.exe",
-            "BITCOINWALLET": "bitcoin-wallet.exe",
-            "BITCOINCHAINSTATE": "bitcoin-chainstate.exe",
+            "BITCOIN_BIN": "kronein.exe",
+            "BITCOIND": "kroneind.exe",
+            "BITCOINCLI": "kronein-cli.exe",
+            "BITCOIN_BENCH": "bench_kronein.exe",
+            "BITCOINTX": "kronein-tx.exe",
+            "BITCOINUTIL": "kronein-util.exe",
+            "BITCOINWALLET": "kronein-wallet.exe",
+            "BITCOINCHAINSTATE": "kronein-chainstate.exe",
         }
         for var, exe in test_envs.items():
             os.environ[var] = str(release_bin / exe)

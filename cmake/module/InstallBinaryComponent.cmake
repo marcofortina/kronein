@@ -1,4 +1,5 @@
 # Copyright (c) 2025-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://opensource.org/license/mit/.
 
@@ -13,6 +14,10 @@ function(install_binary_component component)
     ""                          # multi_value_keywords
   )
   set(target_name ${component})
+  get_target_property(binary_name ${target_name} OUTPUT_NAME)
+  if(NOT binary_name)
+    set(binary_name ${target_name})
+  endif()
   if(IC_INTERNAL)
     set(runtime_dest ${CMAKE_INSTALL_LIBEXECDIR})
   else()
@@ -23,7 +28,7 @@ function(install_binary_component component)
     COMPONENT ${component}
   )
   if(INSTALL_MAN AND IC_HAS_MANPAGE)
-    install(FILES ${PROJECT_SOURCE_DIR}/doc/man/${target_name}.1
+    install(FILES ${PROJECT_SOURCE_DIR}/doc/man/${binary_name}.1
       DESTINATION ${CMAKE_INSTALL_MANDIR}/man1
       COMPONENT ${component}
     )

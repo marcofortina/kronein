@@ -1,4 +1,5 @@
 // Copyright (c) 2018-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -37,7 +38,7 @@ private:
         ~HandleCallback();
     };
 
-    //! Bitcoin application.
+    //! Kronein application.
     BitcoinApplication& m_app;
 
     //! Set of pending callback names. Used to track expected callbacks and shut

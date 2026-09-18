@@ -1,4 +1,5 @@
 # Copyright (c) 2023-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://opensource.org/license/mit/.
 
@@ -56,6 +57,7 @@ add_executable(bench_bitcoin
   util_time.cpp
   verify_script.cpp
 )
+set_target_properties(bench_bitcoin PROPERTIES OUTPUT_NAME bench_kronein)
 
 add_windows_application_manifest(bench_bitcoin)
 

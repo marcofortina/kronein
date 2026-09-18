@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # Copyright (c) 2017-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Class for bitcoind node under test"""
+"""Class for kroneind node under test"""
 
 import contextlib
 import decimal
@@ -51,14 +52,14 @@ BITCOIND_PROC_WAIT_TIMEOUT = 60
 NUM_XOR_BYTES = 8
 # Many systems have a 128kB limit for a command size. Depending on the
 # platform, this limit may be larger or smaller. Moreover, when using the
-# 'bitcoin' command, it may internally insert more args, which must be
+# 'kronein' command, it may internally insert more args, which must be
 # accounted for. There is no need to pick the largest possible value here
 # anyway and it should be fine to set it to 1kB in tests.
 TEST_CLI_MAX_ARG_SIZE = 1024
 
 # The null blocks key (all 0s)
 NULL_BLK_XOR_KEY = bytes([0] * NUM_XOR_BYTES)
-BITCOIN_PID_FILENAME_DEFAULT = "bitcoind.pid"
+BITCOIN_PID_FILENAME_DEFAULT = "kroneind.pid"
 
 if sys.platform.startswith("linux"):
     UNIX_PATH_MAX = 108          # includes the trailing NUL
@@ -79,7 +80,7 @@ class ErrorMatch(Enum):
 
 
 class TestNode():
-    """A class for representing a bitcoind node under test.
+    """A class for representing a kroneind node under test.
 
     This class contains:
 
@@ -120,7 +121,7 @@ class TestNode():
         self.index = i
         self.p2p_conn_index = 1
         self.datadir_path = datadir_path
-        self.bitcoinconf = self.datadir_path / "bitcoin.conf"
+        self.bitcoinconf = self.datadir_path / "kronein.conf"
         self.stdout_dir = self.datadir_path / "stdout"
         self.stderr_dir = self.datadir_path / "stderr"
         self.chain = chain
@@ -139,8 +140,8 @@ class TestNode():
         # For those callers that need more flexibility, they can just set the args property directly.
         # Note that common args are set in the config file (see initialize_datadir)
         self.extra_args = extra_args
-        # Configuration for logging is set as command-line args rather than in the bitcoin.conf file.
-        # This means that starting a bitcoind using the temp dir to debug a failed test won't
+        # Configuration for logging is set as command-line args rather than in the kronein.conf file.
+        # This means that starting a kroneind using the temp dir to debug a failed test won't
         # spam debug.log.
         self.args = self.binaries.node_argv(need_ipc=ipcbind) + [
             f"-datadir={self.datadir_path}",
@@ -230,7 +231,7 @@ class TestNode():
         raise AssertionError(self._node_msg(msg))
 
     def __del__(self):
-        # Ensure that we don't leave any bitcoind processes lying around after
+        # Ensure that we don't leave any kroneind processes lying around after
         # the test ends
         if self.process:
             # Should only happen on test failure
@@ -255,17 +256,17 @@ class TestNode():
         if extra_args is None:
             extra_args = self.extra_args
 
-        # If listening and no -bind is given, then bitcoind would bind P2P ports on
+        # If listening and no -bind is given, then kroneind would bind P2P ports on
         # 0.0.0.0:P and 127.0.0.1:P+1 (for incoming Tor connections), where P is
         # a unique port chosen by the test framework and configured as port=P in
-        # bitcoin.conf. To avoid collisions, change it to 127.0.0.1:tor_port().
+        # kronein.conf. To avoid collisions, change it to 127.0.0.1:tor_port().
         will_listen = all(e != "-nolisten" and e != "-listen=0" for e in extra_args)
         has_explicit_bind = self.has_explicit_bind or any(e.startswith("-bind=") for e in extra_args)
         if will_listen and not has_explicit_bind:
             extra_args.append(f"-bind=0.0.0.0:{p2p_port(self.index)}")
             extra_args.append(f"-bind=127.0.0.1:{tor_port(self.index)}=onion")
 
-        # Add a new stdout and stderr file each time bitcoind is started
+        # Add a new stdout and stderr file each time kroneind is started
         if stderr is None:
             stderr = tempfile.NamedTemporaryFile(dir=self.stderr_dir, delete=False)
         if stdout is None:
@@ -277,7 +278,7 @@ class TestNode():
             cwd = self.cwd
 
         # Delete any existing cookie file -- if such a file exists (eg due to
-        # unclean shutdown), it will get overwritten anyway by bitcoind, and
+        # unclean shutdown), it will get overwritten anyway by kroneind, and
         # potentially interfere with our attempt to authenticate
         delete_cookie_file(self.datadir_path, self.chain)
 
@@ -289,13 +290,13 @@ class TestNode():
         self.process = subprocess.Popen(self.args + extra_args, env=subp_env, stdout=stdout, stderr=stderr, cwd=cwd, **kwargs)
 
         self.running = True
-        self.log.debug("bitcoind started, waiting for RPC to come up")
+        self.log.debug("kroneind started, waiting for RPC to come up")
 
         if self.start_perf:
             self._start_perf()
 
     def wait_for_rpc_connection(self, *, wait_for_import=True):
-        """Sets up an RPC connection to the bitcoind process. Returns False if unable to connect."""
+        """Sets up an RPC connection to the kroneind process. Returns False if unable to connect."""
         # Poll at a rate of four times per second
         poll_per_s = 4
 
@@ -313,7 +314,7 @@ class TestNode():
                 str_error += "************************\n" if str_error else ''
 
                 raise FailedToStartError(self._node_msg(
-                    f'bitcoind exited with status {self.process.returncode} during initialization. {str_error}'))
+                    f'kroneind exited with status {self.process.returncode} during initialization. {str_error}'))
             try:
                 rpc = get_rpc_proxy(
                     rpc_url(self.datadir_path, self.index, self.chain, self.rpchost),
@@ -380,12 +381,12 @@ class TestNode():
                     raise  # unknown OS error
                 latest_error = suppress_error(f"OSError {errno.errorcode[error_num]}", e)
             except ValueError as e:
-                # Suppress if cookie file isn't generated yet and no rpcuser or rpcpassword; bitcoind may be starting.
+                # Suppress if cookie file isn't generated yet and no rpcuser or rpcpassword; kroneind may be starting.
                 if "No RPC credentials" not in str(e):
                     raise
                 latest_error = suppress_error("missing_credentials", e)
             time.sleep(1.0 / poll_per_s)
-        self._raise_assertion_error(f"Unable to connect to bitcoind after {self.rpc_timeout}s (ignored errors: {dict(suppressed_errors)!s}{'' if latest_error is None else f', latest: {latest_error[0]!r}/{latest_error[1]}'})")
+        self._raise_assertion_error(f"Unable to connect to kroneind after {self.rpc_timeout}s (ignored errors: {dict(suppressed_errors)!s}{'' if latest_error is None else f', latest: {latest_error[0]!r}/{latest_error[1]}'})")
 
     def wait_for_cookie_credentials(self):
         """Ensures auth cookie credentials can be read, e.g. for testing CLI with -rpcwait before RPC connection is up."""
@@ -397,7 +398,7 @@ class TestNode():
                 get_auth_cookie(self.datadir_path, self.chain)
                 self.log.debug("Cookie credentials successfully retrieved")
                 return
-            except ValueError:  # cookie file not found and no rpcuser or rpcpassword; bitcoind is still starting
+            except ValueError:  # cookie file not found and no rpcuser or rpcpassword; kroneind is still starting
                 pass            # so we continue polling until RPC credentials are retrieved
             time.sleep(1.0 / poll_per_s)
         self._raise_assertion_error("Unable to retrieve cookie credentials after {}s".format(self.rpc_timeout))
@@ -674,7 +675,7 @@ class TestNode():
 
         if not test_success('readelf -S {} | grep .debug_str'.format(shlex.quote(self.binary))):
             self.log.warning(
-                "perf output won't be very useful without debug symbols compiled into bitcoind")
+                "perf output won't be very useful without debug symbols compiled into kroneind")
 
         output_path = tempfile.NamedTemporaryFile(
             dir=self.datadir_path,
@@ -715,11 +716,11 @@ class TestNode():
     def assert_start_raises_init_error(self, extra_args=None, expected_msg=None, match=ErrorMatch.FULL_TEXT, *args, **kwargs):
         """Attempt to start the node and expect it to raise an error.
 
-        extra_args: extra arguments to pass through to bitcoind
-        expected_msg: regex that stderr should match when bitcoind fails
+        extra_args: extra arguments to pass through to kroneind
+        expected_msg: regex that stderr should match when kroneind fails
 
-        Will raise if bitcoind starts without an error.
-        Will raise if an expected_msg is provided and it does not match bitcoind's stdout."""
+        Will raise if kroneind starts without an error.
+        Will raise if an expected_msg is provided and it does not match kroneind's stdout."""
         assert not self.running
         with tempfile.NamedTemporaryFile(dir=self.stderr_dir, delete=False) as log_stderr, \
              tempfile.NamedTemporaryFile(dir=self.stdout_dir, delete=False) as log_stdout:
@@ -727,7 +728,7 @@ class TestNode():
             try:
                 self.start(extra_args, stdout=log_stdout, stderr=log_stderr, *args, **kwargs)
                 ret = self.process.wait(timeout=self.rpc_timeout)
-                self.log.debug(self._node_msg(f'bitcoind exited with status {ret} during initialization'))
+                self.log.debug(self._node_msg(f'kroneind exited with status {ret} during initialization'))
                 assert_not_equal(ret, 0) # Exit code must indicate failure
                 self.running = False
                 self.process = None
@@ -751,7 +752,7 @@ class TestNode():
                 self.process.kill()
                 self.running = False
                 self.process = None
-                assert_msg = f'bitcoind should have exited within {self.rpc_timeout}s '
+                assert_msg = f'kroneind should have exited within {self.rpc_timeout}s '
                 if expected_msg is None:
                     assert_msg += "with an error"
                 else:
@@ -901,7 +902,7 @@ def arg_to_cli(arg):
 
 
 class TestNodeCLI():
-    """Interface to bitcoin-cli for an individual node"""
+    """Interface to kronein-cli for an individual node"""
     def __init__(self, binaries, datadir, rpc_timeout):
         self.options = []
         self.binaries = binaries
@@ -911,7 +912,7 @@ class TestNodeCLI():
         self.log = logging.getLogger('TestFramework.bitcoincli')
 
     def __call__(self, *options, input=None):
-        # TestNodeCLI is callable with bitcoin-cli command-line options
+        # TestNodeCLI is callable with kronein-cli command-line options
         cli = TestNodeCLI(self.binaries, self.datadir, self.rpc_timeout)
         cli.options = [str(o) for o in options]
         cli.input = input
@@ -930,7 +931,7 @@ class TestNodeCLI():
         return results
 
     def send_cli(self, clicommand=None, *args, **kwargs):
-        """Run bitcoin-cli command. Deserializes returned string as python object."""
+        """Run kronein-cli command. Deserializes returned string as python object."""
         pos_args = [arg_to_cli(arg) for arg in args]
         named_args = [key + "=" + arg_to_cli(value) for (key, value) in kwargs.items() if value is not None]
         p_args = self.binaries.rpc_argv() + [
@@ -958,7 +959,7 @@ class TestNodeCLI():
                 stdin_data = rpc_args
             p_args = p_args[:base_arg_pos] + ['-stdin']
 
-        self.log.debug("Running bitcoin-cli {}".format(p_args[2:]))
+        self.log.debug("Running kronein-cli {}".format(p_args[2:]))
         process = subprocess.Popen(p_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         cli_stdout, cli_stderr = process.communicate(input=stdin_data)
         returncode = process.poll()

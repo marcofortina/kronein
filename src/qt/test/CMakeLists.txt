@@ -1,4 +1,5 @@
 # Copyright (c) 2024-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://opensource.org/license/mit/.
 
@@ -13,6 +14,7 @@ add_executable(test_bitcoin-qt
   util.cpp
   ../../init/bitcoin-qt.cpp
 )
+set_target_properties(test_bitcoin-qt PROPERTIES OUTPUT_NAME test_kronein-qt)
 
 add_windows_application_manifest(test_bitcoin-qt)
 

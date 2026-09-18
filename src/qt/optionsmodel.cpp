@@ -1,4 +1,5 @@
 // Copyright (c) 2011-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -61,21 +62,21 @@ static void UpdateRwSetting(interfaces::Node& node, OptionsModel::OptionID optio
     node.updateRwSetting(SettingName(option) + suffix, value);
 }
 
-//! Convert enabled/size values to bitcoin -prune setting.
+//! Convert enabled/size values to the Kronein -prune setting.
 static common::SettingsValue PruneSetting(bool prune_enabled, int prune_size_gb)
 {
     assert(!prune_enabled || prune_size_gb >= 1); // PruneSizeGB and ParsePruneSizeGB never return less
     return prune_enabled ? PruneGBtoMiB(prune_size_gb) : 0;
 }
 
-//! Get pruning enabled value to show in GUI from bitcoin -prune setting.
+//! Get pruning enabled value to show in GUI from the Kronein -prune setting.
 static bool PruneEnabled(const common::SettingsValue& prune_setting)
 {
     // -prune=1 setting is manual pruning mode, so disabled for purposes of the gui
     return SettingTo<int64_t>(prune_setting, 0) > 1;
 }
 
-//! Get pruning size value to show in GUI from bitcoin -prune setting. If
+//! Get pruning size value to show in GUI from the Kronein -prune setting. If
 //! pruning is not enabled, just show default recommended pruning size (2GB).
 static int PruneSizeGB(const common::SettingsValue& prune_setting)
 {
@@ -340,7 +341,7 @@ void OptionsModel::SetPruneTargetGB(int prune_target_gb)
     node().forceSetting("prune", new_value);
 
     // Update settings.json if value configured in intro screen is different
-    // from saved value. Avoid writing settings.json if bitcoin.conf value
+    // from saved value. Avoid writing settings.json if kronein.conf value
     // doesn't need to be overridden.
     if (PruneEnabled(cur_value) != PruneEnabled(new_value) ||
         PruneSizeGB(cur_value) != PruneSizeGB(new_value)) {

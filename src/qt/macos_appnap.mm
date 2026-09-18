@@ -1,4 +1,5 @@
 // Copyright (c) 2011-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -30,7 +31,7 @@ public:
                 id processInfo = [NSProcessInfo processInfo];
                 if ([processInfo respondsToSelector:@selector(beginActivityWithOptions:reason:)])
                 {
-                    activityId = [processInfo beginActivityWithOptions: activityOptions reason:@"Temporarily disable App Nap for bitcoin-qt."];
+                    activityId = [processInfo beginActivityWithOptions: activityOptions reason:@"Temporarily disable App Nap for kronein-qt."];
                     [activityId retain];
                 }
             }

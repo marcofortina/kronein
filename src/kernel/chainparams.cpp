@@ -1,5 +1,6 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -357,7 +358,7 @@ public:
                 .blockhash = uint256{"539ac274a885689d562d6c9a64ebf66b3e32bd463089439bec60d635334e780b"},
             },
             {
-                // For use by test/functional/feature_assumeutxo.py and test/functional/tool_bitcoin_chainstate.py
+                // For use by test/functional/feature_assumeutxo.py and test/functional/tool_kronein_chainstate.py
                 .height = 299,
                 .muhash = AssumeutxoHash{uint256{"66debd38e54a51cc4de4f48bd177985ae7dbce80b978754e09ba87cf10262ee5"}},
                 .m_chain_tx_count = 334,

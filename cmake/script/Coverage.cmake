@@ -1,4 +1,5 @@
 # Copyright (c) 2024-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://opensource.org/license/mit/.
 
@@ -19,7 +20,7 @@ execute_process(
   COMMAND_ERROR_IS_FATAL ANY
 )
 execute_process(
-  COMMAND ${LCOV_COMMAND} --capture --directory src --test-name test_bitcoin --output-file test_bitcoin.info
+  COMMAND ${LCOV_COMMAND} --capture --directory src --test-name test_kronein --output-file test_kronein.info
   WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
   COMMAND_ERROR_IS_FATAL ANY
 )
@@ -29,22 +30,22 @@ execute_process(
   COMMAND_ERROR_IS_FATAL ANY
 )
 execute_process(
-  COMMAND ${LCOV_FILTER_COMMAND} test_bitcoin.info test_bitcoin_filtered.info
+  COMMAND ${LCOV_FILTER_COMMAND} test_kronein.info test_kronein_filtered.info
   WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
   COMMAND_ERROR_IS_FATAL ANY
 )
 execute_process(
-  COMMAND ${LCOV_COMMAND} --add-tracefile test_bitcoin_filtered.info --output-file test_bitcoin_filtered.info
+  COMMAND ${LCOV_COMMAND} --add-tracefile test_kronein_filtered.info --output-file test_kronein_filtered.info
   WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
   COMMAND_ERROR_IS_FATAL ANY
 )
 execute_process(
-  COMMAND ${LCOV_COMMAND} --add-tracefile baseline_filtered.info --add-tracefile test_bitcoin_filtered.info --output-file test_bitcoin_coverage.info
+  COMMAND ${LCOV_COMMAND} --add-tracefile baseline_filtered.info --add-tracefile test_kronein_filtered.info --output-file test_kronein_coverage.info
   WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
   COMMAND_ERROR_IS_FATAL ANY
 )
 execute_process(
-  COMMAND ${GENHTML_COMMAND} test_bitcoin_coverage.info --output-directory test_bitcoin.coverage
+  COMMAND ${GENHTML_COMMAND} test_kronein_coverage.info --output-directory test_kronein.coverage
   WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
   COMMAND_ERROR_IS_FATAL ANY
 )
@@ -75,7 +76,7 @@ execute_process(
   COMMAND_ERROR_IS_FATAL ANY
 )
 execute_process(
-  COMMAND ${LCOV_COMMAND} --add-tracefile baseline_filtered.info --add-tracefile test_bitcoin_filtered.info --add-tracefile functional_test_filtered.info --output-file total_coverage.info
+  COMMAND ${LCOV_COMMAND} --add-tracefile baseline_filtered.info --add-tracefile test_kronein_filtered.info --add-tracefile functional_test_filtered.info --output-file total_coverage.info
   COMMAND ${GREP_EXECUTABLE} "%"
   COMMAND ${AWK_EXECUTABLE} "{ print substr($3,2,50) \"/\" $5 }"
   OUTPUT_FILE coverage_percent.txt

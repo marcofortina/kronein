@@ -1,4 +1,5 @@
 // Copyright (c) 2023-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -32,7 +33,7 @@
 namespace ipc {
 namespace capnp {
 //! Construct a ParamStream wrapping a data stream with serialization parameters
-//! needed to pass transaction objects between bitcoin processes.
+//! needed to pass transaction objects between Kronein processes.
 //! In the future, more params may be added here to serialize other objects that
 //! require serialization parameters. Params should just be chosen to serialize
 //! objects completely and ensure that serializing and deserializing objects
@@ -52,7 +53,7 @@ concept Deserializable = std::is_constructible_v<T, ::deserialize_type, ::DataSt
 } // namespace capnp
 } // namespace ipc
 
-//! Functions to serialize / deserialize common bitcoin types.
+//! Functions to serialize / deserialize common Kronein types.
 namespace mp {
 //! Overload multiprocess library's CustomBuildField hook to allow any
 //! serializable object to be stored in a capnproto Data field or passed to a

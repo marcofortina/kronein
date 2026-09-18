@@ -1,4 +1,5 @@
 // Copyright (c) 2015-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -270,9 +271,9 @@ public:
 //
 // This also requires overriding the default minimal Qt platform:
 //
-//     QT_QPA_PLATFORM=xcb     build/bin/test_bitcoin-qt  # Linux
-//     QT_QPA_PLATFORM=windows build/bin/test_bitcoin-qt  # Windows
-//     QT_QPA_PLATFORM=cocoa   build/bin/test_bitcoin-qt  # macOS
+//     QT_QPA_PLATFORM=xcb     build/bin/test_kronein-qt  # Linux
+//     QT_QPA_PLATFORM=windows build/bin/test_kronein-qt  # Windows
+//     QT_QPA_PLATFORM=cocoa   build/bin/test_kronein-qt  # macOS
 void TestGUI(interfaces::Node& node, const std::shared_ptr<CWallet>& wallet)
 {
     // Create widgets for sending coins and listing transactions.
@@ -340,7 +341,7 @@ void TestGUI(interfaces::Node& node, const std::shared_ptr<CWallet>& wallet)
             QCOMPARE(receiveRequestDialog->QObject::findChild<QLabel*>("payment_header")->text(), QString("Payment information"));
             QCOMPARE(receiveRequestDialog->QObject::findChild<QLabel*>("uri_tag")->text(), QString("URI:"));
             QString uri = receiveRequestDialog->QObject::findChild<QLabel*>("uri_content")->text();
-            QCOMPARE(uri.count("bitcoin:"), 2);
+            QCOMPARE(uri.count("kronein:"), 2);
             QCOMPARE(receiveRequestDialog->QObject::findChild<QLabel*>("address_tag")->text(), QString("Address:"));
             QVERIFY(address.isEmpty());
             address = receiveRequestDialog->QObject::findChild<QLabel*>("address_content")->text();
@@ -474,7 +475,7 @@ void WalletTests::walletTests()
         // and fails to handle returned nulls
         // (https://bugreports.qt.io/browse/QTBUG-49686).
         qWarning() << "Skipping WalletTests on mac build with 'minimal' platform set due to Qt bugs. To run AppTests, invoke "
-                      "with 'QT_QPA_PLATFORM=cocoa test_bitcoin-qt' on mac, or else use a linux or windows build.";
+                      "with 'QT_QPA_PLATFORM=cocoa test_kronein-qt' on mac, or else use a linux or windows build.";
         return;
     }
 #endif

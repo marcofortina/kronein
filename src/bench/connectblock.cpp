@@ -1,4 +1,5 @@
 // Copyright (c) 2025-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -65,7 +66,7 @@ CBlock CreateTestBlock(
 /*
  * Creates key pairs and corresponding outputs for the benchmark transactions.
  * - Creates simple Taproot key-path spendable outputs
- * - All outputs have value of 1 BTC
+ * - All outputs have value of 1 KNE
  */
 std::pair<std::vector<CKey>, std::vector<CTxOut>> CreateKeysAndOutputs(const CKey& coinbaseKey, size_t count)
 {

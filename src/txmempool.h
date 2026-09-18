@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -141,7 +142,7 @@ struct TxMempoolInfo
  *
  * TxGraph (CTxMemPool::m_txgraph) provides an abstraction layer for separating
  * the transaction graph parts of the mempool from the rest of the
- * Bitcoin-specific logic. Specifically, TxGraph handles (for each transaction)
+ * Kronein-specific logic. Specifically, TxGraph handles (for each transaction)
  * managing the in-mempool parents and children, and has knowledge of the fee
  * and size of every transaction. It uses this to partition the mempool into
  * connected clusters, and it implements (among other things):
@@ -153,7 +154,7 @@ struct TxMempoolInfo
  *    after a reorg.
  * See txgraph.h and txgraph.cpp for more details.
  *
- * CTxMemPool itself handles the Bitcoin-specific parts of mempool
+ * CTxMemPool itself handles the Kronein-specific parts of mempool
  * transactions; it stores the full transaction inside CTxMemPoolEntry, along
  * with other consensus-specific fields (such as whether a transaction spends a
  * coinbase, or the LockPoints for transaction finality). And it provides

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
 # Copyright (c) 2018-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -9,7 +10,7 @@ export LC_ALL=C
 set -o errexit -o pipefail -o xtrace
 
 # Fixes permission issues when there is a container UID/GID mismatch with the owner
-# of the mounted bitcoin src dir.
+# of the mounted Kronein source directory.
 git config --global --add safe.directory /bitcoin
 
 export PATH="/python_build/bin:${PATH}"

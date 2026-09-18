@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2015-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -41,7 +42,7 @@ def main():
         odict={'username':args.username, 'password':args.password, 'rpcauth':f'{args.username}:{salt}${password_hmac}'}
         print(json.dumps(odict))
     else:
-        print('String to be appended to bitcoin.conf:')
+        print('String to be appended to kronein.conf:')
         print(f'rpcauth={args.username}:{salt}${password_hmac}')
         print(f'Your password:\n{args.password}')
 

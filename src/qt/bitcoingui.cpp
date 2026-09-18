@@ -271,7 +271,7 @@ void BitcoinGUI::createActions()
     tabGroup->addAction(sendCoinsAction);
 
     receiveCoinsAction = new QAction(platformStyle->SingleColorIcon(":/icons/receiving_addresses"), tr("&Receive"), this);
-    receiveCoinsAction->setStatusTip(tr("Request payments (generates QR codes and bitcoin: URIs)"));
+    receiveCoinsAction->setStatusTip(tr("Request payments (generates QR codes and kronein: URIs)"));
     receiveCoinsAction->setToolTip(receiveCoinsAction->statusTip());
     receiveCoinsAction->setCheckable(true);
     receiveCoinsAction->setShortcut(QKeySequence(QStringLiteral("Alt+3")));
@@ -321,9 +321,9 @@ void BitcoinGUI::createActions()
     changePassphraseAction = new QAction(tr("&Change Passphrase…"), this);
     changePassphraseAction->setStatusTip(tr("Change the passphrase used for wallet encryption"));
     m_load_psbt_action = new QAction(tr("&Load PSBT from file…"), this);
-    m_load_psbt_action->setStatusTip(tr("Load Partially Signed Bitcoin Transaction"));
+    m_load_psbt_action->setStatusTip(tr("Load Partially Signed Kronein Transaction"));
     m_load_psbt_clipboard_action = new QAction(tr("Load PSBT from &clipboard…"), this);
-    m_load_psbt_clipboard_action->setStatusTip(tr("Load Partially Signed Bitcoin Transaction from clipboard"));
+    m_load_psbt_clipboard_action->setStatusTip(tr("Load Partially Signed Kronein Transaction from clipboard"));
 
     openRPCConsoleAction = new QAction(tr("Node window"), this);
     openRPCConsoleAction->setStatusTip(tr("Open node debugging and diagnostic console"));
@@ -337,7 +337,7 @@ void BitcoinGUI::createActions()
     usedReceivingAddressesAction->setStatusTip(tr("Show the list of used receiving addresses and labels"));
 
     openAction = new QAction(tr("Open &URI…"), this);
-    openAction->setStatusTip(tr("Open a bitcoin: URI"));
+    openAction->setStatusTip(tr("Open a kronein: URI"));
 
     m_open_wallet_action = new QAction(tr("Open Wallet"), this);
     m_open_wallet_action->setEnabled(false);

@@ -1,4 +1,5 @@
 // Copyright (c) 2011-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -79,7 +80,7 @@ using node::VerifyLoadedChainstate;
 
 const TranslateFn G_TRANSLATION_FUN{nullptr};
 
-constexpr inline auto TEST_DIR_PATH_ELEMENT{"test_common bitcoin"}; // Includes a space to catch possible path escape issues.
+constexpr inline auto TEST_DIR_PATH_ELEMENT{"test_common kronein"}; // Includes a space to catch possible path escape issues.
 /** Random context to get unique temp data dirs. Separate from m_rng, which can be seeded from a const env var */
 static FastRandomContext g_rng_temp_path;
 static const bool g_rng_temp_path_init{[] {

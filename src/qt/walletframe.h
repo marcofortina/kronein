@@ -1,4 +1,5 @@
 // Copyright (c) 2011-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -76,7 +77,7 @@ public Q_SLOTS:
     /** Switch to send coins page */
     void gotoSendCoinsPage(QString addr = "");
 
-    /** Load Partially Signed Bitcoin Transaction */
+    /** Load a Partially Signed Kronein Transaction. */
     void gotoLoadPSBT(bool from_clipboard = false);
 
     /** Encrypt the wallet */

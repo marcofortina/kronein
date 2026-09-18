@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2017-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test recovery from a crash during chainstate writing.
@@ -89,13 +90,13 @@ class ChainstateWriteCrashTest(BitcoinTestFramework):
                 return utxo_hash
             except Exception:
                 # An exception here should mean the node is about to crash.
-                # If bitcoind exits, then try again.  wait_for_node_exit()
-                # should raise an exception if bitcoind doesn't exit.
+                # If kroneind exits, then try again.  wait_for_node_exit()
+                # should raise an exception if kroneind doesn't exit.
                 self.wait_for_node_exit(node_index, timeout=10)
             self.crashed_on_restart += 1
 
-        # If we got here, bitcoind isn't coming back up on restart.  Could be a
-        # bug in bitcoind, or we've gotten unlucky with our dbcrash ratio --
+        # If we got here, kroneind isn't coming back up on restart.  Could be a
+        # bug in kroneind, or we've gotten unlucky with our dbcrash ratio --
         # perhaps we generated a test case that blew up our cache?
         # If this happens, the test should try to restart without -dbcrashratio
         # and make sure that recovery happens.

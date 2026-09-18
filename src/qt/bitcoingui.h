@@ -1,4 +1,5 @@
 // Copyright (c) 2011-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -61,7 +62,7 @@ class ClickableProgressBar;
 }
 
 /**
-  Bitcoin GUI main class. This class represents the main window of the Bitcoin UI. It communicates with both the client and
+  Kronein GUI main class. This class represents the main window of the Kronein UI. It communicates with both the client and
   wallet models to give the user an up-to-date view of the current core state.
 */
 class BitcoinGUI : public QMainWindow
@@ -85,7 +86,7 @@ public:
 
 #ifdef ENABLE_WALLET
     /** Set the wallet model.
-        The wallet model represents a bitcoin wallet, and offers access to the list of transactions, address book and sending
+        The wallet model represents a Kronein wallet, and offers access to the list of transactions, address book and sending
         functionality.
     */
     void addWallet(WalletModel* walletModel);
@@ -280,7 +281,7 @@ public Q_SLOTS:
     /** Switch to send coins page */
     void gotoSendCoinsPage(QString addr = "");
 
-    /** Load Partially Signed Bitcoin Transaction from file or clipboard */
+    /** Load a Partially Signed Kronein Transaction from file or clipboard. */
     void gotoLoadPSBT(bool from_clipboard = false);
     /** Enable history action when privacy is changed */
     void enableHistoryAction(bool privacy);

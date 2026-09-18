@@ -1,4 +1,5 @@
 // Copyright (c) 2009-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -1026,7 +1027,7 @@ public:
     std::optional<uint32_t> fallback_locktime;
 
     /** Merge psbt into this. The two psbts must have the same underlying CTransaction (i.e. the
-      * same actual Bitcoin transaction.) Returns true if the merge succeeded, false otherwise. */
+      * same actual Kronein transaction.) Returns true if the merge succeeded, false otherwise. */
     [[nodiscard]] bool Merge(const PartiallySignedTransaction& psbt);
     /** Merge the global xpubs of psbt into this, keeping the existing origin for an xpub
       * seen again with a different one, as the serialized records are keyed by xpub. */

@@ -1,4 +1,5 @@
 # Copyright (c) 2023-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://opensource.org/license/mit/.
 
@@ -133,6 +134,7 @@ add_executable(test_bitcoin
   validation_tests.cpp
   validationinterface_tests.cpp
 )
+set_target_properties(test_bitcoin PROPERTIES OUTPUT_NAME test_kronein)
 
 include(TargetDataSources)
 target_json_data_sources(test_bitcoin

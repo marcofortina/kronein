@@ -48,7 +48,7 @@ static const int TOOLTIP_WRAP_THRESHOLD = 80;
 #define SPINNER_FRAMES 36
 
 #define QAPP_ORG_NAME "Kronein"
-#define QAPP_ORG_DOMAIN "bitcoin.org"
+#define QAPP_ORG_DOMAIN "kronein.org"
 #define QAPP_APP_NAME_DEFAULT "Kronein-Qt"
 #define QAPP_APP_NAME_TESTNET4 "Kronein-Qt-testnet4"
 #define QAPP_APP_NAME_SIGNET "Kronein-Qt-signet"

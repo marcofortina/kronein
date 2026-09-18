@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2016-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the bumpfee RPC.
@@ -76,7 +77,7 @@ class BumpFeeTest(BitcoinTestFramework):
         peer_node, rbf_node = self.nodes
         rbf_node_address = rbf_node.getnewaddress()
 
-        # fund rbf node with 10 coins of 0.001 btc (100,000 satoshis)
+        # fund rbf node with 10 coins of 0.001 KNE (100,000 satoshis)
         self.log.info("Mining blocks...")
         self.generate(peer_node, 110)
         for _ in range(25):
@@ -162,7 +163,7 @@ class BumpFeeTest(BitcoinTestFramework):
             for k, v in {"number": 42, "object": {"foo": "bar"}}.items():
                 assert_raises_rpc_error(-3, f"JSON value of type {k} for field estimate_mode is not of expected type string",
                     rbf_node.bumpfee, rbfid, estimate_mode=v)
-        for mode in ["foo", Decimal("3.1415"), "sat/B", "BTC/kB"]:
+        for mode in ["foo", Decimal("3.1415"), "sat/B", "KNE/kB"]:
             assert_raises_rpc_error(-8, 'Invalid estimate_mode parameter, must be one of: "unset", "economical", "conservative"',
                 rbf_node.bumpfee, rbfid, estimate_mode=mode)
 
@@ -516,7 +517,7 @@ def test_dust_to_fee(self, rbf_node, dest_address):
     # A native transaction with one Taproot key-path input and two Taproot outputs is 154 vbytes.
     assert_equal(fulltx["vsize"], 154)
     # Bump with a fee rate high enough to turn the change into dust.
-    # Dust should be dropped to the fee, so actual bump fee is 0.00050000 BTC.
+    # Dust should be dropped to the fee, so actual bump fee is 0.00050000 KNE.
     bumped_tx = rbf_node.bumpfee(rbfid, fee_rate=350.25)
     full_bumped_tx = rbf_node.getrawtransaction(bumped_tx["txid"], 1)
     assert_equal(bumped_tx["fee"], Decimal("0.00050000"))

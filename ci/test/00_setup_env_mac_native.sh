@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
 # Copyright (c) 2019-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -19,4 +20,4 @@ export BITCOIN_CONFIG="\
   -DREDUCE_EXPORTS=ON \
   -DCMAKE_EXE_LINKER_FLAGS='-Wl,-stack_size -Wl,0x80000' \
 "
-export BITCOIN_CMD="bitcoin -m" # Used in functional tests
+export BITCOIN_CMD="kronein -m" # Used in functional tests

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the wallet."""
@@ -95,7 +96,7 @@ class WalletTest(BitcoinTestFramework):
         txout = self.nodes[0].gettxout(txid=confirmed_txid, n=confirmed_index, include_mempool=True)
         assert_equal(txout['value'], 50)
 
-        # Send 21 BTC from 0 to 2 using sendtoaddress call.
+        # Send 21 KNE from 0 to 2 using sendtoaddress call.
         self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(), 11)
         mempool_txid = self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(), 10)
 
@@ -202,7 +203,7 @@ class WalletTest(BitcoinTestFramework):
         # Have node1 generate 100 blocks (so node0 can recover the fee)
         self.generate(self.nodes[1], COINBASE_MATURITY, sync_fun=lambda: self.sync_all(self.nodes[0:3]))
 
-        # node0 should end up with 100 btc in block rewards plus fees, but
+        # node0 should end up with 100 KNE in block rewards plus fees, but
         # minus the 21 plus fees sent to node2
         assert_equal(self.nodes[0].getbalance(), 100 - 21)
         assert_equal(self.nodes[2].getbalance(), 21)
@@ -236,7 +237,7 @@ class WalletTest(BitcoinTestFramework):
         spent_0 = {"txid": node0utxos[0]["txid"], "vout": node0utxos[0]["vout"]}
         assert_raises_rpc_error(-8, "Invalid parameter, expected unspent output", self.nodes[0].lockunspent, False, [spent_0])
 
-        # Send 10 BTC normal
+        # Send 10 KNE normal
         address = self.nodes[0].getnewaddress("test")
         fee_per_byte = Decimal('0.001') / 1000
         fee_rate_sat_vb = fee_per_byte * Decimal(1e8)
@@ -245,7 +246,7 @@ class WalletTest(BitcoinTestFramework):
         node_2_bal = self.check_fee_amount(self.nodes[2].getbalance(), Decimal('84'), fee_per_byte, self.get_vsize(self.nodes[2].gettransaction(txid)['hex']))
         assert_equal(self.nodes[0].getbalance(), Decimal('10'))
 
-        # Send 10 BTC with subtract fee from amount
+        # Send 10 KNE with subtract fee from amount
         txid = self.nodes[2].sendtoaddress(address, 10, "", "", True, fee_rate=fee_rate_sat_vb)
         self.generate(self.nodes[2], 1, sync_fun=lambda: self.sync_all(self.nodes[0:3]))
         node_2_bal -= Decimal('10')
@@ -254,21 +255,21 @@ class WalletTest(BitcoinTestFramework):
 
         self.log.info("Test sendmany")
 
-        # Sendmany 10 BTC
+        # Sendmany 10 KNE
         txid = self.nodes[2].sendmany({address: 10}, "", [], fee_rate=fee_rate_sat_vb)
         self.generate(self.nodes[2], 1, sync_fun=lambda: self.sync_all(self.nodes[0:3]))
         node_0_bal += Decimal('10')
         node_2_bal = self.check_fee_amount(self.nodes[2].getbalance(), node_2_bal - Decimal('10'), fee_per_byte, self.get_vsize(self.nodes[2].gettransaction(txid)['hex']))
         assert_equal(self.nodes[0].getbalance(), node_0_bal)
 
-        # Sendmany 10 BTC with subtract fee from amount
+        # Sendmany 10 KNE with subtract fee from amount
         txid = self.nodes[2].sendmany({address: 10}, "", [address], fee_rate=fee_rate_sat_vb)
         self.generate(self.nodes[2], 1, sync_fun=lambda: self.sync_all(self.nodes[0:3]))
         node_2_bal -= Decimal('10')
         assert_equal(self.nodes[2].getbalance(), node_2_bal)
         node_0_bal = self.check_fee_amount(self.nodes[0].getbalance(), node_0_bal + Decimal('10'), fee_per_byte, self.get_vsize(self.nodes[2].gettransaction(txid)['hex']))
 
-        # Sendmany 5 BTC to two addresses with subtracting fee from both addresses
+        # Sendmany 5 KNE to two addresses with subtracting fee from both addresses
         a0 = self.nodes[0].getnewaddress()
         a1 = self.nodes[0].getnewaddress()
         txid = self.nodes[2].sendmany(amounts={a0: 5, a1: 5}, subtractfeefrom=[a0, a1], fee_rate=fee_rate_sat_vb)
@@ -333,7 +334,7 @@ class WalletTest(BitcoinTestFramework):
         for target, mode in product([-1, 0, 1009], ["economical", "conservative"]):
             assert_raises_rpc_error(-8, "Invalid conf_target, must be between 1 and 1008",  # max value of 1008 per src/policy/fees/block_policy_estimator.h
                 self.nodes[2].sendmany, amounts={address: 1}, conf_target=target, estimate_mode=mode)
-        for target, mode in product([-1, 0], ["btc/kb", "sat/b"]):
+        for target, mode in product([-1, 0], ["KNE/kb", "sat/b"]):
             assert_raises_rpc_error(-8, 'Invalid estimate_mode parameter, must be one of: "unset", "economical", "conservative"',
                 self.nodes[2].sendmany, amounts={address: 1}, conf_target=target, estimate_mode=mode)
 

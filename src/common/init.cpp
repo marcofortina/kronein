@@ -1,4 +1,5 @@
 // Copyright (c) 2023-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -30,7 +31,7 @@ std::optional<ConfigError> InitConfig(ArgsManager& args, SettingsAbortFn setting
         // possible for the config file to cause another configuration to be
         // used, though. Specifying a conf= option in the config file causes a
         // parse error, and specifying a datadir= location containing another
-        // bitcoin.conf file just ignores the other file.)
+        // kronein.conf file just ignores the other file.)
         const fs::path orig_datadir_path{args.GetDataDirBase()};
         const fs::path orig_config_path{AbsPathForConfigVal(args, args.GetPathArg("-conf", BITCOIN_CONF_FILENAME), /*net_specific=*/false)};
 
@@ -53,7 +54,7 @@ std::optional<ConfigError> InitConfig(ArgsManager& args, SettingsAbortFn setting
             fs::create_directories(net_path / "wallets");
         }
 
-        // Show an error or warn/log if there is a bitcoin.conf file in the
+        // Show an error or warn/log if there is a kronein.conf file in the
         // datadir that is being ignored.
         const fs::path base_config_path = base_path / BITCOIN_CONF_FILENAME;
         if (fs::exists(base_config_path)) {

@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -508,7 +509,7 @@ public:
      *
      * Preconditions: it is only valid to call this function when the wallet is
      * online and the block index is loaded. So this cannot be called by
-     * bitcoin-wallet tool code. If this is called
+     * kronein-wallet tool code. If this is called
      * without the wallet being online, it won't be able able to determine the
      * the height of the last block processed, or the heights of blocks
      * referenced in transaction, and might cause assert failures.

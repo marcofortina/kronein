@@ -1,4 +1,5 @@
 // Copyright (c) 2020-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -98,7 +99,7 @@ bool DumpWallet(const ArgsManager& args, WalletDatabase& db, bilingual_str& erro
 }
 
 // The standard wallet deleter function blocks on the validation interface
-// queue, which doesn't exist for the bitcoin-wallet. Define our own
+// queue, which doesn't exist for the kronein-wallet. Define our own
 // deleter here.
 static void WalletToolReleaseWallet(CWallet* wallet)
 {

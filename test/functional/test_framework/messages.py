@@ -2,13 +2,14 @@
 # Copyright (c) 2010 ArtForz -- public domain half-a-node
 # Copyright (c) 2012 Jeff Garzik
 # Copyright (c) 2010-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Bitcoin test framework primitive and message structures
+"""Kronein test framework primitive and message structures
 
 CBlock, CTransaction, CBlockHeader, CTxIn, CTxOut, etc....:
     data structures that should map to corresponding structures in
-    bitcoin/primitives
+    Kronein primitives
 
 msg_block, msg_tx, msg_headers, etc.:
     data structures that represent network messages
@@ -38,7 +39,7 @@ MAX_LOCATOR_SZ = 101
 MAX_BLOCK_WEIGHT = 4000000
 DEFAULT_BLOCK_RESERVED_WEIGHT = 8000
 MINIMUM_BLOCK_RESERVED_WEIGHT = 2000
-COIN = 100000000  # 1 btc in satoshis
+COIN = 100000000  # 1 KNE in satoshis
 MAX_MONEY = 21000000 * COIN
 
 MAX_BIP125_RBF_SEQUENCE = 0xfffffffd  # Sequence number that is rbf-opt-in (BIP 125) and csv-opt-out (BIP 68)
@@ -275,7 +276,7 @@ def from_binary(cls, stream):
     return obj
 
 
-# Objects that map to bitcoind objects, which can be serialized/deserialized
+# Objects that map to kroneind objects, which can be serialized/deserialized
 
 
 class CAddress:
@@ -1085,7 +1086,7 @@ class msg_version:
         self.nStartingHeight = int.from_bytes(f.read(4), "little", signed=True)
 
         # Relay field is optional for version 70001 onwards
-        # But, unconditionally check it to match behaviour in bitcoind
+        # But, unconditionally check it to match behaviour in kroneind
         self.relay = int.from_bytes(f.read(1), "little")  # f.read(1) may return an empty b''
 
     def serialize(self):
@@ -1344,7 +1345,7 @@ class msg_headers:
         self.headers = headers if headers is not None else []
 
     def deserialize(self, f):
-        # comment in bitcoind indicates these should be deserialized as blocks
+        # comment in kroneind indicates these should be deserialized as blocks
         blocks = deser_vector(f, CBlock)
         for x in blocks:
             self.headers.append(CBlockHeader(x))

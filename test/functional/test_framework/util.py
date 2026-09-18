@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Helpful routines for regression testing."""
@@ -51,11 +52,11 @@ def assert_fee_amount(fee, tx_size, feerate_BTC_kvB):
     assert isinstance(tx_size, int)
     target_fee = get_fee(tx_size, feerate_BTC_kvB)
     if fee < target_fee:
-        raise AssertionError("Fee of %s BTC too low! (Should be %s BTC)" % (str(fee), str(target_fee)))
+        raise AssertionError("Fee of %s KNE too low! (Should be %s KNE)" % (str(fee), str(target_fee)))
     # allow the wallet's estimation to be at most 2 bytes off
     high_fee = get_fee(tx_size + 2, feerate_BTC_kvB)
     if fee > high_fee:
-        raise AssertionError("Fee of %s BTC too high! (Should be %s BTC)" % (str(fee), str(target_fee)))
+        raise AssertionError("Fee of %s KNE too high! (Should be %s KNE)" % (str(fee), str(target_fee)))
 
 
 def summarise_dict_differences(thing1, thing2):
@@ -230,7 +231,7 @@ def assert_array_result(object_array, to_match, expected, should_not_find=False)
 
 
 def check_json_precision():
-    """Make sure json library being used does not lose precision converting BTC values"""
+    """Make sure json library being used does not lose precision converting KNE values"""
     n = Decimal("20000000.00000003")
     satoshis = int(json.loads(json.dumps(float(n))) * 1.0e8)
     if satoshis != 2000000000000003:
@@ -238,7 +239,7 @@ def check_json_precision():
 
 
 class Binaries:
-    """Helper class to provide information about bitcoin binaries
+    """Helper class to provide information about Kronein binaries
 
     Attributes:
         paths: Object returned from get_binary_paths() containing information
@@ -252,51 +253,51 @@ class Binaries:
             "valgrind",
             f"--suppressions={suppressions_file}",
             "--gen-suppressions=all",
-            "--trace-children=yes",  # Needed for 'bitcoin' wrapper
+            "--trace-children=yes",  # Needed for the 'kronein' wrapper
             "--exit-on-first-error=yes",
             "--error-exitcode=1",
             "--quiet",
         ] if use_valgrind else []
 
     def node_argv(self, **kwargs):
-        "Return argv array that should be used to invoke bitcoind"
+        "Return argv array that should be used to invoke kroneind"
         return self._argv("node", self.paths.bitcoind, **kwargs)
 
     def rpc_argv(self):
-        "Return argv array that should be used to invoke bitcoin-cli"
-        # Add -nonamed because "bitcoin rpc" enables -named by default, but bitcoin-cli doesn't
+        "Return argv array that should be used to invoke kronein-cli"
+        # Add -nonamed because "kronein rpc" enables -named by default, but kronein-cli doesn't
         return self._argv("rpc", self.paths.bitcoincli) + ["-nonamed"]
 
     def bench_argv(self):
-        "Return argv array that should be used to invoke bench_bitcoin"
+        "Return argv array that should be used to invoke bench_kronein"
         return self._argv("bench", self.paths.bitcoin_bench)
 
     def tx_argv(self):
-        "Return argv array that should be used to invoke bitcoin-tx"
+        "Return argv array that should be used to invoke kronein-tx"
         return self._argv("tx", self.paths.bitcointx)
 
     def util_argv(self):
-        "Return argv array that should be used to invoke bitcoin-util"
+        "Return argv array that should be used to invoke kronein-util"
         return self._argv("util", self.paths.bitcoinutil)
 
     def wallet_argv(self):
-        "Return argv array that should be used to invoke bitcoin-wallet"
+        "Return argv array that should be used to invoke kronein-wallet"
         return self._argv("wallet", self.paths.bitcoinwallet)
 
     def chainstate_argv(self):
-        "Return argv array that should be used to invoke bitcoin-chainstate"
+        "Return argv array that should be used to invoke kronein-chainstate"
         return self._argv("chainstate", self.paths.bitcoinchainstate)
 
     def _argv(self, command, bin_path, need_ipc=False):
         """Return argv array that should be used to invoke the command.
 
-        It either uses the bitcoin wrapper executable (if BITCOIN_CMD is set or
-        need_ipc is True), or the direct binary path (bitcoind, etc). Valgrind
-        only applies to the bitcoin wrapper executable directly, not to the
-        commands that `bitcoin` calls.
+        It either uses the kronein wrapper executable (if BITCOIN_CMD is set or
+        need_ipc is True), or the direct binary path (kroneind, etc). Valgrind
+        only applies to the kronein wrapper executable directly, not to the
+        commands that `kronein` calls.
         """
         if self.paths.bitcoin_cmd is not None or need_ipc:
-            # If the current test needs IPC functionality, use the bitcoin
+            # If the current test needs IPC functionality, use the kronein
             # wrapper binary and append -m so it calls multiprocess binaries.
             bitcoin_cmd = self.paths.bitcoin_cmd or [self.paths.bitcoin_bin]
             return self.valgrind_cmd + bitcoin_cmd + (["-m"] if need_ipc else []) + [command]
@@ -309,16 +310,16 @@ def get_binary_paths(config):
 
     paths = types.SimpleNamespace()
     binaries = {
-        "bitcoin": "BITCOIN_BIN",
-        "bitcoind": "BITCOIND",
-        "bench_bitcoin": "BITCOIN_BENCH",
-        "bitcoin-cli": "BITCOINCLI",
-        "bitcoin-util": "BITCOINUTIL",
-        "bitcoin-tx": "BITCOINTX",
-        "bitcoin-chainstate": "BITCOINCHAINSTATE",
-        "bitcoin-wallet": "BITCOINWALLET",
+        "kronein": "BITCOIN_BIN",
+        "kroneind": "BITCOIND",
+        "bench_kronein": "BITCOIN_BENCH",
+        "kronein-cli": "BITCOINCLI",
+        "kronein-util": "BITCOINUTIL",
+        "kronein-tx": "BITCOINTX",
+        "kronein-chainstate": "BITCOINCHAINSTATE",
+        "kronein-wallet": "BITCOINWALLET",
     }
-    # Set paths to bitcoin core binaries allowing overrides with environment
+    # Set paths to Kronein Core binaries allowing overrides with environment
     # variables.
     for binary, env_variable_name in binaries.items():
         default_filename = os.path.join(
@@ -327,7 +328,7 @@ def get_binary_paths(config):
             binary + config["environment"]["EXEEXT"],
         )
         setattr(paths, env_variable_name.lower(), os.getenv(env_variable_name, default=default_filename))
-    # BITCOIN_CMD environment variable can be specified to invoke bitcoin
+    # BITCOIN_CMD environment variable can be specified to invoke kronein
     # wrapper binary instead of other executables.
     paths.bitcoin_cmd = shlex.split(os.getenv("BITCOIN_CMD", "")) or None
     return paths
@@ -366,10 +367,10 @@ def random_bitflip(data):
 
 
 def get_fee(tx_size, feerate_btc_kvb):
-    """Calculate the fee in BTC given a feerate is BTC/kvB. Reflects CFeeRate::GetFee"""
+    """Calculate the fee in KNE given a feerate is KNE/kvB. Reflects CFeeRate::GetFee"""
     feerate_sat_kvb = int(feerate_btc_kvb * Decimal(1e8)) # Fee in sat/kvb as an int to avoid float precision errors
     target_fee_sat = ceildiv(feerate_sat_kvb * tx_size, 1000) # Round calculated fee up to nearest sat
-    return target_fee_sat / Decimal(1e8) # Return result in  BTC
+    return target_fee_sat / Decimal(1e8) # Return result in  KNE
 
 
 def satoshi_round(amount: Union[int, float, str], *, rounding: str) -> Decimal:
@@ -525,7 +526,7 @@ def initialize_datadir(dirname, n, chain, disable_autoconnect=True):
     datadir = get_datadir_path(dirname, n)
     if not os.path.isdir(datadir):
         os.makedirs(datadir)
-    write_config(os.path.join(datadir, "bitcoin.conf"), n=n, chain=chain, disable_autoconnect=disable_autoconnect)
+    write_config(os.path.join(datadir, "kronein.conf"), n=n, chain=chain, disable_autoconnect=disable_autoconnect)
     os.makedirs(os.path.join(datadir, 'stderr'), exist_ok=True)
     os.makedirs(os.path.join(datadir, 'stdout'), exist_ok=True)
     return datadir
@@ -589,18 +590,18 @@ def get_temp_default_datadir(temp_dir: pathlib.Path) -> tuple[dict, pathlib.Path
     temp_dir, as well as the complete path it would return."""
     if platform.system() == "Windows":
         env = dict(APPDATA=str(temp_dir))
-        datadir = temp_dir / "Bitcoin"
+        datadir = temp_dir / "Kronein"
     else:
         env = dict(HOME=str(temp_dir))
         if platform.system() == "Darwin":
-            datadir = temp_dir / "Library/Application Support/Bitcoin"
+            datadir = temp_dir / "Library/Application Support/Kronein"
         else:
-            datadir = temp_dir / ".bitcoin"
+            datadir = temp_dir / ".kronein"
     return env, datadir
 
 
 def append_config(datadir, options):
-    with open(os.path.join(datadir, "bitcoin.conf"), 'a') as f:
+    with open(os.path.join(datadir, "kronein.conf"), 'a') as f:
         for option in options:
             f.write(option + "\n")
 
@@ -608,8 +609,8 @@ def append_config(datadir, options):
 def get_auth_cookie(datadir, chain):
     user = None
     password = None
-    if os.path.isfile(os.path.join(datadir, "bitcoin.conf")):
-        with open(os.path.join(datadir, "bitcoin.conf"), 'r') as f:
+    if os.path.isfile(os.path.join(datadir, "kronein.conf")):
+        with open(os.path.join(datadir, "kronein.conf"), 'r') as f:
             for line in f:
                 if line.startswith("rpcuser="):
                     assert user is None  # Ensure that there is only one rpcuser line

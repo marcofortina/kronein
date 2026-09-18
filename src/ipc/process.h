@@ -1,4 +1,5 @@
 // Copyright (c) 2021-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -13,7 +14,7 @@
 namespace ipc {
 class Protocol;
 
-//! IPC process interface for spawning bitcoin processes and serving requests
+//! IPC process interface for spawning Kronein processes and serving requests
 //! in processes that have been spawned.
 //!
 //! There will be different implementations of this interface depending on the

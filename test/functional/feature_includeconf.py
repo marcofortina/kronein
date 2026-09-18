@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2018-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Tests the includeconf argument
@@ -29,7 +30,7 @@ class IncludeConfTest(BitcoinTestFramework):
         # - tmpdir/node0/relative2.conf
         with open(self.nodes[0].datadir_path / "relative2.conf", "w") as f:
             f.write("uacomment=relative2\n")
-        with open(self.nodes[0].datadir_path / "bitcoin.conf", "a") as f:
+        with open(self.nodes[0].datadir_path / "kronein.conf", "a") as f:
             f.write("uacomment=main\nincludeconf=relative.conf\n")
         self.restart_node(0)
 
@@ -74,7 +75,7 @@ class IncludeConfTest(BitcoinTestFramework):
             # Restore initial file contents
             f.write("uacomment=relative\n")
 
-        with open(self.nodes[0].datadir_path / "bitcoin.conf", "a") as f:
+        with open(self.nodes[0].datadir_path / "kronein.conf", "a") as f:
             f.write("includeconf=relative2.conf\n")
 
         self.start_node(0)

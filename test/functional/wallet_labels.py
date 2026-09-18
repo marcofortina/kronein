@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2016-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test label RPCs.
@@ -61,7 +62,7 @@ class WalletLabelsTest(BitcoinTestFramework):
         addr_info = node.getaddressinfo(address)
         assert_equal(addr_info.get('labels', []), [label_with_equals])
 
-        self.log.info("Test bitcoin-cli -named passes parameter containing '=' by position if it does not specify a known parameter name and is in a string position")
+        self.log.info("Test kronein-cli -named passes parameter containing '=' by position if it does not specify a known parameter name and is in a string position")
         equals_label = "my=label"
         result = node.cli("-named", "getnewaddress", equals_label).send_cli()
         address = result.strip()

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2020-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test add_outbound_p2p_connection test framework functionality"""
@@ -14,7 +15,7 @@ from test_framework.util import (
 
 class P2PFeelerReceiver(P2PInterface):
     def on_version(self, message):
-        # The bitcoind node closes feeler connections as soon as a version
+        # The kroneind node closes feeler connections as soon as a version
         # message is received from the test framework. Don't send any responses
         # to the node's version message since the connection will already be
         # closed.

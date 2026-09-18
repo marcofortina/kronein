@@ -1,4 +1,5 @@
 // Copyright (c) 2018-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -94,7 +95,7 @@ using SettingsUpdate = std::function<std::optional<interfaces::SettingsAction>(c
 //! estimate fees, and submit transactions.
 //!
 //! TODO: Current chain methods are too low level, exposing too much of the
-//! internal workings of the bitcoin node, and not being very convenient to use.
+//! internal workings of the Kronein node, and not being very convenient to use.
 //! Chain methods should be cleaned up and simplified over time. Examples:
 //!
 //! * The initMessages() and showProgress() methods which the wallet uses to send

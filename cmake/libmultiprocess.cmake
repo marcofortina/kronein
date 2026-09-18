@@ -1,10 +1,11 @@
 # Copyright (c) 2025-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://opensource.org/license/mit/.
 
 function(add_libmultiprocess subdir)
   # Set BUILD_TESTING to match BUILD_TESTS. BUILD_TESTING is a standard cmake
-  # option that controls whether enable_testing() is called, but in the bitcoin
+  # option that controls whether enable_testing() is called, but in the Kronein
   # build a BUILD_TESTS option is used instead.
   set(BUILD_TESTING "${BUILD_TESTS}")
   add_subdirectory(${subdir} EXCLUDE_FROM_ALL)

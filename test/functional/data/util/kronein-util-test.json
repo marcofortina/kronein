@@ -1,138 +1,138 @@
 [
-  { "exec": "./bitcoin-util",
+  { "exec": "./kronein-util",
     "args": ["foo"],
     "return_code": 1,
     "error_txt": "Error parsing command line arguments: Invalid command 'foo'",
     "description": ""
   },
-  { "exec": "./bitcoin-util",
+  { "exec": "./kronein-util",
     "args": ["help"],
     "return_code": 1,
     "error_txt": "Error parsing command line arguments: Invalid command 'help'",
     "description": "`help` raises an error. Use `-help`"
   },
-  { "exec": "./bitcoin-util",
+  { "exec": "./kronein-util",
     "args": ["grind"],
     "return_code": 1,
     "error_txt": "Must specify block header to grind",
     "description": ""
   },
-  { "exec": "./bitcoin-util",
+  { "exec": "./kronein-util",
     "args": ["grind", "1", "2"],
     "return_code": 1,
     "error_txt": "Must specify block header to grind",
     "description": ""
   },
-  { "exec": "./bitcoin-util",
+  { "exec": "./kronein-util",
     "args": ["grind", "aa"],
     "return_code": 1,
     "error_txt": "Could not decode block header",
     "description": ""
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-create"],
     "output_cmp": "blanktxv1.hex",
     "description": "Creates a blank v1 transaction"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-json","-create"],
     "output_cmp": "blanktxv1.json",
     "description": "Creates a blank v1 transaction (output in json)"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-"],
     "input": "blanktxv1.hex",
     "output_cmp": "blanktxv1.hex",
-    "description": "Creates a blank transaction when nothing is piped into bitcoin-tx"
+    "description": "Creates a blank transaction when nothing is piped into kronein-tx"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-json","-create"],
     "output_cmp": "blanktxv1.json",
     "description": "Creates a blank transaction (output in json)"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-json","-"],
     "input": "blanktxv1.hex",
     "output_cmp": "blanktxv1.json",
-    "description": "Creates a blank transaction when nothing is piped into bitcoin-tx (output in json)"
+    "description": "Creates a blank transaction when nothing is piped into kronein-tx (output in json)"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-", "delin=1"],
     "input": "txnativev1.hex",
     "output_cmp": "tt-delin1-out.hex",
     "description": "Deletes a single input from a transaction"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-json", "-", "delin=1"],
     "input": "txnativev1.hex",
     "output_cmp": "tt-delin1-out.json",
     "description": "Deletes a single input from a transaction (output in json)"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-", "delin=31"],
     "input": "txnativev1.hex",
     "return_code": 1,
     "error_txt": "error: Invalid TX input index '31'",
     "description": "Attempts to delete an input with a bad index from a transaction. Expected to fail."
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-", "delin=1foo"],
     "input": "txnativev1.hex",
     "return_code": 1,
     "error_txt": "error: Invalid TX input index",
     "description": "Tests the check for an invalid input index with delin"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-", "delout=1"],
     "input": "txnativev1.hex",
     "output_cmp": "tt-delout1-out.hex",
     "description": "Deletes a single output from a transaction"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-json", "-", "delout=1"],
     "input": "txnativev1.hex",
     "output_cmp": "tt-delout1-out.json",
     "description": "Deletes a single output from a transaction (output in json)"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-", "delout=2"],
     "input": "txnativev1.hex",
     "return_code": 1,
     "error_txt": "error: Invalid TX output index '2'",
     "description": "Attempts to delete an output with a bad index from a transaction. Expected to fail."
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-", "delout=1foo"],
     "input": "txnativev1.hex",
     "return_code": 1,
     "error_txt": "error: Invalid TX output index",
     "description": "Tests the check for an invalid output index with delout"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-", "locktime=317000"],
     "input": "txnativev1.hex",
     "output_cmp": "tt-locktime317000-out.hex",
     "description": "Adds an nlocktime to a transaction"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-json", "-", "locktime=317000"],
     "input": "txnativev1.hex",
     "output_cmp": "tt-locktime317000-out.json",
     "description": "Adds an nlocktime to a transaction (output in json)"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-create", "locktime=+317"],
     "return_code": 1,
     "error_txt": "error: Invalid TX locktime requested",
     "description": "Tests the check for invalid locktime value"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-create", "locktime=317000foo"],
     "return_code": 1,
     "error_txt": "error: Invalid TX locktime requested",
     "description": "Tests the check for invalid locktime value"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=Z897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:0"],
@@ -140,7 +140,7 @@
     "error_txt": "error: invalid TX input txid",
     "description": "Tests the check for an invalid txid invalid hex"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6:0"],
@@ -148,7 +148,7 @@
     "error_txt": "error: invalid TX input txid",
     "description": "Tests the check for an invalid txid valid hex but too short"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f12:0"],
@@ -156,7 +156,7 @@
     "error_txt": "error: invalid TX input txid",
     "description": "Tests the check for an invalid txid valid hex but too long"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:0",
@@ -165,7 +165,7 @@
     "error_txt": "error: Invalid TX input index",
     "description": "Tests the check for an invalid string input index with replaceable"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:0",
@@ -175,7 +175,7 @@
     "description": "Tests the check for an invalid string input index with replaceable"
   },
   {
-    "exec": "./bitcoin-tx",
+    "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:0",
@@ -185,7 +185,7 @@
     "description": "Tests the check for an invalid negative input index with replaceable"
   },
   {
-    "exec": "./bitcoin-tx",
+    "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:0",
@@ -195,7 +195,7 @@
     "description": "Tests the check for an invalid positive out-of-bounds input index with replaceable"
   },
   {
-    "exec": "./bitcoin-tx",
+    "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:0",
@@ -204,7 +204,7 @@
     "description": "Tests that the 'SEQUENCE' value for a single input is set to fdffffff for single input"
   },
   {
-    "exec": "./bitcoin-tx",
+    "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:0",
@@ -213,7 +213,7 @@
     "description": "Tests that the 'SEQUENCE' value for a single input is set to fdffffff when N omitted"
   },
   {
-    "exec": "./bitcoin-tx",
+    "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:0",
@@ -224,7 +224,7 @@
     "description": "Tests that only the 'SEQUENCE' value of input[1] is set to fdffffff"
   },
   {
-    "exec": "./bitcoin-tx",
+    "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:0",
@@ -235,7 +235,7 @@
     "description": "Tests that the 'SEQUENCE' value for each input is set to fdffffff when N omitted"
   },
   {
-    "exec": "./bitcoin-tx",
+    "exec": "./kronein-tx",
     "args":
     ["-create",
      "replaceable="],
@@ -243,7 +243,7 @@
     "description": "Tests behavior when no inputs are provided in the transaction"
   },
   {
-    "exec": "./bitcoin-tx",
+    "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:0:abcdef00",
@@ -252,7 +252,7 @@
     "error_txt": "error: invalid TX sequence id 'abcdef00'",
     "description": "Try to make invalid input replaceable"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:+0"],
@@ -260,7 +260,7 @@
     "error_txt": "error: invalid TX input vout",
     "description": "Tests the check for an invalid vout value when adding an input"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:0x"],
@@ -268,7 +268,7 @@
     "error_txt": "error: invalid TX input vout",
     "description": "Tests the check for an invalid vout value when adding an input"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-create",
      "outaddr=1"],
@@ -276,7 +276,7 @@
     "error_txt": "error: TX output missing or too many separators",
     "description": "Malformed outaddr argument (no address specified). Expected to fail."
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-create",
      "outaddr=1:bc1pqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqsyjer9e:garbage"],
@@ -284,7 +284,7 @@
     "error_txt": "error: TX output missing or too many separators",
     "description": "Malformed outaddr argument (too many separators). Expected to fail."
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:0",
@@ -295,7 +295,7 @@
     "output_cmp": "txcreate1.hex",
     "description": "Creates a new transaction with three inputs and two outputs"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-json",
      "-create",
@@ -307,83 +307,83 @@
     "output_cmp": "txcreate1.json",
     "description": "Creates a new transaction with three inputs and two outputs (output in json)"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-create", "outscript=0:"],
     "output_cmp": "txcreate2.hex",
     "description": "Creates a new transaction with a single empty output script"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-json", "-create", "outscript=0:"],
     "output_cmp": "txcreate2.json",
     "description": "Creates a new transaction with a single empty output script (output in json)"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["01000000000100000000000000000000000000"],
     "output_cmp": "txcreate2.hex",
     "description": "Parses a transaction with no inputs and a single output script"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-json", "01000000000100000000000000000000000000"],
     "output_cmp": "txcreate2.json",
     "description": "Parses a transaction with no inputs and a single output script (output in json)"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-create", "outscript=0:123badscript"],
     "return_code": 1,
     "error_txt": "error: script parse error: unknown opcode",
     "description": "Create a new transaction with an invalid output script"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-create", "outscript=0:OP_DROP"],
     "output_cmp": "txcreatescript1.hex",
     "description": "Create a new transaction with a single output script (OP_DROP)"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-json", "-create", "outscript=0:OP_DROP"],
     "output_cmp": "txcreatescript1.json",
     "description": "Create a new transaction with a single output script (OP_DROP) (output as json)"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-create", "outscript=0:999999999999999999999999999999"],
     "return_code": 1,
     "error_txt": "error: script parse error: decimal numeric value only allowed in the range -0xFFFFFFFF...0xFFFFFFFF",
     "description": "Try to parse an output script with a decimal number above the allowed range"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-create", "outscript=0:9999999999"],
     "return_code": 1,
     "error_txt": "error: script parse error: decimal numeric value only allowed in the range -0xFFFFFFFF...0xFFFFFFFF",
     "description": "Try to parse an output script with a decimal number above the allowed range"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-create", "outscript=0:4294967296"],
     "return_code": 1,
     "error_txt": "error: script parse error: decimal numeric value only allowed in the range -0xFFFFFFFF...0xFFFFFFFF",
     "description": "Try to parse an output script with a decimal number just above the allowed range"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-create", "outscript=0:4294967295"],
     "output_cmp": "txcreatescript5.hex",
     "description": "Try to parse an output script with a decimal number at the upper limit of the allowed range"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-create", "outscript=0:-9999999999"],
     "return_code": 1,
     "error_txt": "error: script parse error: decimal numeric value only allowed in the range -0xFFFFFFFF...0xFFFFFFFF",
     "description": "Try to parse an output script with a decimal number below the allowed range"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-create", "outscript=0:-4294967296"],
     "return_code": 1,
     "error_txt": "error: script parse error: decimal numeric value only allowed in the range -0xFFFFFFFF...0xFFFFFFFF",
     "description": "Try to parse an output script with a decimal number just below the allowed range"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args": ["-create", "outscript=0:-4294967295"],
     "output_cmp": "txcreatescript6.hex",
     "description": "Try to parse an output script with a decimal number at the lower limit of the allowed range"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:0",
@@ -392,7 +392,7 @@
     "error_txt": "error: invalid TX output data",
     "description": "Attempts to create a new transaction with one input and an output with malformed hex data. Expected to fail"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:0",
@@ -401,7 +401,7 @@
     "error_txt": "error: invalid TX output data",
     "description": "Attempts to create a new transaction with one input and an output with no value and malformed hex data. Expected to fail"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:0",
@@ -410,7 +410,7 @@
     "output_cmp": "txcreatedata1.hex",
     "description": "Creates a new transaction with one input, one address output and one data output"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-json",
      "-create",
@@ -420,7 +420,7 @@
     "output_cmp": "txcreatedata1.json",
     "description": "Creates a new v1 transaction with one input, one address output and one data output (output in json)"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:0",
@@ -429,7 +429,7 @@
     "output_cmp": "txcreatedata2.hex",
     "description": "Creates a new transaction with one input, one address output and one data (zero value) output"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-json",
      "-create",
@@ -439,7 +439,7 @@
     "output_cmp": "txcreatedata2.json",
     "description": "Creates a new transaction with one input, one address output and one data (zero value) output (output in json)"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:0:11aa"],
@@ -447,7 +447,7 @@
     "error_txt": "error: invalid TX sequence id '11aa'",
     "description": "Try to parse a sequence number outside the allowed range"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:0:-1"],
@@ -455,7 +455,7 @@
     "error_txt": "error: invalid TX sequence id '-1'",
     "description": "Try to parse a sequence number outside the allowed range"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:0:4294967296"],
@@ -463,7 +463,7 @@
     "error_txt": "error: invalid TX sequence id '4294967296'",
     "description": "Try to parse a sequence number outside the allowed range"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:0:4294967293",
@@ -471,7 +471,7 @@
     "output_cmp": "txcreatedata_seq0.hex",
     "description": "Creates a new transaction with one input with sequence number and one address output"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-create",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:0: 4294967293 ",
@@ -479,7 +479,7 @@
     "output_cmp": "txcreatedata_seq0.hex",
     "description": "Creates a new transaction with one input with sequence number (+whitespace) and one address output"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-json",
      "-create",
@@ -488,14 +488,14 @@
     "output_cmp": "txcreatedata_seq0.json",
     "description": "Creates a new transaction with one input with sequence number and one address output (output in json)"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["01000000015897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f0000000000fdffffff0180a812010000000022512001010101010101010101010101010101010101010101010101010101010101010000000000",
      "in=5897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f:0:1"],
     "output_cmp": "txcreatedata_seq1.hex",
     "description": "Adds a new input with sequence number to a transaction"
   },
-  { "exec": "./bitcoin-tx",
+  { "exec": "./kronein-tx",
     "args":
     ["-json",
      "01000000015897de6bd6027a475eadd57019d4e6872c396d0716c4875a5f1a6fcfdf385c1f0000000000fdffffff0180a812010000000022512001010101010101010101010101010101010101010101010101010101010101010000000000",

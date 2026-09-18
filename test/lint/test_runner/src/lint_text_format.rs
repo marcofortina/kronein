@@ -1,4 +1,5 @@
 // Copyright (c) The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
@@ -18,7 +19,7 @@ fn get_pathspecs_exclude_whitespace() -> Vec<String> {
             "contrib/windeploy/win-codesign.cert",
             "doc/README_windows.txt",
             // Temporary excludes, or existing violations
-            "contrib/init/bitcoind.openrc",
+            "contrib/init/kroneind.openrc",
             "contrib/macdeploy/macdeployqtplus",
             "src/crypto/sha256_sse4.cpp",
             "src/qt/res/src/*.svg",

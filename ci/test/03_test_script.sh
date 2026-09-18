@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
 # Copyright (c) 2018-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -58,9 +59,9 @@ fi
 
 # Make sure default datadir does not exist and is never read by creating a dummy file
 if [ "$CI_OS_NAME" == "macos" ]; then
-  echo > "${HOME}/Library/Application Support/Bitcoin"
+  echo > "${HOME}/Library/Application Support/Kronein"
 else
-  echo > "${HOME}/.bitcoin"
+  echo > "${HOME}/.kronein"
 fi
 
 if [ -z "$NO_DEPENDS" ]; then
@@ -126,8 +127,8 @@ if [ "$RUN_CHECK_DEPS" = "true" ]; then
 fi
 
 if [[ "$CI_OS_NAME" == "macos" && "${GOAL}" = "install deploy" ]]; then
-  unzip "${BASE_BUILD_DIR}/bitcoin-macos-app.zip" -d "${BASE_BUILD_DIR}/deploy"
-  if ! ( codesign --verify "${BASE_BUILD_DIR}/deploy/Bitcoin-Qt.app" ); then
+  unzip "${BASE_BUILD_DIR}/kronein-macos-app.zip" -d "${BASE_BUILD_DIR}/deploy"
+  if ! ( codesign --verify "${BASE_BUILD_DIR}/deploy/Kronein-Qt.app" ); then
     echo "Codesigning failed."
     false
   fi

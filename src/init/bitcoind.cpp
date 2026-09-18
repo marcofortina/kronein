@@ -1,4 +1,5 @@
 // Copyright (c) 2021-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -18,7 +19,7 @@ using node::NodeContext;
 
 namespace init {
 namespace {
-const char* EXE_NAME = "bitcoind";
+const char* EXE_NAME = "kroneind";
 
 class BitcoindInit : public interfaces::Init
 {

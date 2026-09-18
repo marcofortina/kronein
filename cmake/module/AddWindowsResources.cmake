@@ -1,4 +1,5 @@
 # Copyright (c) 2024-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://opensource.org/license/mit/.
 
@@ -14,6 +15,10 @@ endfunction()
 # See: https://learn.microsoft.com/en-us/windows/win32/sbscs/application-manifests
 function(add_windows_application_manifest target)
   if(WIN32)
+    get_target_property(application_name ${target} OUTPUT_NAME)
+    if(NOT application_name)
+      set(application_name ${target})
+    endif()
     configure_file(${PROJECT_SOURCE_DIR}/cmake/windows-app.manifest.in ${target}.manifest USE_SOURCE_PERMISSIONS)
     file(CONFIGURE
       OUTPUT ${target}-manifest.rc

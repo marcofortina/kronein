@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 """
     ZMQ example using python3's asyncio
 
-    Bitcoin should be started with the command line arguments:
-        bitcoind -testnet4 -daemon \
+    Kronein should be started with the command line arguments:
+        kroneind -testnet4 -daemon \
                 -zmqpubrawtx=tcp://127.0.0.1:28332 \
                 -zmqpubrawblock=tcp://127.0.0.1:28332 \
                 -zmqpubhashtx=tcp://127.0.0.1:28332 \

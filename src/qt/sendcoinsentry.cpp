@@ -1,4 +1,5 @@
 // Copyright (c) 2011-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -90,7 +91,7 @@ void SendCoinsEntry::clear()
     ui->messageTextLabel->hide();
     ui->messageLabel->hide();
 
-    // update the display unit, to not use the default ("BTC")
+    // Update the display unit instead of using the default ("KNE").
     updateDisplayUnit();
 }
 

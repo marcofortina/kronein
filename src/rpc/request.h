@@ -1,5 +1,6 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -13,7 +14,7 @@
 #include <univalue.h>
 #include <util/fs.h>
 
-/** JSON-RPC 2.0 request, only used in bitcoin-cli. */
+/** JSON-RPC 2.0 request, only used in kronein-cli. */
 UniValue JSONRPCRequestObj(const std::string& strMethod, const UniValue& params, const UniValue& id);
 UniValue JSONRPCReplyObj(UniValue result, UniValue error, std::optional<UniValue> id);
 UniValue JSONRPCError(int code, const std::string& message);

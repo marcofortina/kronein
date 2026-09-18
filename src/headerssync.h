@@ -1,4 +1,5 @@
 // Copyright (c) 2022-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -57,7 +58,7 @@ struct CompressedHeader {
  *
  * We wish to download a peer's headers chain in a DoS-resistant way.
  *
- * The Bitcoin protocol does not offer an easy way to determine the work on a
+ * The Kronein protocol does not offer an easy way to determine the work on a
  * peer's chain. Currently, we can query a peer's headers by using a GETHEADERS
  * message, and our peer can return a set of up to 2000 headers that connect to
  * something we know. If a peer's chain has more than 2000 blocks, then we need

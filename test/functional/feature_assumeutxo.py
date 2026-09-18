@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # Copyright (c) 2021-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test for assumeutxo, a means of quickly bootstrapping a node using
 a serialized version of the UTXO set at a certain height, which corresponds
-to a hash that has been compiled into bitcoind.
+to a hash that has been compiled into kroneind.
 
 The assumeutxo value generated and used here is committed to in
 `CRegTestParams::m_assumeutxo_data` in `src/kernel/chainparams.cpp`.
@@ -198,7 +199,7 @@ class AssumeutxoTest(BitcoinTestFramework):
         self.start_node(0)
 
     def test_invalid_mempool_state(self, dump_output_path):
-        self.log.info("Test bitcoind should fail when mempool not empty.")
+        self.log.info("Test kroneind should fail when mempool not empty.")
         node=self.nodes[2]
         tx = MiniWallet(node).send_self_transfer(from_node=node)
 
@@ -211,13 +212,13 @@ class AssumeutxoTest(BitcoinTestFramework):
         self.restart_node(2, extra_args=self.extra_args[2])
 
     def test_invalid_file_path(self):
-        self.log.info("Test bitcoind should fail when file path is invalid.")
+        self.log.info("Test kroneind should fail when file path is invalid.")
         node = self.nodes[0]
         path = node.datadir_path / node.chain / "invalid" / "path"
         assert_raises_rpc_error(-8, "Couldn't open file {} for reading.".format(path), node.loadtxoutset, path)
 
     def test_snapshot_with_less_work(self, dump_output_path):
-        self.log.info("Test bitcoind should fail when snapshot has less accumulated work than this node.")
+        self.log.info("Test kroneind should fail when snapshot has less accumulated work than this node.")
         node = self.nodes[0]
         msg = "Unable to load UTXO snapshot: Population failed: Work does not exceed active chainstate."
         assert_raises_rpc_error(-32603, msg, node.loadtxoutset, dump_output_path)

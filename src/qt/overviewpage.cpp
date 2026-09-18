@@ -1,4 +1,5 @@
 // Copyright (c) 2011-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -239,7 +240,7 @@ void OverviewPage::setWalletModel(WalletModel *model)
         connect(model->getOptionsModel(), &OptionsModel::displayUnitChanged, this, &OverviewPage::updateDisplayUnit);
     }
 
-    // update the display unit, to not use the default ("BTC")
+    // Update the display unit instead of using the default ("KNE").
     updateDisplayUnit();
 }
 

@@ -1,4 +1,5 @@
 // Copyright (c) 2017-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -120,8 +121,8 @@ int ParseVerbosity(const UniValue& arg, int default_verbosity);
  */
 CAmount AmountFromValue(const UniValue& value, int decimals = 8);
 /**
- * Parse a json number or string, denoting BTC/kvB, into a CFeeRate (sat/kvB).
- * Reject negative values or rates larger than 1BTC/kvB.
+ * Parse a json number or string, denoting KNE/kvB, into a CFeeRate (sat/kvB).
+ * Reject negative values or rates larger than 1 KNE/kvB.
  */
 CFeeRate ParseFeeRate(const UniValue& json);
 

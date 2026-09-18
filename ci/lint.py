@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://opensource.org/license/mit/.
 
@@ -38,7 +39,7 @@ def get_worktree_mounts(repo_root):
 def main():
     repo_root = Path(__file__).resolve().parent.parent
     is_ci = os.environ.get("GITHUB_ACTIONS") == "true"
-    container = "bitcoin-linter"
+    container = "kronein-linter"
 
     build_cmd = [
         "docker",

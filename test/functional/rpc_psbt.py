@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2018-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the Partially Signed Transaction RPCs.
@@ -640,7 +641,7 @@ class PSBTTest(BitcoinTestFramework):
         self.log.info("PSBT parameter handling test completed successfully")
 
     def run_test(self):
-        # Create and fund a raw tx for sending 10 BTC
+        # Create and fund a raw tx for sending 10 KNE
         psbtx1 = self.nodes[0].walletcreatefundedpsbt([], [{self.nodes[2].getnewaddress():10}])['psbt']
 
         self.log.info("Test for invalid maximum transaction weights")

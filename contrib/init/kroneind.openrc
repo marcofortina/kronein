@@ -1,19 +1,19 @@
 #!/sbin/openrc-run
 
-BITCOIND_CONFIGFILE=${BITCOIND_CONFIGFILE:-/etc/bitcoin/bitcoin.conf}
-BITCOIND_PIDDIR=${BITCOIND_PIDDIR:-/var/run/bitcoind}
-BITCOIND_PIDFILE=${BITCOIND_PIDFILE:-${BITCOIND_PIDDIR}/bitcoind.pid}
-BITCOIND_DATADIR=${BITCOIND_DATADIR:-/var/lib/bitcoind}
-BITCOIND_USER=${BITCOIND_USER:-bitcoin}
-BITCOIND_GROUP=${BITCOIND_GROUP:-bitcoin}
-BITCOIND_BIN=${BITCOIND_BIN:-/usr/bin/bitcoind}
+BITCOIND_CONFIGFILE=${BITCOIND_CONFIGFILE:-/etc/kronein/kronein.conf}
+BITCOIND_PIDDIR=${BITCOIND_PIDDIR:-/var/run/kroneind}
+BITCOIND_PIDFILE=${BITCOIND_PIDFILE:-${BITCOIND_PIDDIR}/kroneind.pid}
+BITCOIND_DATADIR=${BITCOIND_DATADIR:-/var/lib/kroneind}
+BITCOIND_USER=${BITCOIND_USER:-kronein}
+BITCOIND_GROUP=${BITCOIND_GROUP:-kronein}
+BITCOIND_BIN=${BITCOIND_BIN:-/usr/bin/kroneind}
 BITCOIND_NICE=${BITCOIND_NICE:-0}
 BITCOIND_OPTS="${BITCOIND_OPTS:-}"
 
 name="Kronein Core Daemon"
 description="Kronein cryptocurrency P2P network daemon"
 
-command="/usr/bin/bitcoind"
+command="/usr/bin/kroneind"
 command_args="-pid=\"${BITCOIND_PIDFILE}\" \
 		-conf=\"${BITCOIND_CONFIGFILE}\" \
 		-datadir=\"${BITCOIND_DATADIR}\" \
@@ -64,7 +64,7 @@ checkconfig()
 	if grep -qs '^rpcuser=' "${BITCOIND_CONFIGFILE}" && \
 		! grep -qs '^rpcpassword=' "${BITCOIND_CONFIGFILE}" ; then
 		eerror ""
-		eerror "ERROR: You must set a secure rpcpassword to run bitcoind."
+		eerror "ERROR: You must set a secure rpcpassword to run kroneind."
 		eerror "The setting must appear in ${BITCOIND_CONFIGFILE}"
 		eerror ""
 		eerror "This password is security critical to securing wallets "

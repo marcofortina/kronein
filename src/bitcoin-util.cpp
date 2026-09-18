@@ -1,4 +1,5 @@
 // Copyright (c) 2009-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -52,16 +53,16 @@ static int AppInitUtil(ArgsManager& args, int argc, char* argv[])
 
     if (HelpRequested(args) || args.GetBoolArg("-version", false)) {
         // First part of help message is specific to this utility
-        std::string strUsage = CLIENT_NAME " bitcoin-util utility version " + FormatFullVersion() + "\n";
+        std::string strUsage = CLIENT_NAME " kronein-util utility version " + FormatFullVersion() + "\n";
 
         if (args.GetBoolArg("-version", false)) {
             strUsage += FormatParagraph(LicenseInfo());
         } else {
             strUsage += "\n"
-                "The bitcoin-util tool provides bitcoin related functionality that does not rely on the ability to access a running node. Available [commands] are listed below.\n"
+                "The kronein-util tool provides Kronein-related functionality that does not rely on the ability to access a running node. Available [commands] are listed below.\n"
                 "\n"
-                "Usage:  bitcoin-util [options] [command]\n"
-                "or:     bitcoin-util [options] grind <hex-block-header>\n";
+                "Usage:  kronein-util [options] [command]\n"
+                "or:     kronein-util [options] grind <hex-block-header>\n";
             strUsage += "\n" + args.GetHelpMessage();
         }
 

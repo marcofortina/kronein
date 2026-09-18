@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2018-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -73,7 +74,7 @@ class CreateTxWalletTest(BitcoinTestFramework):
         # Hit maxtxfee with explicit fee rate
         self.log.info('Check maxtxfee in combination with explicit fee_rate=1000 sat/vB')
 
-        fee_rate_sats_per_vb = Decimal('0.01') * Decimal(1e8) / 1000  # Convert 0.01 BTC/kvB to sat/vB
+        fee_rate_sats_per_vb = Decimal('0.01') * Decimal(1e8) / 1000  # Convert 0.01 KNE/kvB to sat/vB
 
         assert_raises_rpc_error(
             -6,

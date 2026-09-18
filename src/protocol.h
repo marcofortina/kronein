@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -54,7 +55,7 @@ public:
 };
 
 /**
- * Bitcoin protocol message types. When adding new message types, don't forget
+ * Kronein protocol message types. When adding new message types, don't forget
  * to update ALL_NET_MESSAGE_TYPES below.
  */
 namespace NetMsgType {
@@ -240,7 +241,7 @@ enum ServiceFlags : uint64_t {
     // Nothing
     NODE_NONE = 0,
     // NODE_NETWORK means that the node is capable of serving the complete block chain. It is currently
-    // set by all Bitcoin Core non pruned nodes, and is unset by SPV clients or other light clients.
+    // set by all Kronein Core non-pruned nodes, and is unset by SPV clients or other light clients.
     NODE_NETWORK = (1 << 0),
     // NODE_COMPACT_FILTERS means the node will service basic block filter requests.
     // See BIP157 and BIP158 for details on how this is implemented.

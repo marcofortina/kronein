@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2021-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test simulaterawtransaction.
@@ -71,7 +72,7 @@ class SimulateTxTest(BitcoinTestFramework):
         tx1changepos = funding["changepos"]
         bitcoin_fee = Decimal(funding["fee"])
 
-        # w0 sees fee + 5 btc decrease, w2 sees + 5 btc
+        # w0 sees fee + 5 KNE decrease, w2 sees + 5 KNE
         assert_approx(w0.simulaterawtransaction([tx1])["balance_change"], -(Decimal("5") + bitcoin_fee))
         assert_approx(w2.simulaterawtransaction([tx1])["balance_change"], Decimal("5"))
 
