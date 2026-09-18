@@ -19,7 +19,7 @@
 #include <vector>
 
 namespace wallet {
-static const std::string DUMP_MAGIC = "BITCOIN_CORE_WALLET_DUMP";
+static const std::string DUMP_MAGIC = "KRONEIN_CORE_WALLET_DUMP";
 
 bool DumpWallet(const ArgsManager& args, WalletDatabase& db, bilingual_str& error)
 {

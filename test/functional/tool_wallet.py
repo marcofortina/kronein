@@ -99,7 +99,7 @@ class ToolWalletTest(BitcoinTestFramework):
 
     def write_dump(self, dump, filename, magic=None, skip_checksum=False):
         if magic is None:
-            magic = "BITCOIN_CORE_WALLET_DUMP"
+            magic = "KRONEIN_CORE_WALLET_DUMP"
         with open(filename, "w") as f:
             f.write(magic + "\n")
             for k, v in dump.items():
@@ -262,7 +262,7 @@ class ToolWalletTest(BitcoinTestFramework):
         dump_data = self.read_dump(wallet_dump)
         orig_dump = dump_data.copy()
         # Check the dump magic
-        assert_equal(dump_data['BITCOIN_CORE_WALLET_DUMP'], '')
+        assert_equal(dump_data['KRONEIN_CORE_WALLET_DUMP'], '')
 
         self.log.info('Checking that a dumpfile cannot be overwritten')
         self.assert_raises_tool_error('File {} already exists. If you are sure this is what you want, move it out of the way first.'.format(wallet_dump),  '-wallet=todump2', '-dumpfile={}'.format(wallet_dump), 'dump')
@@ -280,10 +280,10 @@ class ToolWalletTest(BitcoinTestFramework):
 
         self.log.info('Checking createfromdump handling of magic')
         bad_magic_wallet_dump = self.nodes[0].datadir_path / "wallet-bad_magic.dump"
-        del dump_data["BITCOIN_CORE_WALLET_DUMP"]
+        del dump_data["KRONEIN_CORE_WALLET_DUMP"]
         dump_data["not_the_right_magic"] = ""
         self.write_dump(dump_data, bad_magic_wallet_dump, "not_the_right_magic")
-        self.assert_raises_tool_error('Error: Dumpfile identifier record is incorrect. Got "not_the_right_magic", expected "BITCOIN_CORE_WALLET_DUMP".', '-wallet=badload', '-dumpfile={}'.format(bad_magic_wallet_dump), 'createfromdump')
+        self.assert_raises_tool_error('Error: Dumpfile identifier record is incorrect. Got "not_the_right_magic", expected "KRONEIN_CORE_WALLET_DUMP".', '-wallet=badload', '-dumpfile={}'.format(bad_magic_wallet_dump), 'createfromdump')
         assert not (self.nodes[0].wallets_path / "badload").is_dir()
 
         self.log.info('Checking createfromdump handling of checksums')
