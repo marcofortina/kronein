@@ -59,7 +59,7 @@
     </message>
     <message>
         <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">비트코인을 보내는 계좌 주소입니다. 코인을 보내기 전에 금액과 받는 주소를 항상 확인하십시오.</translation>
+        <translation type="unfinished">Kronein을 보내는 계좌 주소입니다. 코인을 보내기 전에 금액과 받는 주소를 항상 확인하십시오.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -159,7 +159,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">경고: 만약 암호화 된 지갑의 암호문을 잃어버릴 경우, &lt;b&gt;모든 비트코인들을 잃어버릴 수 있습니다&lt;/b&gt;!</translation>
+        <translation type="unfinished">경고: 만약 암호화 된 지갑의 암호문을 잃어버릴 경우, &lt;b&gt;모든 KNE들을 잃어버릴 수 있습니다&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -314,7 +314,7 @@
     </message>
     <message>
         <source>Enter a Kronein address (e.g. %1)</source>
-        <translation type="unfinished">비트코인 주소를 입력하세요 (예: %1)</translation>
+        <translation type="unfinished">Kronein 주소를 입력하세요 (예: %1)</translation>
     </message>
     <message>
         <source>Unroutable</source>
@@ -501,7 +501,7 @@
     </message>
     <message>
         <source>Send coins to a Kronein address</source>
-        <translation type="unfinished">코인을 비트코인 주소로 전송합니다.</translation>
+        <translation type="unfinished">코인을 Kronein 주소로 전송합니다.</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -655,7 +655,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction</source>
-        <translation type="unfinished">부분적으로 서명된 비트코인 트랜잭션 불러오기</translation>
+        <translation type="unfinished">부분적으로 서명된 Kronein 트랜잭션 불러오기</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
@@ -663,7 +663,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction from clipboard</source>
-        <translation type="unfinished">클립보드로부터 부분적으로 서명된 비트코인 트랜잭션 불러오기</translation>
+        <translation type="unfinished">클립보드로부터 부분적으로 서명된 Kronein 트랜잭션 불러오기</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -713,7 +713,7 @@
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
-        <translation type="unfinished">사용할 수 있는 비트코인 명령줄 옵션 목록을 가져오기 위해 %1 도움말 메시지를 표시합니다.</translation>
+        <translation type="unfinished">사용할 수 있는 Kronein 명령줄 옵션 목록을 가져오기 위해 %1 도움말 메시지를 표시합니다.</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -775,7 +775,7 @@
         <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>비트코인 네트워크에 활성화된 %n연결</numerusform>
+            <numerusform>Kronein 네트워크에 활성화된 %n연결</numerusform>
         </translation>
     </message>
     <message>
@@ -1235,7 +1235,7 @@
     </message>
     <message>
         <source>The entered address "%1" is not a valid Kronein address.</source>
-        <translation type="unfinished">입력한 "%1" 주소는 올바른 비트코인 주소가 아닙니다.</translation>
+        <translation type="unfinished">입력한 "%1" 주소는 올바른 Kronein 주소가 아닙니다.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1351,7 +1351,7 @@
     </message>
     <message>
         <source>Kronein</source>
-        <translation type="unfinished">비트코인</translation>
+        <translation type="unfinished">Kronein</translation>
     </message>
     <message numerus="yes">
         <source>%n GB of space available</source>
@@ -1392,7 +1392,7 @@
     </message>
     <message>
         <source>%1 will download and store a copy of the Kronein block chain.</source>
-        <translation type="unfinished">%1은 비트코인 블록체인의 사본을 다운로드하여 저장합니다.</translation>
+        <translation type="unfinished">%1은 Kronein 블록체인의 사본을 다운로드하여 저장합니다.</translation>
     </message>
     <message>
         <source>The wallet will also be stored in this directory.</source>
@@ -1415,11 +1415,11 @@
     </message>
     <message>
         <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
-        <translation type="unfinished">최근 거래는 아직 보이지 않을 수 있습니다. 따라서 당신의 지갑의 잔액이 틀릴 수도 있습니다. 이 정보는 당신의 지갑이 비트코인 네트워크와 완전한 동기화를 완료하면, 아래의 설명과 같이 정확해집니다.</translation>
+        <translation type="unfinished">최근 거래는 아직 보이지 않을 수 있습니다. 따라서 당신의 지갑의 잔액이 틀릴 수도 있습니다. 이 정보는 당신의 지갑이 Kronein 네트워크와 완전한 동기화를 완료하면, 아래의 설명과 같이 정확해집니다.</translation>
     </message>
     <message>
         <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation type="unfinished">아직 표시되지 않은 거래의 영향을 받는 비트코인을 사용하려고 하는 것은 네트워크에서 허가되지 않습니다.</translation>
+        <translation type="unfinished">아직 표시되지 않은 거래의 영향을 받는 KNE을 사용하려고 하는 것은 네트워크에서 허가되지 않습니다.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1470,7 +1470,7 @@
     <name>OpenURIDialog</name>
     <message>
         <source>Open Kronein URI</source>
-        <translation type="unfinished">비트코인 URI 열기</translation>
+        <translation type="unfinished">Kronein URI 열기</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -1520,7 +1520,7 @@
     </message>
     <message>
         <source>Automatically open the Kronein client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
-        <translation type="unfinished">비트코인 클라이언트 포트를 라우터에서 자동으로 열기. 이 기능은 라우터가 PCP(Port Control Protocol) 또는 NAT-PMP(NAT Port Mapping Protocol) 를 지원하고 해당 기능이 활성화되어 있을 때만 작동합니다. 외부 포트는 임의(random)로 지정될 수 있습니다.</translation>
+        <translation type="unfinished">Kronein 클라이언트 포트를 라우터에서 자동으로 열기. 이 기능은 라우터가 PCP(Port Control Protocol) 또는 NAT-PMP(NAT Port Mapping Protocol) 를 지원하고 해당 기능이 활성화되어 있을 때만 작동합니다. 외부 포트는 임의(random)로 지정될 수 있습니다.</translation>
     </message>
     <message>
         <source>Map port using PCP or NA&amp;T-PMP</source>
@@ -1652,7 +1652,7 @@
     </message>
     <message>
         <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">SOCKS5 프록시를 통해 비트코인 네트워크에 연결합니다.</translation>
+        <translation type="unfinished">SOCKS5 프록시를 통해 Kronein 네트워크에 연결합니다.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1829,7 +1829,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">표시된 정보가 오래된 것 같습니다. 당신의 지갑은 비트코인 네트워크에 연결된 뒤 자동으로 동기화 하지만, 아직 과정이 끝나지 않았습니다.</translation>
+        <translation type="unfinished">표시된 정보가 오래된 것 같습니다. 당신의 지갑은 Kronein 네트워크에 연결된 뒤 자동으로 동기화 하지만, 아직 과정이 끝나지 않았습니다.</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -2024,7 +2024,7 @@
     </message>
     <message>
         <source>Cannot start kronein: click-to-pay handler</source>
-        <translation type="unfinished">비트코인을 시작할 수 없습니다: 지급을 위한 클릭 핸들러</translation>
+        <translation type="unfinished">Kronein을 시작할 수 없습니다: 지급을 위한 클릭 핸들러</translation>
     </message>
     <message>
         <source>URI handling</source>
@@ -2044,7 +2044,7 @@ BIP70의 광범위한 보안 결함으로 인해 모든 가맹점에서는 지�
     </message>
     <message>
         <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
-        <translation type="unfinished">URI의 파싱에 문제가 발생했습니다. 잘못된 비트코인 주소나 URI 파라미터 구성에 오류가 존재할 수 있습니다.</translation>
+        <translation type="unfinished">URI의 파싱에 문제가 발생했습니다. 잘못된 Kronein 주소나 URI 파라미터 구성에 오류가 존재할 수 있습니다.</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -2194,7 +2194,7 @@ BIP70의 광범위한 보안 결함으로 인해 모든 가맹점에서는 지�
     </message>
     <message>
         <source>Network addresses that your Kronein node is currently using to communicate with other nodes.</source>
-        <translation type="unfinished">당신의 비트코인 노드가 현재 다른 노드들과 통신하기 위해 사용 중인 네트워크 주소입니다.</translation>
+        <translation type="unfinished">당신의 Kronein 노드가 현재 다른 노드들과 통신하기 위해 사용 중인 네트워크 주소입니다.</translation>
     </message>
     <message>
         <source>Block chain</source>
@@ -2631,7 +2631,7 @@ For more information on using this console, type %6.
     </message>
     <message>
         <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Kronein network.</source>
-        <translation type="unfinished">지불 요청에 첨부되는 선택가능한 메시지 입니다. 이 메세지는 요청이 열릴 때 표시될 것 입니다. 메모: 이 메시지는 비트코인 네트워크로 전송되지 않습니다.</translation>
+        <translation type="unfinished">지불 요청에 첨부되는 선택가능한 메시지 입니다. 이 메세지는 요청이 열릴 때 표시될 것 입니다. 메모: 이 메시지는 Kronein 네트워크로 전송되지 않습니다.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -2908,7 +2908,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for Kronein transactions than the network can process.</source>
-        <translation type="unfinished">거래량이 블록에 남은 공간보다 적은 경우, 채굴자나 중계 노드들이 최소 수수료를 허용할 수 있습니다. 최소 수수료만 지불하는건 괜찮지만, 네트워크가 처리할 수 있는 용량을 넘는 비트코인 거래가 있을 경우에는 이 거래가 승인이 안될 수 있다는 점을 유의하세요.</translation>
+        <translation type="unfinished">거래량이 블록에 남은 공간보다 적은 경우, 채굴자나 중계 노드들이 최소 수수료를 허용할 수 있습니다. 최소 수수료만 지불하는건 괜찮지만, 네트워크가 처리할 수 있는 용량을 넘는 Kronein 거래가 있을 경우에는 이 거래가 승인이 안될 수 있다는 점을 유의하세요.</translation>
     </message>
     <message>
         <source>A too low fee might result in a never confirming transaction (read the tooltip)</source>
@@ -2994,7 +2994,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>Creates a Partially Signed Kronein Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
-        <translation type="unfinished">오프라인 %1 지갑 또는 PSBT가 호환되는 하드웨어 지갑과의 사용을 위한 '부분적으로 서명 된 비트 코인 트랜잭션(PSBT)'를 생성합니다.</translation>
+        <translation type="unfinished">오프라인 %1 지갑 또는 PSBT가 호환되는 하드웨어 지갑과의 사용을 위한 '부분적으로 서명 된 Kronein 트랜잭션(PSBT)'를 생성합니다.</translation>
     </message>
     <message>
         <source>%1 to '%2'</source>
@@ -3051,7 +3051,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     <message>
         <source>Please, review your transaction proposal. This will produce a Partially Signed Kronein Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can only create a PSBT. This string is displayed when private keys are disabled and an external signer is not available.</extracomment>
-        <translation type="unfinished">거래 제안을 검토해 주십시오. 이것은 당신이 저장하거나 복사한 뒤 e.g. 오프라인 %1 지갑 또는 PSBT 호환 하드웨어 지갑으로 서명할 수 있는 PSBT (부분적으로 서명된 비트코인 트랜잭션)를 생성할 것입니다.</translation>
+        <translation type="unfinished">거래 제안을 검토해 주십시오. 이것은 당신이 저장하거나 복사한 뒤 e.g. 오프라인 %1 지갑 또는 PSBT 호환 하드웨어 지갑으로 서명할 수 있는 PSBT (부분적으로 서명된 Kronein 트랜잭션)를 생성할 것입니다.</translation>
     </message>
     <message>
         <source>%1 from wallet '%2'</source>
@@ -3065,7 +3065,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     <message>
         <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Kronein Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can send their transaction or create a PSBT. This string is displayed when both private keys and PSBT controls are enabled.</extracomment>
-        <translation type="unfinished">당신의 트랜잭션을 검토하세요. 당신은 트랜잭션을 생성하고 보낼 수 있습니다. 혹은 부분적으로 서명된 비트코인 트랜잭션 (PSBT, Partially Signed Kronein Transaction)을 생성하고, 저장하거나 복사하여 오프라인 %1지갑으로 서명할수도 있습니다. PSBT가 적용되는 하드월렛으로 서명할 수도 있습니다. </translation>
+        <translation type="unfinished">당신의 트랜잭션을 검토하세요. 당신은 트랜잭션을 생성하고 보낼 수 있습니다. 혹은 부분적으로 서명된 Kronein 트랜잭션 (PSBT, Partially Signed Kronein Transaction)을 생성하고, 저장하거나 복사하여 오프라인 %1지갑으로 서명할수도 있습니다. PSBT가 적용되는 하드월렛으로 서명할 수도 있습니다. </translation>
     </message>
     <message>
         <source>Please, review your transaction.</source>
@@ -3096,7 +3096,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>PSBT saved to disk</source>
-        <translation type="unfinished">부분 서명된 비트코인 트랜잭션(PSBT)이 디스크에 저장되었습니다.
+        <translation type="unfinished">부분 서명된 Kronein 트랜잭션(PSBT)이 디스크에 저장되었습니다.
  </translation>
     </message>
     <message>
@@ -3135,7 +3135,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>Warning: Invalid Kronein address</source>
-        <translation type="unfinished">경고: 잘못된 비트코인 주소입니다</translation>
+        <translation type="unfinished">경고: 잘못된 Kronein 주소입니다</translation>
     </message>
     <message>
         <source>Warning: Unknown change address</source>
@@ -3174,7 +3174,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>The Kronein address to send the payment to</source>
-        <translation type="unfinished">이 비트코인 주소로 송금됩니다</translation>
+        <translation type="unfinished">이 Kronein 주소로 송금됩니다</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -3210,7 +3210,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
-        <translation type="unfinished">kronein: URI에 추가된 메시지는 참고를 위해 거래내역과 함께 저장될 것입니다. Note: 이 메시지는 비트코인 네트워크로 전송되지 않습니다.</translation>
+        <translation type="unfinished">kronein: URI에 추가된 메시지는 참고를 위해 거래내역과 함께 저장될 것입니다. Note: 이 메시지는 Kronein 네트워크로 전송되지 않습니다.</translation>
     </message>
 </context>
 <context>
@@ -3371,7 +3371,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>Generated coins must mature %1 blocks before they can be spent. When you generated this block, it was broadcast to the network to be added to the block chain. If it fails to get into the chain, its state will change to "not accepted" and it won't be spendable. This may occasionally happen if another node generates a block within a few seconds of yours.</source>
-        <translation type="unfinished">신규 채굴된 코인이 사용되기 위해서는 %1 개의 블록이 경과되어야 합니다. 블록을 생성할 때 블록체인에 추가되도록 네트워크에 전파되는 과정을 거치는데, 블록체인에 포함되지 못하고 실패한다면 해당 블록의 상태는 '미승인'으로 표현되고 비트코인 또한 사용될 수 없습니다. 이 현상은 다른 노드가 비슷한 시간대에 동시에 블록을 생성할 때 종종 발생할 수 있습니다.</translation>
+        <translation type="unfinished">신규 채굴된 코인이 사용되기 위해서는 %1 개의 블록이 경과되어야 합니다. 블록을 생성할 때 블록체인에 추가되도록 네트워크에 전파되는 과정을 거치는데, 블록체인에 포함되지 못하고 실패한다면 해당 블록의 상태는 '미승인'으로 표현되고 Kronein 또한 사용될 수 없습니다. 이 현상은 다른 노드가 비슷한 시간대에 동시에 블록을 생성할 때 종종 발생할 수 있습니다.</translation>
     </message>
     <message>
         <source>Debug information</source>
@@ -3681,7 +3681,7 @@ Go to File &gt; Open Wallet to load a wallet.
     </message>
     <message>
         <source>Partially Signed Transaction (*.psbt)</source>
-        <translation type="unfinished">부분적으로 서명된 비트코인 트랜잭션 (* .psbt)</translation>
+        <translation type="unfinished">부분적으로 서명된 Kronein 트랜잭션 (* .psbt)</translation>
     </message>
     <message>
         <source>PSBT file must be smaller than 100 MiB</source>
@@ -3876,7 +3876,7 @@ Go to File &gt; Open Wallet to load a wallet.
     </message>
     <message>
         <source>Rename of '%s' -&gt; '%s' failed. You should resolve this by manually moving or deleting the invalid snapshot directory %s, otherwise you will encounter the same error again on the next startup.</source>
-        <translation type="unfinished">디렉터리 이름 변경 '%s' -&gt; '%s' 에 실패했습니다. 잘못된 스냅샷 디렉터리 %s를 직접 이동하거나 삭제하여 문제를 해결해야 합니다. 그렇지 않으면 비트코인 코어를 시작할 때 동일한 오류가 다시 발생할 것입니다.</translation>
+        <translation type="unfinished">디렉터리 이름 변경 '%s' -&gt; '%s' 에 실패했습니다. 잘못된 스냅샷 디렉터리 %s를 직접 이동하거나 삭제하여 문제를 해결해야 합니다. 그렇지 않으면 Kronein 코어를 시작할 때 동일한 오류가 다시 발생할 것입니다.</translation>
     </message>
     <message>
         <source>SQLiteDatabase: Unknown sqlite wallet schema version %d. Only version %d is supported</source>

@@ -550,7 +550,7 @@
     </message>
     <message>
         <source>Request payments (generates QR codes and kronein: URIs)</source>
-        <translation type="unfinished">សំណើរទូរទាត់​(បង្កើតកូដ QR និង ប៊ីតខញ: URLs)</translation>
+        <translation type="unfinished">សំណើរទូរទាត់​(បង្កើតកូដ QR និង Kronein: URLs)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -597,7 +597,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction</source>
-        <translation type="unfinished">បង្ហាញប្រត្តិបត្តិការប៊ីតខញដែលបានចុះហត្ថលេខាដោយផ្នែក</translation>
+        <translation type="unfinished">បង្ហាញប្រត្តិបត្តិការKroneinែលបានចុះហត្ថលេខាដោយផ្នែក</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
@@ -605,7 +605,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction from clipboard</source>
-        <translation type="unfinished">បង្ហាញប្រត្តិបត្តិការប៊ីតខញដែលបានចុះហត្ថលេខាដោយផ្នែកពីក្ដារតម្រៀប</translation>
+        <translation type="unfinished">បង្ហាញប្រត្តិបត្តិការKroneinែលបានចុះហត្ថលេខាដោយផ្នែកពីក្ដារតម្រៀប</translation>
     </message>
     <message>
         <source>&amp;Receiving addresses</source>
@@ -613,7 +613,7 @@
     </message>
     <message>
         <source>Open a kronein: URI</source>
-        <translation type="unfinished">បើកប៊ីតខញមួយៈ URl</translation>
+        <translation type="unfinished">បើកKroneinួយៈ URl</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -1110,7 +1110,7 @@
     </message>
     <message>
         <source>The entered address "%1" is not a valid Kronein address.</source>
-        <translation type="unfinished">អាសយដ្ឋានដែលបានបញ្ចូល  ៉​%1 ៉​គឺមិនមែនជាអាសយដ្ឋានត្រឹមត្រូវរបស់ប៊ីតខញ។</translation>
+        <translation type="unfinished">អាសយដ្ឋានដែលបានបញ្ចូល  ៉​%1 ៉​គឺមិនមែនជាអាសយដ្ឋានត្រឹមត្រូវរបស់Kronein។</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1194,7 +1194,7 @@
     </message>
     <message>
         <source>Kronein</source>
-        <translation type="unfinished">ប៊ីតខញ</translation>
+        <translation type="unfinished">Kronein</translation>
     </message>
     <message numerus="yes">
         <source>%n GB of space available</source>
@@ -1242,11 +1242,11 @@
     </message>
     <message>
         <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
-        <translation type="unfinished">ប្រត្តិបត្តិការថ្មីៗនេះប្រហែលជាមិនអាចមើលឃើញ ហេតុដូច្នេះសមតុល្យនៅក្នងកាបូបអេឡិចត្រូនិចរបស់អ្នកប្រហែលជាមិនត្រឹមត្រូវ។ ព័ត៌មានត្រឹមត្រូវនៅពេលដែលកាបូបអេឡិចត្រូនិចរបស់អ្នកបានធ្វើសមកាលកម្មជាមួយបណ្តាញប៊ឺតខញ  សូមពិនិត្យព័ត៌មានលំម្អិតខាងក្រោម។</translation>
+        <translation type="unfinished">ប្រត្តិបត្តិការថ្មីៗនេះប្រហែលជាមិនអាចមើលឃើញ ហេតុដូច្នេះសមតុល្យនៅក្នងកាបូបអេឡិចត្រូនិចរបស់អ្នកប្រហែលជាមិនត្រឹមត្រូវ។ ព័ត៌មានត្រឹមត្រូវនៅពេលដែលកាបូបអេឡិចត្រូនិចរបស់អ្នកបានធ្វើសមកាលកម្មជាមួយបណ្តាញKronein  សូមពិនិត្យព័ត៌មានលំម្អិតខាងក្រោម។</translation>
     </message>
     <message>
         <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation type="unfinished">ព្យាយាមក្នុងការចំណាយប៊ីតខញដែលទទួលរងឥទ្ឋិពលពីប្រត្តិបត្តិការមិនទាន់ធ្វើការបង្ហាញ នឹងមិនត្រូវទទួលស្គាល់ពីបណ្តាញ។</translation>
+        <translation type="unfinished">ព្យាយាមក្នុងការចំណាយKNEែលទទួលរងឥទ្ឋិពលពីប្រត្តិបត្តិការមិនទាន់ធ្វើការបង្ហាញ នឹងមិនត្រូវទទួលស្គាល់ពីបណ្តាញ។</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1297,7 +1297,7 @@
     <name>OpenURIDialog</name>
     <message>
         <source>Open Kronein URI</source>
-        <translation type="unfinished">បើកប៊ីតខញ​URl</translation>
+        <translation type="unfinished">បើកKronein​URl</translation>
     </message>
     <message>
         <source>URI:</source>
@@ -1433,7 +1433,7 @@
     </message>
     <message>
         <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">ភ្ជាប់ទៅកាន់បណ្តាញប៊ឺតខញតាមរយៈ​ SOCKS5 proxy។</translation>
+        <translation type="unfinished">ភ្ជាប់ទៅកាន់បណ្តាញKroneinាមរយៈ​ SOCKS5 proxy។</translation>
     </message>
     <message>
         <source>&amp;Port:</source>
@@ -1512,7 +1512,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">ព័ត៏មានបានបង្ហាញអាចហួសសពុលភាព។ កាបូបអេឡិចត្រូនិចរបស់អ្នកធ្វើសមកាលកម្មជាមួយនឹងបណ្តាញប៊ីតខញដោយស្វ័យប្រវត្ត បន្ទាប់ពីមានការតភ្ជាប់ ប៉ុន្តែដំណើរការនេះមិនទាន់បានបញ្ចប់នៅឡើយ។</translation>
+        <translation type="unfinished">ព័ត៏មានបានបង្ហាញអាចហួសសពុលភាព។ កាបូបអេឡិចត្រូនិចរបស់អ្នកធ្វើសមកាលកម្មជាមួយនឹងបណ្តាញKroneinោយស្វ័យប្រវត្ត បន្ទាប់ពីមានការតភ្ជាប់ ប៉ុន្តែដំណើរការនេះមិនទាន់បានបញ្ចប់នៅឡើយ។</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -2003,7 +2003,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
     <message>
         <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Kronein network.</source>
-        <translation type="unfinished">សារជាជម្រើសមួយក្នុងការភ្ជាប់ទៅនឹងសំណើរទូរទាត់ប្រាក់ ដែលនឹងត្រូវបង្ហាញនៅពេលដែលសំណើរត្រូវបានបើក។ កំណត់ចំណាំៈ សារនេះនឹងមិនត្រូវបានបញ្ចូនជាមួយការទូរទាត់ប្រាក់នៅលើបណ្តាញប៊ីតខញ។</translation>
+        <translation type="unfinished">សារជាជម្រើសមួយក្នុងការភ្ជាប់ទៅនឹងសំណើរទូរទាត់ប្រាក់ ដែលនឹងត្រូវបង្ហាញនៅពេលដែលសំណើរត្រូវបានបើក។ កំណត់ចំណាំៈ សារនេះនឹងមិនត្រូវបានបញ្ចូនជាមួយការទូរទាត់ប្រាក់នៅលើបណ្តាញKronein។</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -2343,7 +2343,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     <message>
         <source>Please, review your transaction proposal. This will produce a Partially Signed Kronein Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can only create a PSBT. This string is displayed when private keys are disabled and an external signer is not available.</extracomment>
-        <translation type="unfinished">សូមពិនិត្យសំណើរប្រត្តិបត្តិការរបស់អ្នកឡើងវិញ។ វានឹងបង្កើតប្រត្តិបត្តិការប៊ីតខញដែលបានចុះហត្ថលេខាដោយផ្នែក (PSBT) ដែលអ្នកអាចរក្សាទុក ឬថតចម្លង រួចហើយសូមចុះហត្ថលេខា។ ឧទាហរណ៏ កាបូបអេឡិចត្រូនិចដែលមិនមានភ្ជាប់អ៊ីនធឺណេត %1 ឬកាបូបដែលមានផ្នែករឹងដែលអាចធ្វើការជាមួយ​ PSBT។</translation>
+        <translation type="unfinished">សូមពិនិត្យសំណើរប្រត្តិបត្តិការរបស់អ្នកឡើងវិញ។ វានឹងបង្កើតប្រត្តិបត្តិការKroneinែលបានចុះហត្ថលេខាដោយផ្នែក (PSBT) ដែលអ្នកអាចរក្សាទុក ឬថតចម្លង រួចហើយសូមចុះហត្ថលេខា។ ឧទាហរណ៏ កាបូបអេឡិចត្រូនិចដែលមិនមានភ្ជាប់អ៊ីនធឺណេត %1 ឬកាបូបដែលមានផ្នែករឹងដែលអាចធ្វើការជាមួយ​ PSBT។</translation>
     </message>
     <message>
         <source>Do you want to create this transaction?</source>
@@ -2434,7 +2434,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>The Kronein address to send the payment to</source>
-        <translation type="unfinished">អាសយដ្ឋានប៊ីតខញក្នុងការបញ្ចូនការទូរទាត់ប្រាក់ទៅកាន់</translation>
+        <translation type="unfinished">អាសយដ្ឋានKronein្នុងការបញ្ចូនការទូរទាត់ប្រាក់ទៅកាន់</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>

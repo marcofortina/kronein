@@ -39,7 +39,7 @@
     </message>
     <message>
         <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">اینها آدرس های بیت کوین شما برای ارسال پرداخت هستند. همیشه قبل از ارسال سکه، مبلغ و آدرس دریافت کننده را بررسی کنید.</translation>
+        <translation type="unfinished">اینها آدرس های Kronein شما برای ارسال پرداخت هستند. همیشه قبل از ارسال سکه، مبلغ و آدرس دریافت کننده را بررسی کنید.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -98,7 +98,7 @@
     </message>
     <message>
         <source>Enter a Kronein address (e.g. %1)</source>
-        <translation type="unfinished">آدرس بیت کوین را وارد کنید (به طور مثال %1)</translation>
+        <translation type="unfinished">آدرس Kronein را وارد کنید (به طور مثال %1)</translation>
     </message>
     <message>
         <source>Unroutable</source>
@@ -292,7 +292,7 @@
     </message>
     <message>
         <source>Send coins to a Kronein address</source>
-        <translation type="unfinished">ارسال کوین به آدرس بیت کوین</translation>
+        <translation type="unfinished">ارسال کوین به آدرس Kronein</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -386,7 +386,7 @@
     </message>
     <message>
         <source>Request payments (generates QR codes and kronein: URIs)</source>
-        <translation type="unfinished">درخواست پرداخت (ساخت کد QR و بیت‌کوین: URIs)</translation>
+        <translation type="unfinished">درخواست پرداخت (ساخت کد QR و Kronein: URIs)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -460,7 +460,7 @@
     </message>
     <message>
         <source>Open a kronein: URI</source>
-        <translation type="unfinished">بارک کردن یک بیت‌کوین: URI</translation>
+        <translation type="unfinished">بارک کردن یک Kronein: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -483,7 +483,7 @@
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
-        <translation type="unfinished">برای دریافت لیستی از گزینه های خط فرمان بیت کوین ، پیام راهنمایی %1 را نشان دهید</translation>
+        <translation type="unfinished">برای دریافت لیستی از گزینه های خط فرمان Kronein ، پیام راهنمایی %1 را نشان دهید</translation>
     </message>
     <message>
         <source>No wallets available</source>
@@ -533,7 +533,7 @@
         <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>%n اتصال(های) فعال به شبکه بیت کوین.</numerusform>
+            <numerusform>%n اتصال(های) فعال به شبکه Kronein.</numerusform>
         </translation>
     </message>
     <message>
@@ -812,7 +812,7 @@
     </message>
     <message>
         <source>The entered address "%1" is not a valid Kronein address.</source>
-        <translation type="unfinished">آدرس وارد شده "%1" آدرس معتبر بیت کوین نیست.</translation>
+        <translation type="unfinished">آدرس وارد شده "%1" آدرس معتبر Kronein نیست.</translation>
     </message>
     <message>
         <source>The entered address "%1" is already in the address book with label "%2".</source>
@@ -871,7 +871,7 @@
     </message>
     <message>
         <source>Automatically open the Kronein client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
-        <translation type="unfinished">باز کردن خودکار پورت کلاینت بیت‌کوین روی روتر. این ویژگی تنها زمانی کار می‌کند که روتر شما از PCP یا NAT-PMP پشتیبانی کند و این قابلیت فعال باشد. پورت خارجی ممکن است به‌صورت تصادفی انتخاب شود.</translation>
+        <translation type="unfinished">باز کردن خودکار پورت کلاینت Kronein روی روتر. این ویژگی تنها زمانی کار می‌کند که روتر شما از PCP یا NAT-PMP پشتیبانی کند و این قابلیت فعال باشد. پورت خارجی ممکن است به‌صورت تصادفی انتخاب شود.</translation>
     </message>
     <message>
         <source>Map port using PCP or NA&amp;T-PMP</source>
@@ -975,7 +975,7 @@
     </message>
     <message>
         <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">از طریق یک پروکسی SOCKS5 به شبکه بیت کوین متصل شوید.</translation>
+        <translation type="unfinished">از طریق یک پروکسی SOCKS5 به شبکه Kronein متصل شوید.</translation>
     </message>
     <message>
         <source>Proxy &amp;IP:</source>
@@ -1284,7 +1284,7 @@
     </message>
     <message>
         <source>Cannot start kronein: click-to-pay handler</source>
-        <translation type="unfinished">نمی توان بیت کوین را شروع کرد: کنترل کننده کلیک برای پرداخت
+        <translation type="unfinished">نمی توان Kronein را شروع کرد: کنترل کننده کلیک برای پرداخت
  </translation>
     </message>
     <message>
@@ -1363,7 +1363,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
     <message>
         <source>Network addresses that your Kronein node is currently using to communicate with other nodes.</source>
-        <translation type="unfinished">آدرس‌های شبکه ای که گره بیت کوین شما در حال حاضر از آنها برای ارتباط با گره های دیگر استفاده می کند.</translation>
+        <translation type="unfinished">آدرس‌های شبکه ای که گره Kronein شما در حال حاضر از آنها برای ارتباط با گره های دیگر استفاده می کند.</translation>
     </message>
     <message>
         <source>Received</source>
@@ -1641,7 +1641,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
     <message>
         <source>The preselected coins total amount does not cover the transaction target. Please allow other inputs to be automatically selected or include more coins manually</source>
-        <translation type="unfinished">مقدار کل بیتکوینی که از پیش انتخاب کردید کمتر از مبلغ مورد نظر برای انجام تراکنش است .  لطفاً اجازه دهید ورودی های دیگر به طور خودکار انتخاب شوند یا مقدار بیتکوین های بیشتری را به صورت دستی اضافه کنید</translation>
+        <translation type="unfinished">مقدار کل Kroneinی که از پیش انتخاب کردید کمتر از مبلغ مورد نظر برای انجام تراکنش است .  لطفاً اجازه دهید ورودی های دیگر به طور خودکار انتخاب شوند یا مقدار Kronein های بیشتری را به صورت دستی اضافه کنید</translation>
     </message>
     <message>
         <source>Your computer's date and time appear to be more than %d minutes out of sync with the network, this may lead to consensus failure. After you've confirmed your computer's clock, this message should no longer appear when you restart your node. Without a restart, it should stop showing automatically after you've connected to a sufficient number of new outbound peers, which may take some time. You can inspect the `timeoffset` field of the `getpeerinfo` and `getnetworkinfo` RPC methods to get more info.</source>

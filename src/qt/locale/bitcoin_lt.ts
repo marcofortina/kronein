@@ -175,7 +175,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Atminkite kad piniginės užšifravimas neužtrikrina kad jūsų bitkoinai negali būti pavogti dėl kenkėjiškų programų užkrėtusių jūsų kompiuterį.</translation>
+        <translation type="unfinished">Atminkite kad piniginės užšifravimas neužtrikrina kad jūsų KNE negali būti pavogti dėl kenkėjiškų programų užkrėtusių jūsų kompiuterį.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>

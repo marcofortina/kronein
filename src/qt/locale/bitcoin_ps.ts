@@ -155,7 +155,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">خبرتیا: که تاسې خپل والټ کوډ کړئ او خپلپاسفریز، ته به یې. &lt;b&gt;خپل ټول بټ کوینونه له لاسه ورکړئ&lt;/b&gt;!</translation>
+        <translation type="unfinished">خبرتیا: که تاسې خپل والټ کوډ کړئ او خپلپاسفریز، ته به یې. &lt;b&gt;خپل ټول KNE له لاسه ورکړئ&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -183,7 +183,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">یاد ولرئ چې ستاسو د والټ رمز جوړول بشپړ ساتنه نه شي کولای.ستاسو بټ کوینونه د مالویر له لارې د غلا څخه خوندي کول
+        <translation type="unfinished">یاد ولرئ چې ستاسو د والټ رمز جوړول بشپړ ساتنه نه شي کولای.ستاسو KNE د مالویر له لارې د غلا څخه خوندي کول
  ستاسو کمپیوټ</translation>
     </message>
     <message>
@@ -204,11 +204,11 @@
     </message>
     <message>
         <source>Wallet encryption failed</source>
-        <translation type="unfinished">د بټ کوین والټ رمز بندي ناکامه شوه</translation>
+        <translation type="unfinished">د Kronein والټ رمز بندي ناکامه شوه</translation>
     </message>
     <message>
         <source>Wallet encryption failed due to an internal error. Your wallet was not encrypted.</source>
-        <translation type="unfinished">د بټ کوین والټ انکریپشن د داخلي تېروتنې له امله ناکام شو. ستاسو والټ انکریپټ نه شو.</translation>
+        <translation type="unfinished">د Kronein والټ انکریپشن د داخلي تېروتنې له امله ناکام شو. ستاسو والټ انکریپټ نه شو.</translation>
     </message>
     <message>
         <source>The supplied passphrases do not match.</source>
@@ -416,7 +416,7 @@
     </message>
     <message>
         <source>Send coins to a Kronein address</source>
-        <translation type="unfinished">سکې د بټ کوین پته ته واستوئ</translation>
+        <translation type="unfinished">سکې د Kronein پته ته واستوئ</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -424,7 +424,7 @@
     </message>
     <message>
         <source>Change the passphrase used for wallet encryption</source>
-        <translation type="unfinished">د بټ کوین والټ د کوډ کوډ بدل کړئ</translation>
+        <translation type="unfinished">د Kronein والټ د کوډ کوډ بدل کړئ</translation>
     </message>
     <message>
         <source>&amp;Send</source>
@@ -512,7 +512,7 @@
     </message>
     <message>
         <source>Request payments (generates QR codes and kronein: URIs)</source>
-        <translation type="unfinished">د تادیاتو غوښتنه کول (QR کوډونه او بټ کوین: URI جوړوي</translation>
+        <translation type="unfinished">د تادیاتو غوښتنه کول (QR کوډونه او Kronein: URI جوړوي</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -571,7 +571,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction</source>
-        <translation type="unfinished">جزوي لاسلیک شوی بټ کوین معامله پورته کړئ</translation>
+        <translation type="unfinished">جزوي لاسلیک شوی Kronein معامله پورته کړئ</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
@@ -579,7 +579,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction from clipboard</source>
-        <translation type="unfinished">د کلیپ بورډ څخه نیمګړی لاسلیک شوی بټ کوین معامله پورته کړئ</translation>
+        <translation type="unfinished">د کلیپ بورډ څخه نیمګړی لاسلیک شوی Kronein معامله پورته کړئ</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -599,7 +599,7 @@
     </message>
     <message>
         <source>Open a kronein: URI</source>
-        <translation type="unfinished">یو بټ کوین: URI پرانیزئ</translation>
+        <translation type="unfinished">یو Kronein: URI پرانیزئ</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -629,7 +629,7 @@
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
-        <translation type="unfinished">%1 مرسته پیغام وښایه ترڅو د ممکنه بټ کوین کمانډ لاین اختیارونو سره لیست ترلاسه کړئ"</translation>
+        <translation type="unfinished">%1 مرسته پیغام وښایه ترڅو د ممکنه Kronein کمانډ لاین اختیارونو سره لیست ترلاسه کړئ"</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -1152,7 +1152,7 @@
     </message>
     <message>
         <source>The entered address "%1" is not a valid Kronein address.</source>
-        <translation type="unfinished">د داخل شوي پته "%1"دا د بټ کوین صحيح پته نه ده</translation>
+        <translation type="unfinished">د داخل شوي پته "%1"دا د Kronein صحيح پته نه ده</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1269,7 +1269,7 @@
     </message>
     <message>
         <source>Kronein</source>
-        <translation type="unfinished">ٹ کوائن</translation>
+        <translation type="unfinished">Kronein</translation>
     </message>
     <message numerus="yes">
         <source>%n GB of space available</source>
@@ -1314,7 +1314,7 @@
     </message>
     <message>
         <source>%1 will download and store a copy of the Kronein block chain.</source>
-        <translation type="unfinished">به د بیتکوین بلاک چین کاپي ډاونلوډ کړي او ذخیره کړي.%1</translation>
+        <translation type="unfinished">به د Kronein بلاک چین کاپي ډاونلوډ کړي او ذخیره کړي.%1</translation>
     </message>
     <message>
         <source>The wallet will also be stored in this directory.</source>
@@ -1388,7 +1388,7 @@
     <name>OpenURIDialog</name>
     <message>
         <source>Open Kronein URI</source>
-        <translation type="unfinished">بټ کوین URI پرانیزئ</translation>
+        <translation type="unfinished">Kronein URI پرانیزئ</translation>
     </message>
     <message>
         <source>URI:</source>

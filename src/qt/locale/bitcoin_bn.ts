@@ -313,15 +313,15 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction</source>
-        <translation type="unfinished">আংশিক স্বাক্ষরিত বিটকয়েন লেনদেন লোড করুন</translation>
+        <translation type="unfinished">আংশিক স্বাক্ষরিত Kronein লেনদেন লোড করুন</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
-        <translation type="unfinished">&amp;ক্লিপবোর্ড থেকে আংশিক স্বাক্ষরিত বিটকয়েন লেনদেন আনুন</translation>
+        <translation type="unfinished">&amp;ক্লিপবোর্ড থেকে আংশিক স্বাক্ষরিত Kronein লেনদেন আনুন</translation>
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction from clipboard</source>
-        <translation type="unfinished">ক্লিপবোর্ড থেকে আংশিক স্বাক্ষরিত বিটকয়েন লেনদেন লোড করুন</translation>
+        <translation type="unfinished">ক্লিপবোর্ড থেকে আংশিক স্বাক্ষরিত Kronein লেনদেন লোড করুন</translation>
     </message>
     <message>
         <source>Open Wallet</source>

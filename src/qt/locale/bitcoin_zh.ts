@@ -77,7 +77,7 @@
     <name>BitcoinGUI</name>
     <message>
         <source>Request payments (generates QR codes and kronein: URIs)</source>
-        <translation type="unfinished">请求支付(生成二维码和比特币链接)</translation>
+        <translation type="unfinished">请求支付(生成二维码和Kronein链接)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -99,7 +99,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction</source>
-        <translation type="unfinished">加载部分签名比特币交易（PSBT）</translation>
+        <translation type="unfinished">加载部分签名Kronein交易（PSBT）</translation>
     </message>
     <message>
         <source>No wallets available</source>
@@ -276,7 +276,7 @@
     </message>
     <message>
         <source>The entered address "%1" is not a valid Kronein address.</source>
-        <translation type="unfinished">输入的地址 %1 并不是有效的比特币地址。</translation>
+        <translation type="unfinished">输入的地址 %1 并不是有效的Kronein地址。</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -336,7 +336,7 @@
     </message>
     <message>
         <source>Automatically open the Kronein client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
-        <translation type="unfinished">自动在路由器上打开比特币客户端端口。仅当您的路由器支持PCP或NAT-PMP并且已启用时才有效。外部端口可能是随机的。</translation>
+        <translation type="unfinished">自动在路由器上打开Kronein客户端端口。仅当您的路由器支持PCP或NAT-PMP并且已启用时才有效。外部端口可能是随机的。</translation>
     </message>
     <message>
         <source>Map port using PCP or NA&amp;T-PMP</source>
@@ -541,7 +541,7 @@
     </message>
     <message>
         <source>Generated coins must mature %1 blocks before they can be spent. When you generated this block, it was broadcast to the network to be added to the block chain. If it fails to get into the chain, its state will change to "not accepted" and it won't be spendable. This may occasionally happen if another node generates a block within a few seconds of yours.</source>
-        <translation type="unfinished">新挖出的比特币在可以使用前必须经过 %1 个区块确认的成熟过程。当您挖出此区块后，它将被广播到网络中以加入区块链。如果它未成功进入区块链，其状态将变更为“不接受”并且不可使用。这可能偶尔会发生，在另一个节点比你早几秒钟成功挖出一个区块时就会这样。</translation>
+        <translation type="unfinished">新挖出的Kronein在可以使用前必须经过 %1 个区块确认的成熟过程。当您挖出此区块后，它将被广播到网络中以加入区块链。如果它未成功进入区块链，其状态将变更为“不接受”并且不可使用。这可能偶尔会发生，在另一个节点比你早几秒钟成功挖出一个区块时就会这样。</translation>
     </message>
     <message>
         <source>Debug information</source>

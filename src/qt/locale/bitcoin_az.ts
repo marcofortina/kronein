@@ -147,7 +147,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">Xəbərdarlıq: Əgər siz pulqabınızı şifrədən çıxarsanız və şifrəli sözü itirmiş olsanız &lt;b&gt;BÜTÜN BİTCOİNLƏRİNİZİ İTİRƏCƏKSİNİZ&lt;/b&gt;!</translation>
+        <translation type="unfinished">Xəbərdarlıq: Əgər siz pulqabınızı şifrədən çıxarsanız və şifrəli sözü itirmiş olsanız &lt;b&gt;BÜTÜN KNE İTİRƏCƏKSİNİZ&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>

@@ -55,7 +55,7 @@
     </message>
     <message>
         <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">මේ ඔබගේ ගෙවීම් යැවීම සඳහා වන බිට්කොයින් ලිපින වේ. කාසි යැවීමට පෙර සෑම විටම මුදල සහ ලැබීමේ ලිපිනය පරීක්‍ෂා කරන්න.</translation>
+        <translation type="unfinished">මේ ඔබගේ ගෙවීම් යැවීම සඳහා වන Kronein ලිපින වේ. කාසි යැවීමට පෙර සෑම විටම මුදල සහ ලැබීමේ ලිපිනය පරීක්‍ෂා කරන්න.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -143,7 +143,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">අවවාදයයි: ඔබ ඔබේ මුදල් පසුම්බිය සංකේතනය කල පසු ඔබගේ මුරපදය නැති වුවහොත්, ඔබේ  &lt;b&gt;බිට්කොයින් සියල්ලම ඔබට අහිමි වනු ඇත&lt;/b&gt;!</translation>
+        <translation type="unfinished">අවවාදයයි: ඔබ ඔබේ මුදල් පසුම්බිය සංකේතනය කල පසු ඔබගේ මුරපදය නැති වුවහොත්, ඔබේ  &lt;b&gt;KNE සියල්ලම ඔබට අහිමි වනු ඇත&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -163,7 +163,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">ඔබේ මුදල් පසුම්බිය සංකේතනය කිරීමෙන් ඔබේ පරිගණකයට අනිෂ්ට මෘදුකාංග (malware) ඇතුලු වීමෙන් කෙරෙන බිට්කොයින් සොරකම් කිරීම් වලින් සම්පූර්ණයෙන්ම වැළැක්වීම කළ නොහැකි බව මතක තබා ගන්න.</translation>
+        <translation type="unfinished">ඔබේ මුදල් පසුම්බිය සංකේතනය කිරීමෙන් ඔබේ පරිගණකයට අනිෂ්ට මෘදුකාංග (malware) ඇතුලු වීමෙන් කෙරෙන KNE සොරකම් කිරීම් වලින් සම්පූර්ණයෙන්ම වැළැක්වීම කළ නොහැකි බව මතක තබා ගන්න.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -348,7 +348,7 @@
     </message>
     <message>
         <source>Send coins to a Kronein address</source>
-        <translation type="unfinished">බිට්කොයින් ලිපිනයකට කාසි යවන්න</translation>
+        <translation type="unfinished">Kronein ලිපිනයකට කාසි යවන්න</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -757,7 +757,7 @@
     </message>
     <message>
         <source>Kronein</source>
-        <translation type="unfinished">බිට්කොයින්</translation>
+        <translation type="unfinished">Kronein</translation>
     </message>
     <message numerus="yes">
         <source>%n GB of space available</source>

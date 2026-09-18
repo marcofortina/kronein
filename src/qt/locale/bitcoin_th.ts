@@ -155,7 +155,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">คำเตือน: หากคุณเข้ารหัสกระเป๋าของคุณและสูญเสียรหัสผ่านของคุณ คุณจะสูญเสียบิตคอยน์ทั้งหมดของคุณ!</translation>
+        <translation type="unfinished">คำเตือน: หากคุณเข้ารหัสกระเป๋าของคุณและสูญเสียรหัสผ่านของคุณ คุณจะสูญเสียKNEทั้งหมดของคุณ!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -183,7 +183,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">จำไว้ว่าการเข้ารหัสกระเป๋าของคุณไม่สามารถปกป้องบิตคอยน์ของคุณจากการถูกขโมยโดยมัลแวร์ที่ติดเชื้อคอมพิวเตอร์ของคุณได้อย่างสมบูรณ์</translation>
+        <translation type="unfinished">จำไว้ว่าการเข้ารหัสกระเป๋าของคุณไม่สามารถปกป้องKNEของคุณจากการถูกขโมยโดยมัลแวร์ที่ติดเชื้อคอมพิวเตอร์ของคุณได้อย่างสมบูรณ์</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -534,7 +534,7 @@
     </message>
     <message>
         <source>Send coins to a Kronein address</source>
-        <translation type="unfinished">ส่งเหรียญไปยังที่อยู่บิตคอยน์</translation>
+        <translation type="unfinished">ส่งเหรียญไปยังที่อยู่Kronein</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -704,7 +704,7 @@
     </message>
     <message>
         <source>Open a kronein: URI</source>
-        <translation type="unfinished">เปิดบิตคอยน์: URI</translation>
+        <translation type="unfinished">เปิดKronein: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -734,7 +734,7 @@
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
-        <translation type="unfinished">แสดงข้อความช่วยเหลือ %1 เพื่อดูรายการตัวเลือกคำสั่งบิตคอยน์ที่เป็นไปได้</translation>
+        <translation type="unfinished">แสดงข้อความช่วยเหลือ %1 เพื่อดูรายการตัวเลือกคำสั่งKroneinที่เป็นไปได้</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -786,7 +786,7 @@
         <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>การเชื่อมต่อที่ใช้งานอยู่ %n รายการไปยังเครือข่ายบิตคอยน์</numerusform>
+            <numerusform>การเชื่อมต่อที่ใช้งานอยู่ %n รายการไปยังเครือข่ายKronein</numerusform>
         </translation>
     </message>
     <message>
@@ -1200,7 +1200,7 @@
     </message>
     <message>
         <source>Kronein</source>
-        <translation type="unfinished">บิตคอยน์</translation>
+        <translation type="unfinished">Kronein</translation>
     </message>
     <message numerus="yes">
         <source>%n GB of space available</source>
@@ -1241,7 +1241,7 @@
     </message>
     <message>
         <source>%1 will download and store a copy of the Kronein block chain.</source>
-        <translation type="unfinished">%1 จะดาวน์โหลดและเก็บสำเนาของบล็อกเชนของบิตคอยน์</translation>
+        <translation type="unfinished">%1 จะดาวน์โหลดและเก็บสำเนาของบล็อกเชนของKronein</translation>
     </message>
     <message>
         <source>The wallet will also be stored in this directory.</source>
@@ -1260,11 +1260,11 @@
     </message>
     <message>
         <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
-        <translation type="unfinished">ธุรกรรมล่าสุดอาจยังไม่ปรากฏ และดังนั้นยอดคงเหลือในกระเป๋าของคุณอาจไม่ถูกต้อง ข้อมูลนี้จะถูกต้องเมื่อกระเป๋าของคุณเสร็จสิ้นการซิงค์กับเครือข่ายบิตคอยน์ ตามที่อธิบายไว้ด้านล่าง</translation>
+        <translation type="unfinished">ธุรกรรมล่าสุดอาจยังไม่ปรากฏ และดังนั้นยอดคงเหลือในกระเป๋าของคุณอาจไม่ถูกต้อง ข้อมูลนี้จะถูกต้องเมื่อกระเป๋าของคุณเสร็จสิ้นการซิงค์กับเครือข่ายKronein ตามที่อธิบายไว้ด้านล่าง</translation>
     </message>
     <message>
         <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation type="unfinished">การพยายามใช้บิตคอยน์ที่ได้รับผลกระทบจากธุรกรรมที่ยังไม่ได้แสดงจะไม่ได้รับการยอมรับจากเครือข่าย</translation>
+        <translation type="unfinished">การพยายามใช้KNEที่ได้รับผลกระทบจากธุรกรรมที่ยังไม่ได้แสดงจะไม่ได้รับการยอมรับจากเครือข่าย</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1319,7 +1319,7 @@
     <name>OpenURIDialog</name>
     <message>
         <source>Open Kronein URI</source>
-        <translation type="unfinished">เปิด URI ของบิตคอยน์</translation>
+        <translation type="unfinished">เปิด URI ของKronein</translation>
     </message>
     <message>
         <source>URI:</source>
@@ -1875,7 +1875,7 @@
     </message>
     <message>
         <source>Cannot start kronein: click-to-pay handler</source>
-        <translation type="unfinished">ไม่สามารถเริ่มต้นบิตคอยน์: ตัวจัดการคลิกเพื่อจ่าย</translation>
+        <translation type="unfinished">ไม่สามารถเริ่มต้นKronein: ตัวจัดการคลิกเพื่อจ่าย</translation>
     </message>
     <message>
         <source>URI handling</source>

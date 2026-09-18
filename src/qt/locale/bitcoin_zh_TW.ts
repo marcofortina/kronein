@@ -55,7 +55,7 @@
     </message>
     <message>
         <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">這些是你要發送過去的 比特幣地址。在發送幣之前，務必要檢查金額和接收地址是否正確。</translation>
+        <translation type="unfinished">這些是你要發送過去的 Kronein地址。在發送幣之前，務必要檢查金額和接收地址是否正確。</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -183,7 +183,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">請記得, 即使將錢包加密, 也不能完全防止因惡意軟體入侵, 而導致位元幣被偷.</translation>
+        <translation type="unfinished">請記得, 即使將錢包加密, 也不能完全防止因惡意軟體入侵, 而導致KNE被偷.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -310,7 +310,7 @@
     </message>
     <message>
         <source>Enter a Kronein address (e.g. %1)</source>
-        <translation type="unfinished">輸入 比特幣地址 (比如說 %1)</translation>
+        <translation type="unfinished">輸入 Kronein地址 (比如說 %1)</translation>
     </message>
     <message>
         <source>Unroutable</source>
@@ -501,7 +501,7 @@
     </message>
     <message>
         <source>Send coins to a Kronein address</source>
-        <translation type="unfinished">發送幣給一個比特幣地址</translation>
+        <translation type="unfinished">發送幣給一個Kronein地址</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -631,7 +631,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction</source>
-        <translation type="unfinished">載入部分簽名的比特幣交易</translation>
+        <translation type="unfinished">載入部分簽名的Kronein交易</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
@@ -639,7 +639,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction from clipboard</source>
-        <translation type="unfinished">從剪貼簿載入部分簽名的比特幣交易</translation>
+        <translation type="unfinished">從剪貼簿載入部分簽名的Kronein交易</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -659,7 +659,7 @@
     </message>
     <message>
         <source>Open a kronein: URI</source>
-        <translation type="unfinished">打開一個比特幣：URI</translation>
+        <translation type="unfinished">打開一個Kronein：URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -1193,7 +1193,7 @@
     </message>
     <message>
         <source>The entered address "%1" is not a valid Kronein address.</source>
-        <translation type="unfinished">輸入的地址 %1 並不是有效的比特幣地址。</translation>
+        <translation type="unfinished">輸入的地址 %1 並不是有效的Kronein地址。</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1424,7 +1424,7 @@
     <name>OpenURIDialog</name>
     <message>
         <source>Open Kronein URI</source>
-        <translation type="unfinished">打開比特幣URI</translation>
+        <translation type="unfinished">打開KroneinURI</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -1473,7 +1473,7 @@
     </message>
     <message>
         <source>Automatically open the Kronein client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
-        <translation type="unfinished">自动在路由器上打开比特币客户端端口。仅当您的路由器支持PCP或NAT-PMP并且已启用时才有效。外部端口可能是随机的。</translation>
+        <translation type="unfinished">自动在路由器上打开Kronein客户端端口。仅当您的路由器支持PCP或NAT-PMP并且已启用时才有效。外部端口可能是随机的。</translation>
     </message>
     <message>
         <source>Map port using PCP or NA&amp;T-PMP</source>
@@ -1688,7 +1688,7 @@
     </message>
     <message>
         <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation type="unfinished">通過用於Tor洋蔥服務個別的SOCKS5代理連接到比特幣網路。</translation>
+        <translation type="unfinished">通過用於Tor洋蔥服務個別的SOCKS5代理連接到Kronein網路。</translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
@@ -1984,7 +1984,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
     <message>
         <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
-        <translation type="unfinished">沒辦法解析 URI ！可能是因為無效比特幣地址，或是 URI 參數格式錯誤。</translation>
+        <translation type="unfinished">沒辦法解析 URI ！可能是因為無效Kronein地址，或是 URI 參數格式錯誤。</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -2142,7 +2142,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
     <message>
         <source>Network addresses that your Kronein node is currently using to communicate with other nodes.</source>
-        <translation type="unfinished">您的比特币节点正在使用网络地址与其他节点联系。</translation>
+        <translation type="unfinished">您的Kronein节点正在使用网络地址与其他节点联系。</translation>
     </message>
     <message>
         <source>Block chain</source>
@@ -2856,7 +2856,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for Kronein transactions than the network can process.</source>
-        <translation type="unfinished">當交易量小於可用區塊空間時，礦工和節點可能會執行最低手續費率限制。 以這個最低費率來支付手續費也是可以的，但請注意，一旦交易需求超出比特幣網路能處理的限度，你的交易可能永遠無法確認。</translation>
+        <translation type="unfinished">當交易量小於可用區塊空間時，礦工和節點可能會執行最低手續費率限制。 以這個最低費率來支付手續費也是可以的，但請注意，一旦交易需求超出Kronein網路能處理的限度，你的交易可能永遠無法確認。</translation>
     </message>
     <message>
         <source>A too low fee might result in a never confirming transaction (read the tooltip)</source>
@@ -2942,7 +2942,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>Creates a Partially Signed Kronein Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
-        <translation type="unfinished">產生一個部分簽名的比特幣交易（PSBT）以用於例如離線%1錢包或與PSBT相容的硬體錢包。</translation>
+        <translation type="unfinished">產生一個部分簽名的Kronein交易（PSBT）以用於例如離線%1錢包或與PSBT相容的硬體錢包。</translation>
     </message>
     <message>
         <source>%1 to '%2'</source>
@@ -2999,7 +2999,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     <message>
         <source>Please, review your transaction proposal. This will produce a Partially Signed Kronein Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can only create a PSBT. This string is displayed when private keys are disabled and an external signer is not available.</extracomment>
-        <translation type="unfinished">請檢查您的交易提案。這將產生部分簽名的比特幣交易（PSBT），您可以儲存或複製該交易，然後使用簽名。離線%1錢包或與PSBT相容的硬體錢包。</translation>
+        <translation type="unfinished">請檢查您的交易提案。這將產生部分簽名的Kronein交易（PSBT），您可以儲存或複製該交易，然後使用簽名。離線%1錢包或與PSBT相容的硬體錢包。</translation>
     </message>
     <message>
         <source>%1 from wallet '%2'</source>
@@ -3013,7 +3013,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     <message>
         <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Kronein Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can send their transaction or create a PSBT. This string is displayed when both private keys and PSBT controls are enabled.</extracomment>
-        <translation type="unfinished">請務必仔細檢查您的交易。 你可以創建並發送這筆交易；也可以創建一個“部分簽名比特幣交易(PSBT)”，它可以被保存下來或被複製出去，然後就可以對它進行簽名，比如用離線%1錢包，或 是用相容PSBT的硬體錢包。</translation>
+        <translation type="unfinished">請務必仔細檢查您的交易。 你可以創建並發送這筆交易；也可以創建一個“部分簽名Kronein交易(PSBT)”，它可以被保存下來或被複製出去，然後就可以對它進行簽名，比如用離線%1錢包，或 是用相容PSBT的硬體錢包。</translation>
     </message>
     <message>
         <source>Please, review your transaction.</source>
@@ -3082,7 +3082,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>Warning: Invalid Kronein address</source>
-        <translation type="unfinished">警告: 比特幣地址無效</translation>
+        <translation type="unfinished">警告: Kronein地址無效</translation>
     </message>
     <message>
         <source>Warning: Unknown change address</source>
@@ -3121,7 +3121,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>The Kronein address to send the payment to</source>
-        <translation type="unfinished">將支付發送到的比特幣地址給</translation>
+        <translation type="unfinished">將支付發送到的Kronein地址給</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>

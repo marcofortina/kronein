@@ -55,7 +55,7 @@
     </message>
     <message>
         <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">Tölegleri ibermek üçin siziň Bitkoin salgylaryňyz şulardyr. Teňňeleri ibermezden ozal hemişe möçberi we kabul edýän salgyny barlaň.</translation>
+        <translation type="unfinished">Tölegleri ibermek üçin siziň Kronein salgylaryňyz şulardyr. Teňňeleri ibermezden ozal hemişe möçberi we kabul edýän salgyny barlaň.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -147,7 +147,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">Duýduryş: Eger gapjygyňy şifrleseň we parol sözlemiňi ýitirseň, sen &lt;b&gt;ÄHLI BITKOINLERIŇI ÝITIRERSIŇ&lt;/b&gt;!</translation>
+        <translation type="unfinished">Duýduryş: Eger gapjygyňy şifrleseň we parol sözlemiňi ýitirseň, sen &lt;b&gt;ÄHLI KNE ÝITIRERSIŇ&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -171,7 +171,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Gapjygyňy şifrlemek kompýuteriňe zyýanly programma ýokuşmak arkaly bitkoinleriň ogurlanmagyndan doly gorap bilmejekdigini ýatdan çykarma.</translation>
+        <translation type="unfinished">Gapjygyňy şifrlemek kompýuteriňe zyýanly programma ýokuşmak arkaly KNE ogurlanmagyndan doly gorap bilmejekdigini ýatdan çykarma.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -282,7 +282,7 @@
     </message>
     <message>
         <source>Enter a Kronein address (e.g. %1)</source>
-        <translation type="unfinished">(Bitkoin salgysyny giriziň (meselem, %1)</translation>
+        <translation type="unfinished">(Kronein salgysyny giriziň (meselem, %1)</translation>
     </message>
     <message>
         <source>Unroutable</source>
@@ -459,7 +459,7 @@
     </message>
     <message>
         <source>Send coins to a Kronein address</source>
-        <translation type="unfinished">Bitkoin salgysyna teňňeleri iber</translation>
+        <translation type="unfinished">Kronein salgysyna teňňeleri iber</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -555,7 +555,7 @@
     </message>
     <message>
         <source>Request payments (generates QR codes and kronein: URIs)</source>
-        <translation type="unfinished">Tölegleri sora (QR kodlary we bitkoin: URIleri döredýär)</translation>
+        <translation type="unfinished">Tölegleri sora (QR kodlary we Kronein: URIleri döredýär)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -610,7 +610,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction</source>
-        <translation type="unfinished">Bölekleýýin gol çekilen bitkoin geleşigini ýükle</translation>
+        <translation type="unfinished">Bölekleýýin gol çekilen Kronein geleşigini ýükle</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
@@ -618,7 +618,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction from clipboard</source>
-        <translation type="unfinished">Bölekleýin gol çekilen bitkoin geleşigini alyş-çalyş panelinden ýükle</translation>
+        <translation type="unfinished">Bölekleýin gol çekilen Kronein geleşigini alyş-çalyş panelinden ýükle</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -638,7 +638,7 @@
     </message>
     <message>
         <source>Open a kronein: URI</source>
-        <translation type="unfinished">Bitkoin aç: URI</translation>
+        <translation type="unfinished">Kronein aç: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -668,7 +668,7 @@
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
-        <translation type="unfinished">Mümkin bolan Bitkoin buýruk setiri opsiýalarynyň sanawyny görmek üçin %1 goldaw habaryny görkez</translation>
+        <translation type="unfinished">Mümkin bolan Kronein buýruk setiri opsiýalarynyň sanawyny görmek üçin %1 goldaw habaryny görkez</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -730,8 +730,8 @@
         <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>Bitkoin toruna %n işjeň arabaglanyşyk.</numerusform>
-            <numerusform>Bitkoin ulgamyna %n işjeň arabaglanyşyk.</numerusform>
+            <numerusform>Kronein toruna %n işjeň arabaglanyşyk.</numerusform>
+            <numerusform>Kronein ulgamyna %n işjeň arabaglanyşyk.</numerusform>
         </translation>
     </message>
     <message>
@@ -1183,7 +1183,7 @@
     </message>
     <message>
         <source>The entered address "%1" is not a valid Kronein address.</source>
-        <translation type="unfinished">Ýazylan salgy %1 ýaly Bitkoin salgysy ýok.</translation>
+        <translation type="unfinished">Ýazylan salgy %1 ýaly Kronein salgysy ýok.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1299,7 +1299,7 @@
     </message>
     <message>
         <source>Kronein</source>
-        <translation type="unfinished">Bitkoin</translation>
+        <translation type="unfinished">Kronein</translation>
     </message>
     <message numerus="yes">
         <source>%n GB of space available</source>
@@ -1344,7 +1344,7 @@
     </message>
     <message>
         <source>%1 will download and store a copy of the Kronein block chain.</source>
-        <translation type="unfinished">%1 Bitkoin blok zynjyrynyň nusgasyny ýükläp alar we göçürer.</translation>
+        <translation type="unfinished">%1 Kronein blok zynjyrynyň nusgasyny ýükläp alar we göçürer.</translation>
     </message>
     <message>
         <source>The wallet will also be stored in this directory.</source>
@@ -1367,11 +1367,11 @@
     </message>
     <message>
         <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
-        <translation type="unfinished">Soňky geleşikler entek görünmän biler, şonuň üçin gapjygyňyzdaky galyndy nädogry bolup biler. Bu maglumat aşakda beýan edilişi ýaly gapjygyňyz bitkoin tory bilen utgaşmagy tamamlanda dogry bolar.</translation>
+        <translation type="unfinished">Soňky geleşikler entek görünmän biler, şonuň üçin gapjygyňyzdaky galyndy nädogry bolup biler. Bu maglumat aşakda beýan edilişi ýaly gapjygyňyz Kronein tory bilen utgaşmagy tamamlanda dogry bolar.</translation>
     </message>
     <message>
         <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation type="unfinished">Entek görkezilmedik geleşikleriň täsirine düşen bitkoinleri sarp etmek synanyşygy ulgam tarapyndan kabul edilmez.</translation>
+        <translation type="unfinished">Entek görkezilmedik geleşikleriň täsirine düşen KNE sarp etmek synanyşygy ulgam tarapyndan kabul edilmez.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1422,7 +1422,7 @@
     <name>OpenURIDialog</name>
     <message>
         <source>Open Kronein URI</source>
-        <translation type="unfinished">Bitkoin URI aç</translation>
+        <translation type="unfinished">Kronein URI aç</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -1589,7 +1589,7 @@
     </message>
     <message>
         <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">SOCKS5 proksi arkaly Bitkoin toruna baglan.</translation>
+        <translation type="unfinished">SOCKS5 proksi arkaly Kronein toruna baglan.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1665,7 +1665,7 @@
     </message>
     <message>
         <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation type="unfinished">Tor onion hyzmatlary üçin aýratyn SOCKS5 proksi arkaly Bitkoin toruna baglan.</translation>
+        <translation type="unfinished">Tor onion hyzmatlary üçin aýratyn SOCKS5 proksi arkaly Kronein toruna baglan.</translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
@@ -1758,7 +1758,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">Görkezilýän maglumat könelen bolup biler. birikme ýerine ýetirilenden soň siziň gapjygyňyz awtomatiki usulda Bitkoin tory bilen sinhronlaşar, ýöne bu iş entäk gutarmady.</translation>
+        <translation type="unfinished">Görkezilýän maglumat könelen bolup biler. birikme ýerine ýetirilenden soň siziň gapjygyňyz awtomatiki usulda Kronein tory bilen sinhronlaşar, ýöne bu iş entäk gutarmady.</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -1947,7 +1947,7 @@
     </message>
     <message>
         <source>Cannot start kronein: click-to-pay handler</source>
-        <translation type="unfinished">Bitkoini başlap bolanok: click-to-pay işleýjisi</translation>
+        <translation type="unfinished">Kronein başlap bolanok: click-to-pay işleýjisi</translation>
     </message>
     <message>
         <source>URI handling</source>
@@ -1967,7 +1967,7 @@ Size bu ýalňyşlyk gelýän bolsa, siz täjirden BIP21-e gabat gelýän URI-ni
     </message>
     <message>
         <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
-        <translation type="unfinished">URI-ni işläp bolmady! Munuň sebäbi nädogry Bitkoin salgysy ýa-da ýalňyş emele getirilen URI parametrleri bolup biler.</translation>
+        <translation type="unfinished">URI-ni işläp bolmady! Munuň sebäbi nädogry Kronein salgysy ýa-da ýalňyş emele getirilen URI parametrleri bolup biler.</translation>
     </message>
     <message>
         <source>Payment request file handling</source>

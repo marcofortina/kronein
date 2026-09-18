@@ -55,7 +55,7 @@
     </message>
     <message>
         <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">ఇవి మీరు పంపే చెల్లింపుల బిట్‌కాయిన్ చిరునామాలు. నాణేలు పంపే ముందు ప్రతిసారి అందుకునే చిరునామా మరియు చెల్లింపు మొత్తం సరిచూసుకోండి.</translation>
+        <translation type="unfinished">ఇవి మీరు పంపే చెల్లింపుల Kronein చిరునామాలు. నాణేలు పంపే ముందు ప్రతిసారి అందుకునే చిరునామా మరియు చెల్లింపు మొత్తం సరిచూసుకోండి.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -147,7 +147,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">హెచ్చరిక: మీ జోలెని సంకేతపరిచి మీ సంకేతపదము కోల్పోతే, &lt;b&gt;మీ బిట్‌కాయిన్లు అన్నీ కోల్పోతారు&lt;/b&gt;</translation>
+        <translation type="unfinished">హెచ్చరిక: మీ జోలెని సంకేతపరిచి మీ సంకేతపదము కోల్పోతే, &lt;b&gt;మీ KNEలు అన్నీ కోల్పోతారు&lt;/b&gt;</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -167,7 +167,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">మీ వాలెట్‌ను గుప్తీకరించడం వల్ల మీ కంప్యూటర్‌కు హాని కలిగించే మాల్వేర్ దొంగిలించకుండా మీ బిట్‌కాయిన్‌లను పూర్తిగా రక్షించలేమని గుర్తుంచుకోండి.</translation>
+        <translation type="unfinished">మీ వాలెట్‌ను గుప్తీకరించడం వల్ల మీ కంప్యూటర్‌కు హాని కలిగించే మాల్వేర్ దొంగిలించకుండా మీ KNE‌లను పూర్తిగా రక్షించలేమని గుర్తుంచుకోండి.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -278,7 +278,7 @@
     </message>
     <message>
         <source>Enter a Kronein address (e.g. %1)</source>
-        <translation type="unfinished">బిట్‌కాయిన్ చిరునామాను నమోదు చేయండి (ఉదా. %1)</translation>
+        <translation type="unfinished">Kronein చిరునామాను నమోదు చేయండి (ఉదా. %1)</translation>
     </message>
     <message>
         <source>Unroutable</source>
@@ -447,7 +447,7 @@
     </message>
     <message>
         <source>Send coins to a Kronein address</source>
-        <translation type="unfinished">బిట్‌కాయిన్ చిరునామాకు నాణేలను పంపండి</translation>
+        <translation type="unfinished">Kronein చిరునామాకు నాణేలను పంపండి</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -543,7 +543,7 @@
     </message>
     <message>
         <source>Request payments (generates QR codes and kronein: URIs)</source>
-        <translation type="unfinished">చెల్లింపులను అభ్యర్థించండి (QR కోడ్‌లు మరియు బిట్‌కాయిన్‌లను ఉత్పత్తి చేస్తుంది: URIలు)</translation>
+        <translation type="unfinished">చెల్లింపులను అభ్యర్థించండి (QR కోడ్‌లు మరియు Kronein‌లను ఉత్పత్తి చేస్తుంది: URIలు)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -598,7 +598,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction</source>
-        <translation type="unfinished">పాక్షికంగా సంతకం చేసిన బిట్‌కాయిన్ లావాదేవీని లోడ్ చేయండి</translation>
+        <translation type="unfinished">పాక్షికంగా సంతకం చేసిన Kronein లావాదేవీని లోడ్ చేయండి</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
@@ -606,7 +606,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction from clipboard</source>
-        <translation type="unfinished">క్లిప్‌బోర్డ్ నుండి పాక్షికంగా సంతకం చేసిన బిట్‌కాయిన్ లావాదేవీని లోడ్ చేయండి</translation>
+        <translation type="unfinished">క్లిప్‌బోర్డ్ నుండి పాక్షికంగా సంతకం చేసిన Kronein లావాదేవీని లోడ్ చేయండి</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -626,7 +626,7 @@
     </message>
     <message>
         <source>Open a kronein: URI</source>
-        <translation type="unfinished">బిట్‌కాయిన్‌ను తెరవండి: URI</translation>
+        <translation type="unfinished">Kronein‌ను తెరవండి: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -656,7 +656,7 @@
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
-        <translation type="unfinished">%1 సాధ్యమయ్యే బిట్‌కాయిన్ కమాండ్-లైన్ ఎంపికలతో జాబితాను పొందడానికి సహాయ సందేశాన్ని చూపండి</translation>
+        <translation type="unfinished">%1 సాధ్యమయ్యే Kronein కమాండ్-లైన్ ఎంపికలతో జాబితాను పొందడానికి సహాయ సందేశాన్ని చూపండి</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -718,8 +718,8 @@
         <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>%n బిట్‌కాయిన్ నెట్‌వర్క్‌కు క్రియాశీల కనెక్షన్(లు).</numerusform>
-            <numerusform>%n బిట్‌కాయిన్ నెట్‌వర్క్‌కు క్రియాశీల కనెక్షన్(లు).</numerusform>
+            <numerusform>%n Kronein నెట్‌వర్క్‌కు క్రియాశీల కనెక్షన్(లు).</numerusform>
+            <numerusform>%n Kronein నెట్‌వర్క్‌కు క్రియాశీల కనెక్షన్(లు).</numerusform>
         </translation>
     </message>
     <message>
@@ -1159,7 +1159,7 @@
     </message>
     <message>
         <source>The entered address "%1" is not a valid Kronein address.</source>
-        <translation type="unfinished">నమోదు చేసిన చిరునామా "%1" చెల్లుబాటు అయ్యే బిట్‌కాయిన్ చిరునామా కాదు.</translation>
+        <translation type="unfinished">నమోదు చేసిన చిరునామా "%1" చెల్లుబాటు అయ్యే Kronein చిరునామా కాదు.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1259,7 +1259,7 @@
     </message>
     <message>
         <source>Kronein</source>
-        <translation type="unfinished">బిట్కోయిన్</translation>
+        <translation type="unfinished">Kronein</translation>
     </message>
     <message numerus="yes">
         <source>%n GB of space available</source>
@@ -1300,7 +1300,7 @@
     </message>
     <message>
         <source>%1 will download and store a copy of the Kronein block chain.</source>
-        <translation type="unfinished">%1 బిట్‌కాయిన్ బ్లాక్ చైన్ కాపీని డౌన్‌లోడ్ చేసి నిల్వ చేస్తుంది.</translation>
+        <translation type="unfinished">%1 Kronein బ్లాక్ చైన్ కాపీని డౌన్‌లోడ్ చేసి నిల్వ చేస్తుంది.</translation>
     </message>
     <message>
         <source>The wallet will also be stored in this directory.</source>
@@ -1366,7 +1366,7 @@
     <name>OpenURIDialog</name>
     <message>
         <source>Open Kronein URI</source>
-        <translation type="unfinished">బిట్‌కాయిన్ URIని తెరవండి</translation>
+        <translation type="unfinished">Kronein URIని తెరవండి</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -1496,7 +1496,7 @@
     </message>
     <message>
         <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">SOCKS5 ప్రాక్సీ ద్వారా బిట్‌కాయిన్ నెట్‌వర్క్‌కు కనెక్ట్ చేయండి.</translation>
+        <translation type="unfinished">SOCKS5 ప్రాక్సీ ద్వారా Kronein నెట్‌వర్క్‌కు కనెక్ట్ చేయండి.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1572,7 +1572,7 @@
     </message>
     <message>
         <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation type="unfinished">Tor onion సేవల కోసం ప్రత్యేక SOCKS5 ప్రాక్సీ ద్వారా బిట్‌కాయిన్ నెట్‌వర్క్‌కు కనెక్ట్ చేయండి.</translation>
+        <translation type="unfinished">Tor onion సేవల కోసం ప్రత్యేక SOCKS5 ప్రాక్సీ ద్వారా Kronein నెట్‌వర్క్‌కు కనెక్ట్ చేయండి.</translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
@@ -1669,7 +1669,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">ప్రదర్శించబడిన సమాచారం పాతది కావచ్చు. కనెక్షన్ స్థాపించబడిన తర్వాత మీ వాలెట్ స్వయంచాలకంగా బిట్‌కాయిన్ నెట్‌వర్క్‌తో సమకాలీకరించబడుతుంది, కానీ ఈ ప్రక్రియ ఇంకా పూర్తి కాలేదు.</translation>
+        <translation type="unfinished">ప్రదర్శించబడిన సమాచారం పాతది కావచ్చు. కనెక్షన్ స్థాపించబడిన తర్వాత మీ వాలెట్ స్వయంచాలకంగా Kronein నెట్‌వర్క్‌తో సమకాలీకరించబడుతుంది, కానీ ఈ ప్రక్రియ ఇంకా పూర్తి కాలేదు.</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -1854,7 +1854,7 @@
     </message>
     <message>
         <source>Cannot start kronein: click-to-pay handler</source>
-        <translation type="unfinished">బిట్‌కాయిన్‌ను ప్రారంభించడం సాధ్యం కాదు: క్లిక్-టు-పే హ్యాండ్లర్</translation>
+        <translation type="unfinished">Kronein‌ను ప్రారంభించడం సాధ్యం కాదు: క్లిక్-టు-పే హ్యాండ్లర్</translation>
     </message>
     <message>
         <source>URI handling</source>
@@ -1866,7 +1866,7 @@
     </message>
     <message>
         <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
-        <translation type="unfinished">URI అన్వయించబడదు! ఇది చెల్లని బిట్‌కాయిన్ చిరునామా లేదా తప్పుగా రూపొందించబడిన URI పారామీటర్‌ల వల్ల సంభవించవచ్చు.</translation>
+        <translation type="unfinished">URI అన్వయించబడదు! ఇది చెల్లని Kronein చిరునామా లేదా తప్పుగా రూపొందించబడిన URI పారామీటర్‌ల వల్ల సంభవించవచ్చు.</translation>
     </message>
     <message>
         <source>Payment request file handling</source>

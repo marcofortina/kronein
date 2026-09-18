@@ -653,7 +653,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction</source>
-        <translation type="unfinished">部分的に署名されたビットコインのトランザクションを読み込み</translation>
+        <translation type="unfinished">部分的に署名されたKroneinのトランザクションを読み込み</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
@@ -661,7 +661,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction from clipboard</source>
-        <translation type="unfinished">部分的に署名されたビットコインのトランザクションをクリップボードから読み込み</translation>
+        <translation type="unfinished">部分的に署名されたKroneinのトランザクションをクリップボードから読み込み</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -781,7 +781,7 @@
         <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>%n ビットコイン ネットワークへのアクティブな接続。</numerusform>
+            <numerusform>%n Kronein ネットワークへのアクティブな接続。</numerusform>
         </translation>
     </message>
     <message>

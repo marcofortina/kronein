@@ -55,7 +55,7 @@
     </message>
     <message>
         <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">यी भुक्तानी गर्नका लागि तपाइका बिट्कोइन ठेगानाहरू हुन्। सिक्काहरू पठाउनुअघि रकम र प्राप्त गर्ने ठेगाना जाँच गर्नुहोस।</translation>
+        <translation type="unfinished">यी भुक्तानी गर्नका लागि तपाइका Kronein ठेगानाहरू हुन्। सिक्काहरू पठाउनुअघि रकम र प्राप्त गर्ने ठेगाना जाँच गर्नुहोस।</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -155,7 +155,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">यदि तपाईंले आफ्नो वालेटलाई इन्क्रिप्ट  गरेर पासफ्रेज बिर्सनु भयो भने , &lt;b&gt; तपाईंले आफ्ना सबै बिटकोइनहरू गुमाउनुहुनेछ &lt;/b&gt; ।</translation>
+        <translation type="unfinished">यदि तपाईंले आफ्नो वालेटलाई इन्क्रिप्ट  गरेर पासफ्रेज बिर्सनु भयो भने , &lt;b&gt; तपाईंले आफ्ना सबै KNEू गुमाउनुहुनेछ &lt;/b&gt; ।</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -183,7 +183,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">याद गर्नुहोस् कि तपाईको वालेट इन्क्रिप्ट गर्नाले तपाईको बिटकोइनलाई तपाईको कम्प्युटरमा मालवेयरले चोरी हुनबाट पूर्णतया सुरक्षित गर्न सक्दैन।</translation>
+        <translation type="unfinished">याद गर्नुहोस् कि तपाईको वालेट इन्क्रिप्ट गर्नाले तपाईको KNEाई तपाईको कम्प्युटरमा मालवेयरले चोरी हुनबाट पूर्णतया सुरक्षित गर्न सक्दैन।</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -294,7 +294,7 @@
     </message>
     <message>
         <source>Enter a Kronein address (e.g. %1)</source>
-        <translation type="unfinished">कृपया बिटकोइन ठेगाना प्रवेश गर्नुहोस् (उदाहरण %1)</translation>
+        <translation type="unfinished">कृपया Kronein ठेगाना प्रवेश गर्नुहोस् (उदाहरण %1)</translation>
     </message>
     <message>
         <source>Inbound</source>
@@ -414,7 +414,7 @@
     </message>
     <message>
         <source>Send coins to a Kronein address</source>
-        <translation type="unfinished">बिटकोइन ठेगानामा सिक्का पठाउनुहोस्</translation>
+        <translation type="unfinished">Kronein ठेगानामा सिक्का पठाउनुहोस्</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -581,7 +581,7 @@
     </message>
     <message>
         <source>Kronein</source>
-        <translation type="unfinished">बिटकोइन</translation>
+        <translation type="unfinished">Kronein</translation>
     </message>
     <message numerus="yes">
         <source>%n GB of space available</source>
@@ -683,7 +683,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">देखाइएको सूचना पूरानो हुन सक्छ । कनेक्सन स्थापित भएपछि, तपाईंको वालेट बिटकोइन नेटवर्कमा स्वचालित रूपमा समिकरण हुन्छ , तर यो प्रक्रिया अहिले सम्म पूरा भएको छैन ।</translation>
+        <translation type="unfinished">देखाइएको सूचना पूरानो हुन सक्छ । कनेक्सन स्थापित भएपछि, तपाईंको वालेट Kronein नेटवर्कमा स्वचालित रूपमा समिकरण हुन्छ , तर यो प्रक्रिया अहिले सम्म पूरा भएको छैन ।</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -759,7 +759,7 @@
     <name>PaymentServer</name>
     <message>
         <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
-        <translation type="unfinished">URI पढ्न सकिएन! यस्तो आमान्य बिटकोइन ठेगाना वा गलत URI प्यारामिटरहरूका कारण हुन सक्छ</translation>
+        <translation type="unfinished">URI पढ्न सकिएन! यस्तो आमान्य Kronein ठेगाना वा गलत URI प्यारामिटरहरूका कारण हुन सक्छ</translation>
     </message>
     </context>
 <context>
@@ -873,7 +873,7 @@
     </message>
     <message>
         <source>The fee will be deducted from the amount being sent. The recipient will receive less KNE than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation type="unfinished">पठाइँदै गरेको रकमबाट शुल्क कटौती गरिनेछ । प्राप्तकर्ताले तपाईंले रकम क्षेत्रमा प्रवेष गरेको भन्दा थोरै बिटकोइन प्राप्त गर्ने छन् । धेरै प्राप्तकर्ता चयन गरिएको छ भने समान रूपमा शुल्क विभाजित गरिनेछ ।</translation>
+        <translation type="unfinished">पठाइँदै गरेको रकमबाट शुल्क कटौती गरिनेछ । प्राप्तकर्ताले तपाईंले रकम क्षेत्रमा प्रवेष गरेको भन्दा थोरै KNE प्राप्त गर्ने छन् । धेरै प्राप्तकर्ता चयन गरिएको छ भने समान रूपमा शुल्क विभाजित गरिनेछ ।</translation>
     </message>
     <message>
         <source>Enter a label for this address to add it to the list of used addresses</source>
@@ -881,7 +881,7 @@
     </message>
     <message>
         <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
-        <translation type="unfinished">बिटकोइनमा संलग्न गरिएको सन्देश: तपाईंको मध्यस्थको लागि कारोबारको साथमा भण्डारण गरिने URI । नोट: यो सन्देश बिटकोइन नेटवर्क मार्फत पठाइने छैन ।</translation>
+        <translation type="unfinished">Kroneinा संलग्न गरिएको सन्देश: तपाईंको मध्यस्थको लागि कारोबारको साथमा भण्डारण गरिने URI । नोट: यो सन्देश Kronein नेटवर्क मार्फत पठाइने छैन ।</translation>
     </message>
 </context>
 <context>

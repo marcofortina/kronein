@@ -1412,7 +1412,7 @@ Försök igen.</translation>
     <name>OpenURIDialog</name>
     <message>
         <source>Open Kronein URI</source>
-        <translation type="unfinished">Öppna bitcoin-URI</translation>
+        <translation type="unfinished">Öppna Kronein-URI</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>

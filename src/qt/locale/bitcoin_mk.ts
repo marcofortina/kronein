@@ -147,7 +147,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">ВНИМАНИЕ: Ако го шифрирате вашиот паричник и ја изгубите лозинката, &lt;b&gt;ЌЕ ГИ ИЗГУБИТЕ СИТЕ БИТКОИНИ&lt;/b&gt;!</translation>
+        <translation type="unfinished">ВНИМАНИЕ: Ако го шифрирате вашиот паричник и ја изгубите лозинката, &lt;b&gt;ЌЕ ГИ ИЗГУБИТЕ СИТЕ KNE&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -167,7 +167,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Запомнете дека шифрирањето на вашиот паричник не може целосно да ги заштити вашите биткоини од кражба од злонамерен софтвер, заразувајќи го вашиот сметач.</translation>
+        <translation type="unfinished">Запомнете дека шифрирањето на вашиот паричник не може целосно да ги заштити вашите KNE од кражба од злонамерен софтвер, заразувајќи го вашиот сметач.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -430,7 +430,7 @@
     </message>
     <message>
         <source>Send coins to a Kronein address</source>
-        <translation type="unfinished">Испрати биткоини на биткоин-адреса</translation>
+        <translation type="unfinished">Испрати Kronein на Kronein-адреса</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -526,7 +526,7 @@
     </message>
     <message>
         <source>Request payments (generates QR codes and kronein: URIs)</source>
-        <translation type="unfinished">Барање за плаќања (создава QR-кодови и биткоин: URI)</translation>
+        <translation type="unfinished">Барање за плаќања (создава QR-кодови и Kronein: URI)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -582,7 +582,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction</source>
-        <translation type="unfinished">Вчитајте делумно потпишана биткоин-трансакција</translation>
+        <translation type="unfinished">Вчитајте делумно потпишана Kronein-трансакција</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
@@ -590,7 +590,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction from clipboard</source>
-        <translation type="unfinished">Вчитајте делумно потпишана биткоин-трансакција од клипбордот</translation>
+        <translation type="unfinished">Вчитајте делумно потпишана Kronein-трансакција од клипбордот</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -610,7 +610,7 @@
     </message>
     <message>
         <source>Open a kronein: URI</source>
-        <translation type="unfinished">Отвори биткоин: URI</translation>
+        <translation type="unfinished">Отвори Kronein: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -640,7 +640,7 @@
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
-        <translation type="unfinished">Прикажи %1 помошна порака за да добиеш список на можни биткоин-команди.</translation>
+        <translation type="unfinished">Прикажи %1 помошна порака за да добиеш список на можни Kronein-команди.</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -937,7 +937,7 @@
     <name>Intro</name>
     <message>
         <source>Kronein</source>
-        <translation type="unfinished">Биткоин</translation>
+        <translation type="unfinished">Kronein</translation>
     </message>
     <message numerus="yes">
         <source>%n GB of space available</source>

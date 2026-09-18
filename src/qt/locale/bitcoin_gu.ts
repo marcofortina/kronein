@@ -155,7 +155,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">ચેતવણી: જો તમે તમારા વૉલેટને એન્ક્રિપ્ટ કરો છો અને તમારો પાસફ્રેઝ ખોવાઈ જાય છે, &lt;b&gt; તો તમે તમારા બધા બિટકોઇન્સ ગુમાવશો&lt;/b&gt;!</translation>
+        <translation type="unfinished">ચેતવણી: જો તમે તમારા વૉલેટને એન્ક્રિપ્ટ કરો છો અને તમારો પાસફ્રેઝ ખોવાઈ જાય છે, &lt;b&gt; તો તમે તમારા બધા KNE્સ ગુમાવશો&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -183,7 +183,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">યાદ રાખો કે તમારા વૉલેટને એન્ક્રિપ્ટ કરવાથી તમારા કમ્પ્યુટરને સંક્રમિત કરતા માલવેર દ્વારા ચોરાઈ જવાથી તમારા બિટકોઈનને સંપૂર્ણપણે સુરક્ષિત કરી શકાશે નહીં.</translation>
+        <translation type="unfinished">યાદ રાખો કે તમારા વૉલેટને એન્ક્રિપ્ટ કરવાથી તમારા કમ્પ્યુટરને સંક્રમિત કરતા માલવેર દ્વારા ચોરાઈ જવાથી તમારા KNEે સંપૂર્ણપણે સુરક્ષિત કરી શકાશે નહીં.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -481,7 +481,7 @@
     </message>
     <message>
         <source>Send coins to a Kronein address</source>
-        <translation type="unfinished">બિટકોઈન એડ્રેસ પર સિક્કા મોકલો</translation>
+        <translation type="unfinished">Kronein એડ્રેસ પર સિક્કા મોકલો</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -577,7 +577,7 @@
     </message>
     <message>
         <source>Request payments (generates QR codes and kronein: URIs)</source>
-        <translation type="unfinished">ચુકવણીની વિનંતી કરો (QR કોડ અને બિટકોઈન જનરેટ કરે છે: URI)</translation>
+        <translation type="unfinished">ચુકવણીની વિનંતી કરો (QR કોડ અને Kronein જનરેટ કરે છે: URI)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -632,7 +632,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction</source>
-        <translation type="unfinished">આંશિક રીતે સહી કરેલ બિટકોઈન ટ્રાન્ઝેક્શન લોડ કરો</translation>
+        <translation type="unfinished">આંશિક રીતે સહી કરેલ Kronein ટ્રાન્ઝેક્શન લોડ કરો</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
@@ -640,7 +640,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction from clipboard</source>
-        <translation type="unfinished">ક્લિપબોર્ડથી આંશિક રીતે સહી કરેલ બિટકોઈન ટ્રાન્ઝેક્શન લોડ કરો</translation>
+        <translation type="unfinished">ક્લિપબોર્ડથી આંશિક રીતે સહી કરેલ Kronein ટ્રાન્ઝેક્શન લોડ કરો</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -660,7 +660,7 @@
     </message>
     <message>
         <source>Open a kronein: URI</source>
-        <translation type="unfinished">બીટકોઈન ખોલો: URI</translation>
+        <translation type="unfinished">Kronein ખોલો: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -690,7 +690,7 @@
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
-        <translation type="unfinished">સંભવિત બિટકોઈન કમાન્ડ-લાઇન વિકલ્પો સાથે સૂચિ મેળવવા માટે મદદ સંદેશ બતાવો %1 </translation>
+        <translation type="unfinished">સંભવિત Kronein કમાન્ડ-લાઇન વિકલ્પો સાથે સૂચિ મેળવવા માટે મદદ સંદેશ બતાવો %1 </translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -752,8 +752,8 @@
         <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>1%n બિટકોઈન નેટવર્ક સાથે સક્રિય જોડાણ(ઓ).</numerusform>
-            <numerusform>%n બિટકોઈન નેટવર્ક સાથે સક્રિય જોડાણ(ઓ).</numerusform>
+            <numerusform>1%n Kronein નેટવર્ક સાથે સક્રિય જોડાણ(ઓ).</numerusform>
+            <numerusform>%n Kronein નેટવર્ક સાથે સક્રિય જોડાણ(ઓ).</numerusform>
         </translation>
     </message>
     <message>
@@ -1213,7 +1213,7 @@
     </message>
     <message>
         <source>The entered address "%1" is not a valid Kronein address.</source>
-        <translation type="unfinished">દાખલ કરેલ સરનામું "%1" માન્ય બીટકોઈન સરનામું નથી.</translation>
+        <translation type="unfinished">દાખલ કરેલ સરનામું "%1" માન્ય Kronein સરનામું નથી.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1329,7 +1329,7 @@
     </message>
     <message>
         <source>Kronein</source>
-        <translation type="unfinished">બીટકોઈન </translation>
+        <translation type="unfinished">Kronein </translation>
     </message>
     <message numerus="yes">
         <source>%n GB of space available</source>
@@ -1374,7 +1374,7 @@
     </message>
     <message>
         <source>%1 will download and store a copy of the Kronein block chain.</source>
-        <translation type="unfinished">%1 બિટકોઈન બ્લોક ચેઈનની કોપી ડાઉનલોડ અને સ્ટોર કરશે.</translation>
+        <translation type="unfinished">%1 Kronein બ્લોક ચેઈનની કોપી ડાઉનલોડ અને સ્ટોર કરશે.</translation>
     </message>
     <message>
         <source>The wallet will also be stored in this directory.</source>
@@ -1397,11 +1397,11 @@
     </message>
     <message>
         <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
-        <translation type="unfinished">તાજેતરના વ્યવહારો હજુ સુધી દેખાતા ન હોઈ શકે અને તેથી તમારા વૉલેટનું બેલેન્સ ખોટું હોઈ શકે છે. એકવાર તમારું વૉલેટ બિટકોઇન નેટવર્ક સાથે સિંક્રનાઇઝ થઈ જાય પછી આ માહિતી સાચી હશે, જેમ કે નીચે વિગતવાર છે.</translation>
+        <translation type="unfinished">તાજેતરના વ્યવહારો હજુ સુધી દેખાતા ન હોઈ શકે અને તેથી તમારા વૉલેટનું બેલેન્સ ખોટું હોઈ શકે છે. એકવાર તમારું વૉલેટ Kronein નેટવર્ક સાથે સિંક્રનાઇઝ થઈ જાય પછી આ માહિતી સાચી હશે, જેમ કે નીચે વિગતવાર છે.</translation>
     </message>
     <message>
         <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation type="unfinished">હજુ સુધી પ્રદર્શિત ન થયેલા વ્યવહારોથી પ્રભાવિત બિટકોઇન્સનો ખર્ચ કરવાનો પ્રયાસ નેટવર્ક દ્વારા સ્વીકારવામાં આવશે નહીં.</translation>
+        <translation type="unfinished">હજુ સુધી પ્રદર્શિત ન થયેલા વ્યવહારોથી પ્રભાવિત KNE્સનો ખર્ચ કરવાનો પ્રયાસ નેટવર્ક દ્વારા સ્વીકારવામાં આવશે નહીં.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1456,7 +1456,7 @@
     <name>OpenURIDialog</name>
     <message>
         <source>Open Kronein URI</source>
-        <translation type="unfinished">બિટકોઈન URI ખોલો</translation>
+        <translation type="unfinished">Kronein URI ખોલો</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -1708,7 +1708,7 @@
     </message>
     <message>
         <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation type="unfinished">ટોર ઓનિયન સેવાઓ માટે અલગ SOCKS5 પ્રોક્સી દ્વારા બિટકોઇન નેટવર્ક સાથે કનેક્ટ થાઓ.</translation>
+        <translation type="unfinished">ટોર ઓનિયન સેવાઓ માટે અલગ SOCKS5 પ્રોક્સી દ્વારા Kronein નેટવર્ક સાથે કનેક્ટ થાઓ.</translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
@@ -1805,7 +1805,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">પ્રદર્શિત માહિતી જૂની હોઈ શકે છે. કનેક્શન સ્થાપિત થયા પછી તમારું વૉલેટ આપમેળે બિટકોઇન નેટવર્ક સાથે સિંક્રનાઇઝ થાય છે, પરંતુ આ પ્રક્રિયા હજી પૂર્ણ થઈ નથી.</translation>
+        <translation type="unfinished">પ્રદર્શિત માહિતી જૂની હોઈ શકે છે. કનેક્શન સ્થાપિત થયા પછી તમારું વૉલેટ આપમેળે Kronein નેટવર્ક સાથે સિંક્રનાઇઝ થાય છે, પરંતુ આ પ્રક્રિયા હજી પૂર્ણ થઈ નથી.</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -2002,7 +2002,7 @@
     </message>
     <message>
         <source>Cannot start kronein: click-to-pay handler</source>
-        <translation type="unfinished">બિટકોઇન શરૂ કરી શકતા નથી: ક્લિક-ટુ-પે હેન્ડલર</translation>
+        <translation type="unfinished">Kronein શરૂ કરી શકતા નથી: ક્લિક-ટુ-પે હેન્ડલર</translation>
     </message>
     <message>
         <source>URI handling</source>
@@ -2180,7 +2180,7 @@ BIP70 માં વ્યાપક સુરક્ષા ખામીઓને �
     </message>
     <message>
         <source>Network addresses that your Kronein node is currently using to communicate with other nodes.</source>
-        <translation type="unfinished">નેટવર્ક સરનામાં જેનો ઉપયોગ તમારા બિટકોઇન નોડ હાલમાં અન્ય નોડ્સ સાથે વાતચીત કરવા માટે કરી રહ્યા છે.</translation>
+        <translation type="unfinished">નેટવર્ક સરનામાં જેનો ઉપયોગ તમારા Kronein નોડ હાલમાં અન્ય નોડ્સ સાથે વાતચીત કરવા માટે કરી રહ્યા છે.</translation>
     </message>
     <message>
         <source>Block chain</source>

@@ -55,7 +55,7 @@
     </message>
     <message>
         <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">ክፍያዎችን ለመላክ እነዚህ  የእርስዎ ቢትኮይን አድራሻዎች ናቸው። ሳንቲሞችን/ኮይኖች ከመላክዎ በፊት ሁል ጊዜ መጠኑን እና የተቀባዩን አድራሻ ያረጋግጡ።</translation>
+        <translation type="unfinished">ክፍያዎችን ለመላክ እነዚህ  የእርስዎ Kronein አድራሻዎች ናቸው። ሳንቲሞችን/ኮይኖች ከመላክዎ በፊት ሁል ጊዜ መጠኑን እና የተቀባዩን አድራሻ ያረጋግጡ።</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -135,15 +135,15 @@
     </message>
     <message>
         <source>Encrypt wallet</source>
-        <translation type="unfinished">የቢትኮይን ቦርሳውን አመስጥር</translation>
+        <translation type="unfinished">የKronein ቦርሳውን አመስጥር</translation>
     </message>
     <message>
         <source>This operation needs your wallet passphrase to unlock the wallet.</source>
-        <translation type="unfinished">ይህ ክንዋኔ የቢትኮይን ቦርሳዎን ለመክፈት የቦርሳዎ ይለፍ-ሐረግ ያስፈልገዋል::</translation>
+        <translation type="unfinished">ይህ ክንዋኔ የKronein ቦርሳዎን ለመክፈት የቦርሳዎ ይለፍ-ሐረግ ያስፈልገዋል::</translation>
     </message>
     <message>
         <source>Unlock wallet</source>
-        <translation type="unfinished">የቢትኮይን ቦርሳውን ክፈት</translation>
+        <translation type="unfinished">የKronein ቦርሳውን ክፈት</translation>
     </message>
     <message>
         <source>Change passphrase</source>
@@ -151,11 +151,11 @@
     </message>
     <message>
         <source>Confirm wallet encryption</source>
-        <translation type="unfinished">የቢትኮይን ቦርሳዎን ማመስጠር ያረጋግጡ</translation>
+        <translation type="unfinished">የKronein ቦርሳዎን ማመስጠር ያረጋግጡ</translation>
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">ማስጠንቀቂያ: የቢትኮይን ቦርሳዎን አመስጥረው የይለፍ-ሐረግዎን ካጡት&lt;b&gt;ቢትኮይኖቾን በሙሉ ያጣሉ&lt;/b&gt;!</translation>
+        <translation type="unfinished">ማስጠንቀቂያ: የKNE ቦርሳዎን አመስጥረው የይለፍ-ሐረግዎን ካጡት&lt;b&gt;ቢትኮይኖቾን በሙሉ ያጣሉ&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -558,7 +558,7 @@
     </message>
     <message>
         <source>Kronein</source>
-        <translation type="unfinished">ቢትኮይን</translation>
+        <translation type="unfinished">Kronein</translation>
     </message>
     <message numerus="yes">
         <source>%n GB of space available</source>

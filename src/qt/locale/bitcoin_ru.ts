@@ -59,7 +59,7 @@
     </message>
     <message>
         <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">Это ваши биткоин-адреса для отправки платежей. Всегда проверяйте сумму и адрес получателя перед отправкой перевода.</translation>
+        <translation type="unfinished">Это ваши Kronein-адреса для отправки платежей. Всегда проверяйте сумму и адрес получателя перед отправкой перевода.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -159,7 +159,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">Предупреждение: Если вы зашифруете кошелёк и потеряете пароль, вы &lt;b&gt;ПОТЕРЯЕТЕ ВСЕ ВАШИ БИТКОЙНЫ&lt;/b&gt;!</translation>
+        <translation type="unfinished">Предупреждение: Если вы зашифруете кошелёк и потеряете пароль, вы &lt;b&gt;ПОТЕРЯЕТЕ ВСЕ ВАШИ KNE&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -187,7 +187,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Помните, что шифрование кошелька не может полностью защитить ваши биткоины от кражи вредоносным ПО, заразившим ваш компьютер.</translation>
+        <translation type="unfinished">Помните, что шифрование кошелька не может полностью защитить ваши KNE от кражи вредоносным ПО, заразившим ваш компьютер.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -480,7 +480,7 @@
     </message>
     <message>
         <source>Send coins to a Kronein address</source>
-        <translation type="unfinished">Отправить средства на Биткоин адрес</translation>
+        <translation type="unfinished">Отправить средства на Kronein адрес</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -632,7 +632,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction</source>
-        <translation type="unfinished">Загрузить частично подписанные биткоин-транзакции (PSBT)</translation>
+        <translation type="unfinished">Загрузить частично подписанные Kronein-транзакции (PSBT)</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
@@ -640,7 +640,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction from clipboard</source>
-        <translation type="unfinished">Загрузить частично подписанную биткоин-транзакцию из буфера обмена</translation>
+        <translation type="unfinished">Загрузить частично подписанную Kronein-транзакцию из буфера обмена</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -1201,7 +1201,7 @@
     </message>
     <message>
         <source>The entered address "%1" is not a valid Kronein address.</source>
-        <translation type="unfinished">Введенный адрес "%1" недействителен в сети Биткоин.</translation>
+        <translation type="unfinished">Введенный адрес "%1" недействителен в сети Kronein.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1373,7 +1373,7 @@
     <name>ModalOverlay</name>
     <message>
         <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
-        <translation type="unfinished">Недавние транзакции могут быть пока не видны, и поэтому отображаемый баланс вашего кошелька может быть неточной. Информация станет точной после завершения синхронизации с сетью биткоина. Прогресс синхронизации вы можете видеть снизу.</translation>
+        <translation type="unfinished">Недавние транзакции могут быть пока не видны, и поэтому отображаемый баланс вашего кошелька может быть неточной. Информация станет точной после завершения синхронизации с сетью Kronein. Прогресс синхронизации вы можете видеть снизу.</translation>
     </message>
     <message>
         <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
@@ -1570,7 +1570,7 @@
     <message>
         <source>Whether to show PSBT controls.</source>
         <extracomment>Tooltip text for options window setting that enables PSBT controls.</extracomment>
-        <translation type="unfinished">Показать элементы управления частично подписанными биткоин-транзакциями (PSBT)</translation>
+        <translation type="unfinished">Показать элементы управления частично подписанными Kronein-транзакциями (PSBT)</translation>
     </message>
     <message>
         <source>External Signer (e.g. hardware wallet)</source>

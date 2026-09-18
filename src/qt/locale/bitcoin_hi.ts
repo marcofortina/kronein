@@ -55,7 +55,7 @@
     </message>
     <message>
         <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">भुगतान भेजने के लिए ये आपके बिटकॉइन पते हैं। कॉइन्स भेजने से पहले हमेशा राशि और प्राप्त करने वाले पते की जांच करें।</translation>
+        <translation type="unfinished">भुगतान भेजने के लिए ये आपके Kronein पते हैं। कॉइन्स भेजने से पहले हमेशा राशि और प्राप्त करने वाले पते की जांच करें।</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -151,7 +151,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">चेतावनी: यदि आप अपना वॉलेट एन्क्रिप्ट करते हैं और अपना पासफ़्रेज़ खो देते हैं, तो आपअपने सभी बिटकॉइन &lt;b&gt; खो देंगे&lt;/b&gt; !</translation>
+        <translation type="unfinished">चेतावनी: यदि आप अपना वॉलेट एन्क्रिप्ट करते हैं और अपना पासफ़्रेज़ खो देते हैं, तो आपअपने सभी KNE &lt;b&gt; खो देंगे&lt;/b&gt; !</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -171,7 +171,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">याद रखें कि आपके वॉलेट को एन्क्रिप्ट करने से आपके बिटकॉइन को आपके कंप्यूटर को संक्रमित करने वाले मैलवेयर द्वारा चोरी होने से पूरी तरह से सुरक्षित नहीं किया जा सकता है।</translation>
+        <translation type="unfinished">याद रखें कि आपके वॉलेट को एन्क्रिप्ट करने से आपके KNE को आपके कंप्यूटर को संक्रमित करने वाले मैलवेयर द्वारा चोरी होने से पूरी तरह से सुरक्षित नहीं किया जा सकता है।</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -426,7 +426,7 @@
     </message>
     <message>
         <source>Send coins to a Kronein address</source>
-        <translation type="unfinished">बिटकॉइन पते पर कॉइन्स भेजें</translation>
+        <translation type="unfinished">Kronein पते पर कॉइन्स भेजें</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -525,7 +525,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction from clipboard</source>
-        <translation type="unfinished">क्लिपबोर्ड से आंशिक रूप से हस्ताक्षरित बिटकॉइन लेनदेन लोड करें</translation>
+        <translation type="unfinished">क्लिपबोर्ड से आंशिक रूप से हस्ताक्षरित Kronein लेनदेन लोड करें</translation>
     </message>
     <message>
         <source>Open node debugging and diagnostic console</source>
@@ -541,7 +541,7 @@
     </message>
     <message>
         <source>Open a kronein: URI</source>
-        <translation type="unfinished">एक बिटकॉइन: URI खोलें</translation>
+        <translation type="unfinished">एक Kronein: URI खोलें</translation>
     </message>
     <message>
         <source>Open a wallet</source>
@@ -563,7 +563,7 @@
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
-        <translation type="unfinished">%1 सहायता संदेश दिखाएं ताकि बिटकॉइन कमांड-लाइन विकल्पों की संभावित सूची मिल सके</translation>
+        <translation type="unfinished">%1 सहायता संदेश दिखाएं ताकि Kronein कमांड-लाइन विकल्पों की संभावित सूची मिल सके</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -597,8 +597,8 @@
         <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>बिटकॉइन नेटवर्क से %n सक्रिय कनेक्शन।</numerusform>
-            <numerusform>बिटकॉइन नेटवर्क से %n सक्रिय कनेक्शन।</numerusform>
+            <numerusform>Kronein नेटवर्क से %n सक्रिय कनेक्शन।</numerusform>
+            <numerusform>Kronein नेटवर्क से %n सक्रिय कनेक्शन।</numerusform>
         </translation>
     </message>
     <message>
@@ -805,7 +805,7 @@
     </message>
     <message>
         <source>Automatically open the Kronein client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
-        <translation type="unfinished">राउटर पर बिटकॉइन क्लाइंट पोर्ट को स्वचालित रूप से खोलता है। यह केवल तभी काम करता है जब आपका राउटर PCP या NAT-PMP का समर्थन करता है और यह सक्षम है। बाहरी पोर्ट यादृच्छिक हो सकता है।</translation>
+        <translation type="unfinished">राउटर पर Kronein क्लाइंट पोर्ट को स्वचालित रूप से खोलता है। यह केवल तभी काम करता है जब आपका राउटर PCP या NAT-PMP का समर्थन करता है और यह सक्षम है। बाहरी पोर्ट यादृच्छिक हो सकता है।</translation>
     </message>
     <message>
         <source>Map port using PCP or NA&amp;T-PMP</source>
@@ -938,7 +938,7 @@
     </message>
     <message>
         <source>Network addresses that your Kronein node is currently using to communicate with other nodes.</source>
-        <translation type="unfinished">नेटवर्क पते जो आपका बिटकॉइन नोड वर्तमान में अन्य नोड्स के साथ संचार करने के लिए उपयोग कर रहा है।</translation>
+        <translation type="unfinished">नेटवर्क पते जो आपका Kronein नोड वर्तमान में अन्य नोड्स के साथ संचार करने के लिए उपयोग कर रहा है।</translation>
     </message>
     <message>
         <source>Block chain</source>
@@ -1349,7 +1349,7 @@ For more information on using this console, type %6.
     </message>
     <message>
         <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Kronein network.</source>
-        <translation type="unfinished">भुगतान अनुरोध के साथ संलग्न करने के लिए एक वैकल्पिक संदेश, जिसे अनुरोध खोले जाने पर प्रदर्शित किया जाएगा। नोट: बिटकॉइन नेटवर्क पर भुगतान के साथ संदेश नहीं भेजा जाएगा।</translation>
+        <translation type="unfinished">भुगतान अनुरोध के साथ संलग्न करने के लिए एक वैकल्पिक संदेश, जिसे अनुरोध खोले जाने पर प्रदर्शित किया जाएगा। नोट: Kronein नेटवर्क पर भुगतान के साथ संदेश नहीं भेजा जाएगा।</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -1598,7 +1598,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for Kronein transactions than the network can process.</source>
-        <translation type="unfinished">जब ब्लॉक में स्थान की तुलना में कम लेन-देन की मात्रा होती है, तो खनिकों के साथ-साथ रिलेइंग नोड्स न्यूनतम शुल्क लागू कर सकते हैं। केवल इस न्यूनतम शुल्क का भुगतान करना ठीक है, लेकिन ध्यान रखें कि नेटवर्क की प्रक्रिया की तुलना में बिटकॉइन लेनदेन की अधिक मांग होने पर इसका परिणाम कभी भी पुष्टिकरण लेनदेन में नहीं हो सकता है।</translation>
+        <translation type="unfinished">जब ब्लॉक में स्थान की तुलना में कम लेन-देन की मात्रा होती है, तो खनिकों के साथ-साथ रिलेइंग नोड्स न्यूनतम शुल्क लागू कर सकते हैं। केवल इस न्यूनतम शुल्क का भुगतान करना ठीक है, लेकिन ध्यान रखें कि नेटवर्क की प्रक्रिया की तुलना में Kronein लेनदेन की अधिक मांग होने पर इसका परिणाम कभी भी पुष्टिकरण लेनदेन में नहीं हो सकता है।</translation>
     </message>
     <message>
         <source>A too low fee might result in a never confirming transaction (read the tooltip)</source>
@@ -1668,7 +1668,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>Creates a Partially Signed Kronein Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
-        <translation type="unfinished">उदाहरण के लिए उपयोग के लिए आंशिक रूप से हस्ताक्षरित बिटकॉइन लेनदेन (PSBT) बनाता है। एक ऑफ़लाइन% 1 %1  वॉलेट, या एक PSBT-संगत हार्डवेयर वॉलेट।</translation>
+        <translation type="unfinished">उदाहरण के लिए उपयोग के लिए आंशिक रूप से हस्ताक्षरित Kronein लेनदेन (PSBT) बनाता है। एक ऑफ़लाइन% 1 %1  वॉलेट, या एक PSBT-संगत हार्डवेयर वॉलेट।</translation>
     </message>
     <message>
         <source>%1 to '%2'</source>
@@ -1717,7 +1717,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     <message>
         <source>Please, review your transaction proposal. This will produce a Partially Signed Kronein Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can only create a PSBT. This string is displayed when private keys are disabled and an external signer is not available.</extracomment>
-        <translation type="unfinished">कृपया, अपने लेनदेन प्रस्ताव की समीक्षा करें। यह एक आंशिक रूप से हस्ताक्षरित बिटकॉइन लेनदेन (PSBT) का उत्पादन करेगा जिसे आप सहेज सकते हैं या कॉपी कर सकते हैं और फिर उदा। एक ऑफ़लाइन %1  वॉलेट, या एक PSBT-संगत हार्डवेयर वॉलेट।</translation>
+        <translation type="unfinished">कृपया, अपने लेनदेन प्रस्ताव की समीक्षा करें। यह एक आंशिक रूप से हस्ताक्षरित Kronein लेनदेन (PSBT) का उत्पादन करेगा जिसे आप सहेज सकते हैं या कॉपी कर सकते हैं और फिर उदा। एक ऑफ़लाइन %1  वॉलेट, या एक PSBT-संगत हार्डवेयर वॉलेट।</translation>
     </message>
     <message>
         <source>%1 from wallet '%2'</source>
@@ -1731,7 +1731,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     <message>
         <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Kronein Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can send their transaction or create a PSBT. This string is displayed when both private keys and PSBT controls are enabled.</extracomment>
-        <translation type="unfinished">कृपया, अपने लेन-देन की समीक्षा करें। आप इस लेन-देन को बना और भेज सकते हैं या आंशिक रूप से हस्ताक्षरित बिटकॉइन लेनदेन (पीएसबीटी) बना सकते हैं, जिसे आप सहेज सकते हैं या कॉपी कर सकते हैं और फिर हस्ताक्षर कर सकते हैं, उदाहरण के लिए, ऑफ़लाइन %1 वॉलेट, या पीएसबीटी-संगत हार्डवेयर वॉलेट।</translation>
+        <translation type="unfinished">कृपया, अपने लेन-देन की समीक्षा करें। आप इस लेन-देन को बना और भेज सकते हैं या आंशिक रूप से हस्ताक्षरित Kronein लेनदेन (पीएसबीटी) बना सकते हैं, जिसे आप सहेज सकते हैं या कॉपी कर सकते हैं और फिर हस्ताक्षर कर सकते हैं, उदाहरण के लिए, ऑफ़लाइन %1 वॉलेट, या पीएसबीटी-संगत हार्डवेयर वॉलेट।</translation>
     </message>
     <message>
         <source>Please, review your transaction.</source>
@@ -1802,7 +1802,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>Warning: Invalid Kronein address</source>
-        <translation type="unfinished">चेतावनी: अमान्य बिटकॉइन पता</translation>
+        <translation type="unfinished">चेतावनी: अमान्य Kronein पता</translation>
     </message>
     <message>
         <source>Warning: Unknown change address</source>
@@ -1837,7 +1837,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>The Kronein address to send the payment to</source>
-        <translation type="unfinished">भुगतान भेजने के लिए बिटकॉइन पता</translation>
+        <translation type="unfinished">भुगतान भेजने के लिए Kronein पता</translation>
     </message>
     <message>
         <source>Alt+A</source>
@@ -1861,7 +1861,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>The fee will be deducted from the amount being sent. The recipient will receive less KNE than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation type="unfinished">भेजी जाने वाली राशि से शुल्क की कटौती की जाएगी। प्राप्तकर्ता को आपके द्वारा राशि फ़ील्ड में दर्ज किए जाने से कम बिटकॉइन प्राप्त होंगे। यदि कई प्राप्तकर्ताओं का चयन किया जाता है, तो शुल्क समान रूप से विभाजित किया जाता है।</translation>
+        <translation type="unfinished">भेजी जाने वाली राशि से शुल्क की कटौती की जाएगी। प्राप्तकर्ता को आपके द्वारा राशि फ़ील्ड में दर्ज किए जाने से कम KNE प्राप्त होंगे। यदि कई प्राप्तकर्ताओं का चयन किया जाता है, तो शुल्क समान रूप से विभाजित किया जाता है।</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>
@@ -1881,7 +1881,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
-        <translation type="unfinished">एक संदेश जो बिटकॉइन से जुड़ा था: यूआरआई जो आपके संदर्भ के लिए लेनदेन के साथ संग्रहीत किया जाएगा। नोट: यह संदेश बिटकॉइन नेटवर्क पर नहीं भेजा जाएगा।</translation>
+        <translation type="unfinished">एक संदेश जो Kronein से जुड़ा था: यूआरआई जो आपके संदर्भ के लिए लेनदेन के साथ संग्रहीत किया जाएगा। नोट: यह संदेश Kronein नेटवर्क पर नहीं भेजा जाएगा।</translation>
     </message>
 </context>
 <context>

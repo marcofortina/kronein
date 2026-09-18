@@ -155,7 +155,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">Upozorenje: Ako šifrujete svoj novčanik, i potom izgubite svoju pristupnu frazu &lt;b&gt;IZGUBIĆETE SVE SVOJE BITKOINE&lt;/b&gt;!</translation>
+        <translation type="unfinished">Upozorenje: Ako šifrujete svoj novčanik, i potom izgubite svoju pristupnu frazu &lt;b&gt;IZGUBIĆETE SVE SVOJE KNE&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -183,7 +183,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Упамти, шифрирање новчаника не може у потуности заштити твоје биткоине од крађе од стране малвера инфицира твој рачунар.</translation>
+        <translation type="unfinished">Упамти, шифрирање новчаника не може у потуности заштити твоје KNE од крађе од стране малвера инфицира твој рачунар.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -294,7 +294,7 @@
     </message>
     <message>
         <source>Enter a Kronein address (e.g. %1)</source>
-        <translation type="unfinished">Унеси Биткоин адресу, (нпр %1)</translation>
+        <translation type="unfinished">Унеси Kronein адресу, (нпр %1)</translation>
     </message>
     <message>
         <source>Unroutable</source>
@@ -635,7 +635,7 @@
     </message>
     <message>
         <source>Open a kronein: URI</source>
-        <translation type="unfinished">Отвори биткоин: URI</translation>
+        <translation type="unfinished">Отвори Kronein: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -665,7 +665,7 @@
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
-        <translation type="unfinished">Прикажи  поруку помоћи %1 за листу са могућим опцијама Биткоин командне линије</translation>
+        <translation type="unfinished">Прикажи  поруку помоћи %1 за листу са могућим опцијама Kronein командне линије</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -731,7 +731,7 @@
         <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>%n активних конекција са Биткоин мрежом</numerusform>
+            <numerusform>%n активних конекција са Kronein мрежом</numerusform>
         </translation>
     </message>
     <message>
@@ -1156,7 +1156,7 @@
     </message>
     <message>
         <source>The entered address "%1" is not a valid Kronein address.</source>
-        <translation type="unfinished">Унета адреса "%1" није важећа Биткоин адреса.</translation>
+        <translation type="unfinished">Унета адреса "%1" није важећа Kronein адреса.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1301,7 +1301,7 @@
     </message>
     <message>
         <source>%1 will download and store a copy of the Kronein block chain.</source>
-        <translation type="unfinished">%1 биће преузеће и складиштити копију Биткоин ланца блокова.</translation>
+        <translation type="unfinished">%1 биће преузеће и складиштити копију Kronein ланца блокова.</translation>
     </message>
     <message>
         <source>The wallet will also be stored in this directory.</source>
@@ -1324,11 +1324,11 @@
     </message>
     <message>
         <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
-        <translation type="unfinished">Недавне трансакције можда не буду видљиве, зато салдо твог новчаника може бити нетачан. Ова информација биће тачна када новчаник заврши са синхронизацијом биткоин мреже, приказаном испод.</translation>
+        <translation type="unfinished">Недавне трансакције можда не буду видљиве, зато салдо твог новчаника може бити нетачан. Ова информација биће тачна када новчаник заврши са синхронизацијом Kronein мреже, приказаном испод.</translation>
     </message>
     <message>
         <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation type="unfinished">Покушај трошења биткоина на које утичу још увек неприказане трансакције мрежа неће прихватити.</translation>
+        <translation type="unfinished">Покушај трошења KNE на које утичу још увек неприказане трансакције мрежа неће прихватити.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1379,7 +1379,7 @@
     <name>OpenURIDialog</name>
     <message>
         <source>Open Kronein URI</source>
-        <translation type="unfinished">Отвори биткоин URI</translation>
+        <translation type="unfinished">Отвори Kronein URI</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -1504,7 +1504,7 @@
     </message>
     <message>
         <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">Конектуј се на Биткоин мрежу кроз SOCKS5 проксијем.</translation>
+        <translation type="unfinished">Конектуј се на Kronein мрежу кроз SOCKS5 проксијем.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1580,7 +1580,7 @@
     </message>
     <message>
         <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation type="unfinished">Повежите се на Битцоин мрежу преко засебног СОЦКС5 проксија за Тор онион услуге.</translation>
+        <translation type="unfinished">Повежите се на Kronein мрежу преко засебног СОЦКС5 проксија за Тор онион услуге.</translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
@@ -1665,7 +1665,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">Приказана информација може бити застарела. Ваш новчаник се аутоматски синхронизује са Биткоин мрежом након успостављања конекције, али овај процес је још увек у току.</translation>
+        <translation type="unfinished">Приказана информација може бити застарела. Ваш новчаник се аутоматски синхронизује са Kronein мрежом након успостављања конекције, али овај процес је још увек у току.</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -1844,7 +1844,7 @@
     </message>
     <message>
         <source>Cannot start kronein: click-to-pay handler</source>
-        <translation type="unfinished">Не могу покренути биткоин: "кликни-да-платиш" механизам</translation>
+        <translation type="unfinished">Не могу покренути Kronein: "кликни-да-платиш" механизам</translation>
     </message>
     <message>
         <source>URI handling</source>
@@ -1864,7 +1864,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
     <message>
         <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
-        <translation type="unfinished">URI се не може рашчланити! Ово може бити проузроковано неважећом Биткоин адресом или погрешно форматираним URI параметрима.</translation>
+        <translation type="unfinished">URI се не може рашчланити! Ово може бити проузроковано неважећом Kronein адресом или погрешно форматираним URI параметрима.</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -2370,7 +2370,7 @@ For more information on using this console, type %6.
     </message>
     <message>
         <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Kronein network.</source>
-        <translation type="unfinished">Опциона порука коју можеш прикачити уз захтев за плаћање, која ће бити приказана када захтев буде отворен. Напомена: Порука неће бити послата са уплатом на Биткоин мрежи.</translation>
+        <translation type="unfinished">Опциона порука коју можеш прикачити уз захтев за плаћање, која ће бити приказана када захтев буде отворен. Напомена: Порука неће бити послата са уплатом на Kronein мрежи.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -2647,7 +2647,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for Kronein transactions than the network can process.</source>
-        <translation type="unfinished">Када је мањи обим трансакција од простора у блоку, рудари, као и повезани нодови могу применити минималну провизију. Плаћање само минималне накнаде - провизије је добро, али треба бити свестан да ово може резултовати трансакцијом која неће никада бити потврђена, у случају када је број захтева за биткоин трансакцијама већи од могућности мреже да обради.</translation>
+        <translation type="unfinished">Када је мањи обим трансакција од простора у блоку, рудари, као и повезани нодови могу применити минималну провизију. Плаћање само минималне накнаде - провизије је добро, али треба бити свестан да ово може резултовати трансакцијом која неће никада бити потврђена, у случају када је број захтева за Kronein трансакцијама већи од могућности мреже да обради.</translation>
     </message>
     <message>
         <source>A too low fee might result in a never confirming transaction (read the tooltip)</source>
@@ -2733,7 +2733,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>Creates a Partially Signed Kronein Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
-        <translation type="unfinished">Креира делимично потписану Биткоин трансакцију (PSBT) за коришћење са нпр. офлајн %1 новчаником, или PSBT компатибилним хардверским новчаником. </translation>
+        <translation type="unfinished">Креира делимично потписану Kronein трансакцију (PSBT) за коришћење са нпр. офлајн %1 новчаником, или PSBT компатибилним хардверским новчаником. </translation>
     </message>
     <message>
         <source>%1 to '%2'</source>
@@ -2790,7 +2790,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     <message>
         <source>Please, review your transaction proposal. This will produce a Partially Signed Kronein Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can only create a PSBT. This string is displayed when private keys are disabled and an external signer is not available.</extracomment>
-        <translation type="unfinished">Молимо, проверите ваш предлог трансакције. Ово ће произвести делимично потписану Биткоин трансакцију (PSBT) коју можете копирати и онда потписати са нпр. офлајн %1 новчаником, или PSBT компатибилним хардверским новчаником.</translation>
+        <translation type="unfinished">Молимо, проверите ваш предлог трансакције. Ово ће произвести делимично потписану Kronein трансакцију (PSBT) коју можете копирати и онда потписати са нпр. офлајн %1 новчаником, или PSBT компатибилним хардверским новчаником.</translation>
     </message>
     <message>
         <source>Do you want to create this transaction?</source>
@@ -2850,7 +2850,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>Warning: Invalid Kronein address</source>
-        <translation type="unfinished">Упозорење: Неважећа Биткоин адреса</translation>
+        <translation type="unfinished">Упозорење: Неважећа Kronein адреса</translation>
     </message>
     <message>
         <source>Warning: Unknown change address</source>
@@ -2889,7 +2889,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>The Kronein address to send the payment to</source>
-        <translation type="unfinished">Биткоин адреса на коју се шаље уплата</translation>
+        <translation type="unfinished">Kronein адреса на коју се шаље уплата</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -2905,7 +2905,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>The fee will be deducted from the amount being sent. The recipient will receive less KNE than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation type="unfinished">Провизија ће бити одузета од износа који је послат. Примаоц ће добити мање биткоина него што је унесено у поље за износ. Уколико је одабрано више примаоца, провизија се дели равномерно.</translation>
+        <translation type="unfinished">Провизија ће бити одузета од износа који је послат. Примаоц ће добити мање KNE него што је унесено у поље за износ. Уколико је одабрано више примаоца, провизија се дели равномерно.</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>
@@ -2925,7 +2925,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
-        <translation type="unfinished">Порука која је приложена биткоину: URI која ће бити сачувана уз трансакцију ради референце. Напомена: Ова порука се шаље преко Биткоин мреже.</translation>
+        <translation type="unfinished">Порука која је приложена Kronein: URI која ће бити сачувана уз трансакцију ради референце. Напомена: Ова порука се шаље преко Kronein мреже.</translation>
     </message>
 </context>
 <context>

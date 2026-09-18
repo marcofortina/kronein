@@ -452,7 +452,7 @@
     </message>
     <message>
         <source>Send coins to a Kronein address</source>
-        <translation type="unfinished">Bitkoin manziliga coinlarni yuborish</translation>
+        <translation type="unfinished">Kronein manziliga coinlarni yuborish</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -606,7 +606,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction</source>
-        <translation type="unfinished">Qisman signlangan Bitkoin tranzaksiyasini yuklash</translation>
+        <translation type="unfinished">Qisman signlangan Kronein tranzaksiyasini yuklash</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
@@ -614,7 +614,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction from clipboard</source>
-        <translation type="unfinished">Nusxalanganlar qisman signlangan Bitkoin tranzaksiyalarini yuklash</translation>
+        <translation type="unfinished">Nusxalanganlar qisman signlangan Kronein tranzaksiyalarini yuklash</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -634,7 +634,7 @@
     </message>
     <message>
         <source>Open a kronein: URI</source>
-        <translation type="unfinished">Bitkoinni ochish: URI</translation>
+        <translation type="unfinished">Kronein ochish: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -726,7 +726,7 @@
         <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>Bitkoin tarmog'iga %n aktiv ulanishlar.</numerusform>
+            <numerusform>Kronein tarmog'iga %n aktiv ulanishlar.</numerusform>
         </translation>
     </message>
     <message>
@@ -1362,11 +1362,11 @@
     </message>
     <message>
         <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
-        <translation type="unfinished">So'nggi tranzaksiyalar hali ko'rinmasligi mumkin, shuning uchun hamyoningiz balansi noto'g'ri ko'rinishi mumkin. Sizning hamyoningiz bitkoin tarmog'i bilan sinxronlashni tugatgandan so'ng, quyida batafsil tavsiflanganidek, bu ma'lumot to'g'rilanadi.</translation>
+        <translation type="unfinished">So'nggi tranzaksiyalar hali ko'rinmasligi mumkin, shuning uchun hamyoningiz balansi noto'g'ri ko'rinishi mumkin. Sizning hamyoningiz Kronein tarmog'i bilan sinxronlashni tugatgandan so'ng, quyida batafsil tavsiflanganidek, bu ma'lumot to'g'rilanadi.</translation>
     </message>
     <message>
         <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation type="unfinished">Hali ko'rsatilmagan tranzaksiyalarga bitkoinlarni sarflashga urinish tarmoq tomonidan qabul qilinmaydi.</translation>
+        <translation type="unfinished">Hali ko'rsatilmagan tranzaksiyalarga KNE sarflashga urinish tarmoq tomonidan qabul qilinmaydi.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1417,7 +1417,7 @@
     <name>OpenURIDialog</name>
     <message>
         <source>Open Kronein URI</source>
-        <translation type="unfinished">Bitkoin URI sini ochish</translation>
+        <translation type="unfinished">Kronein URI sini ochish</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>

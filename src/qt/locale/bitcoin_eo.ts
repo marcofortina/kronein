@@ -59,7 +59,7 @@
     </message>
     <message>
         <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">Jen viaj Bitmon-adresoj por sendi pagojn. Zorge kontrolu la sumon kaj la alsendan adreson antaŭ ol sendi.</translation>
+        <translation type="unfinished">Jen viaj Kronein-adresoj por sendi pagojn. Zorge kontrolu la sumon kaj la alsendan adreson antaŭ ol sendi.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -151,7 +151,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">Atentu! Se vi ĉifras vian monujon kaj perdas la pasfrazon, vi &lt;b&gt;PERDOS LA TUTON DE VIA BITMONO&lt;b&gt;!</translation>
+        <translation type="unfinished">Atentu! Se vi ĉifras vian monujon kaj perdas la pasfrazon, vi &lt;b&gt;PERDOS LA TUTON DE VIA KNE&lt;b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -362,7 +362,7 @@
     </message>
     <message>
         <source>Send coins to a Kronein address</source>
-        <translation type="unfinished">Sendi monon al Bitmon-adreso</translation>
+        <translation type="unfinished">Sendi monon al Kronein-adreso</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -782,7 +782,7 @@
     </message>
     <message>
         <source>The entered address "%1" is not a valid Kronein address.</source>
-        <translation type="unfinished">La adreso enigita "%1" ne estas valida Bitmon-adreso.</translation>
+        <translation type="unfinished">La adreso enigita "%1" ne estas valida Kronein-adreso.</translation>
     </message>
     <message>
         <source>Could not unlock wallet.</source>
@@ -858,7 +858,7 @@
     </message>
     <message>
         <source>Kronein</source>
-        <translation type="unfinished">Bitmono</translation>
+        <translation type="unfinished">Kronein</translation>
     </message>
     <message numerus="yes">
         <source>%n GB of space available</source>
@@ -933,7 +933,7 @@
     <name>OpenURIDialog</name>
     <message>
         <source>Open Kronein URI</source>
-        <translation type="unfinished">Malfermi na la URI de bitmono</translation>
+        <translation type="unfinished">Malfermi na la URI de Kronein</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -1033,7 +1033,7 @@
     </message>
     <message>
         <source>Choose the default subdivision unit to show in the interface and when sending coins.</source>
-        <translation type="unfinished">Elekti la defaŭltan manieron por montri bitmonajn sumojn en la interfaco, kaj kiam vi sendos bitmonon.</translation>
+        <translation type="unfinished">Elekti la defaŭltan manieron por montri Kronein sumojn en la interfaco, kaj kiam vi sendos Kronein.</translation>
     </message>
     <message>
         <source>Whether to show coin control features or not.</source>
@@ -1077,7 +1077,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">Eblas, ke la informoj videblaj ĉi tie estas eksdataj. Via monujo aŭtomate sinkoniĝas kun la bitmona reto kiam ili konektiĝas, sed tiu procezo ankoraŭ ne finfariĝis.</translation>
+        <translation type="unfinished">Eblas, ke la informoj videblaj ĉi tie estas eksdataj. Via monujo aŭtomate sinkoniĝas kun la Kronein reto kiam ili konektiĝas, sed tiu procezo ankoraŭ ne finfariĝis.</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -1460,7 +1460,7 @@
     <name>SendCoinsDialog</name>
     <message>
         <source>Send Coins</source>
-        <translation type="unfinished">Sendi Bitmonon</translation>
+        <translation type="unfinished">Sendi Kronein</translation>
     </message>
     <message>
         <source>Coin Control Features</source>
@@ -1572,7 +1572,7 @@
     </message>
     <message>
         <source>Confirm send coins</source>
-        <translation type="unfinished">Konfirmi sendon de bitmono</translation>
+        <translation type="unfinished">Konfirmi sendon de Kronein</translation>
     </message>
     <message>
         <source>The amount to pay must be larger than 0.</source>
@@ -1595,7 +1595,7 @@
     </message>
     <message>
         <source>Warning: Invalid Kronein address</source>
-        <translation type="unfinished">Averto: Nevalida Bitmon-adreso</translation>
+        <translation type="unfinished">Averto: Nevalida Kronein-adreso</translation>
     </message>
     <message>
         <source>(no label)</source>
@@ -1937,7 +1937,7 @@
     <name>WalletModel</name>
     <message>
         <source>Send Coins</source>
-        <translation type="unfinished">Sendi Bitmonon</translation>
+        <translation type="unfinished">Sendi Kronein</translation>
     </message>
     </context>
 <context>

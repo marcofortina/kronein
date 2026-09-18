@@ -59,7 +59,7 @@
     </message>
     <message>
         <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">ಕಾಣಿಕೆಗಳು ಕಳುಹಿಸಲು ನೀವು ಬಳಸಬಹುದಿರುವ ಬಿಟ್‌ಕಾಯಿನ್ ವಿಳಾಸಗಳು ಇವು. ನಾಣ್ಯದ ಹಣವನ್ನು ಕಳುಹಿಸುವ ಮುಂದೆ ಹಣದ ಮೊತ್ತವನ್ನು ಮತ್ತು ಪ್ರಾಪ್ತಿ ವಿಳಾಸವನ್ನು ಯಾವಾಗಲೂ ಪರಿಶೀಲಿಸಿ.</translation>
+        <translation type="unfinished">ಕಾಣಿಕೆಗಳು ಕಳುಹಿಸಲು ನೀವು ಬಳಸಬಹುದಿರುವ Kronein ವಿಳಾಸಗಳು ಇವು. ನಾಣ್ಯದ ಹಣವನ್ನು ಕಳುಹಿಸುವ ಮುಂದೆ ಹಣದ ಮೊತ್ತವನ್ನು ಮತ್ತು ಪ್ರಾಪ್ತಿ ವಿಳಾಸವನ್ನು ಯಾವಾಗಲೂ ಪರಿಶೀಲಿಸಿ.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -159,7 +159,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">ನೀವು ನಿಮ್ಮ ವ್ಯಾಲೆಟ್ ಅನ್ನು ಎನ್‌ಕ್ರಿಪ್ಟ್ ಮಾಡಿದರೆ ಮತ್ತು ನಿಮ್ಮ ಪಾಸ್‌ಫ್ರೇಸ್ ಅನ್ನು ಕಳೆದುಕೊಂಡರೆ&lt;b&gt;, ನಿಮ್ಮ ಎಲ್ಲಾ &lt;/b&gt;ಬಿಟ್‌ಕಾಯಿನ್‌ಗಳನ್ನು ನೀವು ಕಳೆದುಕೊಳ್ಳುತ್ತೀರಿ 
+        <translation type="unfinished">ನೀವು ನಿಮ್ಮ ವ್ಯಾಲೆಟ್ ಅನ್ನು ಎನ್‌ಕ್ರಿಪ್ಟ್ ಮಾಡಿದರೆ ಮತ್ತು ನಿಮ್ಮ ಪಾಸ್‌ಫ್ರೇಸ್ ಅನ್ನು ಕಳೆದುಕೊಂಡರೆ&lt;b&gt;, ನಿಮ್ಮ ಎಲ್ಲಾ &lt;/b&gt;KNE‌ಗಳನ್ನು ನೀವು ಕಳೆದುಕೊಳ್ಳುತ್ತೀರಿ
  !</translation>
     </message>
     <message>
@@ -180,7 +180,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">ನಿಮ್ಮ ವಾಲೆಟ್ ಎನ್ಕ್ರಿಪ್ಟ್ ಮಾಡುವುದರಿಂದ ನಿಮ್ಮ ಕಂಪ್ಯೂಟರ್ ಸೋಕಿದ ಮಲ್ವೇರ್ ನೋಂದಣಿಗೆ ಬಲಗೊಳಿಸುವ ಕಾದಂಬರಿಗೆ ನಿಮ್ಮ ಬಿಟ್‌ಕಾಯಿನ್ ಪೂರ್ತಿಯಾಗಿ ಸುರಕ್ಷಿತವಾಗುವುದಿಲ್ಲವೆಂದು ನೆನಪಿಡಿ.</translation>
+        <translation type="unfinished">ನಿಮ್ಮ ವಾಲೆಟ್ ಎನ್ಕ್ರಿಪ್ಟ್ ಮಾಡುವುದರಿಂದ ನಿಮ್ಮ ಕಂಪ್ಯೂಟರ್ ಸೋಕಿದ ಮಲ್ವೇರ್ ನೋಂದಣಿಗೆ ಬಲಗೊಳಿಸುವ ಕಾದಂಬರಿಗೆ ನಿಮ್ಮ KNE ಪೂರ್ತಿಯಾಗಿ ಸುರಕ್ಷಿತವಾಗುವುದಿಲ್ಲವೆಂದು ನೆನಪಿಡಿ.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -397,7 +397,7 @@
     </message>
     <message>
         <source>Send coins to a Kronein address</source>
-        <translation type="unfinished">ಬಿಟ್‌ಕಾಯಿನ್ ವಿಳಾಸಕ್ಕೆ ನಾಣ್ಯಗಳನ್ನು ಕಳುಹಿಸಿ</translation>
+        <translation type="unfinished">Kronein ವಿಳಾಸಕ್ಕೆ ನಾಣ್ಯಗಳನ್ನು ಕಳುಹಿಸಿ</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -493,7 +493,7 @@
     </message>
     <message>
         <source>Request payments (generates QR codes and kronein: URIs)</source>
-        <translation type="unfinished">ಪಾವತಿಗಳನ್ನು ವಿನಂತಿಸಿ (QR ಕೋಡ್‌ಗಳು ಮತ್ತು ಬಿಟ್‌ಕಾಯಿನ್‌ಗಳನ್ನು ಉತ್ಪಾದಿಸುತ್ತದೆ: URI ಗಳು)</translation>
+        <translation type="unfinished">ಪಾವತಿಗಳನ್ನು ವಿನಂತಿಸಿ (QR ಕೋಡ್‌ಗಳು ಮತ್ತು Kronein‌ಗಳನ್ನು ಉತ್ಪಾದಿಸುತ್ತದೆ: URI ಗಳು)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>

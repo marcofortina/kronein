@@ -55,7 +55,7 @@
     </message>
     <message>
         <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">یہ آپ کے ادائیگی بھیجنے کے لئے بٹ کوائن ایڈریس ہیں.سکے بھیجنے سے پہلے ہمیشہ رقم اور وصول کنندہ پتہ چیک کریں۔</translation>
+        <translation type="unfinished">یہ آپ کے ادائیگی بھیجنے کے لئے Kronein ایڈریس ہیں.سکے بھیجنے سے پہلے ہمیشہ رقم اور وصول کنندہ پتہ چیک کریں۔</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -155,7 +155,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">انتباہ: اگر آپ اپنا بٹوہ انکرپٹ کرتے ہیں اور اپنا پاس فریز کھو دیتے ہیں تو ، آپ اپنے تمام بٹکوئنز کھو دیں گے.</translation>
+        <translation type="unfinished">انتباہ: اگر آپ اپنا بٹوہ انکرپٹ کرتے ہیں اور اپنا پاس فریز کھو دیتے ہیں تو ، آپ اپنے تمام KNE کھو دیں گے.</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -183,7 +183,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">یاد رکھیں کہ آپ کے پرس کو خفیہ کرنا آپ کے بٹ کوائنز کو میلویئر/چور سے آپ کے کمپیوٹر میں انفیکشن لگانے کے ذریعہ چوری ہونے سے پوری طرح محفوظ نہیں رکھ سکتا ہے۔</translation>
+        <translation type="unfinished">یاد رکھیں کہ آپ کے پرس کو خفیہ کرنا آپ کے KNE کو میلویئر/چور سے آپ کے کمپیوٹر میں انفیکشن لگانے کے ذریعہ چوری ہونے سے پوری طرح محفوظ نہیں رکھ سکتا ہے۔</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -488,7 +488,7 @@
     </message>
     <message>
         <source>Send coins to a Kronein address</source>
-        <translation type="unfinished">بٹ کوائن ایڈریس پر سکے بھیجیں</translation>
+        <translation type="unfinished">Kronein ایڈریس پر سکے بھیجیں</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -576,7 +576,7 @@
     </message>
     <message>
         <source>Request payments (generates QR codes and kronein: URIs)</source>
-        <translation type="unfinished">ادائیگی کی درخواست کریں: ( کوئیک رسپانس ( کیو۔آر ) کوڈ اور بٹ کوائن ( یونیورسل ادائیگیوں کا نظام) کے ذریعے سے</translation>
+        <translation type="unfinished">ادائیگی کی درخواست کریں: ( کوئیک رسپانس ( کیو۔آر ) کوڈ اور Kronein ( یونیورسل ادائیگیوں کا نظام) کے ذریعے سے</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -631,7 +631,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction</source>
-        <translation type="unfinished">جزوی طور پر دستخط شدہ بٹ کوائن ٹرانزیکشن لوڈ کریں۔</translation>
+        <translation type="unfinished">جزوی طور پر دستخط شدہ Kronein ٹرانزیکشن لوڈ کریں۔</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
@@ -639,7 +639,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction from clipboard</source>
-        <translation type="unfinished">کلپ بورڈ سے جزوی طور پر دستخط شدہ بٹ کوائن ٹرانزیکشن لوڈ کریں۔</translation>
+        <translation type="unfinished">کلپ بورڈ سے جزوی طور پر دستخط شدہ Kronein ٹرانزیکشن لوڈ کریں۔</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -659,7 +659,7 @@
     </message>
     <message>
         <source>Open a kronein: URI</source>
-        <translation type="unfinished">بٹ کوائن کا یو۔آر۔آئی۔ کھولیں</translation>
+        <translation type="unfinished">Kronein کا یو۔آر۔آئی۔ کھولیں</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -689,7 +689,7 @@
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
-        <translation type="unfinished">ممکنہ بٹ کوائن کمانڈ لائن اختیارات کے ساتھ فہرست حاصل کرنے کے لیے %1 مدد کا پیغام دکھائیں۔</translation>
+        <translation type="unfinished">ممکنہ Kronein کمانڈ لائن اختیارات کے ساتھ فہرست حاصل کرنے کے لیے %1 مدد کا پیغام دکھائیں۔</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -743,7 +743,7 @@
         <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>بٹ کوائن نیٹ ورک سے %n فعال کنکشن۔</numerusform>
+            <numerusform>Kronein نیٹ ورک سے %n فعال کنکشن۔</numerusform>
             <numerusform>%n active connection(s) to Kronein network.</numerusform>
         </translation>
     </message>
@@ -1056,7 +1056,7 @@
     <message>
         <source>Restore wallet message</source>
         <extracomment>Title of message box which is displayed when the wallet is successfully restored.</extracomment>
-        <translation type="unfinished">بٹ کوائن کے لیے بٹوے کو بحال کریں</translation>
+        <translation type="unfinished">Kronein کے لیے بٹوے کو بحال کریں</translation>
     </message>
 </context>
 <context>
@@ -1086,7 +1086,7 @@
     </message>
     <message>
         <source>You are one step away from creating your new wallet!</source>
-        <translation type="unfinished">آپ بٹ کوائن کے لیے نئے بٹوے بنانے سے صرف ایک قدم دور ہیں!</translation>
+        <translation type="unfinished">آپ Kronein کے لیے نئے بٹوے بنانے سے صرف ایک قدم دور ہیں!</translation>
     </message>
     <message>
         <source>Please provide a name and, if desired, enable any advanced options</source>
@@ -1266,7 +1266,7 @@
     </message>
     <message>
         <source>Kronein</source>
-        <translation type="unfinished">بٹ کوائن</translation>
+        <translation type="unfinished">Kronein</translation>
     </message>
     <message numerus="yes">
         <source>%n GB of space available</source>
@@ -1291,7 +1291,7 @@
     </message>
     <message>
         <source>Choose data directory</source>
-        <translation type="unfinished">ٹ کوائن کے لیے ڈیٹا ڈائریکٹری منتخب کریں</translation>
+        <translation type="unfinished">Kronein کے لیے ڈیٹا ڈائریکٹری منتخب کریں</translation>
     </message>
     <message numerus="yes">
         <source>(sufficient to restore backups %n day(s) old)</source>
@@ -1318,11 +1318,11 @@
     </message>
     <message>
         <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
-        <translation type="unfinished">ہو سکتا ہے حالیہ لین دین ابھی تک نظر نہ آئے، اور اس وجہ سے آپ کے والیٹ کا بیلنس غلط ہو سکتا ہے۔ یہ معلومات درست ہوں گی جب آپ کے والیٹ نے بٹ کوائن نیٹ ورک کے ساتھ مطابقت پذیری مکمل کر لی ہو، جیسا کہ ذیل میں تفصیل ہے۔</translation>
+        <translation type="unfinished">ہو سکتا ہے حالیہ لین دین ابھی تک نظر نہ آئے، اور اس وجہ سے آپ کے والیٹ کا بیلنس غلط ہو سکتا ہے۔ یہ معلومات درست ہوں گی جب آپ کے والیٹ نے Kronein نیٹ ورک کے ساتھ مطابقت پذیری مکمل کر لی ہو، جیسا کہ ذیل میں تفصیل ہے۔</translation>
     </message>
     <message>
         <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation type="unfinished">ایسے بٹ کوائنز خرچ کرنے کی کوشش کرنا جو ابھی تک ظاہر نہ ہونے والے لین دین سے متاثر ہوں نیٹ ورک کے ذریعے قبول نہیں کیا جائے گا۔</translation>
+        <translation type="unfinished">ایسے KNE خرچ کرنے کی کوشش کرنا جو ابھی تک ظاہر نہ ہونے والے لین دین سے متاثر ہوں نیٹ ورک کے ذریعے قبول نہیں کیا جائے گا۔</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1361,7 +1361,7 @@
     <name>OpenURIDialog</name>
     <message>
         <source>Open Kronein URI</source>
-        <translation type="unfinished">بٹ کوائن URI کھولیں۔</translation>
+        <translation type="unfinished">Kronein URI کھولیں۔</translation>
     </message>
     <message>
         <source>URI:</source>
@@ -1390,7 +1390,7 @@
     <message>
         <source>Maximum database cache size. Make sure you have enough RAM. A larger cache can contribute to faster sync, after which the benefit is less pronounced for most use cases. Lowering the cache size will reduce memory usage. Unused mempool memory is shared for this cache.</source>
         <extracomment>Tooltip text for Options window setting that sets the size of the database cache. Explains the corresponding effects of increasing/decreasing this value.</extracomment>
-        <translation type="unfinished">"بٹ کوائن کے لیے زیادہ سے زیادہ ڈیٹابیس کیش کا سائز۔ یقینی بنائیں کہ آپ کے پاس کافی ریم ہے۔ بڑا کیش تیز سنک کرنے میں مدد کر سکتا ہے، لیکن اس کے بعد زیادہ تر استعمال کے لیے فائدہ کم ہوتا ہے۔ کیش کا سائز کم کرنے سے میموری کا استعمال کم ہوگا۔ غیر استعمال شدہ میمپول میموری اس کیش کے لیے شیئر کی جاتی ہے</translation>
+        <translation type="unfinished">"Kronein کے لیے زیادہ سے زیادہ ڈیٹابیس کیش کا سائز۔ یقینی بنائیں کہ آپ کے پاس کافی ریم ہے۔ بڑا کیش تیز سنک کرنے میں مدد کر سکتا ہے، لیکن اس کے بعد زیادہ تر استعمال کے لیے فائدہ کم ہوتا ہے۔ کیش کا سائز کم کرنے سے میموری کا استعمال کم ہوگا۔ غیر استعمال شدہ میمپول میموری اس کیش کے لیے شیئر کی جاتی ہے</translation>
     </message>
     <message>
         <source>Size of &amp;database cache</source>
@@ -1402,11 +1402,11 @@
     </message>
     <message>
         <source>Automatically open the Kronein client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
-        <translation type="unfinished">"بٹ کوائن کلائنٹ پورٹ کو روٹر پر خودکار طور پر کھولیں۔ یہ صرف اس وقت کام کرتا ہے جب آپ کا روٹر PCP یا NAT-PMP کو سپورٹ کرتا ہو اور یہ فعال ہو۔ بیرونی پورٹ بے ترتیب ہو سکتا ہے۔</translation>
+        <translation type="unfinished">"Kronein کلائنٹ پورٹ کو روٹر پر خودکار طور پر کھولیں۔ یہ صرف اس وقت کام کرتا ہے جب آپ کا روٹر PCP یا NAT-PMP کو سپورٹ کرتا ہو اور یہ فعال ہو۔ بیرونی پورٹ بے ترتیب ہو سکتا ہے۔</translation>
     </message>
     <message>
         <source>Map port using PCP or NA&amp;T-PMP</source>
-        <translation type="unfinished">بٹ کوائن کے لیے PCP یا NAT-PMP کا استعمال کرتے ہوئے پورٹ میپ کریں</translation>
+        <translation type="unfinished">Kronein کے لیے PCP یا NAT-PMP کا استعمال کرتے ہوئے پورٹ میپ کریں</translation>
     </message>
     <message>
         <source>IP address of the proxy (e.g. IPv4: 127.0.0.1 / IPv6: ::1)</source>
@@ -1422,7 +1422,7 @@
     </message>
     <message>
         <source>Font in the Overview tab: </source>
-        <translation type="unfinished">بٹ کوائن کے لیے اوور ویو ٹیب میں فونٹ"</translation>
+        <translation type="unfinished">Kronein کے لیے اوور ویو ٹیب میں فونٹ"</translation>
     </message>
     <message>
         <source>Open Configuration File</source>
@@ -1450,27 +1450,27 @@
     </message>
     <message>
         <source>MiB</source>
-        <translation type="unfinished">بٹ کوائن کے لیے بلاک اسٹوریج کو میبی بائٹ تک پرون کریں</translation>
+        <translation type="unfinished">Kronein کے لیے بلاک اسٹوریج کو میبی بائٹ تک پرون کریں</translation>
     </message>
     <message>
         <source>Set the number of script verification threads. Negative values correspond to the number of cores you want to leave free to the system.</source>
         <extracomment>Tooltip text for Options window setting that sets the number of script verification threads. Explains that negative values mean to leave these many cores free to the system.</extracomment>
-        <translation type="unfinished">بٹ کوائن کے لیے اسکرپٹ تصدیق کے دھاگوں کی تعداد سیٹ کریں۔ منفی اقدار اس تعداد کے مساوی ہیں جو آپ سسٹم کے لیے آزاد رکھنا چاہتے ہیں</translation>
+        <translation type="unfinished">Kronein کے لیے اسکرپٹ تصدیق کے دھاگوں کی تعداد سیٹ کریں۔ منفی اقدار اس تعداد کے مساوی ہیں جو آپ سسٹم کے لیے آزاد رکھنا چاہتے ہیں</translation>
     </message>
     <message>
         <source>(0 = auto, &lt;0 = leave that many cores free)</source>
-        <translation type="unfinished">(بٹ کوائن کے لیے) 0 = خودکار، &lt;0 = اتنی کورز کو سسٹم کے لیے آزاد
+        <translation type="unfinished">(Kronein کے لیے) 0 = خودکار، &lt;0 = اتنی کورز کو سسٹم کے لیے آزاد
  چھوڑیں</translation>
     </message>
     <message>
         <source>This allows you or a third party tool to communicate with the node through command-line and JSON-RPC commands.</source>
         <extracomment>Tooltip text for Options window setting that enables the RPC server.</extracomment>
-        <translation type="unfinished">بٹ کوائن کے لیے اس سے آپ یا کوئی تیسری پارٹی کا ٹول نوڈ کے ساتھ کمانڈ لائن اور JSON-RPC کمانڈز کے ذریعے رابطہ کر سکتا ہے۔"</translation>
+        <translation type="unfinished">Kronein کے لیے اس سے آپ یا کوئی تیسری پارٹی کا ٹول نوڈ کے ساتھ کمانڈ لائن اور JSON-RPC کمانڈز کے ذریعے رابطہ کر سکتا ہے۔"</translation>
     </message>
     <message>
         <source>Whether to set subtract fee from amount as default or not.</source>
         <extracomment>Tooltip text for Options window setting that sets subtracting the fee from a sending amount as default.</extracomment>
-        <translation type="unfinished">بٹ کوائن کے لیے کیا فیس کو رقم سے خودکار طور پر منہا کرنا ہے یا نہیں۔</translation>
+        <translation type="unfinished">Kronein کے لیے کیا فیس کو رقم سے خودکار طور پر منہا کرنا ہے یا نہیں۔</translation>
     </message>
     <message>
         <source>Subtract &amp;fee from amount by default</source>
@@ -1508,7 +1508,7 @@
     </message>
     <message>
         <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">بٹ کوائن نیٹ ورک سے SOCKS5 پراکسی کے ذریع
+        <translation type="unfinished">Kronein نیٹ ورک سے SOCKS5 پراکسی کے ذریع
 ے رابطہ کریں"</translation>
     </message>
     <message>
@@ -1553,7 +1553,7 @@
     </message>
     <message>
         <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation type="unfinished">ور آنین سروسز کے لیے الگ SOCKS5 پراکسی کے ذریعے بٹ کوائن نیٹ ورک سے رابطہ کریں</translation>
+        <translation type="unfinished">ور آنین سروسز کے لیے الگ SOCKS5 پراکسی کے ذریعے Kronein نیٹ ورک سے رابطہ کریں</translation>
     </message>
     <message>
         <source>Compiled without external signing support (required for external signing)</source>
@@ -1626,7 +1626,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">ظاہر کی گئی معلومات پرانی ہو سکتی ہے۔ کنکشن قائم ہونے کے بعد آپ کا والیٹ خود بخود بٹ کوائن نیٹ ورک کے ساتھ ہم آہنگ ہوجاتا ہے، لیکن یہ عمل ابھی مکمل نہیں ہوا ہے۔</translation>
+        <translation type="unfinished">ظاہر کی گئی معلومات پرانی ہو سکتی ہے۔ کنکشن قائم ہونے کے بعد آپ کا والیٹ خود بخود Kronein نیٹ ورک کے ساتھ ہم آہنگ ہوجاتا ہے، لیکن یہ عمل ابھی مکمل نہیں ہوا ہے۔</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -1821,7 +1821,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
     <message>
         <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
-        <translation type="unfinished">URI کو پارس نہیں کیا جا سکتا! اس کی وجہ ایک غلط بٹ کوائن ایڈریس یا خراب URI پیرا میٹرز ہو سکتے ہیں۔</translation>
+        <translation type="unfinished">URI کو پارس نہیں کیا جا سکتا! اس کی وجہ ایک غلط Kronein ایڈریس یا خراب URI پیرا میٹرز ہو سکتے ہیں۔</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -2131,7 +2131,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
     <message>
         <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Kronein network.</source>
-        <translation type="unfinished">ادائیگی کی درخواست کے ساتھ منسلک کرنے کے لیے ایک اختیاری پیغام، جو درخواست کے کھلنے پر ظاہر ہوگا۔ نوٹ: پیغام بٹ کوائن نیٹ ورک پر ادائیگی کے ساتھ نہیں بھیجا جائے گا۔</translation>
+        <translation type="unfinished">ادائیگی کی درخواست کے ساتھ منسلک کرنے کے لیے ایک اختیاری پیغام، جو درخواست کے کھلنے پر ظاہر ہوگا۔ نوٹ: پیغام Kronein نیٹ ورک پر ادائیگی کے ساتھ نہیں بھیجا جائے گا۔</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -2439,7 +2439,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
     <message>
         <source>Warning: Invalid Kronein address</source>
-        <translation type="unfinished">انتباہ: غلط بٹ کوائن ایڈریس</translation>
+        <translation type="unfinished">انتباہ: غلط Kronein ایڈریس</translation>
     </message>
     <message>
         <source>Warning: Unknown change address</source>
@@ -2470,7 +2470,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
     <message>
         <source>The Kronein address to send the payment to</source>
-        <translation type="unfinished">ادائیگی بھیجنے کے لیے بٹ کوائن کا پتہ</translation>
+        <translation type="unfinished">ادائیگی بھیجنے کے لیے Kronein کا پتہ</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -2486,7 +2486,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
     <message>
         <source>The fee will be deducted from the amount being sent. The recipient will receive less KNE than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation type="unfinished">بھیجی جانے والی رقم سے فیس کاٹی جائے گی۔ وصول کنندہ کو اس سے کم بٹ کوائنز موصول ہوں گے جو آپ رقم کے خانے میں داخل کریں گے۔ اگر متعدد وصول کنندگان کو منتخب کیا جاتا ہے، تو فیس کو برابر تقسیم کیا جاتا ہے۔</translation>
+        <translation type="unfinished">بھیجی جانے والی رقم سے فیس کاٹی جائے گی۔ وصول کنندہ کو اس سے کم KNE موصول ہوں گے جو آپ رقم کے خانے میں داخل کریں گے۔ اگر متعدد وصول کنندگان کو منتخب کیا جاتا ہے، تو فیس کو برابر تقسیم کیا جاتا ہے۔</translation>
     </message>
     <message>
         <source>Use available balance</source>

@@ -59,7 +59,7 @@
     </message>
     <message>
         <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">Це ваші біткоїн-адреси для надсилання платежів. Завжди перевіряйте суму та адресу одержувача перед відправленням монет.</translation>
+        <translation type="unfinished">Це ваші Kronein-адреси для надсилання платежів. Завжди перевіряйте суму та адресу одержувача перед відправленням монет.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -159,7 +159,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">Увага: Якщо ви зашифруєте свій гаманець і втратите парольну фразу, ви &lt;b&gt;ВТРАТИТЕ ВСІ СВОЇ БІТКОЇНИ&lt;/b&gt;!</translation>
+        <translation type="unfinished">Увага: Якщо ви зашифруєте свій гаманець і втратите парольну фразу, ви &lt;b&gt;ВТРАТИТЕ ВСІ СВОЇ KNE&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -187,7 +187,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Пам’ятайте, що шифрування гаманця не може повністю захистити ваші біткоїни від крадіжки, у випадку якщо ваш комп’ютер буде інфіковано шкідливими програмами.</translation>
+        <translation type="unfinished">Пам’ятайте, що шифрування гаманця не може повністю захистити ваші KNE від крадіжки, у випадку якщо ваш комп’ютер буде інфіковано шкідливими програмами.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -314,7 +314,7 @@
     </message>
     <message>
         <source>Enter a Kronein address (e.g. %1)</source>
-        <translation type="unfinished">Введіть біткоїн-адресу (наприклад, %1)</translation>
+        <translation type="unfinished">Введіть Kronein-адресу (наприклад, %1)</translation>
     </message>
     <message>
         <source>Unroutable</source>
@@ -682,7 +682,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction</source>
-        <translation type="unfinished">Завантажити частково підписану біткоїн-транзакцію (PSBT)</translation>
+        <translation type="unfinished">Завантажити частково підписану Kronein-транзакцію (PSBT)</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
@@ -690,7 +690,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction from clipboard</source>
-        <translation type="unfinished">Завантажити частково підписану біткоїн-транзакцію (PSBT) з буфера обміну</translation>
+        <translation type="unfinished">Завантажити частково підписану Kronein-транзакцію (PSBT) з буфера обміну</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -810,9 +810,9 @@
         <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>%n активне з'єднання з мережею Біткоїн.</numerusform>
-            <numerusform>%n активних з'єднання з мережею Біткоїн.</numerusform>
-            <numerusform>%n активних з'єднань з мережею Біткоїн.</numerusform>
+            <numerusform>%n активне з'єднання з мережею Kronein.</numerusform>
+            <numerusform>%n активних з'єднання з мережею Kronein.</numerusform>
+            <numerusform>%n активних з'єднань з мережею Kronein.</numerusform>
         </translation>
     </message>
     <message>
@@ -1460,11 +1460,11 @@
     </message>
     <message>
         <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
-        <translation type="unfinished">Нещодавні транзакції ще не відображаються, тому баланс вашого гаманця може бути неточним. Ця інформація буде вірною після того, як ваш гаманець завершить синхронізацію з мережею Біткоїн, враховуйте показники нижче.</translation>
+        <translation type="unfinished">Нещодавні транзакції ще не відображаються, тому баланс вашого гаманця може бути неточним. Ця інформація буде вірною після того, як ваш гаманець завершить синхронізацію з мережею Kronein, враховуйте показники нижче.</translation>
     </message>
     <message>
         <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation type="unfinished">Спроба відправити біткоїни, які ще не відображаються, не буде прийнята мережею.</translation>
+        <translation type="unfinished">Спроба відправити KNE, які ще не відображаються, не буде прийнята мережею.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1515,7 +1515,7 @@
     <name>OpenURIDialog</name>
     <message>
         <source>Open Kronein URI</source>
-        <translation type="unfinished">Відкрити біткоїн URI</translation>
+        <translation type="unfinished">Відкрити Kronein URI</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -1564,7 +1564,7 @@
     </message>
     <message>
         <source>Automatically open the Kronein client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
-        <translation type="unfinished">Автоматично відкривати порт клієнта Біткоїн в маршрутизаторі. Це працює лише за умови, що ваш маршрутизатор підтримує PCP або NAT-PMP, і ця функція ввімкнена. Зовнішній порт може бути випадковим.</translation>
+        <translation type="unfinished">Автоматично відкривати порт клієнта Kronein в маршрутизаторі. Це працює лише за умови, що ваш маршрутизатор підтримує PCP або NAT-PMP, і ця функція ввімкнена. Зовнішній порт може бути випадковим.</translation>
     </message>
     <message>
         <source>Map port using PCP or NA&amp;T-PMP</source>
@@ -1678,7 +1678,7 @@
     <message>
         <source>Enable &amp;PSBT controls</source>
         <extracomment>An options window setting to enable PSBT controls.</extracomment>
-        <translation type="unfinished">Увімкнути функції &amp;частково підписаних біткоїн-транзакцій (PSBT)</translation>
+        <translation type="unfinished">Увімкнути функції &amp;частково підписаних Kronein-транзакцій (PSBT)</translation>
     </message>
     <message>
         <source>Whether to show PSBT controls.</source>
@@ -1703,7 +1703,7 @@
     </message>
     <message>
         <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">Підключення до мережі Біткоїн через SOCKS5 проксі.</translation>
+        <translation type="unfinished">Підключення до мережі Kronein через SOCKS5 проксі.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1783,7 +1783,7 @@
     </message>
     <message>
         <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation type="unfinished">Підключитися до мережі Біткоїн через окремий проксі-сервер SOCKS5 для сервісів Tor.</translation>
+        <translation type="unfinished">Підключитися до мережі Kronein через окремий проксі-сервер SOCKS5 для сервісів Tor.</translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
@@ -1876,7 +1876,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">Показана інформація вже може бути застарілою. Ваш гаманець буде автоматично синхронізовано з мережею Біткоїн після встановлення підключення, але цей процес ще не завершено.</translation>
+        <translation type="unfinished">Показана інформація вже може бути застарілою. Ваш гаманець буде автоматично синхронізовано з мережею Kronein після встановлення підключення, але цей процес ще не завершено.</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -2000,7 +2000,7 @@
     <message>
         <source>Partially Signed Transaction (Binary)</source>
         <extracomment>Expanded name of the binary PSBT file format. See: BIP 174.</extracomment>
-        <translation type="unfinished">Частково підписана біткоїн-транзакція (бінарний файл)</translation>
+        <translation type="unfinished">Частково підписана Kronein-транзакція (бінарний файл)</translation>
     </message>
     <message>
         <source>PSBT saved to disk.</source>
@@ -2075,7 +2075,7 @@
     </message>
     <message>
         <source>Cannot start kronein: click-to-pay handler</source>
-        <translation type="unfinished">Не вдалося запустити біткоїн: обробник "click-to-pay"</translation>
+        <translation type="unfinished">Не вдалося запустити Kronein: обробник "click-to-pay"</translation>
     </message>
     <message>
         <source>URI handling</source>
@@ -2095,7 +2095,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
     <message>
         <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
-        <translation type="unfinished">Не вдалося проаналізувати URI-адресу! Причиною цього може бути некоректна біткоїн-адреса або неправильні параметри URI.</translation>
+        <translation type="unfinished">Не вдалося проаналізувати URI-адресу! Причиною цього може бути некоректна Kronein-адреса або неправильні параметри URI.</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -2253,7 +2253,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
     <message>
         <source>Network addresses that your Kronein node is currently using to communicate with other nodes.</source>
-        <translation type="unfinished">Мережеві адреси, які ваш біткоїн-вузол використовує для зв'язку з іншими вузлами.</translation>
+        <translation type="unfinished">Мережеві адреси, які ваш Kronein-вузол використовує для зв'язку з іншими вузлами.</translation>
     </message>
     <message>
         <source>Block chain</source>
@@ -2699,7 +2699,7 @@ For more information on using this console, type %6.
     </message>
     <message>
         <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Kronein network.</source>
-        <translation type="unfinished">Необов'язкове повідомлення на додаток до запиту платежу, яке буде показане під час відкриття запиту. Примітка: це повідомлення не буде відправлено з платежем через мережу Біткоїн.</translation>
+        <translation type="unfinished">Необов'язкове повідомлення на додаток до запиту платежу, яке буде показане під час відкриття запиту. Примітка: це повідомлення не буде відправлено з платежем через мережу Kronein.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -2976,7 +2976,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for Kronein transactions than the network can process.</source>
-        <translation type="unfinished">Якщо обсяг транзакцій менше, ніж простір у блоках, майнери, а також вузли ретрансляції можуть стягувати мінімальну плату. Сплата лише цієї мінімальної суми може призвести до ніколи не підтверджуваної транзакції, коли буде більше попиту на біткоїн-транзакції, ніж мережа може обробити.</translation>
+        <translation type="unfinished">Якщо обсяг транзакцій менше, ніж простір у блоках, майнери, а також вузли ретрансляції можуть стягувати мінімальну плату. Сплата лише цієї мінімальної суми може призвести до ніколи не підтверджуваної транзакції, коли буде більше попиту на Kronein-транзакції, ніж мережа може обробити.</translation>
     </message>
     <message>
         <source>A too low fee might result in a never confirming transaction (read the tooltip)</source>
@@ -3062,7 +3062,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>Creates a Partially Signed Kronein Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
-        <translation type="unfinished">Створює частково підписану біткоїн-транзакцію (PSBT) для використання, наприклад, офлайн-гаманець %1 або гаманця, сумісного з PSBT.</translation>
+        <translation type="unfinished">Створює частково підписану Kronein-транзакцію (PSBT) для використання, наприклад, офлайн-гаманець %1 або гаманця, сумісного з PSBT.</translation>
     </message>
     <message>
         <source>%1 to '%2'</source>
@@ -3097,7 +3097,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     <message>
         <source>Partially Signed Transaction (Binary)</source>
         <extracomment>Expanded name of the binary PSBT file format. See: BIP 174.</extracomment>
-        <translation type="unfinished">Частково підписана біткоїн-транзакція (бінарний файл)</translation>
+        <translation type="unfinished">Частково підписана Kronein-транзакція (бінарний файл)</translation>
     </message>
     <message>
         <source>PSBT saved</source>
@@ -3119,7 +3119,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     <message>
         <source>Please, review your transaction proposal. This will produce a Partially Signed Kronein Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can only create a PSBT. This string is displayed when private keys are disabled and an external signer is not available.</extracomment>
-        <translation type="unfinished">Перевірте запропоновану транзакцію. Буде сформована частково підписана біткоїн-транзакція (PSBT), яку можна зберегти або скопіювати, а потім підписати з використанням, наприклад, офлайн гаманця %1 або апаратного PSBT-сумісного гаманця.</translation>
+        <translation type="unfinished">Перевірте запропоновану транзакцію. Буде сформована частково підписана Kronein-транзакція (PSBT), яку можна зберегти або скопіювати, а потім підписати з використанням, наприклад, офлайн гаманця %1 або апаратного PSBT-сумісного гаманця.</translation>
     </message>
     <message>
         <source>%1 from wallet '%2'</source>
@@ -3133,7 +3133,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     <message>
         <source>Please, review your transaction. You can create and send this transaction or create a Partially Signed Kronein Transaction (PSBT), which you can save or copy and then sign with, e.g., an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can send their transaction or create a PSBT. This string is displayed when both private keys and PSBT controls are enabled.</extracomment>
-        <translation type="unfinished">Перевірте транзакцію. Можливо створити та надіслати цю транзакцію або створити частково підписану біткоїн-транзакцію (PSBT), яку можна зберегти або скопіювати, а потім підписати з використанням, наприклад, офлайн гаманця %1 або апаратного PSBT-сумісного гаманця.</translation>
+        <translation type="unfinished">Перевірте транзакцію. Можливо створити та надіслати цю транзакцію або створити частково підписану Kronein-транзакцію (PSBT), яку можна зберегти або скопіювати, а потім підписати з використанням, наприклад, офлайн гаманця %1 або апаратного PSBT-сумісного гаманця.</translation>
     </message>
     <message>
         <source>Please, review your transaction.</source>
@@ -3214,7 +3214,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>Warning: Invalid Kronein address</source>
-        <translation type="unfinished">Увага: Неприпустима біткоїн-адреса.</translation>
+        <translation type="unfinished">Увага: Неприпустима Kronein-адреса.</translation>
     </message>
     <message>
         <source>Warning: Unknown change address</source>
@@ -3253,7 +3253,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>The Kronein address to send the payment to</source>
-        <translation type="unfinished">Біткоїн-адреса для відправлення платежу</translation>
+        <translation type="unfinished">Kronein-адреса для відправлення платежу</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -3269,7 +3269,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>The fee will be deducted from the amount being sent. The recipient will receive less KNE than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation type="unfinished">Комісію буде знято зі вказаної суми. До отримувача надійде менше біткоїнів, ніж було вказано в полі кількості. Якщо ж отримувачів декілька - комісію буде розподілено між ними.</translation>
+        <translation type="unfinished">Комісію буде знято зі вказаної суми. До отримувача надійде менше KNE, ніж було вказано в полі кількості. Якщо ж отримувачів декілька - комісію буде розподілено між ними.</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>
@@ -3289,7 +3289,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
     </message>
     <message>
         <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
-        <translation type="unfinished">Повідомлення, що було додане до kronein:URI та буде збережено разом з транзакцією для довідки. Примітка: це повідомлення не буде відправлено в мережу Біткоїн.</translation>
+        <translation type="unfinished">Повідомлення, що було додане до kronein:URI та буде збережено разом з транзакцією для довідки. Примітка: це повідомлення не буде відправлено в мережу Kronein.</translation>
     </message>
 </context>
 <context>
@@ -3769,7 +3769,7 @@ Go to File &gt; Open Wallet to load a wallet.
     </message>
     <message>
         <source>Partially Signed Transaction (*.psbt)</source>
-        <translation type="unfinished">Частково підписана біткоїн-транзакція (* .psbt)</translation>
+        <translation type="unfinished">Частково підписана Kronein-транзакція (* .psbt)</translation>
     </message>
     <message>
         <source>PSBT file must be smaller than 100 MiB</source>

@@ -1279,7 +1279,7 @@
     <name>OpenURIDialog</name>
     <message>
         <source>Open Kronein URI</source>
-        <translation type="unfinished">Åbn bitcoin-URI</translation>
+        <translation type="unfinished">Åbn Kronein-URI</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -2198,7 +2198,7 @@ Bemærk: Da gebyret beregnes på per-byte-basis, ville en gebyrsats på "100 sat
     </message>
     <message>
         <source>Creates a Partially Signed Kronein Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
-        <translation type="unfinished">Laver en delvist signeret bitcointransaktion (forkortet PSBT) som kan bruges med f.eks. en offline %1 tegnebog. De kan også bruges med PSBT-kompatible hardwaretegnebøger.</translation>
+        <translation type="unfinished">Laver en delvist signeret Kronein-transaktion (forkortet PSBT) som kan bruges med f.eks. en offline %1 tegnebog. De kan også bruges med PSBT-kompatible hardwaretegnebøger.</translation>
     </message>
     <message>
         <source>%1 to '%2'</source>

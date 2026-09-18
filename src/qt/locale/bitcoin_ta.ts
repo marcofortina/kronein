@@ -43,11 +43,11 @@
     </message>
     <message>
         <source>Choose the address to send coins to</source>
-        <translation type="unfinished">பிட்காயினை அனுப்புவதற்கு முகவரியைத் தேர்வு செய்க</translation>
+        <translation type="unfinished">Kronein அனுப்புவதற்கு முகவரியைத் தேர்வு செய்க</translation>
     </message>
     <message>
         <source>Choose the address to receive coins with</source>
-        <translation type="unfinished">பிட்காயின்களை பெற முகவரியைத் தேர்வுசெய்யவும்</translation>
+        <translation type="unfinished">Kroneinகளை பெற முகவரியைத் தேர்வுசெய்யவும்</translation>
     </message>
     <message>
         <source>C&amp;hoose</source>
@@ -55,7 +55,7 @@
     </message>
     <message>
         <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">இவை பணம் அனுப்புவதற்கு உங்களின் பிட்காயின் முகவரிகள். பிட்காயின்களை அனுப்புவதற்கு முன் எப்பொழுதும் தொகையும் பெறுதலையும் சரிபார்க்கவும்.</translation>
+        <translation type="unfinished">இவை பணம் அனுப்புவதற்கு உங்களின் Kronein முகவரிகள். Kroneinகளை அனுப்புவதற்கு முன் எப்பொழுதும் தொகையும் பெறுதலையும் சரிபார்க்கவும்.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -155,7 +155,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">எச்சரிக்கை: உங்கள் பணப்பையை குறியாக்கி உங்கள் கடவுச்சொற்றொடரை இழந்தால், நீங்கள் உங்கள் பைட்கோனை இழக்கலாம்!</translation>
+        <translation type="unfinished">எச்சரிக்கை: உங்கள் பணப்பையை குறியாக்கி உங்கள் கடவுச்சொற்றொடரை இழந்தால், நீங்கள் உங்கள் KNE இழக்கலாம்!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -183,7 +183,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">வாலட்டை குறியாக்கம் செய்தால் மட்டும் உங்கள் பிட்காயினை வைரஸிடம் இருந்து பாதுகாக்க இயலாது.</translation>
+        <translation type="unfinished">வாலட்டை குறியாக்கம் செய்தால் மட்டும் உங்கள் KNE வைரஸிடம் இருந்து பாதுகாக்க இயலாது.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -537,7 +537,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction</source>
-        <translation type="unfinished"> ஓரளவு கையொப்பமிடப்பட்ட பிட்காயின் பரிவர்த்தனையை ஏற்றவும்
+        <translation type="unfinished"> ஓரளவு கையொப்பமிடப்பட்ட Kronein பரிவர்த்தனையை ஏற்றவும்
 </translation>
     </message>
     <message>
@@ -558,7 +558,7 @@
     </message>
     <message>
         <source>Open a kronein: URI</source>
-        <translation type="unfinished">திற பிட்காயின்: URI</translation>
+        <translation type="unfinished">திற Kronein: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -1125,11 +1125,11 @@
     </message>
     <message>
         <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
-        <translation type="unfinished">சமீபத்திய பரிவர்த்தனைகள் இன்னும் காணப்படாமல் இருக்கலாம், எனவே உங்கள் பணப்பையின் சமநிலை தவறாக இருக்கலாம். கீழே விவரிக்கப்பட்டுள்ளபடி, உங்கள் பணப்பை பிட்ஃபோனை நெட்வொர்க்குடன் ஒத்திசைக்க முடிந்ததும் இந்த தகவல் சரியாக இருக்கும்.</translation>
+        <translation type="unfinished">சமீபத்திய பரிவர்த்தனைகள் இன்னும் காணப்படாமல் இருக்கலாம், எனவே உங்கள் பணப்பையின் சமநிலை தவறாக இருக்கலாம். கீழே விவரிக்கப்பட்டுள்ளபடி, உங்கள் பணப்பை Kronein நெட்வொர்க்குடன் ஒத்திசைக்க முடிந்ததும் இந்த தகவல் சரியாக இருக்கும்.</translation>
     </message>
     <message>
         <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation type="unfinished">இதுவரை காட்டப்படாத பரிவர்த்தனைகளால் பாதிக்கப்படும் பிட்னிக்களை செலவிடுவதற்கு முயற்சி பிணையத்தால் ஏற்கப்படாது.</translation>
+        <translation type="unfinished">இதுவரை காட்டப்படாத பரிவர்த்தனைகளால் பாதிக்கப்படும் KNE செலவிடுவதற்கு முயற்சி பிணையத்தால் ஏற்கப்படாது.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1164,7 +1164,7 @@
     <name>OpenURIDialog</name>
     <message>
         <source>Open Kronein URI</source>
-        <translation type="unfinished">பிட்காயின் யூ. ஆர். ஐ.யை திர</translation>
+        <translation type="unfinished">Kronein யூ. ஆர். ஐ.யை திர</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -1412,7 +1412,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">காட்டப்படும் தகவல் காலாவதியானதாக இருக்கலாம். ஒரு இணைப்பு நிறுவப்பட்ட பிறகு, உங்கள் பணப்பை தானாக பிட்கோடு நெட்வொர்க்குடன் ஒத்திசைக்கிறது, ஆனால் இந்த செயல்முறை இன்னும் முடிவடையவில்லை.</translation>
+        <translation type="unfinished">காட்டப்படும் தகவல் காலாவதியானதாக இருக்கலாம். ஒரு இணைப்பு நிறுவப்பட்ட பிறகு, உங்கள் பணப்பை தானாக Kronein நெட்வொர்க்குடன் ஒத்திசைக்கிறது, ஆனால் இந்த செயல்முறை இன்னும் முடிவடையவில்லை.</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -1508,11 +1508,11 @@
     </message>
     <message>
         <source>'kronein://' is not a valid URI. Use 'kronein:' instead.</source>
-        <translation type="unfinished">'kronein: //' சரியான URI அல்ல. அதற்கு பதிலாக 'பிட்கின்:' பயன்படுத்தவும்.</translation>
+        <translation type="unfinished">'kronein: //' சரியான URI அல்ல. அதற்கு பதிலாக 'Kronein:' பயன்படுத்தவும்.</translation>
     </message>
     <message>
         <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
-        <translation type="unfinished">URI அலச முடியாது! தவறான பிட்கின் முகவரி அல்லது தவறான URI அளவுருக்கள் காரணமாக இது ஏற்படலாம்.</translation>
+        <translation type="unfinished">URI அலச முடியாது! தவறான Kronein முகவரி அல்லது தவறான URI அளவுருக்கள் காரணமாக இது ஏற்படலாம்.</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -1886,7 +1886,7 @@
     </message>
     <message>
         <source>&amp;Create new receiving address</source>
-        <translation type="unfinished">&amp;புதிய பிட்காயின் பெறும் முகவரியை உருவாக்கு</translation>
+        <translation type="unfinished">&amp;புதிய Kronein பெறும் முகவரியை உருவாக்கு</translation>
     </message>
     <message>
         <source>Clear all fields of the form.</source>
@@ -2176,7 +2176,7 @@
     </message>
     <message>
         <source>Confirm send coins</source>
-        <translation type="unfinished">அனுப்பும் பிட்காயின்களை உறுதிப்படுத்தவும்</translation>
+        <translation type="unfinished">அனுப்பும் Kroneinகளை உறுதிப்படுத்தவும்</translation>
     </message>
     <message>
         <source>The recipient address is not valid. Please recheck.</source>
@@ -2211,7 +2211,7 @@
     </message>
     <message>
         <source>Warning: Invalid Kronein address</source>
-        <translation type="unfinished">எச்சரிக்கை: தவறான பிட்காயின் முகவரி</translation>
+        <translation type="unfinished">எச்சரிக்கை: தவறான Kronein முகவரி</translation>
     </message>
     <message>
         <source>Warning: Unknown change address</source>
@@ -2250,7 +2250,7 @@
     </message>
     <message>
         <source>The Kronein address to send the payment to</source>
-        <translation type="unfinished">கட்டணத்தை அனுப்ப பிட்காயின் முகவரி</translation>
+        <translation type="unfinished">கட்டணத்தை அனுப்ப Kronein முகவரி</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -2262,7 +2262,7 @@
     </message>
     <message>
         <source>The fee will be deducted from the amount being sent. The recipient will receive less KNE than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation type="unfinished">அனுப்பப்படும் தொகையிலிருந்து கட்டணம் கழிக்கப்படும். நீங்கள் உள்ளிடும் தொகையை விட பெறுநர் குறைவான பிட்காயின்களைப் பெறுவார். பல பெறுநர்கள் தேர்ந்தெடுக்கப்பட்டால், கட்டணம் சமமாக பிரிக்கப்படும்.</translation>
+        <translation type="unfinished">அனுப்பப்படும் தொகையிலிருந்து கட்டணம் கழிக்கப்படும். நீங்கள் உள்ளிடும் தொகையை விட பெறுநர் குறைவான KNEகளைப் பெறுவார். பல பெறுநர்கள் தேர்ந்தெடுக்கப்பட்டால், கட்டணம் சமமாக பிரிக்கப்படும்.</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>
@@ -2282,7 +2282,7 @@
     </message>
     <message>
         <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
-        <translation type="unfinished">பிட்காயினுடன் இணைக்கப்பட்ட செய்தி: உங்கள் எதிர்கால குறிப்புக்காக பரிவர்த்தனையுடன் யூஆர்ஐ சேமிக்கப்படும். குறிப்பு: இந்த செய்தி பிட்காயின் வலையமைப்பிற்கு அனுப்பப்படாது.</translation>
+        <translation type="unfinished">Kronein இணைக்கப்பட்ட செய்தி: உங்கள் எதிர்கால குறிப்புக்காக பரிவர்த்தனையுடன் யூஆர்ஐ சேமிக்கப்படும். குறிப்பு: இந்த செய்தி Kronein வலையமைப்பிற்கு அனுப்பப்படாது.</translation>
     </message>
 </context>
 <context>

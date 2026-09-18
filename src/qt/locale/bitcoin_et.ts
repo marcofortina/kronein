@@ -447,7 +447,7 @@
     </message>
     <message>
         <source>Request payments (generates QR codes and kronein: URIs)</source>
-        <translation type="unfinished">Loo maksepäring (genereerib QR koodid ja bitcoini: URId)</translation>
+        <translation type="unfinished">Loo maksepäring (genereerib QR-koodid ja Kroneini URI-d)</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>

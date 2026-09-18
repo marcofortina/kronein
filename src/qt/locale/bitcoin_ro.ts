@@ -561,7 +561,7 @@
     </message>
     <message>
         <source>Request payments (generates QR codes and kronein: URIs)</source>
-        <translation type="unfinished">Cereţi plăţi (generează coduri QR şi bitcoin-uri: URls)</translation>
+        <translation type="unfinished">Cereţi plăţi (generează coduri QR şi URI-uri Kronein)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>

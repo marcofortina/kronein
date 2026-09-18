@@ -39,7 +39,7 @@
     </message>
     <message>
         <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">هذه هي عناوين بيتكوين الخاصة بك لإرسال المدفوعات. تأكد دائمًا من المبلغ وعنوان الاستلام قبل إرسال العملات.</translation>
+        <translation type="unfinished">هذه هي عناوين Kronein الخاصة بك لإرسال المدفوعات. تأكد دائمًا من المبلغ وعنوان الاستلام قبل إرسال العملات.</translation>
     </message>
     <message>
         <source>Receiving addresses - %1</source>
@@ -96,7 +96,7 @@
     </message>
     <message>
         <source>Enter a Kronein address (e.g. %1)</source>
-        <translation type="unfinished">ادخل عنوان محفطة البتكوين (مثال %1)</translation>
+        <translation type="unfinished">ادخل عنوان محفطة Kronein (مثال %1)</translation>
     </message>
     <message>
         <source>Unroutable</source>
@@ -313,11 +313,11 @@
     </message>
     <message>
         <source>Proxy is &lt;b&gt;enabled&lt;/b&gt;: %1</source>
-        <translation type="unfinished">%1 اتصال نشط بشبكة البيتكوين</translation>
+        <translation type="unfinished">%1 اتصال نشط بشبكة Kronein</translation>
     </message>
     <message>
         <source>Send coins to a Kronein address</source>
-        <translation type="unfinished">ارسل عملات الى عنوان بيتكوين</translation>
+        <translation type="unfinished">ارسل عملات الى عنوان Kronein</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -405,7 +405,7 @@
     </message>
     <message>
         <source>Request payments (generates QR codes and kronein: URIs)</source>
-        <translation type="unfinished">أطلب دفعات (يولد كودات الرمز المربع وبيت كوين: العناوين المعطاة)</translation>
+        <translation type="unfinished">أطلب دفعات (يولد كودات الرمز المربع وKronein: العناوين المعطاة)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -464,15 +464,15 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction</source>
-        <translation type="unfinished">تحميل معاملة بتكوين الموقعة جزئيًا</translation>
+        <translation type="unfinished">تحميل معاملة Kronein الموقعة جزئيًا</translation>
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
-        <translation type="unfinished">‫تحميل معاملة بتكوين موقعة جزئيا (‫PSBT) من &amp;الحافظة…‬</translation>
+        <translation type="unfinished">‫تحميل معاملة Kronein موقعة جزئيا (‫PSBT) من &amp;الحافظة…‬</translation>
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction from clipboard</source>
-        <translation type="unfinished">‫تحميل معاملة بتكوين موقعة جزئيًا ‫(‫PSBT) من الحافظة‬</translation>
+        <translation type="unfinished">‫تحميل معاملة Kronein موقعة جزئيًا ‫(‫PSBT) من الحافظة‬</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -492,7 +492,7 @@
     </message>
     <message>
         <source>Open a kronein: URI</source>
-        <translation type="unfinished">‫افتح رابط بتكوين: URI‬</translation>
+        <translation type="unfinished">‫افتح رابط Kronein: URI‬</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -518,7 +518,7 @@
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
-        <translation type="unfinished">‫اعرض %1 رسالة المساعدة للحصول على قائمة من خيارات سطر أوامر البتكوين المحتملة‬</translation>
+        <translation type="unfinished">‫اعرض %1 رسالة المساعدة للحصول على قائمة من خيارات سطر أوامر Kronein المحتملة‬</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -585,7 +585,7 @@
             <numerusform>%n active connection(s) to Kronein network.</numerusform>
             <numerusform>%n active connection(s) to Kronein network.</numerusform>
             <numerusform>%n active connection(s) to Kronein network.</numerusform>
-            <numerusform>%n اتصال نشط بشبكة البتكوين.</numerusform>
+            <numerusform>%n اتصال نشط بشبكة Kronein.</numerusform>
         </translation>
     </message>
     <message>
@@ -876,7 +876,7 @@
     </message>
     <message>
         <source>The entered address "%1" is not a valid Kronein address.</source>
-        <translation type="unfinished">العنوان المدخل "%1" ليس عنوان بيت كوين صحيح.</translation>
+        <translation type="unfinished">العنوان المدخل "%1" ليس عنوان Kronein صحيح.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -958,7 +958,7 @@
     <name>OptionsDialog</name>
     <message>
         <source>Automatically open the Kronein client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
-        <translation type="unfinished">افتح تلقائيًا منفذ عميل البتكوين على جهاز التوجيه. يعمل هذا فقط عندما يدعم جهاز التوجيه الخاص بك PCP أو NAT-PMP ويتم تمكينه. يمكن أن يكون المنفذ الخارجي عشوائيًا</translation>
+        <translation type="unfinished">افتح تلقائيًا منفذ عميل Kronein على جهاز التوجيه. يعمل هذا فقط عندما يدعم جهاز التوجيه الخاص بك PCP أو NAT-PMP ويتم تمكينه. يمكن أن يكون المنفذ الخارجي عشوائيًا</translation>
     </message>
     <message>
         <source>Options set in this dialog are overridden by the command line:</source>
@@ -1029,7 +1029,7 @@
     </message>
     <message>
         <source>Enable coin &amp;control features</source>
-        <translation type="unfinished">‫تفعيل ميزة &amp;التحكم بوحدات البتكوين‬</translation>
+        <translation type="unfinished">‫تفعيل ميزة &amp;التحكم بوحدات Kronein‬</translation>
     </message>
     <message>
         <source>If you disable the spending of unconfirmed change, the change from a transaction cannot be used until that transaction has at least one confirmation. This also affects how your balance is computed.</source>
@@ -1062,7 +1062,7 @@
     </message>
     <message>
         <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">الاتصال بشبكة البتكوين عبر وكيل SOCKS5.</translation>
+        <translation type="unfinished">الاتصال بشبكة Kronein عبر وكيل SOCKS5.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1130,7 +1130,7 @@
     </message>
     <message>
         <source>Choose the default subdivision unit to show in the interface and when sending coins.</source>
-        <translation type="unfinished">‫اختر وحدة التقسيم الفرعية الافتراضية للعرض في الواجهة وعند إرسال البتكوين.‬</translation>
+        <translation type="unfinished">‫اختر وحدة التقسيم الفرعية الافتراضية للعرض في الواجهة وعند إرسال Kronein.‬</translation>
     </message>
     <message>
         <source>Third-party URLs (e.g. a block explorer) that appear in the transactions tab as context menu items. %s in the URL is replaced by transaction hash. Multiple URLs are separated by vertical bar |.</source>
@@ -1142,11 +1142,11 @@
     </message>
     <message>
         <source>Whether to show coin control features or not.</source>
-        <translation type="unfinished">‫ما اذا أردت إظهار ميزات التحكم في وحدات البتكوين أم لا.‬</translation>
+        <translation type="unfinished">‫ما اذا أردت إظهار ميزات التحكم في وحدات Kronein أم لا.‬</translation>
     </message>
     <message>
         <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation type="unfinished">اتصل بشبكة بتكوين من خلال وكيل SOCKS5 منفصل لخدمات Tor onion.</translation>
+        <translation type="unfinished">اتصل بشبكة Kronein من خلال وكيل SOCKS5 منفصل لخدمات Tor onion.</translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
@@ -1239,7 +1239,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">قد تكون المعلومات المعروضة قديمة. تتزامن محفظتك تلقائيًا مع شبكة البتكوين بعد إنشاء الاتصال، ولكن هذه العملية لم تكتمل بعد.</translation>
+        <translation type="unfinished">قد تكون المعلومات المعروضة قديمة. تتزامن محفظتك تلقائيًا مع شبكة Kronein بعد إنشاء الاتصال، ولكن هذه العملية لم تكتمل بعد.</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -1436,7 +1436,7 @@
     </message>
     <message>
         <source>Cannot start kronein: click-to-pay handler</source>
-        <translation type="unfinished">لا يمكن تشغيل بتكوين: معالج النقر للدفع</translation>
+        <translation type="unfinished">لا يمكن تشغيل Kronein: معالج النقر للدفع</translation>
     </message>
     <message>
         <source>URI handling</source>
@@ -1456,7 +1456,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
     <message>
         <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
-        <translation type="unfinished">‫لا يمكن تحليل العنوان (URI)! يمكن أن يحدث هذا بسبب عنوان بتكوين غير صالح أو محددات عنوان غير صحيحة.‬</translation>
+        <translation type="unfinished">‫لا يمكن تحليل العنوان (URI)! يمكن أن يحدث هذا بسبب عنوان Kronein غير صالح أو محددات عنوان غير صحيحة.‬</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -1534,7 +1534,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
     <message>
         <source>Network addresses that your Kronein node is currently using to communicate with other nodes.</source>
-        <translation type="unfinished">عناوين الشبكة التي تستخدمها عقدةالبتكوين الخاصة بك حاليًا للتواصل مع العقد الأخرى.</translation>
+        <translation type="unfinished">عناوين الشبكة التي تستخدمها عقدةKronein الخاصة بك حاليًا للتواصل مع العقد الأخرى.</translation>
     </message>
     <message>
         <source>Sent</source>
@@ -1614,7 +1614,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
     <message>
         <source>Creates a Partially Signed Kronein Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
-        <translation type="unfinished">‫أنشئ معاملة بتكوين موقعة جزئيا (PSBT) للاستعمال مع محفظة %1 غير متصلة بالشبكة مثلا، أو محفظة خارجية متوافقة مع الـ(PSBT).‬</translation>
+        <translation type="unfinished">‫أنشئ معاملة Kronein موقعة جزئيا (PSBT) للاستعمال مع محفظة %1 غير متصلة بالشبكة مثلا، أو محفظة خارجية متوافقة مع الـ(PSBT).‬</translation>
     </message>
     <message>
         <source>Save Transaction Data</source>

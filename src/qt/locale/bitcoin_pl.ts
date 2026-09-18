@@ -586,7 +586,7 @@
     </message>
     <message>
         <source>Request payments (generates QR codes and kronein: URIs)</source>
-        <translation type="unfinished">Żądaj płatności (generuje kod QR oraz bitcoinowe URI)</translation>
+        <translation type="unfinished">Żądaj płatności (generuje kod QR oraz URI Kronein)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>

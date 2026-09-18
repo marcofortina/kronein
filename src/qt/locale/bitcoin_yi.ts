@@ -55,7 +55,7 @@
     </message>
     <message>
         <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">דאס זיינע אייער ביטקוין אדרעסן צו שיקן צאלונגען. אלעמאל איבערקוקן די סומעאון די באקומער אדרעס איידער איר שיקט די מאָנעס.</translation>
+        <translation type="unfinished">דאס זיינע אייער Kronein אדרעסן צו שיקן צאלונגען. אלעמאל איבערקוקן די סומעאון די באקומער אדרעס איידער איר שיקט די מאָנעס.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -155,7 +155,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">ווארענונג: אויב איר קריפּטירט אייער וואָלעט און פאַרלירן אייער פּאַראָל, וועט איר &lt;b&gt;פאַרלירן אַלע אייער ביטקאָינס &lt;/b&gt;!</translation>
+        <translation type="unfinished">ווארענונג: אויב איר קריפּטירט אייער וואָלעט און פאַרלירן אייער פּאַראָל, וועט איר &lt;b&gt;פאַרלירן אַלע אייער KNEָינס &lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -183,7 +183,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">געדענקט אַז ענקריפּטינג דיין בייַטל טוט נישט גאָר באַשיצן דיין ביטקאָינס פון סטאָלען דורך מאַלוואַרע ינפעקטינג דיין קאָמפּיוטער.</translation>
+        <translation type="unfinished">געדענקט אַז ענקריפּטינג דיין בייַטל טוט נישט גאָר באַשיצן דיין KNEָינס פון סטאָלען דורך מאַלוואַרע ינפעקטינג דיין קאָמפּיוטער.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>

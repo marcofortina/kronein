@@ -55,7 +55,7 @@
     </message>
     <message>
         <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">Тези са вашите Биткойн адреси за изпращане на плащания. Винаги проверявайте количеството и получаващите адреси преди изпращане на монети. </translation>
+        <translation type="unfinished">Тези са вашите Kronein адреси за изпращане на плащания. Винаги проверявайте количеството и получаващите адреси преди изпращане на монети. </translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -155,7 +155,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">ВНИМАНИЕ: Ако шифрирате вашият портфейл и изгубите паролата си, &lt;b&gt;ЩЕ ИЗГУБИТЕ ВСИЧКИТЕ СИ БИТКОИНИ&lt;/b&gt;!</translation>
+        <translation type="unfinished">ВНИМАНИЕ: Ако шифрирате вашият портфейл и изгубите паролата си, &lt;b&gt;ЩЕ ИЗГУБИТЕ ВСИЧКИТЕ СИ KNE&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -183,7 +183,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Не забравяйте, че криптирането на вашия портфейл не може напълно да защити вашите биткойни от кражба от зловреден софтуер, заразяващ компютъра ви.</translation>
+        <translation type="unfinished">Не забравяйте, че криптирането на вашия портфейл не може напълно да защити вашите KNE от кражба от зловреден софтуер, заразяващ компютъра ви.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -298,7 +298,7 @@
     </message>
     <message>
         <source>Enter a Kronein address (e.g. %1)</source>
-        <translation type="unfinished">Въведете Биткойн адрес (например: %1)</translation>
+        <translation type="unfinished">Въведете Kronein адрес (например: %1)</translation>
     </message>
     <message>
         <source>Inbound</source>
@@ -470,7 +470,7 @@
     </message>
     <message>
         <source>Send coins to a Kronein address</source>
-        <translation type="unfinished">Изпращане към Биткоин адрес</translation>
+        <translation type="unfinished">Изпращане към Kronein адрес</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -566,7 +566,7 @@
     </message>
     <message>
         <source>Request payments (generates QR codes and kronein: URIs)</source>
-        <translation type="unfinished">Изискване на плащания(генерира QR кодове и биткойн: URIs)</translation>
+        <translation type="unfinished">Изискване на плащания(генерира QR кодове и Kronein: URIs)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -683,7 +683,7 @@
     </message>
     <message>
         <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
-        <translation type="unfinished">Покажи %1 помощно съобщение за да получиш лист с възможни Биткойн команди</translation>
+        <translation type="unfinished">Покажи %1 помощно съобщение за да получиш лист с възможни Kronein команди</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -750,7 +750,7 @@
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
             <numerusform>%n свързани активно към Kronein мрежата.</numerusform>
-            <numerusform>%n активно свързани към Биткойн мрежата. </numerusform>
+            <numerusform>%n активно свързани към Kronein мрежата. </numerusform>
         </translation>
     </message>
     <message>
@@ -1210,7 +1210,7 @@
     </message>
     <message>
         <source>The entered address "%1" is not a valid Kronein address.</source>
-        <translation type="unfinished">"%1" не е валиден Биткоин адрес.</translation>
+        <translation type="unfinished">"%1" не е валиден Kronein адрес.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1322,7 +1322,7 @@
     </message>
     <message>
         <source>Kronein</source>
-        <translation type="unfinished">Биткоин</translation>
+        <translation type="unfinished">Kronein</translation>
     </message>
     <message numerus="yes">
         <source>%n GB of space available</source>
@@ -1367,7 +1367,7 @@
     </message>
     <message>
         <source>%1 will download and store a copy of the Kronein block chain.</source>
-        <translation type="unfinished">%1 ще свали и съхрани копие на биткойн блокчейна.</translation>
+        <translation type="unfinished">%1 ще свали и съхрани копие на Kronein блокчейна.</translation>
     </message>
     <message>
         <source>The wallet will also be stored in this directory.</source>
@@ -1394,7 +1394,7 @@
     </message>
     <message>
         <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation type="unfinished">Опитът да се изразходват биткойни, които са засегнати от все още показаните трансакции, няма да бъдат приети от мрежата.</translation>
+        <translation type="unfinished">Опитът да се изразходват KNE, които са засегнати от все още показаните трансакции, няма да бъдат приети от мрежата.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1608,7 +1608,7 @@
     </message>
     <message>
         <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">Свързване с Биткойн мрежата чрез SOCKS5  прокси.</translation>
+        <translation type="unfinished">Свързване с Kronein мрежата чрез SOCKS5  прокси.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1740,7 +1740,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">Текущата информация на екрана може да не е актуална. Вашият портфейл ще се синхронизира автоматично с мрежата на Биткоин, щом поне една връзката с нея се установи; този процес все още не е приключил.</translation>
+        <translation type="unfinished">Текущата информация на екрана може да не е актуална. Вашият портфейл ще се синхронизира автоматично с мрежата на Kronein, щом поне една връзката с нея се установи; този процес все още не е приключил.</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -1852,7 +1852,7 @@
     </message>
     <message>
         <source>Cannot start kronein: click-to-pay handler</source>
-        <translation type="unfinished">Биткойн не можe да се стартира: click-to-pay handler</translation>
+        <translation type="unfinished">Kronein не можe да се стартира: click-to-pay handler</translation>
     </message>
     <message>
         <source>URI handling</source>
@@ -2406,7 +2406,7 @@
     </message>
     <message>
         <source>Warning: Invalid Kronein address</source>
-        <translation type="unfinished">Внимание: Невалиден Биткойн адрес</translation>
+        <translation type="unfinished">Внимание: Невалиден Kronein адрес</translation>
     </message>
     <message>
         <source>Warning: Unknown change address</source>

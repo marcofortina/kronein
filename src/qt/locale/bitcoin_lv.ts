@@ -142,7 +142,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">Brīdinājums: Šifrējot Jūsu maciņu, gadījumā ja aizmirsīsiet savu paroli, Jūs NEATGRIEZENISKI ZAUDĒSIET VISUS SAVUS "BITKOINUS"!</translation>
+        <translation type="unfinished">Brīdinājums: Šifrējot Jūsu maciņu, gadījumā ja aizmirsīsiet savu paroli, Jūs NEATGRIEZENISKI ZAUDĒSIET VISUS SAVUS "KNE"!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -312,7 +312,7 @@
     </message>
     <message>
         <source>Send coins to a Kronein address</source>
-        <translation type="unfinished">Nosūtīt bitkoinus uz Kronein adresi</translation>
+        <translation type="unfinished">Nosūtīt Kronein uz Kronein adresi</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -821,7 +821,7 @@
     </message>
     <message>
         <source>Choose the default subdivision unit to show in the interface and when sending coins.</source>
-        <translation type="unfinished">Izvēlēties dalījuma vienību pēc noklusēšanas, ko izmantot interfeisā un nosūtot bitkoinus.</translation>
+        <translation type="unfinished">Izvēlēties dalījuma vienību pēc noklusēšanas, ko izmantot interfeisā un nosūtot Kronein.</translation>
     </message>
     <message>
         <source>Whether to show coin control features or not.</source>
@@ -1158,7 +1158,7 @@
     <name>SendCoinsDialog</name>
     <message>
         <source>Send Coins</source>
-        <translation type="unfinished">Sūtīt Bitkoinus</translation>
+        <translation type="unfinished">Sūtīt Kronein</translation>
     </message>
     <message>
         <source>Coin Control Features</source>
@@ -1391,7 +1391,7 @@
     <name>WalletModel</name>
     <message>
         <source>Send Coins</source>
-        <translation type="unfinished">Sūtīt Bitkoinus</translation>
+        <translation type="unfinished">Sūtīt Kronein</translation>
     </message>
     </context>
 <context>
@@ -1426,7 +1426,7 @@
     </message>
     <message>
         <source>Insufficient funds</source>
-        <translation type="unfinished">Nepietiek bitkoinu</translation>
+        <translation type="unfinished">Nepietiek Kronein</translation>
     </message>
     <message>
         <source>Signing transaction failed</source>

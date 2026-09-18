@@ -563,7 +563,7 @@
     </message>
     <message>
         <source>Request payments (generates QR codes and kronein: URIs)</source>
-        <translation type="unfinished">Be om betalinger (genererer QR-koder og bitcoin-URIer)</translation>
+        <translation type="unfinished">Be om betalinger (genererer QR-koder og Kronein-URIer)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -2859,7 +2859,7 @@ Hvis du får denne feilen burde du be forretningsdrivende om å tilby en BIP21 k
     </message>
     <message>
         <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
-        <translation type="unfinished">En melding som var tilknyttet bitcoinen: URI vil bli lagret med transaksjonen for din oversikt. Denne meldingen vil ikke bli sendt over Kronein-nettverket.</translation>
+        <translation type="unfinished">En melding som var tilknyttet en Kronein-URI, vil bli lagret med transaksjonen for din oversikt. Denne meldingen vil ikke bli sendt over Kronein-nettverket.</translation>
     </message>
 </context>
 <context>

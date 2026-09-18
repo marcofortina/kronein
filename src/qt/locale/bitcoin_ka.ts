@@ -55,7 +55,7 @@
     </message>
     <message>
         <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">ეს არის თქვენი ბიტკოინ-მისამართები გადარიცხვებისათვის. კოინების გადარიცხვამდე აუცილებლად შეამოწმეთ მითითებული თანხა და მიმღები მისამართი.</translation>
+        <translation type="unfinished">ეს არის თქვენი Kronein-მისამართები გადარიცხვებისათვის. კოინების გადარიცხვამდე აუცილებლად შეამოწმეთ მითითებული თანხა და მიმღები მისამართი.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -155,7 +155,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
-        <translation type="unfinished">გაფრთხილება: თუ თქვენ დაშიფრავთ თქვენს საფულეს და ამის შემდეგ დაკარგავთ გასაშიფრ ფრაზას, &lt;b&gt;თქვენ დაკარგავთ ყველა ბიტკოინს!&lt;/b&gt;</translation>
+        <translation type="unfinished">გაფრთხილება: თუ თქვენ დაშიფრავთ თქვენს საფულეს და ამის შემდეგ დაკარგავთ გასაშიფრ ფრაზას, &lt;b&gt;თქვენ დაკარგავთ ყველა KNE!&lt;/b&gt;</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -183,7 +183,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">გახსოვდეთ, რომ თქვენი საფულის დაშიფვრა ვერ უზრუნველყოფს სრულად დაიცვას თქვენი ბიტკოინების მოპარვა კომპიუტერში მავნე პროგრამებით.</translation>
+        <translation type="unfinished">გახსოვდეთ, რომ თქვენი საფულის დაშიფვრა ვერ უზრუნველყოფს სრულად დაიცვას თქვენი KNE მოპარვა კომპიუტერში მავნე პროგრამებით.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -595,7 +595,7 @@
     </message>
     <message>
         <source>Load Partially Signed Kronein Transaction</source>
-        <translation type="unfinished">ნაწილობრივ ხელმოწერილი ბიტკოინის ტრანზაქციის ჩატვირთვა</translation>
+        <translation type="unfinished">ნაწილობრივ ხელმოწერილი Kronein ტრანზაქციის ჩატვირთვა</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -615,7 +615,7 @@
     </message>
     <message>
         <source>Open a kronein: URI</source>
-        <translation type="unfinished">გახსენით ბიტკოინი: URI</translation>
+        <translation type="unfinished">გახსენით Kronein: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -1227,7 +1227,7 @@
     <name>OpenURIDialog</name>
     <message>
         <source>Open Kronein URI</source>
-        <translation type="unfinished">გახსენით ბიტკოინის URI</translation>
+        <translation type="unfinished">გახსენით Kronein URI</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -1878,7 +1878,7 @@
     </message>
     <message>
         <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Kronein network.</source>
-        <translation type="unfinished">არააუცილებელი მესიჯი, რომელიც ერთვის გადახდის მოთხოვნას და ნაჩვენები იქნება მოთხოვნის გახსნისას. შენიშვნა: მესიჯი არ გაყვება გადახდას ბითქოინის ქსელში.</translation>
+        <translation type="unfinished">არააუცილებელი მესიჯი, რომელიც ერთვის გადახდის მოთხოვნას და ნაჩვენები იქნება მოთხოვნის გახსნისას. შენიშვნა: მესიჯი არ გაყვება გადახდას Kronein ქსელში.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -2260,7 +2260,7 @@
     </message>
     <message>
         <source>A message that was attached to the kronein: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
-        <translation type="unfinished">მესიჯი, რომელიც თან ერთვის მონეტებს:  URI, რომელიც შეინახება ტრანსაქციასთან ერთად თქვენთვის. შენიშვნა: მესიჯი არ გაყვება გადახდას ბითქოინის ქსელში.</translation>
+        <translation type="unfinished">მესიჯი, რომელიც თან ერთვის მონეტებს:  URI, რომელიც შეინახება ტრანსაქციასთან ერთად თქვენთვის. შენიშვნა: მესიჯი არ გაყვება გადახდას Kronein ქსელში.</translation>
     </message>
 </context>
 <context>
