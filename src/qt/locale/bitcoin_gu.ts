@@ -54,7 +54,7 @@
         <translation type="unfinished">&amp; પસંદ કરો</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
         <translation type="unfinished">આ તમારા ચુકવણી કરવા માટે ના સરનામાં છે, હંમેશા કિંમત અને મોકલવાના ના સરનામાં ચકાસી લેવા સિક્કા આપતા પહેલા.</translation>
     </message>
     <message>
@@ -154,7 +154,7 @@
         <translation type="unfinished">એન્ક્રિપ્શન ખાતરી કરો </translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
         <translation type="unfinished">ચેતવણી: જો તમે તમારા વૉલેટને એન્ક્રિપ્ટ કરો છો અને તમારો પાસફ્રેઝ ખોવાઈ જાય છે, &lt;b&gt; તો તમે તમારા બધા બિટકોઇન્સ ગુમાવશો&lt;/b&gt;!</translation>
     </message>
     <message>
@@ -182,7 +182,7 @@
         <translation type="unfinished">પાછળ </translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
         <translation type="unfinished">યાદ રાખો કે તમારા વૉલેટને એન્ક્રિપ્ટ કરવાથી તમારા કમ્પ્યુટરને સંક્રમિત કરતા માલવેર દ્વારા ચોરાઈ જવાથી તમારા બિટકોઈનને સંપૂર્ણપણે સુરક્ષિત કરી શકાશે નહીં.</translation>
     </message>
     <message>
@@ -309,8 +309,8 @@
         <translation type="unfinished">રકમ</translation>
     </message>
     <message>
-        <source>Enter a Bitcoin address (e.g. %1)</source>
-        <translation type="unfinished">Bitcoin સરનામું દાખલ કરો (દા.ત. %1 )</translation>
+        <source>Enter a Kronein address (e.g. %1)</source>
+        <translation type="unfinished">Kronein સરનામું દાખલ કરો (દા.ત. %1 )</translation>
     </message>
     <message>
         <source>Unroutable</source>
@@ -480,7 +480,7 @@
         <translation type="unfinished">પ્રોક્સી &lt;b&gt;સક્ષમ છે &lt;/b&gt; : %1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
+        <source>Send coins to a Kronein address</source>
         <translation type="unfinished">બિટકોઈન એડ્રેસ પર સિક્કા મોકલો</translation>
     </message>
     <message>
@@ -689,7 +689,7 @@
         <translation type="unfinished">બધા પાકીટ બંધ કરો</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
         <translation type="unfinished">સંભવિત બિટકોઈન કમાન્ડ-લાઇન વિકલ્પો સાથે સૂચિ મેળવવા માટે મદદ સંદેશ બતાવો %1 </translation>
     </message>
     <message>
@@ -749,7 +749,7 @@
         <translation type="unfinished">&amp; કેવી રીતે</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
             <numerusform>1%n બિટકોઈન નેટવર્ક સાથે સક્રિય જોડાણ(ઓ).</numerusform>
@@ -1212,7 +1212,7 @@
         <translation type="unfinished">મોકલવાનું સરનામું સંપાદિત કરો</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
+        <source>The entered address "%1" is not a valid Kronein address.</source>
         <translation type="unfinished">દાખલ કરેલ સરનામું "%1" માન્ય બીટકોઈન સરનામું નથી.</translation>
     </message>
     <message>
@@ -1328,7 +1328,7 @@
         <translation type="unfinished">કસ્ટમ ડેટા ડિરેક્ટરીનો ઉપયોગ કરો:</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
+        <source>Kronein</source>
         <translation type="unfinished">બીટકોઈન </translation>
     </message>
     <message numerus="yes">
@@ -1373,7 +1373,7 @@
         </translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Bitcoin block chain.</source>
+        <source>%1 will download and store a copy of the Kronein block chain.</source>
         <translation type="unfinished">%1 બિટકોઈન બ્લોક ચેઈનની કોપી ડાઉનલોડ અને સ્ટોર કરશે.</translation>
     </message>
     <message>
@@ -1396,11 +1396,11 @@
         <translation type="unfinished">ફોર્મ</translation>
     </message>
     <message>
-        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the bitcoin network, as detailed below.</source>
+        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
         <translation type="unfinished">તાજેતરના વ્યવહારો હજુ સુધી દેખાતા ન હોઈ શકે અને તેથી તમારા વૉલેટનું બેલેન્સ ખોટું હોઈ શકે છે. એકવાર તમારું વૉલેટ બિટકોઇન નેટવર્ક સાથે સિંક્રનાઇઝ થઈ જાય પછી આ માહિતી સાચી હશે, જેમ કે નીચે વિગતવાર છે.</translation>
     </message>
     <message>
-        <source>Attempting to spend bitcoins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
         <translation type="unfinished">હજુ સુધી પ્રદર્શિત ન થયેલા વ્યવહારોથી પ્રભાવિત બિટકોઇન્સનો ખર્ચ કરવાનો પ્રયાસ નેટવર્ક દ્વારા સ્વીકારવામાં આવશે નહીં.</translation>
     </message>
     <message>
@@ -1627,8 +1627,8 @@
         <translation type="unfinished">ઇનકમિંગ કનેક્શન્સને મંજૂરી આપો</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">SOCKS5 પ્રોક્સી દ્વારા Bitcoin નેટવર્કથી કનેક્ટ થાઓ.</translation>
+        <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
+        <translation type="unfinished">SOCKS5 પ્રોક્સી દ્વારા Kronein નેટવર્કથી કનેક્ટ થાઓ.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1707,7 +1707,7 @@
         <translation type="unfinished">સિક્કા નિયંત્રણ સુવિધાઓ દર્શાવવી કે નહીં.</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a separate SOCKS5 proxy for Tor onion services.</source>
+        <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
         <translation type="unfinished">ટોર ઓનિયન સેવાઓ માટે અલગ SOCKS5 પ્રોક્સી દ્વારા બિટકોઇન નેટવર્ક સાથે કનેક્ટ થાઓ.</translation>
     </message>
     <message>
@@ -1804,7 +1804,7 @@
         <translation type="unfinished">ફોર્મ</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Bitcoin network after a connection is established, but this process has not completed yet.</source>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
         <translation type="unfinished">પ્રદર્શિત માહિતી જૂની હોઈ શકે છે. કનેક્શન સ્થાપિત થયા પછી તમારું વૉલેટ આપમેળે બિટકોઇન નેટવર્ક સાથે સિંક્રનાઇઝ થાય છે, પરંતુ આ પ્રક્રિયા હજી પૂર્ણ થઈ નથી.</translation>
     </message>
     <message>
@@ -2021,8 +2021,8 @@ BIP70 માં વ્યાપક સુરક્ષા ખામીઓને �
 જો તમને આ ભૂલ મળી રહી હોય તો તમારે વેપારીને BIP21 સુસંગત URI પ્રદાન કરવાની વિનંતી કરવી જોઈએ.</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
-        <translation type="unfinished">URI વિશ્લેષિત કરી શકાતું નથી! આ અમાન્ય Bitcoin સરનામું અથવા દૂષિત URI પરિમાણોને કારણે થઈ શકે છે.</translation>
+        <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
+        <translation type="unfinished">URI વિશ્લેષિત કરી શકાતું નથી! આ અમાન્ય Kronein સરનામું અથવા દૂષિત URI પરિમાણોને કારણે થઈ શકે છે.</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -2179,7 +2179,7 @@ BIP70 માં વ્યાપક સુરક્ષા ખામીઓને �
         <translation type="unfinished">સ્થાનિક સરનામું</translation>
     </message>
     <message>
-        <source>Network addresses that your Bitcoin node is currently using to communicate with other nodes.</source>
+        <source>Network addresses that your Kronein node is currently using to communicate with other nodes.</source>
         <translation type="unfinished">નેટવર્ક સરનામાં જેનો ઉપયોગ તમારા બિટકોઇન નોડ હાલમાં અન્ય નોડ્સ સાથે વાતચીત કરવા માટે કરી રહ્યા છે.</translation>
     </message>
     <message>
@@ -2624,8 +2624,8 @@ For more information on using this console, type %6.
         <translation type="unfinished">&amp;સંદેશ:</translation>
     </message>
     <message>
-        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Bitcoin network.</source>
-        <translation type="unfinished">ચુકવણીની વિનંતી સાથે જોડવા માટેનો વૈકલ્પિક સંદેશ, જે વિનંતી ખોલવામાં આવશે ત્યારે પ્રદર્શિત થશે. નોંધ: Bitcoin નેટવર્ક પર ચુકવણી સાથે સંદેશ મોકલવામાં આવશે નહીં.</translation>
+        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Kronein network.</source>
+        <translation type="unfinished">ચુકવણીની વિનંતી સાથે જોડવા માટેનો વૈકલ્પિક સંદેશ, જે વિનંતી ખોલવામાં આવશે ત્યારે પ્રદર્શિત થશે. નોંધ: Kronein નેટવર્ક પર ચુકવણી સાથે સંદેશ મોકલવામાં આવશે નહીં.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>

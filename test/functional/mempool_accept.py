@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2017-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test mempool acceptance of raw transactions."""
@@ -102,8 +103,8 @@ class MempoolAcceptanceTest(BitcoinTestFramework):
         txid_in_block = self.wallet.sendrawtransaction(from_node=node, tx_hex=raw_tx_in_block)
         self.generate(node, 1)
         self.mempool_size = 0
-        # Also check feerate. 1BTC/kvB fails
-        assert_raises_rpc_error(-8, "Fee rates larger than or equal to 1BTC/kvB are not accepted", lambda: self.check_mempool_result(
+        # Also check feerate. 1KNE/kvB fails
+        assert_raises_rpc_error(-8, "Fee rates larger than or equal to 1KNE/kvB are not accepted", lambda: self.check_mempool_result(
             result_expected=None,
             rawtxs=[raw_tx_in_block],
             maxfeerate=1,

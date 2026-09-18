@@ -54,8 +54,8 @@
         <translation type="unfinished">Chagua</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">Hizi ndizo anwani zako za kutuma malipo ya sarafu ya Bitcoin. Hakikisha kila wakati kiwango na anwani ya kupokea kabla ya kutuma sarafu.</translation>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation type="unfinished">Hizi ndizo anwani zako za kutuma malipo ya sarafu ya Kronein. Hakikisha kila wakati kiwango na anwani ya kupokea kabla ya kutuma sarafu.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -154,8 +154,8 @@
         <translation type="unfinished">Thibitisha usimbaji fiche wa pochi</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
-        <translation type="unfinished">Ilani: Ikiwa utasimba pochi yako na ukapoteza nenosiri lako, &lt;b&gt; UTAPOTEZA BITCOIN ZAKO ZOTE &lt;/b&gt;!</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
+        <translation type="unfinished">Ilani: Ikiwa utasimba pochi yako na ukapoteza nenosiri lako, &lt;b&gt; UTAPOTEZA KNE ZAKO ZOTE &lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -182,8 +182,8 @@
         <translation type="unfinished">Rudi</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Kumbuka kwamba usimbaji fiche wa mkoba wako hauwezi kulinda bitcoins zako zisiibiwe na programu hasidi kuambukiza kompyuta yako.</translation>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
+        <translation type="unfinished">Kumbuka kwamba usimbaji fiche wa mkoba wako hauwezi kulinda KNE zako zisiibiwe na programu hasidi kuambukiza kompyuta yako.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -396,8 +396,8 @@
         <translation type="unfinished">Proxy &lt;b&gt;imeamilishwa&lt;/b&gt;: %1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation type="unfinished">Tuma sarafu kwa anwani ya Bitcoin</translation>
+        <source>Send coins to a Kronein address</source>
+        <translation type="unfinished">Tuma sarafu kwa anwani ya Kronein</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -606,8 +606,8 @@
         <translation type="unfinished">Funga pochi zote</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
-        <translation type="unfinished">Onyesha %1 ujumbe wa usaidizi ili kupata orodha na chaguo zinazowezekana za mstari wa amri za Bitcoin</translation>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
+        <translation type="unfinished">Onyesha %1 ujumbe wa usaidizi ili kupata orodha na chaguo zinazowezekana za mstari wa amri za Kronein</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -666,11 +666,11 @@
         <translation type="unfinished">Jinsi &amp; jinsi</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>miunganisho %n inayotumika kwa mtandao wa Bitcoin.</numerusform>
-            <numerusform>miunganisho %ninayotumika kwa mtandao wa Bitcoin.</numerusform>
+            <numerusform>miunganisho %n inayotumika kwa mtandao wa Kronein.</numerusform>
+            <numerusform>miunganisho %ninayotumika kwa mtandao wa Kronein.</numerusform>
         </translation>
     </message>
     <message>

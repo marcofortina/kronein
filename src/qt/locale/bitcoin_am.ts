@@ -54,7 +54,7 @@
         <translation type="unfinished">ምረጥ</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
         <translation type="unfinished">ክፍያዎችን ለመላክ እነዚህ  የእርስዎ ቢትኮይን አድራሻዎች ናቸው። ሳንቲሞችን/ኮይኖች ከመላክዎ በፊት ሁል ጊዜ መጠኑን እና የተቀባዩን አድራሻ ያረጋግጡ።</translation>
     </message>
     <message>
@@ -154,7 +154,7 @@
         <translation type="unfinished">የቢትኮይን ቦርሳዎን ማመስጠር ያረጋግጡ</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
         <translation type="unfinished">ማስጠንቀቂያ: የቢትኮይን ቦርሳዎን አመስጥረው የይለፍ-ሐረግዎን ካጡት&lt;b&gt;ቢትኮይኖቾን በሙሉ ያጣሉ&lt;/b&gt;!</translation>
     </message>
     <message>
@@ -425,11 +425,11 @@
         <translation type="unfinished">እሳድግ</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>%n active connection(s) to Bitcoin network.</numerusform>
-            <numerusform>%n active connection(s) to Bitcoin network.</numerusform>
+            <numerusform>%n active connection(s) to Kronein network.</numerusform>
+            <numerusform>%n active connection(s) to Kronein network.</numerusform>
         </translation>
     </message>
     <message>
@@ -557,7 +557,7 @@
         <translation type="unfinished">እንኳን  ወድ %1 በደህና መጣህ።</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
+        <source>Kronein</source>
         <translation type="unfinished">ቢትኮይን</translation>
     </message>
     <message numerus="yes">
@@ -663,8 +663,8 @@
         <translation type="unfinished">የአካባቢ አድራሻዎች</translation>
     </message>
     <message>
-        <source>Network addresses that your Bitcoin node is currently using to communicate with other nodes.</source>
-        <translation type="unfinished">የእርስዎ Bitcoin ኖድ ከሌሎች ኖዶች ጋር ለመገናኘት በአሁኑ ጊዜ እየተጠቀመበት ያለው የአውታረ መረብ አድራሻ።</translation>
+        <source>Network addresses that your Kronein node is currently using to communicate with other nodes.</source>
+        <translation type="unfinished">የእርስዎ Kronein ኖድ ከሌሎች ኖዶች ጋር ለመገናኘት በአሁኑ ጊዜ እየተጠቀመበት ያለው የአውታረ መረብ አድራሻ።</translation>
     </message>
     <message>
         <source>Hide Peers Detail</source>

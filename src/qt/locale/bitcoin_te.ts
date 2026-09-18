@@ -54,7 +54,7 @@
         <translation type="unfinished">ఎం&amp;చుకోండి</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
         <translation type="unfinished">ఇవి మీరు పంపే చెల్లింపుల బిట్‌కాయిన్ చిరునామాలు. నాణేలు పంపే ముందు ప్రతిసారి అందుకునే చిరునామా మరియు చెల్లింపు మొత్తం సరిచూసుకోండి.</translation>
     </message>
     <message>
@@ -146,7 +146,7 @@
         <translation type="unfinished">వాలెట్ గుప్తీకరణను నిర్ధారించండి</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
         <translation type="unfinished">హెచ్చరిక: మీ జోలెని సంకేతపరిచి మీ సంకేతపదము కోల్పోతే, &lt;b&gt;మీ బిట్‌కాయిన్లు అన్నీ కోల్పోతారు&lt;/b&gt;</translation>
     </message>
     <message>
@@ -166,7 +166,7 @@
         <translation type="unfinished">కొనసాగించు</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
         <translation type="unfinished">మీ వాలెట్‌ను గుప్తీకరించడం వల్ల మీ కంప్యూటర్‌కు హాని కలిగించే మాల్వేర్ దొంగిలించకుండా మీ బిట్‌కాయిన్‌లను పూర్తిగా రక్షించలేమని గుర్తుంచుకోండి.</translation>
     </message>
     <message>
@@ -277,7 +277,7 @@
         <translation type="unfinished">మొత్తం</translation>
     </message>
     <message>
-        <source>Enter a Bitcoin address (e.g. %1)</source>
+        <source>Enter a Kronein address (e.g. %1)</source>
         <translation type="unfinished">బిట్‌కాయిన్ చిరునామాను నమోదు చేయండి (ఉదా. %1)</translation>
     </message>
     <message>
@@ -446,7 +446,7 @@
         <translation type="unfinished">ప్రాక్సీ &lt;b&gt;ప్రారంభించబడింది&lt;/b&gt;: %1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
+        <source>Send coins to a Kronein address</source>
         <translation type="unfinished">బిట్‌కాయిన్ చిరునామాకు నాణేలను పంపండి</translation>
     </message>
     <message>
@@ -655,7 +655,7 @@
         <translation type="unfinished">అన్ని వాలెట్లను మూసివేయండి</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
         <translation type="unfinished">%1 సాధ్యమయ్యే బిట్‌కాయిన్ కమాండ్-లైన్ ఎంపికలతో జాబితాను పొందడానికి సహాయ సందేశాన్ని చూపండి</translation>
     </message>
     <message>
@@ -715,7 +715,7 @@
         <translation type="unfinished">&amp;చూపించు</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
             <numerusform>%n బిట్‌కాయిన్ నెట్‌వర్క్‌కు క్రియాశీల కనెక్షన్(లు).</numerusform>
@@ -1158,7 +1158,7 @@
         <translation type="unfinished">పంపే చిరునామాను సవరించండి</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
+        <source>The entered address "%1" is not a valid Kronein address.</source>
         <translation type="unfinished">నమోదు చేసిన చిరునామా "%1" చెల్లుబాటు అయ్యే బిట్‌కాయిన్ చిరునామా కాదు.</translation>
     </message>
     <message>
@@ -1258,7 +1258,7 @@
         <translation type="unfinished">అనుకూల డేటా డైరెక్టరీని ఉపయోగించండి:</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
+        <source>Kronein</source>
         <translation type="unfinished">బిట్కోయిన్</translation>
     </message>
     <message numerus="yes">
@@ -1299,7 +1299,7 @@
         </translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Bitcoin block chain.</source>
+        <source>%1 will download and store a copy of the Kronein block chain.</source>
         <translation type="unfinished">%1 బిట్‌కాయిన్ బ్లాక్ చైన్ కాపీని డౌన్‌లోడ్ చేసి నిల్వ చేస్తుంది.</translation>
     </message>
     <message>
@@ -1495,7 +1495,7 @@
         <translation type="unfinished">&amp;ఇన్‌కమింగ్ కనెక్షన్‌లను అనుమతించండి</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a SOCKS5 proxy.</source>
+        <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
         <translation type="unfinished">SOCKS5 ప్రాక్సీ ద్వారా బిట్‌కాయిన్ నెట్‌వర్క్‌కు కనెక్ట్ చేయండి.</translation>
     </message>
     <message>
@@ -1571,7 +1571,7 @@
         <translation type="unfinished">కాయిన్ కంట్రోల్ ఫీచర్‌లను చూపించాలా వద్దా.</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a separate SOCKS5 proxy for Tor onion services.</source>
+        <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
         <translation type="unfinished">Tor onion సేవల కోసం ప్రత్యేక SOCKS5 ప్రాక్సీ ద్వారా బిట్‌కాయిన్ నెట్‌వర్క్‌కు కనెక్ట్ చేయండి.</translation>
     </message>
     <message>
@@ -1668,7 +1668,7 @@
         <translation type="unfinished">రూపం</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Bitcoin network after a connection is established, but this process has not completed yet.</source>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
         <translation type="unfinished">ప్రదర్శించబడిన సమాచారం పాతది కావచ్చు. కనెక్షన్ స్థాపించబడిన తర్వాత మీ వాలెట్ స్వయంచాలకంగా బిట్‌కాయిన్ నెట్‌వర్క్‌తో సమకాలీకరించబడుతుంది, కానీ ఈ ప్రక్రియ ఇంకా పూర్తి కాలేదు.</translation>
     </message>
     <message>
@@ -1865,7 +1865,7 @@
         <translation type="unfinished">'bitcoin://' చెల్లుబాటు అయ్యే URI కాదు. బదులుగా 'bitcoin:' ఉపయోగించండి.</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
+        <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
         <translation type="unfinished">URI అన్వయించబడదు! ఇది చెల్లని బిట్‌కాయిన్ చిరునామా లేదా తప్పుగా రూపొందించబడిన URI పారామీటర్‌ల వల్ల సంభవించవచ్చు.</translation>
     </message>
     <message>

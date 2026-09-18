@@ -54,8 +54,8 @@
         <translation type="unfinished">S&amp;eç</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">Bunlar ödemeleri gönderdiğiniz Bitcoin adreslerinizdir. Para göndermeden önce her zaman tutarı ve alıcı adresi kontrol ediniz.</translation>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation type="unfinished">Bunlar ödemeleri gönderdiğiniz Kronein adreslerinizdir. Para göndermeden önce her zaman tutarı ve alıcı adresi kontrol ediniz.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -155,8 +155,8 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">Cüzdan şifrelemeyi onayla</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
-        <translation type="unfinished">Uyarı: Cüzdanınızı şifreler ve parolanızı unutursanız &lt;b&gt;TÜM BITCOINLERINIZI KAYBEDERSİNİZ&lt;/b&gt;!</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
+        <translation type="unfinished">Uyarı: Cüzdanınızı şifreler ve parolanızı unutursanız &lt;b&gt;TÜM KNELERINIZI KAYBEDERSİNİZ&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -183,8 +183,8 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">Geri</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Cüzdanınızı şifrelemenin bilgisayarınıza bulaşan kötü amaçlı yazılımlar tarafından bitcoinlerinizin çalınmasına karşı tamamen koruyamayacağını unutmayın.</translation>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
+        <translation type="unfinished">Cüzdanınızı şifrelemenin bilgisayarınıza bulaşan kötü amaçlı yazılımlar tarafından Kroneinlerinizin çalınmasına karşı tamamen koruyamayacağını unutmayın.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -310,8 +310,8 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">Mitar</translation>
     </message>
     <message>
-        <source>Enter a Bitcoin address (e.g. %1)</source>
-        <translation type="unfinished">Bir bitcoin adresi giriniz (örneğin %1)</translation>
+        <source>Enter a Kronein address (e.g. %1)</source>
+        <translation type="unfinished">Bir Kronein adresi giriniz (örneğin %1)</translation>
     </message>
     <message>
         <source>Onion</source>
@@ -471,8 +471,8 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">Proxy &lt;b&gt;etkinleştirildi&lt;/b&gt;: %1 </translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation type="unfinished">Bir Bitcoin adresine Bitcoin yolla</translation>
+        <source>Send coins to a Kronein address</source>
+        <translation type="unfinished">Bir Kronein adresine Kronein yolla</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -667,8 +667,8 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">Tüm cüzdanları kapat</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
-        <translation type="unfinished">Olası Bitcoin komut satırı seçeneklerinin listesini almak için %1 yardım mesajını gösterin</translation>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
+        <translation type="unfinished">Olası Kronein komut satırı seçeneklerinin listesini almak için %1 yardım mesajını gösterin</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -727,10 +727,10 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">G&amp;öster</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>Bitcoin ağına %n etkin bağlantı.</numerusform>
+            <numerusform>Kronein ağına %n etkin bağlantı.</numerusform>
         </translation>
     </message>
     <message>
@@ -1163,8 +1163,8 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">Gönderme adresini  düzenleyin</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
-        <translation type="unfinished">Girilen "%1" adresi geçerli bir Bitcoin adresi değildir.</translation>
+        <source>The entered address "%1" is not a valid Kronein address.</source>
+        <translation type="unfinished">Girilen "%1" adresi geçerli bir Kronein adresi değildir.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1308,8 +1308,8 @@ Cüzdan kilidini aç.</translation>
         </translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Bitcoin block chain.</source>
-        <translation type="unfinished">%1  Bitcoin blok zincirinin bir kopyasını indirecek ve depolayacak.</translation>
+        <source>%1 will download and store a copy of the Kronein block chain.</source>
+        <translation type="unfinished">%1  Kronein blok zincirinin bir kopyasını indirecek ve depolayacak.</translation>
     </message>
     <message>
         <source>The wallet will also be stored in this directory.</source>
@@ -1327,12 +1327,12 @@ Cüzdan kilidini aç.</translation>
 <context>
     <name>ModalOverlay</name>
     <message>
-        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the bitcoin network, as detailed below.</source>
-        <translation type="unfinished">Son işlemler henüz görünmeyebilir ve bu nedenle cüzdanınızın bakiyesi yanlış olabilir. Bu bilgiler, aşağıda detaylandırıldığı gibi, cüzdanınız bitcoin ağı ile senkronizasyonunu tamamladığında doğru olacaktır. </translation>
+        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
+        <translation type="unfinished">Son işlemler henüz görünmeyebilir ve bu nedenle cüzdanınızın bakiyesi yanlış olabilir. Bu bilgiler, aşağıda detaylandırıldığı gibi, cüzdanınız Kronein ağı ile senkronizasyonunu tamamladığında doğru olacaktır. </translation>
     </message>
     <message>
-        <source>Attempting to spend bitcoins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation type="unfinished">Henüz görüntülenmeyen işlemlerden etkilenen bitcoinleri harcama girişiminde bulunmak ağ tarafından kabul edilmeyecektir.</translation>
+        <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <translation type="unfinished">Henüz görüntülenmeyen işlemlerden etkilenen Kroneinleri harcama girişiminde bulunmak ağ tarafından kabul edilmeyecektir.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1419,8 +1419,8 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">Betik &amp;doğrulama iş parçacığı sayısı</translation>
     </message>
     <message>
-        <source>Automatically open the Bitcoin client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
-        <translation type="unfinished">Yönlendiricideki Bitcoin istemcisini otomatik olarak aç. Bu özellik yalnızca yönlendiriciniz PCP veya NAT-PMP desteğine sahipse ve aktif edilmişse çalışır. Harici port rastgele olabilir.</translation>
+        <source>Automatically open the Kronein client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
+        <translation type="unfinished">Yönlendiricideki Kronein istemcisini otomatik olarak aç. Bu özellik yalnızca yönlendiriciniz PCP veya NAT-PMP desteğine sahipse ve aktif edilmişse çalışır. Harici port rastgele olabilir.</translation>
     </message>
     <message>
         <source>Map port using PCP or NA&amp;T-PMP</source>
@@ -1542,8 +1542,8 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">Gelen bağlantılara izin ver</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">Bitcoin ağına bir SOCKS5 vekil sunucusu aracılığıyla bağlan.</translation>
+        <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
+        <translation type="unfinished">Kronein ağına bir SOCKS5 vekil sunucusu aracılığıyla bağlan.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1595,7 +1595,7 @@ Cüzdan kilidini aç.</translation>
     </message>
     <message>
         <source>Choose the default subdivision unit to show in the interface and when sending coins.</source>
-        <translation type="unfinished">Bitcoin gönderildiğinde arayüzde gösterilecek varsayılan alt birimi seçiniz.</translation>
+        <translation type="unfinished">Kronein gönderildiğinde arayüzde gösterilecek varsayılan alt birimi seçiniz.</translation>
     </message>
     <message>
         <source>Third-party URLs (e.g. a block explorer) that appear in the transactions tab as context menu items. %s in the URL is replaced by transaction hash. Multiple URLs are separated by vertical bar |.</source>
@@ -1610,8 +1610,8 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">Para kontrol özelliklerinin gösterilip gösterilmeyeceğini ayarlar.</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation type="unfinished">Tor Onion hizmetleri için ayrı bir SOCKS5 proxy aracılığıyla Bitcoin ağına bağlanın. </translation>
+        <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
+        <translation type="unfinished">Tor Onion hizmetleri için ayrı bir SOCKS5 proxy aracılığıyla Kronein ağına bağlanın. </translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
@@ -1698,8 +1698,8 @@ Cüzdan kilidini aç.</translation>
 <context>
     <name>OverviewPage</name>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Bitcoin network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">Görüntülenen bilgiler güncel olmayabilir. Bağlantı kurulduğunda cüzdanınız otomatik olarak Bitcoin ağı ile senkronize olur ancak bu işlem henüz tamamlanmamıştır.</translation>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
+        <translation type="unfinished">Görüntülenen bilgiler güncel olmayabilir. Bağlantı kurulduğunda cüzdanınız otomatik olarak Kronein ağı ile senkronize olur ancak bu işlem henüz tamamlanmamıştır.</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -1884,8 +1884,8 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">'bitcoin://' geçerli bir URI değil. Onun yerine 'bitcoin:' kullanın.</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
-        <translation type="unfinished">URI ayrıştırılamıyor! Bunun nedeni geçersiz bir Bitcoin adresi veya hatalı biçimlendirilmiş URI değişkenleri olabilir.</translation>
+        <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
+        <translation type="unfinished">URI ayrıştırılamıyor! Bunun nedeni geçersiz bir Kronein adresi veya hatalı biçimlendirilmiş URI değişkenleri olabilir.</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -2025,8 +2025,8 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">Yerel adresler</translation>
     </message>
     <message>
-        <source>Network addresses that your Bitcoin node is currently using to communicate with other nodes.</source>
-        <translation type="unfinished">Bitcoin düğümünüzün diğer düğümlerle iletişim için kullandığı internet adresleri.</translation>
+        <source>Network addresses that your Kronein node is currently using to communicate with other nodes.</source>
+        <translation type="unfinished">Kronein düğümünüzün diğer düğümlerle iletişim için kullandığı internet adresleri.</translation>
     </message>
     <message>
         <source>Block chain</source>
@@ -2365,8 +2365,8 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">&amp;Mesaj:</translation>
     </message>
     <message>
-        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Bitcoin network.</source>
-        <translation type="unfinished">Talep açıldığında gösterilecek, isteğinize dayalı, ödeme talebi ile ilişkilendirilecek bir ileti. Not: Bu ileti ödeme ile birlikte Bitcoin ağı üzerinden gönderilmeyecektir.</translation>
+        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Kronein network.</source>
+        <translation type="unfinished">Talep açıldığında gösterilecek, isteğinize dayalı, ödeme talebi ile ilişkilendirilecek bir ileti. Not: Bu ileti ödeme ile birlikte Kronein ağı üzerinden gönderilmeyecektir.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -2519,7 +2519,7 @@ Cüzdan kilidini aç.</translation>
     <name>SendCoinsDialog</name>
     <message>
         <source>Send Coins</source>
-        <translation type="unfinished">Bitcoini Gönder</translation>
+        <translation type="unfinished">Kroneini Gönder</translation>
     </message>
     <message>
         <source>Coin Control Features</source>
@@ -2721,7 +2721,7 @@ Cüzdan kilidini aç.</translation>
     </message>
     <message>
         <source>Confirm send coins</source>
-        <translation type="unfinished">Bitcoin gönderimini onaylayın</translation>
+        <translation type="unfinished">Kronein gönderimini onaylayın</translation>
     </message>
     <message>
         <source>The recipient address is not valid. Please recheck.</source>
@@ -2754,8 +2754,8 @@ Cüzdan kilidini aç.</translation>
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
-        <translation type="unfinished">Uyarı: geçersiz Bitcoin adresi</translation>
+        <source>Warning: Invalid Kronein address</source>
+        <translation type="unfinished">Uyarı: geçersiz Kronein adresi</translation>
     </message>
     <message>
         <source>Warning: Unknown change address</source>
@@ -2793,8 +2793,8 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">Önceden kullanılmış adres seç</translation>
     </message>
     <message>
-        <source>The Bitcoin address to send the payment to</source>
-        <translation type="unfinished">Ödemenin yollanacağı Bitcoin adresi</translation>
+        <source>The Kronein address to send the payment to</source>
+        <translation type="unfinished">Ödemenin yollanacağı Kronein adresi</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -2805,8 +2805,8 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">Bu ögeyi kaldır</translation>
     </message>
     <message>
-        <source>The fee will be deducted from the amount being sent. The recipient will receive less bitcoins than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation type="unfinished">Ücret yollanan tutardan alınacaktır. Alıcı tutar alanına girdiğinizden daha az bitcoin alacaktır. Eğer birden çok alıcı seçiliyse ücret eşit olarak bölünecektir.</translation>
+        <source>The fee will be deducted from the amount being sent. The recipient will receive less KNE than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
+        <translation type="unfinished">Ücret yollanan tutardan alınacaktır. Alıcı tutar alanına girdiğinizden daha az KNE alacaktır. Eğer birden çok alıcı seçiliyse ücret eşit olarak bölünecektir.</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>
@@ -2825,8 +2825,8 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">Kullanılmış adres listesine eklemek için bu adrese bir etiket girin</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Bitcoin network.</source>
-        <translation type="unfinished">Referans için bitcoin: URI'siyle iliştirilmiş işlemle birlikte depolanacak bir ileti. Not: Bu mesaj Bitcoin ağı üzerinden gönderilmeyecektir.</translation>
+        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <translation type="unfinished">Referans için bitcoin: URI'siyle iliştirilmiş işlemle birlikte depolanacak bir ileti. Not: Bu mesaj Kronein ağı üzerinden gönderilmeyecektir.</translation>
     </message>
 </context>
 <context>
@@ -2987,7 +2987,7 @@ Cüzdan kilidini aç.</translation>
     </message>
     <message>
         <source>Generated coins must mature %1 blocks before they can be spent. When you generated this block, it was broadcast to the network to be added to the block chain. If it fails to get into the chain, its state will change to "not accepted" and it won't be spendable. This may occasionally happen if another node generates a block within a few seconds of yours.</source>
-        <translation type="unfinished">Oluşturulan bitcoin'lerin harcanabilmelerinden önce %1 blok beklemeleri gerekmektedir. Bu blok, oluşturduğunuzda, blok zincirine eklenmesi için ağda yayınlandı. Zincire eklenmesi başarısız olursa, durumu "kabul edilmedi" olarak değiştirilecek ve harcanamayacaktır. Bu, bazen başka bir düğüm sizden birkaç saniye önce ya da sonra blok oluşturursa meydana gelebilir.</translation>
+        <translation type="unfinished">Oluşturulan Kronein'lerin harcanabilmelerinden önce %1 blok beklemeleri gerekmektedir. Bu blok, oluşturduğunuzda, blok zincirine eklenmesi için ağda yayınlandı. Zincire eklenmesi başarısız olursa, durumu "kabul edilmedi" olarak değiştirilecek ve harcanamayacaktır. Bu, bazen başka bir düğüm sizden birkaç saniye önce ya da sonra blok oluşturursa meydana gelebilir.</translation>
     </message>
     <message>
         <source>Debug information</source>
@@ -3256,7 +3256,7 @@ Cüzdan kilidini aç.</translation>
     <name>WalletModel</name>
     <message>
         <source>Send Coins</source>
-        <translation type="unfinished">Bitcoini Gönder</translation>
+        <translation type="unfinished">Kroneini Gönder</translation>
     </message>
     <message>
         <source>Fee bump error</source>
@@ -3400,7 +3400,7 @@ Cüzdan kilidini aç.</translation>
     </message>
     <message>
         <source>This is a pre-release test build - use at your own risk - do not use for mining or merchant applications</source>
-        <translation type="unfinished">Bu kararlı sürümden önceki bir deneme sürümüdür. - risklerini bilerek kullanma sorumluluğu sizdedir - bitcoin oluşturmak ya da ticari uygulamalar için kullanmayınız</translation>
+        <translation type="unfinished">Bu kararlı sürümden önceki bir deneme sürümüdür. - risklerini bilerek kullanma sorumluluğu sizdedir - Kronein oluşturmak ya da ticari uygulamalar için kullanmayınız</translation>
     </message>
     <message>
         <source>This is the transaction fee you may pay when fee estimates are not available.</source>
@@ -3742,7 +3742,7 @@ Cüzdan kilidini aç.</translation>
     </message>
     <message>
         <source>The transaction amount is too small to pay the fee</source>
-        <translation type="unfinished">İşlemdeki bitcoin tutarı ücreti ödemek için çok düşük</translation>
+        <translation type="unfinished">İşlemdeki Kronein tutarı ücreti ödemek için çok düşük</translation>
     </message>
     <message>
         <source>The transactions removal process can only be executed within a db txn</source>

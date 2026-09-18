@@ -59,8 +59,8 @@
         <translation type="unfinished">選択(&amp;C)</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">これらは、あなたが知っている送信先の Bitcoin アドレスです。コインを送る前に必ず、金額と受取用アドレスを確認してください。</translation>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation type="unfinished">これらは、あなたが知っている送信先の Kronein アドレスです。コインを送る前に必ず、金額と受取用アドレスを確認してください。</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -159,8 +159,8 @@
         <translation type="unfinished">ウォレットの暗号化の確認</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
-        <translation type="unfinished">警告: ウォレットの暗号化後にパスフレーズを忘れてしまった場合、&lt;b&gt;あなたの Bitcoin はすべて失われます&lt;/b&gt;！</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
+        <translation type="unfinished">警告: ウォレットの暗号化後にパスフレーズを忘れてしまった場合、&lt;b&gt;あなたの Kronein はすべて失われます&lt;/b&gt;！</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -187,8 +187,8 @@
         <translation type="unfinished">戻る</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">ウォレットを暗号化しても、コンピュータに感染したマルウェアなどによる Bitcoin の盗難を完全に防ぐことはできないことにご注意ください。</translation>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
+        <translation type="unfinished">ウォレットを暗号化しても、コンピュータに感染したマルウェアなどによる KNE の盗難を完全に防ぐことはできないことにご注意ください。</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -314,8 +314,8 @@
         <translation type="unfinished">金額</translation>
     </message>
     <message>
-        <source>Enter a Bitcoin address (e.g. %1)</source>
-        <translation type="unfinished">Bitcoin アドレスを入力してください (例: %1)</translation>
+        <source>Enter a Kronein address (e.g. %1)</source>
+        <translation type="unfinished">Kronein アドレスを入力してください (例: %1)</translation>
     </message>
     <message>
         <source>Unroutable</source>
@@ -502,8 +502,8 @@
         <translation type="unfinished">プロキシは&lt;b&gt;有効&lt;/b&gt;: %1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation type="unfinished">Bitcoin アドレスにコインを送る</translation>
+        <source>Send coins to a Kronein address</source>
+        <translation type="unfinished">Kronein アドレスにコインを送る</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -710,8 +710,8 @@
         <translation type="unfinished">全てのウォレットを閉じる</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
-        <translation type="unfinished">%1 のヘルプ メッセージを表示し、使用可能な Bitcoin のコマンドラインオプション一覧を見る。</translation>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
+        <translation type="unfinished">%1 のヘルプ メッセージを表示し、使用可能な Kronein のコマンドラインオプション一覧を見る。</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -778,7 +778,7 @@
         <translation type="unfinished">表示</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
             <numerusform>%n ビットコイン ネットワークへのアクティブな接続。</numerusform>
@@ -1244,8 +1244,8 @@
         <translation type="unfinished">送金先アドレスを編集</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
-        <translation type="unfinished">入力されたアドレス "%1" は無効な Bitcoin アドレスです。</translation>
+        <source>The entered address "%1" is not a valid Kronein address.</source>
+        <translation type="unfinished">入力されたアドレス "%1" は無効な Kronein アドレスです。</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1393,8 +1393,8 @@
         </translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Bitcoin block chain.</source>
-        <translation type="unfinished">%1 は Bitcoin ブロックチェーンのコピーをダウンロードし保存します。</translation>
+        <source>%1 will download and store a copy of the Kronein block chain.</source>
+        <translation type="unfinished">%1 は Kronein ブロックチェーンのコピーをダウンロードし保存します。</translation>
     </message>
     <message>
         <source>The wallet will also be stored in this directory.</source>
@@ -1416,12 +1416,12 @@
         <translation type="unfinished">フォーム</translation>
     </message>
     <message>
-        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the bitcoin network, as detailed below.</source>
-        <translation type="unfinished">最近の取引がまだ表示されていない可能性があります。そのため、ウォレットの残高が正しく表示されていないかもしれません。この情報は、ウォレットが Bitcoin ネットワークへの同期が完了すると正確なものとなります。詳細は下記を参照してください。</translation>
+        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
+        <translation type="unfinished">最近の取引がまだ表示されていない可能性があります。そのため、ウォレットの残高が正しく表示されていないかもしれません。この情報は、ウォレットが Kronein ネットワークへの同期が完了すると正確なものとなります。詳細は下記を参照してください。</translation>
     </message>
     <message>
-        <source>Attempting to spend bitcoins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation type="unfinished">まだ表示されていない取引が関係する Bitcoin の使用を試みた場合、ネットワークから認証を受けられません。</translation>
+        <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <translation type="unfinished">まだ表示されていない取引が関係する KNE の使用を試みた場合、ネットワークから認証を受けられません。</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1520,8 +1520,8 @@
         <translation type="unfinished">%1 対応スクリプトのフルパス（例：C:\Downloads\hwi.exe や /Users/you/Downloads/hwi.py）。マルウェアにコインを盗まれないようご注意ください。</translation>
     </message>
     <message>
-        <source>Automatically open the Bitcoin client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
-        <translation type="unfinished">自動的にルーター上の Bitcoin クライアントのポートを開放します。これは、あなたのルーターが PCP または NAT-PMP をサポートし、有効になっている場合にのみ機能します。外部ポートはランダムで構いません。</translation>
+        <source>Automatically open the Kronein client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
+        <translation type="unfinished">自動的にルーター上の Kronein クライアントのポートを開放します。これは、あなたのルーターが PCP または NAT-PMP をサポートし、有効になっている場合にのみ機能します。外部ポートはランダムで構いません。</translation>
     </message>
     <message>
         <source>Map port using PCP or NA&amp;T-PMP</source>
@@ -1651,8 +1651,8 @@
         <translation type="unfinished">外部からの接続を許可する(&amp;g)</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">SOCKS5 プロキシ経由で Bitcoin ネットワークに接続する。</translation>
+        <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
+        <translation type="unfinished">SOCKS5 プロキシ経由で Kronein ネットワークに接続する。</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1731,8 +1731,8 @@
         <translation type="unfinished">コインコントロール機能を表示するか否か。</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation type="unfinished">Tor onion service用の別のSOCKS5プロキシを介してBitcoinネットワークに接続します。</translation>
+        <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
+        <translation type="unfinished">Tor onion service用の別のSOCKS5プロキシを介してKroneinネットワークに接続します。</translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
@@ -1824,8 +1824,8 @@
         <translation type="unfinished">フォーム</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Bitcoin network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">表示されている情報は古い可能性があります。ウォレットは接続確立後に Bitcoin ネットワークと自動的に同期しますが、同期処理はまだ完了していません。</translation>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
+        <translation type="unfinished">表示されている情報は古い可能性があります。ウォレットは接続確立後に Kronein ネットワークと自動的に同期しますが、同期処理はまだ完了していません。</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -2039,8 +2039,8 @@ BIP70には広範なセキュリティー上の問題があるので、ウォレ
 このエラーが発生した場合、事業者に対してBIP21に対応したURIを要求してください。</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
-        <translation type="unfinished">URIを解析できませんでした！ Bitcoin アドレスが無効であるか、URIパラメーターが不正な形式である可能性があります。</translation>
+        <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
+        <translation type="unfinished">URIを解析できませんでした！ Kronein アドレスが無効であるか、URIパラメーターが不正な形式である可能性があります。</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -2188,8 +2188,8 @@ BIP70には広範なセキュリティー上の問題があるので、ウォレ
         <translation type="unfinished">ローカルアドレス</translation>
     </message>
     <message>
-        <source>Network addresses that your Bitcoin node is currently using to communicate with other nodes.</source>
-        <translation type="unfinished">Bitcoinノードが現在他のノード通信するために使用しているネットワークアドレス</translation>
+        <source>Network addresses that your Kronein node is currently using to communicate with other nodes.</source>
+        <translation type="unfinished">Kroneinノードが現在他のノード通信するために使用しているネットワークアドレス</translation>
     </message>
     <message>
         <source>Block chain</source>
@@ -2634,8 +2634,8 @@ For more information on using this console, type %6.
         <translation type="unfinished">メッセージ (&amp;M):</translation>
     </message>
     <message>
-        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Bitcoin network.</source>
-        <translation type="unfinished">支払いリクエストに添付する任意のメッセージで、支払リクエストの開封時に表示されます。注意: メッセージは Bitcoin ネットワーク上へ送信されません。</translation>
+        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Kronein network.</source>
+        <translation type="unfinished">支払いリクエストに添付する任意のメッセージで、支払リクエストの開封時に表示されます。注意: メッセージは Kronein ネットワーク上へ送信されません。</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -2911,7 +2911,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
 注意: 手数料はbyte単位で計算されます。"100 satoshis / kvB"という手数料率のとき、500 仮想バイト (1 kvBの半分)の取引の手数料はたったの50 satoshisと計算されます。</translation>
     </message>
     <message>
-        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for bitcoin transactions than the network can process.</source>
+        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for Kronein transactions than the network can process.</source>
         <translation type="unfinished">ブロック内の空きより取引の量が少ない場合、マイナーや中継ノードは最低限の手数料でも処理することがあります。この最低限の手数料だけを支払っても問題ありませんが、一度取引の需要がネットワークの処理能力を超えてしまった場合には、取引が永久に承認されなくなってしまう可能性があることに注意してください。</translation>
     </message>
     <message>
@@ -3143,8 +3143,8 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
-        <translation type="unfinished">警告: 無効な Bitcoin アドレスです</translation>
+        <source>Warning: Invalid Kronein address</source>
+        <translation type="unfinished">警告: 無効な Kronein アドレスです</translation>
     </message>
     <message>
         <source>Warning: Unknown change address</source>
@@ -3182,8 +3182,8 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">これまでに使用したことがあるアドレスから選択</translation>
     </message>
     <message>
-        <source>The Bitcoin address to send the payment to</source>
-        <translation type="unfinished">送金先 Bitcoin アドレス</translation>
+        <source>The Kronein address to send the payment to</source>
+        <translation type="unfinished">送金先 Kronein アドレス</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -3198,8 +3198,8 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">選択した単位での送金額</translation>
     </message>
     <message>
-        <source>The fee will be deducted from the amount being sent. The recipient will receive less bitcoins than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation type="unfinished">手数料は送金する金額から差し引かれます。送金先には金額欄で指定した額よりも少ない Bitcoin が送られます。送金先が複数ある場合は、手数料は均等に分けられます。</translation>
+        <source>The fee will be deducted from the amount being sent. The recipient will receive less KNE than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
+        <translation type="unfinished">手数料は送金する金額から差し引かれます。送金先には金額欄で指定した額よりも少ない KNE が送られます。送金先が複数ある場合は、手数料は均等に分けられます。</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>
@@ -3218,8 +3218,8 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">このアドレスに対するラベルを入力することで、送金したことがあるアドレスの一覧に追加することができます</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Bitcoin network.</source>
-        <translation type="unfinished">bitcoin URIに添付されていたメッセージです。これは参照用として取引とともに保存されます。注意: メッセージは Bitcoin ネットワーク上へ送信されません。</translation>
+        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <translation type="unfinished">bitcoin URIに添付されていたメッセージです。これは参照用として取引とともに保存されます。注意: メッセージは Kronein ネットワーク上へ送信されません。</translation>
     </message>
 </context>
 <context>

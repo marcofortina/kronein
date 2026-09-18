@@ -74,6 +74,14 @@ Copyright: Bitboy, Jonas Schnelli
 License: public-domain
 Comment: Site: https://bitcointalk.org/?topic=1756.0
 
+Files: src/qt/res/icons/bitcoin.*
+       share/pixmaps/bitcoin*
+       src/qt/res/src/bitcoin.svg
+       src/qt/res/src/kronein-master.png
+Copyright: 2026 The Kronein Core developers
+License: Expat
+Comment: Kronein replacement artwork.
+
 Files: src/qt/res/icons/proxy.png
        src/qt/res/src/proxy.svg
 Copyright: Cristian Mircea Messel

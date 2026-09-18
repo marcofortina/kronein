@@ -54,8 +54,8 @@
         <translation type="unfinished">(do you mean: CHOOSE?) ;Pumili,Piliin.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">Ito ang mga ♦address♦ ng ♦Bitcoin♦ mo para pagpapadala ng mga bayad. Palaging suriin mo ang halaga at address kung saan tatanggap bago magpadala ka ng mga ♦coin.</translation>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation type="unfinished">Ito ang mga ♦address♦ ng ♦Kronein♦ mo para pagpapadala ng mga bayad. Palaging suriin mo ang halaga at address kung saan tatanggap bago magpadala ka ng mga ♦coin.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -146,8 +146,8 @@
         <translation type="unfinished">Kumpirmahin ang ♦encryption♦ ng pitaka</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
-        <translation type="unfinished">Babala: IKung i-encrypt mo ang iyong pitaka at mawawala ang ♦passphrase♦,  &lt;b&gt;MAWAWALA MO ANG LAHAT NG IYONG MGA BITCOIN&lt;/b&gt;!</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
+        <translation type="unfinished">Babala: IKung i-encrypt mo ang iyong pitaka at mawawala ang ♦passphrase♦,  &lt;b&gt;MAWAWALA MO ANG LAHAT NG IYONG MGA KNE&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -166,8 +166,8 @@
         <translation type="unfinished">Ilagay ang lumang ♦passphrase♦ at ang bagong ♦passphrase♦ para sa pitaka.</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Tandaan na ang pag-encrypt sa iyong pitaka ay hindi ganap na mapoprotektahan ang mga ♦bitcoin♦ sa pagnanakaw ng ♦malware♦ na makakahawa sa iyong kompyuter.</translation>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
+        <translation type="unfinished">Tandaan na ang pag-encrypt sa iyong pitaka ay hindi ganap na mapoprotektahan ang mga ♦KNE♦ sa pagnanakaw ng ♦malware♦ na makakahawa sa iyong kompyuter.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -379,8 +379,8 @@
         <translation type="unfinished">Na-disable ang aktibidad ng ♦network♦</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation type="unfinished">Magpadala ng mga ♦coin♦ sa ♦address♦ ng Bitcoin</translation>
+        <source>Send coins to a Kronein address</source>
+        <translation type="unfinished">Magpadala ng mga ♦coin♦ sa ♦address♦ ng Kronein</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -574,8 +574,8 @@
         <translation type="unfinished">Isarado ang lahat na mga pitaka</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
-        <translation type="unfinished">Ipakita ang %1 tumulong sa mensahe na kumuha ng listahan ng posibleng ♦Bitcoin command-line♦ na mga pagpipilian</translation>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
+        <translation type="unfinished">Ipakita ang %1 tumulong sa mensahe na kumuha ng listahan ng posibleng ♦Kronein command-line♦ na mga pagpipilian</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -615,11 +615,11 @@
         <translation type="unfinished">&amp;Itago</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>%n aktibo na mga ♦connection(s)♦ sa ♦Bitcoin network♦.</numerusform>
-            <numerusform>%n na aktibong mga koneksyon sa ♦Bitcoin network♦</numerusform>
+            <numerusform>%n aktibo na mga ♦connection(s)♦ sa ♦Kronein network♦.</numerusform>
+            <numerusform>%n na aktibong mga koneksyon sa ♦Kronein network♦</numerusform>
         </translation>
     </message>
     <message>
@@ -1018,8 +1018,8 @@
         <translation type="unfinished">I-edit ang pagpapadalhan na ♦address♦</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
-        <translation type="unfinished">Ang naipasok na ♦address♦ "%1" ay hindi wasto na ♦Bitcoin address♦.</translation>
+        <source>The entered address "%1" is not a valid Kronein address.</source>
+        <translation type="unfinished">Ang naipasok na ♦address♦ "%1" ay hindi wasto na ♦Kronein address♦.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1082,8 +1082,8 @@
         <translation type="unfinished">Maligayang Pagdating</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
-        <translation type="unfinished">♦Bitcoin♦</translation>
+        <source>Kronein</source>
+        <translation type="unfinished">♦Kronein♦</translation>
     </message>
     <message numerus="yes">
         <source>%n GB of space available</source>

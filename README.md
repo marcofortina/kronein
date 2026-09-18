@@ -1,79 +1,69 @@
-Bitcoin Core integration/staging tree
-=====================================
+# Kronein Core
 
-https://bitcoincore.org
+https://github.com/marcofortina/kronein
 
-For an immediately usable, binary version of the Bitcoin Core software, see
-https://bitcoincore.org/en/download/.
+Kronein Core is the reference node, wallet, and graphical application for the
+Kronein (KNE) blockchain. It downloads and fully validates blocks and
+transactions and participates in the Kronein peer-to-peer network.
 
-What is Bitcoin Core?
----------------------
+Kronein is a new blockchain derived from Bitcoin Core source code. It has no
+upgrade path from Bitcoin and is not intended to accept Bitcoin blocks,
+transactions, wallets, or addresses. The inherited executable names remain in
+place during the current development phase.
 
-Bitcoin Core connects to the Bitcoin peer-to-peer network to download and fully
-validate blocks and transactions. It also includes a wallet and graphical user
-interface, which can be optionally built.
+The network is under active development and is not ready for production use.
+The genesis blocks, proof-of-work and monetary parameters, network identifiers,
+ports, seeds, and address prefixes will be replaced before launch. See the
+[development release notes](doc/release-notes.md) for the current baseline.
 
-Further information about Bitcoin Core is available in the [doc folder](/doc).
+## Documentation
 
-License
--------
+Build and developer documentation is available in the [doc folder](doc/). The
+main platform-specific build guides are linked from [doc/README.md](doc/README.md).
 
-Bitcoin Core is released under the terms of the MIT license. See [COPYING](COPYING) for more
-information or see https://opensource.org/license/MIT.
+## License
 
-Development Process
--------------------
+Kronein Core is released under the terms of the MIT license. See
+[COPYING](COPYING) for details. The project retains the copyright notices and
+attributions of the Bitcoin Core code from which it is derived.
 
-The `master` branch is regularly built (see `doc/build-*.md` for instructions) and tested, but it is not guaranteed to be
-completely stable. [Tags](https://github.com/bitcoin/bitcoin/tags) are created
-regularly from release branches to indicate new official, stable release versions of Bitcoin Core.
+## Development process
 
-The https://github.com/bitcoin-core/gui repository is used exclusively for the
-development of the GUI. Its master branch is identical in all monotree
-repositories. Release branches and tags do not exist, so please do not fork
-that repository unless it is for development reasons.
+The `working` branch is the active integration branch during initial chain
+development. Changes must be kept focused, reviewable, and covered by tests
+appropriate to their consensus, wallet, networking, or user-interface impact.
 
-The contribution workflow is described in [CONTRIBUTING.md](CONTRIBUTING.md)
-and useful hints for developers can be found in [doc/developer-notes.md](doc/developer-notes.md).
+The contribution workflow is described in
+[CONTRIBUTING.md](CONTRIBUTING.md), with additional engineering guidance in
+[doc/developer-notes.md](doc/developer-notes.md).
 
-Testing
--------
+## Testing
 
-Testing and code review is the bottleneck for development; we get more pull
-requests than we can review and test on short notice. Please be patient and help out by testing
-other people's pull requests, and remember this is a security-critical project where any mistake might cost people
-lots of money.
+Unit tests can be built and run with:
 
-### Automated Testing
+```sh
+cmake --build build -j8
+ctest --test-dir build -j8
+```
 
-Developers are strongly encouraged to write [unit tests](src/test/README.md) for new code, and to
-submit new unit tests for old code. Unit tests can be compiled and run
-(assuming they weren't disabled during the generation of the build system) with: `ctest`. Further details on running
-and extending unit tests can be found in [/src/test/README.md](/src/test/README.md).
+Functional and integration tests are written in Python and can be run with:
 
-There are also [regression and integration tests](/test), written
-in Python.
-These tests can be run (if the [test dependencies](/test) are installed) with: `build/test/functional/test_runner.py`
-(assuming `build` is your build directory).
+```sh
+build/test/functional/test_runner.py -j8
+```
 
-The CI (Continuous Integration) systems make sure that every pull request is tested on Windows, Linux, and macOS.
-The CI must pass on all commits before merge to avoid unrelated CI failures on new pull requests.
+See [src/test/README.md](src/test/README.md) and
+[test/README.md](test/README.md) for more information.
 
-### Manual Quality Assurance (QA) Testing
+## Translations
 
-Changes should be tested by somebody other than the developer who wrote the
-code. This is especially important for large or high-risk changes. It is useful
-to add a test plan to the pull request description if testing the changes is
-not straightforward.
+Qt translation catalogs are stored in [src/qt/locale](src/qt/locale). Until a
+dedicated Kronein translation service is established, translation changes are
+reviewed in this repository together with the source strings they update.
 
-Translations
-------------
+## Upstream
 
-Changes to translations as well as new translations can be submitted to
-[Bitcoin Core's Transifex page](https://explore.transifex.com/bitcoin/bitcoin/).
-
-Translations are periodically pulled from Transifex and merged into the git repository. See the
-[translation process](doc/translation_process.md) for details on how this works.
-
-**Important**: We do not accept translation changes as GitHub pull requests because the next
-pull from Transifex would automatically overwrite them again.
+Kronein Core is based on Bitcoin Core. Upstream source history, security fixes,
+and technical references remain available at
+[bitcoin/bitcoin](https://github.com/bitcoin/bitcoin). Upstream references are
+retained where they provide attribution or document inherited behavior.

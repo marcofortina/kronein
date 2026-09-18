@@ -54,8 +54,8 @@
         <translation type="unfinished">خوښول</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">دا ستاسو د Bitcoin پتې دي د تادیاتو لپاره. تل د سکې لیږلو مخکې اندازه او د ترلاسه کوونکي پته وګورئ.</translation>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation type="unfinished">دا ستاسو د Kronein پتې دي د تادیاتو لپاره. تل د سکې لیږلو مخکې اندازه او د ترلاسه کوونکي پته وګورئ.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -154,7 +154,7 @@
         <translation type="unfinished">د والټ کوډ کول تایید کړئ</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
         <translation type="unfinished">خبرتیا: که تاسې خپل والټ کوډ کړئ او خپلپاسفریز، ته به یې. &lt;b&gt;خپل ټول بټ کوینونه له لاسه ورکړئ&lt;/b&gt;!</translation>
     </message>
     <message>
@@ -182,7 +182,7 @@
         <translation type="unfinished">بېرته</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
         <translation type="unfinished">یاد ولرئ چې ستاسو د والټ رمز جوړول بشپړ ساتنه نه شي کولای.ستاسو بټ کوینونه د مالویر له لارې د غلا څخه خوندي کول
  ستاسو کمپیوټ</translation>
     </message>
@@ -415,7 +415,7 @@
         <translation type="unfinished">پروکسي دی &lt;b&gt;فعال&lt;/b&gt;: %1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
+        <source>Send coins to a Kronein address</source>
         <translation type="unfinished">سکې د بټ کوین پته ته واستوئ</translation>
     </message>
     <message>
@@ -628,7 +628,7 @@
         <translation type="unfinished">ټولې بټوه بندې کړئ</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
         <translation type="unfinished">%1 مرسته پیغام وښایه ترڅو د ممکنه بټ کوین کمانډ لاین اختیارونو سره لیست ترلاسه کړئ"</translation>
     </message>
     <message>
@@ -692,7 +692,7 @@
         <translation type="unfinished">"ښودل</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
             <numerusform />
@@ -1151,7 +1151,7 @@
         <translation type="unfinished">د لېږلو پته سمول</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
+        <source>The entered address "%1" is not a valid Kronein address.</source>
         <translation type="unfinished">د داخل شوي پته "%1"دا د بټ کوین صحيح پته نه ده</translation>
     </message>
     <message>
@@ -1268,7 +1268,7 @@
         <translation type="unfinished">یو دودیز د معلوماتو ډایرکټري وکاروئ</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
+        <source>Kronein</source>
         <translation type="unfinished">ٹ کوائن</translation>
     </message>
     <message numerus="yes">
@@ -1313,7 +1313,7 @@
         </translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Bitcoin block chain.</source>
+        <source>%1 will download and store a copy of the Kronein block chain.</source>
         <translation type="unfinished">به د بیتکوین بلاک چین کاپي ډاونلوډ کړي او ذخیره کړي.%1</translation>
     </message>
     <message>

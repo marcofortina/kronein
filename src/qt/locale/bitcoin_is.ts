@@ -54,8 +54,8 @@
         <translation type="unfinished">&amp;Veldu</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">Þetta eru Bitcoin veskin sem senda greiðslur. Skoðið ævinlega vel upphæðina og veskin sem þiggja greiðslur áður en rafmynt er send.</translation>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation type="unfinished">Þetta eru Kronein veskin sem senda greiðslur. Skoðið ævinlega vel upphæðina og veskin sem þiggja greiðslur áður en rafmynt er send.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -149,8 +149,8 @@
         <translation type="unfinished">Staðfesta dulkóðun veskis</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
-        <translation type="unfinished">Viðvörun: Ef þú dulkóðar veskið og týnir lykilsetningunn þá munt þú &lt;b&gt;TAPA ALLRI ÞINNI BITCOIN MYNT&lt;/b&gt;!</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
+        <translation type="unfinished">Viðvörun: Ef þú dulkóðar veskið og týnir lykilsetningunn þá munt þú &lt;b&gt;TAPA ALLRI ÞINNI KNE MYNT&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -169,8 +169,8 @@
         <translation type="unfinished">Sláðu inn gamla lykilorðið og nýja lykilorðið fyrir veskið.</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Mundu að dulkóðun vesksins þíns getur ekki verndað bitcoins þína að fullu gegn því að vera stolið af spilliforritum sem sýkja tölvuna þína.</translation>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
+        <translation type="unfinished">Mundu að dulkóðun vesksins þíns getur ekki verndað KNE þína að fullu gegn því að vera stolið af spilliforritum sem sýkja tölvuna þína.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -390,8 +390,8 @@
         <translation type="unfinished">Umboð er virkt: %1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation type="unfinished">Senda mynt í Bitcoin færslugildi</translation>
+        <source>Send coins to a Kronein address</source>
+        <translation type="unfinished">Senda mynt í Kronein færslugildi</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -537,15 +537,15 @@
         <translation type="unfinished">Uppfært</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
-        <translation type="unfinished">Sýna %1 hjálparskilaboðin til að fá lista yfir valkosti Bitcoin aðgerðir í skipanalínu</translation>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
+        <translation type="unfinished">Sýna %1 hjálparskilaboðin til að fá lista yfir valkosti Kronein aðgerðir í skipanalínu</translation>
     </message>
     <message>
         <source>%1 client</source>
         <translation type="unfinished">%1 biðlarar</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
             <numerusform />
@@ -736,8 +736,8 @@
         <translation type="unfinished">Breyta sendingarfærslugildi</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
-        <translation type="unfinished">Færslugildið sem slegið var inn "%1" er ekki leyfilegt Bitcoin færslugildi.</translation>
+        <source>The entered address "%1" is not a valid Kronein address.</source>
+        <translation type="unfinished">Færslugildið sem slegið var inn "%1" er ekki leyfilegt Kronein færslugildi.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -837,8 +837,8 @@
         <translation type="unfinished">&amp;Ytri undirskriftarslóð</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">Tengstu Bitcoin netinu í gegnum SOCKS5 umboð.</translation>
+        <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
+        <translation type="unfinished">Tengstu Kronein netinu í gegnum SOCKS5 umboð.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -857,8 +857,8 @@
         <translation type="unfinished">Vefslóðir þriðja aðila (t.d. blokkkönnuður) sem birtast á færsluflipanum sem samhengisvalmyndaratriði. %s í vefslóðinni er skipt út fyrir færsluhash. Margar vefslóðir eru aðskildar með lóðréttri strik |.</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation type="unfinished">Tengstu Bitcoin netinu í gegnum sérstakt SOCKS5 umboð fyrir Tor laukþjónustu.</translation>
+        <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
+        <translation type="unfinished">Tengstu Kronein netinu í gegnum sérstakt SOCKS5 umboð fyrir Tor laukþjónustu.</translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>

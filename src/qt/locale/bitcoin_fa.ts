@@ -38,7 +38,7 @@
         <translation type="unfinished">&amp;انتخاب</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
         <translation type="unfinished">اینها آدرس های بیت کوین شما برای ارسال پرداخت هستند. همیشه قبل از ارسال سکه، مبلغ و آدرس دریافت کننده را بررسی کنید.</translation>
     </message>
     <message>
@@ -97,7 +97,7 @@
         <translation type="unfinished">سفارشی...</translation>
     </message>
     <message>
-        <source>Enter a Bitcoin address (e.g. %1)</source>
+        <source>Enter a Kronein address (e.g. %1)</source>
         <translation type="unfinished">آدرس بیت کوین را وارد کنید (به طور مثال %1)</translation>
     </message>
     <message>
@@ -291,7 +291,7 @@
         <translation type="unfinished">پراکسی &lt;b&gt;فعال&lt;/b&gt; شده است: %1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
+        <source>Send coins to a Kronein address</source>
         <translation type="unfinished">ارسال کوین به آدرس بیت کوین</translation>
     </message>
     <message>
@@ -482,7 +482,7 @@
         <translation type="unfinished">بازیابی کیف پول…</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
         <translation type="unfinished">برای دریافت لیستی از گزینه های خط فرمان بیت کوین ، پیام راهنمایی %1 را نشان دهید</translation>
     </message>
     <message>
@@ -530,7 +530,7 @@
         <translation type="unfinished">مخفی کن</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
             <numerusform>%n اتصال(های) فعال به شبکه بیت کوین.</numerusform>
@@ -811,7 +811,7 @@
         <translation type="unfinished">ویرایش آدرس ارسالی</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
+        <source>The entered address "%1" is not a valid Kronein address.</source>
         <translation type="unfinished">آدرس وارد شده "%1" آدرس معتبر بیت کوین نیست.</translation>
     </message>
     <message>
@@ -870,7 +870,7 @@
         <translation type="unfinished">حداکثر اندازهٔ کش پایگاه داده. اطمینان حاصل کنید که حافظهٔ RAM کافی دارید. کش بزرگ‌تر می‌تواند به همگام‌سازی سریع‌تر کمک کند، اما پس از آن، این مزیت برای بیشتر کاربردها چندان محسوس نیست. کاهش اندازهٔ کش باعث کاهش مصرف حافظه می‌شود. حافظهٔ استفاده‌نشدهٔ mempool با این کش به‌صورت مشترک استفاده می‌شود.</translation>
     </message>
     <message>
-        <source>Automatically open the Bitcoin client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
+        <source>Automatically open the Kronein client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
         <translation type="unfinished">باز کردن خودکار پورت کلاینت بیت‌کوین روی روتر. این ویژگی تنها زمانی کار می‌کند که روتر شما از PCP یا NAT-PMP پشتیبانی کند و این قابلیت فعال باشد. پورت خارجی ممکن است به‌صورت تصادفی انتخاب شود.</translation>
     </message>
     <message>
@@ -974,7 +974,7 @@
         <translation type="unfinished">اجازه ورود و اتصالات</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a SOCKS5 proxy.</source>
+        <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
         <translation type="unfinished">از طریق یک پروکسی SOCKS5 به شبکه بیت کوین متصل شوید.</translation>
     </message>
     <message>
@@ -1150,8 +1150,8 @@
         <translation type="unfinished">فرم</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Bitcoin network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">اطلاعات نمایش داده شده ممکن است قدیمی باشد. کیف پول شما پس از برقراری اتصال به طور خودکار با شبکه Bitcoin همگام سازی می شود ، اما این روند هنوز کامل نشده است.
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
+        <translation type="unfinished">اطلاعات نمایش داده شده ممکن است قدیمی باشد. کیف پول شما پس از برقراری اتصال به طور خودکار با شبکه Kronein همگام سازی می شود ، اما این روند هنوز کامل نشده است.
  </translation>
     </message>
     <message>
@@ -1362,7 +1362,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished">آدرس‌های محلی</translation>
     </message>
     <message>
-        <source>Network addresses that your Bitcoin node is currently using to communicate with other nodes.</source>
+        <source>Network addresses that your Kronein node is currently using to communicate with other nodes.</source>
         <translation type="unfinished">آدرس‌های شبکه ای که گره بیت کوین شما در حال حاضر از آنها برای ارتباط با گره های دیگر استفاده می کند.</translation>
     </message>
     <message>

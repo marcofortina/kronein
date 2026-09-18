@@ -54,8 +54,8 @@
         <translation type="unfinished">&amp;Zvolit</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">Tohle jsou tvé bitcoinové adresy pro posílání plateb. Před odesláním mincí si vždy zkontroluj částku a cílovou adresu.</translation>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation type="unfinished">Tohle jsou tvé Kroneinové adresy pro posílání plateb. Před odesláním mincí si vždy zkontroluj částku a cílovou adresu.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -154,8 +154,8 @@
         <translation type="unfinished">Potvrď zašifrování peněženky</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
-        <translation type="unfinished">Upozornění: Pokud si zašifruješ peněženku a ztratíš či zapomeneš heslo, &lt;b&gt;PŘIJDEŠ O VŠECHNY BITCOINY&lt;/b&gt;!</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
+        <translation type="unfinished">Upozornění: Pokud si zašifruješ peněženku a ztratíš či zapomeneš heslo, &lt;b&gt;PŘIJDEŠ O VŠECHNY KNEY&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -182,8 +182,8 @@
         <translation type="unfinished">Zpátky</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Pamatujte, že zašifrování peněženky nemůže plně ochránit vaše bitcoiny před krádeží, pokud by byl váš počítač napadem malwarem.</translation>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
+        <translation type="unfinished">Pamatujte, že zašifrování peněženky nemůže plně ochránit vaše Kroneiny před krádeží, pokud by byl váš počítač napadem malwarem.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -442,8 +442,8 @@
         <translation type="unfinished">Proxy je &lt;b&gt;zapnutá&lt;/b&gt;: %1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation type="unfinished">Pošli mince na bitcoinovou adresu</translation>
+        <source>Send coins to a Kronein address</source>
+        <translation type="unfinished">Pošli mince na Kroneinovou adresu</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -648,8 +648,8 @@
         <translation type="unfinished">Zavřít všechny peněženky</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
-        <translation type="unfinished">Seznam argumentů Bitcoinu pro příkazovou řádku získáš v nápovědě %1</translation>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
+        <translation type="unfinished">Seznam argumentů Kroneinu pro příkazovou řádku získáš v nápovědě %1</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -716,12 +716,12 @@
         <translation type="unfinished">&amp;Zobrazit</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>%n active connection(s) to Bitcoin network.</numerusform>
-            <numerusform>%n active connection(s) to Bitcoin network.</numerusform>
-            <numerusform>%n active connection(s) to Bitcoin network.</numerusform>
+            <numerusform>%n active connection(s) to Kronein network.</numerusform>
+            <numerusform>%n active connection(s) to Kronein network.</numerusform>
+            <numerusform>%n active connection(s) to Kronein network.</numerusform>
         </translation>
     </message>
     <message>
@@ -1180,8 +1180,8 @@
         <translation type="unfinished">Uprav odesílací adresu</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
-        <translation type="unfinished">Zadaná adresa „%1“ není platná bitcoinová adresa.</translation>
+        <source>The entered address "%1" is not a valid Kronein address.</source>
+        <translation type="unfinished">Zadaná adresa „%1“ není platná Kroneinová adresa.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1341,7 +1341,7 @@
         </translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Bitcoin block chain.</source>
+        <source>%1 will download and store a copy of the Kronein block chain.</source>
         <translation type="unfinished">%1 bude stahovat a ukládat kopii blockchainu.</translation>
     </message>
     <message>
@@ -1364,12 +1364,12 @@
         <translation type="unfinished">Formulář</translation>
     </message>
     <message>
-        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the bitcoin network, as detailed below.</source>
-        <translation type="unfinished">Nedávné transakce ještě nemusí být vidět, takže stav tvého účtu nemusí být platný. Jakmile se však tvá peněženka dosynchronizuje s bitcoinovou sítí (viz informace níže), tak už bude stav správně.</translation>
+        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
+        <translation type="unfinished">Nedávné transakce ještě nemusí být vidět, takže stav tvého účtu nemusí být platný. Jakmile se však tvá peněženka dosynchronizuje s Kroneinovou sítí (viz informace níže), tak už bude stav správně.</translation>
     </message>
     <message>
-        <source>Attempting to spend bitcoins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation type="unfinished">Pokus o utracení bitcoinů, které jsou ovlivněny dosud nezobrazenými transakcemi, nebude sítí akceptován.</translation>
+        <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <translation type="unfinished">Pokus o utracení Kroneinů, které jsou ovlivněny dosud nezobrazenými transakcemi, nebude sítí akceptován.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1472,8 +1472,8 @@
         <translation type="unfinished">Úplná cesta ke %1 kompatibilnímu skriptu (např. C:\Downloads\hwi.exe nebo /Users/you/Downloads/hwi.py). Dejte si pozor: malware může ukrást vaše mince!</translation>
     </message>
     <message>
-        <source>Automatically open the Bitcoin client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
-        <translation type="unfinished">Automaticky otevřít port klienta Bitcoinu na routeru. To funguje pouze tehdy, pokud váš router podporuje PCP nebo NAT-PMP a je to povoleno. Externí port může být náhodný. </translation>
+        <source>Automatically open the Kronein client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
+        <translation type="unfinished">Automaticky otevřít port klienta Kroneinu na routeru. To funguje pouze tehdy, pokud váš router podporuje PCP nebo NAT-PMP a je to povoleno. Externí port může být náhodný. </translation>
     </message>
     <message>
         <source>Map port using PCP or NA&amp;T-PMP</source>
@@ -1599,8 +1599,8 @@
         <translation type="unfinished">&amp;Přijímat příchozí spojení</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">Připojí se do bitcoinové sítě přes SOCKS5 proxy.</translation>
+        <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
+        <translation type="unfinished">Připojí se do Kroneinové sítě přes SOCKS5 proxy.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1679,8 +1679,8 @@
         <translation type="unfinished">Zda ukazovat možnosti pro ruční správu mincí nebo ne.</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation type="unfinished">Připojí se do Bitcoinové sítě přes vyhrazenou SOCKS5 proxy pro služby v Tor síti.</translation>
+        <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
+        <translation type="unfinished">Připojí se do Kroneinové sítě přes vyhrazenou SOCKS5 proxy pro služby v Tor síti.</translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
@@ -1772,8 +1772,8 @@
         <translation type="unfinished">Formulář</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Bitcoin network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">Zobrazené informace nemusí být aktuální. Tvá peněženka se automaticky sesynchronizuje s bitcoinovou sítí, jakmile se s ní spojí. Zatím ale ještě není synchronizace dokončena.</translation>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
+        <translation type="unfinished">Zobrazené informace nemusí být aktuální. Tvá peněženka se automaticky sesynchronizuje s Kroneinovou sítí, jakmile se s ní spojí. Zatím ale ještě není synchronizace dokončena.</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -1918,8 +1918,8 @@
         <translation type="unfinished">Místní adresy</translation>
     </message>
     <message>
-        <source>Network addresses that your Bitcoin node is currently using to communicate with other nodes.</source>
-        <translation type="unfinished">Síťové adresy, které tvůj bitcoinový uzel aktuálně používá ke komunikaci s ostatními uzly.</translation>
+        <source>Network addresses that your Kronein node is currently using to communicate with other nodes.</source>
+        <translation type="unfinished">Síťové adresy, které tvůj Kroneinový uzel aktuálně používá ke komunikaci s ostatními uzly.</translation>
     </message>
     <message>
         <source>Block chain</source>
@@ -2131,8 +2131,8 @@ For more information on using this console, type %6.
         <translation type="unfinished">&amp;Zpráva:</translation>
     </message>
     <message>
-        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Bitcoin network.</source>
-        <translation type="unfinished">Volitelná zpráva, která se připojí k platebnímu požadavku a která se zobrazí, když se požadavek otevře. Poznámka: tahle zpráva se neposílá s platbou po bitcoinové síti.</translation>
+        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Kronein network.</source>
+        <translation type="unfinished">Volitelná zpráva, která se připojí k platebnímu požadavku a která se zobrazí, když se požadavek otevře. Poznámka: tahle zpráva se neposílá s platbou po Kroneinové síti.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -2408,8 +2408,8 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
  Poznámka: Vzhledem k tomu, že poplatek se vypočítává na bázi za bajt, sazba poplatku „100 satoshi za kvB“ za velikost transakce 500 virtuálních bajtů (polovina z 1 kvB) by nakonec přinesla poplatek pouze 50 satoshi.</translation>
     </message>
     <message>
-        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for bitcoin transactions than the network can process.</source>
-        <translation type="unfinished">Když je menší objem transakcí než je místa v blocích, mohou těžaři i uzly, které transakce předávají, vyžadovat minimální poplatek. Zaplatit pouze tento minimální poplatek je v pořádku, ale mějte na paměti, že to může vést k tomu, že vaše transakce nikdy nebude potvrzena, pokud bude větší poptávka po bitcoinových transakcích, než kolik síť zvládne zpracovat.</translation>
+        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for Kronein transactions than the network can process.</source>
+        <translation type="unfinished">Když je menší objem transakcí než je místa v blocích, mohou těžaři i uzly, které transakce předávají, vyžadovat minimální poplatek. Zaplatit pouze tento minimální poplatek je v pořádku, ale mějte na paměti, že to může vést k tomu, že vaše transakce nikdy nebude potvrzena, pokud bude větší poptávka po Kroneinových transakcích, než kolik síť zvládne zpracovat.</translation>
     </message>
     <message>
         <source>A too low fee might result in a never confirming transaction (read the tooltip)</source>

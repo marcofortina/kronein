@@ -1,4 +1,5 @@
 # Copyright (c) 2023-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://opensource.org/license/mit/.
 
@@ -26,7 +27,7 @@ get_directory_property(precious_variables CACHE_VARIABLES)
 #=============================
 # Project / Package metadata
 #=============================
-set(CLIENT_NAME "Bitcoin Core")
+set(CLIENT_NAME "Kronein Core")
 set(CLIENT_VERSION_MAJOR 31)
 set(CLIENT_VERSION_MINOR 1)
 set(CLIENT_VERSION_BUILD 0)
@@ -52,8 +53,8 @@ set(CMAKE_TRY_COMPILE_PLATFORM_VARIABLES
 
 project(BitcoinCore
   VERSION ${CLIENT_VERSION_MAJOR}.${CLIENT_VERSION_MINOR}.${CLIENT_VERSION_BUILD}
-  DESCRIPTION "Bitcoin client software"
-  HOMEPAGE_URL "https://bitcoincore.org/"
+  DESCRIPTION "Kronein client software"
+  HOMEPAGE_URL "https://github.com/marcofortina/kronein"
   LANGUAGES NONE
 )
 
@@ -63,8 +64,8 @@ if(CLIENT_VERSION_RC GREATER 0)
 endif()
 
 set(COPYRIGHT_HOLDERS "The %s developers")
-set(COPYRIGHT_HOLDERS_FINAL "The ${CLIENT_NAME} developers")
-set(CLIENT_BUGREPORT "https://github.com/bitcoin/bitcoin/issues")
+set(COPYRIGHT_HOLDERS_FINAL "The ${CLIENT_NAME} developers and The Bitcoin Core developers")
+set(CLIENT_BUGREPORT "https://github.com/marcofortina/kronein/issues")
 
 #=============================
 # Language setup

@@ -54,8 +54,8 @@
         <translation type="unfinished">D&amp;ewis</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">Rhain ydi eich cyfeiriadau Bitcoin ar gyfer gyrru taliadau. Gwnewch yn sicr o'r swm a'r cyfeiriad derbyn cyn gyrru arian.</translation>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation type="unfinished">Rhain ydi eich cyfeiriadau Kronein ar gyfer gyrru taliadau. Gwnewch yn sicr o'r swm a'r cyfeiriad derbyn cyn gyrru arian.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -150,8 +150,8 @@
         <translation type="unfinished">Cadarnhau amgryptio'r waled</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
-        <translation type="unfinished">Rhybudd: Os ydych yn amgryptio'r waled ag yn colli'r cyfrinair, byddwch yn &lt;b&gt; COLLI EICH BITCOINS I GYD &lt;b&gt; !</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
+        <translation type="unfinished">Rhybudd: Os ydych yn amgryptio'r waled ag yn colli'r cyfrinair, byddwch yn &lt;b&gt; COLLI EICH KNE I GYD &lt;b&gt; !</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -178,8 +178,8 @@
         <translation type="unfinished">Yn ôl</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Cofiwch nad yw cryptio eich waled yn gallu amddiffyn eich bitcoiniodd yn llawn rhag cael eu dwyn gan feddalwedd ymosodol sy'n heintio eich cyfrifiadur.</translation>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
+        <translation type="unfinished">Cofiwch nad yw cryptio eich waled yn gallu amddiffyn eich Kroneiniodd yn llawn rhag cael eu dwyn gan feddalwedd ymosodol sy'n heintio eich cyfrifiadur.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -421,8 +421,8 @@
         <translation type="unfinished">Mae'r procsï yw&lt;b&gt;wedi'i alluog&lt;/b&gt;i:%1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation type="unfinished">Anfon arian i gyfeiriad Bitcoin</translation>
+        <source>Send coins to a Kronein address</source>
+        <translation type="unfinished">Anfon arian i gyfeiriad Kronein</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -633,8 +633,8 @@
         <translation type="unfinished">Cau pob waled</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
-        <translation type="unfinished">Dangos y%1neges gymorth i gael rhestr gyda'r opsiynau llinell-gorchymyn Bitcoin posibl</translation>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
+        <translation type="unfinished">Dangos y%1neges gymorth i gael rhestr gyda'r opsiynau llinell-gorchymyn Kronein posibl</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -693,7 +693,7 @@
         <translation type="unfinished">Dangos</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
             <numerusform />
@@ -1079,8 +1079,8 @@
         <translation type="unfinished">Golygu'r cyfeiriad anfon</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
-        <translation type="unfinished">Y cyfeiriad a roddwyd "%1Nid yw " yn gyfeiriad Bitcoin dilys.</translation>
+        <source>The entered address "%1" is not a valid Kronein address.</source>
+        <translation type="unfinished">Y cyfeiriad a roddwyd "%1Nid yw " yn gyfeiriad Kronein dilys.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1185,8 +1185,8 @@
         </translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Bitcoin block chain.</source>
-        <translation type="unfinished">%1yn lawrlwytho ac yn storio copi o'r gadwyn bloc Bitcoin.</translation>
+        <source>%1 will download and store a copy of the Kronein block chain.</source>
+        <translation type="unfinished">%1yn lawrlwytho ac yn storio copi o'r gadwyn bloc Kronein.</translation>
     </message>
     <message>
         <source>The wallet will also be stored in this directory.</source>
@@ -1374,8 +1374,8 @@
         <translation type="unfinished">Caniatáu cysylltiadau sy'n dod i mewn</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">Cysylltu â rhwydwaith Bitcoin trwy brocsï SOCKS5.</translation>
+        <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
+        <translation type="unfinished">Cysylltu â rhwydwaith Kronein trwy brocsï SOCKS5.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>

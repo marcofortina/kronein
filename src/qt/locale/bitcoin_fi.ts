@@ -154,8 +154,8 @@
         <translation type="unfinished">Vahvista lompakon salaaminen</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
-        <translation type="unfinished">Varoitus: Jos salaat lompakkosi ja menetät tunnuslauseesi, &lt;b&gt;MENETÄT KAIKKI BITCOINISI&lt;/b&gt;!</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
+        <translation type="unfinished">Varoitus: Jos salaat lompakkosi ja menetät tunnuslauseesi, &lt;b&gt;MENETÄT KAIKKI KNEISI&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -182,8 +182,8 @@
         <translation type="unfinished">Takaisin</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Muista, että salaamalla lompakkosi et täysin pysty suojaamaan bitcoineja varkaudelta, jotka aiheutuvat koneellasi olevista haittaohjelmista.</translation>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
+        <translation type="unfinished">Muista, että salaamalla lompakkosi et täysin pysty suojaamaan Kroneineja varkaudelta, jotka aiheutuvat koneellasi olevista haittaohjelmista.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -309,8 +309,8 @@
         <translation type="unfinished">Määrä</translation>
     </message>
     <message>
-        <source>Enter a Bitcoin address (e.g. %1)</source>
-        <translation type="unfinished">Syötä Bitcoin-osoite (esim. %1)</translation>
+        <source>Enter a Kronein address (e.g. %1)</source>
+        <translation type="unfinished">Syötä Kronein-osoite (esim. %1)</translation>
     </message>
     <message>
         <source>Unroutable</source>
@@ -484,8 +484,8 @@
         <translation type="unfinished">Välipalvelin on &lt;b&gt;käytössä&lt;/b&gt;: %1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation type="unfinished">Lähetä kolikoita Bitcoin-osoitteeseen</translation>
+        <source>Send coins to a Kronein address</source>
+        <translation type="unfinished">Lähetä kolikoita Kronein-osoitteeseen</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -693,8 +693,8 @@
         <translation type="unfinished">Sulje kaikki lompakot</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
-        <translation type="unfinished">Näytä %1 ohjeet saadaksesi listan mahdollisista Bitcoinin komentorivivalinnoista</translation>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
+        <translation type="unfinished">Näytä %1 ohjeet saadaksesi listan mahdollisista Kroneinin komentorivivalinnoista</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -761,11 +761,11 @@
         <translation type="unfinished">N&amp;äytä</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>%n aktiivinen yhteys Bitcoin-verkkoon.</numerusform>
-            <numerusform>%n aktiivista yhteyttä Bitcoin-verkkoon.</numerusform>
+            <numerusform>%n aktiivinen yhteys Kronein-verkkoon.</numerusform>
+            <numerusform>%n aktiivista yhteyttä Kronein-verkkoon.</numerusform>
         </translation>
     </message>
     <message>
@@ -1224,8 +1224,8 @@
         <translation type="unfinished">Muokkaa lähettävää osoitetta</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
-        <translation type="unfinished">Antamasi osoite "%1" ei ole kelvollinen Bitcoin-osoite.</translation>
+        <source>The entered address "%1" is not a valid Kronein address.</source>
+        <translation type="unfinished">Antamasi osoite "%1" ei ole kelvollinen Kronein-osoite.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1381,8 +1381,8 @@
         </translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Bitcoin block chain.</source>
-        <translation type="unfinished">%1 lataa ja tallentaa kopion Bitcoinin lohkoketjusta.</translation>
+        <source>%1 will download and store a copy of the Kronein block chain.</source>
+        <translation type="unfinished">%1 lataa ja tallentaa kopion Kroneinin lohkoketjusta.</translation>
     </message>
     <message>
         <source>The wallet will also be stored in this directory.</source>
@@ -1404,12 +1404,12 @@
         <translation type="unfinished">Lomake</translation>
     </message>
     <message>
-        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the bitcoin network, as detailed below.</source>
-        <translation type="unfinished">Viimeiset tapahtumat eivät välttämättä vielä näy, joten lompakkosi saldo voi olla virheellinen. Tieto korjautuu, kunhan lompakkosi synkronointi bitcoin-verkon kanssa on päättynyt. Tiedot näkyvät alla.</translation>
+        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
+        <translation type="unfinished">Viimeiset tapahtumat eivät välttämättä vielä näy, joten lompakkosi saldo voi olla virheellinen. Tieto korjautuu, kunhan lompakkosi synkronointi Kronein-verkon kanssa on päättynyt. Tiedot näkyvät alla.</translation>
     </message>
     <message>
-        <source>Attempting to spend bitcoins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation type="unfinished">Verkko ei tule hyväksymään sellaisten bitcoinien käyttämistä, jotka liittyvät vielä näkymättömissä oleviin siirtoihin.</translation>
+        <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <translation type="unfinished">Verkko ei tule hyväksymään sellaisten Kroneinien käyttämistä, jotka liittyvät vielä näkymättömissä oleviin siirtoihin.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1512,8 +1512,8 @@
         <translation type="unfinished">Täysi polku %1 yhteensopivaan komentosarjaan (esim. C:\Downloads\hwi.exe tai /Users/you/Downloads/hwi.py). Varo: haittaohjelmat voivat varastaa kolikkosi!</translation>
     </message>
     <message>
-        <source>Automatically open the Bitcoin client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
-        <translation type="unfinished">Avaa reitittimen Bitcoin-asiakasohjelman portti automaattisesti. Tämä toimii vain, jos reitittimesi tukee PCP:tä tai NAT-PMP:tä ja se on otettu käyttöön. Ulkoinen portti voi olla satunnainen.</translation>
+        <source>Automatically open the Kronein client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
+        <translation type="unfinished">Avaa reitittimen Kronein-asiakasohjelman portti automaattisesti. Tämä toimii vain, jos reitittimesi tukee PCP:tä tai NAT-PMP:tä ja se on otettu käyttöön. Ulkoinen portti voi olla satunnainen.</translation>
     </message>
     <message>
         <source>Map port using PCP or NA&amp;T-PMP</source>
@@ -1647,8 +1647,8 @@
         <translation type="unfinished">Hyväksy sisääntulevia yhteyksiä</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">Yhdistä Bitcoin-verkkoon SOCKS5-välityspalvelimen kautta.</translation>
+        <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
+        <translation type="unfinished">Yhdistä Kronein-verkkoon SOCKS5-välityspalvelimen kautta.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1708,11 +1708,11 @@
     </message>
     <message>
         <source>&amp;Unit to show amounts in:</source>
-        <translation type="unfinished">Yksikkö jona bitcoin-määrät näytetään</translation>
+        <translation type="unfinished">Yksikkö jona Kronein-määrät näytetään</translation>
     </message>
     <message>
         <source>Choose the default subdivision unit to show in the interface and when sending coins.</source>
-        <translation type="unfinished">Valitse mitä yksikköä käytetään ensisijaisesti bitcoin-määrien näyttämiseen.</translation>
+        <translation type="unfinished">Valitse mitä yksikköä käytetään ensisijaisesti Kronein-määrien näyttämiseen.</translation>
     </message>
     <message>
         <source>Third-party URLs (e.g. a block explorer) that appear in the transactions tab as context menu items. %s in the URL is replaced by transaction hash. Multiple URLs are separated by vertical bar |.</source>
@@ -1727,8 +1727,8 @@
         <translation type="unfinished">Näytetäänkö kolikkokontrollin ominaisuuksia vai ei</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation type="unfinished">Yhdistä Bitcoin-verkkoon erillisen SOCKS5-välityspalvelimen kautta Torin onion-palveluja varten.</translation>
+        <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
+        <translation type="unfinished">Yhdistä Kronein-verkkoon erillisen SOCKS5-välityspalvelimen kautta Torin onion-palveluja varten.</translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
@@ -1820,8 +1820,8 @@
         <translation type="unfinished">Lomake</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Bitcoin network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">Näytetyt tiedot eivät välttämättä ole ajantasalla. Lompakkosi synkronoituu Bitcoin-verkon kanssa automaattisesti yhteyden muodostamisen jälkeen, mutta synkronointi on vielä meneillään.</translation>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
+        <translation type="unfinished">Näytetyt tiedot eivät välttämättä ole ajantasalla. Lompakkosi synkronoituu Kronein-verkon kanssa automaattisesti yhteyden muodostamisen jälkeen, mutta synkronointi on vielä meneillään.</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -1857,7 +1857,7 @@
     </message>
     <message>
         <source>Your current total balance</source>
-        <translation type="unfinished">Tililläsi tällä hetkellä olevien Bitcoinien määrä</translation>
+        <translation type="unfinished">Tililläsi tällä hetkellä olevien Kroneinien määrä</translation>
     </message>
     <message>
         <source>Recent transactions</source>
@@ -1935,7 +1935,7 @@
     </message>
     <message>
         <source>PSBT copied to clipboard.</source>
-        <translation type="unfinished">PSBT (osittain allekirjoitettu bitcoin-siirto) kopioitiin leikepöydälle.</translation>
+        <translation type="unfinished">PSBT (osittain allekirjoitettu Kronein-siirto) kopioitiin leikepöydälle.</translation>
     </message>
     <message>
         <source>Save Transaction Data</source>
@@ -1948,7 +1948,7 @@
     </message>
     <message>
         <source>PSBT saved to disk.</source>
-        <translation type="unfinished">PSBT (osittain tallennettu bitcoin-siirto) tallennettiin levylle.</translation>
+        <translation type="unfinished">PSBT (osittain tallennettu Kronein-siirto) tallennettiin levylle.</translation>
     </message>
     <message>
         <source>Sends %1 to %2</source>
@@ -2037,8 +2037,8 @@ BIP70:n laajalle levinneiden tietoturva-aukkojen vuoksi on erittäin suositeltav
 Jos saat tämän virheen, pyydä kauppiasta antamaan BIP21-yhteensopiva URI.</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
-        <translation type="unfinished">URIa ei voitu jäsentää! Tämä voi johtua virheellisestä Bitcoin-osoitteesta tai väärin muotoilluista URI parametreista.</translation>
+        <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
+        <translation type="unfinished">URIa ei voitu jäsentää! Tämä voi johtua virheellisestä Kronein-osoitteesta tai väärin muotoilluista URI parametreista.</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -2191,8 +2191,8 @@ Jos saat tämän virheen, pyydä kauppiasta antamaan BIP21-yhteensopiva URI.</tr
         <translation type="unfinished">Paikalliset osoitteet</translation>
     </message>
     <message>
-        <source>Network addresses that your Bitcoin node is currently using to communicate with other nodes.</source>
-        <translation type="unfinished">Verkko-osoitteet, joita Bitcoin-solmusi käyttää tällä hetkellä kommunikoidakseen muiden solmujen kanssa.</translation>
+        <source>Network addresses that your Kronein node is currently using to communicate with other nodes.</source>
+        <translation type="unfinished">Verkko-osoitteet, joita Kronein-solmusi käyttää tällä hetkellä kommunikoidakseen muiden solmujen kanssa.</translation>
     </message>
     <message>
         <source>Block chain</source>
@@ -2627,8 +2627,8 @@ Lisätietoja konsolin käytöstä saat kirjoittamalla %6.
         <translation type="unfinished">&amp;Viesti:</translation>
     </message>
     <message>
-        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Bitcoin network.</source>
-        <translation type="unfinished">Valinnainen viesti liitetään maksupyyntöön ja näytetään avattaessa. Viestiä ei lähetetä Bitcoin-verkkoon.</translation>
+        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Kronein network.</source>
+        <translation type="unfinished">Valinnainen viesti liitetään maksupyyntöön ja näytetään avattaessa. Viestiä ei lähetetä Kronein-verkkoon.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -2905,8 +2905,8 @@ Huom: Koska maksu lasketaan per tavu, "100 satoshin per kB" maksunopeus 500 virt
 ) tapahtumakoolle johtaisi lopulta vain 50 satoshin maksuun.</translation>
     </message>
     <message>
-        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for bitcoin transactions than the network can process.</source>
-        <translation type="unfinished">Mikäli lohkoissa ei ole tilaa kaikille siirtotapahtumille, voi louhijat sekä välittävät solmut pakottaa vähimmäispalkkion. Tämän vähimmäispalkkion maksaminen on täysin OK, mutta huomaa, että se saattaa johtaa siihen, ettei siirto vahvistu koskaan, jos bitcoin-siirtoja on enemmän kuin mitä verkko pystyy käsittelemään.</translation>
+        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for Kronein transactions than the network can process.</source>
+        <translation type="unfinished">Mikäli lohkoissa ei ole tilaa kaikille siirtotapahtumille, voi louhijat sekä välittävät solmut pakottaa vähimmäispalkkion. Tämän vähimmäispalkkion maksaminen on täysin OK, mutta huomaa, että se saattaa johtaa siihen, ettei siirto vahvistu koskaan, jos Kronein-siirtoja on enemmän kuin mitä verkko pystyy käsittelemään.</translation>
     </message>
     <message>
         <source>A too low fee might result in a never confirming transaction (read the tooltip)</source>
@@ -3128,8 +3128,8 @@ Huom: Koska maksu lasketaan per tavu, "100 satoshin per kB" maksunopeus 500 virt
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
-        <translation type="unfinished">Varoitus: Virheellinen Bitcoin-osoite</translation>
+        <source>Warning: Invalid Kronein address</source>
+        <translation type="unfinished">Varoitus: Virheellinen Kronein-osoite</translation>
     </message>
     <message>
         <source>Warning: Unknown change address</source>
@@ -3167,8 +3167,8 @@ Huom: Koska maksu lasketaan per tavu, "100 satoshin per kB" maksunopeus 500 virt
         <translation type="unfinished">Valitse aikaisemmin käytetty osoite</translation>
     </message>
     <message>
-        <source>The Bitcoin address to send the payment to</source>
-        <translation type="unfinished">Bitcoin-osoite johon maksu lähetetään</translation>
+        <source>The Kronein address to send the payment to</source>
+        <translation type="unfinished">Kronein-osoite johon maksu lähetetään</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -3183,8 +3183,8 @@ Huom: Koska maksu lasketaan per tavu, "100 satoshin per kB" maksunopeus 500 virt
         <translation type="unfinished">Lähetettävä summa valitussa yksikössä</translation>
     </message>
     <message>
-        <source>The fee will be deducted from the amount being sent. The recipient will receive less bitcoins than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation type="unfinished">Kulu vähennetään lähetettävästä määrästä. Saaja vastaanottaa vähemmän bitcoineja kuin merkitset Määrä-kenttään. Jos saajia on monia, kulu jaetaan tasan.</translation>
+        <source>The fee will be deducted from the amount being sent. The recipient will receive less KNE than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
+        <translation type="unfinished">Kulu vähennetään lähetettävästä määrästä. Saaja vastaanottaa vähemmän Kroneineja kuin merkitset Määrä-kenttään. Jos saajia on monia, kulu jaetaan tasan.</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>
@@ -3203,8 +3203,8 @@ Huom: Koska maksu lasketaan per tavu, "100 satoshin per kB" maksunopeus 500 virt
         <translation type="unfinished">Aseta nimi tälle osoitteelle lisätäksesi sen käytettyjen osoitteiden listalle.</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Bitcoin network.</source>
-        <translation type="unfinished">Viesti joka liitettiin bitcoin: URI:iin tallennetaan rahansiirtoon viitteeksi. Tätä viestiä ei lähetetä Bitcoin-verkkoon.</translation>
+        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <translation type="unfinished">Viesti joka liitettiin bitcoin: URI:iin tallennetaan rahansiirtoon viitteeksi. Tätä viestiä ei lähetetä Kronein-verkkoon.</translation>
     </message>
 </context>
 <context>

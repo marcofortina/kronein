@@ -134,10 +134,10 @@
         <translation type="unfinished">錢包名稱不能為空白</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>%n active connection(s) to Bitcoin network.</numerusform>
+            <numerusform>%n active connection(s) to Kronein network.</numerusform>
         </translation>
     </message>
     <message>
@@ -275,7 +275,7 @@
         <translation type="unfinished">编辑付款地址</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
+        <source>The entered address "%1" is not a valid Kronein address.</source>
         <translation type="unfinished">输入的地址 %1 并不是有效的比特币地址。</translation>
     </message>
     <message>
@@ -335,7 +335,7 @@
         <translation type="unfinished">最大数据库缓存大小。确保您的系统有足够的RAM。较大的缓存可以帮助加快同步速度，但在大多数使用场景中，同步完成后其优势不再显著。减少缓存大小将降低内存使用。未使用的内存池内存将共享给此缓存。</translation>
     </message>
     <message>
-        <source>Automatically open the Bitcoin client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
+        <source>Automatically open the Kronein client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
         <translation type="unfinished">自动在路由器上打开比特币客户端端口。仅当您的路由器支持PCP或NAT-PMP并且已启用时才有效。外部端口可能是随机的。</translation>
     </message>
     <message>

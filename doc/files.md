@@ -1,4 +1,4 @@
-# Bitcoin Core file system
+# Kronein Core file system
 
 **Contents**
 
@@ -18,7 +18,7 @@
 
 ## Data directory location
 
-The data directory is the default location where the Bitcoin Core files are stored.
+The data directory is the default location where the Kronein Core files are stored.
 
 1. The default data directory paths for supported platforms are:
 
@@ -45,7 +45,7 @@ Subdirectory       | File(s)               | Description
 -------------------|-----------------------|------------
 `blocks/`          |                       | Blocks directory; can be specified by `-blocksdir` option (except for `blocks/index/`)
 `blocks/index/`    | LevelDB database      | Block index; `-blocksdir` option does not affect this path
-`blocks/`          | `blkNNNNN.dat`<sup>[\[2\]](#note2)</sup> | Actual Bitcoin blocks (dumped in network format, 128 MiB per file)
+`blocks/`          | `blkNNNNN.dat`<sup>[\[2\]](#note2)</sup> | Actual Kronein blocks (dumped in network format, 128 MiB per file)
 `blocks/`          | `revNNNNN.dat`<sup>[\[2\]](#note2)</sup> | Block undo data (custom format)
 `blocks/`          | `xor.dat`             | Rolling XOR pattern for block and undo data files
 `chainstate/`      | LevelDB database      | Blockchain state (a compact representation of all currently unspent transaction outputs (UTXOs) and metadata about the transactions they are from)
@@ -105,7 +105,7 @@ Subdirectory | File                 | Description
 
 ## Installed Files
 
-This table describes the files installed by Bitcoin Core across different platforms.
+This table describes the files installed by Kronein Core across different platforms.
 
 | **Path**                                                   | **Description**                                                             |
 |------------------------------------------------------------|-----------------------------------------------------------------------------|
@@ -113,11 +113,11 @@ This table describes the files installed by Bitcoin Core across different platfo
 | bitcoin.conf                                               | [Generated](../contrib/devtools/gen-bitcoin-conf.sh) configuration file     |
 | bin/bitcoin                                                | Command-line tool for interacting with Bitcoin. Calls other binaries below. |
 | bin/bitcoin-cli                                            | Tool for making node and wallet RPC calls.                                  |
-| bin/bitcoin-qt                                             | Bitcoin node and wallet GUI                                                 |
+| bin/bitcoin-qt                                             | Kronein node and wallet GUI                                                 |
 | bin/bitcoin-tx                                             | Tool for creating and modifying transactions                                |
 | bin/bitcoin-util                                           | Miscellaneous utilities                                                     |
-| bin/bitcoin-wallet                                         | Bitcoin wallet tool                                                         |
-| bin/bitcoind                                               | Bitcoin node and wallet daemon                                              |
+| bin/bitcoin-wallet                                         | Kronein wallet tool                                                         |
+| bin/bitcoind                                               | Kronein node and wallet daemon                                              |
 | *lib/libbitcoinkernel.so*                                  | Shared library containing core consensus and validation code                |
 | *lib/pkgconfig/libbitcoinkernel.pc*                        | Pkg-config metadata for linking to `libbitcoinkernel`                       |
 | *libexec/bench_bitcoin*                                    | Benchmarking tool for measuring node performance                            |
@@ -138,4 +138,4 @@ This table describes the files installed by Bitcoin Core across different platfo
 ## Filesystem recommendations
 
 When choosing a filesystem for the data directory (`datadir`) or blocks directory (`blocksdir`) on **macOS**,the `exFAT` filesystem should be avoided.
-There have been multiple reports of database corruption and data loss when using this filesystem with Bitcoin Core, see [Issue #31454](https://github.com/bitcoin/bitcoin/issues/31454) for more details.
+There have been multiple reports of database corruption and data loss when using this filesystem with Kronein Core, see [Issue #31454](https://github.com/bitcoin/bitcoin/issues/31454) for more details.

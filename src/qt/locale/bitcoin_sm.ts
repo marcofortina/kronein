@@ -54,8 +54,8 @@
         <translation type="unfinished">fi&amp;lifili</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">O nei o au tuatusi Bitcoin mo le auina atu o totogi. Ia e siaki pea le aofa'i ma le tuatusi e talia ai tupe a'o le'i lafoina atu tupe.</translation>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation type="unfinished">O nei o au tuatusi Kronein mo le auina atu o totogi. Ia e siaki pea le aofa'i ma le tuatusi e talia ai tupe a'o le'i lafoina atu tupe.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -154,8 +154,8 @@
         <translation type="unfinished">Tautuaina le faʻamaufaʻailoa o le 'wallet'</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
-        <translation type="unfinished">Fa'amaoniga: Afai e te fa'amaonia lau 'aofa'i ma le leiloa o lau fa'amaoniga, o le a &lt;b&gt;Losi uma au Bitcoinsi&lt;/b&gt;!</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
+        <translation type="unfinished">Fa'amaoniga: Afai e te fa'amaonia lau 'aofa'i ma le leiloa o lau fa'amaoniga, o le a &lt;b&gt;Losi uma au Kroneini&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -182,8 +182,8 @@
         <translation type="unfinished">I tua</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Manatua o le fa'amaonia o lau atigipusa e le mafai ona puipuia lelei lau bitcoins mai le fa'ama'i o malware o lo'o fa'ama'i i lau komepiuta.</translation>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
+        <translation type="unfinished">Manatua o le fa'amaonia o lau atigipusa e le mafai ona puipuia lelei lau KNE mai le fa'ama'i o malware o lo'o fa'ama'i i lau komepiuta.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -421,8 +421,8 @@
         <translation type="unfinished">O le tagata fa'amaonia o &lt;b&gt;fa'atufugaga&lt;/b&gt;: %1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation type="unfinished">Fa'amaimau fa'amaoniga i se tuatusi Bitcoin</translation>
+        <source>Send coins to a Kronein address</source>
+        <translation type="unfinished">Fa'amaimau fa'amaoniga i se tuatusi Kronein</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -631,8 +631,8 @@
         <translation type="unfinished">Tapuni uma pusa o le tagata</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
-        <translation type="unfinished">Fa'aalia le %1 fe'au fesoasoani e maua ai se lisi ma avanoa o pologa laina fa'atonu Bitcoin</translation>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
+        <translation type="unfinished">Fa'aalia le %1 fe'au fesoasoani e maua ai se lisi ma avanoa o pologa laina fa'atonu Kronein</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -691,10 +691,10 @@
         <translation type="unfinished">Fa'&amp;aali</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>%n fesoʻotaʻiga fa'amaonia i le upega tafa'ilagi o Bitcoin.</numerusform>
+            <numerusform>%n fesoʻotaʻiga fa'amaonia i le upega tafa'ilagi o Kronein.</numerusform>
             <numerusform />
             <numerusform />
         </translation>
@@ -1149,8 +1149,8 @@
         <translation type="unfinished">Fa'amaonia le tu'uina o le tuatusi</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
-        <translation type="unfinished">O le "adresi" na tuʻufaʻatasia "%1" e le o se adresi Bitcoin talafeagai.</translation>
+        <source>The entered address "%1" is not a valid Kronein address.</source>
+        <translation type="unfinished">O le "adresi" na tuʻufaʻatasia "%1" e le o se adresi Kronein talafeagai.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1306,8 +1306,8 @@
         </translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Bitcoin block chain.</source>
-        <translation type="unfinished">O le %1 o le a tusia ma teuina se kopi o le Bitcoin block chain.</translation>
+        <source>%1 will download and store a copy of the Kronein block chain.</source>
+        <translation type="unfinished">O le %1 o le a tusia ma teuina se kopi o le Kronein block chain.</translation>
     </message>
     <message>
         <source>The wallet will also be stored in this directory.</source>
@@ -1329,12 +1329,12 @@
         <translation type="unfinished">Fomu</translation>
     </message>
     <message>
-        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the bitcoin network, as detailed below.</source>
-        <translation type="unfinished">E mafai e fefaʻatauaiga lata mai ona le mafai ona vaʻaia, ma o le mea lea, atonu e le tusa ai le tamaʻi palani o lau 'wallet'. O lenei fa'amaoniga o le a sa'o pe a mae'a ona fa'atufugaga lau 'wallet' ma le upega tafaʻilagi o le bitcoin, e pei o fa'amaoniga i lalo.</translation>
+        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
+        <translation type="unfinished">E mafai e fefaʻatauaiga lata mai ona le mafai ona vaʻaia, ma o le mea lea, atonu e le tusa ai le tamaʻi palani o lau 'wallet'. O lenei fa'amaoniga o le a sa'o pe a mae'a ona fa'atufugaga lau 'wallet' ma le upega tafaʻilagi o le Kronein, e pei o fa'amaoniga i lalo.</translation>
     </message>
     <message>
-        <source>Attempting to spend bitcoins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation type="unfinished">O le taumafaiga e fa'aaoga bitcoins e a'afia i le fa'amaoniga e le'i fa'aalia o le a le taliaina e le upega.</translation>
+        <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <translation type="unfinished">O le taumafaiga e fa'aaoga KNE e a'afia i le fa'amaoniga e le'i fa'aalia o le a le taliaina e le upega.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1555,8 +1555,8 @@
         <translation type="unfinished">Fa'amaonia feso'ota'i&amp;ga o lo'o sau</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">Sii i luga i le upega tafaʻilagi o Bitcoin i le ala o le SOCKS5 proxy.</translation>
+        <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
+        <translation type="unfinished">Sii i luga i le upega tafaʻilagi o Kronein i le ala o le SOCKS5 proxy.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1635,8 +1635,8 @@
         <translation type="unfinished">Faʻavae i luga pe faʻaalia pe le faʻaalia le faʻagaioiga o le pulea o koina.</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation type="unfinished">Sopọ i le netiweke Bitcoin i se faʻaogaina SOCKS5 ese mo auaunaga Tor onion.</translation>
+        <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
+        <translation type="unfinished">Sopọ i le netiweke Kronein i se faʻaogaina SOCKS5 ese mo auaunaga Tor onion.</translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
@@ -1728,8 +1728,8 @@
         <translation type="unfinished">Fomu</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Bitcoin network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">O faʻamatalaga o loʻo faʻaalia atonu e le o toe faʻafouina. E otometi lava ona faʻatulagaina lau ʻato tupe i le upega Bitcoin pe a maeʻa ona fesoʻotaʻi, ae e leʻi maeʻa lenei faiga.</translation>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
+        <translation type="unfinished">O faʻamatalaga o loʻo faʻaalia atonu e le o toe faʻafouina. E otometi lava ona faʻatulagaina lau ʻato tupe i le upega Kronein pe a maeʻa ona fesoʻotaʻi, ae e leʻi maeʻa lenei faiga.</translation>
     </message>
     <message>
         <source>Available:</source>

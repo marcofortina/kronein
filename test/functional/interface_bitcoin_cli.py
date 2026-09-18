@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2017-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test bitcoin-cli"""
@@ -247,7 +248,7 @@ class TestBitcoinCli(BitcoinTestFramework):
             wallet_info = self.nodes[0].getwalletinfo()
             assert_equal(int(cli_get_info['Keypool size']), wallet_info['keypoolsize'])
             assert_equal(int(cli_get_info['Unlocked until']), wallet_info['unlocked_until'])
-            assert_equal(Decimal(cli_get_info['Min tx relay fee rate (BTC/kvB)']), self.nodes[0].getmempoolinfo()['minrelaytxfee'])
+            assert_equal(Decimal(cli_get_info['Min tx relay fee rate (KNE/kvB)']), self.nodes[0].getmempoolinfo()['minrelaytxfee'])
             assert_equal(self.nodes[0].cli.getwalletinfo(), wallet_info)
 
             # Setup to test -getinfo, -generate, and -rpcwallet= with multiple wallets.

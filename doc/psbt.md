@@ -1,4 +1,4 @@
-# PSBT Howto for Bitcoin Core
+# PSBT Howto for Kronein Core
 
 The RPC interface uses Partially Signed Bitcoin Transactions (PSBTs). This
 codebase supports only PSBT version 2, as specified in
@@ -12,7 +12,7 @@ scenarios.
 
 ## PSBT in general
 
-PSBT is an interchange format for Bitcoin transactions that are not fully signed
+PSBT is an interchange format for Kronein transactions that are not fully signed
 yet, together with relevant metadata to help entities work towards signing it.
 It is intended to simplify workflows where multiple parties need to cooperate to
 produce a transaction. Examples include hardware wallets, multisig setups, and
@@ -20,7 +20,7 @@ produce a transaction. Examples include hardware wallets, multisig setups, and
 
 ### Overall workflow
 
-Overall, the construction of a fully signed Bitcoin transaction goes through the
+Overall, the construction of a fully signed Kronein transaction goes through the
 following steps:
 
 - A **Creator** proposes a particular transaction to be created. They construct
@@ -34,7 +34,7 @@ following steps:
   partial signature for the inputs for which they have relevant key(s).
 - A **Finalizer** is run for each input to convert the partial signatures and
   possibly script information into a final witness.
-- An **Extractor** produces a valid Bitcoin transaction (in network format)
+- An **Extractor** produces a valid Kronein transaction (in network format)
   from a PSBT for which all inputs are finalized.
 
 Generally, each of the above (excluding Creator and Extractor) will simply
@@ -48,7 +48,7 @@ The names above in bold are the names of the roles defined in BIP174. They're
 useful in understanding the underlying steps, but in practice, software and
 hardware implementations will typically implement multiple roles simultaneously.
 
-## PSBT in Bitcoin Core
+## PSBT in Kronein Core
 
 ### RPCs
 
@@ -96,6 +96,6 @@ hardware implementations will typically implement multiple roles simultaneously.
 
 ### Workflows
 
-#### Multisig with multiple Bitcoin Core instances
+#### Multisig with multiple Kronein Core instances
 
 For a quick start see [Basic M-of-N multisig example using descriptor wallets and PSBTs](./descriptors.md#basic-multisig-example).

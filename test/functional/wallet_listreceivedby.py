@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the listreceivedbyaddress, listreceivedbylabel, getreceivedybaddress, and getreceivedbylabel RPCs."""
@@ -133,7 +134,7 @@ class ReceivedByTest(BitcoinTestFramework):
         assert_equal(balance, Decimal("0.3"))
 
         # Test invalid address format error
-        assert_raises_rpc_error(-5, "Invalid Bitcoin address", self.nodes[1].getreceivedbyaddress, "invalid_address")
+        assert_raises_rpc_error(-5, "Invalid Kronein address", self.nodes[1].getreceivedbyaddress, "invalid_address")
 
         self.log.info("listreceivedbylabel + getreceivedbylabel Test")
 

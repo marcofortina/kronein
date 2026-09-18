@@ -58,7 +58,7 @@
         <translation type="unfinished">&amp;Выбрать</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
         <translation type="unfinished">Это ваши биткоин-адреса для отправки платежей. Всегда проверяйте сумму и адрес получателя перед отправкой перевода.</translation>
     </message>
     <message>
@@ -158,7 +158,7 @@
         <translation type="unfinished">Подтвердите шифрование кошелька</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
         <translation type="unfinished">Предупреждение: Если вы зашифруете кошелёк и потеряете пароль, вы &lt;b&gt;ПОТЕРЯЕТЕ ВСЕ ВАШИ БИТКОЙНЫ&lt;/b&gt;!</translation>
     </message>
     <message>
@@ -186,7 +186,7 @@
         <translation type="unfinished">Назад</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
         <translation type="unfinished">Помните, что шифрование кошелька не может полностью защитить ваши биткоины от кражи вредоносным ПО, заразившим ваш компьютер.</translation>
     </message>
     <message>
@@ -479,7 +479,7 @@
         <translation type="unfinished">Прокси &lt;b&gt;включён&lt;/b&gt;: %1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
+        <source>Send coins to a Kronein address</source>
         <translation type="unfinished">Отправить средства на Биткоин адрес</translation>
     </message>
     <message>
@@ -689,7 +689,7 @@
         <translation type="unfinished">Закрыть все кошельки</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
         <translation type="unfinished">Показать справку %1 со списком доступных параметров командной строки</translation>
     </message>
     <message>
@@ -757,12 +757,12 @@
         <translation type="unfinished">&amp;Показать</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>%n активное подключение к сети Bitcoin.</numerusform>
-            <numerusform>%n активных подключения к сети Bitcoin.</numerusform>
-            <numerusform>%n активных подключений к сети Bitcoin.</numerusform>
+            <numerusform>%n активное подключение к сети Kronein.</numerusform>
+            <numerusform>%n активных подключения к сети Kronein.</numerusform>
+            <numerusform>%n активных подключений к сети Kronein.</numerusform>
         </translation>
     </message>
     <message>
@@ -1200,7 +1200,7 @@
         <translation type="unfinished">Изменить адрес отправки</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
+        <source>The entered address "%1" is not a valid Kronein address.</source>
         <translation type="unfinished">Введенный адрес "%1" недействителен в сети Биткоин.</translation>
     </message>
     <message>
@@ -1357,8 +1357,8 @@
         </translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Bitcoin block chain.</source>
-        <translation type="unfinished">%1 скачает и сохранит копию цепочки блоков Bitcoin.</translation>
+        <source>%1 will download and store a copy of the Kronein block chain.</source>
+        <translation type="unfinished">%1 скачает и сохранит копию цепочки блоков Kronein.</translation>
     </message>
     <message>
         <source>The wallet will also be stored in this directory.</source>
@@ -1372,11 +1372,11 @@
 <context>
     <name>ModalOverlay</name>
     <message>
-        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the bitcoin network, as detailed below.</source>
+        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
         <translation type="unfinished">Недавние транзакции могут быть пока не видны, и поэтому отображаемый баланс вашего кошелька может быть неточной. Информация станет точной после завершения синхронизации с сетью биткоина. Прогресс синхронизации вы можете видеть снизу.</translation>
     </message>
     <message>
-        <source>Attempting to spend bitcoins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
         <translation type="unfinished">Попытка потратить средства, использованные в транзакциях, которые ещё не синхронизированы, будет отклонена сетью.</translation>
     </message>
     <message>
@@ -1589,8 +1589,8 @@
         <translation type="unfinished">Разрешить &amp;входящие соединения</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">Подключиться к сети Bitcoin через SOCKS5 прокси.</translation>
+        <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
+        <translation type="unfinished">Подключиться к сети Kronein через SOCKS5 прокси.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1669,8 +1669,8 @@
         <translation type="unfinished">Показывать параметры управления монетами.</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation type="unfinished">Подключаться к сети Bitcoin через отдельный SOCKS5 прокси для скрытых сервисов Tor.</translation>
+        <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
+        <translation type="unfinished">Подключаться к сети Kronein через отдельный SOCKS5 прокси для скрытых сервисов Tor.</translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
@@ -1757,8 +1757,8 @@
 <context>
     <name>OverviewPage</name>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Bitcoin network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">Отображаемая информация может быть устаревшей. Ваш кошелёк автоматически синхронизируется с сетью Bitcoin после подключения, и этот процесс пока не завершён.</translation>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
+        <translation type="unfinished">Отображаемая информация может быть устаревшей. Ваш кошелёк автоматически синхронизируется с сетью Kronein после подключения, и этот процесс пока не завершён.</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -1865,8 +1865,8 @@
         <translation type="unfinished">Локальные Адреса</translation>
     </message>
     <message>
-        <source>Network addresses that your Bitcoin node is currently using to communicate with other nodes.</source>
-        <translation type="unfinished">Сетевые адреса, которые ваш Bitcoin-узел использует сейчас для связи с другими узлами.</translation>
+        <source>Network addresses that your Kronein node is currently using to communicate with other nodes.</source>
+        <translation type="unfinished">Сетевые адреса, которые ваш Kronein-узел использует сейчас для связи с другими узлами.</translation>
     </message>
     <message>
         <source>Sent</source>

@@ -58,8 +58,8 @@
         <translation type="unfinished">W&amp;ybierz</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">To są twoje adresy Bitcoin do wysyłania płatności. Zawsze sprawdzaj kwotę oraz adres odbiorczy przed wysłaniem monet.</translation>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation type="unfinished">To są twoje adresy Kronein do wysyłania płatności. Zawsze sprawdzaj kwotę oraz adres odbiorczy przed wysłaniem monet.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -154,8 +154,8 @@
         <translation type="unfinished">Potwierdź szyfrowanie portfela</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
-        <translation type="unfinished">Uwaga: Jeśli zaszyfrujesz swój portfel i zgubisz swoje hasło, &lt;b&gt;STRACISZ WSZYSTKIE SWOJE BITCOINY&lt;/b&gt;!</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
+        <translation type="unfinished">Uwaga: Jeśli zaszyfrujesz swój portfel i zgubisz swoje hasło, &lt;b&gt;STRACISZ WSZYSTKIE SWOJE KNEY&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -182,8 +182,8 @@
         <translation type="unfinished">Wstecz</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Pamiętaj, że zaszyfrowanie portfela nie pomoże w zapobiegnięciu kradzieży twoich bitcoinów jeśli komputer zostanie zainfekowany przez złośliwe oprogramowanie.</translation>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
+        <translation type="unfinished">Pamiętaj, że zaszyfrowanie portfela nie pomoże w zapobiegnięciu kradzieży twoich Kroneinów jeśli komputer zostanie zainfekowany przez złośliwe oprogramowanie.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -309,8 +309,8 @@
         <translation type="unfinished">Kwota</translation>
     </message>
     <message>
-        <source>Enter a Bitcoin address (e.g. %1)</source>
-        <translation type="unfinished">Wprowadź adres bitcoinowy (np. %1)</translation>
+        <source>Enter a Kronein address (e.g. %1)</source>
+        <translation type="unfinished">Wprowadź adres Kroneinowy (np. %1)</translation>
     </message>
     <message>
         <source>Unroutable</source>
@@ -489,8 +489,8 @@
         <translation type="unfinished">Proxy jest &lt;b&gt;włączone&lt;/b&gt;: %1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation type="unfinished">Wyślij monety na adres Bitcoin</translation>
+        <source>Send coins to a Kronein address</source>
+        <translation type="unfinished">Wyślij monety na adres Kronein</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -699,7 +699,7 @@
         <translation type="unfinished">Zamknij wszystkie portfele</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
         <translation type="unfinished">Pokaż pomoc dla %1 aby zobaczyć listę możliwych opcji wiersza poleceń</translation>
     </message>
     <message>
@@ -767,12 +767,12 @@
         <translation type="unfinished">&amp;Wyświetl</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>%n aktywne połączenie z siecią Bitcoin.</numerusform>
-            <numerusform>%n aktywne połączenia z siecią Bitcoin.</numerusform>
-            <numerusform>%n aktywnych połączeń z siecią Bitcoin.</numerusform>
+            <numerusform>%n aktywne połączenie z siecią Kronein.</numerusform>
+            <numerusform>%n aktywne połączenia z siecią Kronein.</numerusform>
+            <numerusform>%n aktywnych połączeń z siecią Kronein.</numerusform>
         </translation>
     </message>
     <message>
@@ -1235,8 +1235,8 @@
         <translation type="unfinished">Zmień adres wysyłania</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
-        <translation type="unfinished">Wprowadzony adres "%1" nie jest prawidłowym adresem Bitcoin.</translation>
+        <source>The entered address "%1" is not a valid Kronein address.</source>
+        <translation type="unfinished">Wprowadzony adres "%1" nie jest prawidłowym adresem Kronein.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1392,8 +1392,8 @@
         </translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Bitcoin block chain.</source>
-        <translation type="unfinished">%1 pobierze i przechowa kopię łańcucha bloków Bitcoina.</translation>
+        <source>%1 will download and store a copy of the Kronein block chain.</source>
+        <translation type="unfinished">%1 pobierze i przechowa kopię łańcucha bloków Kroneina.</translation>
     </message>
     <message>
         <source>The wallet will also be stored in this directory.</source>
@@ -1415,12 +1415,12 @@
         <translation type="unfinished">Formularz</translation>
     </message>
     <message>
-        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the bitcoin network, as detailed below.</source>
-        <translation type="unfinished">Najnowsze transakcje mogą jeszcze nie być widoczne, dlatego saldo twojego portfela może być nieprawidłowe. Informacje te będą poprawne, gdy twój portfel zakończy synchronizację z siecią bitcoin, jak opisano poniżej.</translation>
+        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
+        <translation type="unfinished">Najnowsze transakcje mogą jeszcze nie być widoczne, dlatego saldo twojego portfela może być nieprawidłowe. Informacje te będą poprawne, gdy twój portfel zakończy synchronizację z siecią Kronein, jak opisano poniżej.</translation>
     </message>
     <message>
-        <source>Attempting to spend bitcoins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation type="unfinished">Próba wydania bitcoinów które nie są jeszcze wyświetlone jako transakcja zostanie odrzucona przez sieć.</translation>
+        <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <translation type="unfinished">Próba wydania Kroneinów które nie są jeszcze wyświetlone jako transakcja zostanie odrzucona przez sieć.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1519,8 +1519,8 @@
         <translation type="unfinished">Pełna ścieżka do skryptu zgodnego z %1 (np. C:\Downloads\hwi.exe lub /Users/ty/Downloads/hwi.py). Uwaga: złośliwe oprogramowanie może ukraść Twoje monety!</translation>
     </message>
     <message>
-        <source>Automatically open the Bitcoin client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
-        <translation type="unfinished">Automatycznie przekieruj porty dla klienta Bitcoin na routerze. Ta opcja działa tylko i wyłącznie, jeżeli twój router wspiera PCP lub NAT-PMP oraz jest ono włączone. Zewnętrzny port może być losowy.</translation>
+        <source>Automatically open the Kronein client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
+        <translation type="unfinished">Automatycznie przekieruj porty dla klienta Kronein na routerze. Ta opcja działa tylko i wyłącznie, jeżeli twój router wspiera PCP lub NAT-PMP oraz jest ono włączone. Zewnętrzny port może być losowy.</translation>
     </message>
     <message>
         <source>Map port using PCP or NA&amp;T-PMP</source>
@@ -1650,8 +1650,8 @@
         <translation type="unfinished">Zezwól na &amp;połączenia przychodzące</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">Połącz się z siecią Bitcoin poprzez proxy SOCKS5.</translation>
+        <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
+        <translation type="unfinished">Połącz się z siecią Kronein poprzez proxy SOCKS5.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1726,8 +1726,8 @@
         <translation type="unfinished">Czy wyświetlać funkcje kontroli monet, czy nie.</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation type="unfinished">Połącz się z siecią Bitcoin przy pomocy oddzielnego SOCKS5 proxy dla sieci TOR.</translation>
+        <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
+        <translation type="unfinished">Połącz się z siecią Kronein przy pomocy oddzielnego SOCKS5 proxy dla sieci TOR.</translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
@@ -1819,8 +1819,8 @@
         <translation type="unfinished">Formularz</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Bitcoin network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">Wyświetlana informacja może być nieaktualna. Twój portfel synchronizuje się automatycznie z siecią bitcoin, zaraz po tym jak uzyskano połączenie, ale proces ten nie został jeszcze ukończony.</translation>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
+        <translation type="unfinished">Wyświetlana informacja może być nieaktualna. Twój portfel synchronizuje się automatycznie z siecią Kronein, zaraz po tym jak uzyskano połączenie, ale proces ten nie został jeszcze ukończony.</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -2034,8 +2034,8 @@ Ze względu na powszechne luki bezpieczeństwa w BIP70, zdecydowanie zaleca się
 Jeśli otrzymujesz ten błąd, poproś sprzedawcę o udostępnienie URI zgodnego z BIP21.</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
-        <translation type="unfinished">Nie można zinterpretować identyfikatora URI! Może to być spowodowane nieprawidłowym adresem Bitcoin lub niepoprawnymi parametrami URI.</translation>
+        <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
+        <translation type="unfinished">Nie można zinterpretować identyfikatora URI! Może to być spowodowane nieprawidłowym adresem Kronein lub niepoprawnymi parametrami URI.</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -2187,8 +2187,8 @@ Jeśli otrzymujesz ten błąd, poproś sprzedawcę o udostępnienie URI zgodnego
         <translation type="unfinished">Lokalne adresy</translation>
     </message>
     <message>
-        <source>Network addresses that your Bitcoin node is currently using to communicate with other nodes.</source>
-        <translation type="unfinished">Adresy sieciowe wykorzystywane przez twój węzeł Bitcoin do komunikowania się z pozostałymi węzłami.</translation>
+        <source>Network addresses that your Kronein node is currently using to communicate with other nodes.</source>
+        <translation type="unfinished">Adresy sieciowe wykorzystywane przez twój węzeł Kronein do komunikowania się z pozostałymi węzłami.</translation>
     </message>
     <message>
         <source>Block chain</source>
@@ -2625,8 +2625,8 @@ Aby uzyskać więcej informacji na temat używania tej konsoli wpisz %6.
         <translation type="unfinished">&amp;Wiadomość:</translation>
     </message>
     <message>
-        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Bitcoin network.</source>
-        <translation type="unfinished">Opcjonalna wiadomość do dołączenia do żądania płatności, która będzie wyświetlana, gdy żądanie zostanie otwarte. Uwaga: wiadomość ta nie zostanie wysłana wraz z płatnością w sieci Bitcoin.</translation>
+        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Kronein network.</source>
+        <translation type="unfinished">Opcjonalna wiadomość do dołączenia do żądania płatności, która będzie wyświetlana, gdy żądanie zostanie otwarte. Uwaga: wiadomość ta nie zostanie wysłana wraz z płatnością w sieci Kronein.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -2902,7 +2902,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
 Uwaga: Ponieważ opłata jest naliczana za każdy bajt, opłata "100 satoshi za kvB" w przypadku transakcji o wielkości 500 bajtów (połowa 1 kvB) ostatecznie da opłatę w wysokości tylko 50 satoshi.</translation>
     </message>
     <message>
-        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for bitcoin transactions than the network can process.</source>
+        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for Kronein transactions than the network can process.</source>
         <translation type="unfinished">Gdy ilość transakcji jest mniejsza niż ilość miejsca w bloku, górnicy i węzły przekazujące wymagają minimalnej opłaty. Zapłata tylko tej wartości jest dopuszczalna, lecz może skutkować transakcją która nigdy nie zostanie potwierdzona w sytuacji, gdy ilość transakcji przekroczy przepustowość sieci.</translation>
     </message>
     <message>
@@ -3130,8 +3130,8 @@ Uwaga: Ponieważ opłata jest naliczana za każdy bajt, opłata "100 satoshi za 
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
-        <translation type="unfinished">Ostrzeżenie: nieprawidłowy adres Bitcoin</translation>
+        <source>Warning: Invalid Kronein address</source>
+        <translation type="unfinished">Ostrzeżenie: nieprawidłowy adres Kronein</translation>
     </message>
     <message>
         <source>Warning: Unknown change address</source>
@@ -3169,8 +3169,8 @@ Uwaga: Ponieważ opłata jest naliczana za każdy bajt, opłata "100 satoshi za 
         <translation type="unfinished">Wybierz wcześniej użyty adres</translation>
     </message>
     <message>
-        <source>The Bitcoin address to send the payment to</source>
-        <translation type="unfinished">Adres Bitcoin gdzie wysłać płatność</translation>
+        <source>The Kronein address to send the payment to</source>
+        <translation type="unfinished">Adres Kronein gdzie wysłać płatność</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -3185,8 +3185,8 @@ Uwaga: Ponieważ opłata jest naliczana za każdy bajt, opłata "100 satoshi za 
         <translation type="unfinished">Kwota do wysłania w wybranej jednostce</translation>
     </message>
     <message>
-        <source>The fee will be deducted from the amount being sent. The recipient will receive less bitcoins than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation type="unfinished">Opłata zostanie odjęta od kwoty wysyłanej. Odbiorca otrzyma mniej bitcoinów, niż wpiszesz w polu kwoty. Jeśli wybrano wielu odbiorców, opłata zostanie podzielona równo.</translation>
+        <source>The fee will be deducted from the amount being sent. The recipient will receive less KNE than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
+        <translation type="unfinished">Opłata zostanie odjęta od kwoty wysyłanej. Odbiorca otrzyma mniej Kroneinów, niż wpiszesz w polu kwoty. Jeśli wybrano wielu odbiorców, opłata zostanie podzielona równo.</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>
@@ -3205,8 +3205,8 @@ Uwaga: Ponieważ opłata jest naliczana za każdy bajt, opłata "100 satoshi za 
         <translation type="unfinished">Wprowadź etykietę dla tego adresu by dodać go do listy użytych adresów</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Bitcoin network.</source>
-        <translation type="unfinished">Wiadomość, która została dołączona do URI bitcoin:, która będzie przechowywana wraz z transakcją w celach informacyjnych. Uwaga: Ta wiadomość nie będzie rozsyłana w sieci Bitcoin.</translation>
+        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <translation type="unfinished">Wiadomość, która została dołączona do URI bitcoin:, która będzie przechowywana wraz z transakcją w celach informacyjnych. Uwaga: Ta wiadomość nie będzie rozsyłana w sieci Kronein.</translation>
     </message>
 </context>
 <context>

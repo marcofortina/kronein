@@ -1,4 +1,4 @@
-This directory contains the source code for the Bitcoin Core graphical user interface (GUI). It uses the [Qt](https://www1.qt.io/developers/) cross-platform framework.
+This directory contains the source code for the Kronein Core graphical user interface (GUI). It uses the [Qt](https://www1.qt.io/developers/) cross-platform framework.
 
 The current precise version for Qt is specified in [qt_details.mk](/depends/packages/qt_details.mk).
 
@@ -61,7 +61,7 @@ To run:
 
 * UI elements like BitcoinAmountField, which inherit from QWidget.
 * `bitcoinstrings.cpp`: automatically generated
-* `bitcoinunits.(h/cpp)`: BTC / mBTC / etc. handling
+* `bitcoinunits.(h/cpp)`: KNE / mKNE / etc. handling
 * `callback.h`
 * `guiconstants.h`: UI colors, app name, etc.
 * `guiutil.h`: several helper functions
@@ -121,4 +121,4 @@ sudo apt-get install qtcreator
 
 8. While in the `Projects` tab, ensure that you have the `bitcoin-qt` executable specified under `Run`
  - If the executable is not specified: click `"Choose..."`, navigate to `build/bin`, and select `bitcoin-qt`
-9. You're all set! Start developing, building, and debugging the Bitcoin Core GUI
+9. You're all set! Start developing, building, and debugging the Kronein Core GUI

@@ -54,8 +54,8 @@
         <translation type="unfinished">เลือก</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">นี่คือลิงก์ที่อยู่ Bitcoin ของคุณสำหรับการส่งการชำระเงิน ควรตรวจสอบจำนวนเงินและที่อยู่ผู้รับก่อนการส่งเหรียญ</translation>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation type="unfinished">นี่คือลิงก์ที่อยู่ Kronein ของคุณสำหรับการส่งการชำระเงิน ควรตรวจสอบจำนวนเงินและที่อยู่ผู้รับก่อนการส่งเหรียญ</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -154,7 +154,7 @@
         <translation type="unfinished">ยืนยันการเข้ารหัสกระเป๋าเงิน</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
         <translation type="unfinished">คำเตือน: หากคุณเข้ารหัสกระเป๋าของคุณและสูญเสียรหัสผ่านของคุณ คุณจะสูญเสียบิตคอยน์ทั้งหมดของคุณ!</translation>
     </message>
     <message>
@@ -182,7 +182,7 @@
         <translation type="unfinished">กลับ</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
         <translation type="unfinished">จำไว้ว่าการเข้ารหัสกระเป๋าของคุณไม่สามารถปกป้องบิตคอยน์ของคุณจากการถูกขโมยโดยมัลแวร์ที่ติดเชื้อคอมพิวเตอร์ของคุณได้อย่างสมบูรณ์</translation>
     </message>
     <message>
@@ -309,8 +309,8 @@
         <translation type="unfinished">จำนวน:</translation>
     </message>
     <message>
-        <source>Enter a Bitcoin address (e.g. %1)</source>
-        <translation type="unfinished">กรอกที่อยู่ Bitcoin (เช่น %1)</translation>
+        <source>Enter a Kronein address (e.g. %1)</source>
+        <translation type="unfinished">กรอกที่อยู่ Kronein (เช่น %1)</translation>
     </message>
     <message>
         <source>Ctrl+W</source>
@@ -533,7 +533,7 @@
         <translation type="unfinished">เปิดใช้พร็อกซี: %1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
+        <source>Send coins to a Kronein address</source>
         <translation type="unfinished">ส่งเหรียญไปยังที่อยู่บิตคอยน์</translation>
     </message>
     <message>
@@ -630,11 +630,11 @@
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
-        <translation type="unfinished">แสดงรายการ ที่เก็บเงินที่จะส่ง bitcoin ออก และป้ายชื่อ ที่ใช้ไปแล้ว</translation>
+        <translation type="unfinished">แสดงรายการ ที่เก็บเงินที่จะส่ง Kronein ออก และป้ายชื่อ ที่ใช้ไปแล้ว</translation>
     </message>
     <message>
         <source>Show the list of used receiving addresses and labels</source>
-        <translation type="unfinished">แสดงรายการ ที่เก็บเงินที่จะรับ bitcoin เข้า และป้ายชื่อ ที่ใช้ไปแล้ว</translation>
+        <translation type="unfinished">แสดงรายการ ที่เก็บเงินที่จะรับ Kronein เข้า และป้ายชื่อ ที่ใช้ไปแล้ว</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>
@@ -733,7 +733,7 @@
         <translation type="unfinished">ปิดกระเป๋าทั้งหมด</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
         <translation type="unfinished">แสดงข้อความช่วยเหลือ %1 เพื่อดูรายการตัวเลือกคำสั่งบิตคอยน์ที่เป็นไปได้</translation>
     </message>
     <message>
@@ -783,7 +783,7 @@
         <translation type="unfinished">แสดง</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
             <numerusform>การเชื่อมต่อที่ใช้งานอยู่ %n รายการไปยังเครือข่ายบิตคอยน์</numerusform>
@@ -1199,7 +1199,7 @@
         <translation type="unfinished">ใช้ไดเรกทอรีข้อมูลที่กำหนดเอง:</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
+        <source>Kronein</source>
         <translation type="unfinished">บิตคอยน์</translation>
     </message>
     <message numerus="yes">
@@ -1240,7 +1240,7 @@
         </translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Bitcoin block chain.</source>
+        <source>%1 will download and store a copy of the Kronein block chain.</source>
         <translation type="unfinished">%1 จะดาวน์โหลดและเก็บสำเนาของบล็อกเชนของบิตคอยน์</translation>
     </message>
     <message>
@@ -1259,11 +1259,11 @@
         <translation type="unfinished">จาก</translation>
     </message>
     <message>
-        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the bitcoin network, as detailed below.</source>
+        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
         <translation type="unfinished">ธุรกรรมล่าสุดอาจยังไม่ปรากฏ และดังนั้นยอดคงเหลือในกระเป๋าของคุณอาจไม่ถูกต้อง ข้อมูลนี้จะถูกต้องเมื่อกระเป๋าของคุณเสร็จสิ้นการซิงค์กับเครือข่ายบิตคอยน์ ตามที่อธิบายไว้ด้านล่าง</translation>
     </message>
     <message>
-        <source>Attempting to spend bitcoins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
         <translation type="unfinished">การพยายามใช้บิตคอยน์ที่ได้รับผลกระทบจากธุรกรรมที่ยังไม่ได้แสดงจะไม่ได้รับการยอมรับจากเครือข่าย</translation>
     </message>
     <message>
@@ -1497,8 +1497,8 @@
         <translation type="unfinished">อนุญาตการเชื่อมต่อที่เข้ามา (Anuyat kan cheuamto thi khaoma)</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">เชื่อมต่อกับเครือข่าย Bitcoin ผ่านพร็อกซี SOCKS5.</translation>
+        <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
+        <translation type="unfinished">เชื่อมต่อกับเครือข่าย Kronein ผ่านพร็อกซี SOCKS5.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1591,8 +1591,8 @@
         <translation type="unfinished">จะแสดงคุณสมบัติการควบคุมเหรียญหรือไม่</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation type="unfinished">เชื่อมต่อกับเครือข่าย Bitcoin ผ่านพร็อกซี SOCKS5 แยกต่างหากสำหรับบริการ Tor onion</translation>
+        <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
+        <translation type="unfinished">เชื่อมต่อกับเครือข่าย Kronein ผ่านพร็อกซี SOCKS5 แยกต่างหากสำหรับบริการ Tor onion</translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
@@ -1683,8 +1683,8 @@
         <translation type="unfinished">จาก</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Bitcoin network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">ข้อมูลที่แสดงอาจจะล้าสมัย กระเป๋าของคุณจะทำการซิงค์อัตโนมัติกับเครือข่าย Bitcoin หลังจากที่เชื่อมต่อเสร็จสิ้นแล้ว แต่กระบวนการนี้ยังไม่เสร็จสมบูรณ์</translation>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
+        <translation type="unfinished">ข้อมูลที่แสดงอาจจะล้าสมัย กระเป๋าของคุณจะทำการซิงค์อัตโนมัติกับเครือข่าย Kronein หลังจากที่เชื่อมต่อเสร็จสิ้นแล้ว แต่กระบวนการนี้ยังไม่เสร็จสมบูรณ์</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -1894,8 +1894,8 @@ If you are receiving this error you should request the merchant provide a BIP21 
 หากคุณได้รับข้อผิดพลาดนี้คุณควรขอให้พ่อค้าจัดเตรียม URI ที่รองรับ BIP21</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
-        <translation type="unfinished">ไม่สามารถแยก URI ได้! สิ่งนี้อาจเกิดจากที่อยู่ Bitcoin ที่ไม่ถูกต้องหรือพารามิเตอร์ URI ที่ผิดรูปแบบ</translation>
+        <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
+        <translation type="unfinished">ไม่สามารถแยก URI ได้! สิ่งนี้อาจเกิดจากที่อยู่ Kronein ที่ไม่ถูกต้องหรือพารามิเตอร์ URI ที่ผิดรูปแบบ</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -1974,8 +1974,8 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished">ที่อยู่ท้องถิ่น</translation>
     </message>
     <message>
-        <source>Network addresses that your Bitcoin node is currently using to communicate with other nodes.</source>
-        <translation type="unfinished">ที่อยู่เครือข่ายที่โหนด Bitcoin ของคุณกำลังใช้ในการสื่อสารกับโหนดอื่นๆ</translation>
+        <source>Network addresses that your Kronein node is currently using to communicate with other nodes.</source>
+        <translation type="unfinished">ที่อยู่เครือข่ายที่โหนด Kronein ของคุณกำลังใช้ในการสื่อสารกับโหนดอื่นๆ</translation>
     </message>
     <message>
         <source>Block chain</source>

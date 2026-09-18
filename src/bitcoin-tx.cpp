@@ -1,4 +1,5 @@
 // Copyright (c) 2009-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -87,7 +88,7 @@ static int AppInitRawTx(int argc, char* argv[])
             strUsage += FormatParagraph(LicenseInfo());
         } else {
             strUsage += "\n"
-                "The bitcoin-tx tool is used for creating and modifying bitcoin transactions.\n\n"
+                "The bitcoin-tx tool is used for creating and modifying Kronein transactions.\n\n"
                 "bitcoin-tx can be used with \"<hex-tx> [commands]\" to update a hex-encoded bitcoin transaction, or with \"-create [commands]\" to create a hex-encoded bitcoin transaction.\n"
                 "\n"
                 "Usage: bitcoin-tx [options] <hex-tx> [commands]\n"

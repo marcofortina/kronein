@@ -54,8 +54,8 @@
         <translation type="unfinished">Nanga</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">Hedzi ndi ḓiresi dzaṋu dza Bitcoin dza u rumela mbadelo. Tshifhinga tshoṱhe ṱolani tshelede na ḓiresi ine na ḓo i ṱanganedza musi ni sa athu rumela tshelede ya tsimbi.</translation>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation type="unfinished">Hedzi ndi ḓiresi dzaṋu dza Kronein dza u rumela mbadelo. Tshifhinga tshoṱhe ṱolani tshelede na ḓiresi ine na ḓo i ṱanganedza musi ni sa athu rumela tshelede ya tsimbi.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -154,8 +154,8 @@
         <translation type="unfinished">Kha vha khwaṱhisedze u ṅwalulula tshipatshi</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
-        <translation type="unfinished">Tsevho: Arali na ṅwalulula tshipatshi tshaṋu nahone na xelelwa nga passphrase yaṋu, ni ḓo XELELA BITCOIN DZANU DZOṰHE!</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
+        <translation type="unfinished">Tsevho: Arali na ṅwalulula tshipatshi tshaṋu nahone na xelelwa nga passphrase yaṋu, ni ḓo XELELA KNE DZANU DZOṰHE!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -182,8 +182,8 @@
         <translation type="unfinished">Murahu</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Humbulani uri u ṅwalulula tshipatshi tshaṋu a zwi nga koni u tsireledza nga vhuḓalo bitcoins dzaṋu kha u tswiwa nga malware ine ya kavhila khomphyutha yaṋu.</translation>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
+        <translation type="unfinished">Humbulani uri u ṅwalulula tshipatshi tshaṋu a zwi nga koni u tsireledza nga vhuḓalo KNE dzaṋu kha u tswiwa nga malware ine ya kavhila khomphyutha yaṋu.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -390,8 +390,8 @@ Faela ya zwishumiswa %1 i nga vha yo tshinyala kana i sa shumi.</translation>
         <translation type="unfinished">Proxy yo tendelwa: %1.</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation type="unfinished">Rumelani tshelede ya tsimbi kha ḓiresi ya Bitcoin .</translation>
+        <source>Send coins to a Kronein address</source>
+        <translation type="unfinished">Rumelani tshelede ya tsimbi kha ḓiresi ya Kronein .</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -509,7 +509,7 @@ U ṱanganya ṱhoho (%1%)...</translation>
         </translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
             <numerusform />

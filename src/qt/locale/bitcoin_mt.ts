@@ -58,8 +58,8 @@
         <translation type="unfinished">A&amp;għżel</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">Dawn huma l-indirizzi tal-Bitcoin tiegħek biex tibgħat il-ħlasijiet. Dejjem iċċekkja l-ammont u l-indirizz li tirċievi qabel ma tibgħat muniti.</translation>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation type="unfinished">Dawn huma l-indirizzi tal-Kronein tiegħek biex tibgħat il-ħlasijiet. Dejjem iċċekkja l-ammont u l-indirizz li tirċievi qabel ma tibgħat muniti.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -158,8 +158,8 @@
         <translation type="unfinished">Ikkonferma l-kriptaġġ tal-kartiera</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
-        <translation type="unfinished">Twissija: Jekk tikkodifika l-kartiera tiegħek u titlef il-passphrase tiegħek, int se &lt;b&gt;TILEF IL-BITCOINS KOLLHA TIEGĦEK&lt;/b&gt;!</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
+        <translation type="unfinished">Twissija: Jekk tikkodifika l-kartiera tiegħek u titlef il-passphrase tiegħek, int se &lt;b&gt;TILEF IL-KNE KOLLHA TIEGĦEK&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -186,8 +186,8 @@
         <translation type="unfinished">Mur Lura</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Ftakar li l-kriptaġġ tal-kartiera tiegħek ma jistax jipproteġi bis-sħiħ il-bitcoins tiegħek milli jinsterqu minn malware li jinfetta l-kompjuter tiegħek.</translation>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
+        <translation type="unfinished">Ftakar li l-kriptaġġ tal-kartiera tiegħek ma jistax jipproteġi bis-sħiħ il-KNE tiegħek milli jinsterqu minn malware li jinfetta l-kompjuter tiegħek.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -450,8 +450,8 @@
         <translation type="unfinished">Proxy huwa &lt;b&gt;attivat&lt;/b&gt;:%1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation type="unfinished">Ibgħat muniti f'indirizz Bitcoin</translation>
+        <source>Send coins to a Kronein address</source>
+        <translation type="unfinished">Ibgħat muniti f'indirizz Kronein</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -653,8 +653,8 @@
         <translation type="unfinished">Agħlaq il-kartieri kollha</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
-        <translation type="unfinished">Uri %1l-messaġġ ta 'għajnuna biex tikseb lista b'għażliet possibbli tal-linja tal-kmand Bitcoin</translation>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
+        <translation type="unfinished">Uri %1l-messaġġ ta 'għajnuna biex tikseb lista b'għażliet possibbli tal-linja tal-kmand Kronein</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -709,13 +709,13 @@
         <translation type="unfinished">Uri</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>%nkonnessjoni(jiet) attiva(i) man-netwerk Bitcoin.</numerusform>
-            <numerusform>%nkonnessjoni(jiet) attiva(i) man-netwerk Bitcoin.</numerusform>
-            <numerusform>%nkonnessjoni(jiet) attiva(i) man-netwerk Bitcoin.</numerusform>
-            <numerusform>%nkonnessjoni(jiet) attiva(i) man-netwerk Bitcoin.</numerusform>
+            <numerusform>%nkonnessjoni(jiet) attiva(i) man-netwerk Kronein.</numerusform>
+            <numerusform>%nkonnessjoni(jiet) attiva(i) man-netwerk Kronein.</numerusform>
+            <numerusform>%nkonnessjoni(jiet) attiva(i) man-netwerk Kronein.</numerusform>
+            <numerusform>%nkonnessjoni(jiet) attiva(i) man-netwerk Kronein.</numerusform>
         </translation>
     </message>
     <message>
@@ -1170,8 +1170,8 @@
         <translation type="unfinished">Aġġorna indirizz li tibgħat minnu</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
-        <translation type="unfinished">L-indirizz li ktibt "%1" mhuwiex indirizz validu tal-Bitcoin.</translation>
+        <source>The entered address "%1" is not a valid Kronein address.</source>
+        <translation type="unfinished">L-indirizz li ktibt "%1" mhuwiex indirizz validu tal-Kronein.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>

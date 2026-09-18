@@ -58,8 +58,8 @@
         <translation type="unfinished">&amp;Aukeratu</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">Hauek dira ordainketak egiteko zure Bitcoin helbideak. Txanponak bidali aurretik, beti egiaztatu zenbatekoa eta hartzailearen helbidea.</translation>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation type="unfinished">Hauek dira ordainketak egiteko zure Kronein helbideak. Txanponak bidali aurretik, beti egiaztatu zenbatekoa eta hartzailearen helbidea.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -158,8 +158,8 @@
         <translation type="unfinished">Zorroaren enkriptazioa berretsi</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
-        <translation type="unfinished">Abisua: Zure zorroa enkriptatzen baduzu eta zure pasahitza galtzen baduzu, &lt;b&gt;BITCOIN GUZTIAK GALDUKO DITUZU&lt;/b&gt;!</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
+        <translation type="unfinished">Abisua: Zure zorroa enkriptatzen baduzu eta zure pasahitza galtzen baduzu, &lt;b&gt;KNE GUZTIAK GALDUKO DITUZU&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -186,8 +186,8 @@
         <translation type="unfinished">Atzera</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Gogoan izan zorroaren enkripzioak ezin dituela zure bitcoinak zure ordenagailuan izan dezakezun malware batengandik lapurtuak izatetik guztiz babestu .</translation>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
+        <translation type="unfinished">Gogoan izan zorroaren enkripzioak ezin dituela zure Kroneinak zure ordenagailuan izan dezakezun malware batengandik lapurtuak izatetik guztiz babestu .</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -313,8 +313,8 @@
         <translation type="unfinished">Kopurua</translation>
     </message>
     <message>
-        <source>Enter a Bitcoin address (e.g. %1)</source>
-        <translation type="unfinished">Sartu Bitcoin helbide bat (adibidez:%1 )</translation>
+        <source>Enter a Kronein address (e.g. %1)</source>
+        <translation type="unfinished">Sartu Kronein helbide bat (adibidez:%1 )</translation>
     </message>
     <message>
         <source>Unroutable</source>
@@ -497,8 +497,8 @@
         <translation type="unfinished">Proxya &lt;b&gt;gaituta&lt;/b&gt; dago : %1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation type="unfinished">Bidali txanponak Bitcoin helbide batera</translation>
+        <source>Send coins to a Kronein address</source>
+        <translation type="unfinished">Bidali txanponak Kronein helbide batera</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -706,8 +706,8 @@
         <translation type="unfinished">Zorro guztiak itxi</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
-        <translation type="unfinished">Erakutsi %1(r)en laguntza-mezua Bitcoin-en komando-lerroko aukera posibleen zerrenda lortzeko.</translation>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
+        <translation type="unfinished">Erakutsi %1(r)en laguntza-mezua Kronein-en komando-lerroko aukera posibleen zerrenda lortzeko.</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -774,11 +774,11 @@
         <translation type="unfinished">E&amp;rakutsi</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>%nBitcoin sarearekiko konexio aktibo.</numerusform>
-            <numerusform>%n konexio aktibo Bitcoin sarearekin.</numerusform>
+            <numerusform>%nKronein sarearekiko konexio aktibo.</numerusform>
+            <numerusform>%n konexio aktibo Kronein sarearekin.</numerusform>
         </translation>
     </message>
     <message>
@@ -1241,8 +1241,8 @@
         <translation type="unfinished">Bidaltzeko helbidea editatu</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
-        <translation type="unfinished">Sartutako "%1" helbidea ez da baliozko Bitcoin helbide bat.</translation>
+        <source>The entered address "%1" is not a valid Kronein address.</source>
+        <translation type="unfinished">Sartutako "%1" helbidea ez da baliozko Kronein helbide bat.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1398,8 +1398,8 @@
         </translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Bitcoin block chain.</source>
-        <translation type="unfinished">%1Bitcoin bloke-katearen kopia bat deskargatu eta gordeko du.</translation>
+        <source>%1 will download and store a copy of the Kronein block chain.</source>
+        <translation type="unfinished">%1Kronein bloke-katearen kopia bat deskargatu eta gordeko du.</translation>
     </message>
     <message>
         <source>The wallet will also be stored in this directory.</source>
@@ -1421,12 +1421,12 @@
         <translation type="unfinished">Inprimakia</translation>
     </message>
     <message>
-        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the bitcoin network, as detailed below.</source>
-        <translation type="unfinished">Azken transakzioak baliteke oraindik ikusgai ez egotea, eta, hortaz, zure zorroaren saldoa ez da zuzena izan daiteke. Informazio hau eguneratua egongo da zure zorroa Bitcoin sarearekin sinkronizatzea amaitzen duenean, behean zehazten den bezala.</translation>
+        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
+        <translation type="unfinished">Azken transakzioak baliteke oraindik ikusgai ez egotea, eta, hortaz, zure zorroaren saldoa ez da zuzena izan daiteke. Informazio hau eguneratua egongo da zure zorroa Kronein sarearekin sinkronizatzea amaitzen duenean, behean zehazten den bezala.</translation>
     </message>
     <message>
-        <source>Attempting to spend bitcoins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation type="unfinished">Oraindik bistaratugabe dauden transakzioek eragindako bitcoin-ak gastatzen saiatzea ez du sareak onartuko.</translation>
+        <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <translation type="unfinished">Oraindik bistaratugabe dauden transakzioek eragindako KNE-ak gastatzen saiatzea ez du sareak onartuko.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1529,8 +1529,8 @@
         <translation type="unfinished">%1rekin bateragarria den script baten bide osoa (adib., C:\Downloads\hwi.exe edo /Users/you/Downloads/hwi.py). Kontuz: malware-ak zure txanponak lapur ditzake!</translation>
     </message>
     <message>
-        <source>Automatically open the Bitcoin client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
-        <translation type="unfinished">Bitcoin bezeroaren portua automatikoki ireki router-ean. Honek bakarrik funtzionatzen du zure router-ak PCP edo NAT-PMP onartzen badu eta gaituta badago. Kanpoko portua ausazkoa izan daiteke.</translation>
+        <source>Automatically open the Kronein client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
+        <translation type="unfinished">Kronein bezeroaren portua automatikoki ireki router-ean. Honek bakarrik funtzionatzen du zure router-ak PCP edo NAT-PMP onartzen badu eta gaituta badago. Kanpoko portua ausazkoa izan daiteke.</translation>
     </message>
     <message>
         <source>Map port using PCP or NA&amp;T-PMP</source>
@@ -1660,8 +1660,8 @@
         <translation type="unfinished">Sarbide konexioak baimendu</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">Bitcoin sarearekin konektatu SOCKS5 proxy baten bidez.</translation>
+        <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
+        <translation type="unfinished">Kronein sarearekin konektatu SOCKS5 proxy baten bidez.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1740,8 +1740,8 @@
         <translation type="unfinished">Moneta kontrolerako ezaugarriak erakutsi ala ez.</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation type="unfinished">Bitcoin sarearekin konektatu Tor onion zerbitzuetarako bereizitako SOCKS5 proxy baten bidez.</translation>
+        <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
+        <translation type="unfinished">Kronein sarearekin konektatu Tor onion zerbitzuetarako bereizitako SOCKS5 proxy baten bidez.</translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
@@ -1837,8 +1837,8 @@
         <translation type="unfinished">Inprimakia</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Bitcoin network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">Erakutsitako informazioa zaharkituta egon daiteke. Zure zorroak automatikoki sinkronizatzen du Bitcoin sarearekin konexioa ezarri ondoren, baina prozesu hori oraindik ez da amaitu.</translation>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
+        <translation type="unfinished">Erakutsitako informazioa zaharkituta egon daiteke. Zure zorroak automatikoki sinkronizatzen du Kronein sarearekin konexioa ezarri ondoren, baina prozesu hori oraindik ez da amaitu.</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -2054,8 +2054,8 @@ BIP70en segurtasun-gabezia zabalengatik, irmoki gomendatzen da merkatariek diru-
 Errore hau jasotzen baduzu, merkatariei BIP21-arekin bateragarria den URI bat emateko eskatu beharko zenieke</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
-        <translation type="unfinished">URIa ezin da analizatu! Hau Bitcoin helbide baliogabe batek edo gaizki osatutako URI parametroek eragin dezakete.</translation>
+        <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
+        <translation type="unfinished">URIa ezin da analizatu! Hau Kronein helbide baliogabe batek edo gaizki osatutako URI parametroek eragin dezakete.</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -2203,8 +2203,8 @@ Errore hau jasotzen baduzu, merkatariei BIP21-arekin bateragarria den URI bat em
         <translation type="unfinished">Helbide Lokalak</translation>
     </message>
     <message>
-        <source>Network addresses that your Bitcoin node is currently using to communicate with other nodes.</source>
-        <translation type="unfinished">Zure Bitcoin nodoak beste nodoekin komunikatzeko une honetan erabiltzen dituen sare-helbideak.</translation>
+        <source>Network addresses that your Kronein node is currently using to communicate with other nodes.</source>
+        <translation type="unfinished">Zure Kronein nodoak beste nodoekin komunikatzeko une honetan erabiltzen dituen sare-helbideak.</translation>
     </message>
     <message>
         <source>Block chain</source>
@@ -2649,8 +2649,8 @@ Kontsola hau erabiltzeko informazio gehiago nahi izanez gero, idatzi .
         <translation type="unfinished">&amp;Mezua:</translation>
     </message>
     <message>
-        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Bitcoin network.</source>
-        <translation type="unfinished">Ordainketa eskaerari erants dakiokeen mezu aukerakoa, eskaera irekitzen denean bistaratuko dena. Oharra: mezua ez da Bitcoin sarean zehar bidaliko ordainketarekin batera.</translation>
+        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Kronein network.</source>
+        <translation type="unfinished">Ordainketa eskaerari erants dakiokeen mezu aukerakoa, eskaera irekitzen denean bistaratuko dena. Oharra: mezua ez da Kronein sarean zehar bidaliko ordainketarekin batera.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -2926,8 +2926,8 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
 Oharra: Komisioa byte bakoitzeko kalkulatzen denez, "100 satoshi kvB bakoitzeko" komisio-tasa batek, 500 byte birtualeko (1 kvB-ren erdia) transakzio baten kasuan, azken batean 50 satoshiko komisioa emango luke.</translation>
     </message>
     <message>
-        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for bitcoin transactions than the network can process.</source>
-        <translation type="unfinished">Transakzio-bolumena bloketan dagoen espazioa baino txikiagoa denean, meatzaileek zein nodo errepikatzaileek gutxieneko komisio bat ezar dezakete. Komisio horretara mugatzea egokia izan daiteke, baina kontuan izan: Bitcoin transakzioen eskaera sarearen gaitasuna baino handiagoa denean, gutxieneko komisioa duten transakzioak inoiz ez baieztatzeko arriskua dago.</translation>
+        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for Kronein transactions than the network can process.</source>
+        <translation type="unfinished">Transakzio-bolumena bloketan dagoen espazioa baino txikiagoa denean, meatzaileek zein nodo errepikatzaileek gutxieneko komisio bat ezar dezakete. Komisio horretara mugatzea egokia izan daiteke, baina kontuan izan: Kronein transakzioen eskaera sarearen gaitasuna baino handiagoa denean, gutxieneko komisioa duten transakzioak inoiz ez baieztatzeko arriskua dago.</translation>
     </message>
     <message>
         <source>A too low fee might result in a never confirming transaction (read the tooltip)</source>
@@ -3160,8 +3160,8 @@ Mesedez, berrikusi zure transakzioa. Transakzio hau sor eta bidali dezakezu, edo
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
-        <translation type="unfinished">Abisua: Bitcoin helbide baliogabea</translation>
+        <source>Warning: Invalid Kronein address</source>
+        <translation type="unfinished">Abisua: Kronein helbide baliogabea</translation>
     </message>
     <message>
         <source>Warning: Unknown change address</source>
@@ -3199,8 +3199,8 @@ Mesedez, berrikusi zure transakzioa. Transakzio hau sor eta bidali dezakezu, edo
         <translation type="unfinished">Aukeratu lehenago aukeraturiko helbidea</translation>
     </message>
     <message>
-        <source>The Bitcoin address to send the payment to</source>
-        <translation type="unfinished">Ordaina bidaltzeko Bitcoin helbidea</translation>
+        <source>The Kronein address to send the payment to</source>
+        <translation type="unfinished">Ordaina bidaltzeko Kronein helbidea</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -3215,8 +3215,8 @@ Mesedez, berrikusi zure transakzioa. Transakzio hau sor eta bidali dezakezu, edo
         <translation type="unfinished">Hautatutako unitatean bidali beharreko zenbatekoa</translation>
     </message>
     <message>
-        <source>The fee will be deducted from the amount being sent. The recipient will receive less bitcoins than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation type="unfinished">Komisioa bidaltzen ari zaren zenbatekotik kenduko da. Hartzaileak zenbateko eremuan sartzen duzun baino bitcoin gutxiago jasoko ditu. Hartzaile bat baino gehiago hautatzen badira, komisioa berdin banatuko da.</translation>
+        <source>The fee will be deducted from the amount being sent. The recipient will receive less KNE than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
+        <translation type="unfinished">Komisioa bidaltzen ari zaren zenbatekotik kenduko da. Hartzaileak zenbateko eremuan sartzen duzun baino KNE gutxiago jasoko ditu. Hartzaile bat baino gehiago hautatzen badira, komisioa berdin banatuko da.</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>
@@ -3235,8 +3235,8 @@ Mesedez, berrikusi zure transakzioa. Transakzio hau sor eta bidali dezakezu, edo
         <translation type="unfinished">Sartu helbide honetarako etiketa bat erabilitako helbideen zerrendara gehitzeko</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Bitcoin network.</source>
-        <translation type="unfinished">Bitcoin: URIari erantsitako mezua, transakzioarekin batera gordeko dena zure kontsultarako. Oharra: Mezu hau ez da Bitcoin sarean zehar bidaliko.</translation>
+        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <translation type="unfinished">Kronein: URIari erantsitako mezua, transakzioarekin batera gordeko dena zure kontsultarako. Oharra: Mezu hau ez da Kronein sarean zehar bidaliko.</translation>
     </message>
 </context>
 <context>

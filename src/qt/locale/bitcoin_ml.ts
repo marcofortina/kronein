@@ -54,7 +54,7 @@
         <translation type="unfinished">തി&amp;രഞ്ഞെടുക്കുക</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
         <translation type="unfinished">പൈസ അയയ്ക്കുന്നതിനുള്ള നിങ്ങളുടെ ബിറ്റ് കോയിൻ വിലാസങ്ങളാണ് ഇവ. നാണയങ്ങൾ അയയ്ക്കുന്നതിനുമുമ്പ് എല്ലായ്പ്പോഴും തുകയും സ്വീകരിക്കുന്ന വിലാസവും പരിശോധിക്കുക.</translation>
     </message>
     <message>
@@ -149,7 +149,7 @@
         <translation type="unfinished">വാലറ്റ് എൻക്രിപ്ഷൻ സ്ഥിരീകരിക്കുക</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
         <translation type="unfinished">മുന്നറിയിപ്പ്: നിങ്ങളുടെ വാലറ്റ് എൻക്രിപ്റ്റ് ചെയ്ത, രഹസ്യ പദം നഷ്ടപ്പെടുകയാണെങ്കിൽ നിങ്ങളുടെ എല്ലാ ബിറ്റ് കോയിനുകളും  നഷ്ടപ്പെടും!</translation>
     </message>
     <message>
@@ -177,7 +177,7 @@
         <translation type="unfinished">മടങ്ങിപ്പോവുക</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
         <translation type="unfinished">നിങ്ങളുടെ വാലറ്റ് എൻ‌ക്രിപ്റ്റ് ചെയ്യുന്നതിലൂടെ നിങ്ങളുടെ കമ്പ്യൂട്ടറിനെ ബാധിക്കുന്ന ക്ഷുദ്രവെയർ‌ മോഷ്ടിക്കുന്നതിൽ‌ നിന്നും നിങ്ങളുടെ ബിറ്റ്കോയിനുകളെ പൂർണ്ണമായി സംരക്ഷിക്കാൻ‌ കഴിയില്ല.</translation>
     </message>
     <message>
@@ -289,7 +289,7 @@
         <translation type="unfinished">തുക </translation>
     </message>
     <message>
-        <source>Enter a Bitcoin address (e.g. %1)</source>
+        <source>Enter a Kronein address (e.g. %1)</source>
         <translation type="unfinished">ഒരു ബിറ്റ്കോയിൻ വിലാസം നൽകുക(e.g. %1)</translation>
     </message>
     <message>
@@ -417,7 +417,7 @@
         <translation type="unfinished">പ്രോക്സി ആണ്&lt;b&gt;പ്രവർത്തനക്ഷമമാക്കി&lt;/b&gt;:%1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
+        <source>Send coins to a Kronein address</source>
         <translation type="unfinished">ഒരു ബിറ്റ്‌കോയിൻ വിലാസത്തിലേക് പണം അയക്കുക </translation>
     </message>
     <message>
@@ -593,7 +593,7 @@
         <translation type="unfinished">എല്ലാ വാലറ്റുകളും അടയ്‌ക്കുക ...</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
         <translation type="unfinished">സാധ്യമായ ബിറ്റ്കോയിൻ കമാൻഡ്-ലൈൻ ഓപ്ഷനുകളുള്ള ഒരു ലിസ്റ്റ് ലഭിക്കുന്നതിന് %1 സഹായ സന്ദേശം കാണിക്കുക</translation>
     </message>
     <message>
@@ -645,7 +645,7 @@
         <translation type="unfinished">%1 ക്ലയന്റ്</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
             <numerusform />
@@ -1001,7 +1001,7 @@
         <translation type="unfinished">%1 ലേക്ക് സ്വാഗതം.</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
+        <source>Kronein</source>
         <translation type="unfinished">ബിറ്റ്കോയിൻ</translation>
     </message>
     <message numerus="yes">
@@ -1171,7 +1171,7 @@
         <translation type="unfinished">'bitcoin://' എന്നത് ശരിയായ ഒരു URI അല്ല .പകരം 'bitcoin:' ഉപയോഗിക്കൂ </translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
+        <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
         <translation type="unfinished">യു‌ആർ‌ഐ പാഴ്‌സുചെയ്യാൻ‌ കഴിയില്ല! അസാധുവായ ബിറ്റ്കോയിൻ വിലാസം അല്ലെങ്കിൽ കേടായ യു‌ആർ‌ഐ പാരാമീറ്ററുകൾ കാരണം ഇത് സംഭവിക്കാം.</translation>
     </message>
     <message>
@@ -1400,7 +1400,7 @@
         <translation type="unfinished">മുൻപ്‌ ഉപയോഗിച്ച അഡ്രസ് തെരഞ്ഞെടുക്കുക</translation>
     </message>
     <message>
-        <source>The Bitcoin address to send the payment to</source>
+        <source>The Kronein address to send the payment to</source>
         <translation type="unfinished">പേയ്മെന്റ് അയക്കേണ്ട ബിറ്കോയിൻ അഡ്രസ് </translation>
     </message>
     </context>

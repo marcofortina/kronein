@@ -1,20 +1,27 @@
-# Security Policy
+# Kronein Core security policy
 
-## Supported Versions
+## Supported versions
 
-See our website for versions of Bitcoin Core that are currently supported with
-security updates: https://bitcoincore.org/en/lifecycle/#schedule
+Kronein Core is currently pre-release software. No production version is yet
+supported, and the software must not be used to secure funds or operate a
+public monetary network.
 
-## Reporting a Vulnerability
+Once production releases begin, supported versions and end-of-life dates will
+be published in this document and in the repository release notes.
 
-To report security issues send an email to security@bitcoincore.org (not for support).
+## Reporting a vulnerability
 
-The following keys may be used to communicate sensitive information to developers:
+Do not disclose a suspected vulnerability in a public issue. Use GitHub's
+private vulnerability reporting flow instead:
 
-| Name | Fingerprint |
-|------|-------------|
-| Pieter Wuille | 133E AC17 9436 F14A 5CF1  B794 860F EB80 4E66 9320 |
-| Michael Ford | E777 299F C265 DD04 7930  70EB 944D 35F9 AC3D B76A |
-| Ava Chow | 1528 1230 0785 C964 44D3  334D 1756 5732 E08E 5E41 |
+https://github.com/marcofortina/kronein/security/advisories/new
 
-You can import a key by running the following command with that individual’s fingerprint: `gpg --keyserver hkps://keys.openpgp.org --recv-keys "<fingerprint>"` Ensure that you put quotes around fingerprints containing spaces.
+Include the affected commit or version, reproduction steps, expected impact,
+and any proposed mitigation. General support requests and non-security bugs
+belong in the public issue tracker.
+
+## Upstream vulnerabilities
+
+If the issue also affects unmodified Bitcoin Core code, coordinate disclosure
+with the Bitcoin Core security team under its current security policy. Do not
+assume that a report sent to one project has reached the other.

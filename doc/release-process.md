@@ -1,6 +1,11 @@
 Release Process
 ====================
 
+> **Kronein note:** This process is inherited from Bitcoin Core and still
+> references upstream signing and publication infrastructure. It must be
+> adapted and independently verified before the first Kronein production
+> release.
+
 ## Branch updates
 
 ### Before every release candidate
@@ -101,7 +106,7 @@ Check out the source code in the following directory hierarchy.
     cd /path/to/your/toplevel/build
     git clone https://github.com/bitcoin-core/guix.sigs.git
     git clone https://github.com/bitcoin-core/bitcoin-detached-sigs.git
-    git clone https://github.com/bitcoin/bitcoin.git
+    git clone https://github.com/marcofortina/kronein.git
 
 ### Write the release notes
 
@@ -115,7 +120,7 @@ Generate list of authors:
 
 ### Setup and perform Guix builds
 
-Checkout the Bitcoin Core version you'd like to build:
+Checkout the Kronein Core version you'd like to build:
 
 ```sh
 pushd ./bitcoin
@@ -299,9 +304,8 @@ cat "$VERSION"/*/all.SHA256SUMS.asc > SHA256SUMS.asc
 
   - bitcoin-dev and bitcoin-core-dev mailing list
 
-  - Bitcoin Core announcements list https://bitcoincore.org/en/list/announcements/join/
+  - Kronein GitHub releases https://github.com/marcofortina/kronein/releases
 
-  - Bitcoin Core Twitter https://twitter.com/bitcoincoreorg
 
   - Celebrate
 

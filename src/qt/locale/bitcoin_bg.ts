@@ -54,7 +54,7 @@
         <translation type="unfinished">Избери</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
         <translation type="unfinished">Тези са вашите Биткойн адреси за изпращане на плащания. Винаги проверявайте количеството и получаващите адреси преди изпращане на монети. </translation>
     </message>
     <message>
@@ -154,7 +154,7 @@
         <translation type="unfinished">Потвърди криптирането на порфейла</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
         <translation type="unfinished">ВНИМАНИЕ: Ако шифрирате вашият портфейл и изгубите паролата си, &lt;b&gt;ЩЕ ИЗГУБИТЕ ВСИЧКИТЕ СИ БИТКОИНИ&lt;/b&gt;!</translation>
     </message>
     <message>
@@ -182,7 +182,7 @@
         <translation type="unfinished">Назад</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
         <translation type="unfinished">Не забравяйте, че криптирането на вашия портфейл не може напълно да защити вашите биткойни от кражба от зловреден софтуер, заразяващ компютъра ви.</translation>
     </message>
     <message>
@@ -297,7 +297,7 @@
         <translation type="unfinished">Количество</translation>
     </message>
     <message>
-        <source>Enter a Bitcoin address (e.g. %1)</source>
+        <source>Enter a Kronein address (e.g. %1)</source>
         <translation type="unfinished">Въведете Биткойн адрес (например: %1)</translation>
     </message>
     <message>
@@ -469,7 +469,7 @@
         <translation type="unfinished">Прокси е &lt;b&gt;разрешено&lt;/b&gt;: %1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
+        <source>Send coins to a Kronein address</source>
         <translation type="unfinished">Изпращане към Биткоин адрес</translation>
     </message>
     <message>
@@ -629,7 +629,7 @@
     </message>
     <message>
         <source>Load PSBT from &amp;clipboard…</source>
-        <translation type="unfinished">Заредете PSBT (частично подписана Bitcoin трансакция) от &amp;клипборд...</translation>
+        <translation type="unfinished">Заредете PSBT (частично подписана Kronein трансакция) от &amp;клипборд...</translation>
     </message>
     <message>
         <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
@@ -682,7 +682,7 @@
         <translation type="unfinished">Затвори всички портфейли</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
         <translation type="unfinished">Покажи %1 помощно съобщение за да получиш лист с възможни Биткойн команди</translation>
     </message>
     <message>
@@ -746,10 +746,10 @@
         <translation type="unfinished">&amp;Покажи</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>%n свързани активно към Bitcoin мрежата.</numerusform>
+            <numerusform>%n свързани активно към Kronein мрежата.</numerusform>
             <numerusform>%n активно свързани към Биткойн мрежата. </numerusform>
         </translation>
     </message>
@@ -1209,7 +1209,7 @@
         <translation type="unfinished">Редактиране на адрес за изпращане</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
+        <source>The entered address "%1" is not a valid Kronein address.</source>
         <translation type="unfinished">"%1" не е валиден Биткоин адрес.</translation>
     </message>
     <message>
@@ -1321,7 +1321,7 @@
         <translation type="unfinished">Използване на директория ръчно</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
+        <source>Kronein</source>
         <translation type="unfinished">Биткоин</translation>
     </message>
     <message numerus="yes">
@@ -1366,7 +1366,7 @@
         </translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Bitcoin block chain.</source>
+        <source>%1 will download and store a copy of the Kronein block chain.</source>
         <translation type="unfinished">%1 ще свали и съхрани копие на биткойн блокчейна.</translation>
     </message>
     <message>
@@ -1389,11 +1389,11 @@
         <translation type="unfinished">форма</translation>
     </message>
     <message>
-        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the bitcoin network, as detailed below.</source>
-        <translation type="unfinished">Последните трансакции все още не могат да се виждат и следователно балансът на портфейла ви може да бъде неправилен. Тази информация ще бъде правилна, след като портфейлът ви приключи синхронизирането с Bitcoin мрежата, както е подробно описано по-долу.</translation>
+        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
+        <translation type="unfinished">Последните трансакции все още не могат да се виждат и следователно балансът на портфейла ви може да бъде неправилен. Тази информация ще бъде правилна, след като портфейлът ви приключи синхронизирането с Kronein мрежата, както е подробно описано по-долу.</translation>
     </message>
     <message>
-        <source>Attempting to spend bitcoins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
         <translation type="unfinished">Опитът да се изразходват биткойни, които са засегнати от все още показаните трансакции, няма да бъдат приети от мрежата.</translation>
     </message>
     <message>
@@ -1607,7 +1607,7 @@
         <translation type="unfinished">Позволи входящи връзки</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a SOCKS5 proxy.</source>
+        <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
         <translation type="unfinished">Свързване с Биткойн мрежата чрез SOCKS5  прокси.</translation>
     </message>
     <message>
@@ -1739,7 +1739,7 @@
         <translation type="unfinished">форма</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Bitcoin network after a connection is established, but this process has not completed yet.</source>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
         <translation type="unfinished">Текущата информация на екрана може да не е актуална. Вашият портфейл ще се синхронизира автоматично с мрежата на Биткоин, щом поне една връзката с нея се установи; този процес все още не е приключил.</translation>
     </message>
     <message>
@@ -2405,7 +2405,7 @@
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
+        <source>Warning: Invalid Kronein address</source>
         <translation type="unfinished">Внимание: Невалиден Биткойн адрес</translation>
     </message>
     <message>

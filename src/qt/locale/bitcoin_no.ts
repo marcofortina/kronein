@@ -54,8 +54,8 @@
         <translation type="unfinished">&amp;Velg</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">Dette er Bitcoin-adressene dine for å sende betalinger. Kontroller alltid beløpet og mottakeradressen før du sender mynter.</translation>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation type="unfinished">Dette er Kronein-adressene dine for å sende betalinger. Kontroller alltid beløpet og mottakeradressen før du sender mynter.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -154,8 +154,8 @@
         <translation type="unfinished">Bekreft kryptering av lommebok</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
-        <translation type="unfinished">Advarsel: Hvis du krypterer lommeboken din og mister passordet, vil du 1 MISTE ALLE BITCOINENE DINE 1 !</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
+        <translation type="unfinished">Advarsel: Hvis du krypterer lommeboken din og mister passordet, vil du 1 MISTE ALLE KNEENE DINE 1 !</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -182,8 +182,8 @@
         <translation type="unfinished">Tilbake</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Husk at kryptering av lommeboken din ikke fullt ut kan beskytte bitcoinene dine mot å bli stjålet av skadelig programvare som infiserer datamaskinen din.</translation>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
+        <translation type="unfinished">Husk at kryptering av lommeboken din ikke fullt ut kan beskytte Kroneinene dine mot å bli stjålet av skadelig programvare som infiserer datamaskinen din.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -407,8 +407,8 @@
         <translation type="unfinished">Proxy er aktivert: %1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation type="unfinished">Send mynter til en Bitcoin-adresse</translation>
+        <source>Send coins to a Kronein address</source>
+        <translation type="unfinished">Send mynter til en Kronein-adresse</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -612,8 +612,8 @@
         <translation type="unfinished">Lukk alle lommebøker</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
-        <translation type="unfinished">Vis %1 hjelpetekst for å få en liste over mulige Bitcoin kommandolinjealternativer</translation>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
+        <translation type="unfinished">Vis %1 hjelpetekst for å få en liste over mulige Kronein kommandolinjealternativer</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -669,11 +669,11 @@
         <translation type="unfinished">V&amp;is</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>%n aktive tilkoblinger til Bitcoin-nettverket.</numerusform>
-            <numerusform>1%n aktive tilkoblinger til Bitcoin-nettverket.</numerusform>
+            <numerusform>%n aktive tilkoblinger til Kronein-nettverket.</numerusform>
+            <numerusform>1%n aktive tilkoblinger til Kronein-nettverket.</numerusform>
         </translation>
     </message>
     <message>

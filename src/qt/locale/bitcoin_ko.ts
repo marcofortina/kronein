@@ -58,7 +58,7 @@
         <translation type="unfinished">선택(&amp;H)</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
         <translation type="unfinished">비트코인을 보내는 계좌 주소입니다. 코인을 보내기 전에 금액과 받는 주소를 항상 확인하십시오.</translation>
     </message>
     <message>
@@ -158,7 +158,7 @@
         <translation type="unfinished">지갑 암호화 승인</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
         <translation type="unfinished">경고: 만약 암호화 된 지갑의 암호문을 잃어버릴 경우, &lt;b&gt;모든 비트코인들을 잃어버릴 수 있습니다&lt;/b&gt;!</translation>
     </message>
     <message>
@@ -186,7 +186,7 @@
         <translation type="unfinished">뒤로가기</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
         <translation type="unfinished">지갑을 암호화 해도 컴퓨터에 바이러스가 있을시 안전하지 않다는 것을 참고하세요.</translation>
     </message>
     <message>
@@ -313,7 +313,7 @@
         <translation type="unfinished">금액</translation>
     </message>
     <message>
-        <source>Enter a Bitcoin address (e.g. %1)</source>
+        <source>Enter a Kronein address (e.g. %1)</source>
         <translation type="unfinished">비트코인 주소를 입력하세요 (예: %1)</translation>
     </message>
     <message>
@@ -500,7 +500,7 @@
         <translation type="unfinished">프록시가 &lt;b&gt;활성화&lt;/b&gt; 되었습니다: %1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
+        <source>Send coins to a Kronein address</source>
         <translation type="unfinished">코인을 비트코인 주소로 전송합니다.</translation>
     </message>
     <message>
@@ -712,7 +712,7 @@
         <translation type="unfinished">모든 지갑 닫기</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
         <translation type="unfinished">사용할 수 있는 비트코인 명령줄 옵션 목록을 가져오기 위해 %1 도움말 메시지를 표시합니다.</translation>
     </message>
     <message>
@@ -772,7 +772,7 @@
         <translation type="unfinished">보기(&amp;H)</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
             <numerusform>비트코인 네트워크에 활성화된 %n연결</numerusform>
@@ -1234,7 +1234,7 @@
         <translation type="unfinished">보내는 주소 편집</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
+        <source>The entered address "%1" is not a valid Kronein address.</source>
         <translation type="unfinished">입력한 "%1" 주소는 올바른 비트코인 주소가 아닙니다.</translation>
     </message>
     <message>
@@ -1350,7 +1350,7 @@
         <translation type="unfinished">커스텀 데이터 폴더 사용:</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
+        <source>Kronein</source>
         <translation type="unfinished">비트코인</translation>
     </message>
     <message numerus="yes">
@@ -1391,7 +1391,7 @@
         </translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Bitcoin block chain.</source>
+        <source>%1 will download and store a copy of the Kronein block chain.</source>
         <translation type="unfinished">%1은 비트코인 블록체인의 사본을 다운로드하여 저장합니다.</translation>
     </message>
     <message>
@@ -1414,11 +1414,11 @@
         <translation type="unfinished">유형</translation>
     </message>
     <message>
-        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the bitcoin network, as detailed below.</source>
+        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
         <translation type="unfinished">최근 거래는 아직 보이지 않을 수 있습니다. 따라서 당신의 지갑의 잔액이 틀릴 수도 있습니다. 이 정보는 당신의 지갑이 비트코인 네트워크와 완전한 동기화를 완료하면, 아래의 설명과 같이 정확해집니다.</translation>
     </message>
     <message>
-        <source>Attempting to spend bitcoins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
         <translation type="unfinished">아직 표시되지 않은 거래의 영향을 받는 비트코인을 사용하려고 하는 것은 네트워크에서 허가되지 않습니다.</translation>
     </message>
     <message>
@@ -1519,7 +1519,7 @@
         <translation type="unfinished">%1가 호환되는 스크립트가 있는 전체 경로 (예시 - C:\Downloads\hwi.exe or /Users/you/Downloads/hwi.py). 주의: 멀웨어가 당신의 코인들을 훔쳐갈 수도 있습니다!</translation>
     </message>
     <message>
-        <source>Automatically open the Bitcoin client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
+        <source>Automatically open the Kronein client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
         <translation type="unfinished">비트코인 클라이언트 포트를 라우터에서 자동으로 열기. 이 기능은 라우터가 PCP(Port Control Protocol) 또는 NAT-PMP(NAT Port Mapping Protocol) 를 지원하고 해당 기능이 활성화되어 있을 때만 작동합니다. 외부 포트는 임의(random)로 지정될 수 있습니다.</translation>
     </message>
     <message>
@@ -1651,7 +1651,7 @@
         <translation type="unfinished">연결 요청을 허용 (&amp;G)</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a SOCKS5 proxy.</source>
+        <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
         <translation type="unfinished">SOCKS5 프록시를 통해 비트코인 네트워크에 연결합니다.</translation>
     </message>
     <message>
@@ -1731,8 +1731,8 @@
         <translation type="unfinished">코인 상세 제어기능에 대한 표시 여부를 선택할 수 있습니다.</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation type="unfinished">Tor onion 서비스를 위한 별도의 SOCKS5 프록시를 통해 Bitcoin 네트워크에 연결합니다.</translation>
+        <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
+        <translation type="unfinished">Tor onion 서비스를 위한 별도의 SOCKS5 프록시를 통해 Kronein 네트워크에 연결합니다.</translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
@@ -1828,7 +1828,7 @@
         <translation type="unfinished">유형</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Bitcoin network after a connection is established, but this process has not completed yet.</source>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
         <translation type="unfinished">표시된 정보가 오래된 것 같습니다. 당신의 지갑은 비트코인 네트워크에 연결된 뒤 자동으로 동기화 하지만, 아직 과정이 끝나지 않았습니다.</translation>
     </message>
     <message>
@@ -2043,7 +2043,7 @@ BIP70의 광범위한 보안 결함으로 인해 모든 가맹점에서는 지�
 이 오류가 발생하면 판매자에게 BIP21 호환 URI를 제공하도록 요청해야 합니다.</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
+        <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
         <translation type="unfinished">URI의 파싱에 문제가 발생했습니다. 잘못된 비트코인 주소나 URI 파라미터 구성에 오류가 존재할 수 있습니다.</translation>
     </message>
     <message>
@@ -2193,7 +2193,7 @@ BIP70의 광범위한 보안 결함으로 인해 모든 가맹점에서는 지�
         <translation type="unfinished">로컬 주소</translation>
     </message>
     <message>
-        <source>Network addresses that your Bitcoin node is currently using to communicate with other nodes.</source>
+        <source>Network addresses that your Kronein node is currently using to communicate with other nodes.</source>
         <translation type="unfinished">당신의 비트코인 노드가 현재 다른 노드들과 통신하기 위해 사용 중인 네트워크 주소입니다.</translation>
     </message>
     <message>
@@ -2630,7 +2630,7 @@ For more information on using this console, type %6.
         <translation type="unfinished">메시지(&amp;M):</translation>
     </message>
     <message>
-        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Bitcoin network.</source>
+        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Kronein network.</source>
         <translation type="unfinished">지불 요청에 첨부되는 선택가능한 메시지 입니다. 이 메세지는 요청이 열릴 때 표시될 것 입니다. 메모: 이 메시지는 비트코인 네트워크로 전송되지 않습니다.</translation>
     </message>
     <message>
@@ -2907,7 +2907,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
 참고: 수수료는 바이트 단위로 계산되므로 500 가상 바이트(1kvB의 절반)의 트랜잭션 크기에 대해 "kvB당 100 사토시"의 수수료율은 궁극적으로 50사토시만 수수료를 산출합니다.</translation>
     </message>
     <message>
-        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for bitcoin transactions than the network can process.</source>
+        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for Kronein transactions than the network can process.</source>
         <translation type="unfinished">거래량이 블록에 남은 공간보다 적은 경우, 채굴자나 중계 노드들이 최소 수수료를 허용할 수 있습니다. 최소 수수료만 지불하는건 괜찮지만, 네트워크가 처리할 수 있는 용량을 넘는 비트코인 거래가 있을 경우에는 이 거래가 승인이 안될 수 있다는 점을 유의하세요.</translation>
     </message>
     <message>
@@ -3134,7 +3134,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
+        <source>Warning: Invalid Kronein address</source>
         <translation type="unfinished">경고: 잘못된 비트코인 주소입니다</translation>
     </message>
     <message>
@@ -3173,7 +3173,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">이전에 사용한 주소를 선택하기</translation>
     </message>
     <message>
-        <source>The Bitcoin address to send the payment to</source>
+        <source>The Kronein address to send the payment to</source>
         <translation type="unfinished">이 비트코인 주소로 송금됩니다</translation>
     </message>
     <message>
@@ -3189,7 +3189,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">선택한 단위로 보낼 수량</translation>
     </message>
     <message>
-        <source>The fee will be deducted from the amount being sent. The recipient will receive less bitcoins than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
+        <source>The fee will be deducted from the amount being sent. The recipient will receive less KNE than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
         <translation type="unfinished">수수료가 송금되는 금액에서 공제됩니다. 수령자는 금액 필드에서 입력한 금액보다 적은 금액을 전송받게 됩니다. 받는 사람이 여러 명인 경우 수수료는 균등하게 나누어집니다.</translation>
     </message>
     <message>
@@ -3209,7 +3209,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">이 주소에 라벨을 입력하면 사용된 주소 목록에 라벨이 표시됩니다</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Bitcoin network.</source>
+        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
         <translation type="unfinished">bitcoin: URI에 추가된 메시지는 참고를 위해 거래내역과 함께 저장될 것입니다. Note: 이 메시지는 비트코인 네트워크로 전송되지 않습니다.</translation>
     </message>
 </context>

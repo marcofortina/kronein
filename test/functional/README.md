@@ -75,7 +75,7 @@ don't have test cases for.
   load a premined blockchain from cache with the default value of `False`. The
   cached data directories contain a 200-block pre-mined blockchain with the
   spendable mining rewards being split between four nodes. Each node has 25
-  mature block subsidies (25x50=1250 BTC) in its wallet. Using them is much more
+  mature block subsidies (25x50=1250 KNE) in its wallet. Using them is much more
   efficient than mining blocks in your test.
 - When calling RPCs with lots of arguments, consider using named keyword
   arguments instead of positional arguments to make the intent of the call
@@ -109,7 +109,7 @@ implements the test logic.
 
 - `P2PConnection` is the class used to connect to a bitcoind.  `P2PInterface`
 contains the higher level logic for processing P2P payloads and connecting to
-the Bitcoin Core node application logic. For custom behaviour, subclass the
+the Kronein Core node application logic. For custom behaviour, subclass the
 P2PInterface object and override the callback methods.
 
 `P2PConnection`s can be used as such:

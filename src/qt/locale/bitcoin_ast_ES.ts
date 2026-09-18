@@ -54,8 +54,8 @@
         <translation type="unfinished">&amp;Escoyer</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">Estes son les tuyes direcciones de Bitcoin pa mandar pagos. Siempre revisa la cantidá y la dirección de recibimientu antes de mandar los coins.</translation>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation type="unfinished">Estes son les tuyes direcciones de Kronein pa mandar pagos. Siempre revisa la cantidá y la dirección de recibimientu antes de mandar los coins.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -154,8 +154,8 @@
         <translation type="unfinished">Confirmar el cifrado de la cartera</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
-        <translation type="unfinished">Advertencia: Si cifras la tua cartera y pierdes la frase de seguridá, ¡perderás &lt;b&gt;TOOS LOS TUYOS BITCOINS&lt;/b&gt;!</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
+        <translation type="unfinished">Advertencia: Si cifras la tua cartera y pierdes la frase de seguridá, ¡perderás &lt;b&gt;TOOS LOS TUYOS KNE&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -182,8 +182,8 @@
         <translation type="unfinished">Atrás</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Recuerda que cifrar la tua cartera nun puede protexer completamente los tuyos bitcoins de ser robados por malware que infecte tu ordenador.</translation>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
+        <translation type="unfinished">Recuerda que cifrar la tua cartera nun puede protexer completamente los tuyos KNE de ser robados por malware que infecte tu ordenador.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -385,8 +385,8 @@
         <translation type="unfinished">El proxy ta &lt;b&gt;activáu&lt;/b&gt;: %1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation type="unfinished">Enviar monedas a una dirección de Bitcoin</translation>
+        <source>Send coins to a Kronein address</source>
+        <translation type="unfinished">Enviar monedas a una dirección de Kronein</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -589,8 +589,8 @@
         <translation type="unfinished">Cerrrar toles carteres</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
-        <translation type="unfinished">Amosar el mensaxe d’ayuda de %1 pa ver una llista de les posibles opciones de la llinia de comandos de Bitcoin</translation>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
+        <translation type="unfinished">Amosar el mensaxe d’ayuda de %1 pa ver una llista de les posibles opciones de la llinia de comandos de Kronein</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -649,10 +649,10 @@
         <translation type="unfinished">&amp;Amosar</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>%n conexión(es) activa(es) a la rede de Bitcoin</numerusform>
+            <numerusform>%n conexión(es) activa(es) a la rede de Kronein</numerusform>
         </translation>
     </message>
     <message>

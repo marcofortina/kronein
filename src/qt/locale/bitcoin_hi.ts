@@ -54,7 +54,7 @@
         <translation type="unfinished">&amp;चुनें</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
         <translation type="unfinished">भुगतान भेजने के लिए ये आपके बिटकॉइन पते हैं। कॉइन्स भेजने से पहले हमेशा राशि और प्राप्त करने वाले पते की जांच करें।</translation>
     </message>
     <message>
@@ -150,7 +150,7 @@
         <translation type="unfinished">वॉलेट एन्क्रिप्शन की पुष्टि करें</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
         <translation type="unfinished">चेतावनी: यदि आप अपना वॉलेट एन्क्रिप्ट करते हैं और अपना पासफ़्रेज़ खो देते हैं, तो आपअपने सभी बिटकॉइन &lt;b&gt; खो देंगे&lt;/b&gt; !</translation>
     </message>
     <message>
@@ -170,7 +170,7 @@
         <translation type="unfinished">वॉलेट के लिए पुराना पासफ़्रेज़ और नया पासफ़्रेज़ डालिये।</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
         <translation type="unfinished">याद रखें कि आपके वॉलेट को एन्क्रिप्ट करने से आपके बिटकॉइन को आपके कंप्यूटर को संक्रमित करने वाले मैलवेयर द्वारा चोरी होने से पूरी तरह से सुरक्षित नहीं किया जा सकता है।</translation>
     </message>
     <message>
@@ -425,7 +425,7 @@
         <translation type="unfinished">प्रॉक्सी &lt;b&gt;अक्षम&lt;/b&gt; है: %1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
+        <source>Send coins to a Kronein address</source>
         <translation type="unfinished">बिटकॉइन पते पर कॉइन्स भेजें</translation>
     </message>
     <message>
@@ -562,7 +562,7 @@
         <translation type="unfinished">बैकअप फ़ाइल से एक वॉलेट पुनर्स्थापित करें</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
         <translation type="unfinished">%1 सहायता संदेश दिखाएं ताकि बिटकॉइन कमांड-लाइन विकल्पों की संभावित सूची मिल सके</translation>
     </message>
     <message>
@@ -594,7 +594,7 @@
         <translation type="unfinished">&amp;दिखाएं</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
             <numerusform>बिटकॉइन नेटवर्क से %n सक्रिय कनेक्शन।</numerusform>
@@ -804,7 +804,7 @@
         <translation type="unfinished">%1 संगत स्क्रिप्ट का पूर्ण पथ (उदा. C:\Downloads\hwi.exe या /Users/you/Downloads/hwi.py). सावधान: मैलवेयर आपके सिक्के चुरा सकता है!</translation>
     </message>
     <message>
-        <source>Automatically open the Bitcoin client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
+        <source>Automatically open the Kronein client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
         <translation type="unfinished">राउटर पर बिटकॉइन क्लाइंट पोर्ट को स्वचालित रूप से खोलता है। यह केवल तभी काम करता है जब आपका राउटर PCP या NAT-PMP का समर्थन करता है और यह सक्षम है। बाहरी पोर्ट यादृच्छिक हो सकता है।</translation>
     </message>
     <message>
@@ -937,7 +937,7 @@
         <translation type="unfinished">स्थानीय पते</translation>
     </message>
     <message>
-        <source>Network addresses that your Bitcoin node is currently using to communicate with other nodes.</source>
+        <source>Network addresses that your Kronein node is currently using to communicate with other nodes.</source>
         <translation type="unfinished">नेटवर्क पते जो आपका बिटकॉइन नोड वर्तमान में अन्य नोड्स के साथ संचार करने के लिए उपयोग कर रहा है।</translation>
     </message>
     <message>
@@ -1348,7 +1348,7 @@ For more information on using this console, type %6.
         <translation type="unfinished">&amp;संदेश:</translation>
     </message>
     <message>
-        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Bitcoin network.</source>
+        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Kronein network.</source>
         <translation type="unfinished">भुगतान अनुरोध के साथ संलग्न करने के लिए एक वैकल्पिक संदेश, जिसे अनुरोध खोले जाने पर प्रदर्शित किया जाएगा। नोट: बिटकॉइन नेटवर्क पर भुगतान के साथ संदेश नहीं भेजा जाएगा।</translation>
     </message>
     <message>
@@ -1597,7 +1597,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
 नोट: चूंकि शुल्क की गणना प्रति-बाइट के आधार पर की जाती है, इसलिए 500 वर्चुअल बाइट्स (1 केवीबी का आधा) के लेन-देन के आकार के लिए "100 सतोशी प्रति केवीबी" की शुल्क दर अंततः केवल 50 सतोशी का शुल्क देगी।</translation>
     </message>
     <message>
-        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for bitcoin transactions than the network can process.</source>
+        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for Kronein transactions than the network can process.</source>
         <translation type="unfinished">जब ब्लॉक में स्थान की तुलना में कम लेन-देन की मात्रा होती है, तो खनिकों के साथ-साथ रिलेइंग नोड्स न्यूनतम शुल्क लागू कर सकते हैं। केवल इस न्यूनतम शुल्क का भुगतान करना ठीक है, लेकिन ध्यान रखें कि नेटवर्क की प्रक्रिया की तुलना में बिटकॉइन लेनदेन की अधिक मांग होने पर इसका परिणाम कभी भी पुष्टिकरण लेनदेन में नहीं हो सकता है।</translation>
     </message>
     <message>
@@ -1801,7 +1801,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
+        <source>Warning: Invalid Kronein address</source>
         <translation type="unfinished">चेतावनी: अमान्य बिटकॉइन पता</translation>
     </message>
     <message>
@@ -1836,7 +1836,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">पहले इस्तेमाल किया गया पता चुनें</translation>
     </message>
     <message>
-        <source>The Bitcoin address to send the payment to</source>
+        <source>The Kronein address to send the payment to</source>
         <translation type="unfinished">भुगतान भेजने के लिए बिटकॉइन पता</translation>
     </message>
     <message>
@@ -1860,7 +1860,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">चयनित इकाई में भेजने के लिए राशि</translation>
     </message>
     <message>
-        <source>The fee will be deducted from the amount being sent. The recipient will receive less bitcoins than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
+        <source>The fee will be deducted from the amount being sent. The recipient will receive less KNE than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
         <translation type="unfinished">भेजी जाने वाली राशि से शुल्क की कटौती की जाएगी। प्राप्तकर्ता को आपके द्वारा राशि फ़ील्ड में दर्ज किए जाने से कम बिटकॉइन प्राप्त होंगे। यदि कई प्राप्तकर्ताओं का चयन किया जाता है, तो शुल्क समान रूप से विभाजित किया जाता है।</translation>
     </message>
     <message>
@@ -1880,7 +1880,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">इस पते के लिए उपयोग किए गए पतों की सूची में जोड़ने के लिए एक लेबल दर्ज करें</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Bitcoin network.</source>
+        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
         <translation type="unfinished">एक संदेश जो बिटकॉइन से जुड़ा था: यूआरआई जो आपके संदर्भ के लिए लेनदेन के साथ संग्रहीत किया जाएगा। नोट: यह संदेश बिटकॉइन नेटवर्क पर नहीं भेजा जाएगा।</translation>
     </message>
 </context>

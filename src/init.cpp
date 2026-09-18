@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -1379,9 +1380,9 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     // Warn about relative -datadir path.
     if (args.IsArgSet("-datadir") && !args.GetPathArg("-datadir").is_absolute()) {
         LogWarning("Relative datadir option '%s' specified, which will be interpreted relative to the "
-                   "current working directory '%s'. This is fragile, because if bitcoin is started in the future "
+                   "current working directory '%s'. This is fragile, because if Kronein Core is started in the future "
                    "from a different location, it will be unable to locate the current data files. There could "
-                   "also be data loss if bitcoin is started while in a temporary directory.",
+                   "also be data loss if Kronein Core is started while in a temporary directory.",
                    args.GetArg("-datadir", ""), fs::PathToString(fs::current_path()));
     }
 

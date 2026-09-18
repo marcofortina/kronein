@@ -54,8 +54,8 @@
         <translation type="unfinished">Избери</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">Ова се вашите Bitcoin-адреси за испраќање плаќања. Секогаш проверувајте ја количината и адресите за примање пред да испраќате монети.</translation>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation type="unfinished">Ова се вашите Kronein-адреси за испраќање плаќања. Секогаш проверувајте ја количината и адресите за примање пред да испраќате монети.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -146,7 +146,7 @@
         <translation type="unfinished">Потврди шифрирање на паричникот</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
         <translation type="unfinished">ВНИМАНИЕ: Ако го шифрирате вашиот паричник и ја изгубите лозинката, &lt;b&gt;ЌЕ ГИ ИЗГУБИТЕ СИТЕ БИТКОИНИ&lt;/b&gt;!</translation>
     </message>
     <message>
@@ -166,7 +166,7 @@
         <translation type="unfinished">Внесете ја старата и новата лозинка за паричникот.</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
         <translation type="unfinished">Запомнете дека шифрирањето на вашиот паричник не може целосно да ги заштити вашите биткоини од кражба од злонамерен софтвер, заразувајќи го вашиот сметач.</translation>
     </message>
     <message>
@@ -429,7 +429,7 @@
         <translation type="unfinished">Проксито е &lt;b&gt;дозволено&lt;/b&gt;: %1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
+        <source>Send coins to a Kronein address</source>
         <translation type="unfinished">Испрати биткоини на биткоин-адреса</translation>
     </message>
     <message>
@@ -639,7 +639,7 @@
         <translation type="unfinished">Затвори ги сите паричници</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
         <translation type="unfinished">Прикажи %1 помошна порака за да добиеш список на можни биткоин-команди.</translation>
     </message>
     <message>
@@ -699,7 +699,7 @@
         <translation type="unfinished">&amp;Покажи</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
             <numerusform />
@@ -936,7 +936,7 @@
 <context>
     <name>Intro</name>
     <message>
-        <source>Bitcoin</source>
+        <source>Kronein</source>
         <translation type="unfinished">Биткоин</translation>
     </message>
     <message numerus="yes">

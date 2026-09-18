@@ -58,8 +58,8 @@
         <translation type="unfinished">ជ្រើសរើស(&amp;h)</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">ទាំងនេះ​គឺជាអាសយដ្ឋាន Bitcoin របស់អ្នកសម្រាប់ធ្វើការផ្ញើការបង់ប្រាក់។ តែងតែពិនិត្យមើលចំនួនប្រាក់ និងអាសយដ្ឋានដែលទទួល មុនពេលផ្ញើប្រាក់។</translation>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation type="unfinished">ទាំងនេះ​គឺជាអាសយដ្ឋាន Kronein របស់អ្នកសម្រាប់ធ្វើការផ្ញើការបង់ប្រាក់។ តែងតែពិនិត្យមើលចំនួនប្រាក់ និងអាសយដ្ឋានដែលទទួល មុនពេលផ្ញើប្រាក់។</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -158,8 +158,8 @@
         <translation type="unfinished">បញ្ជាក់ការអ៊ិនគ្រីបកាបូបចល័ត</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
-        <translation type="unfinished">ការព្រមាន៖ ប្រសិនបើអ្នកអ៊ិនគ្រីបកាបូបចល័តរបស់អ្នក ហើយអ្នកភ្លេចបាត់ឃ្លាសម្ងាត់ នោះអ្នកនិង &lt;b&gt;បាត់បង់ BITCOINS របស់អ្នកទាំងអស់&lt;/b&gt;!</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
+        <translation type="unfinished">ការព្រមាន៖ ប្រសិនបើអ្នកអ៊ិនគ្រីបកាបូបចល័តរបស់អ្នក ហើយអ្នកភ្លេចបាត់ឃ្លាសម្ងាត់ នោះអ្នកនិង &lt;b&gt;បាត់បង់ KNE របស់អ្នកទាំងអស់&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -186,8 +186,8 @@
         <translation type="unfinished">ត្រឡប់</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">សូមចងចាំថាការអ៊ិនគ្រីបកាបូបរបស់អ្នកមិនអាចការពារបានពេញលេញនូវ bitcoins របស់អ្នកពីការលួចដោយមេរោគដែលឆ្លងកុំព្យូទ័ររបស់អ្នក។</translation>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
+        <translation type="unfinished">សូមចងចាំថាការអ៊ិនគ្រីបកាបូបរបស់អ្នកមិនអាចការពារបានពេញលេញនូវ KNE របស់អ្នកពីការលួចដោយមេរោគដែលឆ្លងកុំព្យូទ័ររបស់អ្នក។</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -453,8 +453,8 @@
         <translation type="unfinished">ប្រូកស៊ី ត្រូវបាន &lt;b&gt;អនុញ្ញាត&lt;/b&gt;៖ %1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation type="unfinished">ផ្ញើកាក់ទៅកាន់ អាសយដ្ឋាន Bitcoin មួយ</translation>
+        <source>Send coins to a Kronein address</source>
+        <translation type="unfinished">ផ្ញើកាក់ទៅកាន់ អាសយដ្ឋាន Kronein មួយ</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -642,8 +642,8 @@
         <translation type="unfinished">បិទកាបូបអេឡិចត្រូនិចទាំងអស់</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
-        <translation type="unfinished">បង្ហាញសារជំនួយ%1ដើម្បីទទួលបានបញ្ជីជាមួយនឹងជម្រើសបន្ទាត់ពាក្យបញ្ជា Bitcoin ដែលអាចធ្វើទៅបាន</translation>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
+        <translation type="unfinished">បង្ហាញសារជំនួយ%1ដើម្បីទទួលបានបញ្ជីជាមួយនឹងជម្រើសបន្ទាត់ពាក្យបញ្ជា Kronein ដែលអាចធ្វើទៅបាន</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -698,10 +698,10 @@
         <translation type="unfinished">បង្ហាញ</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>%n ការតភ្ជាប់សកម្មទៅបណ្តាញ Bitcoin ។</numerusform>
+            <numerusform>%n ការតភ្ជាប់សកម្មទៅបណ្តាញ Kronein ។</numerusform>
             <numerusform />
         </translation>
     </message>
@@ -1109,7 +1109,7 @@
         <translation type="unfinished">កែប្រែអាសយដ្ឋានបញ្ចូន</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
+        <source>The entered address "%1" is not a valid Kronein address.</source>
         <translation type="unfinished">អាសយដ្ឋានដែលបានបញ្ចូល  ៉​%1 ៉​គឺមិនមែនជាអាសយដ្ឋានត្រឹមត្រូវរបស់ប៊ីតខញ។</translation>
     </message>
     <message>
@@ -1193,7 +1193,7 @@
         <translation type="unfinished">ប្រើទីតាំងផ្ទុកទិន្នន័យ ដែលមានការជ្រើសរើសមួយៈ</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
+        <source>Kronein</source>
         <translation type="unfinished">ប៊ីតខញ</translation>
     </message>
     <message numerus="yes">
@@ -1241,11 +1241,11 @@
         <translation type="unfinished">ទម្រង់</translation>
     </message>
     <message>
-        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the bitcoin network, as detailed below.</source>
+        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
         <translation type="unfinished">ប្រត្តិបត្តិការថ្មីៗនេះប្រហែលជាមិនអាចមើលឃើញ ហេតុដូច្នេះសមតុល្យនៅក្នងកាបូបអេឡិចត្រូនិចរបស់អ្នកប្រហែលជាមិនត្រឹមត្រូវ។ ព័ត៌មានត្រឹមត្រូវនៅពេលដែលកាបូបអេឡិចត្រូនិចរបស់អ្នកបានធ្វើសមកាលកម្មជាមួយបណ្តាញប៊ឺតខញ  សូមពិនិត្យព័ត៌មានលំម្អិតខាងក្រោម។</translation>
     </message>
     <message>
-        <source>Attempting to spend bitcoins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
         <translation type="unfinished">ព្យាយាមក្នុងការចំណាយប៊ីតខញដែលទទួលរងឥទ្ឋិពលពីប្រត្តិបត្តិការមិនទាន់ធ្វើការបង្ហាញ នឹងមិនត្រូវទទួលស្គាល់ពីបណ្តាញ។</translation>
     </message>
     <message>
@@ -1349,8 +1349,8 @@
         <translation type="unfinished">ផ្លូវពេញទៅកាន់%1ស្គ្រីបដែលត្រូវគ្នា (ឧ. C:\Downloads\hwi.exe ឬ /Users/you/Downloads/hwi.py)។ ប្រយ័ត្ន៖ មេរោគអាចលួចកាក់របស់អ្នក!</translation>
     </message>
     <message>
-        <source>Automatically open the Bitcoin client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
-        <translation type="unfinished">បើកច្រកម៉ាស៊ីនភ្ញៀវ Bitcoin ដោយស្វ័យប្រវត្តិនៅលើរ៉ោតទ័រ។ វាដំណើរការតែនៅពេលដែលរ៉ោតទ័ររបស់អ្នកគាំទ្រ PCP ឬ NAT-PMP ហើយវាត្រូវបានបើក។ ច្រកខាងក្រៅអាចជាចៃដន្យ។</translation>
+        <source>Automatically open the Kronein client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
+        <translation type="unfinished">បើកច្រកម៉ាស៊ីនភ្ញៀវ Kronein ដោយស្វ័យប្រវត្តិនៅលើរ៉ោតទ័រ។ វាដំណើរការតែនៅពេលដែលរ៉ោតទ័ររបស់អ្នកគាំទ្រ PCP ឬ NAT-PMP ហើយវាត្រូវបានបើក។ ច្រកខាងក្រៅអាចជាចៃដន្យ។</translation>
     </message>
     <message>
         <source>Map port using PCP or NA&amp;T-PMP</source>
@@ -1432,7 +1432,7 @@
         <translation type="unfinished">អនុញ្ញាតឲ្យមានការតភ្ជាប់ដែលចូលមក</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a SOCKS5 proxy.</source>
+        <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
         <translation type="unfinished">ភ្ជាប់ទៅកាន់បណ្តាញប៊ឺតខញតាមរយៈ​ SOCKS5 proxy។</translation>
     </message>
     <message>
@@ -1511,7 +1511,7 @@
         <translation type="unfinished">ទម្រង់</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Bitcoin network after a connection is established, but this process has not completed yet.</source>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
         <translation type="unfinished">ព័ត៏មានបានបង្ហាញអាចហួសសពុលភាព។ កាបូបអេឡិចត្រូនិចរបស់អ្នកធ្វើសមកាលកម្មជាមួយនឹងបណ្តាញប៊ីតខញដោយស្វ័យប្រវត្ត បន្ទាប់ពីមានការតភ្ជាប់ ប៉ុន្តែដំណើរការនេះមិនទាន់បានបញ្ចប់នៅឡើយ។</translation>
     </message>
     <message>
@@ -2002,7 +2002,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished">&amp;សារ</translation>
     </message>
     <message>
-        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Bitcoin network.</source>
+        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Kronein network.</source>
         <translation type="unfinished">សារជាជម្រើសមួយក្នុងការភ្ជាប់ទៅនឹងសំណើរទូរទាត់ប្រាក់ ដែលនឹងត្រូវបង្ហាញនៅពេលដែលសំណើរត្រូវបានបើក។ កំណត់ចំណាំៈ សារនេះនឹងមិនត្រូវបានបញ្ចូនជាមួយការទូរទាត់ប្រាក់នៅលើបណ្តាញប៊ីតខញ។</translation>
     </message>
     <message>
@@ -2433,7 +2433,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">ជ្រើសរើសអាសយដ្ឋានដែលបានប្រើពីមុន</translation>
     </message>
     <message>
-        <source>The Bitcoin address to send the payment to</source>
+        <source>The Kronein address to send the payment to</source>
         <translation type="unfinished">អាសយដ្ឋានប៊ីតខញក្នុងការបញ្ចូនការទូរទាត់ប្រាក់ទៅកាន់</translation>
     </message>
     <message>

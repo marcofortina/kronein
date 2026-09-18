@@ -58,8 +58,8 @@
         <translation type="unfinished">&amp;Vel</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">Hetta eru goymdar Bitcoin adressur at senda til. Kanna altíð upphæddina og útgjaldsadressuna áðrenn hvørja flyting.</translation>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation type="unfinished">Hetta eru goymdar Kronein adressur at senda til. Kanna altíð upphæddina og útgjaldsadressuna áðrenn hvørja flyting.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -158,8 +158,8 @@
         <translation type="unfinished">Vátta mappu bronglan</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
-        <translation type="unfinished">Gev gætur: Bronglar tú mappuna og gloymur loyniorðið &lt;b&gt;MISSUR TÚ ALLAR TÍNAR BITCOINS&lt;/b&gt;!</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
+        <translation type="unfinished">Gev gætur: Bronglar tú mappuna og gloymur loyniorðið &lt;b&gt;MISSUR TÚ ALLAR TÍNAR KNE&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -186,8 +186,8 @@
         <translation type="unfinished">Ógilda</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Hav í huga at tað at brongla tína mappu ikki er ein fullfíggjað verja ímóti at tínar bitcoins kunnu stjalast av illbúnaði á tíni teldu.</translation>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
+        <translation type="unfinished">Hav í huga at tað at brongla tína mappu ikki er ein fullfíggjað verja ímóti at tínar KNE kunnu stjalast av illbúnaði á tíni teldu.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -313,8 +313,8 @@
         <translation type="unfinished">Upphædd</translation>
     </message>
     <message>
-        <source>Enter a Bitcoin address (e.g. %1)</source>
-        <translation type="unfinished">Inntøppa eina Bitcoin adressu (t.d. %1)</translation>
+        <source>Enter a Kronein address (e.g. %1)</source>
+        <translation type="unfinished">Inntøppa eina Kronein adressu (t.d. %1)</translation>
     </message>
     <message>
         <source>Ctrl+W</source>
@@ -495,8 +495,8 @@
         <translation type="unfinished">&lt;b&gt;Virktur&lt;/b&gt; proxy: %1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation type="unfinished">Send myntir til eina Bitcoin adressu</translation>
+        <source>Send coins to a Kronein address</source>
+        <translation type="unfinished">Send myntir til eina Kronein adressu</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -700,8 +700,8 @@
         <translation type="unfinished">Lat allar mappur aftur</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
-        <translation type="unfinished">Vís %1 hjálpartekstin fyri ein lista við Bitcoin stýriboð-linju møgulleikum</translation>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
+        <translation type="unfinished">Vís %1 hjálpartekstin fyri ein lista við Kronein stýriboð-linju møgulleikum</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -768,11 +768,11 @@
         <translation type="unfinished">&amp;Vís</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>%n virkið samband til Bitcoin netið.</numerusform>
-            <numerusform>%n virkin sambond til Bitcoin netið.</numerusform>
+            <numerusform>%n virkið samband til Kronein netið.</numerusform>
+            <numerusform>%n virkin sambond til Kronein netið.</numerusform>
         </translation>
     </message>
     <message>
@@ -1235,8 +1235,8 @@
         <translation type="unfinished">Broyt útgjaldsadressu</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
-        <translation type="unfinished">Inntøppaða adressan "%1" er ikki ein gildig Bitcoin adressa.</translation>
+        <source>The entered address "%1" is not a valid Kronein address.</source>
+        <translation type="unfinished">Inntøppaða adressan "%1" er ikki ein gildig Kronein adressa.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1392,8 +1392,8 @@
         </translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Bitcoin block chain.</source>
-        <translation type="unfinished">%1 tekur niður og goymir eitt avrit av Bitcoin blokkketuni.</translation>
+        <source>%1 will download and store a copy of the Kronein block chain.</source>
+        <translation type="unfinished">%1 tekur niður og goymir eitt avrit av Kronein blokkketuni.</translation>
     </message>
     <message>
         <source>The wallet will also be stored in this directory.</source>
@@ -1415,12 +1415,12 @@
         <translation type="unfinished">Formil</translation>
     </message>
     <message>
-        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the bitcoin network, as detailed below.</source>
-        <translation type="unfinished">Nýggjari flytingar eru enn ókendar, og tí kann vísta saldan, á mappuni, vera óeftirfarandi. Kunningin gerst tíðarhóskandi tá tín knútur er samstillaður við bitcoin netið; nágreina niðanfyri.</translation>
+        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
+        <translation type="unfinished">Nýggjari flytingar eru enn ókendar, og tí kann vísta saldan, á mappuni, vera óeftirfarandi. Kunningin gerst tíðarhóskandi tá tín knútur er samstillaður við Kronein netið; nágreina niðanfyri.</translation>
     </message>
     <message>
-        <source>Attempting to spend bitcoins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation type="unfinished">Netið góðtekur ikki nýtslu av bitcoins, ið hesin knúturin ikki enn hevur kunnleika til og harvið ikki vera vístar.</translation>
+        <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <translation type="unfinished">Netið góðtekur ikki nýtslu av KNE, ið hesin knúturin ikki enn hevur kunnleika til og harvið ikki vera vístar.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1519,8 +1519,8 @@
         <translation type="unfinished">Fullfíggja leið til eitt %1 sínamillumvirki skeljarrit (t.d. C:\Downloads\hwi.exe ella /Users/you/Downloads/hwi.py). Gev gætur: Illbúnaður kann stjala tín pening!</translation>
     </message>
     <message>
-        <source>Automatically open the Bitcoin client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
-        <translation type="unfinished">Sjálvvirkandi upplating av Bitcoin viðskiftara portrið á beinaranum. Hetta virkar bert um tín beinari hevur virktan PCP ella NAT-PMP hentleika. Ytra portrið kann vera tilvildarligt.</translation>
+        <source>Automatically open the Kronein client port on the router. This only works when your router supports PCP or NAT-PMP and it is enabled. The external port could be random.</source>
+        <translation type="unfinished">Sjálvvirkandi upplating av Kronein viðskiftara portrið á beinaranum. Hetta virkar bert um tín beinari hevur virktan PCP ella NAT-PMP hentleika. Ytra portrið kann vera tilvildarligt.</translation>
     </message>
     <message>
         <source>Map port using PCP or NA&amp;T-PMP</source>
@@ -1650,8 +1650,8 @@
         <translation type="unfinished">Loyv &amp;inngangandi sambondum</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">Sambind við Bitcoin netið umvegis ein SOCKS5 proxy.</translation>
+        <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
+        <translation type="unfinished">Sambind við Kronein netið umvegis ein SOCKS5 proxy.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1726,8 +1726,8 @@
         <translation type="unfinished">Um mynt-val møgulleikin er sjónligur ella ikki.</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation type="unfinished">Sambind við Bitcoin netið umvegis ein serstakan SOCKS5 proxy, til at røkka Tor-onion-tænastum.</translation>
+        <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
+        <translation type="unfinished">Sambind við Kronein netið umvegis ein serstakan SOCKS5 proxy, til at røkka Tor-onion-tænastum.</translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
@@ -1823,8 +1823,8 @@
         <translation type="unfinished">Formil</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Bitcoin network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">Vísta kunningin kann vera ótíðarhóskandi. Tín knútur samstillar við Bitcoin netið, sjálvvirkandi, eftir at samband er fingið við tað; men tann tilgongdin er ikki liðug enn.</translation>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
+        <translation type="unfinished">Vísta kunningin kann vera ótíðarhóskandi. Tín knútur samstillar við Kronein netið, sjálvvirkandi, eftir at samband er fingið við tað; men tann tilgongdin er ikki liðug enn.</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -2040,8 +2040,8 @@ Vegnað væl kend trygdarhol í BIP70, er harðliga frámælt at fylgja boðum, 
 Fært tú hesi feilboð, skalt tú biðja seljaran, ella tann vinnurekandi, útflýggja tær eitt BIP21-sínamillumvirki URI.</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
-        <translation type="unfinished">Bar ikki til at tulkað URI! Tað kann standast av ógildigari Bitcoin adressu ella avskeplaðum URI ávirkjum.</translation>
+        <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
+        <translation type="unfinished">Bar ikki til at tulkað URI! Tað kann standast av ógildigari Kronein adressu ella avskeplaðum URI ávirkjum.</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -2188,8 +2188,8 @@ Fært tú hesi feilboð, skalt tú biðja seljaran, ella tann vinnurekandi, útf
         <translation type="unfinished">Nærnetatsetur</translation>
     </message>
     <message>
-        <source>Network addresses that your Bitcoin node is currently using to communicate with other nodes.</source>
-        <translation type="unfinished">Tín Bitcoin knútur brúkar fylgjandi net-atsetur at samskifta við aðrar knútar.</translation>
+        <source>Network addresses that your Kronein node is currently using to communicate with other nodes.</source>
+        <translation type="unfinished">Tín Kronein knútur brúkar fylgjandi net-atsetur at samskifta við aðrar knútar.</translation>
     </message>
     <message>
         <source>Block chain</source>
@@ -2630,8 +2630,8 @@ Fyri meira upplýsingar um nýtslu av hesi stýristøð, skriva og send %6.
         <translation type="unfinished">&amp;Boð:</translation>
     </message>
     <message>
-        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Bitcoin network.</source>
-        <translation type="unfinished">Eini valfríð boð at festa í gjaldsumbønina, ið kunnu verða víst, tá umbønin verður latin upp. Hav í huga: Boðini verða ikki send, við gjaldinum, umvegis Bitcoin netið.</translation>
+        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Kronein network.</source>
+        <translation type="unfinished">Eini valfríð boð at festa í gjaldsumbønina, ið kunnu verða víst, tá umbønin verður latin upp. Hav í huga: Boðini verða ikki send, við gjaldinum, umvegis Kronein netið.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -2907,8 +2907,8 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
 Gev gætur: Av tí at avgjaldið verður roknað fyri hvørt být, fer ein avgjaldssatsur á "100 satoshis fyri ktB" fyri eina flyting, ið er 500 tykislig být (helvtin av 1 ktB), at elva til eitt avgjald á 50 satoshis.</translation>
     </message>
     <message>
-        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for bitcoin transactions than the network can process.</source>
-        <translation type="unfinished">Tá nøgdin av flytingum er minni enn pláss er fyri teimum, í blokkunum, kunnu blokk-útvinnarar og framsendandi knútar hava lágmark fyri flytingaravgjald. Tað er í lagið at gjalda hesa minstu upphædd sum flytingaravgjald, men hav í huga at tað kann elva til at flytingin ongantíð verður váttað, tá eftirspurningurin, eftir bitcoin flytingum, er stórri enn netið kann útinna.</translation>
+        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for Kronein transactions than the network can process.</source>
+        <translation type="unfinished">Tá nøgdin av flytingum er minni enn pláss er fyri teimum, í blokkunum, kunnu blokk-útvinnarar og framsendandi knútar hava lágmark fyri flytingaravgjald. Tað er í lagið at gjalda hesa minstu upphædd sum flytingaravgjald, men hav í huga at tað kann elva til at flytingin ongantíð verður váttað, tá eftirspurningurin, eftir Kronein flytingum, er stórri enn netið kann útinna.</translation>
     </message>
     <message>
         <source>A too low fee might result in a never confirming transaction (read the tooltip)</source>
@@ -3102,7 +3102,7 @@ Gev gætur: Av tí at avgjaldið verður roknað fyri hvørt být, fer ein avgja
     </message>
     <message>
         <source>Confirm send coins</source>
-        <translation type="unfinished">Vátta bitcoin flyting</translation>
+        <translation type="unfinished">Vátta Kronein flyting</translation>
     </message>
     <message>
         <source>The recipient address is not valid. Please recheck.</source>
@@ -3140,8 +3140,8 @@ Gev gætur: Av tí at avgjaldið verður roknað fyri hvørt být, fer ein avgja
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
-        <translation type="unfinished">Ávaring: Ógildig Bitcoin adressa</translation>
+        <source>Warning: Invalid Kronein address</source>
+        <translation type="unfinished">Ávaring: Ógildig Kronein adressa</translation>
     </message>
     <message>
         <source>Warning: Unknown change address</source>
@@ -3179,8 +3179,8 @@ Gev gætur: Av tí at avgjaldið verður roknað fyri hvørt být, fer ein avgja
         <translation type="unfinished">Brúka adressuna ið frammanundan var brúkt</translation>
     </message>
     <message>
-        <source>The Bitcoin address to send the payment to</source>
-        <translation type="unfinished">Bitcoin adressan at rinda til</translation>
+        <source>The Kronein address to send the payment to</source>
+        <translation type="unfinished">Kronein adressan at rinda til</translation>
     </message>
     <message>
         <source>Alt+A</source>
@@ -3203,8 +3203,8 @@ Gev gætur: Av tí at avgjaldið verður roknað fyri hvørt být, fer ein avgja
         <translation type="unfinished">Upphædd at flyta, í valdu eindini</translation>
     </message>
     <message>
-        <source>The fee will be deducted from the amount being sent. The recipient will receive less bitcoins than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation type="unfinished">Avgjaldið verður drigi frá sendu upphæddini. Móttakarin móttekur færri bitcoins enn tú ásetur í upphædd teigin. Um fleiri móttakaraadressur eru ásettar verður avgjaldið javnt býtt.</translation>
+        <source>The fee will be deducted from the amount being sent. The recipient will receive less KNE than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
+        <translation type="unfinished">Avgjaldið verður drigi frá sendu upphæddini. Móttakarin móttekur færri KNE enn tú ásetur í upphædd teigin. Um fleiri móttakaraadressur eru ásettar verður avgjaldið javnt býtt.</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>
@@ -3223,8 +3223,8 @@ Gev gætur: Av tí at avgjaldið verður roknað fyri hvørt být, fer ein avgja
         <translation type="unfinished">Inntøppa eitt spjaldur ið verður knýtt at hesi adressuni í útgjaldsadressuskránni</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Bitcoin network.</source>
-        <translation type="unfinished">Eini boð, ið vóru partur at bitcoin: URI'inum, ið verða goymd saman við flytingini, og sum tú kann brúka sum tilvísing. Hav í huga: Boðini verða ikki send, við gjaldinum, umvegis Bitcoin netið.</translation>
+        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <translation type="unfinished">Eini boð, ið vóru partur at bitcoin: URI'inum, ið verða goymd saman við flytingini, og sum tú kann brúka sum tilvísing. Hav í huga: Boðini verða ikki send, við gjaldinum, umvegis Kronein netið.</translation>
     </message>
 </context>
 <context>

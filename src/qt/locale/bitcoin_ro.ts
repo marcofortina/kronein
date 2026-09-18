@@ -54,8 +54,8 @@
         <translation type="unfinished">A&amp;lege</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation type="unfinished">Acestea sunt adresele tale Bitcoin pentru efectuarea plăților. Întotdeauna verifică atent suma de plată și adresa beneficiarului înainte de a trimite monede.</translation>
+        <source>These are your Kronein addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation type="unfinished">Acestea sunt adresele tale Kronein pentru efectuarea plăților. Întotdeauna verifică atent suma de plată și adresa beneficiarului înainte de a trimite monede.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -154,8 +154,8 @@
         <translation type="unfinished">Confirmaţi criptarea portofelului</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
-        <translation type="unfinished">Atenţie: Dacă vă criptati portofelul și ulterior pierdeți parola, &lt;b&gt;VEŢI PIERDE TOȚI BITCOINII&lt;/b&gt;!</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR KNE&lt;/b&gt;!</source>
+        <translation type="unfinished">Atenţie: Dacă vă criptati portofelul și ulterior pierdeți parola, &lt;b&gt;VEŢI PIERDE TOȚI KNEII&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -183,8 +183,8 @@
         <translation type="unfinished">Înapoi</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation type="unfinished">Reţineti: criptarea portofelului dvs. nu vă poate proteja în totalitate bitcoin-urile împotriva furtului de malware care vă infectează computerul.</translation>
+        <source>Remember that encrypting your wallet cannot fully protect your KNE from being stolen by malware infecting your computer.</source>
+        <translation type="unfinished">Reţineti: criptarea portofelului dvs. nu vă poate proteja în totalitate KNE-urile împotriva furtului de malware care vă infectează computerul.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -306,8 +306,8 @@
         <translation type="unfinished">Sumă</translation>
     </message>
     <message>
-        <source>Enter a Bitcoin address (e.g. %1)</source>
-        <translation type="unfinished">Introduceţi o adresă Bitcoin (de exemplu %1)</translation>
+        <source>Enter a Kronein address (e.g. %1)</source>
+        <translation type="unfinished">Introduceţi o adresă Kronein (de exemplu %1)</translation>
     </message>
     <message>
         <source>Unroutable</source>
@@ -464,8 +464,8 @@
         <translation type="unfinished">Proxy este&lt;b&gt;activat&lt;/b&gt;:%1</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation type="unfinished">Trimite monede către o adresă Bitcoin</translation>
+        <source>Send coins to a Kronein address</source>
+        <translation type="unfinished">Trimite monede către o adresă Kronein</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -678,8 +678,8 @@
         <translation type="unfinished">Închideți toate portofelele</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
-        <translation type="unfinished">Arată mesajul de ajutor %1 pentru a obţine o listă cu opţiunile posibile de linii de comandă Bitcoin</translation>
+        <source>Show the %1 help message to get a list with possible Kronein command-line options</source>
+        <translation type="unfinished">Arată mesajul de ajutor %1 pentru a obţine o listă cu opţiunile posibile de linii de comandă Kronein</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -738,12 +738,12 @@
         <translation type="unfinished">A&amp;rata</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network.</source>
+        <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
-            <numerusform>%n conexiuni active la rețeaua Bitcoin</numerusform>
-            <numerusform>%n conexiuni active către reţeaua Bitcoin</numerusform>
-            <numerusform>%n de conexiuni active către reţeaua Bitcoin</numerusform>
+            <numerusform>%n conexiuni active la rețeaua Kronein</numerusform>
+            <numerusform>%n conexiuni active către reţeaua Kronein</numerusform>
+            <numerusform>%n de conexiuni active către reţeaua Kronein</numerusform>
         </translation>
     </message>
     <message>
@@ -1185,8 +1185,8 @@
         <translation type="unfinished">Editează adresa de trimitere</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
-        <translation type="unfinished">Adresa introdusă "%1" nu este o adresă Bitcoin validă.</translation>
+        <source>The entered address "%1" is not a valid Kronein address.</source>
+        <translation type="unfinished">Adresa introdusă "%1" nu este o adresă Kronein validă.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1342,8 +1342,8 @@
         </translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Bitcoin block chain.</source>
-        <translation type="unfinished">%1 va descarca si stoca o copie a blockchainului Bitcoin</translation>
+        <source>%1 will download and store a copy of the Kronein block chain.</source>
+        <translation type="unfinished">%1 va descarca si stoca o copie a blockchainului Kronein</translation>
     </message>
     <message>
         <source>The wallet will also be stored in this directory.</source>
@@ -1361,12 +1361,12 @@
 <context>
     <name>ModalOverlay</name>
     <message>
-        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the bitcoin network, as detailed below.</source>
-        <translation type="unfinished">Tranzactiile recente pot sa nu fie inca vizibile, de aceea balanta portofelului poate fi incorecta. Aceasta informatie va fi corecta de indata ce portofelul va fi complet sincronizat cu reteaua Bitcoin, asa cum este detaliat mai jos.</translation>
+        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Kronein network, as detailed below.</source>
+        <translation type="unfinished">Tranzactiile recente pot sa nu fie inca vizibile, de aceea balanta portofelului poate fi incorecta. Aceasta informatie va fi corecta de indata ce portofelul va fi complet sincronizat cu reteaua Kronein, asa cum este detaliat mai jos.</translation>
     </message>
     <message>
-        <source>Attempting to spend bitcoins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation type="unfinished">Incercarea de a cheltui bitcoini care sunt afectati de tranzactii ce inca nu sunt afisate nu va fi acceptata de retea.</translation>
+        <source>Attempting to spend KNE that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <translation type="unfinished">Incercarea de a cheltui Kroneini care sunt afectati de tranzactii ce inca nu sunt afisate nu va fi acceptata de retea.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1530,8 +1530,8 @@
         <translation type="unfinished">Permite conexiuni de intrar&amp;e</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a SOCKS5 proxy.</source>
-        <translation type="unfinished">Conectare la reţeaua Bitcoin printr-un proxy SOCKS5.</translation>
+        <source>Connect to the Kronein network through a SOCKS5 proxy.</source>
+        <translation type="unfinished">Conectare la reţeaua Kronein printr-un proxy SOCKS5.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1583,15 +1583,15 @@
     </message>
     <message>
         <source>Choose the default subdivision unit to show in the interface and when sending coins.</source>
-        <translation type="unfinished">Alegeţi subdiviziunea folosită la afişarea interfeţei şi la trimiterea de bitcoin.</translation>
+        <translation type="unfinished">Alegeţi subdiviziunea folosită la afişarea interfeţei şi la trimiterea de Kronein.</translation>
     </message>
     <message>
         <source>Whether to show coin control features or not.</source>
         <translation type="unfinished">Arată controlul caracteristicilor monedei sau nu.</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation type="unfinished">Conectați-vă la rețeaua Bitcoin printr-un proxy SOCKS5 separat pentru serviciile Tor onion.</translation>
+        <source>Connect to the Kronein network through a separate SOCKS5 proxy for Tor onion services.</source>
+        <translation type="unfinished">Conectați-vă la rețeaua Kronein printr-un proxy SOCKS5 separat pentru serviciile Tor onion.</translation>
     </message>
     <message>
         <source>&amp;Cancel</source>
@@ -1652,7 +1652,7 @@
     </message>
     <message>
         <source>The supplied proxy address is invalid.</source>
-        <translation type="unfinished">Adresa bitcoin pe care aţi specificat-o nu este validă.</translation>
+        <translation type="unfinished">Adresa Kronein pe care aţi specificat-o nu este validă.</translation>
     </message>
 </context>
 <context>
@@ -1665,8 +1665,8 @@
 <context>
     <name>OverviewPage</name>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Bitcoin network after a connection is established, but this process has not completed yet.</source>
-        <translation type="unfinished">Informaţiile afişate pot fi neactualizate. Portofelul dvs. se sincronizează automat cu reţeaua Bitcoin după ce o conexiune este stabilită, dar acest proces nu a fost finalizat încă.</translation>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Kronein network after a connection is established, but this process has not completed yet.</source>
+        <translation type="unfinished">Informaţiile afişate pot fi neactualizate. Portofelul dvs. se sincronizează automat cu reţeaua Kronein după ce o conexiune este stabilită, dar acest proces nu a fost finalizat încă.</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -1820,8 +1820,8 @@
         <translation type="unfinished">'bitcoin://' nu este un URI valid. Folositi 'bitcoin:' in loc.</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
-        <translation type="unfinished">URI nu poate fi analizat! Acest lucru poate fi cauzat de o adresă Bitcoin invalidă sau parametri URI deformaţi.</translation>
+        <source>URI cannot be parsed! This can be caused by an invalid Kronein address or malformed URI parameters.</source>
+        <translation type="unfinished">URI nu poate fi analizat! Acest lucru poate fi cauzat de o adresă Kronein invalidă sau parametri URI deformaţi.</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -2248,8 +2248,8 @@ Pentru mai multe informații privind folosirea consolei, tastează %6.
         <translation type="unfinished">&amp;Mesaj:</translation>
     </message>
     <message>
-        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Bitcoin network.</source>
-        <translation type="unfinished">Un mesaj opţional de ataşat la cererea de plată, care va fi afişat cînd cererea este deschisă. Notă: Acest mesaj nu va fi trimis cu plata către reţeaua Bitcoin.</translation>
+        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Kronein network.</source>
+        <translation type="unfinished">Un mesaj opţional de ataşat la cererea de plată, care va fi afişat cînd cererea este deschisă. Notă: Acest mesaj nu va fi trimis cu plata către reţeaua Kronein.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -2673,8 +2673,8 @@ Pentru mai multe informații privind folosirea consolei, tastează %6.
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
-        <translation type="unfinished">Atenţie: Adresa bitcoin nevalidă!</translation>
+        <source>Warning: Invalid Kronein address</source>
+        <translation type="unfinished">Atenţie: Adresa Kronein nevalidă!</translation>
     </message>
     <message>
         <source>Warning: Unknown change address</source>
@@ -2712,8 +2712,8 @@ Pentru mai multe informații privind folosirea consolei, tastează %6.
         <translation type="unfinished">Alegeţi adrese folosite anterior</translation>
     </message>
     <message>
-        <source>The Bitcoin address to send the payment to</source>
-        <translation type="unfinished">Adresa bitcoin către care se face plata</translation>
+        <source>The Kronein address to send the payment to</source>
+        <translation type="unfinished">Adresa Kronein către care se face plata</translation>
     </message>
     <message>
         <source>Paste address from clipboard</source>
@@ -2728,8 +2728,8 @@ Pentru mai multe informații privind folosirea consolei, tastează %6.
         <translation type="unfinished">Cantitatea de trimis în unitatea selectată</translation>
     </message>
     <message>
-        <source>The fee will be deducted from the amount being sent. The recipient will receive less bitcoins than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation type="unfinished">Taxa va fi scazuta in suma trimisa. Destinatarul va primi mai putini bitcoin decat ati specificat in campul sumei trimise. Daca au fost selectati mai multi destinatari, taxa se va imparti in mod egal.</translation>
+        <source>The fee will be deducted from the amount being sent. The recipient will receive less KNE than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
+        <translation type="unfinished">Taxa va fi scazuta in suma trimisa. Destinatarul va primi mai putini KNE decat ati specificat in campul sumei trimise. Daca au fost selectati mai multi destinatari, taxa se va imparti in mod egal.</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>
@@ -2748,8 +2748,8 @@ Pentru mai multe informații privind folosirea consolei, tastează %6.
         <translation type="unfinished">Introduceţi eticheta pentru ca această adresa să fie introdusă în lista de adrese folosite</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Bitcoin network.</source>
-        <translation type="unfinished">un mesaj a fost ataşat la bitcoin: URI care va fi stocat cu tranzacţia pentru referinţa dvs. Notă: Acest mesaj nu va fi trimis către reţeaua bitcoin.</translation>
+        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Kronein network.</source>
+        <translation type="unfinished">un mesaj a fost ataşat la bitcoin: URI care va fi stocat cu tranzacţia pentru referinţa dvs. Notă: Acest mesaj nu va fi trimis către reţeaua Kronein.</translation>
     </message>
 </context>
 <context>
