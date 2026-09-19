@@ -1,4 +1,5 @@
 // Copyright (c) The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -65,7 +66,8 @@ static void OrphanageSinglePeerEviction(benchmark::Bench& bench)
     for (unsigned int i{0}; i < NUM_TINY_TRANSACTIONS; ++i) {
         tiny_txs.emplace_back(MakeTransactionBulkedTo(1, TINY_TX_WEIGHT, det_rand));
     }
-    auto large_tx = MakeTransactionBulkedTo(1, MAX_STANDARD_TX_WEIGHT, det_rand);
+    const auto tiny_tx_weight{GetTransactionWeight(*tiny_txs.front())};
+    auto large_tx = MakeTransactionBulkedTo(1, MAX_STANDARD_TX_WEIGHT - 3, det_rand);
     assert(GetTransactionWeight(*large_tx) <= MAX_STANDARD_TX_WEIGHT);
 
     const auto orphanage{node::MakeTxOrphanage(/*max_global_latency_score=*/node::DEFAULT_MAX_ORPHANAGE_LATENCY_SCORE, /*reserved_peer_usage=*/node::DEFAULT_RESERVED_ORPHAN_WEIGHT_PER_PEER)};
@@ -91,20 +93,23 @@ static void OrphanageSinglePeerEviction(benchmark::Bench& bench)
     // If we need to trim already, that means the benchmark is not representative of what LimitOrphans may do in a single call.
     assert(orphanage->TotalOrphanUsage() <= orphanage->MaxGlobalUsage());
     assert(orphanage->TotalLatencyScore() <= orphanage->MaxGlobalLatencyScore());
-    assert(orphanage->TotalOrphanUsage() + TINY_TX_WEIGHT > orphanage->MaxGlobalUsage());
+    assert(orphanage->TotalOrphanUsage() + tiny_tx_weight > orphanage->MaxGlobalUsage());
 
     bench.epochs(1).epochIterations(1).run([&]() NO_THREAD_SAFETY_ANALYSIS {
         // Lastly, add the large transaction.
+        const auto excess_usage{
+            orphanage->TotalOrphanUsage() + GetTransactionWeight(*large_tx) - orphanage->MaxGlobalUsage()};
+        const auto expected_removed{(excess_usage + tiny_tx_weight - 1) / tiny_tx_weight};
         const auto num_announcements_before_trim{orphanage->CountAnnouncements()};
         assert(orphanage->AddTx(large_tx, peer));
 
         // If there are multiple peers, note that they all have the same DoS score. We will evict only 1 item at a time for each new DoSiest peer.
         const auto num_announcements_after_trim{orphanage->CountAnnouncements()};
-        const auto num_evicted{num_announcements_before_trim - num_announcements_after_trim};
+        const auto net_evictions{num_announcements_before_trim - num_announcements_after_trim};
 
         // The number of evictions is the same regardless of the number of peers. In both cases, we can exceed the
         // usage limit using 1 maximally-sized transaction.
-        assert(num_evicted == MAX_STANDARD_TX_WEIGHT / TINY_TX_WEIGHT);
+        assert(net_evictions == expected_removed - 1);
     });
 }
 static void OrphanageMultiPeerEviction(benchmark::Bench& bench)
@@ -171,7 +176,7 @@ static void OrphanageMultiPeerEviction(benchmark::Bench& bench)
     assert(max_usage - total_usage <= LARGE_TX_WEIGHT);
     assert(orphanage->TotalLatencyScore() <= orphanage->MaxGlobalLatencyScore());
 
-    auto last_tx = MakeTransactionBulkedTo(0, max_usage - total_usage + 1, det_rand);
+    auto last_tx = MakeTransactionBulkedTo(0, std::max(TINY_TX_WEIGHT, max_usage - total_usage + 1), det_rand);
 
     bench.epochs(1).epochIterations(1).run([&]() NO_THREAD_SAFETY_ANALYSIS {
         const auto num_announcements_before_trim{orphanage->CountAnnouncements()};

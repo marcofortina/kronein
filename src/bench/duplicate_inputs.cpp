@@ -1,4 +1,5 @@
 // Copyright (c) 2011-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -30,7 +31,7 @@ static void DuplicateInputs(benchmark::Bench& bench)
 {
     const auto testing_setup = MakeNoLogFileContext<const TestingSetup>();
 
-    const CScript SCRIPT_PUB{CScript(OP_TRUE)};
+    const CScript SCRIPT_PUB{CScript() << OP_1 << std::vector<unsigned char>(32, 1)};
 
     const CChainParams& chainparams = Params();
 
