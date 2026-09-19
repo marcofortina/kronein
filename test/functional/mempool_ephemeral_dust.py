@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2024-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -202,8 +203,8 @@ class EphemeralDustTest(BitcoinTestFramework):
         self.restart_node(1, extra_args=["-minrelaytxfee=0"])
         self.connect_nodes(0, 1)
 
-        # 330 is dust threshold for taproot outputs
-        for value in [1, 329, 330]:
+        # 300 is the dust threshold for native Taproot outputs.
+        for value in [1, 299, 300]:
             assert_equal(self.nodes[0].getrawmempool(), [])
             dusty_tx, _ = self.create_ephemeral_dust_package(dust_value=value)
             test_res = self.nodes[0].testmempoolaccept([dusty_tx["hex"]])
@@ -218,7 +219,7 @@ class EphemeralDustTest(BitcoinTestFramework):
         self.log.info("Test that spending from a tx with ephemeral outputs is only allowed if dust is spent as well")
 
         assert_equal(self.nodes[0].getrawmempool(), [])
-        dusty_tx, sweep_tx = self.create_ephemeral_dust_package(dust_value=329)
+        dusty_tx, sweep_tx = self.create_ephemeral_dust_package(dust_value=299)
 
         # Valid sweep we will RBF incorrectly by not spending dust as well
         self.nodes[0].submitpackage([dusty_tx["hex"], sweep_tx["hex"]])
@@ -242,7 +243,7 @@ class EphemeralDustTest(BitcoinTestFramework):
         self.generate(self.nodes[0], 1)
         assert_equal(self.nodes[0].getrawmempool(), [])
 
-        dusty_tx, _ = self.create_ephemeral_dust_package(dust_value=329)
+        dusty_tx, _ = self.create_ephemeral_dust_package(dust_value=299)
 
         # Spend non-dust only
         unspent_sweep_tx = self.wallet.create_self_transfer_multi(utxos_to_spend=[dusty_tx["new_utxos"][0]])

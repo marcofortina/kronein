@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2024-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test getblocktemplate RPC in proposal mode
@@ -12,22 +13,25 @@ from concurrent.futures import ThreadPoolExecutor
 import copy
 
 from test_framework.blocktools import (
+    NATIVE_DUMMY_KEY,
+    add_witness_commitment,
     create_block,
     create_coinbase,
-    add_witness_commitment,
 )
-
+from test_framework.messages import (
+    BLOCK_HEADER_SIZE,
+    COutPoint,
+    CTransaction,
+    CTxIn,
+    CTxOut,
+    uint256_from_compact,
+)
+from test_framework.script_util import output_key_to_p2tr_script
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
 )
-
-from test_framework.messages import (
-    BLOCK_HEADER_SIZE,
-    uint256_from_compact,
-)
-
 from test_framework.wallet import (
     MiniWallet,
 )
@@ -95,8 +99,9 @@ class MiningTemplateVerificationTest(BitcoinTestFramework):
     def thin_air_spending_test(self, node, block):
         self.log.info("Transaction that spends from thin air")
         bad_block = copy.deepcopy(block)
-        bad_tx = copy.deepcopy(bad_block.vtx[0])
-        bad_tx.vin[0].prevout.hash = 255
+        bad_tx = CTransaction()
+        bad_tx.vin.append(CTxIn(COutPoint(hash=255, n=0), scriptSig=b""))
+        bad_tx.vout.append(CTxOut(nValue=1, scriptPubKey=output_key_to_p2tr_script(NATIVE_DUMMY_KEY)))
         bad_block.vtx.append(bad_tx)
         assert_template(node, bad_block, 'bad-txns-inputs-missingorspent')
 

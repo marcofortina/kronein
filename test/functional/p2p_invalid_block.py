@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2015-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test node responses to invalid blocks.
@@ -17,13 +18,21 @@ import time
 
 from test_framework.blocktools import (
     MAX_FUTURE_BLOCK_TIME,
+    add_witness_commitment,
     create_block,
     create_coinbase,
     create_tx_with_script,
 )
-from test_framework.messages import COIN
+from test_framework.messages import (
+    COIN,
+    CTxInWitness,
+)
 from test_framework.p2p import P2PDataStore
-from test_framework.script import OP_TRUE
+from test_framework.script import (
+    CScript,
+    OP_TRUE,
+    taproot_construct,
+)
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
@@ -43,14 +52,41 @@ class InvalidBlockRequestTest(BitcoinTestFramework):
         node = self.nodes[0]  # convenience reference to the node
         peer = node.add_p2p_connection(P2PDataStore())
 
+        taproot_info = taproot_construct(
+            (1).to_bytes(32, "big"),
+            [("true", CScript([OP_TRUE]))],
+        )
+        leaf = taproot_info.leaves["true"]
+        control = (
+            bytes([leaf.version | taproot_info.negflag])
+            + taproot_info.internal_pubkey
+            + leaf.merklebranch
+        )
+
+        def create_true_spend(prevtx, n, amount):
+            tx = create_tx_with_script(
+                prevtx,
+                n,
+                script_sig=b"",
+                amount=amount,
+                output_script=taproot_info.scriptPubKey,
+            )
+            tx.wit.vtxinwit.append(CTxInWitness())
+            tx.wit.vtxinwit[0].scriptWitness.stack = [leaf.script, control]
+            return tx
+
         best_block = node.getblock(node.getbestblockhash())
         tip = int(node.getbestblockhash(), 16)
         height = best_block["height"] + 1
         block_time = best_block["time"] + 1
 
-        self.log.info("Create a new block with an anyone-can-spend coinbase")
+        self.log.info("Create a new block with an anyone-can-spend Taproot coinbase")
 
-        block = create_block(tip, create_coinbase(height), block_time)
+        block = create_block(
+            tip,
+            create_coinbase(height, script_pubkey=taproot_info.scriptPubKey),
+            block_time,
+        )
         block.solve()
         # Save the coinbase for later
         block1 = block
@@ -72,9 +108,10 @@ class InvalidBlockRequestTest(BitcoinTestFramework):
         # For more information on merkle-root malleability see src/consensus/merkle.cpp.
         self.log.info("Test merkle root malleability.")
 
-        tx1 = create_tx_with_script(block1.vtx[0], 0, script_sig=bytes([OP_TRUE]), amount=50 * COIN)
-        tx2 = create_tx_with_script(tx1, 0, script_sig=bytes([OP_TRUE]), amount=50 * COIN)
+        tx1 = create_true_spend(block1.vtx[0], 0, 50 * COIN)
+        tx2 = create_true_spend(tx1, 0, 50 * COIN)
         block2 = create_block(tip, create_coinbase(height), block_time, txlist=[tx1, tx2])
+        add_witness_commitment(block2)
         block_time += 1
         block2.solve()
         orig_hash = block2.hash_int
@@ -93,7 +130,8 @@ class InvalidBlockRequestTest(BitcoinTestFramework):
 
         block2_dup = copy.deepcopy(block2_orig)
         block2_dup.vtx[2].vin.append(block2_dup.vtx[2].vin[0])
-        block2_dup.hashMerkleRoot = block2_dup.calc_merkle_root()
+        block2_dup.vtx[2].wit.vtxinwit.append(copy.deepcopy(block2_dup.vtx[2].wit.vtxinwit[0]))
+        add_witness_commitment(block2_dup)
         block2_dup.solve()
         peer.send_blocks_and_test([block2_dup], node, success=False, reject_reason='bad-txns-inputs-duplicate')
 
@@ -119,9 +157,11 @@ class InvalidBlockRequestTest(BitcoinTestFramework):
 
         # Complete testing of CVE-2018-17144, by checking for the inflation bug.
         # Create a block that spends the output of a tx in a previous block.
-        tx3 = create_tx_with_script(tx2, 0, script_sig=bytes([OP_TRUE]), amount=50 * COIN)
+        tx3 = create_true_spend(tx2, 0, 50 * COIN)
         tx3.vin.append(tx3.vin[0])  # Duplicates input
+        tx3.wit.vtxinwit.append(copy.deepcopy(tx3.wit.vtxinwit[0]))
         block4 = create_block(tip, create_coinbase(height), block_time, txlist=[tx3])
+        add_witness_commitment(block4)
         block4.solve()
         self.log.info("Test inflation by duplicating input")
         peer.send_blocks_and_test([block4], node, success=False,  reject_reason='bad-txns-inputs-duplicate')

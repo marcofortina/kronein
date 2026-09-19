@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2019-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the generation of UTXO snapshots using `dumptxoutset`.
@@ -54,10 +55,10 @@ class DumptxoutsetTest(BitcoinTestFramework):
         # UTXO snapshot hash should be deterministic based on mocked time.
         assert_equal(
             sha256sum_file(str(expected_path)).hex(),
-            '6df72b51191f509f2933fcdbd4480e3f8eb73ddccf53384af674a57dc0a34453')
+            '3ee1a35b5eece157add4b84ec601d3397f8b57ece07573cee799bfb183db3a62')
 
         assert_equal(
-            out['txoutset_hash'], '4afcfbadb7e2e1eb319be04d07e3aa739061a7d25e0f2f9ecce10aa7b45698e1')
+            out['txoutset_hash'], '0450f356baebee2d998d34776be3f7f49206f88ebef339ad214099b4ee59931a')
         assert_equal(out['nchaintx'], 101)
 
         # Specifying a path to an existing or invalid file will fail.

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2015-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test processing of unrequested blocks.
@@ -53,9 +54,15 @@ Node1 is unused in tests 3-7:
 
 import time
 
-from test_framework.blocktools import create_block, create_coinbase, create_tx_with_script
+from test_framework.blocktools import (
+    NATIVE_DUMMY_KEY,
+    create_block,
+    create_coinbase,
+    create_tx_with_script,
+)
 from test_framework.messages import CBlockHeader, CInv, MSG_BLOCK, msg_block, msg_headers, msg_inv
 from test_framework.p2p import p2p_lock, P2PInterface
+from test_framework.script_util import output_key_to_p2tr_script
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
@@ -240,7 +247,13 @@ class AcceptBlockTest(BitcoinTestFramework):
         block_290f = create_block(block_289f.hash_int, create_coinbase(290), block_289f.nTime+1)
         block_290f.solve()
         # block_291 spends a coinbase below maturity!
-        tx_to_add = create_tx_with_script(block_290f.vtx[0], 0, script_sig=b"42", amount=1)
+        tx_to_add = create_tx_with_script(
+            block_290f.vtx[0],
+            0,
+            script_sig=b"",
+            amount=1,
+            output_script=output_key_to_p2tr_script(NATIVE_DUMMY_KEY),
+        )
         block_291 = create_block(block_290f.hash_int, create_coinbase(291), block_290f.nTime+1, txlist=[tx_to_add])
         block_291.solve()
         block_292 = create_block(block_291.hash_int, create_coinbase(292), block_291.nTime+1)

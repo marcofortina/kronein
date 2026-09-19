@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the pruning code.
@@ -494,7 +495,9 @@ class PruneTest(BitcoinTestFramework):
     def test_scanblocks_pruned(self):
         node = self.nodes[5]
         genesis_blockhash = node.getblockhash(0)
-        false_positive_spk = bytes.fromhex("001400000000000000000000000000000000000cadcb")
+        # Native Taproot output that is a false positive for the regtest
+        # genesis block's basic filter.
+        false_positive_spk = bytes.fromhex("51205fae030000000000000000000000000000000000000000000000000000000000")
 
         assert genesis_blockhash in node.scanblocks(
             "start", [{"desc": f"raw({false_positive_spk.hex()})"}], 0, 0)['relevant_blocks']

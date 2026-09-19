@@ -10,6 +10,14 @@
 import os
 import stat
 import subprocess
+from test_framework.blocktools import (
+    create_block,
+    create_coinbase,
+)
+from test_framework.script import (
+    CScript,
+    OP_RETURN,
+)
 from test_framework.test_framework import BitcoinTestFramework
 
 
@@ -22,9 +30,18 @@ class BlockstoreReindexTest(BitcoinTestFramework):
     def reindex_readonly(self):
         self.log.debug("Generate block big enough to start second block file")
         fastprune_blockfile_size = 0x10000
-        opreturn = "6a"
-        nulldata = fastprune_blockfile_size * "ff"
-        self.generateblock(self.nodes[0], output=f"raw({opreturn}{nulldata})", transactions=[])
+        node = self.nodes[0]
+        tip = node.getbestblockhash()
+        block = create_block(
+            int(tip, 16),
+            create_coinbase(
+                height=1,
+                extra_output_script=CScript(bytes(CScript([OP_RETURN])) + b"\xff" * fastprune_blockfile_size),
+            ),
+            node.getblockheader(tip)["time"] + 1,
+        )
+        block.solve()
+        node.submitblock(block.serialize().hex())
         block_count = self.nodes[0].getblockcount()
         self.stop_node(0)
 
