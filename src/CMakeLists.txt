@@ -65,6 +65,7 @@ add_library(bitcoin_consensus STATIC EXCLUDE_FROM_ALL
   consensus/tx_check.cpp
   hash.cpp
   primitives/block.cpp
+  primitives/chainregistry.cpp
   primitives/transaction.cpp
   pubkey.cpp
   script/interpreter.cpp
