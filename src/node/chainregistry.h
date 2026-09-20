@@ -57,8 +57,7 @@ private:
 
 public:
     ChainRegistryState(Consensus::Params::ChainRegistryParams params,
-                       const uint256& main_genesis_hash)
-        : m_params{params}, m_main_genesis_hash{main_genesis_hash} {}
+                       const uint256& main_genesis_hash);
 
     ChainRegistryStateResult Initialize(const DBParams& db_params,
                                         const uint256& expected_tip,
@@ -68,6 +67,9 @@ public:
                                           int height,
                                           const uint256& block_hash,
                                           bool sync = false);
+    ChainRegistryStateResult ValidateBlock(const CBlock& block,
+                                           int height,
+                                           const uint256& block_hash) const;
     ChainRegistryStateResult DisconnectBlock(const uint256& block_hash,
                                              const uint256& parent_hash,
                                              int parent_height,

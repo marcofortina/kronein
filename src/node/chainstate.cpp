@@ -116,6 +116,27 @@ static ChainstateLoadResult CompleteChainstateInitialization(
             }
             assert(chainstate->m_chain.Tip() != nullptr);
         }
+
+        try {
+            constexpr size_t REGISTRY_DB_CACHE_BYTES{1 << 20};
+            const auto registry_result{chainstate->InitChainRegistryDB(
+                REGISTRY_DB_CACHE_BYTES,
+                options.coins_db_in_memory,
+                options.wipe_chainstate_db)};
+            if (!registry_result.IsValid()) {
+                return {
+                    ChainstateLoadStatus::FAILURE,
+                    Untranslated(strprintf(
+                        "Error loading child chain registry database (state error %u, database error %u). "
+                        "Restart with -reindex-chainstate to rebuild it.",
+                        static_cast<unsigned>(registry_result.error),
+                        static_cast<unsigned>(registry_result.load_result.error))),
+                };
+            }
+        } catch (const dbwrapper_error& err) {
+            LogError("%s\n", err.what());
+            return {ChainstateLoadStatus::FAILURE, _("Error opening child chain registry database")};
+        }
     }
 
     // Populate setBlockIndexCandidates in a separate loop, after all LoadChainTip()

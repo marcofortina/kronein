@@ -18,6 +18,7 @@
 #include <kernel/chainstatemanager_opts.h>
 #include <kernel/cs_main.h> // IWYU pragma: export
 #include <node/blockstorage.h>
+#include <node/chainregistry.h>
 #include <policy/feerate.h>
 #include <policy/packages.h>
 #include <policy/policy.h>
@@ -562,6 +563,9 @@ protected:
     //! Manages the UTXO set, which is a reflection of the contents of `m_chain`.
     std::unique_ptr<CoinsViews> m_coins_views;
 
+    //! Child-chain registry state aligned with this specific chainstate.
+    std::unique_ptr<node::ChainRegistryState> m_chain_registry_state;
+
     //! Cached result of LookupBlockIndex(*m_from_snapshot_blockhash)
     mutable const CBlockIndex* m_cached_snapshot_base GUARDED_BY(::cs_main){nullptr};
 
@@ -588,6 +592,8 @@ public:
 
     //! Return path to chainstate leveldb directory.
     fs::path StoragePath() const;
+    //! Return path to the registry leveldb paired with this chainstate.
+    fs::path ChainRegistryStoragePath() const;
 
     //! Return the current role of the chainstate. See `ChainstateManager`
     //! documentation for a description of the different types of chainstates.
@@ -605,6 +611,22 @@ public:
         size_t cache_size_bytes,
         bool in_memory,
         bool should_wipe);
+
+    node::ChainRegistryStateResult InitChainRegistryDB(
+        size_t cache_size_bytes,
+        bool in_memory,
+        bool should_wipe) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
+
+    node::ChainRegistryState& ChainRegistryState() EXCLUSIVE_LOCKS_REQUIRED(::cs_main)
+    {
+        AssertLockHeld(::cs_main);
+        return *Assert(m_chain_registry_state);
+    }
+    const node::ChainRegistryState& ChainRegistryState() const EXCLUSIVE_LOCKS_REQUIRED(::cs_main)
+    {
+        AssertLockHeld(::cs_main);
+        return *Assert(m_chain_registry_state);
+    }
 
     //! Initialize the in-memory coins cache (to be done after the health of the on-disk database
     //! is verified).
@@ -710,7 +732,11 @@ public:
     }
 
     //! Destructs all objects related to accessing the UTXO set.
-    void ResetCoinsViews() { m_coins_views.reset(); }
+    void ResetCoinsViews()
+    {
+        m_coins_views.reset();
+        m_chain_registry_state.reset();
+    }
 
     //! The cache size of the on-disk coins view.
     size_t m_coinsdb_cache_size_bytes{0};

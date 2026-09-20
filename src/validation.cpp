@@ -1801,6 +1801,9 @@ Chainstate::Chainstate(
     ChainstateManager& chainman,
     std::optional<uint256> from_snapshot_blockhash)
     : m_mempool(mempool),
+      m_chain_registry_state{std::make_unique<node::ChainRegistryState>(
+          chainman.GetConsensus().chain_registry,
+          chainman.GetConsensus().hashGenesisBlock)},
       m_blockman(blockman),
       m_chainman(chainman),
       m_assumeutxo(from_snapshot_blockhash ? Assumeutxo::UNVALIDATED : Assumeutxo::VALIDATED),
@@ -1812,6 +1815,13 @@ fs::path Chainstate::StoragePath() const
     if (m_from_snapshot_blockhash) {
         path += node::SNAPSHOT_CHAINSTATE_SUFFIX;
     }
+    return path;
+}
+
+fs::path Chainstate::ChainRegistryStoragePath() const
+{
+    fs::path path{StoragePath()};
+    path += "_registry";
     return path;
 }
 
@@ -1861,6 +1871,29 @@ void Chainstate::InitCoinsDB(
         m_chainman.m_options.coins_view);
 
     m_coinsdb_cache_size_bytes = cache_size_bytes;
+}
+
+node::ChainRegistryStateResult Chainstate::InitChainRegistryDB(
+    size_t cache_size_bytes,
+    bool in_memory,
+    bool should_wipe)
+{
+    AssertLockHeld(::cs_main);
+    m_chain_registry_state = std::make_unique<node::ChainRegistryState>(
+        m_chainman.GetConsensus().chain_registry,
+        m_chainman.GetConsensus().hashGenesisBlock);
+    const CBlockIndex* tip{m_chain.Tip()};
+    return m_chain_registry_state->Initialize(
+        DBParams{
+            .path = ChainRegistryStoragePath(),
+            .cache_bytes = cache_size_bytes,
+            .memory_only = in_memory,
+            .wipe_data = should_wipe,
+            .obfuscate = true,
+            .options = m_chainman.m_options.coins_db,
+        },
+        tip ? tip->GetBlockHash() : uint256{},
+        tip ? tip->nHeight : -1);
 }
 
 void Chainstate::InitCoinsCache(size_t cache_size_bytes)
@@ -2692,6 +2725,9 @@ void Chainstate::UpdateTip(const CBlockIndex* pindexNew)
     UpdateTipLog(m_chainman, coins_tip, pindexNew, __func__, "");
 }
 
+static bool ApplyRegistryStateResult(const node::ChainRegistryStateResult& registry_result,
+                                     BlockValidationState& state);
+
 /** Disconnect m_chain's tip.
   * After calling, the mempool will be in an inconsistent state, with
   * transactions from disconnected blocks being added to disconnectpool.  You
@@ -2724,6 +2760,15 @@ bool Chainstate::DisconnectTip(BlockValidationState& state, DisconnectedBlockTra
         assert(view.GetBestBlock() == pindexDelete->GetBlockHash());
         if (DisconnectBlock(block, pindexDelete, view) != DISCONNECT_OK) {
             LogError("DisconnectTip(): DisconnectBlock %s failed\n", pindexDelete->GetBlockHash().ToString());
+            return false;
+        }
+        const auto registry_disconnect{ChainRegistryState().DisconnectBlock(
+            pindexDelete->GetBlockHash(),
+            pindexDelete->pprev->GetBlockHash(),
+            pindexDelete->pprev->nHeight)};
+        if (!ApplyRegistryStateResult(registry_disconnect, state)) {
+            LogError("DisconnectTip(): child chain registry disconnect %s failed: %s\n",
+                     pindexDelete->GetBlockHash().ToString(), state.ToString());
             return false;
         }
         view.Flush(/*reallocate_cache=*/false); // local CCoinsViewCache goes out of scope
@@ -2807,6 +2852,23 @@ public:
     }
 };
 
+static bool ApplyRegistryStateResult(const node::ChainRegistryStateResult& registry_result,
+                                     BlockValidationState& state)
+{
+    if (registry_result.IsValid()) return true;
+    if (registry_result.error == node::ChainRegistryStateError::INVALID_BLOCK) {
+        return state.Invalid(
+            BlockValidationResult::BLOCK_CONSENSUS,
+            "bad-chain-registry",
+            strprintf("registry block error %u (transaction error %u, commitment error %u)",
+                      static_cast<unsigned>(registry_result.block_result.error),
+                      static_cast<unsigned>(registry_result.block_result.transition.error),
+                      static_cast<unsigned>(registry_result.block_result.commitment_error)));
+    }
+    return state.Error(strprintf("child chain registry state error %u",
+                                 static_cast<unsigned>(registry_result.error)));
+}
+
 /**
  * Connect a new block to m_chain. block_to_connect is either nullptr or a pointer to a CBlock
  * corresponding to pindexNew, to bypass loading it again from disk.
@@ -2835,6 +2897,18 @@ bool Chainstate::ConnectTip(
     } else {
         LogDebug(BCLog::BENCH, "  - Using cached block\n");
     }
+
+    const auto registry_validation{ChainRegistryState().ValidateBlock(
+        *block_to_connect, pindexNew->nHeight, pindexNew->GetBlockHash())};
+    if (!ApplyRegistryStateResult(registry_validation, state)) {
+        if (m_chainman.m_options.signals) {
+            m_chainman.m_options.signals->BlockChecked(block_to_connect, state);
+        }
+        if (state.IsInvalid()) InvalidBlockFound(pindexNew, state);
+        LogError("%s: child chain registry validation for %s failed, %s\n",
+                 __func__, pindexNew->GetBlockHash().ToString(), state.ToString());
+        return false;
+    }
     // Apply the block atomically to the chain state.
     const auto time_2{SteadyClock::now()};
     SteadyClock::time_point time_3;
@@ -2853,6 +2927,13 @@ bool Chainstate::ConnectTip(
             if (state.IsInvalid())
                 InvalidBlockFound(pindexNew, state);
             LogError("%s: ConnectBlock %s failed, %s\n", __func__, pindexNew->GetBlockHash().ToString(), state.ToString());
+            return false;
+        }
+        const auto registry_connect{ChainRegistryState().ConnectBlock(
+            *block_to_connect, pindexNew->nHeight, pindexNew->GetBlockHash())};
+        if (!ApplyRegistryStateResult(registry_connect, state)) {
+            LogError("%s: child chain registry commit for %s failed, %s\n",
+                     __func__, pindexNew->GetBlockHash().ToString(), state.ToString());
             return false;
         }
         time_3 = SteadyClock::now();
@@ -4325,6 +4406,13 @@ BlockValidationState TestBlockValidity(
     index_dummy.phashBlock = &block_hash;
     CCoinsViewCache view_dummy(&chainstate.CoinsTip());
 
+    if (!ApplyRegistryStateResult(
+            chainstate.ChainRegistryState().ValidateBlock(
+                block, index_dummy.nHeight, block_hash),
+            state)) {
+        return state;
+    }
+
     // Set fJustCheck to true in order to update, and not clear, validation caches.
     if(!chainstate.ConnectBlock(block, state, &index_dummy, view_dummy, /*fJustCheck=*/true)) {
         if (state.IsValid()) NONFATAL_UNREACHABLE();
@@ -5349,13 +5437,25 @@ Chainstate& ChainstateManager::InitializeChainstate(CTxMemPool* mempool)
         LogError("leveldb DestroyDB call failed on %s", path_str);
     }
 
+    fs::path registry_path{db_path};
+    registry_path += "_registry";
+    bool registry_destroyed{true};
+    if (fs::exists(registry_path)) {
+        const std::string registry_path_str{fs::PathToString(registry_path)};
+        LogInfo("Removing child chain registry leveldb dir at %s\n", registry_path_str);
+        registry_destroyed = DestroyDB(registry_path_str) && !fs::exists(registry_path);
+        if (!registry_destroyed) {
+            LogError("leveldb DestroyDB call failed on %s", registry_path_str);
+        }
+    }
+
     // Datadir should be removed from filesystem; otherwise initialization may detect
     // it on subsequent statups and get confused.
     //
     // If the base_blockhash_path removal above fails in the case of snapshot
     // chainstates, this will return false since leveldb won't remove a non-empty
     // directory.
-    return destroyed && !fs::exists(db_path);
+    return destroyed && !fs::exists(db_path) && registry_destroyed;
 }
 
 util::Result<CBlockIndex*> ChainstateManager::ActivateSnapshot(
@@ -5484,6 +5584,17 @@ util::Result<CBlockIndex*> ChainstateManager::ActivateSnapshot(
     if (!in_memory) {
         if (!node::WriteSnapshotBaseBlockhash(*snapshot_chainstate)) {
             return cleanup_bad_snapshot(Untranslated("could not write base blockhash"));
+        }
+    }
+
+    {
+        constexpr size_t REGISTRY_DB_CACHE_BYTES{1 << 20};
+        const auto registry_result{snapshot_chainstate->InitChainRegistryDB(
+            REGISTRY_DB_CACHE_BYTES, in_memory, /*should_wipe=*/false)};
+        if (!registry_result.IsValid()) {
+            return cleanup_bad_snapshot(Untranslated(strprintf(
+                "Snapshot does not contain a usable child chain registry state (state error %u).",
+                static_cast<unsigned>(registry_result.error))));
         }
     }
 
@@ -5936,6 +6047,7 @@ util::Result<void> Chainstate::InvalidateCoinsDBOnDisk()
 
     // Coins views no longer usable.
     m_coins_views.reset();
+    m_chain_registry_state.reset();
 
     const fs::path db_path{StoragePath()};
     const fs::path invalid_path{db_path + "_INVALID"};
@@ -5958,6 +6070,24 @@ util::Result<void> Chainstate::InvalidateCoinsDBOnDisk()
             "on the next startup."),
             db_path_str, invalid_path_str, db_path_str)};
     }
+
+    const fs::path registry_path{ChainRegistryStoragePath()};
+    if (fs::exists(registry_path)) {
+        fs::path invalid_registry_path{registry_path};
+        invalid_registry_path += "_INVALID";
+        try {
+            fs::rename(registry_path, invalid_registry_path);
+        } catch (const fs::filesystem_error& e) {
+            LogError("While invalidating the registry db: Error renaming file '%s' -> '%s': %s",
+                     fs::PathToString(registry_path),
+                     fs::PathToString(invalid_registry_path),
+                     e.what());
+            return util::Error{Untranslated(strprintf(
+                "Rename of child chain registry '%s' -> '%s' failed.",
+                fs::PathToString(registry_path),
+                fs::PathToString(invalid_registry_path)))};
+        }
+    }
     return {};
 }
 
@@ -5965,6 +6095,7 @@ bool ChainstateManager::DeleteChainstate(Chainstate& chainstate)
 {
     AssertLockHeld(::cs_main);
     assert(!chainstate.m_coins_views);
+    assert(!chainstate.m_chain_registry_state);
     const fs::path db_path{chainstate.StoragePath()};
     if (!DeleteCoinsDBFromDisk(db_path, /*is_snapshot=*/bool{chainstate.m_from_snapshot_blockhash})) {
         LogError("Deletion of %s failed. Please remove it manually to continue reindexing.",
@@ -6019,6 +6150,10 @@ bool ChainstateManager::ValidatedSnapshotCleanup(Chainstate& validated_cs, Chain
     const fs::path validated_path{validated_cs.StoragePath()};
     const fs::path assumed_valid_path{unvalidated_cs.StoragePath()};
     const fs::path delete_path{validated_path + "_todelete"};
+    const fs::path validated_registry_path{validated_cs.ChainRegistryStoragePath()};
+    const fs::path assumed_valid_registry_path{unvalidated_cs.ChainRegistryStoragePath()};
+    fs::path delete_registry_path{delete_path};
+    delete_registry_path += "_registry";
 
     // Since we're going to be moving around the underlying leveldb filesystem content
     // for each chainstate, make sure that the chainstates (and their constituent
@@ -6046,6 +6181,9 @@ bool ChainstateManager::ValidatedSnapshotCleanup(Chainstate& validated_cs, Chain
 
     try {
         fs::rename(validated_path, delete_path);
+        if (fs::exists(validated_registry_path)) {
+            fs::rename(validated_registry_path, delete_registry_path);
+        }
     } catch (const fs::filesystem_error& e) {
         rename_failed_abort(validated_path, delete_path, e);
         throw;
@@ -6057,6 +6195,9 @@ bool ChainstateManager::ValidatedSnapshotCleanup(Chainstate& validated_cs, Chain
 
     try {
         fs::rename(assumed_valid_path, validated_path);
+        if (fs::exists(assumed_valid_registry_path)) {
+            fs::rename(assumed_valid_registry_path, validated_registry_path);
+        }
     } catch (const fs::filesystem_error& e) {
         rename_failed_abort(assumed_valid_path, validated_path, e);
         throw;

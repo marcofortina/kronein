@@ -25,6 +25,16 @@ bool ExpectedTipIsValid(const uint256& tip, int height)
 
 } // namespace
 
+ChainRegistryState::ChainRegistryState(Consensus::Params::ChainRegistryParams params,
+                                       const uint256& main_genesis_hash)
+    : m_params{params}, m_main_genesis_hash{main_genesis_hash}
+{
+    if (!Enabled()) {
+        m_state = MakeChainRegistryDBState({}, 0, m_registry);
+        m_initialized = true;
+    }
+}
+
 ChainRegistryStateResult ChainRegistryState::Initialize(const DBParams& db_params,
                                                         const uint256& expected_tip,
                                                         int expected_height)
@@ -77,19 +87,8 @@ ChainRegistryStateResult ChainRegistryState::ConnectBlock(const CBlock& block,
                                                           const uint256& block_hash,
                                                           bool sync)
 {
-    if (!m_initialized) return StateError(ChainRegistryStateError::NOT_INITIALIZED);
-    if (!Enabled()) return {};
-    if (height < 0 || block.GetHash() != block_hash) {
-        return StateError(ChainRegistryStateError::NON_SEQUENTIAL_BLOCK);
-    }
-
-    const bool connects_genesis{m_state.best_block.IsNull() && height == 0 && block.hashPrevBlock.IsNull()};
-    const bool connects_tip{!m_state.best_block.IsNull() &&
-                            block.hashPrevBlock == m_state.best_block &&
-                            static_cast<uint32_t>(height) == m_state.height + 1};
-    if (!connects_genesis && !connects_tip) {
-        return StateError(ChainRegistryStateError::NON_SEQUENTIAL_BLOCK);
-    }
+    auto validation{ValidateBlock(block, height, block_hash)};
+    if (!validation.IsValid() || !Enabled()) return validation;
 
     chainregistry::ChainRegistry candidate{m_registry};
     chainregistry::RegistryBlockUndo undo;
@@ -117,6 +116,44 @@ ChainRegistryStateResult ChainRegistryState::ConnectBlock(const CBlock& block,
     m_registry = std::move(candidate);
     m_state = next_state;
 
+    ChainRegistryStateResult result;
+    result.block_result = std::move(block_result);
+    return result;
+}
+
+ChainRegistryStateResult ChainRegistryState::ValidateBlock(const CBlock& block,
+                                                           int height,
+                                                           const uint256& block_hash) const
+{
+    if (!m_initialized) return StateError(ChainRegistryStateError::NOT_INITIALIZED);
+    if (!Enabled()) return {};
+    if (height < 0 || block.GetHash() != block_hash) {
+        return StateError(ChainRegistryStateError::NON_SEQUENTIAL_BLOCK);
+    }
+
+    const bool connects_genesis{m_state.best_block.IsNull() && height == 0 && block.hashPrevBlock.IsNull()};
+    const bool connects_tip{!m_state.best_block.IsNull() &&
+                            block.hashPrevBlock == m_state.best_block &&
+                            static_cast<uint32_t>(height) == m_state.height + 1};
+    if (!connects_genesis && !connects_tip) {
+        return StateError(ChainRegistryStateError::NON_SEQUENTIAL_BLOCK);
+    }
+
+    if (!m_params.IsActive(height)) return {};
+
+    chainregistry::ChainRegistry candidate{m_registry};
+    auto block_result{candidate.ApplyBlock(block,
+                                           static_cast<uint32_t>(height),
+                                           m_main_genesis_hash,
+                                           m_params.minimum_registration_burn,
+                                           m_params.maximum_operations,
+                                           chainregistry::CommitmentRequirement::REQUIRED)};
+    if (!block_result.IsValid()) {
+        ChainRegistryStateResult result;
+        result.error = ChainRegistryStateError::INVALID_BLOCK;
+        result.block_result = std::move(block_result);
+        return result;
+    }
     ChainRegistryStateResult result;
     result.block_result = std::move(block_result);
     return result;
