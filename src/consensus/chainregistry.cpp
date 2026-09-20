@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <iterator>
 #include <optional>
 #include <string>
 #include <utility>
@@ -29,6 +30,42 @@ RegistryTransitionResult TransitionError(RegistryError error,
     result.parse_error = parse_error;
     result.chain_id = std::move(chain_id);
     return result;
+}
+
+uint256 FinalizeRegistryRoot(uint64_t leaf_count, const uint256& tree_root)
+{
+    auto hasher{TaggedHash(std::string{REGISTRY_ROOT_HASH_TAG})};
+    hasher << leaf_count << tree_root;
+    return hasher.GetSHA256();
+}
+
+size_t RegistryProofDepth(uint64_t leaf_count)
+{
+    size_t depth{0};
+    while (leaf_count > 1) {
+        leaf_count = (leaf_count + 1) / 2;
+        ++depth;
+    }
+    return depth;
+}
+
+RegistryInclusionProof BuildRegistryInclusionProof(std::vector<uint256> level, uint64_t leaf_index)
+{
+    RegistryInclusionProof proof;
+    proof.leaf_count = level.size();
+    proof.leaf_index = leaf_index;
+    uint64_t index{leaf_index};
+    while (level.size() > 1) {
+        const size_t sibling_index{static_cast<size_t>(index ^ 1)};
+        proof.siblings.push_back(sibling_index < level.size() ? level[sibling_index] : level[index]);
+        if (level.size() % 2 != 0) level.push_back(level.back());
+        for (size_t i{0}; i < level.size(); i += 2) {
+            level[i / 2] = ComputeRegistryNodeHash(level[i], level[i + 1]);
+        }
+        level.resize(level.size() / 2);
+        index /= 2;
+    }
+    return proof;
 }
 
 } // namespace
@@ -59,9 +96,62 @@ uint256 ComputeRegistryRootFromLeaves(std::vector<uint256> ordered_leaves)
     }
 
     const uint256 tree_root{ordered_leaves.empty() ? uint256{} : ordered_leaves.front()};
-    auto hasher{TaggedHash(std::string{REGISTRY_ROOT_HASH_TAG})};
-    hasher << record_count << tree_root;
-    return hasher.GetSHA256();
+    return FinalizeRegistryRoot(record_count, tree_root);
+}
+
+bool VerifyRegistryInclusion(const ChainRecord& record,
+                             const RegistryInclusionProof& proof,
+                             const uint256& expected_root)
+{
+    if (proof.leaf_count == 0 || proof.leaf_index >= proof.leaf_count) return false;
+    if (proof.siblings.size() != RegistryProofDepth(proof.leaf_count)) return false;
+
+    uint256 current{ComputeRegistryLeafHash(record)};
+    uint64_t index{proof.leaf_index};
+    uint64_t width{proof.leaf_count};
+    for (const uint256& sibling : proof.siblings) {
+        if ((index & 1U) == 0) {
+            if (index + 1 >= width && sibling != current) return false;
+            current = ComputeRegistryNodeHash(current, sibling);
+        } else {
+            current = ComputeRegistryNodeHash(sibling, current);
+        }
+        index /= 2;
+        width = (width + 1) / 2;
+    }
+    return FinalizeRegistryRoot(proof.leaf_count, current) == expected_root;
+}
+
+bool VerifyRegistryNonInclusion(const ChainId& chain_id,
+                                const RegistryNonInclusionProof& proof,
+                                const uint256& expected_root)
+{
+    if (proof.leaf_count == 0) {
+        return !proof.has_left && !proof.has_right &&
+               expected_root == ComputeRegistryRootFromLeaves({});
+    }
+    if (!proof.has_left && !proof.has_right) return false;
+
+    if (proof.has_left) {
+        if (proof.left.proof.leaf_count != proof.leaf_count ||
+            !(proof.left.record.chain_id < chain_id) ||
+            !VerifyRegistryInclusion(proof.left.record, proof.left.proof, expected_root)) {
+            return false;
+        }
+    }
+    if (proof.has_right) {
+        if (proof.right.proof.leaf_count != proof.leaf_count ||
+            !(chain_id < proof.right.record.chain_id) ||
+            !VerifyRegistryInclusion(proof.right.record, proof.right.proof, expected_root)) {
+            return false;
+        }
+    }
+
+    if (proof.has_left && proof.has_right) {
+        return proof.left.proof.leaf_index + 1 == proof.right.proof.leaf_index;
+    }
+    if (proof.has_left) return proof.left.proof.leaf_index + 1 == proof.leaf_count;
+    return proof.right.proof.leaf_index == 0;
 }
 
 CScript BuildRegistryCommitment(const uint256& registry_root)
@@ -151,6 +241,44 @@ uint256 ChainRegistry::ComputeRoot() const
         leaves.push_back(ComputeRegistryLeafHash(entry.second));
     }
     return ComputeRegistryRootFromLeaves(std::move(leaves));
+}
+
+std::optional<RegistryInclusionProof> ChainRegistry::GetInclusionProof(const ChainId& chain_id) const
+{
+    const auto target{m_records.find(chain_id)};
+    if (target == m_records.end()) return std::nullopt;
+
+    std::vector<uint256> leaves;
+    leaves.reserve(m_records.size());
+    uint64_t target_index{0};
+    uint64_t index{0};
+    for (const auto& entry : m_records) {
+        if (entry.first == chain_id) target_index = index;
+        leaves.push_back(ComputeRegistryLeafHash(entry.second));
+        ++index;
+    }
+    return BuildRegistryInclusionProof(std::move(leaves), target_index);
+}
+
+std::optional<RegistryNonInclusionProof> ChainRegistry::GetNonInclusionProof(const ChainId& chain_id) const
+{
+    const auto right_it{m_records.lower_bound(chain_id)};
+    if (right_it != m_records.end() && right_it->first == chain_id) return std::nullopt;
+
+    RegistryNonInclusionProof proof;
+    proof.leaf_count = m_records.size();
+    if (right_it != m_records.end()) {
+        proof.has_right = true;
+        proof.right.record = right_it->second;
+        proof.right.proof = *GetInclusionProof(right_it->first);
+    }
+    if (right_it != m_records.begin()) {
+        const auto left_it{std::prev(right_it)};
+        proof.has_left = true;
+        proof.left.record = left_it->second;
+        proof.left.proof = *GetInclusionProof(left_it->first);
+    }
+    return proof;
 }
 
 RegistryTransitionResult ChainRegistry::ApplyTransaction(const CTransaction& tx,

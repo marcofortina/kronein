@@ -112,6 +112,53 @@ uint256 ComputeRegistryNodeHash(const uint256& left, const uint256& right);
 /** Compute the count-committed root from leaves already ordered by ChainId. */
 uint256 ComputeRegistryRootFromLeaves(std::vector<uint256> ordered_leaves);
 
+struct RegistryInclusionProof {
+    uint64_t leaf_count{0};
+    uint64_t leaf_index{0};
+    std::vector<uint256> siblings;
+
+    SERIALIZE_METHODS(RegistryInclusionProof, obj)
+    {
+        READWRITE(obj.leaf_count, obj.leaf_index, obj.siblings);
+    }
+
+    friend bool operator==(const RegistryInclusionProof&, const RegistryInclusionProof&) = default;
+};
+
+struct RegistryProofEntry {
+    ChainRecord record;
+    RegistryInclusionProof proof;
+
+    SERIALIZE_METHODS(RegistryProofEntry, obj) { READWRITE(obj.record, obj.proof); }
+
+    friend bool operator==(const RegistryProofEntry&, const RegistryProofEntry&) = default;
+};
+
+struct RegistryNonInclusionProof {
+    uint64_t leaf_count{0};
+    bool has_left{false};
+    RegistryProofEntry left;
+    bool has_right{false};
+    RegistryProofEntry right;
+
+    SERIALIZE_METHODS(RegistryNonInclusionProof, obj)
+    {
+        READWRITE(obj.leaf_count, obj.has_left);
+        if (obj.has_left) READWRITE(obj.left);
+        READWRITE(obj.has_right);
+        if (obj.has_right) READWRITE(obj.right);
+    }
+
+    friend bool operator==(const RegistryNonInclusionProof&, const RegistryNonInclusionProof&) = default;
+};
+
+bool VerifyRegistryInclusion(const ChainRecord& record,
+                             const RegistryInclusionProof& proof,
+                             const uint256& expected_root);
+bool VerifyRegistryNonInclusion(const ChainId& chain_id,
+                                const RegistryNonInclusionProof& proof,
+                                const uint256& expected_root);
+
 enum class CommitmentParseError : uint8_t {
     NONE,
     NOT_COMMITMENT,
@@ -202,6 +249,9 @@ public:
 
     /** Root commits to ordered records and their count. */
     uint256 ComputeRoot() const;
+    std::optional<RegistryInclusionProof> GetInclusionProof(const ChainId& chain_id) const;
+    /** Returns nullopt when the queried ChainId is present. */
+    std::optional<RegistryNonInclusionProof> GetNonInclusionProof(const ChainId& chain_id) const;
 
     RegistryTransitionResult ApplyTransaction(const CTransaction& tx,
                                               uint32_t height,

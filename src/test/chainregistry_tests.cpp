@@ -12,6 +12,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <algorithm>
+#include <array>
 #include <cstdint>
 #include <limits>
 #include <span>
@@ -839,6 +841,81 @@ BOOST_AUTO_TEST_CASE(registry_block_failures_are_atomic)
         chainregistry::CommitmentRequirement::OPTIONAL);
     BOOST_CHECK(result.error == chainregistry::RegistryBlockError::COINBASE_OPERATION);
     BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(), empty_root.GetHex());
+}
+
+BOOST_AUTO_TEST_CASE(registry_inclusion_and_non_inclusion_proofs)
+{
+    constexpr uint256 main_genesis{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
+    chainregistry::ChainRegistry registry;
+    for (unsigned char i{1}; i <= 3; ++i) {
+        std::array<unsigned char, 32> anchor_bytes{};
+        anchor_bytes.fill(i);
+        const CMutableTransaction tx{RegistrationTx(Txid::FromUint256(uint256{std::span{anchor_bytes}}), 0, i)};
+        BOOST_REQUIRE(registry.ApplyTransaction(CTransaction{tx}, 100, main_genesis, 1'000).IsValid());
+    }
+    const uint256 root{registry.ComputeRoot()};
+
+    for (const auto& [chain_id, record] : registry.Records()) {
+        const auto proof{registry.GetInclusionProof(chain_id)};
+        BOOST_REQUIRE(proof.has_value());
+        BOOST_CHECK(chainregistry::VerifyRegistryInclusion(record, *proof, root));
+    }
+
+    const auto& first_record{registry.Records().begin()->second};
+    auto inclusion{*registry.GetInclusionProof(first_record.chain_id)};
+    BOOST_REQUIRE(!inclusion.siblings.empty());
+    inclusion.siblings[0].SetNull();
+    BOOST_CHECK(!chainregistry::VerifyRegistryInclusion(first_record, inclusion, root));
+    inclusion = *registry.GetInclusionProof(first_record.chain_id);
+    inclusion.leaf_count++;
+    BOOST_CHECK(!chainregistry::VerifyRegistryInclusion(first_record, inclusion, root));
+
+    chainregistry::ChainRegistry empty;
+    const chainregistry::ChainId absent{"8080808080808080808080808080808080808080808080808080808080808080"};
+    const auto empty_proof{empty.GetNonInclusionProof(absent)};
+    BOOST_REQUIRE(empty_proof.has_value());
+    BOOST_CHECK(chainregistry::VerifyRegistryNonInclusion(absent, *empty_proof, empty.ComputeRoot()));
+
+    const chainregistry::ChainId below{"0000000000000000000000000000000000000000000000000000000000000000"};
+    const auto below_proof{registry.GetNonInclusionProof(below)};
+    BOOST_REQUIRE(below_proof.has_value());
+    BOOST_CHECK(!below_proof->has_left);
+    BOOST_CHECK(below_proof->has_right);
+    BOOST_CHECK(chainregistry::VerifyRegistryNonInclusion(below, *below_proof, root));
+
+    const chainregistry::ChainId above{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
+    const auto above_proof{registry.GetNonInclusionProof(above)};
+    BOOST_REQUIRE(above_proof.has_value());
+    BOOST_CHECK(above_proof->has_left);
+    BOOST_CHECK(!above_proof->has_right);
+    BOOST_CHECK(chainregistry::VerifyRegistryNonInclusion(above, *above_proof, root));
+
+    auto left_it{registry.Records().begin()};
+    const auto right_it{std::next(left_it)};
+    std::array<unsigned char, 32> between_bytes;
+    std::copy(left_it->first.ToUint256().begin(), left_it->first.ToUint256().end(), between_bytes.begin());
+    for (size_t i{between_bytes.size()}; i-- > 0;) {
+        if (++between_bytes[i] != 0) break;
+    }
+    const chainregistry::ChainId between{chainregistry::ChainId::FromUint256(uint256{std::span{between_bytes}})};
+    BOOST_REQUIRE(left_it->first < between);
+    BOOST_REQUIRE(between < right_it->first);
+    const auto between_proof{registry.GetNonInclusionProof(between)};
+    BOOST_REQUIRE(between_proof.has_value());
+    BOOST_CHECK(between_proof->has_left);
+    BOOST_CHECK(between_proof->has_right);
+    BOOST_CHECK(chainregistry::VerifyRegistryNonInclusion(between, *between_proof, root));
+    BOOST_CHECK(!registry.GetNonInclusionProof(left_it->first).has_value());
+
+    DataStream stream;
+    stream << *between_proof;
+    chainregistry::RegistryNonInclusionProof decoded;
+    stream >> decoded;
+    BOOST_CHECK(decoded == *between_proof);
+    BOOST_CHECK(chainregistry::VerifyRegistryNonInclusion(between, decoded, root));
+
+    decoded.left.proof.leaf_count++;
+    BOOST_CHECK(!chainregistry::VerifyRegistryNonInclusion(between, decoded, root));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
