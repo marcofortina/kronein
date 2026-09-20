@@ -62,13 +62,13 @@ $ bpftrace contrib/tracing/log_p2p_traffic.bt
 
 Output
 ```
-outbound 'ping' msg to peer 11 (outbound-full-relay, [2a02:b10c:f747:1:ef:fake:ipv6:addr]:8333) with 8 bytes
-inbound 'pong' msg from peer 11 (outbound-full-relay, [2a02:b10c:f747:1:ef:fake:ipv6:addr]:8333) with 8 bytes
-inbound 'inv' msg from peer 16 (outbound-full-relay, XX.XX.XXX.121:8333) with 37 bytes
-outbound 'getdata' msg to peer 16 (outbound-full-relay, XX.XX.XXX.121:8333) with 37 bytes
-inbound 'tx' msg from peer 16 (outbound-full-relay, XX.XX.XXX.121:8333) with 222 bytes
-outbound 'inv' msg to peer 9 (outbound-full-relay, faketorv3addressa2ufa6odvoi3s77j4uegey0xb10csyfyve2t33curbyd.onion:8333) with 37 bytes
-outbound 'inv' msg to peer 7 (outbound-full-relay, XX.XX.XXX.242:8333) with 37 bytes
+outbound 'ping' msg to peer 11 (outbound-full-relay, [2a02:b10c:f747:1:ef:fake:ipv6:addr]:26762) with 8 bytes
+inbound 'pong' msg from peer 11 (outbound-full-relay, [2a02:b10c:f747:1:ef:fake:ipv6:addr]:26762) with 8 bytes
+inbound 'inv' msg from peer 16 (outbound-full-relay, XX.XX.XXX.121:26762) with 37 bytes
+outbound 'getdata' msg to peer 16 (outbound-full-relay, XX.XX.XXX.121:26762) with 37 bytes
+inbound 'tx' msg from peer 16 (outbound-full-relay, XX.XX.XXX.121:26762) with 222 bytes
+outbound 'inv' msg to peer 9 (outbound-full-relay, faketorv3addressa2ufa6odvoi3s77j4uegey0xb10csyfyve2t33curbyd.onion:26762) with 37 bytes
+outbound 'inv' msg to peer 7 (outbound-full-relay, XX.XX.XXX.242:26762) with 37 bytes
 …
 ```
 
@@ -91,16 +91,16 @@ Lists selectable peers and traffic and connection information.
  Navigate with UP/DOWN or J/K and select a peer with ENTER or SPACE to see individual P2P messages
 
  PEER  OUTBOUND              INBOUND               TYPE                   ADDR
-    0  46          398 byte  61      1407590 byte  block-relay-only       XX.XX.XXX.196:8333
-   11  1156     253570 byte  3431    2394924 byte  outbound-full-relay    XXX.X.XX.179:8333
+    0  46          398 byte  61      1407590 byte  block-relay-only       XX.XX.XXX.196:26762
+   11  1156     253570 byte  3431    2394924 byte  outbound-full-relay    XXX.X.XX.179:26762
    13  3425    1809620 byte  1236     305458 byte  inbound                XXX.X.X.X:60380
-   16  1046     241633 byte  1589    1199220 byte  outbound-full-relay    4faketorv2pbfu7x.onion:8333
-   19  577      181679 byte  390      148951 byte  outbound-full-relay    kfake4vctorjv2o2.onion:8333
-   20  11         1248 byte  13         1283 byte  block-relay-only       [2600:fake:64d9:b10c:4436:aaaa:fe:bb]:8333
-   21  11         1248 byte  13         1299 byte  block-relay-only       XX.XXX.X.155:8333
-   22  5           103 byte  1           102 byte  feeler                 XX.XX.XXX.173:8333
-   23  11         1248 byte  12         1255 byte  block-relay-only       XX.XXX.XXX.220:8333
-   24  3           103 byte  1           102 byte  feeler                 XXX.XXX.XXX.64:8333
+   16  1046     241633 byte  1589    1199220 byte  outbound-full-relay    4faketorv2pbfu7x.onion:26762
+   19  577      181679 byte  390      148951 byte  outbound-full-relay    kfake4vctorjv2o2.onion:26762
+   20  11         1248 byte  13         1283 byte  block-relay-only       [2600:fake:64d9:b10c:4436:aaaa:fe:bb]:26762
+   21  11         1248 byte  13         1299 byte  block-relay-only       XX.XXX.X.155:26762
+   22  5           103 byte  1           102 byte  feeler                 XX.XX.XXX.173:26762
+   23  11         1248 byte  12         1255 byte  block-relay-only       XX.XXX.XXX.220:26762
+   24  3           103 byte  1           102 byte  feeler                 XXX.XXX.XXX.64:26762
 …
 ```
 
@@ -108,7 +108,7 @@ Showing recent P2P messages between our node and a selected peer.
 
 ```
     ----------------------------------------------------------------------
-    |                PEER 16 (4faketorv2pbfu7x.onion:8333)               |
+    |                PEER 16 (4faketorv2pbfu7x.onion:26762)              |
     | OUR NODE                outbound-full-relay                   PEER |
     |                                           <--- sendcmpct (9 bytes) |
     | inv (37 byte) --->                                                 |
@@ -157,9 +157,9 @@ $ python3 contrib/tracing/log_raw_p2p_msgs.py $(pidof kroneind)
 Logging raw P2P messages.
 Messages larger than about 32kb will be cut off!
 Some messages might be lost!
- outbound msg 'inv' from peer 4 (outbound-full-relay, XX.XXX.XX.4:8333) with 253 bytes: 0705000000be2245c8f844c9f763748e1a7…
+ outbound msg 'inv' from peer 4 (outbound-full-relay, XX.XXX.XX.4:26762) with 253 bytes: 0705000000be2245c8f844c9f763748e1a7…
 …
-Warning: incomplete message (only 32568 out of 53552 bytes)! inbound msg 'tx' from peer 32 (outbound-full-relay, XX.XXX.XXX.43:8333) with 53552 bytes: 020000000001fd3c01939c85ad6756ed9fc…
+Warning: incomplete message (only 32568 out of 53552 bytes)! inbound msg 'tx' from peer 32 (outbound-full-relay, XX.XXX.XXX.43:26762) with 53552 bytes: 020000000001fd3c01939c85ad6756ed9fc…
 …
 Possibly lost 2 samples
 ```
@@ -333,7 +333,7 @@ Logging opened, closed, misbehaving, and evicted P2P connections
 OUTBOUND conn to 127.0.0.1:15287: id=0, type=block-relay-only, network=0, total_out=1
 INBOUND conn from 127.0.0.1:45324: id=1, type=inbound, network=0, total_in=1
 MISBEHAVING conn id=1, score_before=0, score_increase=20, message='getdata message size = 1001', threshold_exceeded=false
-CLOSED conn to 127.0.0.1:15287: id=0, type=block-relay-only, network=0, established=1231006505
+CLOSED conn to 127.0.0.1:15287: id=0, type=block-relay-only, network=0, established=1789776000
 EVICTED conn to 127.0.0.1:45324: id=1, type=inbound, network=0, established=1612312312
 ...
 ```
