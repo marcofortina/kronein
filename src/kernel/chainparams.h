@@ -139,6 +139,7 @@ public:
     struct RegTestOptions {
         bool fastprune{false};
         bool enforce_bip94{false};
+        std::optional<Consensus::Params::ChainRegistryParams> chain_registry{};
     };
 
     static std::unique_ptr<const CChainParams> RegTest(const RegTestOptions& options);

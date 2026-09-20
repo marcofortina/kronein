@@ -9,9 +9,11 @@
 #include <common/args.h>
 #include <tinyformat.h>
 #include <util/chaintype.h>
+#include <util/moneystr.h>
 #include <util/strencodings.h>
 
 #include <cassert>
+#include <limits>
 #include <stdexcept>
 
 void ReadSigNetArgs(const ArgsManager& args, CChainParams::SigNetOptions& options)
@@ -36,6 +38,36 @@ void ReadRegTestArgs(const ArgsManager& args, CChainParams::RegTestOptions& opti
 {
     if (auto value = args.GetBoolArg("-fastprune")) options.fastprune = *value;
     if (HasTestOption(args, "bip94")) options.enforce_bip94 = true;
+
+    const bool has_activation{args.IsArgSet("-chainregistryactivationheight")};
+    const bool has_burn{args.IsArgSet("-chainregistryminregistrationburn")};
+    const bool has_max_operations{args.IsArgSet("-chainregistrymaxoperations")};
+    if (!has_activation && !has_burn && !has_max_operations) return;
+    if (!has_activation || !has_burn || !has_max_operations) {
+        throw std::runtime_error("The regtest chain registry requires -chainregistryactivationheight, "
+                                 "-chainregistryminregistrationburn, and -chainregistrymaxoperations together.");
+    }
+
+    const auto activation_height{args.GetIntArg("-chainregistryactivationheight")};
+    if (!activation_height || *activation_height < 1 || *activation_height > std::numeric_limits<int>::max()) {
+        throw std::runtime_error("-chainregistryactivationheight must be between 1 and INT_MAX.");
+    }
+
+    const auto minimum_burn{ParseMoney(*args.GetArg("-chainregistryminregistrationburn"))};
+    if (!minimum_burn || *minimum_burn <= 0) {
+        throw std::runtime_error("-chainregistryminregistrationburn must be a positive KNE amount.");
+    }
+
+    const auto maximum_operations{args.GetIntArg("-chainregistrymaxoperations")};
+    if (!maximum_operations || *maximum_operations < 1 || *maximum_operations > std::numeric_limits<uint32_t>::max()) {
+        throw std::runtime_error("-chainregistrymaxoperations must be between 1 and UINT32_MAX.");
+    }
+
+    options.chain_registry = Consensus::Params::ChainRegistryParams{
+        .activation_height = static_cast<int>(*activation_height),
+        .minimum_registration_burn = *minimum_burn,
+        .maximum_operations = static_cast<uint32_t>(*maximum_operations),
+    };
 }
 
 static std::unique_ptr<const CChainParams> globalChainParams;

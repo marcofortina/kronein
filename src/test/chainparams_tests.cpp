@@ -107,6 +107,23 @@ BOOST_AUTO_TEST_CASE(randomx_genesis_proofs)
     }
 }
 
+BOOST_AUTO_TEST_CASE(regtest_chain_registry_options)
+{
+    CChainParams::RegTestOptions options;
+    options.chain_registry = Consensus::Params::ChainRegistryParams{
+        .activation_height = 42,
+        .minimum_registration_burn = 3 * COIN,
+        .maximum_operations = 17,
+    };
+    const auto params{CChainParams::RegTest(options)};
+    const auto& registry{params->GetConsensus().chain_registry};
+    BOOST_CHECK(registry.Enabled());
+    BOOST_CHECK(!registry.IsActive(41));
+    BOOST_CHECK(registry.IsActive(42));
+    BOOST_CHECK_EQUAL(registry.minimum_registration_burn, 3 * COIN);
+    BOOST_CHECK_EQUAL(registry.maximum_operations, 17U);
+}
+
 BOOST_AUTO_TEST_CASE(randomx_seed_schedule)
 {
     const auto params{CChainParams::Main()};

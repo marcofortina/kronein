@@ -325,6 +325,7 @@ public:
         consensus.enforce_BIP94 = opts.enforce_bip94;
         consensus.enforce_timestamp_monotonicity = false;
         consensus.fPowNoRetargeting = true;
+        if (opts.chain_registry) consensus.chain_registry = *opts.chain_registry;
 
         consensus.defaultAssumeValid = uint256{};
 
