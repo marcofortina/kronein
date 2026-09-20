@@ -95,6 +95,7 @@ add_library(bitcoin_common STATIC EXCLUDE_FROM_ALL
   base58.cpp
   bech32.cpp
   chain.cpp
+  chainregistry/child_block.cpp
   chainregistry/child_import.cpp
   chainregistry/child_sighash.cpp
   chainregistry/child_template.cpp
