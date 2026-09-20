@@ -11,6 +11,7 @@
 #include <node/types.h>
 #include <policy/policy.h>
 #include <primitives/chainregistry.h>
+#include <primitives/deposit.h>
 #include <rpc/rawtransaction_util.h>
 #include <rpc/util.h>
 #include <script/script.h>
@@ -81,6 +82,38 @@ static chainregistry::MetadataHash ParseRegistryMetadataHash(const UniValue& val
                            "metadata_hash must be exactly 32 non-null bytes encoded as hexadecimal");
     }
     return *metadata_hash;
+}
+
+static chainregistry::FundChain ParseFundDestination(const UniValue& chain_id_arg,
+                                                     const UniValue& recipient_type_arg,
+                                                     const UniValue& recipient_arg)
+{
+    const uint32_t recipient_type{ParseRegistryUint32(recipient_type_arg, "recipient_type")};
+    if (recipient_type == 0 || recipient_type > std::numeric_limits<uint16_t>::max()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "recipient_type must be between 1 and 65535");
+    }
+    if (recipient_arg.get_str().empty()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "recipient must contain at least 1 byte");
+    }
+    chainregistry::FundChain fund{
+        .chain_id = ParseRegistryChainId(chain_id_arg),
+        .recipient_type = static_cast<uint16_t>(recipient_type),
+        .recipient = ParseHexV(recipient_arg, "recipient"),
+    };
+    switch (chainregistry::ValidateFund(fund)) {
+    case chainregistry::FundValidationError::NONE:
+        return fund;
+    case chainregistry::FundValidationError::EMPTY_RECIPIENT:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "recipient must contain at least 1 byte");
+    case chainregistry::FundValidationError::RECIPIENT_TOO_LARGE:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "recipient must not exceed 64 bytes");
+    default:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "invalid child deposit destination");
+    }
 }
 
 static COutPoint ParseRegistryOutPoint(const UniValue& value, std::string_view name)
@@ -1785,6 +1818,320 @@ RPCHelpMan walletcreatefundedpsbt()
     result.pushKV("changepos", txr.change_pos ? (int)*txr.change_pos : -1);
     return result;
 },
+    };
+}
+
+RPCHelpMan walletcreatefundchainpsbt()
+{
+    return RPCHelpMan{
+        "walletcreatefundchainpsbt",
+        "Create and fund an unsigned PSBT for an irreversible main-chain to child-chain deposit.\n"
+        "The canonical KFND burn is fixed at vout[0], and change, when present, is appended after it. This RPC does not sign or broadcast.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Exact non-null destination child-chain identifier"},
+            {"recipient_type", RPCArg::Type::NUM, RPCArg::Optional::NO, "Non-zero recipient namespace defined by the child template"},
+            {"recipient", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Canonical child recipient bytes (1-64 bytes)"},
+            {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "Amount of KNE to burn irreversibly on the main chain"},
+            {"options", RPCArg::Type::OBJ_NAMED_PARAMS, RPCArg::Optional::OMITTED, "Funding options. The deposit output and amount cannot be altered by fee subtraction.", FundTxDoc(), RPCArgOptions{.oneline_description="options"}},
+            {"bip32derivs", RPCArg::Type::BOOL, RPCArg::Default{true}, "Include known BIP32 derivation paths"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Funded, unsigned child-deposit transaction", {
+            {RPCResult::Type::STR, "psbt", "Base64-encoded PSBT"},
+            {RPCResult::Type::STR_AMOUNT, "fee", "Transaction fee in KNE"},
+            {RPCResult::Type::NUM, "changepos", "Change output position, or -1"},
+            {RPCResult::Type::NUM, "deposit_vout", "KFND burn output index; always 0"},
+            {RPCResult::Type::STR_AMOUNT, "amount", "Exact amount that will be destroyed on the main chain"},
+            {RPCResult::Type::STR_HEX, "chain_id", "Destination child-chain identifier"},
+            {RPCResult::Type::NUM, "recipient_type", "Child-template recipient namespace"},
+            {RPCResult::Type::STR_HEX, "recipient", "Canonical recipient bytes"},
+            {RPCResult::Type::BOOL, "irreversible", "Always true"},
+            {RPCResult::Type::STR, "warning", "Human-readable irreversible-transfer warning"},
+            {RPCResult::Type::STR_HEX, "registry_bestblockhash", "Registry tip against which the PSBT was created"},
+            {RPCResult::Type::NUM, "registry_height", "Registry tip height"},
+            {RPCResult::Type::STR_HEX, "registry_root", "Registry root at that tip"},
+        }},
+        RPCExamples{
+            HelpExampleCli(
+                "walletcreatefundchainpsbt",
+                "\"1111111111111111111111111111111111111111111111111111111111111111\" 1 \"001122\" 0.25 '{\"fee_rate\":1}'")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const std::shared_ptr<CWallet> wallet_ptr{GetWalletForJSONRPCRequest(request)};
+    if (!wallet_ptr) return UniValue::VNULL;
+    CWallet& wallet{*wallet_ptr};
+    wallet.BlockUntilSyncedToCurrentChain();
+
+    const chainregistry::FundChain fund{ParseFundDestination(
+        self.Arg<UniValue>("chain_id"),
+        self.Arg<UniValue>("recipient_type"),
+        self.Arg<UniValue>("recipient"))};
+    const CAmount amount{AmountFromValue(self.Arg<UniValue>("amount"))};
+    const interfaces::ChainRegistrySnapshot snapshot{
+        wallet.chain().getChainRegistrySnapshot(fund.chain_id)};
+    if (!snapshot.enabled || !snapshot.deposits_enabled) {
+        throw JSONRPCError(RPC_MISC_ERROR,
+                           "one-way child deposits are disabled on this network");
+    }
+    if (!snapshot.active_for_next_block || !snapshot.deposits_active_for_next_block) {
+        throw JSONRPCError(RPC_MISC_ERROR,
+                           "one-way child deposits are not active for the next block");
+    }
+    if (!snapshot.record) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id is not registered");
+    }
+    if (snapshot.record->status != chainregistry::ChainStatus::ACTIVE) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "child chain is retired");
+    }
+    if (amount < snapshot.minimum_deposit_amount) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("amount must be at least %s KNE",
+                      FormatMoney(snapshot.minimum_deposit_amount)));
+    }
+
+    const CScript deposit_script{chainregistry::BuildFundScript(fund)};
+    std::vector<CRecipient> recipients{
+        CRecipient{CNoDestination{deposit_script}, amount, false}};
+    UniValue options{request.params[4].isNull() ? UniValue::VOBJ
+                                                : request.params[4].get_obj()};
+    for (const std::string_view forbidden : {
+             "change_position", "subtract_fee_from_outputs", "inputs", "input_weights"}) {
+        if (options.exists(std::string{forbidden})) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                strprintf("options.%s cannot override child deposit structure", forbidden));
+        }
+    }
+    options.pushKV("add_inputs", true);
+    options.pushKV("change_position", 1);
+
+    CMutableTransaction raw_tx;
+    CCoinControl coin_control;
+    coin_control.m_allow_other_inputs = true;
+    auto tx_result{FundTransaction(wallet, raw_tx, recipients, options, coin_control,
+                                   /*override_min_fee=*/true)};
+    if (tx_result.tx->vout.empty() || tx_result.tx->vout[0].nValue != amount ||
+        tx_result.tx->vout[0].scriptPubKey != deposit_script) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR,
+                           "wallet changed reserved child deposit output");
+    }
+
+    PartiallySignedTransaction psbt{CMutableTransaction{*tx_result.tx}};
+    const bool bip32_derivs{self.Arg<bool>("bip32derivs")};
+    bool complete{true};
+    if (const auto error{wallet.FillPSBT(
+            psbt, {.sign = false, .bip32_derivs = bip32_derivs}, complete)}) {
+        throw JSONRPCPSBTError(*error);
+    }
+    DataStream stream;
+    stream << psbt;
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("psbt", EncodeBase64(stream.str()));
+    result.pushKV("fee", ValueFromAmount(tx_result.fee));
+    result.pushKV("changepos", tx_result.change_pos ? static_cast<int>(*tx_result.change_pos) : -1);
+    result.pushKV("deposit_vout", 0);
+    result.pushKV("amount", ValueFromAmount(amount));
+    result.pushKV("chain_id", fund.chain_id.GetHex());
+    result.pushKV("recipient_type", fund.recipient_type);
+    result.pushKV("recipient", HexStr(fund.recipient));
+    result.pushKV("irreversible", true);
+    result.pushKV("warning", "This transfer permanently destroys main-chain KNE and cannot be reversed or withdrawn back to the main chain.");
+    result.pushKV("registry_bestblockhash", snapshot.best_block.GetHex());
+    result.pushKV("registry_height", snapshot.height);
+    result.pushKV("registry_root", snapshot.registry_root.GetHex());
+    return result;
+}
+    };
+}
+
+RPCHelpMan walletsubmitfundchainpsbt()
+{
+    return RPCHelpMan{
+        "walletsubmitfundchainpsbt",
+        "Validate, sign, finalize, and broadcast one canonical irreversible child deposit.\n"
+        "The caller must explicitly confirm irreversibility and provide an amount cap. There is no child-to-main withdrawal path.\n" +
+        HELP_REQUIRING_PASSPHRASE,
+        {
+            {"psbt", RPCArg::Type::STR, RPCArg::Optional::NO, "Base64-encoded child-deposit PSBT"},
+            {"confirm_irreversible", RPCArg::Type::BOOL, RPCArg::Optional::NO, "Must be true to authorize permanent destruction of main-chain funds"},
+            {"max_deposit_amount", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "Maximum main-chain amount the caller authorizes this transaction to destroy"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Submitted child deposit", {
+            {RPCResult::Type::STR_HEX, "txid", "Funding transaction identifier"},
+            {RPCResult::Type::STR_HEX, "hex", "Final network transaction"},
+            {RPCResult::Type::NUM, "vout", "KFND burn output index; always 0"},
+            {RPCResult::Type::STR_HEX, "deposit_id", "Network-bound identifier derived from the funding outpoint"},
+            {RPCResult::Type::STR_HEX, "chain_id", "Destination child-chain identifier"},
+            {RPCResult::Type::NUM, "recipient_type", "Child-template recipient namespace"},
+            {RPCResult::Type::STR_HEX, "recipient", "Canonical recipient bytes"},
+            {RPCResult::Type::STR_AMOUNT, "amount", "Amount permanently destroyed on the main chain"},
+            {RPCResult::Type::STR_AMOUNT, "fee", "Transaction fee in KNE"},
+            {RPCResult::Type::BOOL, "irreversible", "Always true"},
+        }},
+        RPCExamples{
+            HelpExampleCli("walletsubmitfundchainpsbt", "\"cHNidP8...\" true 0.25")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    if (!self.Arg<bool>("confirm_irreversible")) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "confirm_irreversible must be true; child deposits cannot return to the main chain");
+    }
+    const CAmount maximum_amount{AmountFromValue(
+        self.Arg<UniValue>("max_deposit_amount"))};
+    const std::shared_ptr<CWallet> wallet_ptr{GetWalletForJSONRPCRequest(request)};
+    if (!wallet_ptr) return UniValue::VNULL;
+    CWallet& wallet{*wallet_ptr};
+    wallet.BlockUntilSyncedToCurrentChain();
+
+    auto decoded{DecodeBase64PSBT(std::string{self.Arg<std::string_view>("psbt")})};
+    if (!decoded) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR,
+                           strprintf("PSBT decode failed: %s",
+                                     util::ErrorString(decoded).original));
+    }
+    PartiallySignedTransaction psbt{std::move(*decoded)};
+    const auto unsigned_tx{psbt.GetUnsignedTx()};
+    if (!unsigned_tx) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR,
+                           "PSBT does not contain a complete unsigned transaction");
+    }
+    const CTransaction tx_template{*unsigned_tx};
+    const auto funds{chainregistry::ExtractTransactionFunds(tx_template)};
+    if (!funds.IsValid() || funds.funds.size() != 1 ||
+        funds.funds[0].output_index != 0) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "PSBT must contain exactly one valid child deposit at vout[0]");
+    }
+    const chainregistry::FundOutput& fund{funds.funds[0]};
+    const interfaces::ChainRegistrySnapshot snapshot{
+        wallet.chain().getChainRegistrySnapshot(fund.fund.chain_id)};
+    if (!snapshot.enabled || !snapshot.deposits_enabled) {
+        throw JSONRPCError(RPC_MISC_ERROR,
+                           "one-way child deposits are disabled on this network");
+    }
+    if (!snapshot.active_for_next_block || !snapshot.deposits_active_for_next_block) {
+        throw JSONRPCError(RPC_MISC_ERROR,
+                           "one-way child deposits are not active for the next block");
+    }
+    if (!snapshot.record) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id is not registered");
+    }
+    if (snapshot.record->status != chainregistry::ChainStatus::ACTIVE) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "child chain is retired");
+    }
+    if (fund.amount < snapshot.minimum_deposit_amount) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("deposit amount %s KNE is below consensus minimum %s KNE",
+                      FormatMoney(fund.amount),
+                      FormatMoney(snapshot.minimum_deposit_amount)));
+    }
+    if (fund.amount > maximum_amount) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("deposit amount %s KNE exceeds authorized maximum %s KNE",
+                      FormatMoney(fund.amount), FormatMoney(maximum_amount)));
+    }
+    for (size_t index{0}; index < tx_template.vout.size(); ++index) {
+        if (index != fund.output_index &&
+            tx_template.vout[index].scriptPubKey.IsUnspendable()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               "PSBT contains an additional unspendable output");
+        }
+    }
+
+    CAmount input_value{0};
+    {
+        LOCK(wallet.cs_wallet);
+        for (const auto& input : tx_template.vin) {
+            const CWalletTx* wallet_tx{wallet.GetWalletTx(input.prevout.hash)};
+            if (!wallet_tx || input.prevout.n >= wallet_tx->tx->vout.size() ||
+                !wallet.IsMine(wallet_tx->tx->vout[input.prevout.n])) {
+                throw JSONRPCError(
+                    RPC_INVALID_PARAMETER,
+                    strprintf("PSBT input %s:%d is not owned by this wallet",
+                              input.prevout.hash.ToString(), input.prevout.n));
+            }
+            const CAmount value{wallet_tx->tx->vout[input.prevout.n].nValue};
+            if (!MoneyRange(value) || !MoneyRange(input_value + value)) {
+                throw JSONRPCError(RPC_DESERIALIZATION_ERROR,
+                                   "PSBT input value is out of range");
+            }
+            input_value += value;
+        }
+    }
+
+    EnsureWalletIsUnlocked(wallet);
+    bool complete{false};
+    if (const auto error{wallet.FillPSBT(
+            psbt, {.sign = true, .finalize = true, .bip32_derivs = false}, complete)}) {
+        throw JSONRPCPSBTError(*error);
+    }
+    if (!complete) {
+        throw JSONRPCError(RPC_WALLET_ERROR,
+                           "wallet could not sign and finalize every child deposit input");
+    }
+
+    CAmount output_value{0};
+    for (const auto& output : tx_template.vout) {
+        if (!MoneyRange(output.nValue) || !MoneyRange(output_value + output.nValue)) {
+            throw JSONRPCError(RPC_DESERIALIZATION_ERROR,
+                               "PSBT output value is out of range");
+        }
+        output_value += output.nValue;
+    }
+    const CAmount fee{input_value - output_value};
+    if (fee < 0) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR,
+                           "PSBT transaction fee is negative");
+    }
+    if (fee > wallet.m_default_max_tx_fee) {
+        throw JSONRPCError(
+            RPC_WALLET_ERROR,
+            TransactionErrorString(TransactionError::MAX_FEE_EXCEEDED).original);
+    }
+
+    CMutableTransaction final_tx;
+    if (!FinalizeAndExtractPSBT(psbt, final_tx)) {
+        throw JSONRPCError(RPC_WALLET_ERROR,
+                           "failed to extract finalized child deposit transaction");
+    }
+    const std::string hex{EncodeHexTx(CTransaction{final_tx})};
+    const CTransactionRef transaction{MakeTransactionRef(std::move(final_tx))};
+    const COutPoint outpoint{transaction->GetHash(), fund.output_index};
+    const chainregistry::DepositId deposit_id{chainregistry::DeriveDepositId(
+        snapshot.main_genesis_hash, outpoint)};
+
+    std::string broadcast_error;
+    if (!wallet.chain().broadcastTransaction(
+            transaction,
+            wallet.m_default_max_tx_fee,
+            node::TxBroadcast::MEMPOOL_AND_BROADCAST_TO_ALL,
+            broadcast_error)) {
+        throw JSONRPCError(
+            RPC_VERIFY_REJECTED,
+            strprintf("child deposit transaction rejected: %s", broadcast_error));
+    }
+    wallet.CommitTransaction(transaction, {}, /*orderForm=*/{});
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("txid", transaction->GetHash().GetHex());
+    result.pushKV("hex", hex);
+    result.pushKV("vout", fund.output_index);
+    result.pushKV("deposit_id", deposit_id.GetHex());
+    result.pushKV("chain_id", fund.fund.chain_id.GetHex());
+    result.pushKV("recipient_type", fund.fund.recipient_type);
+    result.pushKV("recipient", HexStr(fund.fund.recipient));
+    result.pushKV("amount", ValueFromAmount(fund.amount));
+    result.pushKV("fee", ValueFromAmount(fee));
+    result.pushKV("irreversible", true);
+    return result;
+}
     };
 }
 

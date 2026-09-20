@@ -52,6 +52,9 @@ struct ChainRegistrySnapshot {
     bool enabled{false};
     bool active_for_next_block{false};
     CAmount minimum_registration_burn{0};
+    bool deposits_enabled{false};
+    bool deposits_active_for_next_block{false};
+    CAmount minimum_deposit_amount{0};
     uint256 main_genesis_hash;
     uint256 best_block;
     uint256 registry_root;

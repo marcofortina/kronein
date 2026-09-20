@@ -6,10 +6,6 @@
 
 from decimal import Decimal
 
-from test_framework.messages import (
-    COIN,
-    tx_from_hex,
-)
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
@@ -244,31 +240,39 @@ class ChainRegistryTest(BitcoinTestFramework):
         registered_info = node.getchainregistryinfo()
 
         self.log.info("Index and export a canonical proof for an irreversible child deposit")
-        deposit_destination = node.createfundchainoutput(chain_id, 1, "42" * 32)
         deposit_amount = Decimal("0.25000000")
-        explicit_fee = Decimal("0.00100000")
-        deposit_utxo = max(wallet.listunspent(1), key=lambda utxo: utxo["amount"])
-        raw_deposit = node.createrawtransaction(
-            [{"txid": deposit_utxo["txid"], "vout": deposit_utxo["vout"]}],
-            [
-                {"data": deposit_destination["data"]},
-                {wallet.getnewaddress(): deposit_utxo["amount"] - deposit_amount - explicit_fee},
-            ],
-        )
-        mutable_deposit = tx_from_hex(raw_deposit)
-        mutable_deposit.vout[0].nValue = int(deposit_amount * COIN)
-        signed_deposit = wallet.signrawtransactionwithwallet(mutable_deposit.serialize().hex())
-        assert_equal(signed_deposit["complete"], True)
-        deposit_txid = node.sendrawtransaction(
-            hexstring=signed_deposit["hex"],
-            maxburnamount=deposit_amount,
-        )
+        deposit_psbt = wallet.walletcreatefundchainpsbt(
+            chain_id, 1, "42" * 32, deposit_amount, {"fee_rate": 1})
+        assert_equal(deposit_psbt["deposit_vout"], 0)
+        assert_equal(deposit_psbt["amount"], deposit_amount)
+        assert_equal(deposit_psbt["chain_id"], chain_id)
+        assert_equal(deposit_psbt["recipient_type"], 1)
+        assert_equal(deposit_psbt["recipient"], "42" * 32)
+        assert_equal(deposit_psbt["irreversible"], True)
+        assert "cannot be reversed" in deposit_psbt["warning"]
+        assert_raises_rpc_error(
+            -8, "confirm_irreversible must be true",
+            wallet.walletsubmitfundchainpsbt,
+            deposit_psbt["psbt"], False, deposit_amount)
+        assert_raises_rpc_error(
+            -8, "exceeds authorized maximum",
+            wallet.walletsubmitfundchainpsbt,
+            deposit_psbt["psbt"], True, Decimal("0.24999999"))
+        submitted_deposit = wallet.walletsubmitfundchainpsbt(
+            deposit_psbt["psbt"], True, deposit_amount)
+        assert_equal(submitted_deposit["vout"], 0)
+        assert_equal(submitted_deposit["chain_id"], chain_id)
+        assert_equal(submitted_deposit["recipient"], "42" * 32)
+        assert_equal(submitted_deposit["amount"], deposit_amount)
+        assert_equal(submitted_deposit["irreversible"], True)
+        deposit_txid = submitted_deposit["txid"]
         deposit_block = self.generatetoaddress(node, 1, wallet.getnewaddress())[0]
 
         deposit_status = node.getdepositstatus(deposit_txid, 0)
         assert_equal(deposit_status["found"], True)
         assert_equal(deposit_status["history_complete"], True)
         assert_equal(deposit_status["deposit"]["deposit_id"], deposit_status["deposit_id"])
+        assert_equal(deposit_status["deposit_id"], submitted_deposit["deposit_id"])
         assert_equal(deposit_status["deposit"]["outpoint"], {"txid": deposit_txid, "vout": 0})
         assert_equal(deposit_status["deposit"]["amount"], deposit_amount)
         assert_equal(deposit_status["deposit"]["destination"], {
