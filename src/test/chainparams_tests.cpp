@@ -70,6 +70,8 @@ BOOST_AUTO_TEST_CASE(network_identity)
             params->GetConsensus().nMinimumChainWork ==
             ArithToUint256(GetBlockProof(params->GenesisBlock())));
         BOOST_CHECK(params->GetConsensus().defaultAssumeValid.IsNull());
+        BOOST_CHECK(!params->GetConsensus().chain_registry.Enabled());
+        BOOST_CHECK(!params->GetConsensus().chain_registry.IsActive(0));
     }
     BOOST_CHECK_EQUAL(message_starts.size(), networks.size());
     BOOST_CHECK_EQUAL(p2p_ports.size(), networks.size());

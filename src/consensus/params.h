@@ -7,6 +7,7 @@
 #ifndef BITCOIN_CONSENSUS_PARAMS_H
 #define BITCOIN_CONSENSUS_PARAMS_H
 
+#include <consensus/amount.h>
 #include <uint256.h>
 
 #include <array>
@@ -20,6 +21,23 @@ namespace Consensus {
  * Parameters that influence chain consensus.
  */
 struct Params {
+    struct ChainRegistryParams {
+        /** Negative means the registry consensus rules are disabled. */
+        int activation_height{-1};
+        /** Minimum value permanently burned by a registration output. */
+        CAmount minimum_registration_burn{0};
+        /** Maximum number of registry state transitions accepted per block. */
+        uint32_t maximum_operations{0};
+
+        bool Enabled() const
+        {
+            return activation_height >= 0 &&
+                   minimum_registration_burn > 0 &&
+                   maximum_operations > 0;
+        }
+        bool IsActive(int height) const { return Enabled() && height >= activation_height; }
+    };
+
     struct ASERTParams {
         /** Enable the per-block ASERTI3 difficulty adjustment algorithm. */
         bool enabled{false};
@@ -51,6 +69,8 @@ struct Params {
     ASERTParams asert;
     /** RandomX v2 cache-key schedule. The exact target remains encoded in nBits. */
     RandomXParams randomx;
+    /** Child-chain registry activation and resource limits. */
+    ChainRegistryParams chain_registry;
     bool fPowAllowMinDifficultyBlocks;
     /**
       * Enforce BIP94 timewarp attack mitigation. On testnet4 this also enforces
