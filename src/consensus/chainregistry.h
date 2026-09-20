@@ -11,6 +11,7 @@
 #include <serialize.h>
 #include <uint256.h>
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <map>
@@ -24,6 +25,8 @@ inline constexpr std::string_view REGISTRY_LEAF_HASH_TAG{"Kronein/RegistryLeaf/v
 inline constexpr std::string_view REGISTRY_NODE_HASH_TAG{"Kronein/RegistryNode/v1"};
 inline constexpr std::string_view REGISTRY_ROOT_HASH_TAG{"Kronein/RegistryRoot/v1"};
 inline constexpr uint8_t CHAIN_RECORD_VERSION{1};
+inline constexpr std::array<unsigned char, 4> REGISTRY_COMMITMENT_MAGIC{'K', 'R', 'R', 'T'};
+inline constexpr uint8_t REGISTRY_COMMITMENT_VERSION{1};
 
 enum class ChainStatus : uint8_t {
     ACTIVE = 1,
@@ -106,6 +109,43 @@ uint256 ComputeRegistryLeafHash(const ChainRecord& record);
 uint256 ComputeRegistryNodeHash(const uint256& left, const uint256& right);
 /** Compute the count-committed root from leaves already ordered by ChainId. */
 uint256 ComputeRegistryRootFromLeaves(std::vector<uint256> ordered_leaves);
+
+enum class CommitmentParseError : uint8_t {
+    NONE,
+    NOT_COMMITMENT,
+    MALFORMED_SCRIPT,
+    NON_CANONICAL_SCRIPT,
+    INVALID_LENGTH,
+    UNSUPPORTED_VERSION,
+};
+
+struct CommitmentParseResult {
+    CommitmentParseError error{CommitmentParseError::NOT_COMMITMENT};
+    std::optional<uint256> root;
+
+    explicit operator bool() const { return error == CommitmentParseError::NONE && root.has_value(); }
+};
+
+enum class CommitmentTxError : uint8_t {
+    NONE,
+    INVALID_COMMITMENT,
+    MULTIPLE_COMMITMENTS,
+    NONZERO_VALUE,
+};
+
+struct CommitmentTxResult {
+    CommitmentTxError error{CommitmentTxError::NONE};
+    CommitmentParseError parse_error{CommitmentParseError::NONE};
+    std::optional<uint32_t> output_index;
+    std::optional<uint256> root;
+
+    bool IsValid() const { return error == CommitmentTxError::NONE; }
+};
+
+CScript BuildRegistryCommitment(const uint256& registry_root);
+CommitmentParseResult ParseRegistryCommitment(const CScript& script);
+/** Find at most one zero-valued commitment output in a transaction. */
+CommitmentTxResult ExtractRegistryCommitment(const CTransaction& tx);
 
 /** In-memory deterministic registry state. Persistence is added by M2. */
 class ChainRegistry

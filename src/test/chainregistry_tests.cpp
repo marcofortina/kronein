@@ -468,6 +468,74 @@ BOOST_AUTO_TEST_CASE(registry_record_hash_vectors)
     BOOST_CHECK(undo_stream.empty());
 }
 
+BOOST_AUTO_TEST_CASE(registry_commitment_vectors_and_roundtrip)
+{
+    constexpr uint256 root{"1111111111111111111111111111111111111111111111111111111111111111"};
+    const CScript script{chainregistry::BuildRegistryCommitment(root)};
+    BOOST_CHECK_EQUAL(
+        HexStr(script),
+        "6a254b52525401"
+        "1111111111111111111111111111111111111111111111111111111111111111");
+    BOOST_CHECK(script.IsUnspendable());
+
+    const auto parsed{chainregistry::ParseRegistryCommitment(script)};
+    BOOST_REQUIRE(parsed);
+    BOOST_CHECK_EQUAL(parsed.root->GetHex(), root.GetHex());
+
+    CMutableTransaction tx;
+    tx.vout.emplace_back(0, CScript{} << OP_RETURN << ParseHex("abcd"));
+    tx.vout.emplace_back(0, script);
+    const auto extracted{chainregistry::ExtractRegistryCommitment(CTransaction{tx})};
+    BOOST_REQUIRE(extracted.IsValid());
+    BOOST_REQUIRE(extracted.output_index.has_value());
+    BOOST_REQUIRE(extracted.root.has_value());
+    BOOST_CHECK_EQUAL(*extracted.output_index, 1U);
+    BOOST_CHECK_EQUAL(extracted.root->GetHex(), root.GetHex());
+}
+
+BOOST_AUTO_TEST_CASE(registry_commitment_rejects_invalid_encodings)
+{
+    constexpr uint256 root{"1111111111111111111111111111111111111111111111111111111111111111"};
+    const auto canonical_data{ParseHex(
+        "4b52525401"
+        "1111111111111111111111111111111111111111111111111111111111111111")};
+
+    BOOST_CHECK(chainregistry::ParseRegistryCommitment(CScript{}).error == chainregistry::CommitmentParseError::NOT_COMMITMENT);
+    BOOST_CHECK(chainregistry::ParseRegistryCommitment(CScript{} << OP_RETURN << ParseHex("abcd")).error == chainregistry::CommitmentParseError::NOT_COMMITMENT);
+    BOOST_CHECK(chainregistry::ParseRegistryCommitment(CScript{} << OP_RETURN << ParseHex("4b52525401")).error == chainregistry::CommitmentParseError::INVALID_LENGTH);
+
+    auto bad_version{canonical_data};
+    bad_version[4] = 2;
+    BOOST_CHECK(chainregistry::ParseRegistryCommitment(CScript{} << OP_RETURN << bad_version).error == chainregistry::CommitmentParseError::UNSUPPORTED_VERSION);
+
+    const auto malformed{CScript{} << OP_RETURN << canonical_data << OP_0};
+    BOOST_CHECK(chainregistry::ParseRegistryCommitment(malformed).error == chainregistry::CommitmentParseError::MALFORMED_SCRIPT);
+
+    CScript noncanonical;
+    noncanonical << OP_RETURN;
+    noncanonical.push_back(OP_PUSHDATA1);
+    noncanonical.push_back(static_cast<unsigned char>(canonical_data.size()));
+    noncanonical.insert(noncanonical.end(), canonical_data.begin(), canonical_data.end());
+    BOOST_CHECK(chainregistry::ParseRegistryCommitment(noncanonical).error == chainregistry::CommitmentParseError::NON_CANONICAL_SCRIPT);
+
+    CMutableTransaction nonzero_tx;
+    nonzero_tx.vout.emplace_back(1, chainregistry::BuildRegistryCommitment(root));
+    auto extracted{chainregistry::ExtractRegistryCommitment(CTransaction{nonzero_tx})};
+    BOOST_CHECK(extracted.error == chainregistry::CommitmentTxError::NONZERO_VALUE);
+
+    CMutableTransaction duplicate_tx;
+    duplicate_tx.vout.emplace_back(0, chainregistry::BuildRegistryCommitment(root));
+    duplicate_tx.vout.emplace_back(0, chainregistry::BuildRegistryCommitment(root));
+    extracted = chainregistry::ExtractRegistryCommitment(CTransaction{duplicate_tx});
+    BOOST_CHECK(extracted.error == chainregistry::CommitmentTxError::MULTIPLE_COMMITMENTS);
+
+    CMutableTransaction invalid_tx;
+    invalid_tx.vout.emplace_back(0, CScript{} << OP_RETURN << ParseHex("4b52525401"));
+    extracted = chainregistry::ExtractRegistryCommitment(CTransaction{invalid_tx});
+    BOOST_CHECK(extracted.error == chainregistry::CommitmentTxError::INVALID_COMMITMENT);
+    BOOST_CHECK(extracted.parse_error == chainregistry::CommitmentParseError::INVALID_LENGTH);
+}
+
 BOOST_AUTO_TEST_CASE(registry_lifecycle_and_undo)
 {
     constexpr uint256 main_genesis{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};

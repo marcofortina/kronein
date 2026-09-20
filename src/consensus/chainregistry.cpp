@@ -5,7 +5,9 @@
 #include <consensus/chainregistry.h>
 
 #include <hash.h>
+#include <streams.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -59,6 +61,79 @@ uint256 ComputeRegistryRootFromLeaves(std::vector<uint256> ordered_leaves)
     auto hasher{TaggedHash(std::string{REGISTRY_ROOT_HASH_TAG})};
     hasher << record_count << tree_root;
     return hasher.GetSHA256();
+}
+
+CScript BuildRegistryCommitment(const uint256& registry_root)
+{
+    std::vector<unsigned char> data{REGISTRY_COMMITMENT_MAGIC.begin(), REGISTRY_COMMITMENT_MAGIC.end()};
+    VectorWriter writer{data, data.size()};
+    writer << REGISTRY_COMMITMENT_VERSION << registry_root;
+    return CScript{} << OP_RETURN << data;
+}
+
+CommitmentParseResult ParseRegistryCommitment(const CScript& script)
+{
+    auto cursor{script.begin()};
+    opcodetype opcode;
+    std::vector<unsigned char> data;
+    if (!script.GetOp(cursor, opcode) || opcode != OP_RETURN) {
+        return {CommitmentParseError::NOT_COMMITMENT, std::nullopt};
+    }
+    if (!script.GetOp(cursor, opcode, data)) {
+        return {CommitmentParseError::NOT_COMMITMENT, std::nullopt};
+    }
+    if (data.size() < REGISTRY_COMMITMENT_MAGIC.size() ||
+        !std::equal(REGISTRY_COMMITMENT_MAGIC.begin(), REGISTRY_COMMITMENT_MAGIC.end(), data.begin())) {
+        return {CommitmentParseError::NOT_COMMITMENT, std::nullopt};
+    }
+    if (opcode > OP_PUSHDATA4 || cursor != script.end()) {
+        return {CommitmentParseError::MALFORMED_SCRIPT, std::nullopt};
+    }
+    if (script != (CScript{} << OP_RETURN << data)) {
+        return {CommitmentParseError::NON_CANONICAL_SCRIPT, std::nullopt};
+    }
+    constexpr size_t EXPECTED_SIZE{REGISTRY_COMMITMENT_MAGIC.size() + sizeof(uint8_t) + uint256::size()};
+    if (data.size() != EXPECTED_SIZE) {
+        return {CommitmentParseError::INVALID_LENGTH, std::nullopt};
+    }
+
+    SpanReader reader{std::span{data}.subspan(REGISTRY_COMMITMENT_MAGIC.size())};
+    uint8_t version;
+    uint256 root;
+    reader >> version >> root;
+    if (version != REGISTRY_COMMITMENT_VERSION) {
+        return {CommitmentParseError::UNSUPPORTED_VERSION, std::nullopt};
+    }
+    return {CommitmentParseError::NONE, root};
+}
+
+CommitmentTxResult ExtractRegistryCommitment(const CTransaction& tx)
+{
+    CommitmentTxResult result;
+    for (size_t output_index{0}; output_index < tx.vout.size(); ++output_index) {
+        const auto parsed{ParseRegistryCommitment(tx.vout[output_index].scriptPubKey)};
+        if (parsed.error == CommitmentParseError::NOT_COMMITMENT) continue;
+        if (!parsed) {
+            result.error = CommitmentTxError::INVALID_COMMITMENT;
+            result.parse_error = parsed.error;
+            result.output_index.reset();
+            result.root.reset();
+            return result;
+        }
+        if (result.root) {
+            result.error = CommitmentTxError::MULTIPLE_COMMITMENTS;
+            result.output_index.reset();
+            result.root.reset();
+            return result;
+        }
+        if (tx.vout[output_index].nValue != 0) {
+            result.error = CommitmentTxError::NONZERO_VALUE;
+            return result;
+        }
+        result.output_index = static_cast<uint32_t>(output_index);
+        result.root = *parsed.root;
+    }
+    return result;
 }
 
 const ChainRecord* ChainRegistry::Find(const ChainId& chain_id) const
