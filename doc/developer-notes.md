@@ -320,7 +320,7 @@ to see it.
 
 If you are testing multi-machine code that needs to operate across the internet,
 you can run with either the `-signet` or the `-testnet4` config option to test
-with "play bitcoins" on a test network.
+with test KNE on a test network.
 
 If you are testing something that can run on one machine, run with the
 `-regtest` option.  In regression test mode, blocks can be created on demand;
@@ -696,7 +696,7 @@ and its `cs_KeyStore` lock for example).
     : Universal plug-and-play startup/shutdown.
 
   - [ThreadSocketHandler (`b-net`)](https://doxygen.bitcoincore.org/class_c_connman.html#a765597cbfe99c083d8fa3d61bb464e34)
-    : Sends/Receives data from peers on port 8333.
+    : Sends/Receives data from peers on port 26762.
 
   - [ThreadOpenAddedConnections (`b-addcon`)](https://doxygen.bitcoincore.org/class_c_connman.html#a0b787caf95e52a346a2b31a580d60a62)
     : Opens network connections to added nodes.

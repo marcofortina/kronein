@@ -4,7 +4,7 @@ populated with unchecked data gossiped over the P2P network by other peers.
 
 A malicious actor may gossip an address:port where no Kronein node is listening,
 or one where a service is listening that is not related to the Kronein network.
-As a result, this service may occasionally get connection attempts from Bitcoin
+As a result, this service may occasionally get connection attempts from Kronein
 nodes.
 
 "Bad" ports are ones used by services which are usually not open to the public
