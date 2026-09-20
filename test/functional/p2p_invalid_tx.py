@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 # Copyright (c) 2015-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test node responses to invalid native transactions.
 
 In this test we connect to one node over p2p, and test tx requests."""
-from test_framework.address import create_deterministic_address_bcrt1_p2tr_op_true
+from test_framework.address import create_deterministic_address_rkne1_p2tr_op_true
 from test_framework.blocktools import add_witness_commitment, create_block, create_coinbase
 from test_framework.messages import (
     COIN,
@@ -56,7 +57,7 @@ class InvalidTxRequestTest(BitcoinTestFramework):
         best_block_time = self.nodes[0].getblock(best_block)['time']
         block_time = best_block_time + 1
 
-        _, taproot_info = create_deterministic_address_bcrt1_p2tr_op_true()
+        _, taproot_info = create_deterministic_address_rkne1_p2tr_op_true()
         taproot_leaf = taproot_info.leaves["only-path"]
         control_block = bytes([taproot_leaf.version | taproot_info.negflag]) + taproot_info.internal_pubkey
 

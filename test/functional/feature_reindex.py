@@ -23,6 +23,9 @@ class ReindexTest(BitcoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 1
+        # Mining 1500 memory-hard RandomX blocks legitimately exceeds the
+        # framework's 30-second default RPC timeout on typical machines.
+        self.rpc_timeout = 180
 
     def reindex(self, justchainstate=False):
         self.generatetoaddress(self.nodes[0], 3, self.nodes[0].get_deterministic_priv_key().address)

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2022-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test logic for setting -maxtipage on command line.
@@ -10,6 +11,7 @@ their best known block header time is more than -maxtipage in the past.
 
 import time
 
+from test_framework.blocktools import TIME_GENESIS_BLOCK
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import assert_equal
 
@@ -26,9 +28,12 @@ class MaxTipAgeTest(BitcoinTestFramework):
         node_miner = self.nodes[0]
         node_ibd = self.nodes[1]
 
-        self.restart_node(1, [f'-maxtipage={maxtipage}'] if set_parameter else None)
+        cur_time = max(int(time.time()), TIME_GENESIS_BLOCK + DEFAULT_MAX_TIP_AGE + 10)
+        node_args = [f'-mocktime={cur_time}']
+        if set_parameter:
+            node_args.append(f'-maxtipage={maxtipage}')
+        self.restart_node(1, node_args)
         self.connect_nodes(0, 1)
-        cur_time = int(time.time())
 
         if test_deltas:
             # tips older than maximum age -> stay in IBD
@@ -39,7 +44,8 @@ class MaxTipAgeTest(BitcoinTestFramework):
                 assert_equal(node_ibd.getblockchaininfo()['initialblockdownload'], True)
 
         # tip within maximum age -> leave IBD
-        node_miner.setmocktime(max(cur_time - maxtipage, 0))
+        block_time = cur_time if not test_deltas else max(cur_time - maxtipage, 0)
+        node_miner.setmocktime(block_time)
         self.generate(node_miner, 1)
         assert_equal(node_ibd.getblockchaininfo()['initialblockdownload'], False)
 

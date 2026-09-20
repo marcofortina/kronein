@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the -alertnotify, -blocknotify and -walletnotify options."""
 import os
 import platform
 
-from test_framework.address import ADDRESS_BCRT1_UNSPENDABLE
+from test_framework.address import ADDRESS_RKNE1_UNSPENDABLE
 from test_framework.blocktools import (
     create_block,
     create_coinbase,
@@ -66,7 +67,7 @@ class NotificationsTest(BitcoinTestFramework):
     def run_test(self):
         if self.is_wallet_compiled():
             # Setup the descriptors to be imported to the wallet
-            xpriv = "tprv8ZgxMBicQKsPfHCsTwkiM1KT56RXbGGTqvc2hgqzycpwbHqqpcajQeMRZoBD35kW4RtyCemu6j34Ku5DEspmgjKdt2qe4SvRch5Kk8B8A2v"
+            xpriv = "KrprvXJ7sdXeAaebXkphLMiSv2F57VzLi8oXr81roozxwcqpSobCHyq9wFx8tsw15e5Szja5s29WsqStYyx466N3uU1mVyWmJWrZLfiTVKmCrACa"
             desc_imports = [{
                 "desc": descsum_create(f"tr({xpriv}/0/*)"),
                 "timestamp": 0,
@@ -87,7 +88,7 @@ class NotificationsTest(BitcoinTestFramework):
 
         self.log.info("test -blocknotify")
         block_count = 10
-        blocks = self.generatetoaddress(self.nodes[1], block_count, self.nodes[1].getnewaddress() if self.is_wallet_compiled() else ADDRESS_BCRT1_UNSPENDABLE)
+        blocks = self.generatetoaddress(self.nodes[1], block_count, self.nodes[1].getnewaddress() if self.is_wallet_compiled() else ADDRESS_RKNE1_UNSPENDABLE)
 
         # wait at most 10 seconds for expected number of files before reading the content
         self.wait_until(lambda: len(os.listdir(self.blocknotify_dir)) == block_count, timeout=10)
@@ -120,11 +121,11 @@ class NotificationsTest(BitcoinTestFramework):
             # triggered by node 1
             self.log.info("test -walletnotify with conflicting transactions")
             self.nodes[0].rescanblockchain()
-            self.generatetoaddress(self.nodes[0], 100, ADDRESS_BCRT1_UNSPENDABLE)
+            self.generatetoaddress(self.nodes[0], 100, ADDRESS_RKNE1_UNSPENDABLE)
 
             # Generate transaction on node 0, sync mempools, and check for
             # notification on node 1.
-            tx1 = self.nodes[0].sendtoaddress(address=ADDRESS_BCRT1_UNSPENDABLE, amount=1, replaceable=True)
+            tx1 = self.nodes[0].sendtoaddress(address=ADDRESS_RKNE1_UNSPENDABLE, amount=1, replaceable=True)
             assert_equal(tx1 in self.nodes[0].getrawmempool(), True)
             self.sync_mempools()
             self.expect_wallet_notify([(tx1, -1, UNCONFIRMED_HASH_STRING)])
@@ -140,14 +141,14 @@ class NotificationsTest(BitcoinTestFramework):
 
             # Add bump1 transaction to new block, checking for a notification
             # and the correct number of confirmations.
-            blockhash1 = self.generatetoaddress(self.nodes[0], 1, ADDRESS_BCRT1_UNSPENDABLE)[0]
+            blockhash1 = self.generatetoaddress(self.nodes[0], 1, ADDRESS_RKNE1_UNSPENDABLE)[0]
             blockheight1 = self.nodes[0].getblockcount()
             self.sync_blocks()
             self.expect_wallet_notify([(bump1, blockheight1, blockhash1)])
             assert_equal(self.nodes[1].gettransaction(bump1)["confirmations"], 1)
 
             # Generate a second transaction to be bumped.
-            tx2 = self.nodes[0].sendtoaddress(address=ADDRESS_BCRT1_UNSPENDABLE, amount=1, replaceable=True)
+            tx2 = self.nodes[0].sendtoaddress(address=ADDRESS_RKNE1_UNSPENDABLE, amount=1, replaceable=True)
             assert_equal(tx2 in self.nodes[0].getrawmempool(), True)
             self.sync_mempools()
             self.expect_wallet_notify([(tx2, -1, UNCONFIRMED_HASH_STRING)])
@@ -157,7 +158,7 @@ class NotificationsTest(BitcoinTestFramework):
             # about newly confirmed bump2 and newly conflicted tx2.
             self.disconnect_nodes(0, 1)
             bump2 = self.nodes[0].bumpfee(tx2)["txid"]
-            blockhash2 = self.generatetoaddress(self.nodes[0], 1, ADDRESS_BCRT1_UNSPENDABLE, sync_fun=self.no_op)[0]
+            blockhash2 = self.generatetoaddress(self.nodes[0], 1, ADDRESS_RKNE1_UNSPENDABLE, sync_fun=self.no_op)[0]
             blockheight2 = self.nodes[0].getblockcount()
             assert_equal(self.nodes[0].gettransaction(bump2)["confirmations"], 1)
             assert_equal(tx2 in self.nodes[1].getrawmempool(), True)

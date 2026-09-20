@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2015-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test node responses to invalid network messages."""
@@ -230,8 +231,7 @@ class InvalidMessagesTest(BitcoinTestFramework):
         blockheader.hashPrevBlock = int(blockheader_tip_hash, 16)
         blockheader.nTime = int(time.time())
         blockheader.nBits = blockheader_tip.nBits
-        while not blockheader.hash_hex.startswith('0'):
-            blockheader.nNonce += 1
+        blockheader.solve()
         peer = self.nodes[0].add_p2p_connection(P2PInterface())
         peer.send_and_ping(msg_headers([blockheader]))
         assert_equal(self.nodes[0].getblockchaininfo()['headers'], 1)
@@ -240,9 +240,13 @@ class InvalidMessagesTest(BitcoinTestFramework):
         assert_equal(chaintips[0]['hash'], blockheader.hash_hex)
 
         # invalidate PoW
-        while not blockheader.hash_hex.startswith('f'):
+        while blockheader.is_valid_pow():
             blockheader.nNonce += 1
-        with self.nodes[0].assert_debug_log(['Misbehaving', 'header with invalid proof of work']):
+        # RandomX validation is contextual because its epoch key depends on
+        # the preceding chain. The generic pre-context batch check can only
+        # validate nBits; the full work failure is reported while processing
+        # the connected header.
+        with self.nodes[0].assert_debug_log(['proof of work failed', 'Misbehaving', 'invalid header received']):
             peer.send_without_ping(msg_headers([blockheader]))
             peer.wait_for_disconnect()
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2017-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test various fingerprinting protections.
@@ -10,7 +11,7 @@ the node should pretend that it does not have it to avoid fingerprinting.
 
 import time
 
-from test_framework.blocktools import (create_block, create_coinbase)
+from test_framework.blocktools import TIME_GENESIS_BLOCK, create_block, create_coinbase
 from test_framework.messages import CInv, MSG_BLOCK
 from test_framework.p2p import (
     P2PInterface,
@@ -65,8 +66,9 @@ class P2PFingerprintTest(BitcoinTestFramework):
     def run_test(self):
         node0 = self.nodes[0].add_p2p_connection(P2PInterface())
 
-        # Set node time to 60 days ago
-        self.nodes[0].setmocktime(int(time.time()) - 60 * 24 * 60 * 60)
+        # Ensure the simulated old blocks are still newer than the Kronein genesis.
+        current_time = max(int(time.time()), TIME_GENESIS_BLOCK + 61 * 24 * 60 * 60)
+        self.nodes[0].setmocktime(current_time - 60 * 24 * 60 * 60)
 
         # Generating a chain of 10 blocks
         block_hashes = self.generatetoaddress(self.nodes[0], 10, self.nodes[0].get_deterministic_priv_key().address)
@@ -97,7 +99,7 @@ class P2PFingerprintTest(BitcoinTestFramework):
         node0.wait_for_header(hex(stale_hash), timeout=3)
 
         # Longest chain is extended so stale is much older than chain tip
-        self.nodes[0].setmocktime(0)
+        self.nodes[0].setmocktime(current_time)
         block_hash = int(self.generatetoaddress(self.nodes[0], 1, self.nodes[0].get_deterministic_priv_key().address)[-1], 16)
         assert_equal(self.nodes[0].getblockcount(), 14)
         # Native peers receive header announcements and request block data only

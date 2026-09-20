@@ -11,6 +11,7 @@ This test takes 30 mins or more (up to 2 hours)
 """
 import os
 
+from test_framework.blockfilter import bip158_basic_element_hash
 from test_framework.blocktools import (
     MIN_BLOCKS_TO_KEEP,
     create_block,
@@ -33,6 +34,30 @@ from test_framework.util import (
 # the manual prune RPC avoids pruning blocks in the same window to be
 # compatible with pruning based on key creation time.
 TIMESTAMP_WINDOW = 2 * 60 * 60
+
+
+def find_single_element_filter_false_positive(block_hash, encoded_filter):
+    """Find a script matching a one-element BIP158 filter by chance."""
+    filter_bytes = bytes.fromhex(encoded_filter)
+    assert_equal(filter_bytes[0], 1)  # CompactSize element count
+
+    # A one-element Golomb-Rice filter contains the unary quotient followed by
+    # the 19-bit remainder of its only ranged hash.
+    bits = ''.join(f'{byte:08b}' for byte in filter_bytes[1:])
+    quotient = bits.index('0')
+    ranged_hash = (quotient << 19) | int(bits[quotient + 1:quotient + 20], 2)
+
+    # Search until a match is found instead of imposing a probabilistic upper
+    # bound. Each candidate is a native Taproot output, which scanblocks
+    # accepts as a raw descriptor, and a match is expected after M candidates
+    # on average.
+    counter = 0
+    while True:
+        script_pub_key = b'\x51\x20' + counter.to_bytes(32, 'little')
+        if bip158_basic_element_hash(script_pub_key, 1, block_hash) == ranged_hash:
+            return script_pub_key
+        counter += 1
+
 
 def mine_large_blocks(node, n):
     # Make a large scriptPubKey for the coinbase transaction. This is OP_RETURN
@@ -63,8 +88,10 @@ def mine_large_blocks(node, n):
         height += 1
         mine_large_blocks.nTime += 1
 
+
 def calc_usage(blockdir):
     return sum(os.path.getsize(blockdir + f) for f in os.listdir(blockdir) if os.path.isfile(os.path.join(blockdir, f))) / (1024. * 1024.)
+
 
 class PruneTest(BitcoinTestFramework):
     def set_test_params(self):
@@ -494,16 +521,21 @@ class PruneTest(BitcoinTestFramework):
 
     def test_scanblocks_pruned(self):
         node = self.nodes[5]
-        genesis_blockhash = node.getblockhash(0)
-        # Native Taproot output that is a false positive for the regtest
-        # genesis block's basic filter.
-        false_positive_spk = bytes.fromhex("51205fae030000000000000000000000000000000000000000000000000000000000")
+        # Kronein's genesis output is OP_RETURN and is therefore correctly
+        # absent from the basic filter. Height 1 contains one native coinbase
+        # output; derive a false positive for its block-specific SipHash key.
+        pruned_height = 1
+        pruned_blockhash = node.getblockhash(pruned_height)
+        false_positive_spk = find_single_element_filter_false_positive(
+            pruned_blockhash,
+            node.getblockfilter(pruned_blockhash, "basic")['filter'],
+        )
 
-        assert genesis_blockhash in node.scanblocks(
-            "start", [{"desc": f"raw({false_positive_spk.hex()})"}], 0, 0)['relevant_blocks']
+        assert pruned_blockhash in node.scanblocks(
+            "start", [{"desc": f"raw({false_positive_spk.hex()})"}], pruned_height, pruned_height)['relevant_blocks']
 
         assert_raises_rpc_error(-1, "Block not available (pruned data)", node.scanblocks,
-            "start", [{"desc": f"raw({false_positive_spk.hex()})"}], 0, 0, "basic", {"filter_false_positives": True})
+            "start", [{"desc": f"raw({false_positive_spk.hex()})"}], pruned_height, pruned_height, "basic", {"filter_false_positives": True})
 
     def test_pruneheight_undo_presence(self):
         node = self.nodes[5]

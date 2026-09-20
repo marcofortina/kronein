@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the REST API."""
@@ -14,7 +15,6 @@ import urllib.parse
 
 
 from test_framework.messages import (
-    BLOCK_HEADER_SIZE,
     COIN,
     deser_block_spent_outputs,
 )
@@ -239,26 +239,27 @@ class RESTTest (BitcoinTestFramework):
 
         # Check binary format
         response = self.test_rest_request(f"/block/{bb_hash}", req_type=ReqType.BIN, ret_type=RetType.OBJ)
-        assert_greater_than(int(response.getheader('content-length')), BLOCK_HEADER_SIZE)
         response_bytes = response.read()
 
         # Compare with block header
         response_header = self.test_rest_request(f"/headers/{bb_hash}", req_type=ReqType.BIN, ret_type=RetType.OBJ, query_params={"count": 1})
-        assert_equal(int(response_header.getheader('content-length')), BLOCK_HEADER_SIZE)
         response_header_bytes = response_header.read()
-        assert_equal(response_bytes[:BLOCK_HEADER_SIZE], response_header_bytes)
+        header_size = len(response_header_bytes)
+        assert_equal(int(response_header.getheader('content-length')), header_size)
+        assert_greater_than(len(response_bytes), header_size)
+        assert_equal(response_bytes[:header_size], response_header_bytes)
 
         # Check block hex format
         response_hex = self.test_rest_request(f"/block/{bb_hash}", req_type=ReqType.HEX, ret_type=RetType.OBJ)
-        assert_greater_than(int(response_hex.getheader('content-length')), BLOCK_HEADER_SIZE*2)
+        assert_greater_than(int(response_hex.getheader('content-length')), header_size * 2)
         response_hex_bytes = response_hex.read().strip(b'\n')
         assert_equal(response_bytes.hex().encode(), response_hex_bytes)
 
         # Compare with hex block header
         response_header_hex = self.test_rest_request(f"/headers/{bb_hash}", req_type=ReqType.HEX, ret_type=RetType.OBJ, query_params={"count": 1})
-        assert_greater_than(int(response_header_hex.getheader('content-length')), BLOCK_HEADER_SIZE*2)
-        response_header_hex_bytes = response_header_hex.read(BLOCK_HEADER_SIZE*2)
-        assert_equal(response_bytes[:BLOCK_HEADER_SIZE].hex().encode(), response_header_hex_bytes)
+        assert_greater_than(int(response_header_hex.getheader('content-length')), header_size * 2)
+        response_header_hex_bytes = response_header_hex.read().strip(b'\n')
+        assert_equal(response_bytes[:header_size].hex().encode(), response_header_hex_bytes)
 
         # Check json format
         block_json_obj = self.test_rest_request(f"/block/{bb_hash}")

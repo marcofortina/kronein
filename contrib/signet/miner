@@ -31,6 +31,7 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S')
 
 PSBT_SIGNET_BLOCK = b"\xfc\x06signetb"    # proprietary PSBT global field holding the block being signed
+PSBT_RANDOMX_SEED = b"\xfc\x07kroneinr"  # proprietary PSBT global field holding the RandomX epoch seed
 RE_MULTIMINER = re.compile(r"^(\d+)(-(\d+))?/(\d+)$")
 
 def signet_txs(block, challenge):
@@ -69,6 +70,7 @@ def decode_challenge_psbt(b64psbt):
     assert len(psbt.i) == 1
     assert len(psbt.o) == 1
     assert PSBT_SIGNET_BLOCK in psbt.g.map
+    assert PSBT_RANDOMX_SEED in psbt.g.map
     return psbt
 
 def get_block_from_psbt(psbt):
@@ -80,17 +82,24 @@ def get_solution_from_psbt(psbt):
         raise ValueError("PSBT does not contain a final Taproot witness")
     return script_witness
 
-def finish_block(block, signet_solution, grind_cmd):
+def get_randomx_seed_from_psbt(psbt):
+    randomx_seed = psbt.g.map[PSBT_RANDOMX_SEED]
+    if len(randomx_seed) != 32:
+        raise ValueError("PSBT contains an invalid RandomX seed")
+    return randomx_seed
+
+def finish_block(block, signet_solution, grind_cmd, randomx_seed):
     block.vtx[0].vout[-1].scriptPubKey += CScriptOp.encode_op_pushdata(SIGNET_HEADER + signet_solution)
     block.hashMerkleRoot = block.calc_merkle_root()
     if grind_cmd is None:
-        block.solve()
-    else:
-        headhex = CBlockHeader.serialize(block).hex()
-        cmd = shlex.split(grind_cmd) + [headhex]
-        newheadhex = subprocess.run(cmd, stdout=subprocess.PIPE, input=b"", check=True).stdout.strip()
-        newhead = from_hex(CBlockHeader(), newheadhex.decode('utf8'))
-        block.nNonce = newhead.nNonce
+        raise ValueError("RandomX mining requires --grind-cmd")
+    if len(randomx_seed) != 32:
+        raise ValueError("RandomX seed must be exactly 32 bytes")
+    headhex = CBlockHeader.serialize(block).hex()
+    cmd = shlex.split(grind_cmd) + [headhex, randomx_seed.hex()]
+    newheadhex = subprocess.run(cmd, stdout=subprocess.PIPE, input=b"", check=True).stdout.strip()
+    newhead = from_hex(CBlockHeader(), newheadhex.decode('utf8'))
+    block.nNonce = newhead.nNonce
     return block
 
 def new_block(tmpl, reward_spk, *, blocktime=None, poolid=None):
@@ -125,12 +134,13 @@ def new_block(tmpl, reward_spk, *, blocktime=None, poolid=None):
 
     return block
 
-def generate_psbt(block, signet_spk):
+def generate_psbt(block, signet_spk, randomx_seed):
     signet_spk_bin = bytes.fromhex(signet_spk)
     signme, spendme = signet_txs(block, signet_spk_bin)
     psbt = PSBT()
     psbt.g = PSBTMap( {PSBT_GLOBAL_TX_VERSION: struct.pack("<i", signme.version),
-                       PSBT_SIGNET_BLOCK: block.serialize()
+                       PSBT_SIGNET_BLOCK: block.serialize(),
+                       PSBT_RANDOMX_SEED: randomx_seed,
                      } )
     psbt.i = [ PSBTMap( {PSBT_IN_WITNESS_UTXO: spendme.vout[0].serialize(),
                          PSBT_IN_PREVIOUS_TXID: ser_uint256(signme.vin[0].prevout.hash),
@@ -182,14 +192,14 @@ def do_genpsbt(args):
     signet_spk = tmpl["signet_challenge"]
     _, reward_spk = get_reward_addr_spk(args, tmpl["height"])
     block = new_block(tmpl, reward_spk, poolid=poolid)
-    psbt = generate_psbt(block, signet_spk)
+    psbt = generate_psbt(block, signet_spk, bytes.fromhex(tmpl["randomx"]["seed"]))
     print(psbt)
 
 def do_solvepsbt(args):
     psbt = decode_challenge_psbt(sys.stdin.read())
     block = get_block_from_psbt(psbt)
     signet_solution = get_solution_from_psbt(psbt)
-    block = finish_block(block, signet_solution, args.grind_cmd)
+    block = finish_block(block, signet_solution, args.grind_cmd, get_randomx_seed_from_psbt(psbt))
     print(block.serialize().hex())
 
 def nbits_to_target(nbits):
@@ -334,7 +344,8 @@ class Generate:
         block = new_block(tmpl, reward_spk, blocktime=self.mine_time, poolid=self.poolid)
 
         signet_spk = tmpl["signet_challenge"]
-        psbt = generate_psbt(block, signet_spk)
+        randomx_seed = bytes.fromhex(tmpl["randomx"]["seed"])
+        psbt = generate_psbt(block, signet_spk, randomx_seed)
         input_stream = os.linesep.join([psbt, "true", "DEFAULT"]).encode('utf8')
         psbt_signed = json.loads(bcli("-stdin", "walletprocesspsbt", input=input_stream))
         if not psbt_signed.get("complete",False):
@@ -344,7 +355,7 @@ class Generate:
         psbt = decode_challenge_psbt(psbt_signed["psbt"])
         signet_solution = get_solution_from_psbt(psbt)
 
-        return finish_block(block, signet_solution, grind_cmd)
+        return finish_block(block, signet_solution, grind_cmd, randomx_seed)
 
 def do_generate(args):
     if args.set_block_time is not None:
@@ -479,23 +490,44 @@ def do_calibrate(args):
     if args.nbits is not None and len(args.nbits) != 8:
         sys.stderr.write("Must specify 8 hex digits for --nbits\n")
         return 1
+    if args.seconds is not None and args.seconds <= 0:
+        sys.stderr.write("--seconds must be greater than zero\n")
+        return 1
 
-    TRIALS = 600 # gets variance down pretty low
-    TRIAL_BITS = 0x1e3ea75f # takes about 5m to do 600 trials
+    if args.trials <= 0:
+        sys.stderr.write("--trials must be greater than zero\n")
+        return 1
+
+    # At Signet's proof-of-work limit a trial takes two RandomX hashes on
+    # average. Run all trials through one streaming grinder so its cache or
+    # dataset is initialized once instead of once per sample.
+    TRIAL_BITS = 0x207fffff
 
     header = CBlockHeader()
     header.nBits = TRIAL_BITS
     targ = nbits_to_target(header.nBits)
 
-    start = time.time()
-    for i in range(TRIALS):
+    requests = []
+    for i in range(args.trials):
         header.nTime = i
         header.nNonce = 0
-        headhex = header.serialize().hex()
-        cmd = shlex.split(args.grind_cmd) + [headhex]
-        subprocess.run(cmd, stdout=subprocess.PIPE, input=b"", check=True)
+        requests.append(header.serialize().hex())
 
-    avg = (time.time() - start) * 1.0 / TRIALS
+    cmd = shlex.split(args.grind_cmd) + ["-"]
+    start = time.time()
+    output = subprocess.run(
+        cmd,
+        stdout=subprocess.PIPE,
+        input=("\n".join(requests) + "\n").encode("ascii"),
+        check=True,
+    ).stdout.splitlines()
+    elapsed = time.time() - start
+    if len(output) != args.trials:
+        raise RuntimeError(f"grinder returned {len(output)} results for {args.trials} trials")
+    for result in output:
+        from_hex(CBlockHeader(), result.decode("ascii"))
+
+    avg = elapsed / args.trials
 
     if args.nbits is not None:
         want_targ = nbits_to_target(int(args.nbits,16))
@@ -548,6 +580,7 @@ def main():
     calibrate_by = calibrate.add_mutually_exclusive_group()
     calibrate_by.add_argument("--nbits", type=str, default=None)
     calibrate_by.add_argument("--seconds", type=int, default=None)
+    calibrate.add_argument("--trials", type=int, default=600, help="Number of RandomX samples (default=600)")
 
     for sp in [genpsbt, generate]:
         payto = sp.add_mutually_exclusive_group(required=True)

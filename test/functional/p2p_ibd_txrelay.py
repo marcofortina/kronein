@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2020-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test transaction relay behavior during IBD:
@@ -11,7 +12,7 @@
 from decimal import Decimal
 import time
 
-from test_framework.blocktools import create_block, create_coinbase
+from test_framework.blocktools import TIME_GENESIS_BLOCK, create_block, create_coinbase
 from test_framework.messages import (
         CInv,
         COIN,
@@ -40,8 +41,8 @@ class P2PIBDTxRelayTest(BitcoinTestFramework):
         self.setup_clean_chain = True
         self.num_nodes = 2
         self.extra_args = [
-            ["-minrelaytxfee={:.8f}".format(NORMAL_FEE_FILTER)],
-            ["-minrelaytxfee={:.8f}".format(NORMAL_FEE_FILTER)],
+            ["-minrelaytxfee={:.8f}".format(NORMAL_FEE_FILTER), "-minimumchainwork=0x6"],
+            ["-minrelaytxfee={:.8f}".format(NORMAL_FEE_FILTER), "-minimumchainwork=0x6"],
         ]
 
     def run_test(self):
@@ -50,9 +51,11 @@ class P2PIBDTxRelayTest(BitcoinTestFramework):
             assert node.getblockchaininfo()['initialblockdownload']
             self.wait_until(lambda: all(peer['minfeefilter'] == MAX_FEE_FILTER for peer in node.getpeerinfo()))
 
-        self.nodes[0].setmocktime(int(time.time()))
+        current_time = max(int(time.time()), TIME_GENESIS_BLOCK + 2 * 24 * 60 * 60 + 1)
+        for node in self.nodes:
+            node.setmocktime(current_time)
         self.log.info("Mine one old block so we stay in IBD, then remember its coinbase wtxid")
-        block = create_block(int(self.nodes[0].getbestblockhash(), 16), create_coinbase(1), int(time.time()) - 2 * 24 * 60 * 60)
+        block = create_block(int(self.nodes[0].getbestblockhash(), 16), create_coinbase(1), current_time - 2 * 24 * 60 * 60)
         block.solve()
         self.nodes[0].submitblock(block.serialize().hex())
         assert self.nodes[0].getblockchaininfo()['initialblockdownload']

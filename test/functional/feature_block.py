@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2015-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test native block and transaction validation."""
@@ -8,7 +9,7 @@ import copy
 
 from test_framework.address import (
     address_to_scriptpubkey,
-    create_deterministic_address_bcrt1_p2tr_op_true,
+    create_deterministic_address_rkne1_p2tr_op_true,
 )
 from test_framework.blocktools import (
     COINBASE_MATURITY,
@@ -79,7 +80,7 @@ class NativeBlockTest(BitcoinTestFramework):
 
     def run_test(self):
         node = self.nodes[0]
-        address, self.taproot_info = create_deterministic_address_bcrt1_p2tr_op_true()
+        address, self.taproot_info = create_deterministic_address_rkne1_p2tr_op_true()
         self.native_script = address_to_scriptpubkey(address)
         descriptor = f"raw({self.native_script.hex()})"
 

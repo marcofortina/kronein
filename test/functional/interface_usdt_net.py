@@ -487,7 +487,7 @@ class NetTracepointTest(BitcoinTestFramework):
         for misbehaving_connection in misbehaving_connections:
             assert_greater_than(misbehaving_connection.id, 0)
             assert_greater_than(len(misbehaving_connection.message), 0)
-            assert_equal(misbehaving_connection.message, b"headers message size = 2001")
+        assert_equal(misbehaving_connection.message, f"headers message size = {MAX_HEADERS_RESULTS + 1}".encode())
 
         bpf.cleanup()
 

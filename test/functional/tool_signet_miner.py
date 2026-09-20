@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # Copyright (c) 2022-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test signet miner tool"""
 
 import json
 import os.path
+import re
 import shlex
 import subprocess
 import sys
@@ -19,7 +21,7 @@ from test_framework.util import (
     assert_equal,
     wallet_importprivkey,
 )
-from test_framework.wallet_util import bytes_to_wif
+from test_framework.wallet_util import WIF_PREFIX_SIGNET, bytes_to_wif
 
 
 CHALLENGE_PRIVATE_KEY = (42).to_bytes(32, 'big')
@@ -63,7 +65,7 @@ class SignetMinerTest(BitcoinTestFramework):
         base_dir = self.config["environment"]["SRCDIR"]
         signet_miner_path = os.path.join(base_dir, "contrib", "signet", "miner")
         rpc_argv = node.binaries.rpc_argv() + [f"-datadir={node.cli.datadir}"]
-        util_argv = node.binaries.util_argv() + ["grind"]
+        util_argv = node.binaries.util_argv() + ["-signet", "-randomxlight", "grind"]
         subprocess.run([
                 sys.executable,
                 signet_miner_path,
@@ -83,7 +85,7 @@ class SignetMinerTest(BitcoinTestFramework):
         base_dir = self.config["environment"]["SRCDIR"]
         signet_miner_path = os.path.join(base_dir, "contrib", "signet", "miner")
         rpc_argv = node.binaries.rpc_argv() + [f"-datadir={node.cli.datadir}"]
-        util_argv = node.binaries.util_argv() + ["grind"]
+        util_argv = node.binaries.util_argv() + ["-signet", "-randomxlight", "grind"]
         base_cmd = [
             sys.executable,
             signet_miner_path,
@@ -112,7 +114,7 @@ class SignetMinerTest(BitcoinTestFramework):
         self.log.info("Signet node with single signature challenge")
         node = self.nodes[0]
         # import private key needed for signing block
-        wallet_importprivkey(node, bytes_to_wif(CHALLENGE_PRIVATE_KEY), 0)
+        wallet_importprivkey(node, bytes_to_wif(CHALLENGE_PRIVATE_KEY, version=WIF_PREFIX_SIGNET), 0)
         self.mine_block(node)
         # MUST include signet commitment
         assert get_signet_commitment(get_segwit_commitment(node))
@@ -120,6 +122,20 @@ class SignetMinerTest(BitcoinTestFramework):
         self.log.info("Mine manually using genpsbt and solvepsbt")
         self.mine_block_manual(node)
         assert get_signet_commitment(get_segwit_commitment(node))
+
+        self.log.info("Calibrate RandomX difficulty with one persistent grinder")
+        base_dir = self.config["environment"]["SRCDIR"]
+        signet_miner_path = os.path.join(base_dir, "contrib", "signet", "miner")
+        util_argv = node.binaries.util_argv() + ["-signet", "-randomxlight", "grind"]
+        calibration = subprocess.run([
+                sys.executable,
+                signet_miner_path,
+                "calibrate",
+                f'--grind-cmd={shlex.join(util_argv)}',
+                '--seconds=1',
+                '--trials=8',
+            ], check=True, text=True, capture_output=True)
+        assert re.fullmatch(r"nbits=[0-9a-f]{8} for 1s average mining time\n", calibration.stdout)
 
 if __name__ == "__main__":
     SignetMinerTest(__file__).main()

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2020-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test indices in conjunction with prune."""
@@ -30,6 +31,9 @@ def send_batch_request(node: TestNode, method: str, params: List[Any]) -> List[A
 
 class FeatureIndexPruneTest(BitcoinTestFramework):
     def set_test_params(self):
+        # The 1,000-block mining batches execute RandomX work and can exceed
+        # the generic RPC timeout, especially under parallel test load.
+        self.rpc_timeout = 180
         self.num_nodes = 4
         self.extra_args = [
             ["-fastprune", "-prune=1", "-blockfilterindex=1"],
@@ -100,7 +104,7 @@ class FeatureIndexPruneTest(BitcoinTestFramework):
                 pruneheight_new = node.pruneblockchain(400)
                 # the prune heights used here and below are magic numbers that are determined by the
                 # thresholds at which block files wrap, so they depend on disk serialization and default block file size.
-                assert_equal(pruneheight_new, 243)
+                assert_equal(pruneheight_new, 244)
 
         self.log.info("check if we can access the tips blockfilter and coinstats when we have pruned some blocks")
         tip = self.nodes[0].getbestblockhash()
@@ -117,8 +121,8 @@ class FeatureIndexPruneTest(BitcoinTestFramework):
             assert node.gettxoutsetinfo(hash_type="muhash", hash_or_height=height_hash)['muhash']
 
         # mine and sync index up to a height that will later be the pruneheight
-        self.generate(self.nodes[0], 276)
-        self.sync_index(height=976)
+        self.generate(self.nodes[0], 277)
+        self.sync_index(height=977)
 
         self.restart_without_indices()
 
@@ -130,12 +134,12 @@ class FeatureIndexPruneTest(BitcoinTestFramework):
             msg = "Querying specific block heights requires coinstatsindex"
             assert_raises_rpc_error(-8, msg, node.gettxoutsetinfo, "muhash", height_hash)
 
-        self.generate(self.nodes[0], 524)
+        self.generate(self.nodes[0], 523)
 
         self.log.info("prune exactly up to the indices best blocks while the indices are disabled")
         for i in range(3):
             pruneheight_2 = self.nodes[i].pruneblockchain(1000)
-            assert_equal(pruneheight_2, 975)
+            assert_equal(pruneheight_2, 976)
             # Restart the nodes again with the indices activated
             self.restart_node(i, extra_args=self.extra_args[i])
 
@@ -195,7 +199,7 @@ class FeatureIndexPruneTest(BitcoinTestFramework):
         for node in self.nodes[:2]:
             with node.assert_debug_log(['limited pruning to height 2489']):
                 pruneheight_new = node.pruneblockchain(2500)
-                assert_equal(pruneheight_new, 2195)
+                assert_equal(pruneheight_new, 2196)
 
         self.log.info("ensure that prune locks don't prevent indices from failing in a reorg scenario")
         with self.nodes[0].assert_debug_log(['basic block filter index prune lock moved back to 2480']):

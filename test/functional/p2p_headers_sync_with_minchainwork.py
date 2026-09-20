@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2019-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test that we reject low difficulty headers to prevent our block tree from filling up with useless bloat"""
@@ -11,6 +12,7 @@ from test_framework.p2p import (
 )
 
 from test_framework.messages import (
+    MAX_HEADERS_RESULTS,
     msg_headers,
 )
 
@@ -29,7 +31,9 @@ NODE2_BLOCKS_REQUIRED = 2047
 
 class RejectLowDifficultyHeadersTest(BitcoinTestFramework):
     def set_test_params(self):
-        self.rpc_timeout *= 4  # To avoid timeout when generating BLOCKS_TO_MINE
+        # Mining the two 4,110-block reorg branches performs RandomX work for
+        # every block and legitimately takes longer than the SHA256d fixture.
+        self.rpc_timeout = 300
         self.setup_clean_chain = True
         self.num_nodes = 4
         # Node0 has no required chainwork; node1 requires 15 blocks on top of the genesis block; node2 requires 2047
@@ -46,9 +50,11 @@ class RejectLowDifficultyHeadersTest(BitcoinTestFramework):
         self.disconnect_nodes(0, 3)
 
     def reconnect_all(self):
-        self.connect_nodes(0, 1)
-        self.connect_nodes(0, 2)
-        self.connect_nodes(0, 3)
+        # Header validation can keep the message handler busy after reconnecting
+        # the two long RandomX branches, so allow the peer handshakes to finish.
+        self.connect_nodes(0, 1, timeout=180)
+        self.connect_nodes(0, 2, timeout=180)
+        self.connect_nodes(0, 3, timeout=180)
 
     def mocktime_all(self, time):
         for n in self.nodes:
@@ -83,7 +89,7 @@ class RejectLowDifficultyHeadersTest(BitcoinTestFramework):
             assert len(chaintips) == 1
             assert {
                 'height': 0,
-                'hash': '0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206',
+                'hash': 'a55bf2cd9513e5203827b029e15153769d596b0ad29e6ebca232eaba07c95f73',
                 'branchlen': 0,
                 'status': 'active',
             } in chaintips
@@ -98,7 +104,7 @@ class RejectLowDifficultyHeadersTest(BitcoinTestFramework):
 
         assert {
             'height': 0,
-            'hash': '0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206',
+            'hash': 'a55bf2cd9513e5203827b029e15153769d596b0ad29e6ebca232eaba07c95f73',
             'branchlen': 0,
             'status': 'active',
         } in self.nodes[2].getchaintips()
@@ -112,7 +118,10 @@ class RejectLowDifficultyHeadersTest(BitcoinTestFramework):
         self.generate(self.nodes[0], NODE2_BLOCKS_REQUIRED-self.nodes[0].getblockcount(), sync_fun=self.no_op)
 
         self.log.info("Verify that node2 and node3 will sync the chain when it gets long enough")
-        self.sync_blocks()
+        # Revalidating the low-work presync chain performs the contextual
+        # RandomX checks for every header and is intentionally more expensive
+        # than Bitcoin's SHA256d header validation.
+        self.sync_blocks(timeout=180)
 
     def test_peerinfo_includes_headers_presync_height(self):
         self.log.info("Test that getpeerinfo() includes headers presync height")
@@ -129,10 +138,10 @@ class RejectLowDifficultyHeadersTest(BitcoinTestFramework):
         if (current_height < 3000):
             self.generate(node, 3000-current_height, sync_fun=self.no_op)
 
-        # Send a group of 2000 headers, forking from genesis.
+        # Send a full getheaders-sized group, forking from genesis.
         new_blocks = []
         hashPrevBlock = int(node.getblockhash(0), 16)
-        for i in range(2000):
+        for _ in range(MAX_HEADERS_RESULTS):
             block = create_block(hashprev = hashPrevBlock, tmpl=node.getblocktemplate(NORMAL_GBT_REQUEST_PARAMS))
             block.solve()
             new_blocks.append(block)
@@ -142,7 +151,7 @@ class RejectLowDifficultyHeadersTest(BitcoinTestFramework):
         p2p.send_and_ping(headers_message)
 
         # getpeerinfo should show a sync in progress
-        assert_equal(node.getpeerinfo()[0]['presynced_headers'], 2000)
+        assert_equal(node.getpeerinfo()[0]['presynced_headers'], MAX_HEADERS_RESULTS)
 
     def test_large_reorgs_can_succeed(self):
         self.log.info("Test that a 2000+ block reorg, starting from a point that is more than 2000 blocks before a locator entry, can succeed")
@@ -157,8 +166,14 @@ class RejectLowDifficultyHeadersTest(BitcoinTestFramework):
         # received headers during a sync are fully between locator entries.
         BLOCKS_TO_MINE = 4110
 
-        self.generate(self.nodes[0], BLOCKS_TO_MINE, sync_fun=self.no_op)
-        self.generate(self.nodes[1], BLOCKS_TO_MINE+2, sync_fun=self.no_op)
+        def mine_branch(node, count):
+            while count:
+                batch_size = min(count, 1000)
+                self.generate(node, batch_size, sync_fun=self.no_op)
+                count -= batch_size
+
+        mine_branch(self.nodes[0], BLOCKS_TO_MINE)
+        mine_branch(self.nodes[1], BLOCKS_TO_MINE + 2)
 
         self.reconnect_all()
 

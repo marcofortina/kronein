@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test logic for skipping signature validation on old blocks.
@@ -46,6 +47,7 @@ from test_framework.messages import (
     CTransaction,
     CTxIn,
     CTxOut,
+    MAX_HEADERS_RESULTS,
     msg_block,
     msg_headers,
 )
@@ -57,9 +59,9 @@ from test_framework.wallet_util import generate_keypair
 
 class BaseNode(P2PInterface):
     def send_header_for_blocks(self, new_blocks):
-        headers_message = msg_headers()
-        headers_message.headers = [CBlockHeader(b) for b in new_blocks]
-        self.send_without_ping(headers_message)
+        headers = [CBlockHeader(block) for block in new_blocks]
+        for offset in range(0, len(headers), MAX_HEADERS_RESULTS):
+            self.send_without_ping(msg_headers(headers[offset:offset + MAX_HEADERS_RESULTS]))
 
 
 class AssumeValidTest(BitcoinTestFramework):

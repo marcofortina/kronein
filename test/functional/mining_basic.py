@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test mining RPCs
@@ -63,6 +64,14 @@ class MiningTest(BitcoinTestFramework):
         ]
         self.setup_clean_chain = True
 
+    def restart_node(self, i, extra_args=None, clear_addrman=False, *, expected_stderr=''):
+        """Keep an explicitly advanced mining clock across test restarts."""
+        args = list(self.nodes[i].extra_args if extra_args is None else extra_args)
+        mocktime = self.nodes[i].mocktime
+        if mocktime and not any(arg.startswith("-mocktime=") for arg in args):
+            args.append(f"-mocktime={mocktime}")
+        super().restart_node(i, args, clear_addrman, expected_stderr=expected_stderr)
+
     def mine_chain(self):
         self.log.info('Create some old blocks')
         for t in range(TIME_GENESIS_BLOCK, TIME_GENESIS_BLOCK + 200 * 600, 600):
@@ -77,6 +86,10 @@ class MiningTest(BitcoinTestFramework):
         block_template = self.nodes[0].getblocktemplate(NORMAL_GBT_REQUEST_PARAMS)
         assert_equal(BLOCK_VERSION, block_template['version'])
         assert_equal(["csv", "!segwit", "taproot"], block_template['rules'])
+        # The fresh Kronein genesis is recent, so the chain constructed above
+        # extends beyond the wall clock. Keep all peers on the mining clock.
+        for node in self.nodes[1:]:
+            node.setmocktime(self.nodes[0].mocktime)
         self.restart_node(0)
         self.connect_nodes(0, 1)
 

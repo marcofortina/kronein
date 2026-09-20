@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2015-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test behavior of -maxuploadtarget.
@@ -13,6 +14,7 @@ if uploadtarget has been reached.
 from collections import defaultdict
 import time
 
+from test_framework.blocktools import TIME_GENESIS_BLOCK
 from test_framework.messages import (
     CInv,
     MSG_BLOCK,
@@ -63,7 +65,8 @@ class MaxUploadTest(BitcoinTestFramework):
         # Before we connect anything, we first set the time on the node
         # to be in the past, otherwise things break because the CNode
         # time counters can't be reset backward after initialization
-        old_time = int(time.time() - 2*60*60*24*7)
+        test_time = max(int(time.time()), TIME_GENESIS_BLOCK + 15 * 24 * 60 * 60)
+        old_time = test_time - 2 * 60 * 60 * 24 * 7
         self.nodes[0].setmocktime(old_time)
 
         # Generate some old blocks
@@ -87,7 +90,7 @@ class MaxUploadTest(BitcoinTestFramework):
         big_old_block = int(big_old_block, 16)
 
         # Advance to two days ago
-        self.nodes[0].setmocktime(int(time.time()) - 2*60*60*24)
+        self.nodes[0].setmocktime(test_time - 2 * 60 * 60 * 24)
 
         # Mine one more block, so that the prior block looks old
         mine_large_block(self, self.wallet, self.nodes[0])
@@ -152,7 +155,7 @@ class MaxUploadTest(BitcoinTestFramework):
 
         # If we advance the time by 24 hours, then the counters should reset,
         # and p2p_conns[2] should be able to retrieve the old block.
-        self.nodes[0].setmocktime(int(time.time()))
+        self.nodes[0].setmocktime(test_time)
         p2p_conns[2].sync_with_ping()
         p2p_conns[2].send_and_ping(getdata_request)
         assert_equal(p2p_conns[2].block_receive_map[big_old_block], 1)
@@ -163,7 +166,7 @@ class MaxUploadTest(BitcoinTestFramework):
         self.nodes[0].disconnect_p2ps()
 
         self.log.info("Restarting node 0 with download permission and 1MB maxuploadtarget")
-        self.restart_node(0, ["-whitelist=download@127.0.0.1", "-maxuploadtarget=1"])
+        self.restart_node(0, [f"-mocktime={test_time}", "-whitelist=download@127.0.0.1", "-maxuploadtarget=1"])
         # Total limit isn't reached after restart, but 1 MB is too small to serve historical blocks
         self.assert_uploadtarget_state(target_reached=False, serve_historical_blocks=False)
 
@@ -189,7 +192,7 @@ class MaxUploadTest(BitcoinTestFramework):
 
         self.log.info("Test passing an unparsable value to -maxuploadtarget throws an error")
         self.stop_node(0)
-        self.nodes[0].assert_start_raises_init_error(extra_args=["-maxuploadtarget=abc"], expected_msg="Error: Unable to parse -maxuploadtarget: 'abc'")
+        self.nodes[0].assert_start_raises_init_error(extra_args=[f"-mocktime={test_time}", "-maxuploadtarget=abc"], expected_msg="Error: Unable to parse -maxuploadtarget: 'abc'")
 
 if __name__ == '__main__':
     MaxUploadTest(__file__).main()

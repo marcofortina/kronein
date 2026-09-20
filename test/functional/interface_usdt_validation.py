@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2022-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -16,7 +17,7 @@ try:
 except ImportError:
     pass
 
-from test_framework.address import ADDRESS_BCRT1_UNSPENDABLE
+from test_framework.address import ADDRESS_RKNE1_UNSPENDABLE
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
@@ -110,7 +111,7 @@ class ValidationTracepointTest(BitcoinTestFramework):
         generatetoaddress_duration = dict()
         for _ in range(BLOCKS_EXPECTED):
             start = time.time()
-            hash = self.generatetoaddress(self.nodes[0], 1, ADDRESS_BCRT1_UNSPENDABLE)[0]
+            hash = self.generatetoaddress(self.nodes[0], 1, ADDRESS_RKNE1_UNSPENDABLE)[0]
             generatetoaddress_duration[hash] = (time.time() - start) * 1e9  # in nanoseconds
             expected_blocks[hash] = self.nodes[0].getblock(hash, 2)
 

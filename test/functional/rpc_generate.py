@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # Copyright (c) 2020-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test generate* RPCs."""
 
 from concurrent.futures import ThreadPoolExecutor
 
-from test_framework.address import ADDRESS_BCRT1_UNSPENDABLE
+from test_framework.address import ADDRESS_RKNE1_UNSPENDABLE
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.wallet import MiniWallet
 from test_framework.util import (
@@ -25,7 +26,7 @@ class RPCGenerateTest(BitcoinTestFramework):
         self.test_generateblock()
 
     def test_generatetoaddress(self):
-        self.generatetoaddress(self.nodes[0], 1, ADDRESS_BCRT1_UNSPENDABLE)
+        self.generatetoaddress(self.nodes[0], 1, ADDRESS_RKNE1_UNSPENDABLE)
         assert_raises_rpc_error(-5, "Invalid address", self.generatetoaddress, self.nodes[0], 1, 'not_an_address')
 
     def test_generateblock(self):
@@ -97,11 +98,11 @@ class RPCGenerateTest(BitcoinTestFramework):
         assert_raises_rpc_error(-5, 'Invalid address or descriptor', self.generateblock, node, '1234', [])
 
         self.log.info('Fail to generate block with a ranged descriptor')
-        ranged_descriptor = 'tr(tpubD6NzVbkrYhZ4XgiXtGrdW5XDAPFCL9h7we1vwNCpn8tGbBcgfVYjXyhWo4E1xkh56hjod1RhGjxbaTLV3X4FyWuejifB9jusQ46QzG87VKp/0/*)'
+        ranged_descriptor = 'tr(KrpubTX7E33B4R29pxFFfzRRF93ZVaHUw7pVT1ebXZYh5ZRcMqo3WjrcbkbBbnL8m3cpeMNvZq2GZdiZr1BNVdMn6gRApJF3qaycbnDdbFdneqAL/0/*)'
         assert_raises_rpc_error(-8, 'Ranged descriptor not accepted. Maybe pass through deriveaddresses first?', self.generateblock, node, ranged_descriptor, [])
 
         self.log.info('Fail to generate block with a descriptor missing a private key')
-        child_descriptor = 'tr(tpubD6NzVbkrYhZ4XgiXtGrdW5XDAPFCL9h7we1vwNCpn8tGbBcgfVYjXyhWo4E1xkh56hjod1RhGjxbaTLV3X4FyWuejifB9jusQ46QzG87VKp/0\'/0)'
+        child_descriptor = 'tr(KrpubTX7E33B4R29pxFFfzRRF93ZVaHUw7pVT1ebXZYh5ZRcMqo3WjrcbkbBbnL8m3cpeMNvZq2GZdiZr1BNVdMn6gRApJF3qaycbnDdbFdneqAL/0\'/0)'
         assert_raises_rpc_error(-5, 'Cannot derive script without private keys', self.generateblock, node, child_descriptor, [])
 
     def test_generate(self):

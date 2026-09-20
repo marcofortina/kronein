@@ -64,7 +64,7 @@ from test_framework.blocktools import (
 
 START_HEIGHT = 199
 SNAPSHOT_BASE_HEIGHT = 299
-SNAPSHOT_BASE_BLOCK_HASH = "6119c885653b8379bde0ad5ca6be778d259b132c998cac8cacae6f43bba3be4c"
+SNAPSHOT_BASE_BLOCK_HASH = "2d4d7817926b3e937e319f69889c2e748c1c496aa9a707cf6256e8e7011a8b4f"
 SNAPSHOT_BASE_HASH = "66debd38e54a51cc4de4f48bd177985ae7dbce80b978754e09ba87cf10262ee5"
 PREVIOUS_SNAPSHOT_HASH = "77fc2879e069d6085489c792276c40e716dc3bf1f277bc7da7acbec91e5cc31c"
 FINAL_HEIGHT = 399
@@ -308,7 +308,14 @@ class AssumeutxoTest(BitcoinTestFramework):
         for node in (snapshot_node, ibd_node):
             self.stop_node(node.index)
             rmtree(node.chain_path)
-            self.start_node(node.index, extra_args=self.extra_args[node.index])
+            extra_args = self.extra_args[node.index]
+            if node is ibd_node:
+                # Kronein's recent genesis can otherwise make a brand-new
+                # node leave IBD before it has received its first header.
+                extra_args = [*extra_args, "-maxtipage=0"]
+            self.start_node(node.index, extra_args=extra_args)
+
+        assert ibd_node.getblockchaininfo()['initialblockdownload']
 
         # Sync-up headers chain on snapshot_node to load snapshot
         headers_provider_conn = snapshot_node.add_p2p_connection(P2PInterface())

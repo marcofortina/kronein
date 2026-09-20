@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2022-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test initial headers download and timeout behavior
@@ -28,7 +29,6 @@ from test_framework.util import (
 )
 import math
 import random
-import time
 
 # Constants from net_processing
 HEADERS_DOWNLOAD_TIMEOUT_BASE_SEC = 15 * 60
@@ -55,6 +55,11 @@ class HeadersSyncTest(BitcoinTestFramework):
         for p in peers:
             p.send_and_ping(new_block_announcement)
 
+    def set_mocktime_in_initial_sync(self):
+        """Keep the fresh chain outside the 24-hour parallel-sync window."""
+        node = self.nodes[0]
+        node.setmocktime(node.getblockchaininfo()["time"] + 24 * 60 * 60 + 1)
+
     def assert_single_getheaders_recipient(self, peers):
         count = 0
         receiving_peer = None
@@ -68,6 +73,7 @@ class HeadersSyncTest(BitcoinTestFramework):
 
     def test_initial_headers_sync(self):
         self.log.info("Test initial headers sync")
+        self.set_mocktime_in_initial_sync()
 
         self.log.info("Adding a peer to node0")
         peer1 = self.nodes[0].add_p2p_connection(P2PInterface())
@@ -147,7 +153,7 @@ class HeadersSyncTest(BitcoinTestFramework):
     def test_normal_peer_timeout(self):
         self.log.info("Test peer disconnection on header timeout")
         self.restart_node(0)
-        self.nodes[0].setmocktime(int(time.time()))
+        self.set_mocktime_in_initial_sync()
         peer1, peer2 = self.setup_timeout_test_peers()
 
         with self.nodes[0].assert_debug_log(["Timeout downloading headers, disconnecting peer=0"]):
@@ -163,7 +169,7 @@ class HeadersSyncTest(BitcoinTestFramework):
     def test_noban_peer_timeout(self):
         self.log.info("Test noban peer on header timeout")
         self.restart_node(0, extra_args=['-whitelist=noban@127.0.0.1'])
-        self.nodes[0].setmocktime(int(time.time()))
+        self.set_mocktime_in_initial_sync()
         peer1, peer2 = self.setup_timeout_test_peers()
 
         with self.nodes[0].assert_debug_log(["Timeout downloading headers from noban peer, not disconnecting peer=0"]):

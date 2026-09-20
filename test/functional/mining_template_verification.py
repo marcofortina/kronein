@@ -19,7 +19,7 @@ from test_framework.blocktools import (
     create_coinbase,
 )
 from test_framework.messages import (
-    BLOCK_HEADER_SIZE,
+    CBlockHeader,
     COutPoint,
     CTransaction,
     CTxIn,
@@ -115,8 +115,9 @@ class MiningTemplateVerificationTest(BitcoinTestFramework):
         self.log.info("Bad tx count")
         # The tx count is immediately after the block header
         bad_block_sn = bytearray(block.serialize())
-        assert_equal(bad_block_sn[BLOCK_HEADER_SIZE], 1)
-        bad_block_sn[BLOCK_HEADER_SIZE] += 1
+        header_size = len(CBlockHeader(block).serialize())
+        assert_equal(bad_block_sn[header_size], 1)
+        bad_block_sn[header_size] += 1
         assert_raises_rpc_error(-22, "Block decode failed", node.getblocktemplate, {
             'data': bad_block_sn.hex(),
             'mode': 'proposal',
@@ -127,7 +128,9 @@ class MiningTemplateVerificationTest(BitcoinTestFramework):
         self.log.info("Extremely high nBits")
         bad_block = copy.deepcopy(block)
         bad_block.nBits = 469762303  # impossible in the real world
-        assert_template(node, bad_block, "bad-diffbits", solve=False, expect_submit="high-hash")
+        # RandomX work is checked contextually, after the expected difficulty
+        # has been derived from the preceding chain.
+        assert_template(node, bad_block, "bad-diffbits", solve=False)
 
         self.log.info("Lowering nBits should make the block invalid")
         bad_block = copy.deepcopy(block)
