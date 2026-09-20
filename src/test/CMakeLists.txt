@@ -38,6 +38,7 @@ add_executable(test_bitcoin
   chain_tests.cpp
   chainparams_tests.cpp
   chainregistry_tests.cpp
+  child_template_tests.cpp
   child_chain_db_tests.cpp
   chainregistry_db_tests.cpp
   chainregistry_mempool_tests.cpp
