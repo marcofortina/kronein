@@ -95,6 +95,7 @@ add_library(bitcoin_common STATIC EXCLUDE_FROM_ALL
   base58.cpp
   bech32.cpp
   chain.cpp
+  chainregistry/mainchain_lightclient.cpp
   chainparams.cpp
   chainparamsbase.cpp
   coins.cpp
