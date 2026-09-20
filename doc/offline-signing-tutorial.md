@@ -81,7 +81,7 @@ Set the destination to a Taproot address and create a funded PSBT. The wallet
 selects inputs and creates Taproot change automatically:
 
 ```sh
-[online]$ DESTINATION='tb1p...'
+[online]$ DESTINATION='tkne1p...'
 [online]$ ./build/bin/kronein-cli -signet \
     -rpcwallet=watch_only_wallet \
     -named walletcreatefundedpsbt \

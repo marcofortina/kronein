@@ -34,7 +34,7 @@ Wallet encryption may prevent unauthorized access. However, this significantly i
 
 Wallet encryption may also not protect against more sophisticated attacks. An attacker can, for example, obtain the password by installing a keylogger on the user's machine.
 
-After encrypting the wallet or changing the passphrase, a new backup needs to be created immediately. The reason is that the keypool is flushed and a new HD seed is generated after encryption. Any bitcoins received by the new seed cannot be recovered from the previous backups.
+After encrypting the wallet or changing the passphrase, a new backup needs to be created immediately. The reason is that the keypool is flushed and a new HD seed is generated after encryption. Any KNE received by the new seed cannot be recovered from the previous backups.
 
 The wallet's private key may be encrypted with the following command:
 
@@ -62,10 +62,10 @@ Note that if the passphrase is lost, all the coins in the wallet will also be lo
 
 ### 1.3 Unlocking the Wallet
 
-If the wallet is encrypted and the user tries any operation related to private keys, such as sending bitcoins, an error message will be displayed.
+If the wallet is encrypted and the user tries any operation related to private keys, such as sending KNE, an error message will be displayed.
 
 ```
-$ kronein-cli -rpcwallet="wallet-01" sendtoaddress "tb1pqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqkgkkf5" 0.01
+$ kronein-cli -rpcwallet="wallet-01" sendtoaddress "tkne1pqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq9d2qp7" 0.01
 error code: -13
 error message:
 Error: Please enter the wallet passphrase with walletpassphrase first.
@@ -79,7 +79,7 @@ This command takes the passphrase and an argument called `timeout`, which specif
 $ kronein-cli -rpcwallet="wallet-01" walletpassphrase "passphrase" 120
 ```
 
-In the GUI, there is no specific menu item to unlock the wallet. When the user sends bitcoins, the passphrase will be prompted automatically.
+In the GUI, there is no specific menu item to unlock the wallet. When the user sends KNE, the passphrase will be prompted automatically.
 
 ### 1.4 Backing Up the Wallet
 
@@ -97,7 +97,7 @@ This backup file can be stored on one or multiple offline devices, which must be
 
 If the computer has malware, it can compromise the wallet when recovering the backup file. One way to minimize this is to not connect the backup to an online device.
 
-If both the wallet and all backups are lost for any reason, the bitcoins related to this wallet will become permanently inaccessible.
+If both the wallet and all backups are lost for any reason, the KNE held by this wallet will become permanently inaccessible.
 
 ### 1.5 Backup Frequency
 
