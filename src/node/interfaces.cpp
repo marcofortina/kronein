@@ -74,6 +74,7 @@ using interfaces::BlockRef;
 using interfaces::BlockTemplate;
 using interfaces::BlockTip;
 using interfaces::Chain;
+using interfaces::ChainRegistrySnapshot;
 using interfaces::FoundBlock;
 using interfaces::Handler;
 using interfaces::MakeSignalHandler;
@@ -548,6 +549,32 @@ public:
     {
         const int height{WITH_LOCK(::cs_main, return chainman().ActiveChain().Height())};
         return height >= 0 ? std::optional{height} : std::nullopt;
+    }
+    ChainRegistrySnapshot getChainRegistrySnapshot(
+        std::optional<chainregistry::ChainId> chain_id) override
+    {
+        LOCK(::cs_main);
+        const auto& consensus{chainman().GetConsensus()};
+        const Chainstate& chainstate{chainman().ActiveChainstate()};
+        const auto& registry_state{chainstate.ChainRegistryState()};
+        const auto& state{registry_state.State()};
+
+        ChainRegistrySnapshot snapshot{
+            .enabled = consensus.chain_registry.Enabled(),
+            .active_for_next_block = consensus.chain_registry.IsActive(chainstate.m_chain.Height() + 1),
+            .minimum_registration_burn = consensus.chain_registry.minimum_registration_burn,
+            .main_genesis_hash = consensus.hashGenesisBlock,
+            .best_block = state.best_block,
+            .registry_root = state.registry_root,
+            .height = state.height,
+            .record = std::nullopt,
+        };
+        if (chain_id) {
+            if (const auto* record{registry_state.Registry().Find(*chain_id)}) {
+                snapshot.record = *record;
+            }
+        }
+        return snapshot;
     }
     uint256 getBlockHash(int height) override
     {

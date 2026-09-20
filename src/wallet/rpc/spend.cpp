@@ -4,14 +4,17 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <common/messages.h>
+#include <consensus/chainregistry.h>
 #include <consensus/validation.h>
 #include <core_io.h>
 #include <key_io.h>
 #include <node/types.h>
 #include <policy/policy.h>
+#include <primitives/chainregistry.h>
 #include <rpc/rawtransaction_util.h>
 #include <rpc/util.h>
 #include <script/script.h>
+#include <util/moneystr.h>
 #include <util/rbf.h>
 #include <util/translation.h>
 #include <util/vector.h>
@@ -23,6 +26,12 @@
 #include <wallet/wallet.h>
 
 #include <univalue.h>
+
+#include <limits>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <variant>
 
 using common::FeeModeFromString;
 using common::FeeModesDetail;
@@ -41,6 +50,135 @@ std::vector<CRecipient> CreateRecipients(const std::vector<std::pair<CTxDestinat
         recipients.push_back(recipient);
     }
     return recipients;
+}
+
+static uint32_t ParseRegistryUint32(const UniValue& value, std::string_view name)
+{
+    const int64_t parsed{value.getInt<int64_t>()};
+    if (parsed < 0 || static_cast<uint64_t>(parsed) >= std::numeric_limits<uint32_t>::max()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           strprintf("%s must be between 0 and %u", name,
+                                     std::numeric_limits<uint32_t>::max() - 1));
+    }
+    return static_cast<uint32_t>(parsed);
+}
+
+static chainregistry::ChainId ParseRegistryChainId(const UniValue& value)
+{
+    const auto chain_id{chainregistry::ChainId::FromHex(value.get_str())};
+    if (!chain_id || chain_id->IsNull()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "chain_id must be exactly 32 non-null bytes encoded as hexadecimal");
+    }
+    return *chain_id;
+}
+
+static chainregistry::MetadataHash ParseRegistryMetadataHash(const UniValue& value)
+{
+    const auto metadata_hash{chainregistry::MetadataHash::FromHex(value.get_str())};
+    if (!metadata_hash || metadata_hash->IsNull()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "metadata_hash must be exactly 32 non-null bytes encoded as hexadecimal");
+    }
+    return *metadata_hash;
+}
+
+static COutPoint ParseRegistryOutPoint(const UniValue& value, std::string_view name)
+{
+    const UniValue& object{value.get_obj()};
+    RPCTypeCheckObj(object,
+                    {{"txid", UniValueType{UniValue::VSTR}},
+                     {"vout", UniValueType{UniValue::VNUM}}},
+                    /*fAllowNull=*/false,
+                    /*fStrict=*/true);
+    const COutPoint outpoint{
+        Txid::FromUint256(ParseHashO(object, "txid")),
+        ParseRegistryUint32(object.find_value("vout"), strprintf("%s.vout", name))};
+    if (outpoint.IsNull()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("%s must not be null", name));
+    }
+    return outpoint;
+}
+
+static chainregistry::ChainSpec ParseRegistryChainSpec(const UniValue& value)
+{
+    const UniValue& object{value.get_obj()};
+    RPCTypeCheckObj(object,
+                    {{"template_id", UniValueType{UniValue::VNUM}},
+                     {"template_version", UniValueType{UniValue::VNUM}},
+                     {"consensus_parameters", UniValueType{UniValue::VSTR}},
+                     {"anchoring_policy", UniValueType{UniValue::VSTR}}},
+                    /*fAllowNull=*/true,
+                    /*fStrict=*/true);
+    if (!object.exists("template_id") || !object.exists("template_version") ||
+        !object.exists("consensus_parameters")) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "spec requires template_id, template_version, and consensus_parameters");
+    }
+    if (object.exists("anchoring_policy") && object.find_value("anchoring_policy").get_str() != "bmm_v1") {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "anchoring_policy must be bmm_v1");
+    }
+
+    chainregistry::ChainSpec spec{
+        .protocol_version = chainregistry::PROTOCOL_VERSION,
+        .template_id = ParseRegistryUint32(object.find_value("template_id"), "spec.template_id"),
+        .template_version = ParseRegistryUint32(object.find_value("template_version"), "spec.template_version"),
+        .consensus_parameters = ParseHexO(object, "consensus_parameters"),
+        .anchoring_policy = chainregistry::AnchoringPolicy::BMM_V1,
+    };
+    switch (chainregistry::ValidateChainSpec(spec)) {
+    case chainregistry::ManifestValidationError::NONE:
+        return spec;
+    case chainregistry::ManifestValidationError::INVALID_TEMPLATE_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "spec.template_id must be greater than zero");
+    case chainregistry::ManifestValidationError::INVALID_TEMPLATE_VERSION:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "spec.template_version must be greater than zero");
+    case chainregistry::ManifestValidationError::CONSENSUS_PARAMETERS_TOO_LARGE:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           strprintf("spec.consensus_parameters exceeds %u bytes",
+                                     chainregistry::MAX_CONSENSUS_PARAMETERS_SIZE));
+    default:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "invalid child-chain specification");
+    }
+}
+
+static uint256 ParseRegistryHash(const UniValue& object, std::string_view key)
+{
+    const uint256 hash{ParseHashO(object, key)};
+    if (hash.IsNull()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("%s must not be null", key));
+    }
+    return hash;
+}
+
+static CTxDestination ParseRegistryControlDestination(const UniValue& parameters)
+{
+    if (!parameters.exists("control_address")) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "control_address is required");
+    }
+    const CTxDestination destination{DecodeDestination(parameters.find_value("control_address").get_str())};
+    if (!IsValidDestination(destination) || !GetScriptForDestination(destination).IsPayToTaproot()) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                           "control_address must be a valid Kronein Taproot (bech32m) address");
+    }
+    return destination;
+}
+
+static CAmount RegistryControlAmount(CWallet& wallet,
+                                     const UniValue& parameters,
+                                     const CTxDestination& destination)
+{
+    const CScript script{GetScriptForDestination(destination)};
+    const CAmount minimum{GetDustThreshold(CTxOut{0, script}, wallet.chain().relayDustFee())};
+    const CAmount amount{parameters.exists("control_amount")
+                             ? AmountFromValue(parameters.find_value("control_amount"))
+                             : minimum};
+    if (amount < minimum) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           strprintf("control_amount must be at least %s KNE",
+                                     FormatMoney(minimum)));
+    }
+    return amount;
 }
 
 static void InterpretFeeEstimationInstructions(const UniValue& conf_target, const UniValue& estimate_mode, const UniValue& fee_rate, UniValue& options)
@@ -1645,6 +1783,248 @@ RPCHelpMan walletcreatefundedpsbt()
     result.pushKV("psbt", EncodeBase64(ssTx.str()));
     result.pushKV("fee", ValueFromAmount(txr.fee));
     result.pushKV("changepos", txr.change_pos ? (int)*txr.change_pos : -1);
+    return result;
+},
+    };
+}
+
+RPCHelpMan walletcreatechainregistrypsbt()
+{
+    return RPCHelpMan{
+        "walletcreatechainregistrypsbt",
+        "Create and fund a PSBT containing one canonical child-chain registry operation.\n"
+        "The authority input is fixed at vin[0], the KREG output at vout[0], and a REGISTER/UPDATE successor Taproot control at vout[1].\n"
+        "Change, when present, is appended after protocol outputs. The RPC does not sign or broadcast.\n",
+        {
+            {"operation", RPCArg::Type::STR, RPCArg::Optional::NO, "Operation type: register, update, or retire"},
+            {"parameters", RPCArg::Type::OBJ, RPCArg::Optional::NO, "Operation parameters", {
+                {"registration_anchor", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "REGISTER: wallet UTXO consumed as vin[0]", {
+                    {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Transaction id"},
+                    {"vout", RPCArg::Type::NUM, RPCArg::Optional::NO, "Output index"},
+                }},
+                {"spec", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "REGISTER: immutable child-chain specification", {
+                    {"template_id", RPCArg::Type::NUM, RPCArg::Optional::NO, "Non-zero consensus template identifier"},
+                    {"template_version", RPCArg::Type::NUM, RPCArg::Optional::NO, "Non-zero template version"},
+                    {"consensus_parameters", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Canonical template parameters"},
+                    {"anchoring_policy", RPCArg::Type::STR, RPCArg::Default{"bmm_v1"}, "Anchoring policy"},
+                }},
+                {"child_genesis_hash", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "REGISTER: non-null child genesis hash"},
+                {"metadata_hash", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "REGISTER/UPDATE: non-null external metadata commitment"},
+                {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "UPDATE/RETIRE: exact non-null child-chain identifier"},
+                {"control_address", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "REGISTER/UPDATE: successor Taproot address"},
+                {"control_amount", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "REGISTER/UPDATE: successor value; defaults to the dust threshold"},
+                {"registration_burn", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "REGISTER: amount permanently burned; defaults to the consensus minimum"},
+            }},
+            {"options", RPCArg::Type::OBJ_NAMED_PARAMS, RPCArg::Optional::OMITTED, "Funding options. Protocol input/output ordering cannot be overridden.", FundTxDoc(), RPCArgOptions{.oneline_description="options"}},
+            {"bip32derivs", RPCArg::Type::BOOL, RPCArg::Default{true}, "Include known BIP32 derivation paths"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Funded, unsigned registry transaction", {
+            {RPCResult::Type::STR, "psbt", "Base64-encoded PSBT"},
+            {RPCResult::Type::STR_AMOUNT, "fee", "Transaction fee in KNE"},
+            {RPCResult::Type::NUM, "changepos", "Change output position, or -1"},
+            {RPCResult::Type::STR, "operation", "Registry operation type"},
+            {RPCResult::Type::STR_HEX, "chain_id", "Affected or derived child-chain identifier"},
+            {RPCResult::Type::OBJ, "authority_outpoint", "UTXO fixed at vin[0]", {
+                {RPCResult::Type::STR_HEX, "txid", "Transaction id"},
+                {RPCResult::Type::NUM, "vout", "Output index"},
+            }},
+            {RPCResult::Type::NUM, "operation_vout", "KREG output index; always 0"},
+            {RPCResult::Type::NUM, "control_vout", /*optional=*/true, "Successor control output index; always 1"},
+            {RPCResult::Type::STR_HEX, "registry_bestblockhash", "Registry tip against which this PSBT was created"},
+            {RPCResult::Type::NUM, "registry_height", "Registry tip height"},
+            {RPCResult::Type::STR_HEX, "registry_root", "Registry root at that tip"},
+        }},
+        RPCExamples{
+            HelpExampleCli("walletcreatechainregistrypsbt", "\"retire\" '{\"chain_id\":\"1111111111111111111111111111111111111111111111111111111111111111\"}'")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const std::shared_ptr<CWallet> wallet_ptr{GetWalletForJSONRPCRequest(request)};
+    if (!wallet_ptr) return UniValue::VNULL;
+    CWallet& wallet{*wallet_ptr};
+    wallet.BlockUntilSyncedToCurrentChain();
+
+    const std::string operation_name{self.Arg<std::string_view>("operation")};
+    const UniValue parameters{self.Arg<UniValue>("parameters").get_obj()};
+    RPCTypeCheckObj(parameters,
+                    {{"registration_anchor", UniValueType{UniValue::VOBJ}},
+                     {"spec", UniValueType{UniValue::VOBJ}},
+                     {"child_genesis_hash", UniValueType{UniValue::VSTR}},
+                     {"metadata_hash", UniValueType{UniValue::VSTR}},
+                     {"chain_id", UniValueType{UniValue::VSTR}},
+                     {"control_address", UniValueType{UniValue::VSTR}},
+                     {"control_amount", UniValueType()},
+                     {"registration_burn", UniValueType()}},
+                    /*fAllowNull=*/true,
+                    /*fStrict=*/true);
+
+    const auto require_parameters{[&](std::initializer_list<std::string_view> required,
+                                      std::initializer_list<std::string_view> allowed) {
+        for (const auto name : required) {
+            if (!parameters.exists(std::string{name})) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER,
+                                   strprintf("%s requires %s", operation_name, name));
+            }
+        }
+        for (const auto& key : parameters.getKeys()) {
+            if (std::none_of(allowed.begin(), allowed.end(), [&](std::string_view candidate) {
+                    return candidate == key;
+                })) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER,
+                                   strprintf("unexpected parameter %s for %s", key, operation_name));
+            }
+        }
+    }};
+
+    std::optional<chainregistry::ChainId> requested_chain_id;
+    if (operation_name == "update" || operation_name == "retire") {
+        if (!parameters.exists("chain_id")) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("%s requires chain_id", operation_name));
+        }
+        requested_chain_id = ParseRegistryChainId(parameters.find_value("chain_id"));
+    }
+
+    const interfaces::ChainRegistrySnapshot registry_snapshot{
+        wallet.chain().getChainRegistrySnapshot(requested_chain_id)};
+    if (!registry_snapshot.enabled) {
+        throw JSONRPCError(RPC_MISC_ERROR, "child-chain registry is disabled on this network");
+    }
+    if (!registry_snapshot.active_for_next_block) {
+        throw JSONRPCError(RPC_MISC_ERROR, "child-chain registry is not active for the next block");
+    }
+
+    COutPoint authority_outpoint;
+    chainregistry::ChainId chain_id;
+    chainregistry::RegistryOperation operation;
+    CAmount operation_amount{0};
+    std::optional<CTxDestination> control_destination;
+    CAmount control_amount{0};
+
+    if (operation_name == "register") {
+        require_parameters(
+            {"registration_anchor", "spec", "child_genesis_hash", "metadata_hash", "control_address"},
+            {"registration_anchor", "spec", "child_genesis_hash", "metadata_hash", "control_address", "control_amount", "registration_burn"});
+        authority_outpoint = ParseRegistryOutPoint(parameters.find_value("registration_anchor"), "registration_anchor");
+        const auto spec{ParseRegistryChainSpec(parameters.find_value("spec"))};
+        operation = chainregistry::RegisterChain{
+            .anchor_input = 0,
+            .control_output = 1,
+            .manifest = chainregistry::ChainManifest{
+                .spec = spec,
+                .child_genesis_hash = ParseRegistryHash(parameters, "child_genesis_hash"),
+                .initial_metadata_hash = ParseRegistryMetadataHash(parameters.find_value("metadata_hash")),
+            },
+        };
+        operation_amount = parameters.exists("registration_burn")
+                               ? AmountFromValue(parameters.find_value("registration_burn"))
+                               : registry_snapshot.minimum_registration_burn;
+        if (operation_amount < registry_snapshot.minimum_registration_burn) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               strprintf("registration_burn must be at least %s KNE",
+                                         FormatMoney(registry_snapshot.minimum_registration_burn)));
+        }
+        control_destination = ParseRegistryControlDestination(parameters);
+        control_amount = RegistryControlAmount(wallet, parameters, *control_destination);
+        chain_id = chainregistry::DeriveChainId(
+            registry_snapshot.main_genesis_hash, authority_outpoint, chainregistry::ComputeChainSpecHash(spec));
+    } else if (operation_name == "update") {
+        require_parameters(
+            {"chain_id", "metadata_hash", "control_address"},
+            {"chain_id", "metadata_hash", "control_address", "control_amount"});
+        if (!registry_snapshot.record) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id is not registered");
+        }
+        if (registry_snapshot.record->status != chainregistry::ChainStatus::ACTIVE) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "child chain is retired");
+        }
+        authority_outpoint = registry_snapshot.record->control_outpoint;
+        chain_id = *requested_chain_id;
+        operation = chainregistry::UpdateChain{
+            .chain_id = chain_id,
+            .control_output = 1,
+            .metadata_hash = ParseRegistryMetadataHash(parameters.find_value("metadata_hash")),
+        };
+        control_destination = ParseRegistryControlDestination(parameters);
+        control_amount = RegistryControlAmount(wallet, parameters, *control_destination);
+    } else if (operation_name == "retire") {
+        require_parameters({"chain_id"}, {"chain_id"});
+        if (!registry_snapshot.record) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id is not registered");
+        }
+        if (registry_snapshot.record->status != chainregistry::ChainStatus::ACTIVE) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "child chain is already retired");
+        }
+        authority_outpoint = registry_snapshot.record->control_outpoint;
+        chain_id = *requested_chain_id;
+        operation = chainregistry::RetireChain{.chain_id = chain_id};
+    } else {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "operation must be register, update, or retire");
+    }
+
+    if (!WITH_LOCK(wallet.cs_wallet, return wallet.IsMine(authority_outpoint))) {
+        throw JSONRPCError(RPC_WALLET_ERROR,
+                           strprintf("wallet does not control authority outpoint %s:%u",
+                                     authority_outpoint.hash.GetHex(), authority_outpoint.n));
+    }
+
+    const CScript operation_script{chainregistry::BuildOperationScript(operation)};
+    std::vector<CRecipient> recipients;
+    recipients.push_back(CRecipient{CNoDestination{operation_script}, operation_amount, false});
+    if (control_destination) {
+        recipients.push_back(CRecipient{*control_destination, control_amount, false});
+    }
+
+    UniValue options{request.params[2].isNull() ? UniValue::VOBJ : request.params[2].get_obj()};
+    for (const std::string_view forbidden : {"change_position", "subtract_fee_from_outputs", "inputs", "input_weights"}) {
+        if (options.exists(std::string{forbidden})) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               strprintf("options.%s cannot override registry transaction structure", forbidden));
+        }
+    }
+    options.pushKV("add_inputs", true);
+    options.pushKV("change_position", static_cast<int>(recipients.size()));
+
+    CMutableTransaction raw_tx;
+    raw_tx.vin.emplace_back(authority_outpoint);
+    CCoinControl coin_control;
+    coin_control.m_allow_other_inputs = true;
+    coin_control.Select(authority_outpoint).SetPosition(0);
+    auto tx_result{FundTransaction(wallet, raw_tx, recipients, options, coin_control,
+                                   /*override_min_fee=*/true)};
+
+    if (tx_result.tx->vin.empty() || tx_result.tx->vin[0].prevout != authority_outpoint ||
+        tx_result.tx->vout.empty() || tx_result.tx->vout[0].scriptPubKey != operation_script ||
+        (control_destination &&
+         (tx_result.tx->vout.size() < 2 ||
+          tx_result.tx->vout[1].scriptPubKey != GetScriptForDestination(*control_destination)))) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "wallet changed reserved registry input/output positions");
+    }
+
+    PartiallySignedTransaction psbt{CMutableTransaction{*tx_result.tx}};
+    const bool bip32_derivs{self.Arg<bool>("bip32derivs")};
+    bool complete{true};
+    if (const auto error{wallet.FillPSBT(psbt, {.sign = false, .bip32_derivs = bip32_derivs}, complete)}) {
+        throw JSONRPCPSBTError(*error);
+    }
+    DataStream stream;
+    stream << psbt;
+
+    UniValue authority{UniValue::VOBJ};
+    authority.pushKV("txid", authority_outpoint.hash.GetHex());
+    authority.pushKV("vout", authority_outpoint.n);
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("psbt", EncodeBase64(stream.str()));
+    result.pushKV("fee", ValueFromAmount(tx_result.fee));
+    result.pushKV("changepos", tx_result.change_pos ? static_cast<int>(*tx_result.change_pos) : -1);
+    result.pushKV("operation", operation_name);
+    result.pushKV("chain_id", chain_id.GetHex());
+    result.pushKV("authority_outpoint", std::move(authority));
+    result.pushKV("operation_vout", 0);
+    if (control_destination) result.pushKV("control_vout", 1);
+    result.pushKV("registry_bestblockhash", registry_snapshot.best_block.GetHex());
+    result.pushKV("registry_height", registry_snapshot.height);
+    result.pushKV("registry_root", registry_snapshot.registry_root.GetHex());
     return result;
 },
     };

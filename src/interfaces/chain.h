@@ -8,6 +8,7 @@
 
 #include <blockfilter.h>
 #include <common/settings.h>
+#include <consensus/chainregistry.h>
 #include <kernel/chain.h> // IWYU pragma: export
 #include <node/types.h>
 #include <primitives/transaction.h>
@@ -45,6 +46,18 @@ namespace interfaces {
 
 class Handler;
 class Wallet;
+
+/** Immutable child-chain registry view bound to one active-chain tip. */
+struct ChainRegistrySnapshot {
+    bool enabled{false};
+    bool active_for_next_block{false};
+    CAmount minimum_registration_burn{0};
+    uint256 main_genesis_hash;
+    uint256 best_block;
+    uint256 registry_root;
+    uint32_t height{0};
+    std::optional<chainregistry::ChainRecord> record;
+};
 
 //! Helper for findBlock to selectively return pieces of block data. If block is
 //! found, data will be returned by setting specified output variables. If block
@@ -123,6 +136,11 @@ public:
     //! chain only contains genesis block, nullopt if chain does not contain
     //! any blocks)
     virtual std::optional<int> getHeight() = 0;
+
+    //! Return a verified registry view at the active tip and optionally the
+    //! exact child-chain record requested by the caller.
+    virtual ChainRegistrySnapshot getChainRegistrySnapshot(
+        std::optional<chainregistry::ChainId> chain_id = std::nullopt) = 0;
 
     //! Get block hash. Height must be valid or this function will abort.
     virtual uint256 getBlockHash(int height) = 0;
