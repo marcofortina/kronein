@@ -5,8 +5,10 @@
 #ifndef KRONEIN_NODE_CHILD_CHAIN_DB_H
 #define KRONEIN_NODE_CHILD_CHAIN_DB_H
 
+#include <chainregistry/child_block.h>
 #include <chainregistry/deposit_import.h>
 #include <chainregistry/mainchain_lightclient.h>
+#include <coins.h>
 #include <dbwrapper.h>
 #include <primitives/chainregistry.h>
 #include <serialize.h>
@@ -17,7 +19,7 @@
 
 namespace node {
 
-inline constexpr uint8_t CHILD_CHAIN_DB_VERSION{1};
+inline constexpr uint8_t CHILD_CHAIN_DB_VERSION{2};
 
 struct ChildChainDBState {
     uint8_t version{CHILD_CHAIN_DB_VERSION};
@@ -30,6 +32,7 @@ struct ChildChainDBState {
     uint256 child_tip;
     uint32_t child_height{0};
     uint64_t import_count{0};
+    uint64_t coin_count{0};
     bool safe_halt{false};
 
     SERIALIZE_METHODS(ChildChainDBState, obj)
@@ -44,6 +47,7 @@ struct ChildChainDBState {
                   obj.child_tip,
                   obj.child_height,
                   obj.import_count,
+                  obj.coin_count,
                   obj.safe_halt);
     }
 
@@ -73,6 +77,15 @@ enum class ChildChainDBLoadError : uint8_t {
     UNDO_KEY_DECODE_FAILED,
     UNDO_DECODE_FAILED,
     INVALID_UNDO,
+    BLOCK_KEY_DECODE_FAILED,
+    BLOCK_KEY_MISMATCH,
+    BLOCK_DECODE_FAILED,
+    BLOCK_COUNT_MISMATCH,
+    INVALID_BLOCK_CHAIN,
+    COIN_KEY_DECODE_FAILED,
+    COIN_DECODE_FAILED,
+    COIN_COUNT_MISMATCH,
+    INVALID_COIN,
 };
 
 struct ChildChainDBLoadResult {
@@ -85,7 +98,7 @@ struct ChildChainDBLoadResult {
 };
 
 /** Persistent state owned by one explicitly loaded child chain. */
-class ChildChainDB
+class ChildChainDB : public CCoinsView
 {
 private:
     CDBWrapper m_db;
@@ -114,21 +127,25 @@ public:
                          const CBlockHeader& header,
                          bool sync = false);
     bool WriteConnectedChildBlock(const chainregistry::DepositImportState& imports,
-                                  const uint256& child_block_hash,
-                                  uint32_t child_block_height,
-                                  const chainregistry::DepositImportUndo& undo,
+                                  const CBlock& block,
+                                  const chainregistry::ReferenceChildBlockUndo& undo,
                                   bool sync = false);
     bool WriteDisconnectedChildBlock(const chainregistry::DepositImportState& imports,
-                                     const uint256& disconnected_child_block,
-                                     const uint256& parent_child_block,
-                                     uint32_t parent_child_height,
-                                     const chainregistry::DepositImportUndo& undo,
+                                     const CBlock& block,
+                                     const chainregistry::ReferenceChildBlockUndo& undo,
                                      bool sync = false);
+
+    std::optional<Coin> GetCoin(const COutPoint& outpoint) const override;
+    bool HaveCoin(const COutPoint& outpoint) const override;
+    uint256 GetBestBlock() const override;
+    void BatchWrite(CoinsViewCacheCursor& cursor,
+                    const uint256& hash_block) override;
 
     std::optional<chainregistry::ImportedDeposit> ReadImport(
         const chainregistry::DepositId& deposit_id) const;
+    bool ReadBlock(const uint256& child_block_hash, CBlock& block) const;
     bool ReadUndo(const uint256& child_block_hash,
-                  chainregistry::DepositImportUndo& undo) const;
+                  chainregistry::ReferenceChildBlockUndo& undo) const;
 };
 
 } // namespace node

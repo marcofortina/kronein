@@ -4,9 +4,15 @@
 
 #include <node/child_chain_db.h>
 
+#include <consensus/amount.h>
+#include <primitives/block.h>
+
+#include <algorithm>
 #include <limits>
+#include <map>
 #include <memory>
 #include <set>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -14,14 +20,34 @@ namespace node {
 namespace {
 
 constexpr uint8_t DB_STATE{'S'};
+constexpr uint8_t DB_BLOCK{'B'};
+constexpr uint8_t DB_COIN{'C'};
 constexpr uint8_t DB_HEADER{'H'};
 constexpr uint8_t DB_IMPORT{'I'};
 constexpr uint8_t DB_UNDO{'U'};
 constexpr uint8_t DB_SAFE_HALT{'X'};
 
+using BlockKey = std::pair<uint8_t, uint256>;
+using CoinKey = std::pair<uint8_t, COutPoint>;
 using HeaderKey = std::pair<uint8_t, uint256>;
 using ImportKey = std::pair<uint8_t, chainregistry::DepositId>;
 using UndoKey = std::pair<uint8_t, uint256>;
+using CoinSet = std::map<COutPoint, Coin>;
+using CoinChanges = std::map<COutPoint, std::optional<Coin>>;
+
+struct CoinTransition {
+    CoinChanges changes;
+    int64_t count_delta{0};
+};
+
+struct StoredChildBlock {
+    CBlock block;
+
+    SERIALIZE_METHODS(StoredChildBlock, obj)
+    {
+        READWRITE(TX_WITH_WITNESS(obj.block));
+    }
+};
 
 ChildChainDBLoadResult LoadError(
     ChildChainDBLoadError error,
@@ -75,6 +101,230 @@ bool ImportsMatchMainChain(const chainregistry::MainHeaderChain& main_headers,
     return true;
 }
 
+bool CoinsEqual(const Coin& left, const Coin& right)
+{
+    return left.out == right.out && left.nHeight == right.nHeight &&
+           left.IsCoinBase() == right.IsCoinBase();
+}
+
+bool BlocksEqual(const CBlock& left, const CBlock& right)
+{
+    if (left.nVersion != right.nVersion ||
+        left.hashPrevBlock != right.hashPrevBlock ||
+        left.hashMerkleRoot != right.hashMerkleRoot ||
+        left.nTime != right.nTime || left.nBits != right.nBits ||
+        left.nNonce != right.nNonce || left.vtx.size() != right.vtx.size()) {
+        return false;
+    }
+    for (size_t index{0}; index < left.vtx.size(); ++index) {
+        if (*left.vtx[index] != *right.vtx[index]) return false;
+    }
+    return true;
+}
+
+bool IsValidStoredCoin(const Coin& coin, uint32_t maximum_height)
+{
+    return !coin.IsSpent() && coin.nHeight > 0 &&
+           coin.nHeight <= maximum_height && MoneyRange(coin.out.nValue) &&
+           !coin.out.scriptPubKey.IsUnspendable();
+}
+
+std::optional<std::vector<chainregistry::DepositId>> BlockImportIds(
+    const CBlock& block)
+{
+    std::vector<chainregistry::DepositId> imports;
+    for (size_t index{1}; index < block.vtx.size(); ++index) {
+        const CTransaction& transaction{*block.vtx[index]};
+        if (!chainregistry::IsReferenceChildImport(transaction)) continue;
+        if (transaction.vin.empty()) return std::nullopt;
+        imports.push_back(chainregistry::DepositId::FromUint256(
+            transaction.vin.front().prevout.hash.ToUint256()));
+    }
+    return imports;
+}
+
+bool ApplyBlockToCoinSet(const CBlock& block,
+                         const chainregistry::ReferenceChildBlockUndo& undo,
+                         CoinSet& coins)
+{
+    if (block.vtx.empty() || undo.coins.vtxundo.size() + 1 != block.vtx.size()) {
+        return false;
+    }
+    const auto block_imports{BlockImportIds(block)};
+    if (!block_imports || *block_imports != undo.imports.imports) return false;
+    for (size_t index{0}; index < block.vtx.size(); ++index) {
+        const CTransaction& transaction{*block.vtx[index]};
+        if (index > 0) {
+            const CTxUndo& transaction_undo{undo.coins.vtxundo[index - 1]};
+            if (chainregistry::IsReferenceChildImport(transaction)) {
+                if (!transaction_undo.vprevout.empty()) return false;
+            } else {
+                if (transaction_undo.vprevout.size() != transaction.vin.size()) {
+                    return false;
+                }
+                for (size_t input_index{0};
+                     input_index < transaction.vin.size();
+                     ++input_index) {
+                    const COutPoint& previous{transaction.vin[input_index].prevout};
+                    const auto coin{coins.find(previous)};
+                    if (coin == coins.end() ||
+                        !CoinsEqual(coin->second,
+                                    transaction_undo.vprevout[input_index])) {
+                        return false;
+                    }
+                    coins.erase(coin);
+                }
+            }
+        }
+        for (size_t output_index{0};
+             output_index < transaction.vout.size();
+             ++output_index) {
+            const CTxOut& output{transaction.vout[output_index]};
+            if (output.scriptPubKey.IsUnspendable()) continue;
+            const COutPoint outpoint{transaction.GetHash(),
+                                     static_cast<uint32_t>(output_index)};
+            if (!coins.emplace(outpoint,
+                               Coin{output,
+                                    static_cast<int>(undo.block_height),
+                                    transaction.IsCoinBase()})
+                     .second) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+std::optional<Coin> CurrentCoin(const CCoinsView& view,
+                                const CoinChanges& changes,
+                                const COutPoint& outpoint)
+{
+    const auto changed{changes.find(outpoint)};
+    if (changed != changes.end()) return changed->second;
+    return view.GetCoin(outpoint);
+}
+
+std::optional<CoinTransition> BuildConnectCoinTransition(
+    const CCoinsView& view,
+    const CBlock& block,
+    const chainregistry::ReferenceChildBlockUndo& undo)
+{
+    if (block.vtx.empty() || undo.coins.vtxundo.size() + 1 != block.vtx.size()) {
+        return std::nullopt;
+    }
+    CoinTransition result;
+    for (size_t index{0}; index < block.vtx.size(); ++index) {
+        const CTransaction& transaction{*block.vtx[index]};
+        for (size_t output_index{0};
+             output_index < transaction.vout.size();
+             ++output_index) {
+            const CTxOut& output{transaction.vout[output_index]};
+            if (output.scriptPubKey.IsUnspendable()) continue;
+            if (CurrentCoin(
+                    view,
+                    result.changes,
+                    COutPoint{transaction.GetHash(),
+                              static_cast<uint32_t>(output_index)})) {
+                return std::nullopt;
+            }
+        }
+        if (index > 0) {
+            const CTxUndo& transaction_undo{undo.coins.vtxundo[index - 1]};
+            if (chainregistry::IsReferenceChildImport(transaction)) {
+                if (!transaction_undo.vprevout.empty()) return std::nullopt;
+            } else {
+                if (transaction_undo.vprevout.size() != transaction.vin.size()) {
+                    return std::nullopt;
+                }
+                for (size_t input_index{0};
+                     input_index < transaction.vin.size();
+                     ++input_index) {
+                    const COutPoint& previous{transaction.vin[input_index].prevout};
+                    const auto current{CurrentCoin(view, result.changes, previous)};
+                    const Coin& expected{transaction_undo.vprevout[input_index]};
+                    if (!current ||
+                        !IsValidStoredCoin(expected, undo.block_height) ||
+                        !CoinsEqual(*current, expected)) {
+                        return std::nullopt;
+                    }
+                    result.changes[previous] = std::nullopt;
+                    --result.count_delta;
+                }
+            }
+        }
+        for (size_t output_index{0};
+             output_index < transaction.vout.size();
+             ++output_index) {
+            const CTxOut& output{transaction.vout[output_index]};
+            if (output.scriptPubKey.IsUnspendable()) continue;
+            const COutPoint outpoint{transaction.GetHash(),
+                                     static_cast<uint32_t>(output_index)};
+            Coin coin{output,
+                      static_cast<int>(undo.block_height),
+                      transaction.IsCoinBase()};
+            if (!IsValidStoredCoin(coin, undo.block_height)) {
+                return std::nullopt;
+            }
+            result.changes[outpoint] = std::move(coin);
+            ++result.count_delta;
+        }
+    }
+    return result;
+}
+
+std::optional<CoinTransition> BuildDisconnectCoinTransition(
+    const CCoinsView& view,
+    const CBlock& block,
+    const chainregistry::ReferenceChildBlockUndo& undo)
+{
+    if (block.vtx.empty() || undo.coins.vtxundo.size() + 1 != block.vtx.size()) {
+        return std::nullopt;
+    }
+    CoinTransition result;
+    for (size_t reverse_index{block.vtx.size()}; reverse_index > 0;) {
+        const size_t index{--reverse_index};
+        const CTransaction& transaction{*block.vtx[index]};
+        for (size_t output_index{0};
+             output_index < transaction.vout.size();
+             ++output_index) {
+            const CTxOut& output{transaction.vout[output_index]};
+            if (output.scriptPubKey.IsUnspendable()) continue;
+            const COutPoint outpoint{transaction.GetHash(),
+                                     static_cast<uint32_t>(output_index)};
+            const auto current{CurrentCoin(view, result.changes, outpoint)};
+            const Coin expected{output,
+                                static_cast<int>(undo.block_height),
+                                transaction.IsCoinBase()};
+            if (!current || !CoinsEqual(*current, expected)) {
+                return std::nullopt;
+            }
+            result.changes[outpoint] = std::nullopt;
+            --result.count_delta;
+        }
+        if (index == 0) continue;
+        const CTxUndo& transaction_undo{undo.coins.vtxundo[index - 1]};
+        if (chainregistry::IsReferenceChildImport(transaction)) {
+            if (!transaction_undo.vprevout.empty()) return std::nullopt;
+            continue;
+        }
+        if (transaction_undo.vprevout.size() != transaction.vin.size()) {
+            return std::nullopt;
+        }
+        for (size_t reverse_input{transaction.vin.size()}; reverse_input > 0;) {
+            const size_t input_index{--reverse_input};
+            const COutPoint& previous{transaction.vin[input_index].prevout};
+            const Coin& restored{transaction_undo.vprevout[input_index]};
+            if (CurrentCoin(view, result.changes, previous) ||
+                !IsValidStoredCoin(restored, undo.block_height)) {
+                return std::nullopt;
+            }
+            result.changes[previous] = restored;
+            ++result.count_delta;
+        }
+    }
+    return result;
+}
+
 } // namespace
 
 ChildChainDB::ChildChainDB(const DBParams& params,
@@ -101,7 +351,9 @@ ChildChainDBLoadResult ChildChainDB::Load(
         if (m_db.Exists(DB_STATE)) {
             return LoadError(ChildChainDBLoadError::STATE_DECODE_FAILED);
         }
-        if (HasKeyWithPrefix(m_db, DB_HEADER) ||
+        if (HasKeyWithPrefix(m_db, DB_BLOCK) ||
+            HasKeyWithPrefix(m_db, DB_COIN) ||
+            HasKeyWithPrefix(m_db, DB_HEADER) ||
             HasKeyWithPrefix(m_db, DB_IMPORT) ||
             HasKeyWithPrefix(m_db, DB_UNDO) ||
             m_db.Exists(DB_SAFE_HALT)) {
@@ -208,7 +460,35 @@ ChildChainDBLoadResult ChildChainDB::Load(
         return LoadError(ChildChainDBLoadError::UNACKNOWLEDGED_MAIN_REORG);
     }
 
-    std::set<chainregistry::DepositId> undo_imports;
+    std::map<uint256, CBlock> blocks;
+    cursor.reset(const_cast<CDBWrapper&>(m_db).NewIterator());
+    cursor->Seek(BlockKey{DB_BLOCK, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) {
+            return LoadError(ChildChainDBLoadError::BLOCK_KEY_DECODE_FAILED);
+        }
+        if (prefix != DB_BLOCK) break;
+        BlockKey key;
+        if (!cursor->GetKey(key)) {
+            return LoadError(ChildChainDBLoadError::BLOCK_KEY_DECODE_FAILED);
+        }
+        StoredChildBlock stored_block;
+        if (!cursor->GetValue(stored_block)) {
+            return LoadError(ChildChainDBLoadError::BLOCK_DECODE_FAILED);
+        }
+        CBlock& block{stored_block.block};
+        if (block.GetHash() != key.second) {
+            return LoadError(ChildChainDBLoadError::BLOCK_KEY_MISMATCH);
+        }
+        blocks.emplace(key.second, std::move(block));
+        cursor->Next();
+    }
+    if (blocks.size() != stored_state.child_height) {
+        return LoadError(ChildChainDBLoadError::BLOCK_COUNT_MISMATCH);
+    }
+
+    std::map<uint256, chainregistry::ReferenceChildBlockUndo> undos;
     cursor.reset(const_cast<CDBWrapper&>(m_db).NewIterator());
     cursor->Seek(UndoKey{DB_UNDO, {}});
     while (cursor->Valid()) {
@@ -221,23 +501,100 @@ ChildChainDBLoadResult ChildChainDB::Load(
         if (!cursor->GetKey(key)) {
             return LoadError(ChildChainDBLoadError::UNDO_KEY_DECODE_FAILED);
         }
-        chainregistry::DepositImportUndo undo;
+        chainregistry::ReferenceChildBlockUndo undo;
         if (!cursor->GetValue(undo)) {
             return LoadError(ChildChainDBLoadError::UNDO_DECODE_FAILED);
         }
-        std::set<chainregistry::DepositId> local;
-        for (const auto& deposit_id : undo.imports) {
-            const auto* imported{imports.Find(deposit_id)};
-            if (!local.insert(deposit_id).second ||
-                !undo_imports.insert(deposit_id).second || !imported ||
-                imported->child_block_hash != key.second) {
-                return LoadError(ChildChainDBLoadError::INVALID_UNDO);
-            }
+        if (!undos.emplace(key.second, std::move(undo)).second) {
+            return LoadError(ChildChainDBLoadError::INVALID_UNDO);
         }
         cursor->Next();
     }
+    if (undos.size() != blocks.size()) {
+        return LoadError(ChildChainDBLoadError::INVALID_UNDO);
+    }
+
+    std::vector<std::pair<const CBlock*,
+                          const chainregistry::ReferenceChildBlockUndo*>>
+        active_blocks;
+    active_blocks.reserve(blocks.size());
+    uint256 expected_hash{stored_state.child_tip};
+    for (uint32_t height{stored_state.child_height}; height > 0; --height) {
+        const auto block{blocks.find(expected_hash)};
+        const auto undo{undos.find(expected_hash)};
+        if (block == blocks.end() || undo == undos.end() ||
+            undo->second.version !=
+                chainregistry::REFERENCE_CHILD_BLOCK_UNDO_VERSION ||
+            undo->second.block_hash != expected_hash ||
+            undo->second.parent_hash != block->second.hashPrevBlock ||
+            undo->second.block_height != height) {
+            return LoadError(ChildChainDBLoadError::INVALID_BLOCK_CHAIN);
+        }
+        active_blocks.emplace_back(&block->second, &undo->second);
+        expected_hash = block->second.hashPrevBlock;
+    }
+    if (expected_hash != stored_state.child_genesis_hash ||
+        active_blocks.size() != blocks.size()) {
+        return LoadError(ChildChainDBLoadError::INVALID_BLOCK_CHAIN);
+    }
+    std::reverse(active_blocks.begin(), active_blocks.end());
+
+    std::set<chainregistry::DepositId> undo_imports;
+    CoinSet expected_coins;
+    for (const auto& [block, undo] : active_blocks) {
+        std::set<chainregistry::DepositId> local;
+        for (const auto& deposit_id : undo->imports.imports) {
+            const auto* imported{imports.Find(deposit_id)};
+            if (!local.insert(deposit_id).second ||
+                !undo_imports.insert(deposit_id).second || !imported ||
+                imported->child_block_hash != undo->block_hash ||
+                imported->child_block_height != undo->block_height) {
+                return LoadError(ChildChainDBLoadError::INVALID_UNDO);
+            }
+        }
+        if (!ApplyBlockToCoinSet(*block, *undo, expected_coins)) {
+            return LoadError(ChildChainDBLoadError::INVALID_UNDO);
+        }
+    }
     if (undo_imports.size() != imports.Size()) {
         return LoadError(ChildChainDBLoadError::INVALID_UNDO);
+    }
+
+    CoinSet stored_coins;
+    cursor.reset(const_cast<CDBWrapper&>(m_db).NewIterator());
+    cursor->Seek(CoinKey{DB_COIN, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) {
+            return LoadError(ChildChainDBLoadError::COIN_KEY_DECODE_FAILED);
+        }
+        if (prefix != DB_COIN) break;
+        CoinKey key;
+        if (!cursor->GetKey(key)) {
+            return LoadError(ChildChainDBLoadError::COIN_KEY_DECODE_FAILED);
+        }
+        Coin coin;
+        if (!cursor->GetValue(coin)) {
+            return LoadError(ChildChainDBLoadError::COIN_DECODE_FAILED);
+        }
+        if (!IsValidStoredCoin(coin, stored_state.child_height) ||
+            !stored_coins.emplace(key.second, std::move(coin)).second) {
+            return LoadError(ChildChainDBLoadError::INVALID_COIN);
+        }
+        cursor->Next();
+    }
+    if (stored_coins.size() != stored_state.coin_count) {
+        return LoadError(ChildChainDBLoadError::COIN_COUNT_MISMATCH);
+    }
+    if (stored_coins.size() != expected_coins.size()) {
+        return LoadError(ChildChainDBLoadError::INVALID_COIN);
+    }
+    for (const auto& [outpoint, expected] : expected_coins) {
+        const auto stored{stored_coins.find(outpoint)};
+        if (stored == stored_coins.end() ||
+            !CoinsEqual(stored->second, expected)) {
+            return LoadError(ChildChainDBLoadError::INVALID_COIN);
+        }
     }
 
     state = stored_state;
@@ -261,7 +618,9 @@ bool ChildChainDB::WriteInitialState(
         imports.ChildChain() != m_child_chain ||
         imports.MinimumConfirmations() != m_minimum_confirmations ||
         imports.Size() != 0 || imports.IsSafeHalted() ||
-        m_db.Exists(DB_STATE) || HasKeyWithPrefix(m_db, DB_HEADER) ||
+        m_db.Exists(DB_STATE) || HasKeyWithPrefix(m_db, DB_BLOCK) ||
+        HasKeyWithPrefix(m_db, DB_COIN) ||
+        HasKeyWithPrefix(m_db, DB_HEADER) ||
         HasKeyWithPrefix(m_db, DB_IMPORT) || HasKeyWithPrefix(m_db, DB_UNDO) ||
         m_db.Exists(DB_SAFE_HALT)) {
         return false;
@@ -339,11 +698,11 @@ bool ChildChainDB::WriteMainHeader(
 
 bool ChildChainDB::WriteConnectedChildBlock(
     const chainregistry::DepositImportState& imports,
-    const uint256& child_block_hash,
-    uint32_t child_block_height,
-    const chainregistry::DepositImportUndo& undo,
+    const CBlock& block,
+    const chainregistry::ReferenceChildBlockUndo& undo,
     bool sync)
 {
+    const uint256 child_block_hash{block.GetHash()};
     ChildChainDBState state;
     if (!m_db.Read(DB_STATE, state) ||
         !ValidConfiguration(state,
@@ -352,31 +711,67 @@ bool ChildChainDB::WriteConnectedChildBlock(
                             m_minimum_confirmations,
                             m_child_genesis_hash) ||
         state.safe_halt || imports.IsSafeHalted() || child_block_hash.IsNull() ||
-        child_block_height != static_cast<uint64_t>(state.child_height) + 1 ||
-        undo.imports.size() > std::numeric_limits<uint64_t>::max() - state.import_count ||
-        imports.Size() != state.import_count + undo.imports.size() ||
+        state.child_height == std::numeric_limits<uint32_t>::max() ||
+        block.hashPrevBlock != state.child_tip ||
+        undo.version != chainregistry::REFERENCE_CHILD_BLOCK_UNDO_VERSION ||
+        undo.block_hash != child_block_hash ||
+        undo.parent_hash != block.hashPrevBlock ||
+        undo.block_height != state.child_height + 1 ||
+        undo.imports.imports.size() >
+            std::numeric_limits<uint64_t>::max() - state.import_count ||
+        imports.Size() !=
+            state.import_count + undo.imports.imports.size() ||
+        m_db.Exists(BlockKey{DB_BLOCK, child_block_hash}) ||
         m_db.Exists(UndoKey{DB_UNDO, child_block_hash})) {
         return false;
     }
 
+    const auto expected_imports{BlockImportIds(block)};
+    if (!expected_imports || *expected_imports != undo.imports.imports) {
+        return false;
+    }
+
     std::set<chainregistry::DepositId> unique;
-    for (const auto& deposit_id : undo.imports) {
+    for (const auto& deposit_id : undo.imports.imports) {
         const auto* imported{imports.Find(deposit_id)};
         if (!unique.insert(deposit_id).second || !imported ||
             imported->child_block_hash != child_block_hash ||
-            imported->child_block_height != child_block_height ||
+            imported->child_block_height != undo.block_height ||
             m_db.Exists(ImportKey{DB_IMPORT, deposit_id})) {
             return false;
         }
     }
 
+    const auto transition{BuildConnectCoinTransition(*this, block, undo)};
+    if (!transition) return false;
+    if ((transition->count_delta < 0 &&
+         static_cast<uint64_t>(-transition->count_delta) > state.coin_count) ||
+        (transition->count_delta > 0 &&
+         static_cast<uint64_t>(transition->count_delta) >
+             std::numeric_limits<uint64_t>::max() - state.coin_count)) {
+        return false;
+    }
+
     state.child_tip = child_block_hash;
-    state.child_height = child_block_height;
-    state.import_count += undo.imports.size();
+    state.child_height = undo.block_height;
+    state.import_count += undo.imports.imports.size();
+    if (transition->count_delta < 0) {
+        state.coin_count -= static_cast<uint64_t>(-transition->count_delta);
+    } else {
+        state.coin_count += static_cast<uint64_t>(transition->count_delta);
+    }
     CDBBatch batch{m_db};
-    for (const auto& deposit_id : undo.imports) {
+    for (const auto& deposit_id : undo.imports.imports) {
         batch.Write(ImportKey{DB_IMPORT, deposit_id}, *imports.Find(deposit_id));
     }
+    for (const auto& [outpoint, coin] : transition->changes) {
+        if (coin) {
+            batch.Write(CoinKey{DB_COIN, outpoint}, *coin);
+        } else {
+            batch.Erase(CoinKey{DB_COIN, outpoint});
+        }
+    }
+    batch.Write(BlockKey{DB_BLOCK, child_block_hash}, StoredChildBlock{block});
     batch.Write(UndoKey{DB_UNDO, child_block_hash}, undo);
     batch.Write(DB_STATE, state);
     m_db.WriteBatch(batch, sync);
@@ -385,43 +780,74 @@ bool ChildChainDB::WriteConnectedChildBlock(
 
 bool ChildChainDB::WriteDisconnectedChildBlock(
     const chainregistry::DepositImportState& imports,
-    const uint256& disconnected_child_block,
-    const uint256& parent_child_block,
-    uint32_t parent_child_height,
-    const chainregistry::DepositImportUndo& undo,
+    const CBlock& block,
+    const chainregistry::ReferenceChildBlockUndo& undo,
     bool sync)
 {
+    const uint256 disconnected_child_block{block.GetHash()};
     ChildChainDBState state;
-    chainregistry::DepositImportUndo stored_undo;
+    StoredChildBlock stored_block;
+    chainregistry::ReferenceChildBlockUndo stored_undo;
     if (!m_db.Read(DB_STATE, state) ||
+        !m_db.Read(BlockKey{DB_BLOCK, disconnected_child_block}, stored_block) ||
         !m_db.Read(UndoKey{DB_UNDO, disconnected_child_block}, stored_undo) ||
-        stored_undo != undo ||
+        !BlocksEqual(stored_block.block, block) || stored_undo != undo ||
         !ValidConfiguration(state,
                             m_child_chain,
                             m_main_genesis_hash,
                             m_minimum_confirmations,
                             m_child_genesis_hash) ||
         state.child_tip != disconnected_child_block ||
-        state.child_height != parent_child_height + 1 ||
-        parent_child_block.IsNull() ||
-        undo.imports.size() > state.import_count ||
-        imports.Size() != state.import_count - undo.imports.size() ||
+        undo.version != chainregistry::REFERENCE_CHILD_BLOCK_UNDO_VERSION ||
+        undo.block_hash != disconnected_child_block ||
+        undo.parent_hash != block.hashPrevBlock || undo.parent_hash.IsNull() ||
+        undo.block_height != state.child_height || state.child_height == 0 ||
+        undo.imports.imports.size() > state.import_count ||
+        imports.Size() !=
+            state.import_count - undo.imports.imports.size() ||
         imports.IsSafeHalted() != state.safe_halt) {
         return false;
     }
-    for (const auto& deposit_id : undo.imports) {
+    const auto expected_imports{BlockImportIds(block)};
+    if (!expected_imports || *expected_imports != undo.imports.imports) {
+        return false;
+    }
+    for (const auto& deposit_id : undo.imports.imports) {
         const auto stored{ReadImport(deposit_id)};
         if (!stored || stored->child_block_hash != disconnected_child_block ||
             imports.Find(deposit_id)) return false;
     }
 
-    state.child_tip = parent_child_block;
-    state.child_height = parent_child_height;
-    state.import_count -= undo.imports.size();
+    const auto transition{BuildDisconnectCoinTransition(*this, block, undo)};
+    if (!transition) return false;
+    if ((transition->count_delta < 0 &&
+         static_cast<uint64_t>(-transition->count_delta) > state.coin_count) ||
+        (transition->count_delta > 0 &&
+         static_cast<uint64_t>(transition->count_delta) >
+             std::numeric_limits<uint64_t>::max() - state.coin_count)) {
+        return false;
+    }
+
+    state.child_tip = undo.parent_hash;
+    --state.child_height;
+    state.import_count -= undo.imports.imports.size();
+    if (transition->count_delta < 0) {
+        state.coin_count -= static_cast<uint64_t>(-transition->count_delta);
+    } else {
+        state.coin_count += static_cast<uint64_t>(transition->count_delta);
+    }
     CDBBatch batch{m_db};
-    for (const auto& deposit_id : undo.imports) {
+    for (const auto& deposit_id : undo.imports.imports) {
         batch.Erase(ImportKey{DB_IMPORT, deposit_id});
     }
+    for (const auto& [outpoint, coin] : transition->changes) {
+        if (coin) {
+            batch.Write(CoinKey{DB_COIN, outpoint}, *coin);
+        } else {
+            batch.Erase(CoinKey{DB_COIN, outpoint});
+        }
+    }
+    batch.Erase(BlockKey{DB_BLOCK, disconnected_child_block});
     batch.Erase(UndoKey{DB_UNDO, disconnected_child_block});
     batch.Write(DB_STATE, state);
     m_db.WriteBatch(batch, sync);
@@ -436,8 +862,62 @@ std::optional<chainregistry::ImportedDeposit> ChildChainDB::ReadImport(
     return imported;
 }
 
+std::optional<Coin> ChildChainDB::GetCoin(const COutPoint& outpoint) const
+{
+    Coin coin;
+    if (!m_db.Read(CoinKey{DB_COIN, outpoint}, coin)) return std::nullopt;
+    if (coin.IsSpent()) {
+        throw std::runtime_error("child chain database contains a spent coin");
+    }
+    return coin;
+}
+
+bool ChildChainDB::HaveCoin(const COutPoint& outpoint) const
+{
+    return m_db.Exists(CoinKey{DB_COIN, outpoint});
+}
+
+uint256 ChildChainDB::GetBestBlock() const
+{
+    ChildChainDBState state;
+    if (!m_db.Read(DB_STATE, state)) return {};
+    return state.child_tip;
+}
+
+void ChildChainDB::BatchWrite(CoinsViewCacheCursor& cursor,
+                              const uint256& hash_block)
+{
+    ChildChainDBState state;
+    if (!m_db.Read(DB_STATE, state) || hash_block.IsNull() ||
+        state.child_tip != hash_block) {
+        throw std::logic_error(
+            "child coin cache does not match the atomically committed tip");
+    }
+    for (auto* entry{cursor.Begin()}; entry != cursor.End();) {
+        if (entry->second.IsDirty()) {
+            const auto stored{GetCoin(entry->first)};
+            if ((entry->second.coin.IsSpent() && stored) ||
+                (!entry->second.coin.IsSpent() &&
+                 (!stored || !CoinsEqual(*stored, entry->second.coin)))) {
+                throw std::logic_error(
+                    "child coin cache differs from the atomically committed UTXO set");
+            }
+        }
+        entry = cursor.NextAndMaybeErase(*entry);
+    }
+}
+
+bool ChildChainDB::ReadBlock(const uint256& child_block_hash,
+                             CBlock& block) const
+{
+    StoredChildBlock stored;
+    if (!m_db.Read(BlockKey{DB_BLOCK, child_block_hash}, stored)) return false;
+    block = std::move(stored.block);
+    return true;
+}
+
 bool ChildChainDB::ReadUndo(const uint256& child_block_hash,
-                            chainregistry::DepositImportUndo& undo) const
+                            chainregistry::ReferenceChildBlockUndo& undo) const
 {
     return m_db.Read(UndoKey{DB_UNDO, child_block_hash}, undo);
 }

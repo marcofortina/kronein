@@ -121,6 +121,44 @@ chainregistry::DepositProof MakeDepositProof(CBlock& block,
     };
 }
 
+CBlock MakeChildBlock(
+    const uint256& parent,
+    uint32_t height,
+    const std::optional<chainregistry::DepositId>& imported = std::nullopt)
+{
+    CMutableTransaction coinbase;
+    coinbase.vin.emplace_back(COutPoint{});
+    coinbase.vin.front().scriptSig = CScript{} << static_cast<int64_t>(height);
+    coinbase.vout.emplace_back(7'500, CScript{} << OP_TRUE);
+
+    CBlock block;
+    block.nVersion = CBlockHeader::CURRENT_VERSION;
+    block.hashPrevBlock = parent;
+    block.nTime = Params().GenesisBlock().nTime + height;
+    block.nBits = 0;
+    block.nNonce = 0;
+    block.vtx.push_back(MakeTransactionRef(std::move(coinbase)));
+    if (imported) {
+        CMutableTransaction import;
+        import.vin.emplace_back(COutPoint{
+            Txid::FromUint256(imported->ToUint256()),
+            chainregistry::CHILD_IMPORT_PREVOUT_INDEX});
+        import.vout.emplace_back(50'000, CScript{} << OP_TRUE);
+        block.vtx.push_back(MakeTransactionRef(std::move(import)));
+    }
+    block.hashMerkleRoot = BlockMerkleRoot(block);
+    return block;
+}
+
+chainregistry::DepositId ProofDepositId(
+    const chainregistry::DepositProof& proof,
+    const uint256& main_genesis)
+{
+    return chainregistry::DeriveDepositId(
+        main_genesis,
+        COutPoint{proof.funding_transaction.GetHash(), proof.funding_vout});
+}
+
 void AddAndPersist(node::ChildChainDB& db,
                    chainregistry::MainHeaderChain& headers,
                    const chainregistry::DepositImportState& imports,
@@ -139,11 +177,10 @@ BOOST_AUTO_TEST_CASE(persists_headers_imports_and_child_undo)
     const auto& params{Params().GetConsensus()};
     const CBlock& genesis{Params().GenesisBlock()};
     const fs::path path{m_args.GetDataDirBase() / "child_chain_state"};
-    constexpr uint256 child_block{
-        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"};
 
+    CBlock child_block;
     chainregistry::DepositId deposit_id;
-    chainregistry::DepositImportUndo import_undo;
+    chainregistry::ReferenceChildBlockUndo child_undo;
     CBlockHeader confirmation;
     {
         chainregistry::MainHeaderChain headers{params};
@@ -175,12 +212,28 @@ BOOST_AUTO_TEST_CASE(persists_headers_imports_and_child_undo)
         confirmation = MineHeader(*deposit_index, params, 1);
         AddAndPersist(db, headers, imports, confirmation);
 
-        const auto imported{imports.ImportProof(proof, headers, child_block, 1)};
+        deposit_id = ProofDepositId(proof, params.hashGenesisBlock);
+        child_block = MakeChildBlock(CHILD_GENESIS, 1, deposit_id);
+        const auto imported{
+            imports.ImportProof(proof, headers, child_block.GetHash(), 1)};
         BOOST_REQUIRE(imported.IsValid());
-        deposit_id = imported.imports.front().deposit_id;
-        import_undo = imported.undo;
+        BOOST_CHECK(imported.imports.front().deposit_id == deposit_id);
+        child_undo = {
+            .block_hash = child_block.GetHash(),
+            .parent_hash = CHILD_GENESIS,
+            .block_height = 1,
+            .coins = CBlockUndo{{CTxUndo{}}},
+            .imports = imported.undo,
+        };
+        CCoinsViewCache coin_cache{&db, /*deterministic=*/true};
+        BOOST_CHECK(coin_cache.GetBestBlock() == CHILD_GENESIS);
+        for (const auto& transaction : child_block.vtx) {
+            AddCoins(coin_cache, *transaction, 1);
+        }
+        coin_cache.SetBestBlock(child_block.GetHash());
         BOOST_REQUIRE(db.WriteConnectedChildBlock(
-            imports, child_block, 1, import_undo, /*sync=*/true));
+            imports, child_block, child_undo, /*sync=*/true));
+        coin_cache.Flush();
         const auto stored{db.ReadImport(deposit_id)};
         BOOST_REQUIRE(stored.has_value());
         BOOST_CHECK(stored->deposit_id == deposit_id);
@@ -204,23 +257,40 @@ BOOST_AUTO_TEST_CASE(persists_headers_imports_and_child_undo)
         BOOST_CHECK(loaded.initialized);
         BOOST_CHECK_EQUAL(state.header_count, 3U);
         BOOST_CHECK_EQUAL(state.import_count, 1U);
-        BOOST_CHECK(state.child_tip == child_block);
+        BOOST_CHECK_EQUAL(state.coin_count, 2U);
+        BOOST_CHECK(state.child_tip == child_block.GetHash());
         BOOST_CHECK_EQUAL(state.child_height, 1U);
         BOOST_CHECK(headers.Tip()->GetBlockHash() == confirmation.GetHash());
         BOOST_CHECK(imports.Find(deposit_id) != nullptr);
-        chainregistry::DepositImportUndo stored_undo;
-        BOOST_REQUIRE(db.ReadUndo(child_block, stored_undo));
-        BOOST_CHECK(stored_undo == import_undo);
+        chainregistry::ReferenceChildBlockUndo stored_undo;
+        BOOST_REQUIRE(db.ReadUndo(child_block.GetHash(), stored_undo));
+        BOOST_CHECK(stored_undo == child_undo);
+        CBlock stored_block;
+        BOOST_REQUIRE(db.ReadBlock(child_block.GetHash(), stored_block));
+        BOOST_CHECK(stored_block.vtx.size() == child_block.vtx.size());
+        BOOST_CHECK(db.HaveCoin(COutPoint{child_block.vtx.front()->GetHash(), 0}));
+        BOOST_CHECK(db.HaveCoin(COutPoint{child_block.vtx.back()->GetHash(), 0}));
 
-        BOOST_REQUIRE(imports.DisconnectImports(child_block, import_undo));
+        CCoinsViewCache coin_cache{&db, /*deterministic=*/true};
+        for (const auto& transaction : child_block.vtx) {
+            for (size_t output{0}; output < transaction->vout.size(); ++output) {
+                if (transaction->vout[output].scriptPubKey.IsUnspendable()) continue;
+                BOOST_REQUIRE(coin_cache.SpendCoin(
+                    COutPoint{transaction->GetHash(),
+                              static_cast<uint32_t>(output)}));
+            }
+        }
+        coin_cache.SetBestBlock(CHILD_GENESIS);
+        BOOST_REQUIRE(imports.DisconnectImports(
+            child_block.GetHash(), child_undo.imports));
         BOOST_REQUIRE(db.WriteDisconnectedChildBlock(
             imports,
             child_block,
-            CHILD_GENESIS,
-            0,
-            import_undo,
+            child_undo,
             /*sync=*/true));
+        coin_cache.Flush();
         BOOST_CHECK(!db.ReadImport(deposit_id).has_value());
+        BOOST_CHECK(!db.HaveCoin(COutPoint{child_block.vtx.front()->GetHash(), 0}));
     }
 
     {
@@ -239,6 +309,7 @@ BOOST_AUTO_TEST_CASE(persists_headers_imports_and_child_undo)
         BOOST_REQUIRE(db.Load(headers, imports, state, confirmation.nTime + 1).IsValid());
         BOOST_CHECK_EQUAL(imports.Size(), 0U);
         BOOST_CHECK_EQUAL(state.import_count, 0U);
+        BOOST_CHECK_EQUAL(state.coin_count, 0U);
         BOOST_CHECK(state.child_tip == CHILD_GENESIS);
     }
 
@@ -265,9 +336,8 @@ BOOST_AUTO_TEST_CASE(persists_safe_halt_across_restart)
     const auto& params{Params().GetConsensus()};
     const CBlock& genesis{Params().GenesisBlock()};
     const fs::path path{m_args.GetDataDirBase() / "child_chain_safe_halt"};
-    constexpr uint256 child_block{
-        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"};
 
+    CBlock child_block;
     CBlockHeader fork3;
     chainregistry::DepositId deposit_id;
     {
@@ -296,11 +366,20 @@ BOOST_AUTO_TEST_CASE(persists_safe_halt_across_restart)
         const CBlockHeader confirmation{MineHeader(*deposit_index, params, 10)};
         AddAndPersist(db, headers, imports, confirmation);
 
-        const auto imported{imports.ImportProof(proof, headers, child_block, 1)};
+        deposit_id = ProofDepositId(proof, params.hashGenesisBlock);
+        child_block = MakeChildBlock(CHILD_GENESIS, 1, deposit_id);
+        const auto imported{
+            imports.ImportProof(proof, headers, child_block.GetHash(), 1)};
         BOOST_REQUIRE(imported.IsValid());
-        deposit_id = imported.imports.front().deposit_id;
+        const chainregistry::ReferenceChildBlockUndo child_undo{
+            .block_hash = child_block.GetHash(),
+            .parent_hash = CHILD_GENESIS,
+            .block_height = 1,
+            .coins = CBlockUndo{{CTxUndo{}}},
+            .imports = imported.undo,
+        };
         BOOST_REQUIRE(db.WriteConnectedChildBlock(
-            imports, child_block, 1, imported.undo, /*sync=*/true));
+            imports, child_block, child_undo, /*sync=*/true));
 
         const CBlockHeader fork1{MineHeader(*genesis_index, params, 20)};
         AddAndPersist(db, headers, imports, fork1);
@@ -340,8 +419,16 @@ BOOST_AUTO_TEST_CASE(persists_safe_halt_across_restart)
         BOOST_REQUIRE_EQUAL(imports.SafeHalt()->affected_imports.size(), 1U);
         BOOST_CHECK(imports.SafeHalt()->affected_imports.front() == deposit_id);
         BOOST_CHECK(headers.Tip()->GetBlockHash() == fork3.GetHash());
+        const CBlock next{MakeChildBlock(child_block.GetHash(), 2)};
+        const chainregistry::ReferenceChildBlockUndo next_undo{
+            .block_hash = next.GetHash(),
+            .parent_hash = child_block.GetHash(),
+            .block_height = 2,
+            .coins = {},
+            .imports = {},
+        };
         BOOST_CHECK(!db.WriteConnectedChildBlock(
-            imports, uint256{0x44}, 2, {}, /*sync=*/true));
+            imports, next, next_undo, /*sync=*/true));
     }
 }
 

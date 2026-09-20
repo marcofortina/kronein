@@ -45,8 +45,36 @@ struct ReferenceChildBlockUndo {
                   obj.imports);
     }
 
-    friend bool operator==(const ReferenceChildBlockUndo&,
-                           const ReferenceChildBlockUndo&) = default;
+    friend bool operator==(const ReferenceChildBlockUndo& left,
+                           const ReferenceChildBlockUndo& right)
+    {
+        if (left.version != right.version ||
+            left.block_hash != right.block_hash ||
+            left.parent_hash != right.parent_hash ||
+            left.block_height != right.block_height ||
+            left.imports != right.imports ||
+            left.coins.vtxundo.size() != right.coins.vtxundo.size()) {
+            return false;
+        }
+        for (size_t transaction{0};
+             transaction < left.coins.vtxundo.size();
+             ++transaction) {
+            const auto& left_coins{
+                left.coins.vtxundo[transaction].vprevout};
+            const auto& right_coins{
+                right.coins.vtxundo[transaction].vprevout};
+            if (left_coins.size() != right_coins.size()) return false;
+            for (size_t input{0}; input < left_coins.size(); ++input) {
+                if (left_coins[input].out != right_coins[input].out ||
+                    left_coins[input].nHeight != right_coins[input].nHeight ||
+                    left_coins[input].IsCoinBase() !=
+                        right_coins[input].IsCoinBase()) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 };
 
 enum class ReferenceChildBlockError : uint8_t {
