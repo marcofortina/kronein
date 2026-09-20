@@ -143,6 +143,7 @@ public:
 
     std::optional<chainregistry::ImportedDeposit> ReadImport(
         const chainregistry::DepositId& deposit_id) const;
+    bool ReadState(ChildChainDBState& state) const;
     bool ReadBlock(const uint256& child_block_hash, CBlock& block) const;
     bool ReadUndo(const uint256& child_block_hash,
                   chainregistry::ReferenceChildBlockUndo& undo) const;

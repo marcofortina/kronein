@@ -862,6 +862,11 @@ std::optional<chainregistry::ImportedDeposit> ChildChainDB::ReadImport(
     return imported;
 }
 
+bool ChildChainDB::ReadState(ChildChainDBState& state) const
+{
+    return m_db.Read(DB_STATE, state);
+}
+
 std::optional<Coin> ChildChainDB::GetCoin(const COutPoint& outpoint) const
 {
     Coin coin;
