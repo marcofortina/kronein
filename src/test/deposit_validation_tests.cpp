@@ -11,6 +11,7 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <optional>
 #include <vector>
 
 namespace {
@@ -86,6 +87,29 @@ CBlock Block(std::vector<CMutableTransaction> transactions)
         block.vtx.push_back(MakeTransactionRef(std::move(transaction)));
     }
     return block;
+}
+
+CMutableTransaction Coinbase(const uint256& registry_root)
+{
+    CMutableTransaction transaction;
+    transaction.vin.emplace_back(COutPoint{});
+    transaction.vout.emplace_back(0, chainregistry::BuildRegistryCommitment(registry_root));
+    return transaction;
+}
+
+chainregistry::ChainManifest Manifest()
+{
+    chainregistry::ChainSpec spec;
+    spec.template_id = 1;
+    spec.template_version = 1;
+    spec.consensus_parameters = {0xaa, 0xbb};
+    return {
+        .spec = std::move(spec),
+        .child_genesis_hash = uint256{
+            "6666666666666666666666666666666666666666666666666666666666666666"},
+        .initial_metadata_hash = chainregistry::MetadataHash{
+            "7777777777777777777777777777777777777777777777777777777777777777"},
+    };
 }
 
 } // namespace
@@ -183,6 +207,69 @@ BOOST_AUTO_TEST_CASE(rejects_malformed_transaction_envelope)
     BOOST_CHECK(result.error == chainregistry::BlockDepositsError::INVALID_TRANSACTION);
     BOOST_CHECK(result.transaction_error == chainregistry::TxFundsError::INVALID_ENVELOPE);
     BOOST_CHECK(result.parse_error == chainregistry::FundParseError::TRAILING_DATA);
+}
+
+BOOST_AUTO_TEST_CASE(registry_block_validation_uses_final_registry_state)
+{
+    const COutPoint anchor{
+        Txid{"8888888888888888888888888888888888888888888888888888888888888888"}, 3};
+    const auto manifest{Manifest()};
+    const chainregistry::ChainId chain_id{chainregistry::DeriveChainId(
+        MAIN_GENESIS, anchor, chainregistry::ComputeChainSpecHash(manifest.spec))};
+
+    CMutableTransaction registration;
+    registration.vin.emplace_back(anchor);
+    registration.vout.emplace_back(1'000, chainregistry::BuildOperationScript(
+        chainregistry::RegisterChain{
+            .anchor_input = 0,
+            .control_output = 1,
+            .manifest = manifest,
+        }));
+    registration.vout.emplace_back(0, CScript{} << OP_1 << std::vector<unsigned char>(32, 1));
+
+    chainregistry::ChainRegistry expected;
+    BOOST_REQUIRE(expected.ApplyTransaction(CTransaction{registration}, 50, MAIN_GENESIS, 1'000).IsValid());
+    CBlock register_and_fund{Block({Coinbase(expected.ComputeRoot()), registration,
+                                    FundingTx(chain_id, 2'000)})};
+
+    chainregistry::ChainRegistry registry;
+    const auto registered{registry.ApplyBlock(
+        register_and_fund,
+        50,
+        MAIN_GENESIS,
+        1'000,
+        4,
+        chainregistry::CommitmentRequirement::REQUIRED,
+        chainregistry::DepositValidationParams{.minimum_amount = 1'000, .maximum_deposits = 4})};
+    BOOST_REQUIRE(registered.IsValid());
+    BOOST_REQUIRE_EQUAL(registered.deposits.deposits.size(), 1U);
+    BOOST_CHECK(registered.deposits.deposits[0].fund.chain_id == chain_id);
+    BOOST_REQUIRE(registry.Find(chain_id));
+
+    const chainregistry::ChainRecord record{*registry.Find(chain_id)};
+    CMutableTransaction retirement;
+    retirement.vin.emplace_back(record.control_outpoint);
+    retirement.vout.emplace_back(0, chainregistry::BuildOperationScript(
+        chainregistry::RetireChain{.chain_id = chain_id}));
+    chainregistry::ChainRegistry retired_state{registry};
+    BOOST_REQUIRE(retired_state.ApplyTransaction(CTransaction{retirement}, 51, MAIN_GENESIS, 1'000).IsValid());
+    const CBlock retire_and_fund{Block({Coinbase(retired_state.ComputeRoot()),
+                                       FundingTx(chain_id, 2'000), retirement})};
+
+    const uint256 root_before{registry.ComputeRoot()};
+    const auto retired{registry.ApplyBlock(
+        retire_and_fund,
+        51,
+        MAIN_GENESIS,
+        1'000,
+        4,
+        chainregistry::CommitmentRequirement::REQUIRED,
+        chainregistry::DepositValidationParams{.minimum_amount = 1'000, .maximum_deposits = 4})};
+    BOOST_CHECK(retired.error == chainregistry::RegistryBlockError::INVALID_DEPOSITS);
+    BOOST_CHECK(retired.deposits.error == chainregistry::BlockDepositsError::INACTIVE_CHAIN);
+    BOOST_CHECK(registry.ComputeRoot() == root_before);
+    BOOST_REQUIRE(registry.Find(chain_id));
+    BOOST_CHECK(registry.Find(chain_id)->status == chainregistry::ChainStatus::ACTIVE);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -21,6 +21,9 @@ class ChainRegistryTest(BitcoinTestFramework):
             "-chainregistryactivationheight=1",
             "-chainregistryminregistrationburn=1",
             "-chainregistrymaxoperations=4",
+            "-chaindepositactivationheight=1",
+            "-chaindepositminimumamount=0.01",
+            "-chaindepositmaxperblock=8",
         ]]
 
     def skip_test_if_missing_module(self):
@@ -103,6 +106,12 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(info["activation_height"], 1)
         assert_equal(info["minimum_registration_burn"], Decimal("1.00000000"))
         assert_equal(info["maximum_operations"], 4)
+        assert_equal(info["deposits_enabled"], True)
+        assert_equal(info["deposits_active"], False)
+        assert_equal(info["deposits_active_for_next_block"], True)
+        assert_equal(info["deposit_activation_height"], 1)
+        assert_equal(info["minimum_deposit_amount"], Decimal("0.01000000"))
+        assert_equal(info["maximum_deposits"], 8)
         assert_equal(info["height"], 0)
         assert_equal(info["bestblockhash"], node.getbestblockhash())
         assert_equal(info["size"], 0)
@@ -137,8 +146,10 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(missing["non_inclusion_proof"], {"leaf_count": 0})
 
         self.log.info("Reject malformed identifiers and invalid pagination bounds")
-        assert_raises_rpc_error(-8, "chain_id must be exactly 32 bytes", node.getchildchain, "01")
-        assert_raises_rpc_error(-8, "chain_id must be exactly 32 bytes", node.listchildchains, "zz" * 32)
+        assert_raises_rpc_error(-8, "chain_id must be exactly 32 non-null bytes", node.getchildchain, "01")
+        assert_raises_rpc_error(-8, "chain_id must be exactly 32 non-null bytes", node.listchildchains, "zz" * 32)
+        assert_raises_rpc_error(-8, "chain_id must be exactly 32 non-null bytes", node.getchildchain, "00" * 32)
+        assert_raises_rpc_error(-8, "chain_id must be exactly 32 non-null bytes", node.listchildchains, "00" * 32)
         assert_raises_rpc_error(-8, "limit must be between 1 and 1000", node.listchildchains, None, 0)
         assert_raises_rpc_error(-8, "limit must be between 1 and 1000", node.listchildchains, None, 1001)
 
@@ -300,6 +311,9 @@ class ChainRegistryTest(BitcoinTestFramework):
             "-chainregistryactivationheight=1",
             "-chainregistryminregistrationburn=1",
             "-chainregistrymaxoperations=4",
+            "-chaindepositactivationheight=1",
+            "-chaindepositminimumamount=0.01",
+            "-chaindepositmaxperblock=8",
         ]
         for reindex_arg in ["-reindex-chainstate", "-reindex"]:
             self.restart_node(0, registry_args + [reindex_arg])

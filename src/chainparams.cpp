@@ -42,10 +42,19 @@ void ReadRegTestArgs(const ArgsManager& args, CChainParams::RegTestOptions& opti
     const bool has_activation{args.IsArgSet("-chainregistryactivationheight")};
     const bool has_burn{args.IsArgSet("-chainregistryminregistrationburn")};
     const bool has_max_operations{args.IsArgSet("-chainregistrymaxoperations")};
-    if (!has_activation && !has_burn && !has_max_operations) return;
+    const bool has_deposit_activation{args.IsArgSet("-chaindepositactivationheight")};
+    const bool has_deposit_minimum{args.IsArgSet("-chaindepositminimumamount")};
+    const bool has_max_deposits{args.IsArgSet("-chaindepositmaxperblock")};
+    const bool has_registry_options{has_activation || has_burn || has_max_operations};
+    const bool has_deposit_options{has_deposit_activation || has_deposit_minimum || has_max_deposits};
+    if (!has_registry_options && !has_deposit_options) return;
     if (!has_activation || !has_burn || !has_max_operations) {
         throw std::runtime_error("The regtest chain registry requires -chainregistryactivationheight, "
                                  "-chainregistryminregistrationburn, and -chainregistrymaxoperations together.");
+    }
+    if (has_deposit_options && (!has_deposit_activation || !has_deposit_minimum || !has_max_deposits)) {
+        throw std::runtime_error("Regtest child-chain deposits require -chaindepositactivationheight, "
+                                 "-chaindepositminimumamount, and -chaindepositmaxperblock together.");
     }
 
     const auto activation_height{args.GetIntArg("-chainregistryactivationheight")};
@@ -63,11 +72,36 @@ void ReadRegTestArgs(const ArgsManager& args, CChainParams::RegTestOptions& opti
         throw std::runtime_error("-chainregistrymaxoperations must be between 1 and UINT32_MAX.");
     }
 
-    options.chain_registry = Consensus::Params::ChainRegistryParams{
+    Consensus::Params::ChainRegistryParams registry{
         .activation_height = static_cast<int>(*activation_height),
         .minimum_registration_burn = *minimum_burn,
         .maximum_operations = static_cast<uint32_t>(*maximum_operations),
     };
+
+    if (has_deposit_options) {
+        const auto deposit_activation_height{args.GetIntArg("-chaindepositactivationheight")};
+        if (!deposit_activation_height || *deposit_activation_height < *activation_height ||
+            *deposit_activation_height > std::numeric_limits<int>::max()) {
+            throw std::runtime_error("-chaindepositactivationheight must be between the chain registry "
+                                     "activation height and INT_MAX.");
+        }
+
+        const auto minimum_deposit{ParseMoney(*args.GetArg("-chaindepositminimumamount"))};
+        if (!minimum_deposit || *minimum_deposit <= 0) {
+            throw std::runtime_error("-chaindepositminimumamount must be a positive KNE amount.");
+        }
+
+        const auto maximum_deposits{args.GetIntArg("-chaindepositmaxperblock")};
+        if (!maximum_deposits || *maximum_deposits < 1 ||
+            *maximum_deposits > std::numeric_limits<uint32_t>::max()) {
+            throw std::runtime_error("-chaindepositmaxperblock must be between 1 and UINT32_MAX.");
+        }
+
+        registry.deposit_activation_height = static_cast<int>(*deposit_activation_height);
+        registry.minimum_deposit_amount = *minimum_deposit;
+        registry.maximum_deposits = static_cast<uint32_t>(*maximum_deposits);
+    }
+    options.chain_registry = registry;
 }
 
 static std::unique_ptr<const CChainParams> globalChainParams;

@@ -28,6 +28,12 @@ struct Params {
         CAmount minimum_registration_burn{0};
         /** Maximum number of registry state transitions accepted per block. */
         uint32_t maximum_operations{0};
+        /** Negative means one-way deposit consensus rules are disabled. */
+        int deposit_activation_height{-1};
+        /** Minimum value permanently burned by a FUND_CHAIN output. */
+        CAmount minimum_deposit_amount{0};
+        /** Maximum number of FUND_CHAIN outputs accepted per block. */
+        uint32_t maximum_deposits{0};
 
         bool Enabled() const
         {
@@ -36,6 +42,17 @@ struct Params {
                    maximum_operations > 0;
         }
         bool IsActive(int height) const { return Enabled() && height >= activation_height; }
+        bool DepositsEnabled() const
+        {
+            return Enabled() &&
+                   deposit_activation_height >= activation_height &&
+                   minimum_deposit_amount > 0 &&
+                   maximum_deposits > 0;
+        }
+        bool DepositsActive(int height) const
+        {
+            return DepositsEnabled() && height >= deposit_activation_height;
+        }
     };
 
     struct ASERTParams {

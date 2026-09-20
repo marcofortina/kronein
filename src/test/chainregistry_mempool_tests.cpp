@@ -9,6 +9,7 @@
 #include <key.h>
 #include <node/miner.h>
 #include <primitives/chainregistry.h>
+#include <primitives/deposit.h>
 #include <test/util/mining.h>
 #include <test/util/setup_common.h>
 #include <validation.h>
@@ -44,6 +45,9 @@ struct RegistryMempoolSetup : public TestChain100Setup {
               "-chainregistryactivationheight=101",
               "-chainregistryminregistrationburn=1",
               "-chainregistrymaxoperations=4",
+              "-chaindepositactivationheight=101",
+              "-chaindepositminimumamount=0.01",
+              "-chaindepositmaxperblock=2",
           }}}
     {
     }
@@ -166,6 +170,96 @@ BOOST_AUTO_TEST_CASE(validate_unconfirmed_registry_transition_chain)
     BOOST_REQUIRE(record);
     BOOST_CHECK(record->metadata_hash == next_metadata);
     BOOST_CHECK(record->control_outpoint == COutPoint(update_tx.GetHash(), 1));
+}
+
+BOOST_AUTO_TEST_CASE(validate_deposit_against_unconfirmed_registration)
+{
+    CKey control_key;
+    control_key.MakeNewKey(true);
+    const chainregistry::ChainManifest manifest{TestManifest()};
+    const COutPoint anchor{m_coinbase_txns[0]->GetHash(), 0};
+    const CMutableTransaction registration_tx{CreateValidTransaction(
+        {m_coinbase_txns[0]},
+        {anchor},
+        /*input_height=*/1,
+        {coinbaseKey},
+        {
+            {COIN, chainregistry::BuildOperationScript(chainregistry::RegisterChain{
+                       .anchor_input = 0,
+                       .control_output = 1,
+                       .manifest = manifest,
+                   })},
+            {5 * COIN, TaprootScript(control_key)},
+            {43 * COIN, TaprootScript(coinbaseKey)},
+        },
+        std::nullopt,
+        std::nullopt).first};
+    {
+        LOCK(cs_main);
+        const auto result{m_node.chainman->ProcessTransaction(MakeTransactionRef(registration_tx))};
+        BOOST_REQUIRE(result.m_result_type == MempoolAcceptResult::ResultType::VALID);
+    }
+
+    const chainregistry::ChainId chain_id{chainregistry::DeriveChainId(
+        Params().GetConsensus().hashGenesisBlock,
+        anchor,
+        chainregistry::ComputeChainSpecHash(manifest.spec))};
+    const chainregistry::FundChain fund{
+        .chain_id = chain_id,
+        .recipient_type = 1,
+        .recipient = std::vector<unsigned char>(32, 0x42),
+    };
+    const CMutableTransaction fund_tx{CreateValidTransaction(
+        {MakeTransactionRef(registration_tx)},
+        {COutPoint{registration_tx.GetHash(), 2}},
+        /*input_height=*/101,
+        {coinbaseKey},
+        {
+            {COIN / 100, chainregistry::BuildFundScript(fund)},
+            {42 * COIN, TaprootScript(coinbaseKey)},
+        },
+        std::nullopt,
+        std::nullopt).first};
+    {
+        LOCK(cs_main);
+        const auto result{m_node.chainman->ProcessTransaction(MakeTransactionRef(fund_tx))};
+        BOOST_REQUIRE(result.m_result_type == MempoolAcceptResult::ResultType::VALID);
+    }
+
+    auto unknown_fund{fund};
+    unknown_fund.chain_id = chainregistry::ChainId{
+        "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
+    const CMutableTransaction unknown_tx{CreateValidTransaction(
+        {MakeTransactionRef(fund_tx)},
+        {COutPoint{fund_tx.GetHash(), 1}},
+        /*input_height=*/101,
+        {coinbaseKey},
+        {
+            {COIN, chainregistry::BuildFundScript(unknown_fund)},
+            {40 * COIN, TaprootScript(coinbaseKey)},
+        },
+        std::nullopt,
+        std::nullopt).first};
+    {
+        LOCK(cs_main);
+        const auto result{m_node.chainman->ProcessTransaction(
+            MakeTransactionRef(unknown_tx), /*test_accept=*/true)};
+        BOOST_CHECK(result.m_result_type == MempoolAcceptResult::ResultType::INVALID);
+        BOOST_CHECK_EQUAL(result.m_state.GetRejectReason(), "bad-chain-deposit");
+    }
+
+    node::BlockAssembler::Options options;
+    options.coinbase_output_script = TaprootScript(coinbaseKey);
+    options.include_dummy_extranonce = true;
+    auto block{std::make_shared<CBlock>(node::BlockAssembler{
+        m_node.chainman->ActiveChainstate(), m_node.mempool.get(), options}.CreateNewBlock()->block)};
+    block->hashMerkleRoot = BlockMerkleRoot(*block);
+    BOOST_CHECK(!MineBlock(m_node, block).IsNull());
+
+    LOCK(cs_main);
+    const auto* record{m_node.chainman->ActiveChainstate().ChainRegistryState().Registry().Find(chain_id)};
+    BOOST_REQUIRE(record);
+    BOOST_CHECK(record->status == chainregistry::ChainStatus::ACTIVE);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

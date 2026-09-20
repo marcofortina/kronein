@@ -494,6 +494,9 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
     argsman.AddArg("-chainregistryactivationheight=<n>", "Activate the child-chain registry at regtest height <n> (requires the other chainregistry options)", ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::DEBUG_TEST);
     argsman.AddArg("-chainregistryminregistrationburn=<amt>", "Set the minimum regtest child-chain registration burn in KNE (requires the other chainregistry options)", ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::DEBUG_TEST);
     argsman.AddArg("-chainregistrymaxoperations=<n>", "Set the maximum number of child-chain registry operations per regtest block (requires the other chainregistry options)", ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::DEBUG_TEST);
+    argsman.AddArg("-chaindepositactivationheight=<n>", "Activate one-way child-chain deposits at regtest height <n> (requires an active chain registry and the other chaindeposit options)", ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::DEBUG_TEST);
+    argsman.AddArg("-chaindepositminimumamount=<amt>", "Set the minimum regtest FUND_CHAIN burn in KNE (requires the other chaindeposit options)", ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::DEBUG_TEST);
+    argsman.AddArg("-chaindepositmaxperblock=<n>", "Set the maximum number of FUND_CHAIN outputs per regtest block (requires the other chaindeposit options)", ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::DEBUG_TEST);
 #if HAVE_SYSTEM
     argsman.AddArg("-blocknotify=<cmd>", "Execute command when the best block changes (%s in cmd is replaced by block hash)", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
 #endif

@@ -473,7 +473,8 @@ RegistryBlockResult ChainRegistry::ApplyBlock(const CBlock& block,
                                               const uint256& main_genesis_hash,
                                               CAmount minimum_registration_burn,
                                               size_t maximum_operations,
-                                              CommitmentRequirement commitment_requirement)
+                                              CommitmentRequirement commitment_requirement,
+                                              std::optional<DepositValidationParams> deposit_params)
 {
     RegistryBlockResult result;
     if (block.vtx.empty()) {
@@ -540,6 +541,15 @@ RegistryBlockResult ChainRegistry::ApplyBlock(const CBlock& block,
             return result;
         }
         undo.operations.push_back(*transition.undo);
+    }
+
+    if (deposit_params) {
+        result.deposits = ValidateBlockDeposits(block, *this, main_genesis_hash, *deposit_params);
+        if (!result.deposits.IsValid()) {
+            result.error = RegistryBlockError::INVALID_DEPOSITS;
+            rollback();
+            return result;
+        }
     }
 
     result.computed_root = ComputeRoot();

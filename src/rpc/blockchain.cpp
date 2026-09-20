@@ -3365,8 +3365,9 @@ return RPCHelpMan{
 static chainregistry::ChainId ParseChainId(std::string_view value)
 {
     const auto chain_id{chainregistry::ChainId::FromHex(value)};
-    if (!chain_id) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must be exactly 32 bytes encoded as hexadecimal");
+    if (!chain_id || chain_id->IsNull()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "chain_id must be exactly 32 non-null bytes encoded as hexadecimal");
     }
     return *chain_id;
 }
@@ -3459,6 +3460,12 @@ static RPCHelpMan getchainregistryinfo()
             {RPCResult::Type::NUM, "activation_height", "Activation height, or -1 when disabled"},
             {RPCResult::Type::STR_AMOUNT, "minimum_registration_burn", "Minimum registration burn in KNE"},
             {RPCResult::Type::NUM, "maximum_operations", "Maximum registry transitions per block"},
+            {RPCResult::Type::BOOL, "deposits_enabled", "Whether one-way deposit consensus is configured"},
+            {RPCResult::Type::BOOL, "deposits_active", "Whether one-way deposits are active at the current tip"},
+            {RPCResult::Type::BOOL, "deposits_active_for_next_block", "Whether one-way deposit consensus applies to the next block"},
+            {RPCResult::Type::NUM, "deposit_activation_height", "Deposit activation height, or -1 when disabled"},
+            {RPCResult::Type::STR_AMOUNT, "minimum_deposit_amount", "Minimum FUND_CHAIN burn in KNE"},
+            {RPCResult::Type::NUM, "maximum_deposits", "Maximum FUND_CHAIN outputs per block"},
             {RPCResult::Type::STR_HEX, "bestblockhash", "Block hash paired with this registry state"},
             {RPCResult::Type::NUM, "height", "Block height paired with this registry state"},
             {RPCResult::Type::STR_HEX, "root", "Count-committed deterministic registry root"},
@@ -3485,6 +3492,12 @@ static RPCHelpMan getchainregistryinfo()
     result.pushKV("activation_height", params.activation_height);
     result.pushKV("minimum_registration_burn", ValueFromAmount(params.minimum_registration_burn));
     result.pushKV("maximum_operations", params.maximum_operations);
+    result.pushKV("deposits_enabled", params.DepositsEnabled());
+    result.pushKV("deposits_active", params.DepositsActive(height));
+    result.pushKV("deposits_active_for_next_block", params.DepositsActive(height + 1));
+    result.pushKV("deposit_activation_height", params.deposit_activation_height);
+    result.pushKV("minimum_deposit_amount", ValueFromAmount(params.minimum_deposit_amount));
+    result.pushKV("maximum_deposits", params.maximum_deposits);
     result.pushKV("bestblockhash", state.best_block.GetHex());
     result.pushKV("height", state.height);
     result.pushKV("root", state.registry_root.GetHex());

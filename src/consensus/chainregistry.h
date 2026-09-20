@@ -6,6 +6,7 @@
 #define KRONEIN_CONSENSUS_CHAINREGISTRY_H
 
 #include <consensus/amount.h>
+#include <consensus/deposit.h>
 #include <primitives/chainregistry.h>
 #include <primitives/transaction.h>
 #include <serialize.h>
@@ -243,6 +244,7 @@ enum class RegistryBlockError : uint8_t {
     NON_COINBASE_COMMITMENT,
     TRANSACTION_TRANSITION,
     TOO_MANY_OPERATIONS,
+    INVALID_DEPOSITS,
     MISSING_COMMITMENT,
     COMMITMENT_MISMATCH,
     ROLLBACK_FAILED,
@@ -254,6 +256,7 @@ struct RegistryBlockResult {
     RegistryTransitionResult transition;
     CommitmentTxError commitment_error{CommitmentTxError::NONE};
     CommitmentParseError commitment_parse_error{CommitmentParseError::NONE};
+    BlockDepositsResult deposits;
     uint256 computed_root;
     std::optional<RegistryBlockUndo> undo;
 
@@ -296,7 +299,8 @@ public:
                                    const uint256& main_genesis_hash,
                                    CAmount minimum_registration_burn,
                                    size_t maximum_operations,
-                                   CommitmentRequirement commitment_requirement);
+                                   CommitmentRequirement commitment_requirement,
+                                   std::optional<DepositValidationParams> deposit_params = std::nullopt);
     bool UndoBlock(const RegistryBlockUndo& undo);
 };
 

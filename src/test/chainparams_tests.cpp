@@ -72,6 +72,8 @@ BOOST_AUTO_TEST_CASE(network_identity)
         BOOST_CHECK(params->GetConsensus().defaultAssumeValid.IsNull());
         BOOST_CHECK(!params->GetConsensus().chain_registry.Enabled());
         BOOST_CHECK(!params->GetConsensus().chain_registry.IsActive(0));
+        BOOST_CHECK(!params->GetConsensus().chain_registry.DepositsEnabled());
+        BOOST_CHECK(!params->GetConsensus().chain_registry.DepositsActive(0));
     }
     BOOST_CHECK_EQUAL(message_starts.size(), networks.size());
     BOOST_CHECK_EQUAL(p2p_ports.size(), networks.size());
@@ -114,6 +116,9 @@ BOOST_AUTO_TEST_CASE(regtest_chain_registry_options)
         .activation_height = 42,
         .minimum_registration_burn = 3 * COIN,
         .maximum_operations = 17,
+        .deposit_activation_height = 50,
+        .minimum_deposit_amount = COIN / 100,
+        .maximum_deposits = 23,
     };
     const auto params{CChainParams::RegTest(options)};
     const auto& registry{params->GetConsensus().chain_registry};
@@ -122,6 +127,11 @@ BOOST_AUTO_TEST_CASE(regtest_chain_registry_options)
     BOOST_CHECK(registry.IsActive(42));
     BOOST_CHECK_EQUAL(registry.minimum_registration_burn, 3 * COIN);
     BOOST_CHECK_EQUAL(registry.maximum_operations, 17U);
+    BOOST_CHECK(registry.DepositsEnabled());
+    BOOST_CHECK(!registry.DepositsActive(49));
+    BOOST_CHECK(registry.DepositsActive(50));
+    BOOST_CHECK_EQUAL(registry.minimum_deposit_amount, COIN / 100);
+    BOOST_CHECK_EQUAL(registry.maximum_deposits, 23U);
 }
 
 BOOST_AUTO_TEST_CASE(randomx_seed_schedule)

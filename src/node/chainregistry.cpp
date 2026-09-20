@@ -6,6 +6,7 @@
 
 #include <primitives/block.h>
 
+#include <optional>
 #include <utility>
 
 namespace node {
@@ -21,6 +22,17 @@ ChainRegistryStateResult StateError(ChainRegistryStateError error)
 bool ExpectedTipIsValid(const uint256& tip, int height)
 {
     return (tip.IsNull() && height == -1) || (!tip.IsNull() && height >= 0);
+}
+
+std::optional<chainregistry::DepositValidationParams> DepositParamsForHeight(
+    const Consensus::Params::ChainRegistryParams& params,
+    int height)
+{
+    if (!params.DepositsActive(height)) return std::nullopt;
+    return chainregistry::DepositValidationParams{
+        .minimum_amount = params.minimum_deposit_amount,
+        .maximum_deposits = params.maximum_deposits,
+    };
 }
 
 } // namespace
@@ -142,7 +154,8 @@ ChainRegistryStateResult ChainRegistryState::ConnectBlock(const CBlock& block,
                                             m_main_genesis_hash,
                                             m_params.minimum_registration_burn,
                                             m_params.maximum_operations,
-                                            chainregistry::CommitmentRequirement::REQUIRED);
+                                            chainregistry::CommitmentRequirement::REQUIRED,
+                                            DepositParamsForHeight(m_params, height));
         if (!block_result.IsValid()) {
             ChainRegistryStateResult result;
             result.error = ChainRegistryStateError::INVALID_BLOCK;
@@ -190,7 +203,8 @@ ChainRegistryStateResult ChainRegistryState::ValidateBlock(const CBlock& block,
                                            m_main_genesis_hash,
                                            m_params.minimum_registration_burn,
                                            m_params.maximum_operations,
-                                           chainregistry::CommitmentRequirement::REQUIRED)};
+                                           chainregistry::CommitmentRequirement::REQUIRED,
+                                           DepositParamsForHeight(m_params, height))};
     if (!block_result.IsValid()) {
         ChainRegistryStateResult result;
         result.error = ChainRegistryStateError::INVALID_BLOCK;

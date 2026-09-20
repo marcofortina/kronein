@@ -13,6 +13,7 @@
 #include <clientversion.h>
 #include <consensus/amount.h>
 #include <consensus/chainregistry.h>
+#include <consensus/deposit.h>
 #include <consensus/consensus.h>
 #include <consensus/merkle.h>
 #include <consensus/tx_check.h>
@@ -777,13 +778,20 @@ bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
 
     const auto current_operation{
         chainregistry::ExtractTransactionOperation(*ws.m_ptx, params.minimum_registration_burn)};
+    const auto current_funds{chainregistry::ExtractTransactionFunds(*ws.m_ptx)};
     const int next_height{m_active_chainstate.m_chain.Height() + 1};
     if (!params.IsActive(next_height)) {
-        if (!current_operation.IsValid() || current_operation.operation) {
+        if (!current_operation.IsValid() || current_operation.operation ||
+            !current_funds.IsValid() || !current_funds.funds.empty()) {
             return ws.m_state.Invalid(TxValidationResult::TX_NOT_STANDARD,
                                       "chain-registry-inactive");
         }
         return true;
+    }
+    if (!params.DepositsActive(next_height) &&
+        (!current_funds.IsValid() || !current_funds.funds.empty())) {
+        return ws.m_state.Invalid(TxValidationResult::TX_NOT_STANDARD,
+                                  "chain-deposits-inactive");
     }
 
     chainregistry::ChainRegistry candidate{
@@ -845,6 +853,34 @@ bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
     }
     for (const auto& tx : staged) {
         if (!apply(*tx)) return false;
+    }
+
+    if (params.DepositsActive(next_height)) {
+        CBlock candidate_block;
+        candidate_block.vtx.reserve(ordered_ancestors.size() + staged.size());
+        for (const CTransaction* tx : ordered_ancestors) {
+            candidate_block.vtx.push_back(MakeTransactionRef(*tx));
+        }
+        candidate_block.vtx.insert(candidate_block.vtx.end(), staged.begin(), staged.end());
+        const auto deposits{chainregistry::ValidateBlockDeposits(
+            candidate_block,
+            candidate,
+            m_active_chainstate.m_chainman.GetConsensus().hashGenesisBlock,
+            {
+                .minimum_amount = params.minimum_deposit_amount,
+                .maximum_deposits = params.maximum_deposits,
+            })};
+        if (!deposits.IsValid()) {
+            return ws.m_state.Invalid(
+                TxValidationResult::TX_CONSENSUS,
+                "bad-chain-deposit",
+                strprintf("deposit error %u, transaction error %u, parse error %u%s%s",
+                          static_cast<unsigned>(deposits.error),
+                          static_cast<unsigned>(deposits.transaction_error),
+                          static_cast<unsigned>(deposits.parse_error),
+                          deposits.transaction ? strprintf(", txid %s", deposits.transaction->ToString()) : "",
+                          deposits.output_index ? strprintf(", vout %u", *deposits.output_index) : ""));
+        }
     }
     return true;
 }
@@ -2991,10 +3027,11 @@ static bool ApplyRegistryStateResult(const node::ChainRegistryStateResult& regis
         return state.Invalid(
             BlockValidationResult::BLOCK_CONSENSUS,
             "bad-chain-registry",
-            strprintf("registry block error %u (transaction error %u, commitment error %u)",
+            strprintf("registry block error %u (transaction error %u, commitment error %u, deposit error %u)",
                       static_cast<unsigned>(registry_result.block_result.error),
                       static_cast<unsigned>(registry_result.block_result.transition.error),
-                      static_cast<unsigned>(registry_result.block_result.commitment_error)));
+                      static_cast<unsigned>(registry_result.block_result.commitment_error),
+                      static_cast<unsigned>(registry_result.block_result.deposits.error)));
     }
     return state.Error(strprintf("child chain registry state error %u",
                                  static_cast<unsigned>(registry_result.error)));
