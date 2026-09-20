@@ -146,6 +146,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         node.createwallet("registry")
         wallet = node.get_wallet_rpc("registry")
         self.generatetoaddress(node, 101, wallet.getnewaddress())
+        pre_registration = node.getchainregistryinfo()
 
         anchor_utxo = wallet.listunspent(1)[0]
         registration_anchor = {"txid": anchor_utxo["txid"], "vout": anchor_utxo["vout"]}
@@ -183,7 +184,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(decoded_registration_tx["vout"][1]["scriptPubKey"]["address"], control_address)
         registration_txid = submitted_registration["txid"]
         assert_equal(registration_txid, decoded_registration_tx["txid"])
-        self.generatetoaddress(node, 1, wallet.getnewaddress())
+        registration_block = self.generatetoaddress(node, 1, wallet.getnewaddress())[0]
 
         chain_id = registration_psbt["chain_id"]
         registered = node.getchildchain(chain_id, True)
@@ -195,6 +196,7 @@ class ChainRegistryTest(BitcoinTestFramework):
             "vout": 1,
         })
         assert "inclusion_proof" in registered
+        registered_info = node.getchainregistryinfo()
 
         successor_address = wallet.getnewaddress()
         update_psbt = wallet.walletcreatechainregistrypsbt("update", {
@@ -216,11 +218,12 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(decoded_update_tx["vout"][0]["scriptPubKey"]["type"], "nulldata")
         assert_equal(decoded_update_tx["vout"][1]["scriptPubKey"]["address"], successor_address)
         update_txid = submitted_update["txid"]
-        self.generatetoaddress(node, 1, wallet.getnewaddress())
+        update_block = self.generatetoaddress(node, 1, wallet.getnewaddress())[0]
 
         updated = node.getchildchain(chain_id)
         assert_equal(updated["chain"]["metadata_hash"], "33" * 32)
         assert_equal(updated["chain"]["control_outpoint"], {"txid": update_txid, "vout": 1})
+        updated_info = node.getchainregistryinfo()
 
         retirement_psbt = wallet.walletcreatechainregistrypsbt("retire", {
             "chain_id": chain_id,
@@ -235,16 +238,62 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(decoded_retirement_tx["vout"][0]["value"], Decimal("0.00000000"))
         retirement_txid = submitted_retirement["txid"]
         assert_equal(retirement_txid, decoded_retirement_tx["txid"])
-        self.generatetoaddress(node, 1, wallet.getnewaddress())
+        retirement_block = self.generatetoaddress(node, 1, wallet.getnewaddress())[0]
 
         retired = node.getchildchain(chain_id)
         assert_equal(retired["chain"]["status"], "retired")
         assert retired["chain"]["retired_height"] > 0
         assert_equal(node.listchildchains()["chains"], [])
         assert_equal(node.listchildchains(None, 100, True)["chains"][0]["chain_id"], chain_id)
+        retired_info = node.getchainregistryinfo()
 
         assert_raises_rpc_error(-8, "chain_id must be exactly 32 non-null bytes",
                                 wallet.walletcreatechainregistrypsbt, "retire", {"chain_id": "00" * 32})
+
+        self.log.info("Roll registry state backward across RETIRE, UPDATE, and REGISTER")
+        node.invalidateblock(retirement_block)
+        assert_equal(node.getbestblockhash(), update_block)
+        assert_equal(node.getchainregistryinfo()["root"], updated_info["root"])
+        rolled_back_update = node.getchildchain(chain_id)
+        assert_equal(rolled_back_update["chain"]["status"], "active")
+        assert_equal(rolled_back_update["chain"]["metadata_hash"], "33" * 32)
+        assert_equal(rolled_back_update["chain"]["control_outpoint"], {"txid": update_txid, "vout": 1})
+
+        node.invalidateblock(update_block)
+        assert_equal(node.getbestblockhash(), registration_block)
+        assert_equal(node.getchainregistryinfo()["root"], registered_info["root"])
+        rolled_back_registration = node.getchildchain(chain_id)
+        assert_equal(rolled_back_registration["chain"]["status"], "active")
+        assert_equal(rolled_back_registration["chain"]["metadata_hash"], "22" * 32)
+        assert_equal(rolled_back_registration["chain"]["control_outpoint"], {
+            "txid": registration_txid,
+            "vout": 1,
+        })
+
+        node.invalidateblock(registration_block)
+        assert_equal(node.getbestblockhash(), pre_registration["bestblockhash"])
+        assert_equal(node.getchainregistryinfo()["root"], pre_registration["root"])
+        assert_equal(node.getchildchain(chain_id)["found"], False)
+
+        self.log.info("Reload rolled-back state, reconnect the branch, and reload it again")
+        self.restart_node(0)
+        node = self.nodes[0]
+        assert_equal(node.getbestblockhash(), pre_registration["bestblockhash"])
+        assert_equal(node.getchainregistryinfo()["root"], pre_registration["root"])
+        assert_equal(node.getchildchain(chain_id)["found"], False)
+
+        node.reconsiderblock(registration_block)
+        assert_equal(node.getbestblockhash(), retirement_block)
+        reconnected_info = node.getchainregistryinfo()
+        assert_equal(reconnected_info["root"], retired_info["root"])
+        assert_equal(reconnected_info["size"], retired_info["size"])
+        assert_equal(node.getchildchain(chain_id)["chain"]["status"], "retired")
+
+        self.restart_node(0)
+        node = self.nodes[0]
+        assert_equal(node.getbestblockhash(), retirement_block)
+        assert_equal(node.getchainregistryinfo()["root"], retired_info["root"])
+        assert_equal(node.getchildchain(chain_id)["chain"]["status"], "retired")
 
 
 if __name__ == "__main__":
