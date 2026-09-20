@@ -63,6 +63,7 @@ add_library(bitcoin_consensus STATIC EXCLUDE_FROM_ALL
   arith_uint256.cpp
   consensus/chainregistry.cpp
   consensus/deposit.cpp
+  consensus/deposit_proof.cpp
   consensus/merkle.cpp
   consensus/tx_check.cpp
   hash.cpp
