@@ -265,6 +265,7 @@ ChainSpecHash ComputeChainSpecHash(std::span<const std::byte> canonical_spec);
 ChainSpecHash ComputeChainSpecHash(const ChainSpec& spec);
 ManifestHash ComputeManifestHash(const ChainManifest& manifest);
 
+ManifestValidationError ValidateChainSpec(const ChainSpec& spec);
 ManifestValidationError ValidateManifest(const ChainManifest& manifest);
 OperationValidationError ValidateOperation(const RegistryOperation& operation);
 OperationType GetOperationType(const RegistryOperation& operation);

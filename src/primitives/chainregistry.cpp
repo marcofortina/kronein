@@ -40,18 +40,26 @@ ManifestHash ComputeManifestHash(const ChainManifest& manifest)
     return ManifestHash::FromUint256(hasher.GetSHA256());
 }
 
-ManifestValidationError ValidateManifest(const ChainManifest& manifest)
+ManifestValidationError ValidateChainSpec(const ChainSpec& spec)
 {
-    if (manifest.spec.protocol_version != PROTOCOL_VERSION) {
+    if (spec.protocol_version != PROTOCOL_VERSION) {
         return ManifestValidationError::UNSUPPORTED_PROTOCOL_VERSION;
     }
-    if (manifest.spec.template_id == 0) return ManifestValidationError::INVALID_TEMPLATE_ID;
-    if (manifest.spec.template_version == 0) return ManifestValidationError::INVALID_TEMPLATE_VERSION;
-    if (manifest.spec.consensus_parameters.size() > MAX_CONSENSUS_PARAMETERS_SIZE) {
+    if (spec.template_id == 0) return ManifestValidationError::INVALID_TEMPLATE_ID;
+    if (spec.template_version == 0) return ManifestValidationError::INVALID_TEMPLATE_VERSION;
+    if (spec.consensus_parameters.size() > MAX_CONSENSUS_PARAMETERS_SIZE) {
         return ManifestValidationError::CONSENSUS_PARAMETERS_TOO_LARGE;
     }
-    if (manifest.spec.anchoring_policy != AnchoringPolicy::BMM_V1) {
+    if (spec.anchoring_policy != AnchoringPolicy::BMM_V1) {
         return ManifestValidationError::UNKNOWN_ANCHORING_POLICY;
+    }
+    return ManifestValidationError::NONE;
+}
+
+ManifestValidationError ValidateManifest(const ChainManifest& manifest)
+{
+    if (const auto error{ValidateChainSpec(manifest.spec)}; error != ManifestValidationError::NONE) {
+        return error;
     }
     if (manifest.child_genesis_hash.IsNull()) return ManifestValidationError::NULL_GENESIS;
     if (manifest.initial_metadata_hash.IsNull()) return ManifestValidationError::NULL_METADATA_HASH;

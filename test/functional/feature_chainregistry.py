@@ -26,6 +26,72 @@ class ChainRegistryTest(BitcoinTestFramework):
     def run_test(self):
         node = self.nodes[0]
 
+        self.log.info("Derive identities and round-trip canonical KREG operations")
+        anchor = {"txid": "01" * 32, "vout": 7}
+        spec = {
+            "template_id": 1,
+            "template_version": 1,
+            "consensus_parameters": "aabbcc",
+        }
+        derived = node.derivechildchainid(anchor, spec)
+        assert_equal(derived["main_genesis_hash"], node.getblockhash(0))
+        assert_equal(derived["registration_anchor"], anchor)
+        assert_equal(derived["spec"]["protocol_version"], 1)
+        assert_equal(derived["spec"]["anchoring_policy"], "bmm_v1")
+        assert_equal(len(derived["chain_spec_hash"]), 64)
+        assert_equal(len(derived["chain_id"]), 64)
+
+        registration = node.createchainregistryoperation("register", {
+            "anchor_input": 0,
+            "control_output": 1,
+            "registration_anchor": anchor,
+            "spec": spec,
+            "child_genesis_hash": "02" * 32,
+            "metadata_hash": "03" * 32,
+        })
+        assert_equal(registration["operation"], "register")
+        assert_equal(registration["chain_id"], derived["chain_id"])
+        assert_equal(registration["chain_spec_hash"], derived["chain_spec_hash"])
+        assert_equal(len(registration["manifest_hash"]), 64)
+        assert_equal(registration["script"], node.decoderawtransaction(
+            node.createrawtransaction([], [{"data": registration["data"]}]))["vout"][0]["scriptPubKey"]["hex"])
+
+        decoded_registration = node.decodechainregistryoperation(registration["script"], anchor)
+        assert_equal(decoded_registration["operation"], "register")
+        assert_equal(decoded_registration["chain_id"], registration["chain_id"])
+        assert_equal(decoded_registration["chain_spec_hash"], registration["chain_spec_hash"])
+        assert_equal(decoded_registration["manifest_hash"], registration["manifest_hash"])
+        assert_equal(decoded_registration["manifest"]["spec"]["consensus_parameters"], "aabbcc")
+
+        update = node.createchainregistryoperation("update", {
+            "chain_id": registration["chain_id"],
+            "control_output": 2,
+            "metadata_hash": "04" * 32,
+        })
+        decoded_update = node.decodechainregistryoperation(update["script"])
+        assert_equal(decoded_update["operation"], "update")
+        assert_equal(decoded_update["chain_id"], registration["chain_id"])
+        assert_equal(decoded_update["control_output"], 2)
+        assert_equal(decoded_update["metadata_hash"], "04" * 32)
+
+        retirement = node.createchainregistryoperation("retire", {
+            "chain_id": registration["chain_id"],
+        })
+        assert_equal(node.decodechainregistryoperation(retirement["script"])["operation"], "retire")
+
+        assert_raises_rpc_error(-8, "template_id must be greater than zero",
+                                node.derivechildchainid, anchor, spec | {"template_id": 0})
+        assert_raises_rpc_error(-8, "unexpected parameter metadata_hash",
+                                node.createchainregistryoperation, "retire", {
+                                    "chain_id": registration["chain_id"],
+                                    "metadata_hash": "04" * 32,
+                                })
+        assert_raises_rpc_error(-8, "exceeds 1024 bytes",
+                                node.derivechildchainid, anchor,
+                                spec | {"consensus_parameters": "00" * 1025})
+        assert_raises_rpc_error(-22, "invalid chain registry operation",
+                                node.decodechainregistryoperation, "6a")
+
         self.log.info("Check configured registry state before activation")
         info = node.getchainregistryinfo()
         assert_equal(info["enabled"], True)
