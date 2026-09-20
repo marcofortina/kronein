@@ -10,13 +10,32 @@
 #include <consensus/deposit_proof.h>
 #include <consensus/params.h>
 #include <primitives/block.h>
+#include <serialize.h>
 #include <uint256.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <map>
 #include <optional>
+#include <span>
+#include <vector>
 
 namespace chainregistry {
+
+inline constexpr uint8_t MAIN_HEADER_RECORD_VERSION{1};
+
+struct MainHeaderRecord {
+    uint8_t version{MAIN_HEADER_RECORD_VERSION};
+    uint32_t height{0};
+    CBlockHeader header;
+
+    SERIALIZE_METHODS(MainHeaderRecord, obj)
+    {
+        READWRITE(obj.version, obj.height, obj.header);
+    }
+
+    friend bool operator==(const MainHeaderRecord&, const MainHeaderRecord&) = default;
+};
 
 enum class MainHeaderError : uint8_t {
     NONE,
@@ -32,6 +51,25 @@ enum class MainHeaderError : uint8_t {
     TIME_MOVED_BACKWARDS,
     TIMEWARP,
     TIME_TOO_NEW,
+};
+
+enum class MainHeaderLoadError : uint8_t {
+    NONE,
+    EMPTY,
+    UNSUPPORTED_RECORD_VERSION,
+    DUPLICATE_HEADER,
+    MISSING_GENESIS,
+    INVALID_HEIGHT,
+    HEADER_REJECTED,
+    INVALID_ACTIVE_TIP,
+};
+
+struct MainHeaderLoadResult {
+    MainHeaderLoadError error{MainHeaderLoadError::NONE};
+    MainHeaderError header_error{MainHeaderError::NONE};
+    std::optional<size_t> failed_record;
+
+    bool IsValid() const { return error == MainHeaderLoadError::NONE; }
 };
 
 struct MainHeaderResult {
@@ -97,6 +135,10 @@ public:
 
     MainHeaderResult Initialize(const CBlockHeader& genesis);
     MainHeaderResult AddHeader(const CBlockHeader& header, int64_t current_time);
+    std::vector<MainHeaderRecord> ExportHeaders() const;
+    MainHeaderLoadResult LoadHeaders(std::span<const MainHeaderRecord> records,
+                                     const uint256& active_tip,
+                                     int64_t current_time);
 
     bool IsInitialized() const { return m_tip != nullptr; }
     const Consensus::Params& Params() const { return m_params; }

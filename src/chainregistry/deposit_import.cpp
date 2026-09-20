@@ -22,6 +22,15 @@ DepositImportResult ImportError(DepositImportError error,
     return result;
 }
 
+DepositImportLoadResult LoadError(DepositImportLoadError error,
+                                  std::optional<size_t> failed_record = std::nullopt)
+{
+    DepositImportLoadResult result;
+    result.error = error;
+    result.failed_record = failed_record;
+    return result;
+}
+
 } // namespace
 
 DepositImportState::DepositImportState(ChainId child_chain,
@@ -35,6 +44,74 @@ const ImportedDeposit* DepositImportState::Find(const DepositId& deposit_id) con
 {
     const auto it{m_imports.find(deposit_id)};
     return it == m_imports.end() ? nullptr : &it->second;
+}
+
+DepositImportLoadResult DepositImportState::LoadRecords(
+    std::span<const ImportedDeposit> records,
+    std::optional<DepositSafeHalt> safe_halt,
+    const uint256& main_genesis_hash)
+{
+    if (!m_imports.empty() || m_safe_halt) {
+        return LoadError(DepositImportLoadError::STATE_NOT_EMPTY);
+    }
+    if (m_child_chain.IsNull() || main_genesis_hash.IsNull()) {
+        return LoadError(DepositImportLoadError::INVALID_CHILD_CHAIN);
+    }
+    if (m_minimum_confirmations == 0) {
+        return LoadError(DepositImportLoadError::INVALID_CONFIRMATION_POLICY);
+    }
+
+    std::map<DepositId, ImportedDeposit> loaded;
+    for (size_t index{0}; index < records.size(); ++index) {
+        const ImportedDeposit& record{records[index]};
+        if (record.version != IMPORTED_DEPOSIT_VERSION) {
+            return LoadError(DepositImportLoadError::UNSUPPORTED_RECORD_VERSION, index);
+        }
+        if (record.deposit_id.IsNull()) {
+            return LoadError(DepositImportLoadError::NULL_DEPOSIT_ID, index);
+        }
+        if (record.main_outpoint.IsNull() ||
+            record.deposit_id != DeriveDepositId(main_genesis_hash, record.main_outpoint)) {
+            return LoadError(DepositImportLoadError::DEPOSIT_ID_MISMATCH, index);
+        }
+        if (record.amount <= 0 || !MoneyRange(record.amount)) {
+            return LoadError(DepositImportLoadError::INVALID_AMOUNT, index);
+        }
+        if (ValidateFund(record.fund) != FundValidationError::NONE) {
+            return LoadError(DepositImportLoadError::INVALID_FUND, index);
+        }
+        if (record.fund.chain_id != m_child_chain) {
+            return LoadError(DepositImportLoadError::WRONG_CHILD_CHAIN, index);
+        }
+        if (record.main_block_hash.IsNull() || record.main_block_height == 0) {
+            return LoadError(DepositImportLoadError::INVALID_MAIN_REFERENCE, index);
+        }
+        if (record.child_block_hash.IsNull() || record.child_block_height == 0) {
+            return LoadError(DepositImportLoadError::INVALID_CHILD_REFERENCE, index);
+        }
+        if (!loaded.emplace(record.deposit_id, record).second) {
+            return LoadError(DepositImportLoadError::DUPLICATE_DEPOSIT_ID, index);
+        }
+    }
+
+    if (safe_halt) {
+        if (safe_halt->reason !=
+                DepositSafeHaltReason::IMPORTED_DEPOSIT_LEFT_MAIN_CHAIN ||
+            safe_halt->observed_main_tip.IsNull() ||
+            safe_halt->affected_imports.empty()) {
+            return LoadError(DepositImportLoadError::INVALID_SAFE_HALT);
+        }
+        std::set<DepositId> affected;
+        for (const auto& deposit_id : safe_halt->affected_imports) {
+            if (deposit_id.IsNull() || !affected.insert(deposit_id).second) {
+                return LoadError(DepositImportLoadError::INVALID_SAFE_HALT);
+            }
+        }
+    }
+
+    m_imports = std::move(loaded);
+    m_safe_halt = std::move(safe_halt);
+    return {};
 }
 
 DepositImportResult DepositImportState::ImportProofs(

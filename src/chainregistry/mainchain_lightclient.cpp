@@ -9,6 +9,8 @@
 #include <util/check.h>
 
 #include <algorithm>
+#include <limits>
+#include <set>
 #include <utility>
 
 namespace chainregistry {
@@ -29,6 +31,17 @@ AuthenticatedDepositResult DepositError(
     AuthenticatedDepositResult result;
     result.error = error;
     result.proof = std::move(proof);
+    return result;
+}
+
+MainHeaderLoadResult LoadError(MainHeaderLoadError error,
+                               std::optional<size_t> failed_record = std::nullopt,
+                               MainHeaderError header_error = MainHeaderError::NONE)
+{
+    MainHeaderLoadResult result;
+    result.error = error;
+    result.header_error = header_error;
+    result.failed_record = failed_record;
     return result;
 }
 
@@ -141,6 +154,83 @@ MainHeaderResult MainHeaderChain::AddHeader(const CBlockHeader& header,
         m_tip = &entry;
     }
     return result;
+}
+
+std::vector<MainHeaderRecord> MainHeaderChain::ExportHeaders() const
+{
+    std::vector<MainHeaderRecord> records;
+    records.reserve(m_headers.size());
+    for (const auto& [hash, entry] : m_headers) {
+        records.push_back({
+            .height = static_cast<uint32_t>(entry.nHeight),
+            .header = entry.GetBlockHeader(),
+        });
+    }
+    std::sort(records.begin(), records.end(), [](const auto& lhs, const auto& rhs) {
+        if (lhs.height != rhs.height) return lhs.height < rhs.height;
+        return lhs.header.GetHash() < rhs.header.GetHash();
+    });
+    return records;
+}
+
+MainHeaderLoadResult MainHeaderChain::LoadHeaders(
+    std::span<const MainHeaderRecord> records,
+    const uint256& active_tip,
+    int64_t current_time)
+{
+    if (records.empty()) return LoadError(MainHeaderLoadError::EMPTY);
+
+    std::vector<MainHeaderRecord> ordered{records.begin(), records.end()};
+    std::sort(ordered.begin(), ordered.end(), [](const auto& lhs, const auto& rhs) {
+        if (lhs.height != rhs.height) return lhs.height < rhs.height;
+        return lhs.header.GetHash() < rhs.header.GetHash();
+    });
+    std::set<uint256> hashes;
+    for (size_t index{0}; index < ordered.size(); ++index) {
+        if (ordered[index].version != MAIN_HEADER_RECORD_VERSION) {
+            return LoadError(MainHeaderLoadError::UNSUPPORTED_RECORD_VERSION, index);
+        }
+        if (ordered[index].height > static_cast<uint64_t>(std::numeric_limits<int>::max())) {
+            return LoadError(MainHeaderLoadError::INVALID_HEIGHT, index);
+        }
+        if (!hashes.insert(ordered[index].header.GetHash()).second) {
+            return LoadError(MainHeaderLoadError::DUPLICATE_HEADER, index);
+        }
+    }
+    if (ordered.front().height != 0 ||
+        ordered.front().header.GetHash() != m_params.hashGenesisBlock) {
+        return LoadError(MainHeaderLoadError::MISSING_GENESIS, 0);
+    }
+
+    MainHeaderChain loaded{m_params};
+    const auto initialized{loaded.Initialize(ordered.front().header)};
+    if (!initialized.IsValid()) {
+        return LoadError(
+            MainHeaderLoadError::HEADER_REJECTED, 0, initialized.error);
+    }
+    for (size_t index{1}; index < ordered.size(); ++index) {
+        if (ordered[index].height == 0) {
+            return LoadError(MainHeaderLoadError::INVALID_HEIGHT, index);
+        }
+        const auto added{loaded.AddHeader(ordered[index].header, current_time)};
+        if (!added.IsValid()) {
+            return LoadError(
+                MainHeaderLoadError::HEADER_REJECTED, index, added.error);
+        }
+        if (added.height != static_cast<int>(ordered[index].height)) {
+            return LoadError(MainHeaderLoadError::INVALID_HEIGHT, index);
+        }
+    }
+
+    const CBlockIndex* preferred{loaded.Find(active_tip)};
+    if (!preferred || !loaded.m_tip ||
+        preferred->nChainWork != loaded.m_tip->nChainWork) {
+        return LoadError(MainHeaderLoadError::INVALID_ACTIVE_TIP);
+    }
+
+    m_headers = std::move(loaded.m_headers);
+    m_tip = &m_headers.find(active_tip)->second;
+    return {};
 }
 
 const CBlockIndex* MainHeaderChain::Find(const uint256& block_hash) const

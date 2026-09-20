@@ -247,4 +247,42 @@ BOOST_AUTO_TEST_CASE(authenticates_only_mature_active_deposits)
                 chainregistry::AuthenticatedDepositError::STRUCTURAL_PROOF_INVALID);
 }
 
+BOOST_AUTO_TEST_CASE(restores_validated_dag_and_explicit_equal_work_tip)
+{
+    const auto& params{Params().GetConsensus()};
+    const CBlock& genesis{Params().GenesisBlock()};
+    chainregistry::MainHeaderChain chain{params};
+    BOOST_REQUIRE(chain.Initialize(genesis).IsValid());
+    const CBlockIndex* genesis_index{chain.Find(genesis.GetHash())};
+    BOOST_REQUIRE(genesis_index);
+    const CBlockHeader a1{MineHeader(*genesis_index, params, 40)};
+    const CBlockHeader b1{MineHeader(*genesis_index, params, 41)};
+    BOOST_REQUIRE(chain.AddHeader(a1, a1.nTime).IsValid());
+    BOOST_REQUIRE(chain.AddHeader(b1, b1.nTime).IsValid());
+    const auto records{chain.ExportHeaders()};
+    BOOST_REQUIRE_EQUAL(records.size(), 3U);
+
+    chainregistry::MainHeaderChain restored_first{params};
+    BOOST_REQUIRE(restored_first.LoadHeaders(
+        records, a1.GetHash(), a1.nTime).IsValid());
+    BOOST_CHECK(restored_first.Tip()->GetBlockHash() == a1.GetHash());
+
+    chainregistry::MainHeaderChain restored_other_tie{params};
+    BOOST_REQUIRE(restored_other_tie.LoadHeaders(
+        records, b1.GetHash(), b1.nTime).IsValid());
+    BOOST_CHECK(restored_other_tie.Tip()->GetBlockHash() == b1.GetHash());
+
+    chainregistry::MainHeaderChain invalid_tip{params};
+    BOOST_CHECK(invalid_tip.LoadHeaders(
+                    records, genesis.GetHash(), b1.nTime).error ==
+                chainregistry::MainHeaderLoadError::INVALID_ACTIVE_TIP);
+
+    auto wrong_height{records};
+    wrong_height.back().height++;
+    chainregistry::MainHeaderChain invalid_height{params};
+    BOOST_CHECK(invalid_height.LoadHeaders(
+                    wrong_height, a1.GetHash(), a1.nTime).error ==
+                chainregistry::MainHeaderLoadError::INVALID_HEIGHT);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

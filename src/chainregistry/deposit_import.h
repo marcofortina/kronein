@@ -93,7 +93,10 @@ struct DepositSafeHalt {
 
     SERIALIZE_METHODS(DepositSafeHalt, obj)
     {
-        READWRITE(obj.reason, obj.observed_main_tip, obj.affected_imports);
+        uint8_t reason;
+        SER_WRITE(obj, reason = static_cast<uint8_t>(obj.reason));
+        READWRITE(reason, obj.observed_main_tip, obj.affected_imports);
+        SER_READ(obj, obj.reason = static_cast<DepositSafeHaltReason>(reason));
     }
 
     friend bool operator==(const DepositSafeHalt&, const DepositSafeHalt&) = default;
@@ -103,6 +106,30 @@ struct DepositReconcileResult {
     bool safe_halt{false};
     bool newly_halted{false};
     std::vector<DepositId> affected_imports;
+};
+
+enum class DepositImportLoadError : uint8_t {
+    NONE,
+    STATE_NOT_EMPTY,
+    INVALID_CHILD_CHAIN,
+    INVALID_CONFIRMATION_POLICY,
+    UNSUPPORTED_RECORD_VERSION,
+    NULL_DEPOSIT_ID,
+    DUPLICATE_DEPOSIT_ID,
+    DEPOSIT_ID_MISMATCH,
+    INVALID_AMOUNT,
+    INVALID_FUND,
+    WRONG_CHILD_CHAIN,
+    INVALID_MAIN_REFERENCE,
+    INVALID_CHILD_REFERENCE,
+    INVALID_SAFE_HALT,
+};
+
+struct DepositImportLoadResult {
+    DepositImportLoadError error{DepositImportLoadError::NONE};
+    std::optional<size_t> failed_record;
+
+    bool IsValid() const { return error == DepositImportLoadError::NONE; }
 };
 
 /**
@@ -131,6 +158,10 @@ public:
     const std::optional<DepositSafeHalt>& SafeHalt() const { return m_safe_halt; }
     const std::map<DepositId, ImportedDeposit>& Imports() const { return m_imports; }
     const ImportedDeposit* Find(const DepositId& deposit_id) const;
+
+    DepositImportLoadResult LoadRecords(std::span<const ImportedDeposit> records,
+                                        std::optional<DepositSafeHalt> safe_halt,
+                                        const uint256& main_genesis_hash);
 
     DepositImportResult ImportProofs(std::span<const DepositProof> proofs,
                                      const MainHeaderChain& main_headers,
