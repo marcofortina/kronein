@@ -39,6 +39,7 @@ add_executable(test_bitcoin
   chainparams_tests.cpp
   chainregistry_tests.cpp
   child_import_tests.cpp
+  child_sighash_tests.cpp
   child_template_tests.cpp
   child_chain_db_tests.cpp
   chainregistry_db_tests.cpp
