@@ -170,6 +170,64 @@ OperationParseResult ParseOperationScript(const CScript& script)
     }
 }
 
+TxOperationResult ExtractTransactionOperation(const CTransaction& tx, CAmount minimum_registration_burn)
+{
+    std::optional<TransactionOperation> found;
+    for (size_t output_index{0}; output_index < tx.vout.size(); ++output_index) {
+        const auto parsed{ParseOperationScript(tx.vout[output_index].scriptPubKey)};
+        if (parsed.error == OperationParseError::NOT_REGISTRY) continue;
+        if (!parsed) {
+            return {TxOperationError::INVALID_ENVELOPE, parsed.error, std::nullopt};
+        }
+        if (found) {
+            return {TxOperationError::MULTIPLE_OPERATIONS, OperationParseError::NONE, std::nullopt};
+        }
+        found = TransactionOperation{
+            .registry_output = static_cast<uint32_t>(output_index),
+            .operation = *parsed.operation,
+        };
+    }
+
+    if (!found) return {};
+
+    const CTxOut& registry_output{tx.vout[found->registry_output]};
+    const auto validate_control_output{[&](uint32_t output_index) -> TxOperationError {
+        if (output_index >= tx.vout.size()) return TxOperationError::INVALID_CONTROL_OUTPUT;
+        if (output_index == found->registry_output) return TxOperationError::CONTROL_OUTPUT_COLLISION;
+        if (!tx.vout[output_index].scriptPubKey.IsPayToTaproot()) {
+            return TxOperationError::CONTROL_OUTPUT_NOT_P2TR;
+        }
+        return TxOperationError::NONE;
+    }};
+
+    const TxOperationError error{std::visit([&](const auto& payload) {
+        using Payload = std::decay_t<decltype(payload)>;
+        if constexpr (std::is_same_v<Payload, RegisterChain>) {
+            if (payload.anchor_input >= tx.vin.size()) return TxOperationError::INVALID_ANCHOR_INPUT;
+            if (tx.vin[payload.anchor_input].prevout.IsNull()) return TxOperationError::NULL_ANCHOR_PREVOUT;
+            if (const auto control_error{validate_control_output(payload.control_output)};
+                control_error != TxOperationError::NONE) {
+                return control_error;
+            }
+            if (registry_output.nValue < minimum_registration_burn) {
+                return TxOperationError::INSUFFICIENT_REGISTRATION_BURN;
+            }
+        } else if constexpr (std::is_same_v<Payload, UpdateChain>) {
+            if (const auto control_error{validate_control_output(payload.control_output)};
+                control_error != TxOperationError::NONE) {
+                return control_error;
+            }
+            if (registry_output.nValue != 0) return TxOperationError::UNEXPECTED_OPERATION_VALUE;
+        } else if constexpr (std::is_same_v<Payload, RetireChain>) {
+            if (registry_output.nValue != 0) return TxOperationError::UNEXPECTED_OPERATION_VALUE;
+        }
+        return TxOperationError::NONE;
+    }, found->operation)};
+
+    if (error != TxOperationError::NONE) return {error, OperationParseError::NONE, std::nullopt};
+    return {TxOperationError::NONE, OperationParseError::NONE, std::move(found)};
+}
+
 ChainId DeriveChainId(const uint256& main_genesis_hash,
                       const COutPoint& registration_outpoint,
                       const ChainSpecHash& spec_hash)

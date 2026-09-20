@@ -33,6 +33,30 @@ chainregistry::ChainManifest ValidManifest()
     };
 }
 
+chainregistry::RegistryOperation ValidRegistration(uint32_t anchor_input = 0, uint32_t control_output = 1)
+{
+    return chainregistry::RegisterChain{
+        .anchor_input = anchor_input,
+        .control_output = control_output,
+        .manifest = ValidManifest(),
+    };
+}
+
+CScript TaprootScript(unsigned char byte = 1)
+{
+    return CScript{} << OP_1 << std::vector<unsigned char>(32, byte);
+}
+
+CMutableTransaction ValidRegistrationTx(CAmount burn = 1'000)
+{
+    CMutableTransaction tx;
+    tx.vin.emplace_back(COutPoint{
+        Txid{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}, 0});
+    tx.vout.emplace_back(burn, chainregistry::BuildOperationScript(ValidRegistration()));
+    tx.vout.emplace_back(0, TaprootScript());
+    return tx;
+}
+
 } // namespace
 
 BOOST_AUTO_TEST_SUITE(chainregistry_tests)
@@ -249,6 +273,111 @@ BOOST_AUTO_TEST_CASE(operation_parser_rejects_invalid_envelopes)
 
     const chainregistry::RegistryOperation invalid{chainregistry::RetireChain{}};
     BOOST_CHECK(chainregistry::ParseOperationScript(chainregistry::BuildOperationScript(invalid)).error == chainregistry::OperationParseError::INVALID_OPERATION);
+}
+
+BOOST_AUTO_TEST_CASE(transaction_operation_extraction)
+{
+    CMutableTransaction plain_tx;
+    plain_tx.vout.emplace_back(0, CScript{} << OP_RETURN << ParseHex("abcd"));
+    auto result{chainregistry::ExtractTransactionOperation(CTransaction{plain_tx}, 1'000)};
+    BOOST_CHECK(result.IsValid());
+    BOOST_CHECK(!result.operation.has_value());
+
+    const CMutableTransaction registration_tx{ValidRegistrationTx()};
+    result = chainregistry::ExtractTransactionOperation(CTransaction{registration_tx}, 1'000);
+    BOOST_REQUIRE(result.IsValid());
+    BOOST_REQUIRE(result.operation.has_value());
+    BOOST_CHECK_EQUAL(result.operation->registry_output, 0U);
+    BOOST_CHECK(std::holds_alternative<chainregistry::RegisterChain>(result.operation->operation));
+
+    CMutableTransaction update_tx;
+    update_tx.vout.emplace_back(0, chainregistry::BuildOperationScript(chainregistry::UpdateChain{
+        .chain_id = chainregistry::ChainId{"3333333333333333333333333333333333333333333333333333333333333333"},
+        .control_output = 1,
+        .metadata_hash = chainregistry::MetadataHash{"4444444444444444444444444444444444444444444444444444444444444444"},
+    }));
+    update_tx.vout.emplace_back(0, TaprootScript(2));
+    result = chainregistry::ExtractTransactionOperation(CTransaction{update_tx}, 1'000);
+    BOOST_REQUIRE(result.IsValid());
+    BOOST_REQUIRE(result.operation.has_value());
+    BOOST_CHECK(std::holds_alternative<chainregistry::UpdateChain>(result.operation->operation));
+
+    CMutableTransaction retire_tx;
+    retire_tx.vout.emplace_back(0, chainregistry::BuildOperationScript(chainregistry::RetireChain{
+        .chain_id = chainregistry::ChainId{"5555555555555555555555555555555555555555555555555555555555555555"},
+    }));
+    result = chainregistry::ExtractTransactionOperation(CTransaction{retire_tx}, 1'000);
+    BOOST_REQUIRE(result.IsValid());
+    BOOST_REQUIRE(result.operation.has_value());
+    BOOST_CHECK(std::holds_alternative<chainregistry::RetireChain>(result.operation->operation));
+}
+
+BOOST_AUTO_TEST_CASE(transaction_operation_rejects_invalid_context)
+{
+    CMutableTransaction tx{ValidRegistrationTx()};
+    tx.vout[0].nValue = 999;
+    auto result{chainregistry::ExtractTransactionOperation(CTransaction{tx}, 1'000)};
+    BOOST_CHECK(result.error == chainregistry::TxOperationError::INSUFFICIENT_REGISTRATION_BURN);
+
+    tx = ValidRegistrationTx();
+    tx.vout[0].scriptPubKey = chainregistry::BuildOperationScript(ValidRegistration(1, 1));
+    result = chainregistry::ExtractTransactionOperation(CTransaction{tx}, 1'000);
+    BOOST_CHECK(result.error == chainregistry::TxOperationError::INVALID_ANCHOR_INPUT);
+
+    tx = ValidRegistrationTx();
+    tx.vin[0].prevout.SetNull();
+    result = chainregistry::ExtractTransactionOperation(CTransaction{tx}, 1'000);
+    BOOST_CHECK(result.error == chainregistry::TxOperationError::NULL_ANCHOR_PREVOUT);
+
+    tx = ValidRegistrationTx();
+    tx.vout[0].scriptPubKey = chainregistry::BuildOperationScript(ValidRegistration(0, 2));
+    result = chainregistry::ExtractTransactionOperation(CTransaction{tx}, 1'000);
+    BOOST_CHECK(result.error == chainregistry::TxOperationError::INVALID_CONTROL_OUTPUT);
+
+    tx = ValidRegistrationTx();
+    tx.vout[0].scriptPubKey = chainregistry::BuildOperationScript(ValidRegistration(0, 0));
+    result = chainregistry::ExtractTransactionOperation(CTransaction{tx}, 1'000);
+    BOOST_CHECK(result.error == chainregistry::TxOperationError::CONTROL_OUTPUT_COLLISION);
+
+    tx = ValidRegistrationTx();
+    tx.vout[1].scriptPubKey = CScript{} << OP_RETURN;
+    result = chainregistry::ExtractTransactionOperation(CTransaction{tx}, 1'000);
+    BOOST_CHECK(result.error == chainregistry::TxOperationError::CONTROL_OUTPUT_NOT_P2TR);
+
+    tx = ValidRegistrationTx();
+    tx.vout[0].scriptPubKey = CScript{} << OP_RETURN << ParseHex("4b524547");
+    result = chainregistry::ExtractTransactionOperation(CTransaction{tx}, 1'000);
+    BOOST_CHECK(result.error == chainregistry::TxOperationError::INVALID_ENVELOPE);
+    BOOST_CHECK(result.parse_error == chainregistry::OperationParseError::INVALID_PAYLOAD);
+}
+
+BOOST_AUTO_TEST_CASE(transaction_operation_rejects_multiple_and_unexpected_value)
+{
+    CMutableTransaction tx{ValidRegistrationTx()};
+    tx.vout[0].scriptPubKey = chainregistry::BuildOperationScript(ValidRegistration(0, 2));
+    tx.vout[1] = CTxOut{0, chainregistry::BuildOperationScript(chainregistry::RetireChain{
+        .chain_id = chainregistry::ChainId{"5555555555555555555555555555555555555555555555555555555555555555"},
+    })};
+    tx.vout.emplace_back(0, TaprootScript());
+    auto result{chainregistry::ExtractTransactionOperation(CTransaction{tx}, 1'000)};
+    BOOST_CHECK(result.error == chainregistry::TxOperationError::MULTIPLE_OPERATIONS);
+
+    CMutableTransaction update_tx;
+    update_tx.vout.emplace_back(1, chainregistry::BuildOperationScript(chainregistry::UpdateChain{
+        .chain_id = chainregistry::ChainId{"3333333333333333333333333333333333333333333333333333333333333333"},
+        .control_output = 1,
+        .metadata_hash = chainregistry::MetadataHash{"4444444444444444444444444444444444444444444444444444444444444444"},
+    }));
+    update_tx.vout.emplace_back(0, TaprootScript());
+    result = chainregistry::ExtractTransactionOperation(CTransaction{update_tx}, 1'000);
+    BOOST_CHECK(result.error == chainregistry::TxOperationError::UNEXPECTED_OPERATION_VALUE);
+
+    CMutableTransaction retire_tx;
+    retire_tx.vout.emplace_back(1, chainregistry::BuildOperationScript(chainregistry::RetireChain{
+        .chain_id = chainregistry::ChainId{"5555555555555555555555555555555555555555555555555555555555555555"},
+    }));
+    result = chainregistry::ExtractTransactionOperation(CTransaction{retire_tx}, 1'000);
+    BOOST_CHECK(result.error == chainregistry::TxOperationError::UNEXPECTED_OPERATION_VALUE);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

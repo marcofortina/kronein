@@ -6,6 +6,7 @@
 #define KRONEIN_PRIMITIVES_CHAINREGISTRY_H
 
 #include <attributes.h>
+#include <consensus/amount.h>
 #include <script/script.h>
 #include <serialize.h>
 #include <uint256.h>
@@ -23,6 +24,7 @@
 #include <vector>
 
 class COutPoint;
+class CTransaction;
 
 namespace chainregistry {
 
@@ -230,6 +232,34 @@ struct OperationParseResult {
     explicit operator bool() const { return error == OperationParseError::NONE && operation.has_value(); }
 };
 
+enum class TxOperationError : uint8_t {
+    NONE,
+    INVALID_ENVELOPE,
+    MULTIPLE_OPERATIONS,
+    INVALID_ANCHOR_INPUT,
+    NULL_ANCHOR_PREVOUT,
+    INVALID_CONTROL_OUTPUT,
+    CONTROL_OUTPUT_COLLISION,
+    CONTROL_OUTPUT_NOT_P2TR,
+    INSUFFICIENT_REGISTRATION_BURN,
+    UNEXPECTED_OPERATION_VALUE,
+};
+
+struct TransactionOperation {
+    uint32_t registry_output;
+    RegistryOperation operation;
+
+    friend bool operator==(const TransactionOperation&, const TransactionOperation&) = default;
+};
+
+struct TxOperationResult {
+    TxOperationError error{TxOperationError::NONE};
+    OperationParseError parse_error{OperationParseError::NONE};
+    std::optional<TransactionOperation> operation;
+
+    bool IsValid() const { return error == TxOperationError::NONE; }
+};
+
 /** Hash canonical pre-genesis specification bytes. This function does not validate their schema. */
 ChainSpecHash ComputeChainSpecHash(std::span<const std::byte> canonical_spec);
 ChainSpecHash ComputeChainSpecHash(const ChainSpec& spec);
@@ -243,6 +273,14 @@ OperationType GetOperationType(const RegistryOperation& operation);
 CScript BuildOperationScript(const RegistryOperation& operation);
 /** Parse and validate the canonical OP_RETURN envelope used by registry operations. */
 OperationParseResult ParseOperationScript(const CScript& script);
+
+/**
+ * Find and perform context-free transaction checks for a registry operation.
+ * A valid transaction without an operation returns NONE and std::nullopt.
+ * State-dependent authorization and uniqueness checks are performed by the
+ * registry state transition code.
+ */
+TxOperationResult ExtractTransactionOperation(const CTransaction& tx, CAmount minimum_registration_burn);
 
 /**
  * Derive a child-chain identity from the main network, registration outpoint,
