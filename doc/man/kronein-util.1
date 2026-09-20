@@ -7,7 +7,10 @@ kronein-util \- manual page for kronein-util v31.1.0
 [\fI\,options\/\fR] [\fI\,command\/\fR]
 .br
 .B kronein-util
-[\fI\,options\/\fR] \fI\,grind <hex-block-header>\/\fR
+[\fI\,options\/\fR] \fI\,grind <hex-block-header> \/\fR[\fI\,<randomx-seed>\/\fR]
+.br
+.B kronein-util
+[\fI\,options\/\fR] \fI\,grind -  # read header \/\fR[\fI\,seed\/\fR] \fI\,requests from stdin\/\fR
 .SH DESCRIPTION
 Kronein Core kronein\-util utility version v31.1.0
 .PP
@@ -17,6 +20,11 @@ The kronein\-util tool provides Kronein\-related functionality that does not rel
 \fB\-help\fR
 .IP
 Print this help message and exit (also \fB\-h\fR or \-?)
+.HP
+\fB\-randomxlight\fR
+.IP
+Use RandomX light mode (256 MiB cache) instead of the full mining
+dataset
 .HP
 \fB\-version\fR
 .IP
@@ -53,7 +61,7 @@ Commands:
 .IP
 grind
 .IP
-Perform proof of work on hex header string
+Perform RandomX v2 proof of work on hex header string
 .SH COPYRIGHT
 Copyright (C) 2009-2026 The Kronein Core developers
 Copyright (C) 2009-2026 The Bitcoin Core developers

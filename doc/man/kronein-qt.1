@@ -27,9 +27,9 @@ message)
 If this block is in the chain assume that it and its ancestors are valid
 and potentially skip their script verification (0 to verify all,
 default:
-00000000000000000000ccebd6d74d9194d8dcdc1d177c478e094bfad51ba5ac,
+0000000000000000000000000000000000000000000000000000000000000000,
 testnet4:
-0000000002368b1e4ee27e2e85676ae6f9f9e69579b29093e9a82c170bf7cf8a,
+0000000000000000000000000000000000000000000000000000000000000000,
 signet:
 0000000000000000000000000000000000000000000000000000000000000000)
 .HP
@@ -224,8 +224,8 @@ Default duration (in seconds) of manually configured bans (default:
 Bind to given address and always listen on it (default: 0.0.0.0). Use
 [host]:port notation for IPv6. Append =onion to tag any incoming
 connections to that address and port as incoming Tor connections
-(default: 127.0.0.1:8334=onion, testnet4: 127.0.0.1:48334=onion,
-signet: 127.0.0.1:38334=onion, regtest: 127.0.0.1:18445=onion)
+(default: 127.0.0.1:26763=onion, testnet4: 127.0.0.1:36763=onion,
+signet: 127.0.0.1:46763=onion, regtest: 127.0.0.1:56763=onion)
 .HP
 \fB\-cjdnsreachable\fR
 .IP
@@ -339,8 +339,8 @@ Serve compact block filters to peers per BIP 157 (default: 0)
 .HP
 \fB\-port=\fR<port>
 .IP
-Listen for connections on <port> (default: 8333, testnet4: 48333,
-signet: 38333, regtest: 18444). Not relevant for I2P (see
+Listen for connections on <port> (default: 26762, testnet4: 36762,
+signet: 46762, regtest: 56762). Not relevant for I2P (see
 doc/i2p.md). If set to a value x, the default onion listening
 port will be set to x+1.
 .HP
@@ -721,8 +721,8 @@ Password for JSON\-RPC connections
 .HP
 \fB\-rpcport=\fR<port>
 .IP
-Listen for JSON\-RPC connections on <port> (default: 8332, testnet4:
-48332, signet: 38332, regtest: 18443)
+Listen for JSON\-RPC connections on <port> (default: 26761, testnet4:
+36761, signet: 46761, regtest: 56761)
 .HP
 \fB\-rpcthreads=\fR<n>
 .IP
