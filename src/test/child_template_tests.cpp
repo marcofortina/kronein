@@ -149,13 +149,21 @@ BOOST_AUTO_TEST_CASE(rejects_unsupported_or_ambiguous_definitions)
 
 BOOST_AUTO_TEST_CASE(recipient_namespace_is_strict)
 {
-    const std::array<unsigned char, 32> key{};
+    const std::array<unsigned char, 32> invalid_key{};
+    constexpr std::array<unsigned char, 32> valid_key{
+        0x50, 0x92, 0x9b, 0x74, 0xc1, 0xa0, 0x49, 0x54,
+        0xb7, 0x8b, 0x4b, 0x60, 0x35, 0xe9, 0x7a, 0x5e,
+        0x07, 0x8a, 0x5a, 0x0f, 0x28, 0xec, 0x96, 0xd5,
+        0x47, 0xbf, 0xee, 0x9a, 0xce, 0x80, 0x3a, 0xc0,
+    };
     BOOST_CHECK(chainregistry::IsValidReferenceChildRecipient(
-        chainregistry::REFERENCE_CHILD_P2TR_RECIPIENT, key));
-    BOOST_CHECK(!chainregistry::IsValidReferenceChildRecipient(2, key));
+        chainregistry::REFERENCE_CHILD_P2TR_RECIPIENT, valid_key));
+    BOOST_CHECK(!chainregistry::IsValidReferenceChildRecipient(
+        chainregistry::REFERENCE_CHILD_P2TR_RECIPIENT, invalid_key));
+    BOOST_CHECK(!chainregistry::IsValidReferenceChildRecipient(2, valid_key));
     BOOST_CHECK(!chainregistry::IsValidReferenceChildRecipient(
         chainregistry::REFERENCE_CHILD_P2TR_RECIPIENT,
-        std::span<const unsigned char>{key}.first(31)));
+        std::span<const unsigned char>{valid_key}.first(31)));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

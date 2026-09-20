@@ -5,6 +5,7 @@
 #include <chainregistry/child_template.h>
 
 #include <hash.h>
+#include <pubkey.h>
 #include <streams.h>
 
 #include <ios>
@@ -180,7 +181,9 @@ ReferenceChildResult ValidateReferenceChildManifest(
 bool IsValidReferenceChildRecipient(uint16_t recipient_type,
                                     std::span<const unsigned char> recipient)
 {
-    return recipient_type == REFERENCE_CHILD_P2TR_RECIPIENT && recipient.size() == 32;
+    return recipient_type == REFERENCE_CHILD_P2TR_RECIPIENT &&
+           recipient.size() == XOnlyPubKey::size() &&
+           XOnlyPubKey{recipient}.IsFullyValid();
 }
 
 } // namespace chainregistry
