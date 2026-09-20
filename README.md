@@ -13,8 +13,10 @@ prefix; selected source filenames and internal build targets retain upstream
 names to keep the ongoing protocol migration reviewable.
 
 The network is under active development and is not ready for production use.
-The genesis blocks, proof-of-work and monetary parameters, network identifiers,
-ports, seeds, and address prefixes will be replaced before launch. See the
+The current RandomX proof-of-work integration and its cache-key schedule are
+documented in [doc/randomx.md](doc/randomx.md). Genesis blocks, difficulty and
+monetary parameters, network identifiers, ports, seeds, and address prefixes
+remain development values that must be frozen before launch. See the
 [development release notes](doc/release-notes.md) for the current baseline.
 
 ## Documentation

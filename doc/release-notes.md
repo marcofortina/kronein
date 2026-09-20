@@ -11,7 +11,9 @@ The current development baseline uses:
 - descriptor wallets backed only by SQLite;
 - Bech32m/Taproot wallet addresses;
 - MuHash UTXO commitments.
+- RandomX v2.0.1 proof of work over the unchanged 80-byte block header, with
+  epoch-derived cache keys documented in [randomx.md](randomx.md).
 
-Before a production release, replace the inherited development genesis blocks,
-proof-of-work parameters, network magic values, ports, seeds, checkpoints, and
-chain-work assumptions with values generated for the new chain.
+Before a production release, freeze and independently review the development
+genesis blocks, proof-of-work and difficulty parameters, network magic values,
+ports, seeds, checkpoints, and chain-work assumptions.

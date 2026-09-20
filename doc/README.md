@@ -69,6 +69,7 @@ The Kronein repository's [root README](/README.md) contains relevant information
 - [Dnsseed Policy](dnsseed-policy.md)
 - [Benchmarking](benchmarking.md)
 - [Internal Design Docs](design/)
+- [RandomX Proof of Work](randomx.md)
 
 ### Resources
 * Discuss project-specific development in Kronein GitHub issues and pull requests.
