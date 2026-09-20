@@ -10,6 +10,9 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <array>
+#include <span>
+
 namespace {
 
 CBlock Block(const uint256& previous, const CScript& commitment = {})
@@ -34,6 +37,25 @@ DBParams Params(const fs::path& path, bool wipe = false)
         .cache_bytes = 1 << 20,
         .wipe_data = wipe,
         .obfuscate = true,
+    };
+}
+
+chainregistry::ChainRecord Record()
+{
+    std::array<unsigned char, 32> control{};
+    control.fill(3);
+    return {
+        .record_version = chainregistry::CHAIN_RECORD_VERSION,
+        .chain_id = chainregistry::ChainId{"1111111111111111111111111111111111111111111111111111111111111111"},
+        .manifest_hash = chainregistry::ManifestHash{"2222222222222222222222222222222222222222222222222222222222222222"},
+        .template_id = 1,
+        .template_version = 1,
+        .control_outpoint = COutPoint{Txid::FromUint256(uint256{std::span{control}}), 0},
+        .metadata_hash = chainregistry::MetadataHash{"4444444444444444444444444444444444444444444444444444444444444444"},
+        .status = chainregistry::ChainStatus::ACTIVE,
+        .registered_height = 100,
+        .updated_height = 100,
+        .retired_height = 0,
     };
 }
 
@@ -116,6 +138,48 @@ BOOST_AUTO_TEST_CASE(initialization_guards)
     node::ChainRegistryState disabled_state{disabled, genesis_hash};
     BOOST_REQUIRE(disabled_state.Initialize(Params(path), genesis_hash, 0).IsValid());
     BOOST_CHECK(!disabled_state.Enabled());
+}
+
+BOOST_AUTO_TEST_CASE(initialize_from_authenticated_snapshot)
+{
+    constexpr uint256 genesis_hash{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
+    constexpr uint256 snapshot_tip{"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"};
+    const Consensus::Params::ChainRegistryParams registry_params{
+        .activation_height = 1,
+        .minimum_registration_burn = 1,
+        .maximum_operations = 4,
+    };
+    const fs::path path{m_args.GetDataDirBase() / "chainregistry_state_snapshot"};
+
+    chainregistry::ChainRegistry registry;
+    BOOST_REQUIRE(registry.LoadRecords({Record()}).IsValid());
+    const uint256 root{registry.ComputeRoot()};
+
+    node::ChainRegistryState wrong_root{registry_params, genesis_hash};
+    const auto wrong_root_result{wrong_root.InitializeFromSnapshot(
+        Params(path, /*wipe=*/true), snapshot_tip, 100, registry, uint256{})};
+    BOOST_CHECK(wrong_root_result.error == node::ChainRegistryStateError::SNAPSHOT_ROOT_MISMATCH);
+
+    {
+        node::ChainRegistryState state{registry_params, genesis_hash};
+        BOOST_REQUIRE(state.InitializeFromSnapshot(
+            Params(path, /*wipe=*/true), snapshot_tip, 100, registry, root).IsValid());
+        BOOST_CHECK(state.State().best_block == snapshot_tip);
+        BOOST_CHECK_EQUAL(state.State().height, 100U);
+        BOOST_CHECK(state.State().registry_root == root);
+        BOOST_CHECK_EQUAL(state.Registry().Size(), 1U);
+    }
+    {
+        node::ChainRegistryState reloaded{registry_params, genesis_hash};
+        BOOST_REQUIRE(reloaded.Initialize(Params(path), snapshot_tip, 100).IsValid());
+        BOOST_CHECK(reloaded.Registry().ComputeRoot() == root);
+    }
+    {
+        node::ChainRegistryState existing{registry_params, genesis_hash};
+        const auto existing_result{existing.InitializeFromSnapshot(
+            Params(path), snapshot_tip, 100, registry, root)};
+        BOOST_CHECK(existing_result.error == node::ChainRegistryStateError::DATABASE_ALREADY_INITIALIZED);
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

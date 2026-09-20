@@ -616,6 +616,12 @@ public:
         size_t cache_size_bytes,
         bool in_memory,
         bool should_wipe) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
+    node::ChainRegistryStateResult InitChainRegistryDBFromSnapshot(
+        size_t cache_size_bytes,
+        bool in_memory,
+        bool should_wipe,
+        chainregistry::ChainRegistry registry,
+        const uint256& expected_root) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
     node::ChainRegistryState& ChainRegistryState() EXCLUSIVE_LOCKS_REQUIRED(::cs_main)
     {
@@ -977,7 +983,8 @@ private:
     [[nodiscard]] util::Result<void> PopulateAndValidateSnapshot(
         Chainstate& snapshot_chainstate,
         AutoFile& coins_file,
-        const node::SnapshotMetadata& metadata);
+        const node::SnapshotMetadata& metadata,
+        std::optional<chainregistry::ChainRegistry>& registry_snapshot);
 
     /**
      * If a block header hasn't already been seen, call CheckBlockHeader on it, ensure

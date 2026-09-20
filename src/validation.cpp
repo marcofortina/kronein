@@ -1984,6 +1984,33 @@ node::ChainRegistryStateResult Chainstate::InitChainRegistryDB(
         tip ? tip->nHeight : -1);
 }
 
+node::ChainRegistryStateResult Chainstate::InitChainRegistryDBFromSnapshot(
+    size_t cache_size_bytes,
+    bool in_memory,
+    bool should_wipe,
+    chainregistry::ChainRegistry registry,
+    const uint256& expected_root)
+{
+    AssertLockHeld(::cs_main);
+    m_chain_registry_state = std::make_unique<node::ChainRegistryState>(
+        m_chainman.GetConsensus().chain_registry,
+        m_chainman.GetConsensus().hashGenesisBlock);
+    const CBlockIndex* tip{m_chain.Tip()};
+    return m_chain_registry_state->InitializeFromSnapshot(
+        DBParams{
+            .path = ChainRegistryStoragePath(),
+            .cache_bytes = cache_size_bytes,
+            .memory_only = in_memory,
+            .wipe_data = should_wipe,
+            .obfuscate = true,
+            .options = m_chainman.m_options.coins_db,
+        },
+        tip ? tip->GetBlockHash() : uint256{},
+        tip ? tip->nHeight : -1,
+        std::move(registry),
+        expected_root);
+}
+
 void Chainstate::InitCoinsCache(size_t cache_size_bytes)
 {
     AssertLockHeld(::cs_main);
@@ -5670,7 +5697,8 @@ util::Result<CBlockIndex*> ChainstateManager::ActivateSnapshot(
         return util::Error{std::move(reason)};
     };
 
-    if (auto res{this->PopulateAndValidateSnapshot(*snapshot_chainstate, coins_file, metadata)}; !res) {
+    std::optional<chainregistry::ChainRegistry> registry_snapshot;
+    if (auto res{this->PopulateAndValidateSnapshot(*snapshot_chainstate, coins_file, metadata, registry_snapshot)}; !res) {
         LOCK(::cs_main);
         return cleanup_bad_snapshot(Untranslated(strprintf("Population failed: %s", util::ErrorString(res).original)));
     }
@@ -5693,8 +5721,21 @@ util::Result<CBlockIndex*> ChainstateManager::ActivateSnapshot(
 
     {
         constexpr size_t REGISTRY_DB_CACHE_BYTES{1 << 20};
-        const auto registry_result{snapshot_chainstate->InitChainRegistryDB(
-            REGISTRY_DB_CACHE_BYTES, in_memory, /*should_wipe=*/false)};
+        const bool registry_active{GetConsensus().chain_registry.IsActive(snapshot_start_block->nHeight)};
+        node::ChainRegistryStateResult registry_result;
+        if (registry_active) {
+            assert(registry_snapshot);
+            const uint256 registry_root{registry_snapshot->ComputeRoot()};
+            registry_result = snapshot_chainstate->InitChainRegistryDBFromSnapshot(
+                REGISTRY_DB_CACHE_BYTES,
+                in_memory,
+                /*should_wipe=*/false,
+                std::move(*registry_snapshot),
+                registry_root);
+        } else {
+            registry_result = snapshot_chainstate->InitChainRegistryDB(
+                REGISTRY_DB_CACHE_BYTES, in_memory, /*should_wipe=*/false);
+        }
         if (!registry_result.IsValid()) {
             return cleanup_bad_snapshot(Untranslated(strprintf(
                 "Snapshot does not contain a usable child chain registry state (state error %u).",
@@ -5742,7 +5783,8 @@ static void SnapshotUTXOHashBreakpoint(const util::SignalInterrupt& interrupt)
 util::Result<void> ChainstateManager::PopulateAndValidateSnapshot(
     Chainstate& snapshot_chainstate,
     AutoFile& coins_file,
-    const SnapshotMetadata& metadata)
+    const SnapshotMetadata& metadata,
+    std::optional<chainregistry::ChainRegistry>& registry_snapshot)
 {
     // It's okay to release cs_main before we're done using `coins_cache` because we know
     // that nothing else will be referencing the newly created snapshot_chainstate yet.
@@ -5857,17 +5899,30 @@ util::Result<void> ChainstateManager::PopulateAndValidateSnapshot(
     // method.
     coins_cache.SetBestBlock(base_blockhash);
 
-    bool out_of_coins{false};
+    const bool registry_active{GetConsensus().chain_registry.IsActive(base_height)};
     try {
-        std::byte left_over_byte;
-        coins_file >> left_over_byte;
+        if (coins_file.tell() < coins_file.size()) {
+            node::RegistrySnapshot serialized_registry;
+            coins_file >> serialized_registry;
+            if (coins_file.tell() != coins_file.size()) {
+                return util::Error{Untranslated("Bad snapshot - trailing data after child chain registry state")};
+            }
+            if (!registry_active) {
+                return util::Error{Untranslated("Bad snapshot - unexpected child chain registry state before activation")};
+            }
+            auto validated_registry{node::ValidateRegistrySnapshot(
+                serialized_registry, snapshot_start_block->GetBlockHeader())};
+            if (!validated_registry) {
+                return util::Error{Untranslated(strprintf(
+                    "Bad child chain registry snapshot: %s",
+                    util::ErrorString(validated_registry).original))};
+            }
+            registry_snapshot = std::move(*validated_registry);
+        } else if (registry_active) {
+            return util::Error{Untranslated("Bad snapshot - missing active child chain registry state")};
+        }
     } catch (const std::ios_base::failure&) {
-        // We expect an exception since we should be out of coins.
-        out_of_coins = true;
-    }
-    if (!out_of_coins) {
-        return util::Error{Untranslated(strprintf("Bad snapshot - coins left over after deserializing %d coins",
-            coins_count))};
+        return util::Error{Untranslated("Bad snapshot format or truncated child chain registry state")};
     }
 
     LogInfo("[snapshot] loaded %d (%.2f MB) coins from snapshot %s",

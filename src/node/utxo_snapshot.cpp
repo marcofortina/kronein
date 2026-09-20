@@ -4,6 +4,7 @@
 
 #include <node/utxo_snapshot.h>
 
+#include <hash.h>
 #include <streams.h>
 #include <sync.h>
 #include <tinyformat.h>
@@ -19,6 +20,53 @@
 #include <string>
 
 namespace node {
+
+util::Result<chainregistry::ChainRegistry> ValidateRegistrySnapshot(
+    const RegistrySnapshot& snapshot,
+    const CBlockHeader& base_header)
+{
+    if (snapshot.version != REGISTRY_SNAPSHOT_VERSION) {
+        return util::Error{Untranslated("Unsupported child chain registry snapshot version")};
+    }
+    if (snapshot.base_blockhash != base_header.GetHash()) {
+        return util::Error{Untranslated("Child chain registry snapshot base block does not match")};
+    }
+    const CTransaction coinbase{snapshot.coinbase};
+    if (!coinbase.IsCoinBase()) {
+        return util::Error{Untranslated("Child chain registry snapshot transaction is not coinbase")};
+    }
+    for (size_t index{1}; index < snapshot.records.size(); ++index) {
+        if (!(snapshot.records[index - 1].chain_id < snapshot.records[index].chain_id)) {
+            return util::Error{Untranslated("Child chain registry snapshot records are not canonically ordered")};
+        }
+    }
+
+    chainregistry::ChainRegistry registry;
+    const auto load_result{registry.LoadRecords(snapshot.records)};
+    if (!load_result.IsValid()) {
+        return util::Error{Untranslated(strprintf(
+            "Invalid child chain registry snapshot records (load error %u, record error %u)",
+            static_cast<unsigned>(load_result.error),
+            static_cast<unsigned>(load_result.record_error)))};
+    }
+    if (registry.ComputeRoot() != snapshot.registry_root) {
+        return util::Error{Untranslated("Child chain registry snapshot root does not match its records")};
+    }
+
+    const auto commitment{chainregistry::ExtractRegistryCommitment(coinbase)};
+    if (!commitment.IsValid() || !commitment.root || *commitment.root != snapshot.registry_root) {
+        return util::Error{Untranslated("Child chain registry snapshot does not match its coinbase commitment")};
+    }
+
+    uint256 merkle_root{coinbase.GetHash().ToUint256()};
+    for (const auto& sibling : snapshot.coinbase_merkle_branch) {
+        merkle_root = Hash(merkle_root, sibling);
+    }
+    if (merkle_root != base_header.hashMerkleRoot) {
+        return util::Error{Untranslated("Child chain registry snapshot coinbase proof does not match the base header")};
+    }
+    return registry;
+}
 
 bool WriteSnapshotBaseBlockhash(Chainstate& snapshot_chainstate)
 {

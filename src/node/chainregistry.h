@@ -24,7 +24,10 @@ enum class ChainRegistryStateError : uint8_t {
     INVALID_EXPECTED_TIP,
     DATABASE_LOAD_FAILED,
     DATABASE_TIP_MISMATCH,
+    DATABASE_ALREADY_INITIALIZED,
     ACTIVE_STATE_REQUIRES_REINDEX,
+    SNAPSHOT_HEIGHT_INACTIVE,
+    SNAPSHOT_ROOT_MISMATCH,
     NON_SEQUENTIAL_BLOCK,
     INVALID_BLOCK,
     DATABASE_WRITE_FAILED,
@@ -63,6 +66,12 @@ public:
     ChainRegistryStateResult Initialize(const DBParams& db_params,
                                         const uint256& expected_tip,
                                         int expected_height);
+    ChainRegistryStateResult InitializeFromSnapshot(
+        const DBParams& db_params,
+        const uint256& expected_tip,
+        int expected_height,
+        chainregistry::ChainRegistry registry,
+        const uint256& expected_root);
 
     ChainRegistryStateResult ConnectBlock(const CBlock& block,
                                           int height,

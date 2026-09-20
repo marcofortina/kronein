@@ -8,8 +8,11 @@ For notes on the design of Assumeutxo, please refer to [the design doc](/doc/des
 ## Loading a snapshot
 
 There is currently no canonical source for snapshots, but any downloaded snapshot
-will be checked against a hash that's been hardcoded in source code. If there is
-no source for the snapshot you need, you can generate it yourself using
+has its UTXO set checked against a hash that's been hardcoded in source code.
+At heights where the child-chain registry is active, the snapshot must also
+contain the complete registry state. Its root is authenticated against the
+base block header through the registry commitment in the coinbase transaction.
+If there is no source for the snapshot you need, you can generate it yourself using
 `dumptxoutset` on another node that is already synced (see
 [Generating a snapshot](#generating-a-snapshot)).
 
@@ -65,6 +68,11 @@ re-compile.
 Using the type parameter "rollback", `dumptxoutset` can also be used to verify the
 hardcoded snapshot hash in the source code by regenerating the snapshot and
 comparing the hash.
+
+Snapshots generated after child-chain registry activation include an authenticated
+registry trailer automatically. Older snapshots without this trailer cannot be
+loaded at an active height, because a UTXO hash alone does not commit to registry
+state.
 
 Example usage:
 

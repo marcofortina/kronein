@@ -82,6 +82,49 @@ ChainRegistryStateResult ChainRegistryState::Initialize(const DBParams& db_param
     return {};
 }
 
+ChainRegistryStateResult ChainRegistryState::InitializeFromSnapshot(
+    const DBParams& db_params,
+    const uint256& expected_tip,
+    int expected_height,
+    chainregistry::ChainRegistry registry,
+    const uint256& expected_root)
+{
+    if (!ExpectedTipIsValid(expected_tip, expected_height)) {
+        return StateError(ChainRegistryStateError::INVALID_EXPECTED_TIP);
+    }
+    if (!Enabled() || !m_params.IsActive(expected_height)) {
+        return StateError(ChainRegistryStateError::SNAPSHOT_HEIGHT_INACTIVE);
+    }
+    if (registry.ComputeRoot() != expected_root) {
+        return StateError(ChainRegistryStateError::SNAPSHOT_ROOT_MISMATCH);
+    }
+
+    m_db = std::make_unique<ChainRegistryDB>(db_params);
+    chainregistry::ChainRegistry existing_registry;
+    ChainRegistryDBState existing_state;
+    auto load_result{m_db->Load(existing_registry, existing_state)};
+    if (!load_result.IsValid()) {
+        ChainRegistryStateResult result;
+        result.error = ChainRegistryStateError::DATABASE_LOAD_FAILED;
+        result.load_result = std::move(load_result);
+        return result;
+    }
+    if (load_result.initialized) {
+        return StateError(ChainRegistryStateError::DATABASE_ALREADY_INITIALIZED);
+    }
+
+    const auto snapshot_state{MakeChainRegistryDBState(
+        expected_tip, static_cast<uint32_t>(expected_height), registry)};
+    if (!m_db->WriteInitialState(registry, snapshot_state, /*sync=*/true)) {
+        return StateError(ChainRegistryStateError::DATABASE_WRITE_FAILED);
+    }
+
+    m_registry = std::move(registry);
+    m_state = snapshot_state;
+    m_initialized = true;
+    return {};
+}
+
 ChainRegistryStateResult ChainRegistryState::ConnectBlock(const CBlock& block,
                                                           int height,
                                                           const uint256& block_hash,

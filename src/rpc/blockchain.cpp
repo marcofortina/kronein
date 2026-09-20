@@ -14,6 +14,7 @@
 #include <common/args.h>
 #include <consensus/amount.h>
 #include <consensus/chainregistry.h>
+#include <consensus/merkle.h>
 #include <consensus/params.h>
 #include <consensus/validation.h>
 #include <core_io.h>
@@ -32,6 +33,7 @@
 #include <node/transaction.h>
 #include <node/utxo_snapshot.h>
 #include <node/warnings.h>
+#include <primitives/block.h>
 #include <primitives/transaction.h>
 #include <rpc/server.h>
 #include <rpc/server_util.h>
@@ -74,7 +76,14 @@ using node::NodeContext;
 using node::SnapshotMetadata;
 using util::MakeUnorderedList;
 
-std::tuple<std::unique_ptr<CCoinsViewCursor>, CCoinsStats, const CBlockIndex*>
+struct PreparedUTXOSnapshot {
+    std::unique_ptr<CCoinsViewCursor> cursor;
+    CCoinsStats stats;
+    const CBlockIndex* tip;
+    std::optional<node::RegistrySnapshot> registry;
+};
+
+PreparedUTXOSnapshot
 PrepareUTXOSnapshot(
     Chainstate& chainstate,
     const std::function<void()>& interruption_point = {})
@@ -85,6 +94,7 @@ UniValue WriteUTXOSnapshot(
     CCoinsViewCursor* pcursor,
     CCoinsStats* maybe_stats,
     const CBlockIndex* tip,
+    const std::optional<node::RegistrySnapshot>& registry_snapshot,
     AutoFile&& afile,
     const fs::path& path,
     const fs::path& temppath,
@@ -2893,6 +2903,8 @@ static RPCHelpMan dumptxoutset()
                     {RPCResult::Type::STR, "path", "the absolute path that the snapshot was written to"},
                     {RPCResult::Type::STR_HEX, "txoutset_hash", "the hash of the UTXO set contents"},
                     {RPCResult::Type::NUM, "nchaintx", "the number of transactions in the chain up to and including the base block"},
+                    {RPCResult::Type::STR_HEX, "registry_root", /*optional=*/true, "the authenticated child chain registry root"},
+                    {RPCResult::Type::NUM, "registry_records", /*optional=*/true, "the number of child chain registry records written"},
                 }
         },
         RPCExamples{
@@ -2982,6 +2994,7 @@ static RPCHelpMan dumptxoutset()
     Chainstate* chainstate;
     std::unique_ptr<CCoinsViewCursor> cursor;
     CCoinsStats stats;
+    std::optional<node::RegistrySnapshot> registry_snapshot;
     {
         // Lock the chainstate before calling PrepareUtxoSnapshot, to be able
         // to get a UTXO database cursor while the chain is pointing at the
@@ -3001,7 +3014,11 @@ static RPCHelpMan dumptxoutset()
             LogWarning("dumptxoutset failed to roll back to requested height, reverting to tip.\n");
             throw JSONRPCError(RPC_MISC_ERROR, "Could not roll back to requested height.");
         } else {
-            std::tie(cursor, stats, tip) = PrepareUTXOSnapshot(*chainstate, node.rpc_interruption_point);
+            auto prepared{PrepareUTXOSnapshot(*chainstate, node.rpc_interruption_point)};
+            cursor = std::move(prepared.cursor);
+            stats = std::move(prepared.stats);
+            tip = prepared.tip;
+            registry_snapshot = std::move(prepared.registry);
         }
     }
 
@@ -3009,6 +3026,7 @@ static RPCHelpMan dumptxoutset()
                                         cursor.get(),
                                         &stats,
                                         tip,
+                                        registry_snapshot,
                                         std::move(afile),
                                         path,
                                         temppath,
@@ -3021,7 +3039,7 @@ static RPCHelpMan dumptxoutset()
     };
 }
 
-std::tuple<std::unique_ptr<CCoinsViewCursor>, CCoinsStats, const CBlockIndex*>
+PreparedUTXOSnapshot
 PrepareUTXOSnapshot(
     Chainstate& chainstate,
     const std::function<void()>& interruption_point)
@@ -3029,6 +3047,7 @@ PrepareUTXOSnapshot(
     std::unique_ptr<CCoinsViewCursor> pcursor;
     std::optional<CCoinsStats> maybe_stats;
     const CBlockIndex* tip;
+    std::optional<node::RegistrySnapshot> registry_snapshot;
 
     {
         // We need to lock cs_main to ensure that the coinsdb isn't written to
@@ -3054,9 +3073,32 @@ PrepareUTXOSnapshot(
 
         pcursor = chainstate.CoinsDB().Cursor();
         tip = CHECK_NONFATAL(chainstate.m_blockman.LookupBlockIndex(maybe_stats->hashBlock));
+
+        if (chainstate.m_chainman.GetConsensus().chain_registry.IsActive(tip->nHeight)) {
+            const auto& registry_state{chainstate.ChainRegistryState()};
+            if (!registry_state.IsInitialized() || registry_state.State().best_block != tip->GetBlockHash()) {
+                throw JSONRPCError(RPC_INTERNAL_ERROR, "Child chain registry state is not aligned with the UTXO snapshot base");
+            }
+
+            CBlock block;
+            if (!chainstate.m_blockman.ReadBlock(block, *tip) || block.vtx.empty()) {
+                throw JSONRPCError(RPC_MISC_ERROR, "Unable to read the snapshot base block for the child chain registry proof");
+            }
+
+            node::RegistrySnapshot snapshot;
+            snapshot.base_blockhash = tip->GetBlockHash();
+            snapshot.registry_root = registry_state.Registry().ComputeRoot();
+            snapshot.records.reserve(registry_state.Registry().Size());
+            for (const auto& entry : registry_state.Registry().Records()) {
+                snapshot.records.push_back(entry.second);
+            }
+            snapshot.coinbase = CMutableTransaction{*block.vtx.front()};
+            snapshot.coinbase_merkle_branch = TransactionMerklePath(block, /*position=*/0);
+            registry_snapshot = std::move(snapshot);
+        }
     }
 
-    return {std::move(pcursor), *CHECK_NONFATAL(maybe_stats), tip};
+    return {std::move(pcursor), *CHECK_NONFATAL(maybe_stats), tip, std::move(registry_snapshot)};
 }
 
 UniValue WriteUTXOSnapshot(
@@ -3064,6 +3106,7 @@ UniValue WriteUTXOSnapshot(
     CCoinsViewCursor* pcursor,
     CCoinsStats* maybe_stats,
     const CBlockIndex* tip,
+    const std::optional<node::RegistrySnapshot>& registry_snapshot,
     AutoFile&& afile,
     const fs::path& path,
     const fs::path& temppath,
@@ -3123,6 +3166,10 @@ UniValue WriteUTXOSnapshot(
 
     CHECK_NONFATAL(written_coins_count == maybe_stats->coins_count);
 
+    if (registry_snapshot) {
+        afile << *registry_snapshot;
+    }
+
     if (afile.fclose() != 0) {
         throw std::ios_base::failure(
             strprintf("Error closing %s: %s", fs::PathToString(temppath), SysErrorString(errno)));
@@ -3135,6 +3182,10 @@ UniValue WriteUTXOSnapshot(
     result.pushKV("path", path.utf8string());
     result.pushKV("txoutset_hash", maybe_stats->muhash.ToString());
     result.pushKV("nchaintx", tip->m_chain_tx_count);
+    if (registry_snapshot) {
+        result.pushKV("registry_root", registry_snapshot->registry_root.ToString());
+        result.pushKV("registry_records", registry_snapshot->records.size());
+    }
     return result;
 }
 
@@ -3145,11 +3196,12 @@ UniValue CreateUTXOSnapshot(
     const fs::path& path,
     const fs::path& tmppath)
 {
-    auto [cursor, stats, tip]{WITH_LOCK(::cs_main, return PrepareUTXOSnapshot(chainstate, node.rpc_interruption_point))};
+    auto prepared{WITH_LOCK(::cs_main, return PrepareUTXOSnapshot(chainstate, node.rpc_interruption_point))};
     return WriteUTXOSnapshot(chainstate,
-                             cursor.get(),
-                             &stats,
-                             tip,
+                             prepared.cursor.get(),
+                             &prepared.stats,
+                             prepared.tip,
+                             prepared.registry,
                              std::move(afile),
                              path,
                              tmppath,
@@ -3170,7 +3222,8 @@ static RPCHelpMan loadtxoutset()
         "The result is a usable kroneind instance that is current with the network tip in a "
         "matter of minutes rather than hours. UTXO snapshot are typically obtained from "
         "third-party sources (HTTP, torrent, etc.) which is reasonable since their "
-        "contents are always checked by hash.\n\n"
+        "UTXO contents are checked against a compiled hash. After child-chain registry activation, "
+        "the snapshot also carries registry records authenticated by the base block header.\n\n"
 
         "You can find more information on this process in the `assumeutxo` design "
         "document (<https://github.com/bitcoin/bitcoin/blob/master/doc/design/assumeutxo.md>).",

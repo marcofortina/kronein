@@ -6,14 +6,17 @@
 #ifndef BITCOIN_NODE_UTXO_SNAPSHOT_H
 #define BITCOIN_NODE_UTXO_SNAPSHOT_H
 
+#include <consensus/chainregistry.h>
 #include <kernel/chainparams.h>
 #include <kernel/cs_main.h>
 #include <kernel/messagestartchars.h>
+#include <primitives/transaction.h>
 #include <sync.h>
 #include <tinyformat.h>
 #include <uint256.h>
 #include <util/chaintype.h>
 #include <util/fs.h>
+#include <util/result.h>
 
 #include <algorithm>
 #include <array>
@@ -22,13 +25,85 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 // UTXO set snapshot magic bytes
 static constexpr std::array<uint8_t, 5> SNAPSHOT_MAGIC_BYTES = {'u', 't', 'x', 'o', 0xff};
+static constexpr std::array<uint8_t, 5> SNAPSHOT_REGISTRY_MAGIC_BYTES = {'k', 'r', 'e', 'g', 0xff};
 
 class Chainstate;
 
 namespace node {
+inline constexpr uint8_t REGISTRY_SNAPSHOT_VERSION{1};
+inline constexpr uint64_t MAX_REGISTRY_SNAPSHOT_RECORDS{1'000'000};
+inline constexpr uint64_t MAX_REGISTRY_SNAPSHOT_MERKLE_BRANCH{32};
+
+/**
+ * Authenticated child-chain registry trailer appended after the UTXO entries.
+ * The coinbase and its Merkle branch bind registry_root to the snapshot base
+ * header without requiring the complete base block to be available locally.
+ */
+struct RegistrySnapshot {
+    uint8_t version{REGISTRY_SNAPSHOT_VERSION};
+    uint256 base_blockhash;
+    uint256 registry_root;
+    std::vector<chainregistry::ChainRecord> records;
+    CMutableTransaction coinbase;
+    std::vector<uint256> coinbase_merkle_branch;
+
+    template <typename Stream>
+    void Serialize(Stream& stream) const
+    {
+        if (records.size() > MAX_REGISTRY_SNAPSHOT_RECORDS) {
+            throw std::ios_base::failure("Child chain registry snapshot has too many records.");
+        }
+        if (coinbase_merkle_branch.size() > MAX_REGISTRY_SNAPSHOT_MERKLE_BRANCH) {
+            throw std::ios_base::failure("Child chain registry snapshot Merkle branch is too long.");
+        }
+        stream << SNAPSHOT_REGISTRY_MAGIC_BYTES;
+        stream << version;
+        stream << base_blockhash;
+        stream << registry_root;
+        WriteCompactSize(stream, records.size());
+        for (const auto& record : records) stream << record;
+        stream << TX_WITH_WITNESS(coinbase);
+        WriteCompactSize(stream, coinbase_merkle_branch.size());
+        for (const auto& hash : coinbase_merkle_branch) stream << hash;
+    }
+
+    template <typename Stream>
+    void Unserialize(Stream& stream)
+    {
+        std::array<uint8_t, SNAPSHOT_REGISTRY_MAGIC_BYTES.size()> magic;
+        stream >> magic;
+        if (magic != SNAPSHOT_REGISTRY_MAGIC_BYTES) {
+            throw std::ios_base::failure("Invalid child chain registry snapshot magic bytes.");
+        }
+        stream >> version;
+        stream >> base_blockhash;
+        stream >> registry_root;
+
+        const uint64_t record_count{ReadCompactSize(stream)};
+        if (record_count > MAX_REGISTRY_SNAPSHOT_RECORDS) {
+            throw std::ios_base::failure("Child chain registry snapshot has too many records.");
+        }
+        records.resize(record_count);
+        for (auto& record : records) stream >> record;
+
+        stream >> TX_WITH_WITNESS(coinbase);
+        const uint64_t branch_size{ReadCompactSize(stream)};
+        if (branch_size > MAX_REGISTRY_SNAPSHOT_MERKLE_BRANCH) {
+            throw std::ios_base::failure("Child chain registry snapshot Merkle branch is too long.");
+        }
+        coinbase_merkle_branch.resize(branch_size);
+        for (auto& hash : coinbase_merkle_branch) stream >> hash;
+    }
+};
+
+util::Result<chainregistry::ChainRegistry> ValidateRegistrySnapshot(
+    const RegistrySnapshot& snapshot,
+    const CBlockHeader& base_header);
+
 //! Metadata describing a serialized version of a UTXO set from which an
 //! assumeutxo Chainstate can be constructed.
 //! All metadata fields come from an untrusted file, so must be validated

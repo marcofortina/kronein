@@ -62,6 +62,15 @@ Once the snapshot chainstate is loaded and validated, it is promoted to active
 chainstate and a sync to tip begins. A new chainstate directory is created in the
 datadir for the snapshot chainstate called `chainstate_snapshot`.
 
+At heights where the child-chain registry is active, the UTXO entries are followed
+by a versioned registry trailer. It contains the canonical ordered records, the
+committed root, the base block coinbase transaction, and the coinbase Merkle branch.
+Loading recomputes the root from the records, checks the `KRRT` coinbase commitment,
+and verifies the Merkle branch against the already accepted base block header. The
+validated state is then written atomically to the snapshot chainstate's separate
+registry database. A missing, malformed, or unauthenticated trailer rejects the
+snapshot.
+
 When this directory is present in the datadir, the snapshot chainstate will be detected
 and loaded as active on node startup (via `LoadAssumeutxoChainstate()`).
 
