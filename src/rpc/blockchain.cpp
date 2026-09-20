@@ -13,6 +13,7 @@
 #include <coins.h>
 #include <common/args.h>
 #include <consensus/amount.h>
+#include <consensus/chainregistry.h>
 #include <consensus/params.h>
 #include <consensus/validation.h>
 #include <core_io.h>
@@ -26,6 +27,7 @@
 #include <net.h>
 #include <net_processing.h>
 #include <node/blockstorage.h>
+#include <node/chainregistry.h>
 #include <node/context.h>
 #include <node/transaction.h>
 #include <node/utxo_snapshot.h>
@@ -3307,6 +3309,281 @@ return RPCHelpMan{
     };
 }
 
+static chainregistry::ChainId ParseChainId(std::string_view value)
+{
+    const auto chain_id{chainregistry::ChainId::FromHex(value)};
+    if (!chain_id) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must be exactly 32 bytes encoded as hexadecimal");
+    }
+    return *chain_id;
+}
+
+static UniValue ChainRegistryRecordToUniv(const chainregistry::ChainRecord& record)
+{
+    UniValue control_outpoint{UniValue::VOBJ};
+    control_outpoint.pushKV("txid", record.control_outpoint.hash.GetHex());
+    control_outpoint.pushKV("vout", record.control_outpoint.n);
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", record.chain_id.GetHex());
+    result.pushKV("manifest_hash", record.manifest_hash.GetHex());
+    result.pushKV("template_id", record.template_id);
+    result.pushKV("template_version", record.template_version);
+    result.pushKV("control_outpoint", std::move(control_outpoint));
+    result.pushKV("metadata_hash", record.metadata_hash.GetHex());
+    result.pushKV("status", record.status == chainregistry::ChainStatus::ACTIVE ? "active" : "retired");
+    result.pushKV("registered_height", record.registered_height);
+    result.pushKV("updated_height", record.updated_height);
+    result.pushKV("retired_height", record.retired_height);
+    return result;
+}
+
+static UniValue ChainRegistryInclusionProofToUniv(const chainregistry::RegistryInclusionProof& proof)
+{
+    UniValue siblings{UniValue::VARR};
+    for (const auto& sibling : proof.siblings) {
+        siblings.push_back(sibling.GetHex());
+    }
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("leaf_count", proof.leaf_count);
+    result.pushKV("leaf_index", proof.leaf_index);
+    result.pushKV("siblings", std::move(siblings));
+    return result;
+}
+
+static UniValue ChainRegistryProofEntryToUniv(const chainregistry::RegistryProofEntry& entry)
+{
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("record", ChainRegistryRecordToUniv(entry.record));
+    result.pushKV("proof", ChainRegistryInclusionProofToUniv(entry.proof));
+    return result;
+}
+
+static UniValue ChainRegistryNonInclusionProofToUniv(const chainregistry::RegistryNonInclusionProof& proof)
+{
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("leaf_count", proof.leaf_count);
+    if (proof.has_left) result.pushKV("left", ChainRegistryProofEntryToUniv(proof.left));
+    if (proof.has_right) result.pushKV("right", ChainRegistryProofEntryToUniv(proof.right));
+    return result;
+}
+
+static const std::vector<RPCResult> CHAIN_REGISTRY_RECORD_RESULT{
+    {RPCResult::Type::STR_HEX, "chain_id", "Stable child-chain identifier"},
+    {RPCResult::Type::STR_HEX, "manifest_hash", "Hash of the immutable chain manifest"},
+    {RPCResult::Type::NUM, "template_id", "Consensus template identifier"},
+    {RPCResult::Type::NUM, "template_version", "Consensus template version"},
+    {RPCResult::Type::OBJ, "control_outpoint", "Outpoint authorizing the next update or retirement", {
+        {RPCResult::Type::STR_HEX, "txid", "Control transaction id"},
+        {RPCResult::Type::NUM, "vout", "Control output index"},
+    }},
+    {RPCResult::Type::STR_HEX, "metadata_hash", "Commitment to the current external metadata"},
+    {RPCResult::Type::STR, "status", "Registry status: active or retired"},
+    {RPCResult::Type::NUM, "registered_height", "Main-chain registration height"},
+    {RPCResult::Type::NUM, "updated_height", "Most recent metadata/control update height"},
+    {RPCResult::Type::NUM, "retired_height", "Retirement height, or 0 while active"},
+};
+
+static const std::vector<RPCResult> CHAIN_REGISTRY_INCLUSION_PROOF_RESULT{
+    {RPCResult::Type::NUM, "leaf_count", "Number of leaves committed by the registry root"},
+    {RPCResult::Type::NUM, "leaf_index", "Zero-based canonical leaf index"},
+    {RPCResult::Type::ARR, "siblings", "Sibling hashes from leaf to root", {
+        {RPCResult::Type::STR_HEX, "", "Sibling hash"},
+    }},
+};
+
+static RPCHelpMan getchainregistryinfo()
+{
+    return RPCHelpMan{
+        "getchainregistryinfo",
+        "Return consensus parameters and the verified child-chain registry state at the active tip.\n",
+        {},
+        RPCResult{RPCResult::Type::OBJ, "", "", {
+            {RPCResult::Type::BOOL, "enabled", "Whether registry consensus is configured on this network"},
+            {RPCResult::Type::BOOL, "active", "Whether registry consensus is active at the current tip"},
+            {RPCResult::Type::BOOL, "active_for_next_block", "Whether registry consensus applies to the next block"},
+            {RPCResult::Type::NUM, "activation_height", "Activation height, or -1 when disabled"},
+            {RPCResult::Type::STR_AMOUNT, "minimum_registration_burn", "Minimum registration burn in KNE"},
+            {RPCResult::Type::NUM, "maximum_operations", "Maximum registry transitions per block"},
+            {RPCResult::Type::STR_HEX, "bestblockhash", "Block hash paired with this registry state"},
+            {RPCResult::Type::NUM, "height", "Block height paired with this registry state"},
+            {RPCResult::Type::STR_HEX, "root", "Count-committed deterministic registry root"},
+            {RPCResult::Type::NUM, "size", "Number of registered child-chain records"},
+        }},
+        RPCExamples{
+            HelpExampleCli("getchainregistryinfo", "")
+            + HelpExampleRpc("getchainregistryinfo", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    ChainstateManager& chainman{EnsureAnyChainman(request.context)};
+    LOCK(cs_main);
+
+    const auto& params{chainman.GetConsensus().chain_registry};
+    const Chainstate& chainstate{chainman.ActiveChainstate()};
+    const auto& state{chainstate.ChainRegistryState().State()};
+    const int height{chainstate.m_chain.Height()};
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("enabled", params.Enabled());
+    result.pushKV("active", params.IsActive(height));
+    result.pushKV("active_for_next_block", params.IsActive(height + 1));
+    result.pushKV("activation_height", params.activation_height);
+    result.pushKV("minimum_registration_burn", ValueFromAmount(params.minimum_registration_burn));
+    result.pushKV("maximum_operations", params.maximum_operations);
+    result.pushKV("bestblockhash", state.best_block.GetHex());
+    result.pushKV("height", state.height);
+    result.pushKV("root", state.registry_root.GetHex());
+    result.pushKV("size", state.record_count);
+    return result;
+}
+    };
+}
+
+static RPCHelpMan listchildchains()
+{
+    return RPCHelpMan{
+        "listchildchains",
+        "List verified child-chain records in canonical chain_id order.\n",
+        {
+            {"start_after", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Return records strictly after this chain_id"},
+            {"limit", RPCArg::Type::NUM, RPCArg::Default{100}, "Maximum records to return (1-1000)"},
+            {"include_retired", RPCArg::Type::BOOL, RPCArg::Default{false}, "Include retired child chains"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "", {
+            {RPCResult::Type::STR_HEX, "bestblockhash", "Block hash paired with this registry view"},
+            {RPCResult::Type::NUM, "height", "Block height paired with this registry view"},
+            {RPCResult::Type::STR_HEX, "root", "Registry root for this view"},
+            {RPCResult::Type::NUM, "size", "Total records, including retired records"},
+            {RPCResult::Type::NUM, "returned", "Number of records returned"},
+            {RPCResult::Type::BOOL, "has_more", "Whether another matching page exists"},
+            {RPCResult::Type::STR_HEX, "next_start_after", /*optional=*/true, "Pass this value as start_after for the next page"},
+            {RPCResult::Type::ARR, "chains", "Child-chain records", {
+                {RPCResult::Type::OBJ, "", "", CHAIN_REGISTRY_RECORD_RESULT},
+            }},
+        }},
+        RPCExamples{
+            HelpExampleCli("listchildchains", "")
+            + HelpExampleCli("listchildchains", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" 25 true")
+            + HelpExampleRpc("listchildchains", "null, 100, false")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const auto start_after_arg{self.MaybeArg<std::string_view>("start_after")};
+    const int limit{self.Arg<int>("limit")};
+    const bool include_retired{self.Arg<bool>("include_retired")};
+    if (limit < 1 || limit > 1000) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "limit must be between 1 and 1000");
+    }
+
+    std::optional<chainregistry::ChainId> start_after;
+    if (start_after_arg) start_after = ParseChainId(*start_after_arg);
+
+    ChainstateManager& chainman{EnsureAnyChainman(request.context)};
+    LOCK(cs_main);
+    const Chainstate& chainstate{chainman.ActiveChainstate()};
+    const auto& registry_state{chainstate.ChainRegistryState()};
+    const auto& records{registry_state.Registry().Records()};
+    const auto& state{registry_state.State()};
+
+    auto it{start_after ? records.upper_bound(*start_after) : records.begin()};
+    UniValue chains{UniValue::VARR};
+    const chainregistry::ChainRecord* last_record{nullptr};
+    int returned{0};
+    bool has_more{false};
+    for (; it != records.end(); ++it) {
+        if (!include_retired && it->second.status == chainregistry::ChainStatus::RETIRED) continue;
+        if (returned == limit) {
+            has_more = true;
+            break;
+        }
+        chains.push_back(ChainRegistryRecordToUniv(it->second));
+        last_record = &it->second;
+        ++returned;
+    }
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("bestblockhash", state.best_block.GetHex());
+    result.pushKV("height", state.height);
+    result.pushKV("root", state.registry_root.GetHex());
+    result.pushKV("size", state.record_count);
+    result.pushKV("returned", returned);
+    result.pushKV("has_more", has_more);
+    if (has_more) result.pushKV("next_start_after", last_record->chain_id.GetHex());
+    result.pushKV("chains", std::move(chains));
+    return result;
+}
+    };
+}
+
+static RPCHelpMan getchildchain()
+{
+    return RPCHelpMan{
+        "getchildchain",
+        "Return a verified child-chain record and, optionally, a Merkle inclusion or non-inclusion proof.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The exact 32-byte child-chain identifier"},
+            {"include_proof", RPCArg::Type::BOOL, RPCArg::Default{false}, "Include a proof against the returned registry root"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "", {
+            {RPCResult::Type::STR_HEX, "bestblockhash", "Block hash paired with this registry view"},
+            {RPCResult::Type::NUM, "height", "Block height paired with this registry view"},
+            {RPCResult::Type::STR_HEX, "root", "Registry root against which proofs verify"},
+            {RPCResult::Type::BOOL, "found", "Whether the requested chain exists"},
+            {RPCResult::Type::OBJ, "chain", /*optional=*/true, "Registered child-chain record", CHAIN_REGISTRY_RECORD_RESULT},
+            {RPCResult::Type::OBJ, "inclusion_proof", /*optional=*/true, "Merkle inclusion proof", CHAIN_REGISTRY_INCLUSION_PROOF_RESULT},
+            {RPCResult::Type::OBJ, "non_inclusion_proof", /*optional=*/true, "Boundary proof showing the chain_id is absent", {
+                {RPCResult::Type::NUM, "leaf_count", "Number of leaves committed by the registry root"},
+                {RPCResult::Type::OBJ, "left", /*optional=*/true, "Immediate lower neighboring record and proof", {
+                    {RPCResult::Type::OBJ, "record", "Neighbor record", CHAIN_REGISTRY_RECORD_RESULT},
+                    {RPCResult::Type::OBJ, "proof", "Neighbor inclusion proof", CHAIN_REGISTRY_INCLUSION_PROOF_RESULT},
+                }},
+                {RPCResult::Type::OBJ, "right", /*optional=*/true, "Immediate higher neighboring record and proof", {
+                    {RPCResult::Type::OBJ, "record", "Neighbor record", CHAIN_REGISTRY_RECORD_RESULT},
+                    {RPCResult::Type::OBJ, "proof", "Neighbor inclusion proof", CHAIN_REGISTRY_INCLUSION_PROOF_RESULT},
+                }},
+            }},
+        }},
+        RPCExamples{
+            HelpExampleCli("getchildchain", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" true")
+            + HelpExampleRpc("getchildchain", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\", true")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const auto chain_id{ParseChainId(self.Arg<std::string_view>("chain_id"))};
+    const bool include_proof{self.Arg<bool>("include_proof")};
+
+    ChainstateManager& chainman{EnsureAnyChainman(request.context)};
+    LOCK(cs_main);
+    const Chainstate& chainstate{chainman.ActiveChainstate()};
+    const auto& registry_state{chainstate.ChainRegistryState()};
+    const auto& registry{registry_state.Registry()};
+    const auto& state{registry_state.State()};
+    const auto* record{registry.Find(chain_id)};
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("bestblockhash", state.best_block.GetHex());
+    result.pushKV("height", state.height);
+    result.pushKV("root", state.registry_root.GetHex());
+    result.pushKV("found", record != nullptr);
+    if (record) {
+        result.pushKV("chain", ChainRegistryRecordToUniv(*record));
+        if (include_proof) {
+            const auto proof{registry.GetInclusionProof(chain_id)};
+            Assume(proof.has_value());
+            result.pushKV("inclusion_proof", ChainRegistryInclusionProofToUniv(*proof));
+        }
+    } else if (include_proof) {
+        const auto proof{registry.GetNonInclusionProof(chain_id)};
+        Assume(proof.has_value());
+        result.pushKV("non_inclusion_proof", ChainRegistryNonInclusionProofToUniv(*proof));
+    }
+    return result;
+}
+    };
+}
+
 
 void RegisterBlockchainRPCCommands(CRPCTable& t)
 {
@@ -3334,6 +3611,9 @@ void RegisterBlockchainRPCCommands(CRPCTable& t)
         {"blockchain", &dumptxoutset},
         {"blockchain", &loadtxoutset},
         {"blockchain", &getchainstates},
+        {"blockchain", &getchainregistryinfo},
+        {"blockchain", &listchildchains},
+        {"blockchain", &getchildchain},
         {"hidden", &invalidateblock},
         {"hidden", &reconsiderblock},
         {"blockchain", &waitfornewblock},
