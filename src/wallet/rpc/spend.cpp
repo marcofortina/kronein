@@ -2029,4 +2029,172 @@ RPCHelpMan walletcreatechainregistrypsbt()
 },
     };
 }
+
+RPCHelpMan walletsubmitchainregistrypsbt()
+{
+    return RPCHelpMan{
+        "walletsubmitchainregistrypsbt",
+        "Validate, sign, finalize, and broadcast a funded child-chain registry PSBT.\n"
+        "Only the canonical KREG output may destroy value. REGISTER burns are capped by max_registration_burn, which defaults to the consensus minimum.\n" +
+        HELP_REQUIRING_PASSPHRASE,
+        {
+            {"psbt", RPCArg::Type::STR, RPCArg::Optional::NO, "Base64-encoded registry PSBT"},
+            {"max_registration_burn", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "Maximum REGISTER burn authorized by the caller; defaults to the consensus minimum"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Submitted registry transaction", {
+            {RPCResult::Type::STR_HEX, "txid", "Transaction identifier"},
+            {RPCResult::Type::STR_HEX, "hex", "Final network transaction"},
+            {RPCResult::Type::STR, "operation", "Registry operation type"},
+            {RPCResult::Type::STR_HEX, "chain_id", "Affected or derived child-chain identifier"},
+            {RPCResult::Type::STR_AMOUNT, "fee", "Transaction fee in KNE"},
+            {RPCResult::Type::STR_AMOUNT, "registration_burn", "Value destroyed by REGISTER, otherwise zero"},
+        }},
+        RPCExamples{
+            HelpExampleCli("walletsubmitchainregistrypsbt", "\"cHNidP8...\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const std::shared_ptr<CWallet> wallet_ptr{GetWalletForJSONRPCRequest(request)};
+    if (!wallet_ptr) return UniValue::VNULL;
+    CWallet& wallet{*wallet_ptr};
+    wallet.BlockUntilSyncedToCurrentChain();
+
+    const interfaces::ChainRegistrySnapshot initial_snapshot{
+        wallet.chain().getChainRegistrySnapshot()};
+    if (!initial_snapshot.enabled) {
+        throw JSONRPCError(RPC_MISC_ERROR, "child-chain registry is disabled on this network");
+    }
+    if (!initial_snapshot.active_for_next_block) {
+        throw JSONRPCError(RPC_MISC_ERROR, "child-chain registry is not active for the next block");
+    }
+
+    auto decoded{DecodeBase64PSBT(request.params[0].get_str())};
+    if (!decoded) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR,
+                           strprintf("PSBT decode failed: %s", util::ErrorString(decoded).original));
+    }
+    PartiallySignedTransaction psbt{std::move(*decoded)};
+    const auto unsigned_tx{psbt.GetUnsignedTx()};
+    if (!unsigned_tx) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "PSBT does not contain a complete unsigned transaction");
+    }
+
+    const CTransaction tx_template{*unsigned_tx};
+    const auto extracted{chainregistry::ExtractTransactionOperation(
+        tx_template, initial_snapshot.minimum_registration_burn)};
+    if (!extracted.IsValid() || !extracted.operation) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "PSBT does not contain one valid chain registry operation");
+    }
+
+    const CAmount maximum_burn{request.params[1].isNull()
+                                   ? initial_snapshot.minimum_registration_burn
+                                   : AmountFromValue(request.params[1])};
+    const uint32_t registry_output{extracted.operation->registry_output};
+    const CAmount registration_burn{tx_template.vout[registry_output].nValue};
+    if (registration_burn > maximum_burn) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           strprintf("registration burn %s KNE exceeds authorized maximum %s KNE",
+                                     FormatMoney(registration_burn), FormatMoney(maximum_burn)));
+    }
+    for (size_t index{0}; index < tx_template.vout.size(); ++index) {
+        if (index != registry_output && tx_template.vout[index].scriptPubKey.IsUnspendable()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               "PSBT contains an additional unspendable output");
+        }
+    }
+
+    std::string operation_name;
+    chainregistry::ChainId chain_id;
+    std::visit([&](const auto& payload) {
+        using Payload = std::decay_t<decltype(payload)>;
+        if constexpr (std::is_same_v<Payload, chainregistry::RegisterChain>) {
+            operation_name = "register";
+            chain_id = chainregistry::DeriveChainId(
+                initial_snapshot.main_genesis_hash,
+                tx_template.vin[payload.anchor_input].prevout,
+                chainregistry::ComputeChainSpecHash(payload.manifest.spec));
+        } else if constexpr (std::is_same_v<Payload, chainregistry::UpdateChain>) {
+            operation_name = "update";
+            chain_id = payload.chain_id;
+        } else {
+            operation_name = "retire";
+            chain_id = payload.chain_id;
+        }
+    }, extracted.operation->operation);
+
+    CAmount input_value{0};
+    {
+        LOCK(wallet.cs_wallet);
+        for (const auto& input : tx_template.vin) {
+            const CWalletTx* wallet_tx{wallet.GetWalletTx(input.prevout.hash)};
+            if (!wallet_tx || input.prevout.n >= wallet_tx->tx->vout.size() ||
+                !wallet.IsMine(wallet_tx->tx->vout[input.prevout.n])) {
+                throw JSONRPCError(
+                    RPC_INVALID_PARAMETER,
+                    strprintf("PSBT input %s:%d is not owned by this wallet",
+                              input.prevout.hash.ToString(), input.prevout.n));
+            }
+            const CAmount value{wallet_tx->tx->vout[input.prevout.n].nValue};
+            if (!MoneyRange(value) || !MoneyRange(input_value + value)) {
+                throw JSONRPCError(RPC_DESERIALIZATION_ERROR,
+                                   "PSBT input value is out of range");
+            }
+            input_value += value;
+        }
+    }
+
+    EnsureWalletIsUnlocked(wallet);
+    bool complete{false};
+    if (const auto error{wallet.FillPSBT(
+            psbt, {.sign = true, .finalize = true, .bip32_derivs = false}, complete)}) {
+        throw JSONRPCPSBTError(*error);
+    }
+    if (!complete) {
+        throw JSONRPCError(RPC_WALLET_ERROR,
+                           "wallet could not sign and finalize every registry transaction input");
+    }
+
+    CAmount output_value{0};
+    for (const auto& output : tx_template.vout) {
+        if (!MoneyRange(output.nValue) || !MoneyRange(output_value + output.nValue)) {
+            throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "PSBT output value is out of range");
+        }
+        output_value += output.nValue;
+    }
+    const CAmount fee{input_value - output_value};
+    if (fee < 0) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "PSBT transaction fee is negative");
+    }
+    if (fee > wallet.m_default_max_tx_fee) {
+        throw JSONRPCError(RPC_WALLET_ERROR,
+                           TransactionErrorString(TransactionError::MAX_FEE_EXCEEDED).original);
+    }
+
+    CMutableTransaction final_tx;
+    if (!FinalizeAndExtractPSBT(psbt, final_tx)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "failed to extract finalized registry transaction");
+    }
+    const std::string hex{EncodeHexTx(CTransaction{final_tx})};
+    const CTransactionRef tx{MakeTransactionRef(std::move(final_tx))};
+
+    std::string broadcast_error;
+    if (!wallet.chain().broadcastTransaction(
+            tx, wallet.m_default_max_tx_fee,
+            node::TxBroadcast::MEMPOOL_AND_BROADCAST_TO_ALL, broadcast_error)) {
+        throw JSONRPCError(RPC_VERIFY_REJECTED,
+                           strprintf("registry transaction rejected: %s", broadcast_error));
+    }
+    wallet.CommitTransaction(tx, {}, /*orderForm=*/{});
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("txid", tx->GetHash().GetHex());
+    result.pushKV("hex", hex);
+    result.pushKV("operation", operation_name);
+    result.pushKV("chain_id", chain_id.GetHex());
+    result.pushKV("fee", ValueFromAmount(fee));
+    result.pushKV("registration_burn", ValueFromAmount(registration_burn));
+    return result;
+},
+    };
+}
 } // namespace wallet

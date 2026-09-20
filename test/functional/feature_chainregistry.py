@@ -168,16 +168,20 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(registration_psbt["control_vout"], 1)
         assert_equal(registration_psbt["registry_bestblockhash"], node.getbestblockhash())
 
-        signed_registration = wallet.walletprocesspsbt(registration_psbt["psbt"])
-        assert_equal(signed_registration["complete"], True)
-        decoded_registration_tx = node.decoderawtransaction(signed_registration["hex"])
+        assert_raises_rpc_error(-8, "exceeds authorized maximum",
+                                wallet.walletsubmitchainregistrypsbt,
+                                registration_psbt["psbt"], Decimal("0.50000000"))
+        submitted_registration = wallet.walletsubmitchainregistrypsbt(registration_psbt["psbt"])
+        assert_equal(submitted_registration["operation"], "register")
+        assert_equal(submitted_registration["chain_id"], registration_psbt["chain_id"])
+        assert_equal(submitted_registration["registration_burn"], Decimal("1.00000000"))
+        decoded_registration_tx = node.decoderawtransaction(submitted_registration["hex"])
         assert_equal(decoded_registration_tx["vin"][0]["txid"], registration_anchor["txid"])
         assert_equal(decoded_registration_tx["vin"][0]["vout"], registration_anchor["vout"])
         assert_equal(decoded_registration_tx["vout"][0]["value"], Decimal("1.00000000"))
         assert_equal(decoded_registration_tx["vout"][0]["scriptPubKey"]["type"], "nulldata")
         assert_equal(decoded_registration_tx["vout"][1]["scriptPubKey"]["address"], control_address)
-        registration_txid = node.sendrawtransaction(
-            signed_registration["hex"], maxburnamount=Decimal("1.00000000"))
+        registration_txid = submitted_registration["txid"]
         assert_equal(registration_txid, decoded_registration_tx["txid"])
         self.generatetoaddress(node, 1, wallet.getnewaddress())
 
@@ -202,15 +206,16 @@ class ChainRegistryTest(BitcoinTestFramework):
             "txid": registration_txid,
             "vout": 1,
         })
-        signed_update = wallet.walletprocesspsbt(update_psbt["psbt"])
-        assert_equal(signed_update["complete"], True)
-        decoded_update_tx = node.decoderawtransaction(signed_update["hex"])
+        submitted_update = wallet.walletsubmitchainregistrypsbt(update_psbt["psbt"])
+        assert_equal(submitted_update["operation"], "update")
+        assert_equal(submitted_update["registration_burn"], Decimal("0.00000000"))
+        decoded_update_tx = node.decoderawtransaction(submitted_update["hex"])
         assert_equal(decoded_update_tx["vin"][0]["txid"], registration_txid)
         assert_equal(decoded_update_tx["vin"][0]["vout"], 1)
         assert_equal(decoded_update_tx["vout"][0]["value"], Decimal("0.00000000"))
         assert_equal(decoded_update_tx["vout"][0]["scriptPubKey"]["type"], "nulldata")
         assert_equal(decoded_update_tx["vout"][1]["scriptPubKey"]["address"], successor_address)
-        update_txid = node.sendrawtransaction(signed_update["hex"])
+        update_txid = submitted_update["txid"]
         self.generatetoaddress(node, 1, wallet.getnewaddress())
 
         updated = node.getchildchain(chain_id)
@@ -222,13 +227,13 @@ class ChainRegistryTest(BitcoinTestFramework):
         }, {"fee_rate": 1})
         assert "control_vout" not in retirement_psbt
         assert_equal(retirement_psbt["authority_outpoint"], {"txid": update_txid, "vout": 1})
-        signed_retirement = wallet.walletprocesspsbt(retirement_psbt["psbt"])
-        assert_equal(signed_retirement["complete"], True)
-        decoded_retirement_tx = node.decoderawtransaction(signed_retirement["hex"])
+        submitted_retirement = wallet.walletsubmitchainregistrypsbt(retirement_psbt["psbt"])
+        assert_equal(submitted_retirement["operation"], "retire")
+        decoded_retirement_tx = node.decoderawtransaction(submitted_retirement["hex"])
         assert_equal(decoded_retirement_tx["vin"][0]["txid"], update_txid)
         assert_equal(decoded_retirement_tx["vin"][0]["vout"], 1)
         assert_equal(decoded_retirement_tx["vout"][0]["value"], Decimal("0.00000000"))
-        retirement_txid = node.sendrawtransaction(signed_retirement["hex"])
+        retirement_txid = submitted_retirement["txid"]
         assert_equal(retirement_txid, decoded_retirement_tx["txid"])
         self.generatetoaddress(node, 1, wallet.getnewaddress())
 
