@@ -2610,6 +2610,7 @@ bool Chainstate::FlushStateToDisk(
     LOCK(cs_main);
     assert(this->CanFlushToDisk());
     std::set<int> setFilesToPrune;
+    std::vector<uint256> registry_undo_to_prune;
     bool full_flush_completed = false;
 
     [[maybe_unused]] const size_t coins_count{CoinsTip().GetCacheSize()};
@@ -2646,12 +2647,14 @@ bool Chainstate::FlushStateToDisk(
 
                 m_blockman.FindFilesToPruneManual(
                     setFilesToPrune,
+                    registry_undo_to_prune,
                     std::min(last_prune, nManualPruneHeight),
                     *this);
             } else {
                 LOG_TIME_MILLIS_WITH_CATEGORY("find files to prune", BCLog::BENCH);
 
-                m_blockman.FindFilesToPrune(setFilesToPrune, last_prune, *this, m_chainman);
+                m_blockman.FindFilesToPrune(
+                    setFilesToPrune, registry_undo_to_prune, last_prune, *this, m_chainman);
                 m_blockman.m_check_for_pruning = false;
             }
             if (!setFilesToPrune.empty()) {
@@ -2701,6 +2704,19 @@ bool Chainstate::FlushStateToDisk(
             // Finally remove any pruned files
             if (fFlushForPrune) {
                 LOG_TIME_MILLIS_WITH_CATEGORY("unlink pruned files", BCLog::BENCH);
+
+                for (const auto& chainstate : m_chainman.m_chainstates) {
+                    if (!chainstate || !chainstate->ChainRegistryState().IsInitialized()) continue;
+                    const auto registry_prune{chainstate->ChainRegistryState().PruneUndo(
+                        registry_undo_to_prune, /*sync=*/true)};
+                    if (!registry_prune.IsValid()) {
+                        return FatalError(
+                            m_chainman.GetNotifications(), state,
+                            Untranslated(strprintf(
+                                "Failed to prune child chain registry undo data (state error %u)",
+                                static_cast<unsigned>(registry_prune.error))));
+                    }
+                }
 
                 m_blockman.UnlinkPrunedFiles(setFilesToPrune);
             }

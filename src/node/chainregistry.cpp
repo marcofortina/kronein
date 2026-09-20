@@ -195,4 +195,15 @@ ChainRegistryStateResult ChainRegistryState::DisconnectBlock(const uint256& bloc
     return {};
 }
 
+ChainRegistryStateResult ChainRegistryState::PruneUndo(std::span<const uint256> block_hashes,
+                                                       bool sync)
+{
+    if (!m_initialized) return StateError(ChainRegistryStateError::NOT_INITIALIZED);
+    if (!Enabled() || block_hashes.empty()) return {};
+    if (!m_db->EraseUndo(block_hashes, sync)) {
+        return StateError(ChainRegistryStateError::DATABASE_WRITE_FAILED);
+    }
+    return {};
+}
+
 } // namespace node

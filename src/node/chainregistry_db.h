@@ -11,6 +11,7 @@
 #include <uint256.h>
 
 #include <cstdint>
+#include <span>
 
 namespace node {
 
@@ -86,6 +87,8 @@ public:
                                 const uint256& disconnected_block_hash,
                                 const chainregistry::RegistryBlockUndo& undo,
                                 bool sync = false);
+
+    bool EraseUndo(std::span<const uint256> block_hashes, bool sync = false);
 
     bool ReadUndo(const uint256& block_hash, chainregistry::RegistryBlockUndo& undo) const;
     bool ReadRecord(const chainregistry::ChainId& chain_id, chainregistry::ChainRecord& record) const;

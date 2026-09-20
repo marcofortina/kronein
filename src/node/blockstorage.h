@@ -228,6 +228,7 @@ private:
     /* Calculate the block/rev files to delete based on height specified by user with RPC command pruneblockchain */
     void FindFilesToPruneManual(
         std::set<int>& setFilesToPrune,
+        std::vector<uint256>& registry_undo_to_prune,
         int nManualPruneHeight,
         const Chainstate& chain);
 
@@ -249,6 +250,7 @@ private:
      */
     void FindFilesToPrune(
         std::set<int>& setFilesToPrune,
+        std::vector<uint256>& registry_undo_to_prune,
         int last_prune,
         const Chainstate& chain,
         ChainstateManager& chainman);
@@ -371,7 +373,9 @@ public:
     CBlockIndex* InsertBlockIndex(const uint256& hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
     //! Mark one block file as pruned (modify associated database entries)
-    void PruneOneBlockFile(int fileNumber) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    void PruneOneBlockFile(int fileNumber,
+                           std::vector<uint256>* registry_undo_to_prune = nullptr)
+        EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
     CBlockIndex* LookupBlockIndex(const uint256& hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     const CBlockIndex* LookupBlockIndex(const uint256& hash) const EXCLUSIVE_LOCKS_REQUIRED(cs_main);

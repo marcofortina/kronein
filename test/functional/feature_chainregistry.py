@@ -313,6 +313,31 @@ class ChainRegistryTest(BitcoinTestFramework):
             assert_equal(rebuilt_chain["chain"]["status"], "retired")
             assert "inclusion_proof" in rebuilt_chain
 
+        self.log.info("Preserve the current registry while pruning block and registry undo data")
+        prune_args = registry_args + ["-prune=1", "-fastprune"]
+        self.restart_node(0, prune_args)
+        node = self.nodes[0]
+        node.loadwallet("registry")
+        wallet = node.get_wallet_rpc("registry")
+        self.generatetoaddress(node, 500, wallet.getnewaddress())
+        prune_target = node.getblockcount() - 288
+        assert node.pruneblockchain(prune_target) > 0
+        blockchain_info = node.getblockchaininfo()
+        assert_equal(blockchain_info["pruned"], True)
+        assert blockchain_info["pruneheight"] > 0
+
+        pruned_registry_info = node.getchainregistryinfo()
+        assert_equal(pruned_registry_info["root"], retired_info["root"])
+        assert_equal(pruned_registry_info["size"], retired_info["size"])
+        pruned_chain = node.getchildchain(chain_id, True)
+        assert_equal(pruned_chain["chain"]["status"], "retired")
+        assert "inclusion_proof" in pruned_chain
+
+        self.restart_node(0, prune_args)
+        node = self.nodes[0]
+        assert_equal(node.getchainregistryinfo()["root"], retired_info["root"])
+        assert_equal(node.getchildchain(chain_id, True)["chain"]["status"], "retired")
+
 
 if __name__ == "__main__":
     ChainRegistryTest(__file__).main()

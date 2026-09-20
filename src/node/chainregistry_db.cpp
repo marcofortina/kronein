@@ -188,6 +188,18 @@ bool ChainRegistryDB::WriteDisconnectedBlock(const chainregistry::ChainRegistry&
     return true;
 }
 
+bool ChainRegistryDB::EraseUndo(std::span<const uint256> block_hashes, bool sync)
+{
+    if (block_hashes.empty()) return true;
+
+    CDBBatch batch{m_db};
+    for (const auto& block_hash : block_hashes) {
+        batch.Erase(UndoKey{DB_REGISTRY_UNDO, block_hash});
+    }
+    m_db.WriteBatch(batch, sync);
+    return true;
+}
+
 bool ChainRegistryDB::ReadUndo(const uint256& block_hash, chainregistry::RegistryBlockUndo& undo) const
 {
     return m_db.Read(UndoKey{DB_REGISTRY_UNDO, block_hash}, undo);

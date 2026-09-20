@@ -257,7 +257,8 @@ CBlockIndex* BlockManager::AddToBlockIndex(const CBlockHeader& block, CBlockInde
     return pindexNew;
 }
 
-void BlockManager::PruneOneBlockFile(const int fileNumber)
+void BlockManager::PruneOneBlockFile(const int fileNumber,
+                                     std::vector<uint256>* registry_undo_to_prune)
 {
     AssertLockHeld(cs_main);
     LOCK(cs_LastBlockFile);
@@ -265,6 +266,9 @@ void BlockManager::PruneOneBlockFile(const int fileNumber)
     for (auto& entry : m_block_index) {
         CBlockIndex* pindex = &entry.second;
         if (pindex->nFile == fileNumber) {
+            if (registry_undo_to_prune) {
+                registry_undo_to_prune->push_back(pindex->GetBlockHash());
+            }
             pindex->nStatus &= ~BLOCK_HAVE_DATA;
             pindex->nStatus &= ~BLOCK_HAVE_UNDO;
             pindex->nFile = 0;
@@ -293,6 +297,7 @@ void BlockManager::PruneOneBlockFile(const int fileNumber)
 
 void BlockManager::FindFilesToPruneManual(
     std::set<int>& setFilesToPrune,
+    std::vector<uint256>& registry_undo_to_prune,
     int nManualPruneHeight,
     const Chainstate& chain)
 {
@@ -312,7 +317,7 @@ void BlockManager::FindFilesToPruneManual(
             continue;
         }
 
-        PruneOneBlockFile(fileNumber);
+        PruneOneBlockFile(fileNumber, &registry_undo_to_prune);
         setFilesToPrune.insert(fileNumber);
         count++;
     }
@@ -322,6 +327,7 @@ void BlockManager::FindFilesToPruneManual(
 
 void BlockManager::FindFilesToPrune(
     std::set<int>& setFilesToPrune,
+    std::vector<uint256>& registry_undo_to_prune,
     int last_prune,
     const Chainstate& chain,
     ChainstateManager& chainman)
@@ -387,7 +393,7 @@ void BlockManager::FindFilesToPrune(
                 continue;
             }
 
-            PruneOneBlockFile(fileNumber);
+            PruneOneBlockFile(fileNumber, &registry_undo_to_prune);
             // Queue up the files for removal
             setFilesToPrune.insert(fileNumber);
             nCurrentUsage -= nBytesToPrune;

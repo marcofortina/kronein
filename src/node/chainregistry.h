@@ -12,6 +12,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <span>
 
 class CBlock;
 
@@ -74,6 +75,8 @@ public:
                                              const uint256& parent_hash,
                                              int parent_height,
                                              bool sync = false);
+    ChainRegistryStateResult PruneUndo(std::span<const uint256> block_hashes,
+                                       bool sync = false);
 
     bool Enabled() const { return m_params.Enabled(); }
     bool IsInitialized() const { return m_initialized; }

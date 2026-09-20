@@ -151,6 +151,16 @@ BOOST_AUTO_TEST_CASE(registry_db_connect_load_disconnect)
         BOOST_REQUIRE(db.Load(loaded, loaded_state).IsValid());
         BOOST_CHECK(loaded_state == state_one);
         BOOST_CHECK_EQUAL(loaded.Size(), 1U);
+
+        BOOST_REQUIRE(db.EraseUndo({&block_one, 1}, /*sync=*/true));
+        chainregistry::RegistryBlockUndo erased_undo;
+        BOOST_CHECK(!db.ReadUndo(block_one, erased_undo));
+
+        chainregistry::ChainRegistry reloaded;
+        node::ChainRegistryDBState reloaded_state;
+        BOOST_REQUIRE(db.Load(reloaded, reloaded_state).IsValid());
+        BOOST_CHECK(reloaded_state == state_one);
+        BOOST_CHECK_EQUAL(reloaded.ComputeRoot().GetHex(), state_one.registry_root.GetHex());
     }
 }
 
