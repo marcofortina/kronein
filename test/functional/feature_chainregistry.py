@@ -47,6 +47,25 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(len(derived["chain_spec_hash"]), 64)
         assert_equal(len(derived["chain_id"]), 64)
 
+        fund = node.createfundchainoutput(derived["chain_id"], 1, "00" * 32)
+        assert_equal(fund["version"], 1)
+        assert_equal(fund["chain_id"], derived["chain_id"])
+        assert_equal(fund["recipient_type"], 1)
+        assert_equal(fund["recipient"], "00" * 32)
+        assert_equal(node.decodefundchainoutput(fund["script"]), fund)
+        assert_equal(fund["script"], node.decoderawtransaction(
+            node.createrawtransaction([], [{"data": fund["data"]}]))["vout"][0]["scriptPubKey"]["hex"])
+        assert_raises_rpc_error(-8, "chain_id must not be null",
+                                node.createfundchainoutput, "00" * 32, 1, "00")
+        assert_raises_rpc_error(-8, "recipient_type must be between 1 and 65535",
+                                node.createfundchainoutput, derived["chain_id"], 0, "00")
+        assert_raises_rpc_error(-8, "recipient must contain at least 1 byte",
+                                node.createfundchainoutput, derived["chain_id"], 1, "")
+        assert_raises_rpc_error(-8, "recipient must not exceed 64 bytes",
+                                node.createfundchainoutput, derived["chain_id"], 1, "00" * 65)
+        assert_raises_rpc_error(-22, "invalid FUND_CHAIN output",
+                                node.decodefundchainoutput, "6a")
+
         registration = node.createchainregistryoperation("register", {
             "anchor_input": 0,
             "control_output": 1,

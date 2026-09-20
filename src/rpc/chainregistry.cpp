@@ -3,6 +3,7 @@
 // file COPYING or https://opensource.org/license/mit/.
 
 #include <primitives/chainregistry.h>
+#include <primitives/deposit.h>
 #include <primitives/transaction.h>
 #include <rpc/server.h>
 #include <rpc/server_util.h>
@@ -194,7 +195,7 @@ UniValue OutPointToUniv(const COutPoint& outpoint)
     return result;
 }
 
-std::vector<unsigned char> OperationData(const CScript& script)
+std::vector<unsigned char> OpReturnData(const CScript& script)
 {
     auto cursor{script.begin()};
     opcodetype opcode;
@@ -202,6 +203,15 @@ std::vector<unsigned char> OperationData(const CScript& script)
     Assume(script.GetOp(cursor, opcode) && opcode == OP_RETURN);
     Assume(script.GetOp(cursor, opcode, data) && cursor == script.end());
     return data;
+}
+
+UniValue FundToUniv(const chainregistry::FundChain& fund)
+{
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", fund.chain_id.GetHex());
+    result.pushKV("recipient_type", fund.recipient_type);
+    result.pushKV("recipient", HexStr(fund.recipient));
+    return result;
 }
 
 UniValue OperationToUniv(const chainregistry::RegistryOperation& operation)
@@ -303,6 +313,104 @@ RPCHelpMan derivechildchainid()
     };
 }
 
+RPCHelpMan createfundchainoutput()
+{
+    return RPCHelpMan{
+        "createfundchainoutput",
+        "Create a canonical, provably unspendable KFND script for a one-way child-chain deposit. The amount is the value assigned to this output by the containing transaction and is not duplicated in the payload.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Active child-chain identifier"},
+            {"recipient_type", RPCArg::Type::NUM, RPCArg::Optional::NO, "Non-zero recipient namespace defined by the child template"},
+            {"recipient", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Canonical child recipient bytes (1-64 bytes)"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "", {
+            {RPCResult::Type::NUM, "version", "KFND envelope version"},
+            {RPCResult::Type::STR_HEX, "chain_id", "Destination child-chain identifier"},
+            {RPCResult::Type::NUM, "recipient_type", "Child-template recipient namespace"},
+            {RPCResult::Type::STR_HEX, "recipient", "Canonical raw child recipient"},
+            {RPCResult::Type::STR_HEX, "script", "Canonical OP_RETURN scriptPubKey"},
+            {RPCResult::Type::STR_HEX, "data", "Raw KFND envelope, suitable for a createrawtransaction data output"},
+        }},
+        RPCExamples{
+            HelpExampleCli("createfundchainoutput", "\"1111111111111111111111111111111111111111111111111111111111111111\" 1 \"001122\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest&) -> UniValue
+{
+    const auto chain_id{ParseChainId(self.Arg<UniValue>("chain_id"))};
+    const uint32_t recipient_type{ParseUint32(
+        self.Arg<UniValue>("recipient_type"), "recipient_type")};
+    if (recipient_type == 0 || recipient_type > std::numeric_limits<uint16_t>::max()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "recipient_type must be between 1 and 65535");
+    }
+    const UniValue recipient_arg{self.Arg<UniValue>("recipient")};
+    if (recipient_arg.get_str().empty()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "recipient must contain at least 1 byte");
+    }
+    chainregistry::FundChain fund{
+        .chain_id = chain_id,
+        .recipient_type = static_cast<uint16_t>(recipient_type),
+        .recipient = ParseHexV(recipient_arg, "recipient"),
+    };
+    switch (chainregistry::ValidateFund(fund)) {
+    case chainregistry::FundValidationError::NONE:
+        break;
+    case chainregistry::FundValidationError::EMPTY_RECIPIENT:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "recipient must contain at least 1 byte");
+    case chainregistry::FundValidationError::RECIPIENT_TOO_LARGE:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "recipient must not exceed 64 bytes");
+    default:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "invalid FUND_CHAIN destination");
+    }
+
+    const CScript script{chainregistry::BuildFundScript(fund)};
+    UniValue result{FundToUniv(fund)};
+    result.pushKV("version", chainregistry::FUND_ENVELOPE_VERSION);
+    result.pushKV("script", HexStr(script));
+    result.pushKV("data", HexStr(OpReturnData(script)));
+    return result;
+}
+    };
+}
+
+RPCHelpMan decodefundchainoutput()
+{
+    return RPCHelpMan{
+        "decodefundchainoutput",
+        "Decode and validate a canonical KFND script. The deposit amount is carried by the transaction output value and is therefore not returned by this script-only decoder.\n",
+        {
+            {"script", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Hex-encoded scriptPubKey"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Decoded FUND_CHAIN destination", {
+            {RPCResult::Type::NUM, "version", "KFND envelope version"},
+            {RPCResult::Type::STR_HEX, "chain_id", "Destination child-chain identifier"},
+            {RPCResult::Type::NUM, "recipient_type", "Child-template recipient namespace"},
+            {RPCResult::Type::STR_HEX, "recipient", "Canonical raw child recipient"},
+            {RPCResult::Type::STR_HEX, "script", "Canonical OP_RETURN scriptPubKey"},
+            {RPCResult::Type::STR_HEX, "data", "Raw KFND envelope"},
+        }},
+        RPCExamples{
+            HelpExampleCli("decodefundchainoutput", "\"6a...\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest&) -> UniValue
+{
+    const auto script_bytes{ParseHexV(self.Arg<UniValue>("script"), "script")};
+    const CScript script{script_bytes.begin(), script_bytes.end()};
+    const auto parsed{chainregistry::ParseFundScript(script)};
+    if (!parsed) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR,
+                           strprintf("invalid FUND_CHAIN output (parse error %u)",
+                                     static_cast<unsigned>(parsed.error)));
+    }
+
+    UniValue result{FundToUniv(*parsed.fund)};
+    result.pushKV("version", chainregistry::FUND_ENVELOPE_VERSION);
+    result.pushKV("script", HexStr(script));
+    result.pushKV("data", HexStr(OpReturnData(script)));
+    return result;
+}
+    };
+}
+
 RPCHelpMan createchainregistryoperation()
 {
     return RPCHelpMan{
@@ -397,7 +505,7 @@ RPCHelpMan createchainregistryoperation()
     const CScript script{chainregistry::BuildOperationScript(operation)};
     UniValue result{OperationToUniv(operation)};
     result.pushKV("script", HexStr(script));
-    result.pushKV("data", HexStr(OperationData(script)));
+    result.pushKV("data", HexStr(OpReturnData(script)));
     if (const auto* registration{std::get_if<chainregistry::RegisterChain>(&operation)}) {
         const auto spec_hash{chainregistry::ComputeChainSpecHash(registration->manifest.spec)};
         const uint256& main_genesis_hash{EnsureAnyChainman(request.context).GetConsensus().hashGenesisBlock};
@@ -447,7 +555,7 @@ RPCHelpMan decodechainregistryoperation()
 
     UniValue result{OperationToUniv(*parsed.operation)};
     result.pushKV("script", HexStr(script));
-    result.pushKV("data", HexStr(OperationData(script)));
+    result.pushKV("data", HexStr(OpReturnData(script)));
     if (const auto* registration{std::get_if<chainregistry::RegisterChain>(&*parsed.operation)}) {
         if (const UniValue* anchor_arg{self.MaybeArg<UniValue>("registration_anchor")}) {
             const COutPoint anchor{ParseOutPoint(*anchor_arg, "registration_anchor")};
@@ -469,6 +577,8 @@ void RegisterChainRegistryRPCCommands(CRPCTable& table)
 {
     static const CRPCCommand commands[]{
         {"util", &derivechildchainid},
+        {"util", &createfundchainoutput},
+        {"util", &decodefundchainoutput},
         {"util", &createchainregistryoperation},
         {"util", &decodechainregistryoperation},
     };
