@@ -23,17 +23,22 @@ miner
 You will first need to pick a difficulty target. Since signet chains are primarily protected by a signature rather than proof of work, there is no need to spend as much energy as possible mining, however you may wish to choose to spend more time than the absolute minimum. The calibrate subcommand can be used to pick a target appropriate for your hardware, eg:
 
     MINER="./contrib/signet/miner"
-    GRIND="./build/bin/kronein-util grind"
-    $MINER calibrate --grind-cmd="$GRIND"
-    nbits=1e00f403 for 25s average mining time
+    GRIND="./build/bin/kronein-util -signet -randomxlight grind"
+    CALIBRATION=$($MINER calibrate --grind-cmd="$GRIND")
+    echo "$CALIBRATION"
+    NBITS=$(printf '%s\n' "$CALIBRATION" | sed -n 's/^nbits=\([0-9a-f]\{8\}\).*/\1/p')
 
 It defaults to estimating an nbits value resulting in 25s average time to find a block, but the --seconds parameter can be used to pick a different target, or the --nbits parameter can be used to estimate how long it will take for a given difficulty.
+
+Calibration sends `header [randomx-seed]` requests to `$GRIND -` over standard
+input. The bundled utility keeps one RandomX cache or dataset alive for the
+whole sample instead of rebuilding it for every trial. Custom grinders used
+with `calibrate` must implement the same line-oriented interface.
 
 To mine the first block in your custom chain, you can run:
 
     CLI="./build/bin/kronein-cli -conf=mysignet.conf"
     ADDR=$($CLI -signet getnewaddress)
-    NBITS=1e00f403
     $MINER --cli="$CLI" generate --grind-cmd="$GRIND" --address="$ADDR" --nbits=$NBITS
 
 This will mine a single block with a backdated timestamp designed to allow 100 blocks to be mined as quickly as possible, so that it is possible to do transactions.
