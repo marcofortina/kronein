@@ -1,4 +1,5 @@
 // Copyright (c) 2009-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -102,7 +103,7 @@ static void initialize()
     SeedRandomStateForTest(SeedRand::ZEROS);
 
     // Set time to the genesis block timestamp for deterministic initialization.
-    SetMockTime(std::chrono::seconds{1231006505});
+    SetMockTime(std::chrono::seconds{1789776000});
 
     // Terminate immediately if a fuzzing harness ever tries to create a socket.
     // Individual tests can override this by pointing CreateSock to a mocked alternative.

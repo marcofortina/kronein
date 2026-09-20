@@ -89,7 +89,8 @@ CBlock BuildChainTestingSetup::CreateBlock(const CBlockIndex* prev,
         block.hashMerkleRoot = BlockMerkleRoot(block);
     }
 
-    while (!CheckProofOfWork(block.GetHash(), block.nBits, m_node.chainman->GetConsensus())) ++block.nNonce;
+    uint64_t max_tries{std::numeric_limits<uint32_t>::max()};
+    BOOST_REQUIRE(MineProofOfWork(block, m_node.chainman->GetConsensus(), max_tries));
 
     return block;
 }

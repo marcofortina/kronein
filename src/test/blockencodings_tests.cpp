@@ -51,7 +51,8 @@ static CBlock BuildBlockTestCase(FastRandomContext& ctx) {
     bool mutated;
     block.hashMerkleRoot = BlockMerkleRoot(block, &mutated);
     assert(!mutated);
-    while (!CheckProofOfWork(block.GetHash(), block.nBits, Params().GetConsensus())) ++block.nNonce;
+    uint64_t max_tries{std::numeric_limits<uint32_t>::max()};
+    BOOST_REQUIRE(MineProofOfWork(block, Params().GetConsensus(), max_tries));
     return block;
 }
 
@@ -281,7 +282,8 @@ BOOST_AUTO_TEST_CASE(EmptyBlockRoundTripTest)
     bool mutated;
     block.hashMerkleRoot = BlockMerkleRoot(block, &mutated);
     assert(!mutated);
-    while (!CheckProofOfWork(block.GetHash(), block.nBits, Params().GetConsensus())) ++block.nNonce;
+    uint64_t max_tries{std::numeric_limits<uint32_t>::max()};
+    BOOST_REQUIRE(MineProofOfWork(block, Params().GetConsensus(), max_tries));
 
     // Test simple header round-trip with only coinbase
     {

@@ -75,8 +75,8 @@ std::string byte_span_to_hex_string_reversed(std::span<const std::byte> bytes)
     return oss.str();
 }
 
-constexpr std::string_view NATIVE_TX{"01000000013fa9412f35c42bb2b03353db325bb9e7724a1281d40606688ad852a6e86cf0880000000000fdffffff02fc0a102401000000225120eca7e5fc42990da1c2b52cf676e634aa483836ec848f7a70618584b049df1c0c00e1f505000000002251201b9268693c1923fdbffa80c8a91c712aac5a2dc8870daabe89b525b823d56d0d0140438ee2d86f85c29d5f114e248e7dc80f8957c7db6ce29e009db5db169ee338aaac0257c556ee7a74bd20bf80280030cf1f182509974dd14c1c25284d078c54b9cc000000"};
-constexpr std::string_view NATIVE_TX_2{"0100000001a480b701887819bc9b8247fef16657921410f65ae484532662a6be52ed4bebec0100000000fdffffff01605af405000000002251201b9268693c1923fdbffa80c8a91c712aac5a2dc8870daabe89b525b823d56d0d014042c3cb45036103a6e9dafb331e5e33e2ace687ec610f1f01bcb93b4d9ef405778112e171d7308ca97bf545a6da48a614dba1891e9d905ede3d107b2610ffeed800000000"};
+constexpr std::string_view NATIVE_TX{REGTEST_TRANSACTION_DATA};
+constexpr std::string_view NATIVE_TX_2{REGTEST_TRANSACTION_DATA_2};
 constexpr std::string_view NATIVE_TWO_INPUT_TX{"010000000201000000000000000000000000000000000000000000000000000000000000000000000000fdffffff02000000000000000000000000000000000000000000000000000000000000000100000000fdffffff0100e1f505000000002251201b9268693c1923fdbffa80c8a91c712aac5a2dc8870daabe89b525b823d56d0d000000000000"};
 
 void check_equal(std::span<const std::byte> _actual, std::span<const std::byte> _expected, bool equal = true)
@@ -483,7 +483,7 @@ BOOST_AUTO_TEST_CASE(btck_precomputed_txdata) {
 
 BOOST_AUTO_TEST_CASE(btck_script_verify_tests)
 {
-    auto taproot_spent_script_pubkey{ScriptPubkey{hex_string_to_byte_vec("51201b9268693c1923fdbffa80c8a91c712aac5a2dc8870daabe89b525b823d56d0d")}};
+    auto taproot_spent_script_pubkey{ScriptPubkey{hex_string_to_byte_vec(REGTEST_SPENT_SCRIPT_DATA)}};
     auto taproot_spending_tx{Transaction{hex_string_to_byte_vec(NATIVE_TX_2)}};
     std::vector<TransactionOutput> taproot_spent_outputs;
     taproot_spent_outputs.emplace_back(taproot_spent_script_pubkey, 100000000);
@@ -556,7 +556,7 @@ BOOST_AUTO_TEST_CASE(btck_block_header_tests)
 
     // Block header format: version(4) + prev_hash(32) + merkle_root(32) + timestamp(4) + bits(4) + nonce(4) = 80 bytes
     BlockHeader header_0{block_header_data(REGTEST_BLOCK_DATA[0])};
-    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(header_0.Hash().ToBytes()), "02b546c9752f33adb2a563c6caf74b78857a0ab4214c62e057d77bed74471abf");
+    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(header_0.Hash().ToBytes()), REGTEST_FIRST_BLOCK_HASH);
     BlockHeader header_1{block_header_data(REGTEST_BLOCK_DATA[1])};
     CheckHandle(header_0, header_1);
 
@@ -567,21 +567,21 @@ BOOST_AUTO_TEST_CASE(btck_block_header_tests)
     // Test all header field accessors using a native regtest header.
     BlockHeader header{block_header_data(REGTEST_BLOCK_DATA[1])};
     BOOST_CHECK_EQUAL(header.Version(), 1);
-    BOOST_CHECK_EQUAL(header.Timestamp(), 1700000001);
-    BOOST_CHECK_EQUAL(header.Bits(), 0x207fffff);
-    BOOST_CHECK_EQUAL(header.Nonce(), 0);
-    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(header.Hash().ToBytes()), "635ef2420bd4cd1d55ae0855d22c5f89effb4ada14b074ae413af86f7d51563c");
+    BOOST_CHECK_EQUAL(header.Timestamp(), REGTEST_SECOND_BLOCK_TIME);
+    BOOST_CHECK_EQUAL(header.Bits(), REGTEST_FIRST_BLOCK_BITS);
+    BOOST_CHECK_EQUAL(header.Nonce(), REGTEST_SECOND_BLOCK_NONCE);
+    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(header.Hash().ToBytes()), REGTEST_SECOND_BLOCK_HASH);
     auto prev_hash = header.PrevHash();
-    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(prev_hash.ToBytes()), "02b546c9752f33adb2a563c6caf74b78857a0ab4214c62e057d77bed74471abf");
+    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(prev_hash.ToBytes()), REGTEST_FIRST_BLOCK_HASH);
 
     auto raw_block = hex_string_to_byte_vec(REGTEST_BLOCK_DATA[0]);
     Block block{raw_block};
     BlockHeader block_header{block.GetHeader()};
     BOOST_CHECK_EQUAL(block_header.Version(), 1);
-    BOOST_CHECK_EQUAL(block_header.Timestamp(), 1700000000);
-    BOOST_CHECK_EQUAL(block_header.Bits(), 0x207fffff);
-    BOOST_CHECK_EQUAL(block_header.Nonce(), 0);
-    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(block_header.Hash().ToBytes()), "02b546c9752f33adb2a563c6caf74b78857a0ab4214c62e057d77bed74471abf");
+    BOOST_CHECK_EQUAL(block_header.Timestamp(), REGTEST_FIRST_BLOCK_TIME);
+    BOOST_CHECK_EQUAL(block_header.Bits(), REGTEST_FIRST_BLOCK_BITS);
+    BOOST_CHECK_EQUAL(block_header.Nonce(), REGTEST_FIRST_BLOCK_NONCE);
+    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(block_header.Hash().ToBytes()), REGTEST_FIRST_BLOCK_HASH);
 }
 
 BOOST_AUTO_TEST_CASE(btck_block)
@@ -751,11 +751,11 @@ void chainman_regtest_validation_test(TestDirectory& test_directory)
     Block block{raw_block};
     BlockHeader header{block.GetHeader()};
     TransactionView tx{block.GetTransaction(block.CountTransactions() - 1)};
-    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(tx.Txid().ToBytes()), "52f4eee46d214c662780b1f9e79e62f5a88e83f096e11cd17e9fede4eab354b1");
+    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(tx.Txid().ToBytes()), REGTEST_FIRST_COINBASE_TXID);
     BOOST_CHECK_EQUAL(header.Version(), 1);
-    BOOST_CHECK_EQUAL(header.Timestamp(), 1700000000);
-    BOOST_CHECK_EQUAL(header.Bits(), 0x207fffff);
-    BOOST_CHECK_EQUAL(header.Nonce(), 0);
+    BOOST_CHECK_EQUAL(header.Timestamp(), REGTEST_FIRST_BLOCK_TIME);
+    BOOST_CHECK_EQUAL(header.Bits(), REGTEST_FIRST_BLOCK_BITS);
+    BOOST_CHECK_EQUAL(header.Nonce(), REGTEST_FIRST_BLOCK_NONCE);
     BOOST_CHECK_EQUAL(tx.CountInputs(), 1);
     Transaction tx2 = tx;
     BOOST_CHECK_EQUAL(tx2.CountInputs(), 1);

@@ -5,6 +5,14 @@
 
 # Do not use generator expressions in test sources because the
 # SOURCES property is processed to gather test suite macros.
+add_library(randomx_test_bridge SHARED randomx_test_bridge.cpp)
+target_link_libraries(randomx_test_bridge PRIVATE bitcoin_crypto)
+set_target_properties(randomx_test_bridge PROPERTIES
+  OUTPUT_NAME kronein_randomx_test_bridge
+  LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib"
+  RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin"
+)
+
 add_executable(test_bitcoin
   main.cpp
   addrman_tests.cpp
@@ -28,6 +36,7 @@ add_executable(test_bitcoin
   bswap_tests.cpp
   caches_tests.cpp
   chain_tests.cpp
+  chainparams_tests.cpp
   chainstate_write_tests.cpp
   checkqueue_tests.cpp
   cluster_linearize_tests.cpp
@@ -88,6 +97,7 @@ add_executable(test_bitcoin
   result_tests.cpp
   reverselock_tests.cpp
   rpc_tests.cpp
+  randomx_tests.cpp
   sanity_tests.cpp
   scheduler_tests.cpp
   script_parse_tests.cpp

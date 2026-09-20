@@ -1,4 +1,5 @@
 // Copyright (c) 2020-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -80,7 +81,7 @@ FUZZ_TARGET(pow, .init = initialize_pow)
         {
             const std::optional<uint256> hash = ConsumeDeserializable<uint256>(fuzzed_data_provider);
             if (hash) {
-                (void)CheckProofOfWorkImpl(*hash, fuzzed_data_provider.ConsumeIntegral<unsigned int>(), consensus_params);
+                (void)CheckProofOfWorkTarget(*hash, fuzzed_data_provider.ConsumeIntegral<unsigned int>(), consensus_params);
             }
         }
     }
@@ -120,5 +121,7 @@ FUZZ_TARGET(pow_transition, .init = initialize_pow)
     }
     auto last_block{blocks.back().get()};
     unsigned int new_nbits{GetNextWorkRequired(last_block, nullptr, consensus_params)};
-    Assert(PermittedDifficultyTransition(consensus_params, last_block->nHeight + 1, last_block->nBits, new_nbits));
+    Assert(PermittedDifficultyTransition(consensus_params, last_block->nHeight + 1,
+                                         last_block->GetBlockTime(), last_block->GetBlockTime(),
+                                         last_block->nBits, new_nbits));
 }

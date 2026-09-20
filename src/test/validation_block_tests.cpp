@@ -124,9 +124,8 @@ std::shared_ptr<CBlock> MinerTestingSetup::FinalizeBlock(std::shared_ptr<CBlock>
 
     pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
 
-    while (!CheckProofOfWork(pblock->GetHash(), pblock->nBits, Params().GetConsensus())) {
-        ++(pblock->nNonce);
-    }
+    uint64_t max_tries{std::numeric_limits<uint32_t>::max()};
+    BOOST_REQUIRE(MineProofOfWork(*pblock, Params().GetConsensus(), max_tries));
 
     // submit block header, so that miner can get the block height from the
     // global state and the node has the topology of the chain

@@ -170,7 +170,7 @@ static UniValue DeriveAddresses(const Descriptor* desc, int64_t range_begin, int
 
 static RPCHelpMan deriveaddresses()
 {
-    const std::string EXAMPLE_DESCRIPTOR = "tr([d34db33f/86h/0h/0h]xpub6DJ2dNUysrn5Vt36jH2KLBT2i1auw1tTSSomg8PhqNiUtx8QX2SvC9nrHu81fT41fvDUnhMjEzQgXnQjKEu3oaqMSzhSrHMxyyoEAmUHQbY/0/*)#fzjmrt67";
+    const std::string EXAMPLE_DESCRIPTOR = "tr([d34db33f/86h/0h/0h]KpubTRK1KKgUaeCojqm32WSZn1nwRAv97Y5EPcELf3pgEspZkzhSW6NTibfGpiKqoP8dH6tBW1uTjWHKjVWKo3bicPJuUG3mJGofdarL2jEbY5T/0/*)#37k5f4fr";
 
     return RPCHelpMan{
         "deriveaddresses",

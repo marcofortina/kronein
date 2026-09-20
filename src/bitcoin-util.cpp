@@ -14,16 +14,18 @@
 #include <common/system.h>
 #include <compat/compat.h>
 #include <core_io.h>
+#include <pow.h>
 #include <streams.h>
 #include <util/exception.h>
 #include <util/strencodings.h>
 #include <util/translation.h>
 
-#include <atomic>
+#include <algorithm>
 #include <cstdio>
-#include <functional>
+#include <iostream>
+#include <limits>
 #include <memory>
-#include <thread>
+#include <sstream>
 
 static const int CONTINUE_EXECUTION=-1;
 
@@ -35,7 +37,8 @@ static void SetupBitcoinUtilArgs(ArgsManager &argsman)
 
     argsman.AddArg("-version", "Print version and exit", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
 
-    argsman.AddCommand("grind", "Perform proof of work on hex header string");
+    argsman.AddCommand("grind", "Perform RandomX v2 proof of work on hex header string");
+    argsman.AddArg("-randomxlight", "Use RandomX light mode (256 MiB cache) instead of the full mining dataset", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
 
     SetupChainParamsBaseOptions(argsman);
 }
@@ -62,7 +65,8 @@ static int AppInitUtil(ArgsManager& args, int argc, char* argv[])
                 "The kronein-util tool provides Kronein-related functionality that does not rely on the ability to access a running node. Available [commands] are listed below.\n"
                 "\n"
                 "Usage:  kronein-util [options] [command]\n"
-                "or:     kronein-util [options] grind <hex-block-header>\n";
+                "or:     kronein-util [options] grind <hex-block-header> [<randomx-seed>]\n"
+                "or:     kronein-util [options] grind -  # read header [seed] requests from stdin\n";
             strUsage += "\n" + args.GetHelpMessage();
         }
 
@@ -86,36 +90,21 @@ static int AppInitUtil(ArgsManager& args, int argc, char* argv[])
     return CONTINUE_EXECUTION;
 }
 
-static void grind_task(uint32_t nBits, CBlockHeader header, uint32_t offset, uint32_t step, std::atomic<bool>& found, uint32_t& proposed_nonce)
+static int GrindOne(const std::vector<std::string>& args, std::string& strPrint)
 {
-    arith_uint256 target;
-    bool neg, over;
-    target.SetCompact(nBits, &neg, &over);
-    if (target == 0 || neg || over) return;
-    header.nNonce = offset;
-
-    uint32_t finish = std::numeric_limits<uint32_t>::max() - step;
-    finish = finish - (finish % step) + offset;
-
-    while (!found && header.nNonce < finish) {
-        const uint32_t next = (finish - header.nNonce < 5000*step) ? finish : header.nNonce + 5000*step;
-        do {
-            if (UintToArith256(header.GetHash()) <= target) {
-                if (!found.exchange(true)) {
-                    proposed_nonce = header.nNonce;
-                }
-                return;
-            }
-            header.nNonce += step;
-        } while(header.nNonce != next);
-    }
-}
-
-static int Grind(const std::vector<std::string>& args, std::string& strPrint)
-{
-    if (args.size() != 1) {
-        strPrint = "Must specify block header to grind";
+    if (args.empty() || args.size() > 2) {
+        strPrint = "Must specify a block header and, optionally, its 32-byte RandomX seed";
         return EXIT_FAILURE;
+    }
+
+    RandomXSeed seed{Params().GetConsensus().randomx.bootstrap_key};
+    if (args.size() == 2) {
+        if (!IsHex(args[1]) || args[1].size() != seed.size() * 2) {
+            strPrint = "RandomX seed must be exactly 32 bytes encoded as hexadecimal";
+            return EXIT_FAILURE;
+        }
+        const auto parsed_seed{ParseHex(args[1])};
+        std::copy(parsed_seed.begin(), parsed_seed.end(), seed.begin());
     }
 
     CBlockHeader header;
@@ -124,22 +113,8 @@ static int Grind(const std::vector<std::string>& args, std::string& strPrint)
         return EXIT_FAILURE;
     }
 
-    uint32_t nBits = header.nBits;
-    std::atomic<bool> found{false};
-    uint32_t proposed_nonce{};
-
-    std::vector<std::thread> threads;
-    int n_tasks = std::max(1u, std::thread::hardware_concurrency());
-    threads.reserve(n_tasks);
-    for (int i = 0; i < n_tasks; ++i) {
-        threads.emplace_back(grind_task, nBits, header, i, n_tasks, std::ref(found), std::ref(proposed_nonce));
-    }
-    for (auto& t : threads) {
-        t.join();
-    }
-    if (found) {
-        header.nNonce = proposed_nonce;
-    } else {
+    uint64_t max_tries{static_cast<uint64_t>(std::numeric_limits<uint32_t>::max()) + 1};
+    if (!MineProofOfWork(header, seed, Params().GetConsensus(), max_tries, /*threads=*/0, /*use_full_memory=*/!gArgs.GetBoolArg("-randomxlight", false))) {
         strPrint = "Could not satisfy difficulty target";
         return EXIT_FAILURE;
     }
@@ -147,6 +122,29 @@ static int Grind(const std::vector<std::string>& args, std::string& strPrint)
     DataStream ss{};
     ss << header;
     strPrint = HexStr(ss);
+    return EXIT_SUCCESS;
+}
+
+static int Grind(const std::vector<std::string>& args, std::string& strPrint)
+{
+    if (args.size() != 1 || args[0] != "-") return GrindOne(args, strPrint);
+
+    std::string line;
+    while (std::getline(std::cin, line)) {
+        std::istringstream request{line};
+        std::vector<std::string> request_args;
+        for (std::string arg; request >> arg;) request_args.push_back(std::move(arg));
+        if (request_args.empty()) continue;
+
+        std::string result;
+        const int ret{GrindOne(request_args, result)};
+        if (ret != EXIT_SUCCESS) {
+            strPrint = std::move(result);
+            return ret;
+        }
+        std::cout << result << '\n';
+    }
+    strPrint.clear();
     return EXIT_SUCCESS;
 }
 

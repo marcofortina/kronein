@@ -1,4 +1,5 @@
 // Copyright (c) 2025-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -34,9 +35,9 @@ private:
         CBlock block;
         block.hashPrevBlock.SetNull();
         block.hashMerkleRoot.SetNull();
-        block.nTime = 1231006505;
-        block.nBits = 0x1d00ffff;
-        block.nNonce = 2083236893;
+        block.nTime = 1789776000;
+        block.nBits = 0x1f00ffff;
+        block.nNonce = 3636;
         block.fChecked = false;
         CMutableTransaction tx;
         tx.vin.resize(1);

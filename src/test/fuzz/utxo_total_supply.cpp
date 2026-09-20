@@ -1,4 +1,5 @@
 // Copyright (c) 2020-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -24,7 +25,7 @@ FUZZ_TARGET(utxo_total_supply)
 {
     SeedRandomStateForTest(SeedRand::ZEROS);
     FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
-    SetMockTime(ConsumeTime(fuzzed_data_provider, /*min=*/1296688602)); // regtest genesis block timestamp
+    SetMockTime(ConsumeTime(fuzzed_data_provider, /*min=*/1789776000)); // Kronein regtest genesis timestamp
     /** The testing setup that creates a chainman only (no chainstate) */
     ChainTestingSetup test_setup{ChainType::REGTEST};
     // Create chainstate

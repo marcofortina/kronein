@@ -1,4 +1,5 @@
 // Copyright (c) 2018-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -150,7 +151,6 @@ BOOST_AUTO_TEST_CASE(blockfilters_json_test)
         unsigned int pos = 0;
         /*int block_height =*/ test[pos++].getInt<int>();
         BOOST_CHECK(uint256::FromHex(test[pos++].get_str()));
-
         CBlock block;
         BOOST_REQUIRE(DecodeHexBlk(block, test[pos++].get_str()));
 

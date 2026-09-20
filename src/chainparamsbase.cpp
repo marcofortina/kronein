@@ -31,20 +31,20 @@ const CBaseChainParams& BaseParams()
 }
 
 /**
- * Port numbers for incoming Tor connections (8334, 18334, 38334, 48334, 18445) have
+ * Port numbers for incoming Tor connections (26763, 36763, 46763, 56763) have
  * been chosen arbitrarily to keep ranges of used ports tight.
  */
 std::unique_ptr<CBaseChainParams> CreateBaseChainParams(const ChainType chain)
 {
     switch (chain) {
     case ChainType::MAIN:
-        return std::make_unique<CBaseChainParams>("", 8332);
+        return std::make_unique<CBaseChainParams>("", 26761);
     case ChainType::TESTNET4:
-        return std::make_unique<CBaseChainParams>("testnet4", 48332);
+        return std::make_unique<CBaseChainParams>("testnet4", 36761);
     case ChainType::SIGNET:
-        return std::make_unique<CBaseChainParams>("signet", 38332);
+        return std::make_unique<CBaseChainParams>("signet", 46761);
     case ChainType::REGTEST:
-        return std::make_unique<CBaseChainParams>("regtest", 18443);
+        return std::make_unique<CBaseChainParams>("regtest", 56761);
     }
     assert(false);
 }

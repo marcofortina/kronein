@@ -1,4 +1,5 @@
 // Copyright (c) 2014-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -154,7 +155,9 @@ BOOST_AUTO_TEST_CASE(test_assumeutxo)
     BOOST_CHECK_EQUAL(out110.muhash.ToString(), "f78069a53b677d42236b556d5ca647908c09fbad54b7ee5be5da44d9d227560b");
     BOOST_CHECK_EQUAL(out110.m_chain_tx_count, 111U);
 
-    const auto out110_2 = *params->AssumeutxoForBlockhash(uint256{"0e55fa9b3c3fabeaf9c0f1e8bd5b8635e6a4abc8b22799ec5ff58f8c307fca0a"});
+    const auto by_hash = params->AssumeutxoForBlockhash(uint256{"6c3c539ac211222952482af5ef7793ae643a504a46d05d0dcf4d3ddfaf600058"});
+    BOOST_REQUIRE(by_hash);
+    const auto& out110_2 = *by_hash;
     BOOST_CHECK_EQUAL(out110_2.muhash.ToString(), "f78069a53b677d42236b556d5ca647908c09fbad54b7ee5be5da44d9d227560b");
     BOOST_CHECK_EQUAL(out110_2.m_chain_tx_count, 111U);
 }

@@ -1,4 +1,5 @@
 // Copyright (c) 2022-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -42,14 +43,16 @@ using State = HeadersSyncState::State;
         }                                                                                                \
     } while (false)
 
-constexpr size_t TARGET_BLOCKS{15'000};
+// RandomX is deliberately expensive. A shorter chain preserves the state
+// machine and commitment coverage without turning this unit test into a PoW
+// benchmark.
+constexpr size_t TARGET_BLOCKS{150};
 constexpr arith_uint256 CHAIN_WORK{TARGET_BLOCKS * 2};
 
-// Subtract MAX_HEADERS_RESULTS (2000 headers/message) + an arbitrary smaller
-// value (123) so our redownload buffer is well below the number of blocks
-// required to reach the CHAIN_WORK threshold, to behave similarly to mainnet.
-constexpr size_t REDOWNLOAD_BUFFER_SIZE{TARGET_BLOCKS - (MAX_HEADERS_RESULTS + 123)};
-constexpr size_t COMMITMENT_PERIOD{600}; // Somewhat close to mainnet.
+// Keep the redownload buffer well below the number of blocks required to
+// reach the CHAIN_WORK threshold, while retaining 25 commitments.
+constexpr size_t REDOWNLOAD_BUFFER_SIZE{27};
+constexpr size_t COMMITMENT_PERIOD{6};
 
 struct HeadersGeneratorSetup : public RegTestingSetup {
     const CBlock& genesis{Params().GenesisBlock()};
@@ -106,9 +109,8 @@ private:
 
 void HeadersGeneratorSetup::FindProofOfWork(CBlockHeader& starting_header)
 {
-    while (!CheckProofOfWork(starting_header.GetHash(), starting_header.nBits, Params().GetConsensus())) {
-        ++starting_header.nNonce;
-    }
+    uint64_t max_tries{std::numeric_limits<uint32_t>::max()};
+    BOOST_REQUIRE(MineProofOfWork(starting_header, Params().GetConsensus(), max_tries));
 }
 
 std::vector<CBlockHeader> HeadersGeneratorSetup::GenerateHeaders(

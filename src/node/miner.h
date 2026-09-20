@@ -121,10 +121,10 @@ private:
 
 /**
  * Get the minimum time a miner should use in the next block. This always
- * accounts for the BIP94 timewarp rule, so does not necessarily reflect the
- * consensus limit.
+ * accounts for the configured timestamp monotonicity rule and proactively
+ * follows the BIP94 boundary rule on networks where it is not yet enforced.
  */
-int64_t GetMinimumTime(const CBlockIndex* pindexPrev, int64_t difficulty_adjustment_interval);
+int64_t GetMinimumTime(const CBlockIndex* pindexPrev, const Consensus::Params& consensus_params);
 
 int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev);
 

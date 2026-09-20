@@ -10,6 +10,8 @@
 #include <util/time.h>
 #include <util/vector.h>
 
+#include <algorithm>
+
 // Our memory analysis in headerssync-params.py assumes this many bytes for a
 // CompressedHeader (we should re-calculate parameters if we compress further).
 static_assert(sizeof(CompressedHeader) == 48);
@@ -54,6 +56,8 @@ void HeadersSyncState::Finalize()
     ClearShrink(m_header_commitments);
     m_last_header_received.SetNull();
     ClearShrink(m_redownloaded_headers);
+    m_presync_randomx_seed_blocks.clear();
+    m_redownload_randomx_seed_blocks.clear();
     m_redownload_buffer_last_hash.SetNull();
     m_redownload_buffer_first_prev_hash.SetNull();
     m_process_all_remaining_headers = false;
@@ -168,6 +172,7 @@ bool HeadersSyncState::ValidateAndStoreHeadersCommitments(std::span<const CBlock
         m_redownload_buffer_first_prev_hash = m_chain_start.GetBlockHash();
         m_redownload_buffer_last_hash = m_chain_start.GetBlockHash();
         m_redownload_chain_work = m_chain_start.nChainWork;
+        m_redownload_randomx_seed_blocks.clear();
         m_download_state = State::REDOWNLOAD;
         LogDebug(BCLog::NET, "Initial headers sync transition with peer=%d: reached sufficient work at height=%i, redownloading from height=%i\n", m_id, m_current_height, m_redownload_buffer_last_height);
     }
@@ -181,12 +186,19 @@ bool HeadersSyncState::ValidateAndProcessSingleHeader(const CBlockHeader& curren
 
     int next_height = m_current_height + 1;
 
+    const auto randomx_seed{GetRandomXSeedForHeight(next_height, m_presync_randomx_seed_blocks)};
+    if (!randomx_seed || !CheckProofOfWork(current, *randomx_seed, m_consensus_params)) {
+        LogDebug(BCLog::NET, "Initial headers sync aborted with peer=%d: invalid RandomX proof at height=%i (presync phase)\n", m_id, next_height);
+        return false;
+    }
+
     // Verify that the difficulty isn't growing too fast; an adversary with
     // limited hashing capability has a greater chance of producing a high
     // work chain if they compress the work into as few blocks as possible,
     // so don't let anyone give a chain that would violate the difficulty
     // adjustment maximum.
     if (!PermittedDifficultyTransition(m_consensus_params, next_height,
+                m_last_header_received.GetBlockTime(), current.GetBlockTime(),
                 m_last_header_received.nBits, current.nBits)) {
         LogDebug(BCLog::NET, "Initial headers sync aborted with peer=%d: invalid difficulty transition at height=%i (presync phase)\n", m_id, next_height);
         return false;
@@ -206,6 +218,7 @@ bool HeadersSyncState::ValidateAndProcessSingleHeader(const CBlockHeader& curren
     }
 
     m_current_chain_work += GetBlockProof(current);
+    RememberRandomXSeedBlock(next_height, current, m_presync_randomx_seed_blocks);
     m_last_header_received = current;
     m_current_height = next_height;
 
@@ -226,6 +239,12 @@ bool HeadersSyncState::ValidateAndStoreRedownloadedHeader(const CBlockHeader& he
         return false;
     }
 
+    const auto randomx_seed{GetRandomXSeedForHeight(next_height, m_redownload_randomx_seed_blocks)};
+    if (!randomx_seed || !CheckProofOfWork(header, *randomx_seed, m_consensus_params)) {
+        LogDebug(BCLog::NET, "Initial headers sync aborted with peer=%d: invalid RandomX proof at height=%i (redownload phase)\n", m_id, next_height);
+        return false;
+    }
+
     // Check that the difficulty adjustments are within our tolerance:
     uint32_t previous_nBits{0};
     if (!m_redownloaded_headers.empty()) {
@@ -234,8 +253,12 @@ bool HeadersSyncState::ValidateAndStoreRedownloadedHeader(const CBlockHeader& he
         previous_nBits = m_chain_start.nBits;
     }
 
+    int64_t previous_time{m_chain_start.GetBlockTime()};
+    if (!m_redownloaded_headers.empty()) {
+        previous_time = m_redownloaded_headers.back().nTime;
+    }
     if (!PermittedDifficultyTransition(m_consensus_params, next_height,
-                previous_nBits, header.nBits)) {
+                previous_time, header.GetBlockTime(), previous_nBits, header.nBits)) {
         LogDebug(BCLog::NET, "Initial headers sync aborted with peer=%d: invalid difficulty transition at height=%i (redownload phase)\n", m_id, next_height);
         return false;
     }
@@ -271,10 +294,41 @@ bool HeadersSyncState::ValidateAndStoreRedownloadedHeader(const CBlockHeader& he
 
     // Store this header for later processing.
     m_redownloaded_headers.emplace_back(header);
+    RememberRandomXSeedBlock(next_height, header, m_redownload_randomx_seed_blocks);
     m_redownload_buffer_last_height = next_height;
     m_redownload_buffer_last_hash = header.GetHash();
 
     return true;
+}
+
+std::optional<RandomXSeed> HeadersSyncState::GetRandomXSeedForHeight(int height, const std::map<int, uint256>& seed_blocks) const
+{
+    const auto seed_height{GetRandomXSeedHeight(height, m_consensus_params)};
+    if (!seed_height) return m_consensus_params.randomx.bootstrap_key;
+
+    uint256 seed_hash;
+    if (*seed_height <= m_chain_start.nHeight) {
+        const CBlockIndex* seed_index{m_chain_start.GetAncestor(*seed_height)};
+        if (seed_index == nullptr) return std::nullopt;
+        seed_hash = seed_index->GetBlockHash();
+    } else {
+        const auto found{seed_blocks.find(*seed_height)};
+        if (found == seed_blocks.end()) return std::nullopt;
+        seed_hash = found->second;
+    }
+
+    RandomXSeed seed;
+    std::copy(seed_hash.begin(), seed_hash.end(), seed.begin());
+    return seed;
+}
+
+void HeadersSyncState::RememberRandomXSeedBlock(int height, const CBlockHeader& header, std::map<int, uint256>& seed_blocks)
+{
+    if (!m_consensus_params.randomx.fixed_seed &&
+        m_consensus_params.randomx.epoch_blocks != 0 &&
+        height % m_consensus_params.randomx.epoch_blocks == 0) {
+        seed_blocks.emplace(height, header.GetHash());
+    }
 }
 
 std::vector<CBlockHeader> HeadersSyncState::PopHeadersReadyForAcceptance()

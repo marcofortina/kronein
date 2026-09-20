@@ -44,6 +44,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 
 using interfaces::BlockRef;
 using interfaces::BlockTemplate;
@@ -138,15 +139,17 @@ static bool GenerateBlock(ChainstateManager& chainman, CBlock&& block, uint64_t&
     block_out.reset();
     block.hashMerkleRoot = BlockMerkleRoot(block);
 
-    while (max_tries > 0 && block.nNonce < std::numeric_limits<uint32_t>::max() && !CheckProofOfWork(block.GetHash(), block.nBits, chainman.GetConsensus()) && !chainman.m_interrupt) {
-        ++block.nNonce;
-        --max_tries;
+    std::optional<RandomXSeed> randomx_seed;
+    {
+        LOCK(cs_main);
+        const CBlockIndex* pindex_prev{chainman.m_blockman.LookupBlockIndex(block.hashPrevBlock)};
+        if (pindex_prev == nullptr) return false;
+        randomx_seed = GetRandomXSeed(pindex_prev, pindex_prev->nHeight + 1, chainman.GetConsensus());
     }
-    if (max_tries == 0 || chainman.m_interrupt) {
+
+    if (chainman.m_interrupt || !randomx_seed ||
+        !MineProofOfWork(block, *randomx_seed, chainman.GetConsensus(), max_tries)) {
         return false;
-    }
-    if (block.nNonce == std::numeric_limits<uint32_t>::max()) {
-        return true;
     }
 
     block_out = std::make_shared<const CBlock>(std::move(block));
@@ -656,6 +659,15 @@ static RPCHelpMan getblocktemplate()
                 {RPCResult::Type::NUM_TIME, "curtime", "current timestamp in " + UNIX_EPOCH_TIME + ". Adjusted for the proposed BIP94 timewarp rule."},
                 {RPCResult::Type::STR, "bits", "compressed target of next block"},
                 {RPCResult::Type::NUM, "height", "The height of the next block"},
+                {RPCResult::Type::STR, "powalgorithm", "Proof-of-work algorithm and version"},
+                {RPCResult::Type::OBJ, "randomx", "RandomX v2 consensus parameters for this template",
+                {
+                    {RPCResult::Type::STR, "version", "Vendored RandomX release"},
+                    {RPCResult::Type::STR_HEX, "seed", "Raw 32-byte cache key for this template"},
+                    {RPCResult::Type::NUM, "seedheight", "Height of the block supplying the seed, or -1 for the bootstrap key"},
+                    {RPCResult::Type::NUM, "epochblocks", "Number of blocks per cache-key epoch"},
+                    {RPCResult::Type::NUM, "epochlag", "Delay before an epoch block hash becomes the cache key"},
+                }},
                 {RPCResult::Type::STR_HEX, "signet_challenge", /*optional=*/true, "Only on signet"},
                 {RPCResult::Type::STR_HEX, "default_witness_commitment", /*optional=*/true, "a valid witness commitment for the unmodified block template"},
             }},
@@ -920,7 +932,7 @@ static RPCHelpMan getblocktemplate()
     result.pushKV("coinbasevalue", block.vtx[0]->vout[0].nValue);
     result.pushKV("longpollid", tip.GetHex() + ToString(nTransactionsUpdatedLast));
     result.pushKV("target", hashTarget.GetHex());
-    result.pushKV("mintime", GetMinimumTime(pindexPrev, consensusParams.DifficultyAdjustmentInterval()));
+    result.pushKV("mintime", GetMinimumTime(pindexPrev, consensusParams));
     result.pushKV("mutable", std::move(aMutable));
     result.pushKV("noncerange", "00000000ffffffff");
     result.pushKV("sizelimit", MAX_BLOCK_SERIALIZED_SIZE);
@@ -928,6 +940,19 @@ static RPCHelpMan getblocktemplate()
     result.pushKV("curtime", block.GetBlockTime());
     result.pushKV("bits", strprintf("%08x", block.nBits));
     result.pushKV("height", pindexPrev->nHeight + 1);
+
+    const int next_height{pindexPrev->nHeight + 1};
+    const auto randomx_seed{GetRandomXSeed(pindexPrev, next_height, consensusParams)};
+    CHECK_NONFATAL(randomx_seed);
+    const auto randomx_seed_height{GetRandomXSeedHeight(next_height, consensusParams)};
+    UniValue randomx(UniValue::VOBJ);
+    randomx.pushKV("version", "2.0.1");
+    randomx.pushKV("seed", HexStr(*randomx_seed));
+    randomx.pushKV("seedheight", randomx_seed_height.value_or(-1));
+    randomx.pushKV("epochblocks", consensusParams.randomx.epoch_blocks);
+    randomx.pushKV("epochlag", consensusParams.randomx.epoch_lag);
+    result.pushKV("powalgorithm", "randomx-v2.0.1");
+    result.pushKV("randomx", std::move(randomx));
 
     if (consensusParams.signet_blocks) {
         result.pushKV("signet_challenge", HexStr(consensusParams.signet_challenge));

@@ -1,4 +1,5 @@
 // Copyright (c) 2022-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -51,7 +52,7 @@ static void WalletIsMine(benchmark::Bench& bench, int num_descriptors = 0)
         }
     }
 
-    const CScript script = GetScriptForDestination(DecodeDestination(ADDRESS_BCRT1_UNSPENDABLE));
+    const CScript script = GetScriptForDestination(DecodeDestination(ADDRESS_RKNE1_UNSPENDABLE));
 
     bench.run([&] {
         LOCK(wallet->cs_wallet);

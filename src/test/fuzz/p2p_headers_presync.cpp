@@ -1,4 +1,5 @@
 // Copyright (c) 2024-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -103,15 +104,8 @@ CBlockHeader ConsumeHeader(FuzzedDataProvider& fuzzed_data_provider, const uint2
 {
     CBlockHeader header;
     header.nNonce = 0;
-    // Either use the previous difficulty or let the fuzzer choose. The upper target in the
-    // range comes from the bits value of the genesis block, which is 0x1d00ffff. The lower
-    // target comes from the bits value of mainnet block 840000, which is 0x17034219.
-    // Calling lower_target.SetCompact(0x17034219) and upper_target.SetCompact(0x1d00ffff)
-    // should return the values below.
-    //
-    // RPC commands to verify:
-    // getblockheader 000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f
-    // getblockheader 0000000000000000000320283a032748cef8227873ff4872689bf23f1cda83a5
+    // Either use the previous difficulty or let the fuzzer choose a compact
+    // target from a broad, deterministic range of valid target values.
     if (fuzzed_data_provider.ConsumeBool()) {
         header.nBits = prev_nbits;
     } else {
@@ -144,7 +138,7 @@ CBlock ConsumeBlock(FuzzedDataProvider& fuzzed_data_provider, const uint256& pre
 
 void FinalizeHeader(CBlockHeader& header, const ChainstateManager& chainman)
 {
-    while (!CheckProofOfWork(header.GetHash(), header.nBits, chainman.GetParams().GetConsensus())) {
+    while (!CheckProofOfWork(header, chainman.GetParams().GetConsensus())) {
         ++(header.nNonce);
     }
 }

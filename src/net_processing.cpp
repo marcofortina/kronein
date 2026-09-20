@@ -5336,7 +5336,7 @@ bool PeerManagerImpl::SendMessages(CNode& node)
             }
         }
 
-        if (!state.fSyncStarted && CanServeBlocks(peer) && !m_chainman.m_blockman.LoadingBlocks()) {
+        if (!state.fSyncStarted && CanServeBlocks(peer) && !node.IsAddrFetchConn() && !m_chainman.m_blockman.LoadingBlocks()) {
             // Only actively request headers from a single peer, unless we're close to today.
             if ((nSyncStarted == 0 && sync_blocks_and_headers_from_peer) || m_chainman.m_best_header->Time() > NodeClock::now() - 24h) {
                 const CBlockIndex* pindexStart = m_chainman.m_best_header;

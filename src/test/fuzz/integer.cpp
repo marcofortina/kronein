@@ -1,4 +1,5 @@
 // Copyright (c) 2019-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -67,7 +68,7 @@ FUZZ_TARGET(integer, .init = initialize_integer)
     const bool b = fuzzed_data_provider.ConsumeBool();
 
     const Consensus::Params& consensus_params = Params().GetConsensus();
-    (void)CheckProofOfWorkImpl(u256, u32, consensus_params);
+    (void)CheckProofOfWorkTarget(u256, u32, consensus_params);
     if (u64 <= MAX_MONEY) {
         const uint64_t compressed_money_amount = CompressAmount(u64);
         assert(u64 == DecompressAmount(compressed_money_amount));

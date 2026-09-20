@@ -203,9 +203,9 @@ BOOST_AUTO_TEST_CASE(rpc_rawsign)
       "\"vout\":1,\"scriptPubKey\":\"5120debedc17b3df2badbcdd86d5feb4562b86fe182e5998abd8bcd4f122c6155b1b\","
       "\"amount\":11}]";
     r = CallRPC(std::string("createrawtransaction ")+prevout+" "+
-      "[{\"bc1pm6ldc9anmu46m0xasm2ladzk9wr0uxpwtxv2hk9u6ncj93s4tvdsmz7awf\":10}]");
+      "[{\"kne1pm6ldc9anmu46m0xasm2ladzk9wr0uxpwtxv2hk9u6ncj93s4tvds5qs6re\":10}]");
     std::string notsigned = r.get_str();
-    std::string privkey1 = "\"KzsXybp9jX64P5ekX1KUxRQ79Jht9uzW7LorgwE65i5rWACL6LQe\"";
+    std::string privkey1 = "\"Th2KhzYvqWjD3zLhGwqvMUKS5u9oZg6JaKCdnZF1cbGs9NZwXGWY\"";
     r = CallRPC(std::string("signrawtransactionwithkey ")+notsigned+" [] "+prevout);
     BOOST_CHECK(r.get_obj().find_value("complete").get_bool() == false);
     r = CallRPC(std::string("signrawtransactionwithkey ")+notsigned+" ["+privkey1+"] "+prevout);
@@ -558,7 +558,7 @@ BOOST_AUTO_TEST_CASE(help_example)
     // test different argument types
     const RPCArgList& args = {{"foo", "bar"}, {"b", true}, {"n", 1}};
     BOOST_CHECK_EQUAL(HelpExampleCliNamed("test", args), "> kronein-cli -named test foo=bar b=true n=1\n");
-    BOOST_CHECK_EQUAL(HelpExampleRpcNamed("test", args), "> curl --user myusername --data-binary '{\"jsonrpc\": \"2.0\", \"id\": \"curltest\", \"method\": \"test\", \"params\": {\"foo\":\"bar\",\"b\":true,\"n\":1}}' -H 'content-type: application/json' http://127.0.0.1:8332/\n");
+    BOOST_CHECK_EQUAL(HelpExampleRpcNamed("test", args), "> curl --user myusername --data-binary '{\"jsonrpc\": \"2.0\", \"id\": \"curltest\", \"method\": \"test\", \"params\": {\"foo\":\"bar\",\"b\":true,\"n\":1}}' -H 'content-type: application/json' http://127.0.0.1:26761/\n");
 
     // test shell escape
     BOOST_CHECK_EQUAL(HelpExampleCliNamed("test", {{"foo", "b'ar"}}), "> kronein-cli -named test foo='b'''ar'\n");
@@ -571,7 +571,7 @@ BOOST_AUTO_TEST_CASE(help_example)
     obj_value.pushKV("b", false);
     obj_value.pushKV("n", 1);
     BOOST_CHECK_EQUAL(HelpExampleCliNamed("test", {{"name", obj_value}}), "> kronein-cli -named test name='{\"foo\":\"bar\",\"b\":false,\"n\":1}'\n");
-    BOOST_CHECK_EQUAL(HelpExampleRpcNamed("test", {{"name", obj_value}}), "> curl --user myusername --data-binary '{\"jsonrpc\": \"2.0\", \"id\": \"curltest\", \"method\": \"test\", \"params\": {\"name\":{\"foo\":\"bar\",\"b\":false,\"n\":1}}}' -H 'content-type: application/json' http://127.0.0.1:8332/\n");
+    BOOST_CHECK_EQUAL(HelpExampleRpcNamed("test", {{"name", obj_value}}), "> curl --user myusername --data-binary '{\"jsonrpc\": \"2.0\", \"id\": \"curltest\", \"method\": \"test\", \"params\": {\"name\":{\"foo\":\"bar\",\"b\":false,\"n\":1}}}' -H 'content-type: application/json' http://127.0.0.1:26761/\n");
 
     // test array params
     UniValue arr_value(UniValue::VARR);
@@ -579,7 +579,7 @@ BOOST_AUTO_TEST_CASE(help_example)
     arr_value.push_back(false);
     arr_value.push_back(1);
     BOOST_CHECK_EQUAL(HelpExampleCliNamed("test", {{"name", arr_value}}), "> kronein-cli -named test name='[\"bar\",false,1]'\n");
-    BOOST_CHECK_EQUAL(HelpExampleRpcNamed("test", {{"name", arr_value}}), "> curl --user myusername --data-binary '{\"jsonrpc\": \"2.0\", \"id\": \"curltest\", \"method\": \"test\", \"params\": {\"name\":[\"bar\",false,1]}}' -H 'content-type: application/json' http://127.0.0.1:8332/\n");
+    BOOST_CHECK_EQUAL(HelpExampleRpcNamed("test", {{"name", arr_value}}), "> curl --user myusername --data-binary '{\"jsonrpc\": \"2.0\", \"id\": \"curltest\", \"method\": \"test\", \"params\": {\"name\":[\"bar\",false,1]}}' -H 'content-type: application/json' http://127.0.0.1:26761/\n");
 
     // test types don't matter for shell
     BOOST_CHECK_EQUAL(HelpExampleCliNamed("foo", {{"arg", true}}), HelpExampleCliNamed("foo", {{"arg", "true"}}));

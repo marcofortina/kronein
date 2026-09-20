@@ -1,5 +1,4 @@
 // Copyright (c) 2022-present The Bitcoin Core developers
-// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -10,12 +9,15 @@
 #include <chain.h>
 #include <consensus/params.h>
 #include <net.h>
+#include <pow.h>
 #include <primitives/block.h>
 #include <uint256.h>
 #include <util/bitdeque.h>
 #include <util/hasher.h>
 
 #include <deque>
+#include <map>
+#include <optional>
 #include <vector>
 
 // A compressed CBlockHeader, which leaves out the prevhash
@@ -152,11 +154,10 @@ public:
      *
      * received_headers: headers that were received over the network for processing.
      *                   Assumes the caller has already verified the headers
-     *                   are continuous, and has checked that each header
-     *                   satisfies the proof-of-work target included in the
-     *                   header (but not necessarily verified that the
-     *                   proof-of-work target is correct and passes consensus
-     *                   rules).
+     *                   are continuous and their compact targets are
+     *                   well-formed. RandomX work is checked here because its
+     *                   cache key depends on the candidate chain's height and
+     *                   seed ancestors.
      * full_headers_message: true if the message was at max capacity,
      *                       indicating more headers may be available
      * ProcessingResult.pow_validated_headers: will be filled in with any
@@ -210,6 +211,12 @@ private:
     /** Return a set of headers that satisfy our proof-of-work threshold */
     std::vector<CBlockHeader> PopHeadersReadyForAcceptance();
 
+    /** Derive a RandomX key from the known fork point or this download's seed blocks. */
+    std::optional<RandomXSeed> GetRandomXSeedForHeight(int height, const std::map<int, uint256>& seed_blocks) const;
+
+    /** Retain only epoch-boundary block hashes needed by later RandomX epochs. */
+    void RememberRandomXSeedBlock(int height, const CBlockHeader& header, std::map<int, uint256>& seed_blocks);
+
 private:
     /** NodeId of the peer (used for log messages) **/
     const NodeId m_id;
@@ -248,6 +255,9 @@ private:
     /** Height of m_last_header_received */
     int64_t m_current_height{0};
 
+    /** Epoch-boundary hashes observed during PRESYNC. */
+    std::map<int, uint256> m_presync_randomx_seed_blocks;
+
     /** During phase 2 (REDOWNLOAD), we buffer redownloaded headers in memory
      *  until enough commitments have been verified; those are stored in
      *  m_redownloaded_headers */
@@ -270,6 +280,9 @@ private:
 
     /** The accumulated work on the redownloaded chain. */
     arith_uint256 m_redownload_chain_work;
+
+    /** Epoch-boundary hashes observed during REDOWNLOAD. */
+    std::map<int, uint256> m_redownload_randomx_seed_blocks;
 
     /** Set this to true once we encounter the target blockheader during phase
      * 2 (REDOWNLOAD). At this point, we can process and store all remaining

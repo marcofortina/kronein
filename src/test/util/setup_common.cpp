@@ -278,6 +278,7 @@ ChainTestingSetup::ChainTestingSetup(const ChainType chainType, TestOpts opts)
             .chainparams = chainparams,
             .datadir = m_args.GetDataDirNet(),
             .check_block_index = 1,
+            .minimum_chain_work = opts.minimum_chain_work ? std::optional<arith_uint256>{arith_uint256{*opts.minimum_chain_work}} : std::nullopt,
             .notifications = *m_node.notifications,
             .signals = m_node.validation_signals.get(),
             // Use no worker threads while fuzzing to avoid non-determinism
@@ -383,7 +384,7 @@ TestChain100Setup::TestChain100Setup(
     TestOpts opts)
     : TestingSetup{ChainType::REGTEST, opts}
 {
-    SetMockTime(std::chrono::seconds{1598887952});
+    SetMockTime(Params().GenesisBlock().Time() + 1s);
     constexpr std::array<unsigned char, 32> vchKey = {
         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}};
     coinbaseKey.Set(vchKey.begin(), vchKey.end(), true);
@@ -420,7 +421,8 @@ CBlock TestChain100Setup::CreateBlock(
     }
     RegenerateCommitments(block, *Assert(m_node.chainman));
 
-    while (!CheckProofOfWork(block.GetHash(), block.nBits, m_node.chainman->GetConsensus())) ++block.nNonce;
+    uint64_t max_tries{std::numeric_limits<uint32_t>::max()};
+    Assert(MineProofOfWork(block, m_node.chainman->GetConsensus(), max_tries));
 
     return block;
 }

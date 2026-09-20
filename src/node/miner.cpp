@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -32,14 +33,17 @@
 
 namespace node {
 
-int64_t GetMinimumTime(const CBlockIndex* pindexPrev, const int64_t difficulty_adjustment_interval)
+int64_t GetMinimumTime(const CBlockIndex* pindexPrev, const Consensus::Params& consensus_params)
 {
     int64_t min_time{pindexPrev->GetMedianTimePast() + 1};
+    if (consensus_params.enforce_timestamp_monotonicity) {
+        min_time = std::max(min_time, pindexPrev->GetBlockTime());
+    }
     // Height of block to be mined.
     const int height{pindexPrev->nHeight + 1};
     // Account for BIP94 timewarp rule on all networks. This makes future
     // activation safer.
-    if (height % difficulty_adjustment_interval == 0) {
+    if (height % consensus_params.DifficultyAdjustmentInterval() == 0) {
         min_time = std::max<int64_t>(min_time, pindexPrev->GetBlockTime() - MAX_TIMEWARP);
     }
     return min_time;
@@ -48,7 +52,7 @@ int64_t GetMinimumTime(const CBlockIndex* pindexPrev, const int64_t difficulty_a
 int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev)
 {
     int64_t nOldTime = pblock->nTime;
-    int64_t nNewTime{std::max<int64_t>(GetMinimumTime(pindexPrev, consensusParams.DifficultyAdjustmentInterval()),
+    int64_t nNewTime{std::max<int64_t>(GetMinimumTime(pindexPrev, consensusParams),
                                        TicksSinceEpoch<std::chrono::seconds>(NodeClock::now()))};
 
     if (nOldTime < nNewTime) {

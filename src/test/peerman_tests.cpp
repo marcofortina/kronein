@@ -23,7 +23,8 @@ static void mineBlock(const node::NodeContext& node, std::chrono::seconds block_
     options.include_dummy_extranonce = true;
     SetMockTime(block_time); // update time so the block is created with it
     CBlock block = node::BlockAssembler{node.chainman->ActiveChainstate(), nullptr, options}.CreateNewBlock()->block;
-    while (!CheckProofOfWork(block.GetHash(), block.nBits, node.chainman->GetConsensus())) ++block.nNonce;
+    uint64_t max_tries{std::numeric_limits<uint32_t>::max()};
+    BOOST_REQUIRE(MineProofOfWork(block, node.chainman->GetConsensus(), max_tries));
     block.fChecked = true; // little speedup
     SetMockTime(curr_time); // process block at current time
     Assert(node.chainman->ProcessNewBlock(std::make_shared<const CBlock>(block), /*force_processing=*/true, /*min_pow_checked=*/true, nullptr));

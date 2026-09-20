@@ -1,4 +1,5 @@
 // Copyright (c) 2017-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -196,7 +197,7 @@ BOOST_AUTO_TEST_CASE(script_standard_taproot_builder)
     BOOST_CHECK(builder.IsValid() && builder.IsComplete());
     builder.Finalize(key_inner);
     BOOST_CHECK(builder.IsValid() && builder.IsComplete());
-    BOOST_CHECK_EQUAL(EncodeDestination(builder.GetOutput()), "bc1pj6gaw944fy0xpmzzu45ugqde4rz7mqj5kj0tg8kmr5f0pjq8vnaqgynnge");
+    BOOST_CHECK_EQUAL(EncodeDestination(builder.GetOutput()), "kne1pj6gaw944fy0xpmzzu45ugqde4rz7mqj5kj0tg8kmr5f0pjq8vnaq8xa59f");
 }
 
 BOOST_AUTO_TEST_CASE(bip341_spk_test_vectors)
@@ -227,7 +228,7 @@ BOOST_AUTO_TEST_CASE(bip341_spk_test_vectors)
         parse_tree(vec["given"]["scriptTree"], 0);
         spktest.Finalize(XOnlyPubKey(ParseHex(vec["given"]["internalPubkey"].get_str())));
         BOOST_CHECK_EQUAL(HexStr(GetScriptForDestination(spktest.GetOutput())), vec["expected"]["scriptPubKey"].get_str());
-        BOOST_CHECK_EQUAL(EncodeDestination(spktest.GetOutput()), vec["expected"]["bip350Address"].get_str());
+        BOOST_CHECK_EQUAL(EncodeDestination(spktest.GetOutput()), vec["expected"]["kroneinAddress"].get_str());
         auto spend_data = spktest.GetSpendData();
         BOOST_CHECK_EQUAL(vec["intermediary"]["merkleRoot"].isNull(), spend_data.merkle_root.IsNull());
         if (!spend_data.merkle_root.IsNull()) {

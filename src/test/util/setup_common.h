@@ -1,4 +1,5 @@
 // Copyright (c) 2015-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -24,6 +25,7 @@
 #include <util/string.h>
 #include <util/vector.h>
 
+#include <cstdint>
 #include <functional>
 #include <type_traits>
 #include <vector>
@@ -56,6 +58,7 @@ struct TestOpts {
     bool setup_net{true};
     bool setup_validation_interface{true};
     bool min_validation_cache{false}; // Equivalent of -maxsigcachebytes=0
+    std::optional<uint64_t> minimum_chain_work{};
 };
 
 /** Basic testing setup.

@@ -47,7 +47,7 @@ BOOST_FIXTURE_TEST_CASE(wallet_load_descriptors, TestingSetup)
     {
         // Write unknown active descriptor
         WalletBatch batch(*database);
-        std::string unknown_desc = "trx(tpubD6NzVbkrYhZ4Y4S7m6Y5s9GD8FqEMBy56AGphZXuagajudVZEnYyBahZMgHNCTJc2at82YX6s8JiL1Lohu5A3v1Ur76qguNH4QVQ7qYrBQx/86'/1'/0'/0/*)#8pn8tzdt";
+        std::string unknown_desc = "trx(KpubTJ2LfK8fYD2LWDyCc8yF74GkWJ4oYKenVh76KvujeGvw2PPt9ddRZau9eTQQotRyqs1v8HYxpYMJqXwnnqvayH2jomhrTN9k83x6DnsuwiT/86'/1'/0'/0/*)#z5jn2ctn";
         WalletDescriptor wallet_descriptor(std::make_shared<DummyDescriptor>(unknown_desc), 0, 0, 0, 0);
         BOOST_CHECK(batch.WriteDescriptor(uint256(), wallet_descriptor));
         BOOST_CHECK(batch.WriteActiveScriptPubKeyMan(uint256(), false));

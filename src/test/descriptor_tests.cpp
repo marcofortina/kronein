@@ -104,7 +104,7 @@ BOOST_AUTO_TEST_CASE(reject_pre_taproot_descriptors)
 BOOST_AUTO_TEST_CASE(taproot_key_forms)
 {
     CheckNativeDescriptor(
-        "tr(xpub661MyMwAqRbcFW31YEwpkMuc5THy2PSt5bDMsktWQcFF8syAmRUapSCGu8ED9W6oDMSgv6Zz8idoc4a6mr8BDzTJY47LJhkJ8UB7WEGuduB/0/*)",
+        "tr(KpubTJ2LfK8fYD2LVTkwqUN5CCFWncdCCudf2kdvrgKUp7MKzvYCkVQ8Lt4hRwS3HSBQpY7PdR7idEWSomfhFepr2nvrZKTekhBzn5EDNAbhmQL/0/*)",
         /*ranged=*/true);
 
     CheckNativeDescriptor(

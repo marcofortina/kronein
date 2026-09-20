@@ -141,8 +141,14 @@ bool BlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, s
                 pindexNew->nStatus        = diskindex.nStatus;
                 pindexNew->nTx            = diskindex.nTx;
 
-                if (!CheckProofOfWork(pindexNew->GetBlockHash(), pindexNew->nBits, consensusParams)) {
-                    LogError("%s: CheckProofOfWork failed: %s\n", __func__, pindexNew->ToString());
+                // RandomX was already verified before this index entry was
+                // persisted. Recomputing every memory-hard proof on every
+                // startup would make loading time grow linearly with chain
+                // history. Keep the inexpensive corruption/range check here;
+                // full proof verification remains mandatory when headers are
+                // accepted and when blocks are reindexed from flat files.
+                if (!DeriveTarget(pindexNew->nBits, consensusParams.powLimit)) {
+                    LogError("%s: invalid proof-of-work target: %s\n", __func__, pindexNew->ToString());
                     return false;
                 }
 
@@ -1044,8 +1050,11 @@ bool BlockManager::ReadBlock(CBlock& block, const FlatFilePos& pos, const std::o
 
     const auto block_hash{block.GetHash()};
 
-    // Check the header
-    if (!CheckProofOfWork(block_hash, block.nBits, GetConsensus())) {
+    // Reading by file position alone does not provide the height and ancestor
+    // needed to derive a RandomX epoch key. Still reject an invalid target
+    // here; contextual RandomX verification is mandatory when the header is
+    // accepted (including blocks imported during reindex).
+    if (!DeriveTarget(block.nBits, GetConsensus().powLimit)) {
         LogError("Errors in block header at %s while reading block", pos.ToString());
         return false;
     }

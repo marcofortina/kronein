@@ -54,8 +54,8 @@ CBlock CreateNativeBenchBlock()
     const auto params{CreateChainParams(args, ChainType::REGTEST)};
     block.nTime = params->GenesisBlock().nTime + 1;
     block.nBits = params->GenesisBlock().nBits;
-    while (!CheckProofOfWork(block.GetHash(), block.nBits, params->GetConsensus()))
-        ++block.nNonce;
+    uint64_t max_tries{std::numeric_limits<uint32_t>::max()};
+    CHECK_NONFATAL(MineProofOfWork(block, params->GetConsensus(), max_tries));
 
     return block;
 }

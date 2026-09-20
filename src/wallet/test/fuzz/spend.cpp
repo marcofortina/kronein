@@ -40,7 +40,7 @@ FUZZ_TARGET(wallet_create_transaction, .init = initialize_setup)
     FuzzedWallet fuzzed_wallet{
         *g_setup->m_node.chain,
         "fuzzed_wallet_a",
-        "tprv8ZgxMBicQKsPd1QwsGgzfu2pcPYbBosZhJknqreRHgsWx32nNEhMjGQX2cgFL8n6wz9xdDYwLcs78N4nsCo32cxEX8RBtwGsEGgybLiQJfk",
+        "KprvX52zFobmhqU3G9uMVwFjx5kk1RTc8p2LJvGExMewDDV82UrjMwH9jxuVeFiRThUQBjHtLSUufn9wsDceDo9m2NAC1kZCgZzWxmzf1ZSkr6o",
     };
 
     CCoinControl coin_control;
