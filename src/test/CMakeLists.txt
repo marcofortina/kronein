@@ -56,6 +56,7 @@ add_executable(test_bitcoin
   dbwrapper_tests.cpp
   denialofservice_tests.cpp
   descriptor_tests.cpp
+  deposit_import_tests.cpp
   deposit_tests.cpp
   deposit_proof_tests.cpp
   deposit_validation_tests.cpp
