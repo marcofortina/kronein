@@ -19,6 +19,8 @@
 #include <string_view>
 #include <vector>
 
+class CBlock;
+
 namespace chainregistry {
 
 inline constexpr std::string_view REGISTRY_LEAF_HASH_TAG{"Kronein/RegistryLeaf/v1"};
@@ -142,6 +144,45 @@ struct CommitmentTxResult {
     bool IsValid() const { return error == CommitmentTxError::NONE; }
 };
 
+enum class CommitmentRequirement : uint8_t {
+    OPTIONAL,
+    REQUIRED,
+};
+
+struct RegistryBlockUndo {
+    std::vector<RegistryUndo> operations;
+
+    SERIALIZE_METHODS(RegistryBlockUndo, obj) { READWRITE(obj.operations); }
+
+    friend bool operator==(const RegistryBlockUndo&, const RegistryBlockUndo&) = default;
+};
+
+enum class RegistryBlockError : uint8_t {
+    NONE,
+    EMPTY_BLOCK,
+    INVALID_COINBASE,
+    COINBASE_OPERATION,
+    INVALID_COINBASE_COMMITMENT,
+    NON_COINBASE_COMMITMENT,
+    TRANSACTION_TRANSITION,
+    TOO_MANY_OPERATIONS,
+    MISSING_COMMITMENT,
+    COMMITMENT_MISMATCH,
+    ROLLBACK_FAILED,
+};
+
+struct RegistryBlockResult {
+    RegistryBlockError error{RegistryBlockError::NONE};
+    std::optional<size_t> tx_index;
+    RegistryTransitionResult transition;
+    CommitmentTxError commitment_error{CommitmentTxError::NONE};
+    CommitmentParseError commitment_parse_error{CommitmentParseError::NONE};
+    uint256 computed_root;
+    std::optional<RegistryBlockUndo> undo;
+
+    bool IsValid() const { return error == RegistryBlockError::NONE; }
+};
+
 CScript BuildRegistryCommitment(const uint256& registry_root);
 CommitmentParseResult ParseRegistryCommitment(const CScript& script);
 /** Find at most one zero-valued commitment output in a transaction. */
@@ -167,6 +208,14 @@ public:
                                               const uint256& main_genesis_hash,
                                               CAmount minimum_registration_burn);
     bool Undo(const RegistryUndo& undo);
+
+    RegistryBlockResult ApplyBlock(const CBlock& block,
+                                   uint32_t height,
+                                   const uint256& main_genesis_hash,
+                                   CAmount minimum_registration_burn,
+                                   size_t maximum_operations,
+                                   CommitmentRequirement commitment_requirement);
+    bool UndoBlock(const RegistryBlockUndo& undo);
 };
 
 } // namespace chainregistry

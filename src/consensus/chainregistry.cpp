@@ -5,6 +5,7 @@
 #include <consensus/chainregistry.h>
 
 #include <hash.h>
+#include <primitives/block.h>
 #include <streams.h>
 
 #include <algorithm>
@@ -271,6 +272,104 @@ bool ChainRegistry::Undo(const RegistryUndo& undo)
         if (!inserted) return false;
     }
     return true;
+}
+
+bool ChainRegistry::UndoBlock(const RegistryBlockUndo& undo)
+{
+    for (auto it{undo.operations.rbegin()}; it != undo.operations.rend(); ++it) {
+        if (!Undo(*it)) return false;
+    }
+    return true;
+}
+
+RegistryBlockResult ChainRegistry::ApplyBlock(const CBlock& block,
+                                              uint32_t height,
+                                              const uint256& main_genesis_hash,
+                                              CAmount minimum_registration_burn,
+                                              size_t maximum_operations,
+                                              CommitmentRequirement commitment_requirement)
+{
+    RegistryBlockResult result;
+    if (block.vtx.empty()) {
+        result.error = RegistryBlockError::EMPTY_BLOCK;
+        return result;
+    }
+    if (!block.vtx.front()->IsCoinBase()) {
+        result.error = RegistryBlockError::INVALID_COINBASE;
+        result.tx_index = 0;
+        return result;
+    }
+
+    const auto coinbase_operation{ExtractTransactionOperation(*block.vtx.front(), minimum_registration_burn)};
+    if (!coinbase_operation.IsValid() || coinbase_operation.operation) {
+        result.error = RegistryBlockError::COINBASE_OPERATION;
+        result.transition.error = RegistryError::INVALID_TRANSACTION_OPERATION;
+        result.transition.tx_error = coinbase_operation.error;
+        result.transition.parse_error = coinbase_operation.parse_error;
+        result.tx_index = 0;
+        return result;
+    }
+
+    const auto commitment{ExtractRegistryCommitment(*block.vtx.front())};
+    if (!commitment.IsValid()) {
+        result.error = RegistryBlockError::INVALID_COINBASE_COMMITMENT;
+        result.commitment_error = commitment.error;
+        result.commitment_parse_error = commitment.parse_error;
+        result.tx_index = 0;
+        return result;
+    }
+
+    RegistryBlockUndo undo;
+    const auto rollback{[&]() {
+        if (!UndoBlock(undo)) result.error = RegistryBlockError::ROLLBACK_FAILED;
+        result.undo.reset();
+    }};
+
+    for (size_t tx_index{1}; tx_index < block.vtx.size(); ++tx_index) {
+        const auto non_coinbase_commitment{ExtractRegistryCommitment(*block.vtx[tx_index])};
+        if (!non_coinbase_commitment.IsValid() || non_coinbase_commitment.root) {
+            result.error = RegistryBlockError::NON_COINBASE_COMMITMENT;
+            result.commitment_error = non_coinbase_commitment.error;
+            result.commitment_parse_error = non_coinbase_commitment.parse_error;
+            result.tx_index = tx_index;
+            rollback();
+            return result;
+        }
+
+        auto transition{ApplyTransaction(*block.vtx[tx_index], height, main_genesis_hash, minimum_registration_burn)};
+        if (!transition.IsValid()) {
+            result.error = RegistryBlockError::TRANSACTION_TRANSITION;
+            result.tx_index = tx_index;
+            result.transition = std::move(transition);
+            rollback();
+            return result;
+        }
+        if (!transition.HasOperation()) continue;
+        if (undo.operations.size() >= maximum_operations) {
+            result.error = RegistryBlockError::TOO_MANY_OPERATIONS;
+            result.tx_index = tx_index;
+            result.transition = std::move(transition);
+            if (result.transition.undo) undo.operations.push_back(*result.transition.undo);
+            rollback();
+            return result;
+        }
+        undo.operations.push_back(*transition.undo);
+    }
+
+    result.computed_root = ComputeRoot();
+    if (!commitment.root && commitment_requirement == CommitmentRequirement::REQUIRED) {
+        result.error = RegistryBlockError::MISSING_COMMITMENT;
+        rollback();
+        return result;
+    }
+    if (commitment.root && *commitment.root != result.computed_root) {
+        result.error = RegistryBlockError::COMMITMENT_MISMATCH;
+        rollback();
+        return result;
+    }
+
+    result.undo = std::move(undo);
+    return result;
 }
 
 } // namespace chainregistry

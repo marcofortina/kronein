@@ -3,6 +3,7 @@
 // file COPYING or https://opensource.org/license/mit/.
 
 #include <consensus/chainregistry.h>
+#include <primitives/block.h>
 #include <primitives/chainregistry.h>
 
 #include <primitives/transaction.h>
@@ -93,6 +94,23 @@ CMutableTransaction RetireTx(const chainregistry::ChainRecord& record)
         .chain_id = record.chain_id,
     }));
     return tx;
+}
+
+CMutableTransaction CoinbaseTx(std::optional<uint256> registry_root = std::nullopt)
+{
+    CMutableTransaction tx;
+    tx.vin.emplace_back(COutPoint{});
+    tx.vout.emplace_back(0, TaprootScript(0));
+    if (registry_root) tx.vout.emplace_back(0, chainregistry::BuildRegistryCommitment(*registry_root));
+    return tx;
+}
+
+CBlock RegistryBlock(const CMutableTransaction& coinbase, std::vector<CMutableTransaction> transactions)
+{
+    CBlock block;
+    block.vtx.push_back(MakeTransactionRef(coinbase));
+    for (auto& tx : transactions) block.vtx.push_back(MakeTransactionRef(std::move(tx)));
+    return block;
 }
 
 } // namespace
@@ -697,6 +715,130 @@ BOOST_AUTO_TEST_CASE(registry_rejects_ambiguous_and_unknown_updates)
     result = registry.ApplyTransaction(CTransaction{unknown_update}, 101, main_genesis, 1'000);
     BOOST_CHECK(result.error == chainregistry::RegistryError::UNKNOWN_CHAIN);
     BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(), root.GetHex());
+}
+
+BOOST_AUTO_TEST_CASE(registry_block_transition_and_undo)
+{
+    constexpr uint256 main_genesis{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
+    const CMutableTransaction registration_tx{RegistrationTx(
+        Txid{"0101010101010101010101010101010101010101010101010101010101010101"}, 0, 1)};
+
+    chainregistry::ChainRegistry preview;
+    BOOST_REQUIRE(preview.ApplyTransaction(CTransaction{registration_tx}, 100, main_genesis, 1'000).IsValid());
+    const uint256 expected_root{preview.ComputeRoot()};
+
+    const CBlock block{RegistryBlock(CoinbaseTx(expected_root), {registration_tx})};
+    chainregistry::ChainRegistry registry;
+    const uint256 empty_root{registry.ComputeRoot()};
+    const auto result{registry.ApplyBlock(
+        block,
+        100,
+        main_genesis,
+        1'000,
+        10,
+        chainregistry::CommitmentRequirement::REQUIRED)};
+    BOOST_REQUIRE(result.IsValid());
+    BOOST_REQUIRE(result.undo.has_value());
+    BOOST_CHECK_EQUAL(result.computed_root.GetHex(), expected_root.GetHex());
+    BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(), expected_root.GetHex());
+    BOOST_CHECK_EQUAL(result.undo->operations.size(), 1U);
+
+    DataStream stream;
+    stream << *result.undo;
+    chainregistry::RegistryBlockUndo decoded;
+    stream >> decoded;
+    BOOST_CHECK(decoded == *result.undo);
+    BOOST_CHECK(stream.empty());
+
+    BOOST_REQUIRE(registry.UndoBlock(*result.undo));
+    BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(), empty_root.GetHex());
+
+    const CBlock optional_block{RegistryBlock(CoinbaseTx(), {registration_tx})};
+    const auto optional_result{registry.ApplyBlock(
+        optional_block,
+        100,
+        main_genesis,
+        1'000,
+        10,
+        chainregistry::CommitmentRequirement::OPTIONAL)};
+    BOOST_REQUIRE(optional_result.IsValid());
+    BOOST_REQUIRE(optional_result.undo.has_value());
+    BOOST_REQUIRE(registry.UndoBlock(*optional_result.undo));
+}
+
+BOOST_AUTO_TEST_CASE(registry_block_failures_are_atomic)
+{
+    constexpr uint256 main_genesis{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
+    const CMutableTransaction registration_tx{RegistrationTx(
+        Txid{"0101010101010101010101010101010101010101010101010101010101010101"}, 0, 1)};
+    chainregistry::ChainRegistry registry;
+    const uint256 empty_root{registry.ComputeRoot()};
+
+    auto result{registry.ApplyBlock(
+        RegistryBlock(CoinbaseTx(), {registration_tx}),
+        100,
+        main_genesis,
+        1'000,
+        10,
+        chainregistry::CommitmentRequirement::REQUIRED)};
+    BOOST_CHECK(result.error == chainregistry::RegistryBlockError::MISSING_COMMITMENT);
+    BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(), empty_root.GetHex());
+
+    result = registry.ApplyBlock(
+        RegistryBlock(CoinbaseTx(uint256{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}), {registration_tx}),
+        100,
+        main_genesis,
+        1'000,
+        10,
+        chainregistry::CommitmentRequirement::REQUIRED);
+    BOOST_CHECK(result.error == chainregistry::RegistryBlockError::COMMITMENT_MISMATCH);
+    BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(), empty_root.GetHex());
+
+    result = registry.ApplyBlock(
+        RegistryBlock(CoinbaseTx(), {registration_tx}),
+        100,
+        main_genesis,
+        1'000,
+        0,
+        chainregistry::CommitmentRequirement::OPTIONAL);
+    BOOST_CHECK(result.error == chainregistry::RegistryBlockError::TOO_MANY_OPERATIONS);
+    BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(), empty_root.GetHex());
+
+    result = registry.ApplyBlock(
+        RegistryBlock(CoinbaseTx(), {registration_tx, registration_tx}),
+        100,
+        main_genesis,
+        1'000,
+        10,
+        chainregistry::CommitmentRequirement::OPTIONAL);
+    BOOST_CHECK(result.error == chainregistry::RegistryBlockError::TRANSACTION_TRANSITION);
+    BOOST_CHECK(result.tx_index == 2U);
+    BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(), empty_root.GetHex());
+
+    CMutableTransaction non_coinbase_commitment;
+    non_coinbase_commitment.vout.emplace_back(0, chainregistry::BuildRegistryCommitment(empty_root));
+    result = registry.ApplyBlock(
+        RegistryBlock(CoinbaseTx(), {non_coinbase_commitment}),
+        100,
+        main_genesis,
+        1'000,
+        10,
+        chainregistry::CommitmentRequirement::OPTIONAL);
+    BOOST_CHECK(result.error == chainregistry::RegistryBlockError::NON_COINBASE_COMMITMENT);
+
+    CMutableTransaction operation_coinbase{CoinbaseTx()};
+    operation_coinbase.vout.emplace_back(0, chainregistry::BuildOperationScript(chainregistry::RetireChain{
+        .chain_id = chainregistry::ChainId{"5555555555555555555555555555555555555555555555555555555555555555"},
+    }));
+    result = registry.ApplyBlock(
+        RegistryBlock(operation_coinbase, {}),
+        100,
+        main_genesis,
+        1'000,
+        10,
+        chainregistry::CommitmentRequirement::OPTIONAL);
+    BOOST_CHECK(result.error == chainregistry::RegistryBlockError::COINBASE_OPERATION);
+    BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(), empty_root.GetHex());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
