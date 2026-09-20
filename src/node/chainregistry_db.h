@@ -38,6 +38,7 @@ struct ChainRegistryDBState {
 enum class ChainRegistryDBLoadError : uint8_t {
     NONE,
     STATE_DECODE_FAILED,
+    ORPHANED_DATA,
     UNSUPPORTED_VERSION,
     RECORD_KEY_DECODE_FAILED,
     RECORD_KEY_MISMATCH,
@@ -69,6 +70,10 @@ public:
 
     ChainRegistryDBLoadResult Load(chainregistry::ChainRegistry& registry,
                                    ChainRegistryDBState& state) const;
+
+    bool WriteInitialState(const chainregistry::ChainRegistry& registry,
+                           const ChainRegistryDBState& state,
+                           bool sync = false);
 
     bool WriteConnectedBlock(const chainregistry::ChainRegistry& registry,
                              const ChainRegistryDBState& state,

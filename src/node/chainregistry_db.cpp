@@ -35,6 +35,15 @@ bool IsConsistent(const chainregistry::ChainRegistry& registry,
            state.registry_root == registry.ComputeRoot();
 }
 
+bool HasKeyWithPrefix(const CDBWrapper& db, uint8_t prefix)
+{
+    std::unique_ptr<CDBIterator> cursor{const_cast<CDBWrapper&>(db).NewIterator()};
+    cursor->Seek(prefix);
+    if (!cursor->Valid()) return false;
+    uint8_t stored_prefix;
+    return cursor->GetKey(stored_prefix) && stored_prefix == prefix;
+}
+
 void WriteChangedRecords(CDBBatch& batch,
                          const chainregistry::ChainRegistry& registry,
                          const chainregistry::RegistryBlockUndo& undo)
@@ -71,6 +80,10 @@ ChainRegistryDBLoadResult ChainRegistryDB::Load(chainregistry::ChainRegistry& re
     if (!m_db.Read(DB_REGISTRY_STATE, stored_state)) {
         if (m_db.Exists(DB_REGISTRY_STATE)) {
             return LoadError(ChainRegistryDBLoadError::STATE_DECODE_FAILED);
+        }
+        if (HasKeyWithPrefix(m_db, DB_REGISTRY_RECORD) ||
+            HasKeyWithPrefix(m_db, DB_REGISTRY_UNDO)) {
+            return LoadError(ChainRegistryDBLoadError::ORPHANED_DATA);
         }
         const auto registry_result{registry.LoadRecords({})};
         state = MakeChainRegistryDBState({}, 0, registry);
@@ -126,6 +139,21 @@ ChainRegistryDBLoadResult ChainRegistryDB::Load(chainregistry::ChainRegistry& re
     ChainRegistryDBLoadResult result;
     result.initialized = true;
     return result;
+}
+
+bool ChainRegistryDB::WriteInitialState(const chainregistry::ChainRegistry& registry,
+                                        const ChainRegistryDBState& state,
+                                        bool sync)
+{
+    if (!IsConsistent(registry, state) || m_db.Exists(DB_REGISTRY_STATE)) return false;
+
+    CDBBatch batch{m_db};
+    for (const auto& [chain_id, record] : registry.Records()) {
+        batch.Write(RecordKey{DB_REGISTRY_RECORD, chain_id}, record);
+    }
+    batch.Write(DB_REGISTRY_STATE, state);
+    m_db.WriteBatch(batch, sync);
+    return true;
 }
 
 bool ChainRegistryDB::WriteConnectedBlock(const chainregistry::ChainRegistry& registry,
