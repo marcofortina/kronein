@@ -32,6 +32,14 @@ from .authproxy import (
 )
 from .p2p import P2P_SUBVERSION
 from .segwit_addr import decode_segwit_address, encode_segwit_address
+from .wallet_util import (
+    WIF_PREFIX_MAIN,
+    WIF_PREFIX_REGTEST,
+    WIF_PREFIX_SIGNET,
+    WIF_PREFIX_TESTNET4,
+    base58_to_byte,
+    byte_to_base58,
+)
 from .util import (
     MAX_NODES,
     assert_equal,
@@ -198,18 +206,18 @@ class TestNode():
     AddressKeyPair = collections.namedtuple('AddressKeyPair', ['address', 'key'])
     PRIV_KEYS = [
             # address , privkey
-            AddressKeyPair('bcrt1pdcnk39ql472yfunwm5j7g6wdr64738xa0zlneu0572att36rgh5ql9x9ep', 'cVpF924EspNh8KjYsfhgY96mmxvT6DgdWiTYMtMjuM74hJaU5psW'),
-            AddressKeyPair('bcrt1pm2yjvxyam0ptfctzvlru0fg7wp5hpdf7dwjstmzp2nphj3cfjrnqmu0tuh', 'cUxsWyKyZ9MAQTaAhUQWJmBbSvHMwSmuv59KgxQV7oZQU3PXN3KE'),
-            AddressKeyPair('bcrt1pah3wvwng0w040q0dtg3a29jkkyqyyd87kk7jzsahd2j2zhua26nsd4d9my', 'cTrh7dkEAeJd6b3MRX9bZK8eRmNqVCMH3LSUkE3dSFDyzjU38QxK'),
-            AddressKeyPair('bcrt1p8wvlu558k2z3k5rkacgncwpml8xtnvz3jxspfyng0pllvev0y6lqtm3fdj', 'cVuKKa7gbehEQvVq717hYcbE9Dqmq7KEBKqWgWrYBa2CKKrhtRim'),
-            AddressKeyPair('bcrt1pz2zndwcdvcp39j3z97x8mhjkqjwl29n3xvygqcu987vqwz4tu2hsx2wgvn', 'cQDCBuKcjanpXDpCqacNSjYfxeQj8G6CAtH1Dsk3cXyqLNC4RPuh'),
-            AddressKeyPair('bcrt1p904waa4p4nrh7hr4e2cw4n87msuu7vmtfy9lu0jyryunepwvm3rs6l2j36', 'cQakmfPSLSqKHyMFGwAqKHgWUiofJCagVGhiB4KCainaeCSxeyYq'),
-            AddressKeyPair('bcrt1ple0t6h9xhjn24atm44cvfzregm278fq74nm2qe0x03st9y9q92esyjcgh7', 'cQMpDLJwA8DBe9NcQbdoSb1BhmFxVjWD5gRyrLZCtpuF9Zi3a9RK'),
-            AddressKeyPair('bcrt1plwv6rv8qh9ytznymsa5aec32h72yqvfzqkru64w7nf2fc4ctprvqguyelq', 'cSXmRKXVcoouhNNVpcNKFfxsTsToY5pvB9DVsFksF1ENunTzRKsy'),
-            AddressKeyPair('bcrt1p63f9ena4vlfmecpqt5yf74ukqwqj05r7dv0lsf5chdmqetvmaz9sc7tsxl', 'cSoXt6tm3pqy43UMabY6eUTmR3eSUYFtB2iNQDGgb3VUnRsQys2k'),
-            AddressKeyPair('bcrt1p7stxxf3schqpcdcm295p9jaex34qgw2ny0zw8vl3rqqh93uqrlzqtqy8vr', 'cN55daf1HotwBAgAKWVgDcoppmUNDtQSfb7XLutTLeAgVc3u8hik'),
-            AddressKeyPair('bcrt1p07skvgen8te7kggsv0gquvhx95tddzcu489zfqv7gf0wxguep2aqthmwza', 'cT7qK7g1wkYEMvKowd2ZrX1E5f6JQ7TM246UfqbCiyF7kZhorpX3'),
-            AddressKeyPair('bcrt1px2gchg2470y8hmfxxwlqc265hd49qhk6l436htmghuy4kwkgy8aqzxnrws', 'cPiRWE8KMjTRxH1MWkPerhfoHFn5iHPWVK5aPqjW8NxmdwenFinJ'),
+            AddressKeyPair('rkne1pdcnk39ql472yfunwm5j7g6wdr64738xa0zlneu0572att36rgh5qmqvdpe', 'd68mRfVqaS3F2Pnd5yHFiqUimhj4RtmYAUx4bhk7sG7updNJy1my'),
+            AddressKeyPair('rkne1pm2yjvxyam0ptfctzvlru0fg7wp5hpdf7dwjstmzp2nphj3cfjrnqle9ry0', 'd5HPocmaFm1iJXdEumz5VTZYSf5yH7rpZqdqvmns5iaFbNBq1FZA'),
+            AddressKeyPair('rkne1pah3wvwng0w040q0dtg3a29jkkyqyyd87kk7jzsahd2j2zhua26nsfs8dru', 'd4BDQHBpsFyAzf6RdpjAk1WbRWBSpsSBh6vzz3S1QAEq84HEr4vo'),
+            AddressKeyPair('rkne1p8wvlu558k2z3k5rkacgncwpml8xtnvz3jxspfyng0pllvev0y6lq07mp42', 'd6DqcDZHJGMnJzYuKJhGjJyB8xePAnQ8q6L2vLEv9V33SehC3xPf'),
+            AddressKeyPair('rkne1pz2zndwcdvcp39j3z97x8mhjkqjwl29n3xvygqcu987vqwz4tu2hsz0yq5t', 'czXiUYmDSCTNRHsH3tBwdRvcxPDLTwB6pemXTh8RaSzgTgwoQSbT'),
+            AddressKeyPair('rkne1p904waa4p4nrh7hr4e2cw4n87msuu7vmtfy9lu0jyryunepwvm3rs76q6fz', 'czuH4Jq334VsC3QKVEkQVz4TUTcGdsfb93CEQshaYdoRmXEGDyXU'),
+            AddressKeyPair('rkne1ple0t6h9xhjn24atm44cvfzregm278fq74nm2qe0x03st9y9q92esqhjq0x', 'czgLVykXrjsjYDRgcuDNdHP8hW4ZqQb7jSvW69warjv6GtWBgjCC'),
+            AddressKeyPair('rkne1plwv6rv8qh9ytznymsa5aec32h72yqvfzqkru64w7nf2fc4ctprvqvew38c', 'd2rHhxy6KRUTbSRa2uwtSNLpTcGQskuppui2759FCvFE37HDLA22'),
+            AddressKeyPair('rkne1p63f9ena4vlfmecpqt5yf74ukqwqj05r7dv0lsf5chdmqetvmaz9sumpc78', 'd384AkLMkSWWx7XRnu7fqAqiQnT3pDLnpoCte2f4YxWKukh5B8uz'),
+            AddressKeyPair('rkne1p7stxxf3schqpcdcm295p9jaex34qgw2ny0zw8vl3rqqh93uqrlzq09w05m', 'cxPbvE6bzRZV5EjEXp5FQKBmpWGyZZVMKMc3ajGqJZBXcvppfhXG'),
+            AddressKeyPair('rkne1p07skvgen8te7kggsv0gquvhx95tddzcu489zfqv7gf0wxguep2aq0j3x69', 'd3SMbm7ceNCnFzNt9vc93DPB5PtujnYFfpazueyagtFxstYtEY3y'),
+            AddressKeyPair('rkne1px2gchg2470y8hmfxxwlqc265hd49qhk6l436htmghuy4kwkgy8aqxretkg', 'cz2wnsZv4M7yrM4Rj3yE3Q3kGzah3xUR95a6df7t6HycmGUzXR71'),
     ]
 
     def get_deterministic_priv_key(self):
@@ -218,9 +226,19 @@ class TestNode():
         key_pair = self.PRIV_KEYS[self.index]
         if self.chain == "regtest":
             return key_pair
-        witness_version, witness_program = decode_segwit_address("bcrt", key_pair.address)
-        hrp = "bc" if self.chain == "main" else "tb"
-        return self.AddressKeyPair(encode_segwit_address(hrp, witness_version, witness_program), key_pair.key)
+        witness_version, witness_program = decode_segwit_address("rkne", key_pair.address)
+        hrp = {"main": "kne", "testnet4": "tkne", "signet": "skne"}[self.chain]
+        wif_payload, _ = base58_to_byte(key_pair.key)
+        wif_prefix = {
+            "main": WIF_PREFIX_MAIN,
+            "testnet4": WIF_PREFIX_TESTNET4,
+            "signet": WIF_PREFIX_SIGNET,
+            "regtest": WIF_PREFIX_REGTEST,
+        }[self.chain]
+        return self.AddressKeyPair(
+            encode_segwit_address(hrp, witness_version, witness_program),
+            byte_to_base58(wif_payload, wif_prefix),
+        )
 
     def _node_msg(self, msg: str) -> str:
         """Return a modified msg that identifies this node by its index as a debugging aid."""

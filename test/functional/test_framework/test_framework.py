@@ -20,7 +20,7 @@ import sys
 import tempfile
 import time
 
-from .address import create_deterministic_address_bcrt1_p2tr_op_true
+from .address import create_deterministic_address_rkne1_p2tr_op_true
 from .authproxy import JSONRPCException
 from . import coverage
 from .messages import CAddress
@@ -500,7 +500,7 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
     def wait_for_node_exit(self, i, timeout):
         self.nodes[i].process.wait(timeout)
 
-    def connect_nodes(self, a, b):
+    def connect_nodes(self, a, b, *, timeout=60):
         from_connection = self.nodes[a]
         to_connection = self.nodes[b]
 
@@ -511,15 +511,15 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
         def find_conn(node, peer_subversion, inbound):
             return next(filter(lambda peer: peer['subver'] == peer_subversion and peer['inbound'] == inbound, node.getpeerinfo()), None)
 
-        self.wait_until(lambda: not find_conn(from_connection, to_connection_subver, inbound=False))
-        self.wait_until(lambda: not find_conn(to_connection, from_connection_subver, inbound=True))
+        self.wait_until(lambda: not find_conn(from_connection, to_connection_subver, inbound=False), timeout=timeout)
+        self.wait_until(lambda: not find_conn(to_connection, from_connection_subver, inbound=True), timeout=timeout)
 
         ip_port = "127.0.0.1:" + str(p2p_port(b))
 
         from_connection.addnode(ip_port, "onetry")
 
-        self.wait_until(lambda: find_conn(from_connection, to_connection_subver, inbound=False) is not None)
-        self.wait_until(lambda: find_conn(to_connection, from_connection_subver, inbound=True) is not None)
+        self.wait_until(lambda: find_conn(from_connection, to_connection_subver, inbound=False) is not None, timeout=timeout)
+        self.wait_until(lambda: find_conn(to_connection, from_connection_subver, inbound=True) is not None, timeout=timeout)
 
         def check_bytesrecv(peer, msg_type, min_bytes_recv):
             assert peer is not None, "Error: peer disconnected"
@@ -531,8 +531,8 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
         #
         # As the flag fSuccessfullyConnected is not exposed, check it by
         # waiting for a pong, which can only happen after the flag was set.
-        self.wait_until(lambda: check_bytesrecv(find_conn(from_connection, to_connection_subver, inbound=False), 'pong', 29))
-        self.wait_until(lambda: check_bytesrecv(find_conn(to_connection, from_connection_subver, inbound=True), 'pong', 29))
+        self.wait_until(lambda: check_bytesrecv(find_conn(from_connection, to_connection_subver, inbound=False), 'pong', 29), timeout=timeout)
+        self.wait_until(lambda: check_bytesrecv(find_conn(to_connection, from_connection_subver, inbound=True), 'pong', 29), timeout=timeout)
 
     def disconnect_nodes(self, a, b):
         def disconnect_nodes_helper(node_a, node_b):
@@ -872,7 +872,7 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
             # block in the cache does not age too much (have an old tip age).
             # This is needed so that we are out of IBD when the test starts,
             # see the tip age check in IsInitialBlockDownload().
-            gen_addresses = [k.address for k in TestNode.PRIV_KEYS][:3] + [create_deterministic_address_bcrt1_p2tr_op_true()[0]]
+            gen_addresses = [k.address for k in TestNode.PRIV_KEYS][:3] + [create_deterministic_address_rkne1_p2tr_op_true()[0]]
             assert_equal(len(gen_addresses), 4)
             for i in range(8):
                 self.generatetoaddress(

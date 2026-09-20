@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2019-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Useful Script constants and utils."""
@@ -51,7 +52,7 @@ DUMMY_MIN_OP_RETURN_SCRIPT = CScript([OP_RETURN] + ([OP_0] * (MIN_PADDING - 1)))
 assert len(DUMMY_MIN_OP_RETURN_SCRIPT) == MIN_PADDING
 
 PAY_TO_ANCHOR = CScript([OP_1, bytes.fromhex("4e73")])
-ANCHOR_ADDRESS = "bcrt1pfeesnyr2tx"
+ANCHOR_ADDRESS = "rkne1pfeesz3243u"
 
 def program_to_witness_script(program):
     if isinstance(program, str):

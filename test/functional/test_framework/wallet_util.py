@@ -17,6 +17,10 @@ from test_framework.messages import (
 Key = namedtuple('Key', ['privkey', 'pubkey'])
 
 BASE58_CHARS = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+WIF_PREFIX_MAIN = 0xb4
+WIF_PREFIX_TESTNET4 = 0xf1
+WIF_PREFIX_SIGNET = 0xf2
+WIF_PREFIX_REGTEST = 0xf3
 
 
 def get_generate_key():
@@ -69,10 +73,10 @@ def base58_to_byte(s):
     return result[1:-4], int(result[0])
 
 
-def bytes_to_wif(b, compressed=True):
+def bytes_to_wif(b, compressed=True, version=WIF_PREFIX_REGTEST):
     if compressed:
         b += b'\x01'
-    return byte_to_base58(b, 239)
+    return byte_to_base58(b, version)
 
 def generate_keypair(compressed=True, wif=False):
     """Generate a new random keypair and return the corresponding ECKey /

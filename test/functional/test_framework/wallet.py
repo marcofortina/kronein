@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2020-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """A limited-functionality wallet, which may replace a real wallet in tests"""
@@ -12,7 +13,7 @@ from typing import (
 )
 from test_framework.address import (
     address_to_scriptpubkey,
-    create_deterministic_address_bcrt1_p2tr_op_true,
+    create_deterministic_address_rkne1_p2tr_op_true,
     output_key_to_p2tr,
 )
 from test_framework.blocktools import COINBASE_MATURITY
@@ -52,7 +53,7 @@ class MiniWallet:
         self._utxos = []
 
         internal_key = None if tag_name is None else compute_xonly_pubkey(hash256(tag_name.encode()))[0]
-        self._address, self._taproot_info = create_deterministic_address_bcrt1_p2tr_op_true(internal_key)
+        self._address, self._taproot_info = create_deterministic_address_rkne1_p2tr_op_true(internal_key)
         self._scriptPubKey = address_to_scriptpubkey(self._address)
 
         # When the pre-mined test framework chain is used, it contains coinbase

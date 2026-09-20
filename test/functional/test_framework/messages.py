@@ -30,6 +30,7 @@ import time
 import unittest
 
 from test_framework.crypto.siphash import siphash256
+from test_framework import randomx
 from test_framework.util import (
     assert_equal,
     assert_not_equal,
@@ -76,9 +77,9 @@ MAX_OP_RETURN_RELAY = 100_000
 DEFAULT_MEMPOOL_EXPIRY_HOURS = 336  # hours
 
 MAGIC_BYTES = {
-    "mainnet": b"\xf9\xbe\xb4\xd9",
-    "testnet4": b"\x1c\x16\x3f\x28",
-    "regtest": b"\xfa\xbf\xb5\xda",
+    "mainnet": b"\xa3\xcf\xcf\xf8",
+    "testnet4": b"\xe9\x9d\x8b\xa2",
+    "regtest": b"\xe0\xf9\xab\xb0",
     "signet": b"\x4c\x4a\x0e\xc6",
 }
 
@@ -721,6 +722,19 @@ class CBlockHeader:
         r += self.nNonce.to_bytes(4, "little")
         return r
 
+    def is_valid_pow(self):
+        work = int.from_bytes(randomx.hash_v2(self._serialize_header()), "little")
+        return work <= uint256_from_compact(self.nBits)
+
+    def solve(self):
+        target = uint256_from_compact(self.nBits)
+        while self.nNonce <= 0xffffffff:
+            work = int.from_bytes(randomx.hash_v2(self._serialize_header()), "little")
+            if work <= target:
+                return
+            self.nNonce += 1
+        raise RuntimeError("RandomX nonce space exhausted")
+
     @property
     def hash_hex(self):
         """Return block header hash as hex string."""
@@ -788,8 +802,7 @@ class CBlock(CBlockHeader):
         return self.get_merkle_root(hashes)
 
     def is_valid(self):
-        target = uint256_from_compact(self.nBits)
-        if self.hash_int > target:
+        if not self.is_valid_pow():
             return False
         for tx in self.vtx:
             if not tx.is_valid():
@@ -797,11 +810,6 @@ class CBlock(CBlockHeader):
         if self.calc_merkle_root() != self.hashMerkleRoot:
             return False
         return True
-
-    def solve(self):
-        target = uint256_from_compact(self.nBits)
-        while self.hash_int > target:
-            self.nNonce += 1
 
     # Calculate the block weight using witness and non-witness
     # serialization size.

@@ -786,7 +786,9 @@ class P2PDataStore(P2PInterface):
                 for b in blocks:
                     self.send_without_ping(msg_block(block=b), is_decoy)
             else:
-                self.send_without_ping(msg_headers([CBlockHeader(block) for block in blocks]))
+                headers = [CBlockHeader(block) for block in blocks]
+                for offset in range(0, len(headers), MAX_HEADERS_RESULTS):
+                    self.send_without_ping(msg_headers(headers[offset:offset + MAX_HEADERS_RESULTS]))
                 self.wait_until(
                     lambda: blocks[-1].hash_int in self.getdata_requests,
                     timeout=timeout,

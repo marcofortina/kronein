@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2016-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Encode and decode native Bech32m witness-v1 addresses."""
@@ -19,13 +20,13 @@ from test_framework.segwit_addr import (
 )
 
 
-ADDRESS_BCRT1_UNSPENDABLE = 'bcrt1pqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqm3usuw'
-ADDRESS_BCRT1_UNSPENDABLE_DESCRIPTOR = 'addr(bcrt1pqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqm3usuw)#h0u3564j'
+ADDRESS_RKNE1_UNSPENDABLE = 'rkne1pqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqql5kcyk'
+ADDRESS_RKNE1_UNSPENDABLE_DESCRIPTOR = 'addr(rkne1pqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqql5kcyk)#yazzxr5v'
 # Coins sent to this address can be spent through its deterministic OP_TRUE Taproot script path.
-ADDRESS_BCRT1_P2TR_OP_TRUE = 'bcrt1p9yfmy5h72durp7zrhlw9lf7jpwjgvwdg0jr0lqmmjtgg83266lqsekaqka'
+ADDRESS_RKNE1_P2TR_OP_TRUE = 'rkne1p9yfmy5h72durp7zrhlw9lf7jpwjgvwdg0jr0lqmmjtgg83266lqsanhgw9'
 
 
-def create_deterministic_address_bcrt1_p2tr_op_true(explicit_internal_key=None):
+def create_deterministic_address_rkne1_p2tr_op_true(explicit_internal_key=None):
     """
     Generates a deterministic bech32m address (segwit v1 output) that
     can be spent with a witness stack of OP_TRUE and the control block
@@ -37,7 +38,7 @@ def create_deterministic_address_bcrt1_p2tr_op_true(explicit_internal_key=None):
     taproot_info = taproot_construct(internal_key, [("only-path", CScript([OP_TRUE]))])
     address = output_key_to_p2tr(taproot_info.output_pubkey)
     if explicit_internal_key is None:
-        assert_equal(address, ADDRESS_BCRT1_P2TR_OP_TRUE)
+        assert_equal(address, ADDRESS_RKNE1_P2TR_OP_TRUE)
     return (address, taproot_info)
 
 
@@ -46,7 +47,7 @@ def program_to_witness(version, program, main=False):
         program = bytes.fromhex(program)
     assert version == 1
     assert 2 <= len(program) <= 40
-    return encode_segwit_address("bc" if main else "bcrt", version, program)
+    return encode_segwit_address("kne" if main else "rkne", version, program)
 
 def output_key_to_p2tr(key, main=False):
     assert len(key) == 32
@@ -57,7 +58,7 @@ def p2a(main=False):
 
 def bech32_to_bytes(address):
     hrp = address.split('1')[0]
-    if hrp not in ['bc', 'tb', 'bcrt']:
+    if hrp not in ['kne', 'tkne', 'rkne', 'skne']:
         return (None, None)
     version, payload = decode_segwit_address(hrp, address)
     if version is None:
@@ -76,7 +77,7 @@ def address_to_scriptpubkey(address):
 class TestFrameworkScript(unittest.TestCase):
     def test_bech32_decode(self):
         def check_bech32_decode(payload, version):
-            hrp = "tb"
+            hrp = "tkne"
             self.assertEqual(bech32_to_bytes(encode_segwit_address(hrp, version, payload)), (version, payload))
 
         check_bech32_decode(bytes.fromhex('79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798'), 1)
