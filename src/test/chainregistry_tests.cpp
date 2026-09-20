@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
+#include <consensus/chainregistry.h>
 #include <primitives/chainregistry.h>
 
 #include <primitives/transaction.h>
@@ -54,6 +55,43 @@ CMutableTransaction ValidRegistrationTx(CAmount burn = 1'000)
         Txid{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}, 0});
     tx.vout.emplace_back(burn, chainregistry::BuildOperationScript(ValidRegistration()));
     tx.vout.emplace_back(0, TaprootScript());
+    return tx;
+}
+
+CMutableTransaction RegistrationTx(const Txid& anchor_txid,
+                                   uint32_t anchor_vout,
+                                   unsigned char control_byte,
+                                   CAmount burn = 1'000)
+{
+    CMutableTransaction tx;
+    tx.vin.emplace_back(COutPoint{anchor_txid, anchor_vout});
+    tx.vout.emplace_back(burn, chainregistry::BuildOperationScript(ValidRegistration()));
+    tx.vout.emplace_back(0, TaprootScript(control_byte));
+    return tx;
+}
+
+CMutableTransaction UpdateTx(const chainregistry::ChainRecord& record,
+                             const chainregistry::MetadataHash& metadata_hash,
+                             unsigned char control_byte)
+{
+    CMutableTransaction tx;
+    tx.vin.emplace_back(record.control_outpoint);
+    tx.vout.emplace_back(0, chainregistry::BuildOperationScript(chainregistry::UpdateChain{
+        .chain_id = record.chain_id,
+        .control_output = 1,
+        .metadata_hash = metadata_hash,
+    }));
+    tx.vout.emplace_back(0, TaprootScript(control_byte));
+    return tx;
+}
+
+CMutableTransaction RetireTx(const chainregistry::ChainRecord& record)
+{
+    CMutableTransaction tx;
+    tx.vin.emplace_back(record.control_outpoint);
+    tx.vout.emplace_back(0, chainregistry::BuildOperationScript(chainregistry::RetireChain{
+        .chain_id = record.chain_id,
+    }));
     return tx;
 }
 
@@ -378,6 +416,219 @@ BOOST_AUTO_TEST_CASE(transaction_operation_rejects_multiple_and_unexpected_value
     }));
     result = chainregistry::ExtractTransactionOperation(CTransaction{retire_tx}, 1'000);
     BOOST_CHECK(result.error == chainregistry::TxOperationError::UNEXPECTED_OPERATION_VALUE);
+}
+
+BOOST_AUTO_TEST_CASE(registry_record_hash_vectors)
+{
+    const chainregistry::ChainRecord record{
+        .record_version = chainregistry::CHAIN_RECORD_VERSION,
+        .chain_id = chainregistry::ChainId{"1111111111111111111111111111111111111111111111111111111111111111"},
+        .manifest_hash = chainregistry::ManifestHash{"2222222222222222222222222222222222222222222222222222222222222222"},
+        .template_id = 1,
+        .template_version = 2,
+        .control_outpoint = COutPoint{
+            Txid{"3333333333333333333333333333333333333333333333333333333333333333"}, 4},
+        .metadata_hash = chainregistry::MetadataHash{"4444444444444444444444444444444444444444444444444444444444444444"},
+        .status = chainregistry::ChainStatus::ACTIVE,
+        .registered_height = 100,
+        .updated_height = 101,
+        .retired_height = 0,
+    };
+    DataStream stream;
+    stream << record;
+    BOOST_CHECK_EQUAL(
+        HexStr(stream),
+        "01"
+        "1111111111111111111111111111111111111111111111111111111111111111"
+        "2222222222222222222222222222222222222222222222222222222222222222"
+        "0100000002000000"
+        "333333333333333333333333333333333333333333333333333333333333333304000000"
+        "4444444444444444444444444444444444444444444444444444444444444444"
+        "01640000006500000000000000");
+    const uint256 leaf{chainregistry::ComputeRegistryLeafHash(record)};
+    BOOST_CHECK_EQUAL(leaf.GetHex(),
+                      "d9ff06f866121978c5358460276b39fbb5244a4edf3589c868d3da5172001c56");
+    BOOST_CHECK_EQUAL(chainregistry::ComputeRegistryRootFromLeaves({leaf}).GetHex(),
+                      "a32e93c64b78afae08ea32edac25f9c44dcce59a651c5744bec325ec107c8f1e");
+
+    chainregistry::ChainRegistry registry;
+    BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(),
+                      "06f412b26ee35c9eac2ac70cdd41f979c213c70cba8b5bf02e6c54ffe4e7d459");
+
+    const chainregistry::RegistryUndo undo{
+        .chain_id = record.chain_id,
+        .had_previous = true,
+        .previous = record,
+    };
+    DataStream undo_stream;
+    undo_stream << undo;
+    chainregistry::RegistryUndo decoded;
+    undo_stream >> decoded;
+    BOOST_CHECK(decoded == undo);
+    BOOST_CHECK(undo_stream.empty());
+}
+
+BOOST_AUTO_TEST_CASE(registry_lifecycle_and_undo)
+{
+    constexpr uint256 main_genesis{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
+    const CMutableTransaction registration_tx{RegistrationTx(
+        Txid{"0101010101010101010101010101010101010101010101010101010101010101"}, 7, 1)};
+
+    chainregistry::ChainRegistry registry;
+    const uint256 empty_root{registry.ComputeRoot()};
+    auto result{registry.ApplyTransaction(CTransaction{registration_tx}, 100, main_genesis, 1'000)};
+    BOOST_REQUIRE(result.IsValid());
+    BOOST_REQUIRE(result.HasOperation());
+    BOOST_REQUIRE(result.undo.has_value());
+    BOOST_CHECK_EQUAL(registry.Size(), 1U);
+    BOOST_CHECK(registry.ComputeRoot() != empty_root);
+
+    const chainregistry::ChainId chain_id{*result.chain_id};
+    const chainregistry::ChainRecord* record{registry.Find(chain_id)};
+    BOOST_REQUIRE(record != nullptr);
+    BOOST_CHECK(record->status == chainregistry::ChainStatus::ACTIVE);
+    BOOST_CHECK_EQUAL(record->template_id, 1U);
+    BOOST_CHECK_EQUAL(record->template_version, 2U);
+    BOOST_CHECK_EQUAL(record->registered_height, 100U);
+    BOOST_CHECK_EQUAL(record->updated_height, 100U);
+    BOOST_CHECK_EQUAL(record->control_outpoint.hash.GetHex(), CTransaction{registration_tx}.GetHash().GetHex());
+
+    const uint256 registered_root{registry.ComputeRoot()};
+    const chainregistry::RegistryUndo registration_undo{*result.undo};
+    const auto metadata{chainregistry::MetadataHash{"abababababababababababababababababababababababababababababababab"}};
+    const CMutableTransaction update_tx{UpdateTx(*record, metadata, 2)};
+    result = registry.ApplyTransaction(CTransaction{update_tx}, 101, main_genesis, 1'000);
+    BOOST_REQUIRE(result.IsValid());
+    BOOST_REQUIRE(result.undo.has_value());
+    const chainregistry::RegistryUndo update_undo{*result.undo};
+
+    record = registry.Find(chain_id);
+    BOOST_REQUIRE(record != nullptr);
+    BOOST_CHECK(record->metadata_hash == metadata);
+    BOOST_CHECK_EQUAL(record->updated_height, 101U);
+    BOOST_CHECK(registry.ComputeRoot() != registered_root);
+
+    const CMutableTransaction retire_tx{RetireTx(*record)};
+    result = registry.ApplyTransaction(CTransaction{retire_tx}, 102, main_genesis, 1'000);
+    BOOST_REQUIRE(result.IsValid());
+    BOOST_REQUIRE(result.undo.has_value());
+    const chainregistry::RegistryUndo retire_undo{*result.undo};
+    record = registry.Find(chain_id);
+    BOOST_REQUIRE(record != nullptr);
+    BOOST_CHECK(record->status == chainregistry::ChainStatus::RETIRED);
+    BOOST_CHECK_EQUAL(record->retired_height, 102U);
+
+    const CMutableTransaction update_after_retire{UpdateTx(*record, metadata, 3)};
+    const auto retired_result{registry.ApplyTransaction(CTransaction{update_after_retire}, 103, main_genesis, 1'000)};
+    BOOST_CHECK(retired_result.error == chainregistry::RegistryError::RETIRED_CHAIN);
+
+    BOOST_REQUIRE(registry.Undo(retire_undo));
+    BOOST_REQUIRE(registry.Undo(update_undo));
+    BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(), registered_root.GetHex());
+    BOOST_REQUIRE(registry.Undo(registration_undo));
+    BOOST_CHECK_EQUAL(registry.Size(), 0U);
+    BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(), empty_root.GetHex());
+}
+
+BOOST_AUTO_TEST_CASE(registry_rejects_unauthorized_control_spends)
+{
+    constexpr uint256 main_genesis{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
+    const CMutableTransaction registration_tx{RegistrationTx(
+        Txid{"0101010101010101010101010101010101010101010101010101010101010101"}, 7, 1)};
+    chainregistry::ChainRegistry registry;
+    const auto registered{registry.ApplyTransaction(CTransaction{registration_tx}, 100, main_genesis, 1'000)};
+    BOOST_REQUIRE(registered.IsValid());
+    const chainregistry::ChainRecord* record{registry.Find(*registered.chain_id)};
+    BOOST_REQUIRE(record != nullptr);
+    const uint256 root{registry.ComputeRoot()};
+
+    CMutableTransaction silent_spend;
+    silent_spend.vin.emplace_back(record->control_outpoint);
+    silent_spend.vout.emplace_back(0, TaprootScript(2));
+    auto result{registry.ApplyTransaction(CTransaction{silent_spend}, 101, main_genesis, 1'000)};
+    BOOST_CHECK(result.error == chainregistry::RegistryError::CONTROL_SPEND_WITHOUT_OPERATION);
+    BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(), root.GetHex());
+
+    CMutableTransaction wrong_control{UpdateTx(*record,
+        chainregistry::MetadataHash{"abababababababababababababababababababababababababababababababab"}, 2)};
+    wrong_control.vin[0].prevout = COutPoint{
+        Txid{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}, 0};
+    result = registry.ApplyTransaction(CTransaction{wrong_control}, 101, main_genesis, 1'000);
+    BOOST_CHECK(result.error == chainregistry::RegistryError::WRONG_CONTROL_OUTPOINT);
+
+    CMutableTransaction anchor_spend;
+    anchor_spend.vin.emplace_back(record->control_outpoint);
+    anchor_spend.vout.emplace_back(1'000, chainregistry::BuildOperationScript(ValidRegistration()));
+    anchor_spend.vout.emplace_back(0, TaprootScript(3));
+    result = registry.ApplyTransaction(CTransaction{anchor_spend}, 101, main_genesis, 1'000);
+    BOOST_CHECK(result.error == chainregistry::RegistryError::WRONG_CONTROL_OUTPOINT);
+}
+
+BOOST_AUTO_TEST_CASE(registry_ordering_and_duplicate_identity)
+{
+    constexpr uint256 main_genesis{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
+    const CMutableTransaction tx_a{RegistrationTx(
+        Txid{"0101010101010101010101010101010101010101010101010101010101010101"}, 0, 1)};
+    const CMutableTransaction tx_b{RegistrationTx(
+        Txid{"0202020202020202020202020202020202020202020202020202020202020202"}, 0, 2)};
+
+    chainregistry::ChainRegistry first;
+    BOOST_REQUIRE(first.ApplyTransaction(CTransaction{tx_a}, 100, main_genesis, 1'000).IsValid());
+    BOOST_REQUIRE(first.ApplyTransaction(CTransaction{tx_b}, 100, main_genesis, 1'000).IsValid());
+
+    chainregistry::ChainRegistry second;
+    BOOST_REQUIRE(second.ApplyTransaction(CTransaction{tx_b}, 100, main_genesis, 1'000).IsValid());
+    BOOST_REQUIRE(second.ApplyTransaction(CTransaction{tx_a}, 100, main_genesis, 1'000).IsValid());
+    BOOST_CHECK_EQUAL(first.ComputeRoot().GetHex(), second.ComputeRoot().GetHex());
+
+    const auto duplicate{first.ApplyTransaction(CTransaction{tx_a}, 101, main_genesis, 1'000)};
+    BOOST_CHECK(duplicate.error == chainregistry::RegistryError::DUPLICATE_CHAIN_ID);
+}
+
+BOOST_AUTO_TEST_CASE(registry_rejects_ambiguous_and_unknown_updates)
+{
+    constexpr uint256 main_genesis{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
+    const CMutableTransaction tx_a{RegistrationTx(
+        Txid{"0101010101010101010101010101010101010101010101010101010101010101"}, 0, 1)};
+    const CMutableTransaction tx_b{RegistrationTx(
+        Txid{"0202020202020202020202020202020202020202020202020202020202020202"}, 0, 2)};
+    chainregistry::ChainRegistry registry;
+    const auto result_a{registry.ApplyTransaction(CTransaction{tx_a}, 100, main_genesis, 1'000)};
+    const auto result_b{registry.ApplyTransaction(CTransaction{tx_b}, 100, main_genesis, 1'000)};
+    BOOST_REQUIRE(result_a.IsValid());
+    BOOST_REQUIRE(result_b.IsValid());
+    const auto* record_a{registry.Find(*result_a.chain_id)};
+    const auto* record_b{registry.Find(*result_b.chain_id)};
+    BOOST_REQUIRE(record_a != nullptr);
+    BOOST_REQUIRE(record_b != nullptr);
+    const uint256 root{registry.ComputeRoot()};
+
+    CMutableTransaction multi_control{UpdateTx(
+        *record_a,
+        chainregistry::MetadataHash{"abababababababababababababababababababababababababababababababab"},
+        3)};
+    multi_control.vin.emplace_back(record_b->control_outpoint);
+    auto result{registry.ApplyTransaction(CTransaction{multi_control}, 101, main_genesis, 1'000)};
+    BOOST_CHECK(result.error == chainregistry::RegistryError::MULTIPLE_CONTROL_OUTPOINTS);
+
+    CMutableTransaction duplicate_control{UpdateTx(
+        *record_a,
+        chainregistry::MetadataHash{"abababababababababababababababababababababababababababababababab"},
+        3)};
+    duplicate_control.vin.emplace_back(record_a->control_outpoint);
+    result = registry.ApplyTransaction(CTransaction{duplicate_control}, 101, main_genesis, 1'000);
+    BOOST_CHECK(result.error == chainregistry::RegistryError::MULTIPLE_CONTROL_OUTPOINTS);
+
+    CMutableTransaction unknown_update;
+    unknown_update.vout.emplace_back(0, chainregistry::BuildOperationScript(chainregistry::UpdateChain{
+        .chain_id = chainregistry::ChainId{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"},
+        .control_output = 1,
+        .metadata_hash = chainregistry::MetadataHash{"abababababababababababababababababababababababababababababababab"},
+    }));
+    unknown_update.vout.emplace_back(0, TaprootScript(4));
+    result = registry.ApplyTransaction(CTransaction{unknown_update}, 101, main_genesis, 1'000);
+    BOOST_CHECK(result.error == chainregistry::RegistryError::UNKNOWN_CHAIN);
+    BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(), root.GetHex());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
