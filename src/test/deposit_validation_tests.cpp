@@ -127,6 +127,8 @@ BOOST_AUTO_TEST_CASE(validates_active_chain_deposits)
     BOOST_REQUIRE(result.IsValid());
     BOOST_REQUIRE_EQUAL(result.deposits.size(), 2U);
     BOOST_CHECK_EQUAL(result.total_amount, 3'000);
+    BOOST_CHECK_EQUAL(result.deposits[0].transaction_index, 0U);
+    BOOST_CHECK_EQUAL(result.deposits[1].transaction_index, 0U);
     BOOST_CHECK_EQUAL(result.deposits[0].outpoint.n, 0U);
     BOOST_CHECK_EQUAL(result.deposits[1].outpoint.n, 1U);
     BOOST_CHECK(result.deposits[0].deposit_id == chainregistry::DeriveDepositId(

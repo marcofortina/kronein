@@ -4,7 +4,9 @@
 
 #include <node/chainregistry.h>
 
+#include <consensus/merkle.h>
 #include <primitives/block.h>
+#include <primitives/deposit.h>
 #include <primitives/transaction.h>
 #include <test/util/setup_common.h>
 
@@ -12,6 +14,7 @@
 
 #include <array>
 #include <span>
+#include <vector>
 
 namespace {
 
@@ -179,6 +182,76 @@ BOOST_AUTO_TEST_CASE(initialize_from_authenticated_snapshot)
         const auto existing_result{existing.InitializeFromSnapshot(
             Params(path), snapshot_tip, 100, registry, root)};
         BOOST_CHECK(existing_result.error == node::ChainRegistryStateError::DATABASE_ALREADY_INITIALIZED);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(indexes_snapshot_descendant_deposit_and_reverts_it)
+{
+    constexpr uint256 genesis_hash{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
+    constexpr uint256 snapshot_tip{"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"};
+    const Consensus::Params::ChainRegistryParams registry_params{
+        .activation_height = 1,
+        .minimum_registration_burn = 1,
+        .maximum_operations = 4,
+        .deposit_activation_height = 101,
+        .minimum_deposit_amount = 1'000,
+        .maximum_deposits = 4,
+    };
+    const fs::path path{m_args.GetDataDirBase() / "chainregistry_state_deposits"};
+
+    const auto record{Record()};
+    chainregistry::ChainRegistry registry;
+    BOOST_REQUIRE(registry.LoadRecords({record}).IsValid());
+
+    CBlock deposit_block{Block(
+        snapshot_tip, chainregistry::BuildRegistryCommitment(registry.ComputeRoot()))};
+    CMutableTransaction funding;
+    funding.vin.emplace_back(COutPoint{
+        Txid{"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}, 0});
+    funding.vout.emplace_back(
+        50'000,
+        chainregistry::BuildFundScript({
+            .chain_id = record.chain_id,
+            .recipient_type = 1,
+            .recipient = std::vector<unsigned char>(32, 0x42),
+        }));
+    deposit_block.vtx.push_back(MakeTransactionRef(std::move(funding)));
+    deposit_block.hashMerkleRoot = BlockMerkleRoot(deposit_block);
+    const uint256 deposit_block_hash{deposit_block.GetHash()};
+    const COutPoint outpoint{deposit_block.vtx[1]->GetHash(), 0};
+    const auto deposit_id{chainregistry::DeriveDepositId(genesis_hash, outpoint)};
+
+    {
+        node::ChainRegistryState state{registry_params, genesis_hash};
+        BOOST_REQUIRE(state.InitializeFromSnapshot(
+            Params(path, /*wipe=*/true),
+            snapshot_tip,
+            100,
+            registry,
+            registry.ComputeRoot()).IsValid());
+        BOOST_CHECK_EQUAL(state.State().deposit_history_start_height, 101U);
+        BOOST_CHECK_EQUAL(state.State().deposit_count, 0U);
+
+        BOOST_REQUIRE(state.ConnectBlock(
+            deposit_block, 101, deposit_block_hash, /*sync=*/true).IsValid());
+        BOOST_CHECK_EQUAL(state.State().deposit_count, 1U);
+        const auto indexed{state.FindDeposit(deposit_id)};
+        BOOST_REQUIRE(indexed.has_value());
+        BOOST_CHECK(indexed->outpoint == outpoint);
+        BOOST_CHECK_EQUAL(indexed->transaction_index, 1U);
+        BOOST_CHECK(indexed->registry_root == registry.ComputeRoot());
+        BOOST_CHECK(chainregistry::VerifyRegistryInclusion(
+            indexed->chain_record, indexed->registry_proof, indexed->registry_root));
+    }
+
+    {
+        node::ChainRegistryState state{registry_params, genesis_hash};
+        BOOST_REQUIRE(state.Initialize(Params(path), deposit_block_hash, 101).IsValid());
+        BOOST_REQUIRE(state.FindDeposit(deposit_id).has_value());
+        BOOST_REQUIRE(state.DisconnectBlock(
+            deposit_block_hash, snapshot_tip, 100, /*sync=*/true).IsValid());
+        BOOST_CHECK_EQUAL(state.State().deposit_count, 0U);
+        BOOST_CHECK(!state.FindDeposit(deposit_id).has_value());
     }
 }
 

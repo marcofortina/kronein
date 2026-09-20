@@ -6,8 +6,10 @@
 
 #include <primitives/block.h>
 
+#include <limits>
 #include <optional>
 #include <utility>
+#include <vector>
 
 namespace node {
 namespace {
@@ -33,6 +35,42 @@ std::optional<chainregistry::DepositValidationParams> DepositParamsForHeight(
         .minimum_amount = params.minimum_deposit_amount,
         .maximum_deposits = params.maximum_deposits,
     };
+}
+
+std::optional<std::vector<DepositIndexEntry>> BuildDepositIndexEntries(
+    const CBlock& block,
+    const uint256& block_hash,
+    uint32_t height,
+    const chainregistry::ChainRegistry& registry,
+    const chainregistry::BlockDepositsResult& deposits)
+{
+    std::vector<DepositIndexEntry> entries;
+    entries.reserve(deposits.deposits.size());
+    const uint256 registry_root{registry.ComputeRoot()};
+    for (const auto& deposit : deposits.deposits) {
+        if (deposit.transaction_index >= block.vtx.size() ||
+            block.vtx[deposit.transaction_index]->GetHash() != deposit.outpoint.hash) {
+            return std::nullopt;
+        }
+        const auto* record{registry.Find(deposit.fund.chain_id)};
+        const auto proof{registry.GetInclusionProof(deposit.fund.chain_id)};
+        if (!record || record->status != chainregistry::ChainStatus::ACTIVE || !proof) {
+            return std::nullopt;
+        }
+        entries.push_back(DepositIndexEntry{
+            .deposit_id = deposit.deposit_id,
+            .outpoint = deposit.outpoint,
+            .amount = deposit.amount,
+            .fund = deposit.fund,
+            .block_hash = block_hash,
+            .block_height = height,
+            .transaction_index = deposit.transaction_index,
+            .registry_root = registry_root,
+            .chain_record = *record,
+            .registry_proof = *proof,
+        });
+    }
+    return entries;
 }
 
 } // namespace
@@ -63,7 +101,7 @@ ChainRegistryStateResult ChainRegistryState::Initialize(const DBParams& db_param
         return {};
     }
 
-    m_db = std::make_unique<ChainRegistryDB>(db_params);
+    m_db = std::make_unique<ChainRegistryDB>(db_params, m_main_genesis_hash);
     ChainRegistryDBState loaded_state;
     auto load_result{m_db->Load(m_registry, loaded_state)};
     if (!load_result.IsValid()) {
@@ -111,7 +149,7 @@ ChainRegistryStateResult ChainRegistryState::InitializeFromSnapshot(
         return StateError(ChainRegistryStateError::SNAPSHOT_ROOT_MISMATCH);
     }
 
-    m_db = std::make_unique<ChainRegistryDB>(db_params);
+    m_db = std::make_unique<ChainRegistryDB>(db_params, m_main_genesis_hash);
     chainregistry::ChainRegistry existing_registry;
     ChainRegistryDBState existing_state;
     auto load_result{m_db->Load(existing_registry, existing_state)};
@@ -126,7 +164,11 @@ ChainRegistryStateResult ChainRegistryState::InitializeFromSnapshot(
     }
 
     const auto snapshot_state{MakeChainRegistryDBState(
-        expected_tip, static_cast<uint32_t>(expected_height), registry)};
+        expected_tip,
+        static_cast<uint32_t>(expected_height),
+        registry,
+        static_cast<uint32_t>(expected_height) + 1,
+        0)};
     if (!m_db->WriteInitialState(registry, snapshot_state, /*sync=*/true)) {
         return StateError(ChainRegistryStateError::DATABASE_WRITE_FAILED);
     }
@@ -146,7 +188,8 @@ ChainRegistryStateResult ChainRegistryState::ConnectBlock(const CBlock& block,
     if (!validation.IsValid() || !Enabled()) return validation;
 
     chainregistry::ChainRegistry candidate{m_registry};
-    chainregistry::RegistryBlockUndo undo;
+    ChainRegistryDBUndo undo;
+    std::vector<DepositIndexEntry> deposits;
     chainregistry::RegistryBlockResult block_result;
     if (m_params.IsActive(height)) {
         block_result = candidate.ApplyBlock(block,
@@ -162,11 +205,25 @@ ChainRegistryStateResult ChainRegistryState::ConnectBlock(const CBlock& block,
             result.block_result = std::move(block_result);
             return result;
         }
-        undo = *block_result.undo;
+        undo.registry = *block_result.undo;
+        const auto indexed{BuildDepositIndexEntries(
+            block, block_hash, static_cast<uint32_t>(height), candidate, block_result.deposits)};
+        if (!indexed) return StateError(ChainRegistryStateError::DEPOSIT_INDEX_FAILED);
+        deposits = *indexed;
+        undo.deposits.reserve(deposits.size());
+        for (const auto& deposit : deposits) undo.deposits.push_back(deposit.deposit_id);
     }
 
-    const auto next_state{MakeChainRegistryDBState(block_hash, static_cast<uint32_t>(height), candidate)};
-    if (!m_db->WriteConnectedBlock(candidate, next_state, block_hash, undo, sync)) {
+    if (deposits.size() > std::numeric_limits<uint64_t>::max() - m_state.deposit_count) {
+        return StateError(ChainRegistryStateError::DEPOSIT_INDEX_FAILED);
+    }
+    const auto next_state{MakeChainRegistryDBState(
+        block_hash,
+        static_cast<uint32_t>(height),
+        candidate,
+        m_state.deposit_history_start_height,
+        m_state.deposit_count + deposits.size())};
+    if (!m_db->WriteConnectedBlock(candidate, next_state, block_hash, undo, deposits, sync)) {
         return StateError(ChainRegistryStateError::DATABASE_WRITE_FAILED);
     }
     m_registry = std::move(candidate);
@@ -231,19 +288,24 @@ ChainRegistryStateResult ChainRegistryState::DisconnectBlock(const uint256& bloc
         return StateError(ChainRegistryStateError::NON_SEQUENTIAL_BLOCK);
     }
 
-    chainregistry::RegistryBlockUndo undo;
+    ChainRegistryDBUndo undo;
     if (!m_db->ReadUndo(block_hash, undo)) {
         return StateError(ChainRegistryStateError::UNDO_MISSING);
     }
 
     chainregistry::ChainRegistry candidate{m_registry};
-    if (!candidate.UndoBlock(undo)) {
+    if (!candidate.UndoBlock(undo.registry)) {
+        return StateError(ChainRegistryStateError::UNDO_FAILED);
+    }
+    if (undo.deposits.size() > m_state.deposit_count) {
         return StateError(ChainRegistryStateError::UNDO_FAILED);
     }
     const auto parent_state{MakeChainRegistryDBState(
         parent_hash,
         parent_height < 0 ? 0 : static_cast<uint32_t>(parent_height),
-        candidate)};
+        candidate,
+        m_state.deposit_history_start_height,
+        m_state.deposit_count - undo.deposits.size())};
     if (!m_db->WriteDisconnectedBlock(candidate, parent_state, block_hash, undo, sync)) {
         return StateError(ChainRegistryStateError::DATABASE_WRITE_FAILED);
     }
@@ -261,6 +323,13 @@ ChainRegistryStateResult ChainRegistryState::PruneUndo(std::span<const uint256> 
         return StateError(ChainRegistryStateError::DATABASE_WRITE_FAILED);
     }
     return {};
+}
+
+std::optional<DepositIndexEntry> ChainRegistryState::FindDeposit(
+    const chainregistry::DepositId& deposit_id) const
+{
+    if (!m_initialized || !m_db) return std::nullopt;
+    return m_db->ReadDeposit(deposit_id);
 }
 
 } // namespace node

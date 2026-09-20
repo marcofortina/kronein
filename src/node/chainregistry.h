@@ -12,6 +12,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 
 class CBlock;
@@ -31,6 +32,7 @@ enum class ChainRegistryStateError : uint8_t {
     NON_SEQUENTIAL_BLOCK,
     INVALID_BLOCK,
     DATABASE_WRITE_FAILED,
+    DEPOSIT_INDEX_FAILED,
     UNDO_MISSING,
     UNDO_FAILED,
 };
@@ -91,6 +93,7 @@ public:
     bool IsInitialized() const { return m_initialized; }
     const chainregistry::ChainRegistry& Registry() const { return m_registry; }
     const ChainRegistryDBState& State() const { return m_state; }
+    std::optional<DepositIndexEntry> FindDeposit(const chainregistry::DepositId& deposit_id) const;
 };
 
 } // namespace node

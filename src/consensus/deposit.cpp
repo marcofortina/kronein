@@ -22,7 +22,8 @@ BlockDepositsResult ValidateBlockDeposits(
     BlockDepositsResult result;
     std::set<DepositId> seen;
 
-    for (const auto& transaction_ref : block.vtx) {
+    for (size_t transaction_index{0}; transaction_index < block.vtx.size(); ++transaction_index) {
+        const auto& transaction_ref{block.vtx[transaction_index]};
         const CTransaction& transaction{*transaction_ref};
         const auto transaction_funds{ExtractTransactionFunds(transaction)};
         if (!transaction_funds.IsValid()) {
@@ -71,6 +72,7 @@ BlockDepositsResult ValidateBlockDeposits(
             result.deposits.push_back(ValidatedDeposit{
                 .deposit_id = deposit_id,
                 .outpoint = outpoint,
+                .transaction_index = static_cast<uint32_t>(transaction_index),
                 .amount = output.amount,
                 .fund = output.fund,
             });

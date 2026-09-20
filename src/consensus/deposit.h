@@ -29,6 +29,7 @@ struct DepositValidationParams {
 struct ValidatedDeposit {
     DepositId deposit_id;
     COutPoint outpoint;
+    uint32_t transaction_index{0};
     CAmount amount{0};
     FundChain fund;
 
