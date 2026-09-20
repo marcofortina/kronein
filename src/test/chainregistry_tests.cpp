@@ -918,4 +918,53 @@ BOOST_AUTO_TEST_CASE(registry_inclusion_and_non_inclusion_proofs)
     BOOST_CHECK(!chainregistry::VerifyRegistryNonInclusion(between, decoded, root));
 }
 
+BOOST_AUTO_TEST_CASE(registry_record_validation_and_atomic_loading)
+{
+    constexpr uint256 main_genesis{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
+    chainregistry::ChainRegistry source;
+    const CMutableTransaction tx_a{RegistrationTx(
+        Txid{"0101010101010101010101010101010101010101010101010101010101010101"}, 0, 1)};
+    const CMutableTransaction tx_b{RegistrationTx(
+        Txid{"0202020202020202020202020202020202020202020202020202020202020202"}, 0, 2)};
+    BOOST_REQUIRE(source.ApplyTransaction(CTransaction{tx_a}, 100, main_genesis, 1'000).IsValid());
+    BOOST_REQUIRE(source.ApplyTransaction(CTransaction{tx_b}, 101, main_genesis, 1'000).IsValid());
+
+    std::vector<chainregistry::ChainRecord> records;
+    for (const auto& entry : source.Records()) records.push_back(entry.second);
+    BOOST_REQUIRE_EQUAL(records.size(), 2U);
+    BOOST_CHECK(chainregistry::ValidateChainRecord(records[0]) == chainregistry::RecordValidationError::NONE);
+
+    chainregistry::ChainRegistry loaded;
+    BOOST_REQUIRE(loaded.LoadRecords(records).IsValid());
+    BOOST_CHECK_EQUAL(loaded.ComputeRoot().GetHex(), source.ComputeRoot().GetHex());
+    const uint256 loaded_root{loaded.ComputeRoot()};
+
+    auto invalid{records[0]};
+    invalid.record_version++;
+    auto load_result{loaded.LoadRecords({invalid})};
+    BOOST_CHECK(load_result.error == chainregistry::RegistryLoadError::INVALID_RECORD);
+    BOOST_CHECK(load_result.record_error == chainregistry::RecordValidationError::UNSUPPORTED_VERSION);
+    BOOST_CHECK_EQUAL(loaded.ComputeRoot().GetHex(), loaded_root.GetHex());
+
+    invalid = records[0];
+    invalid.status = static_cast<chainregistry::ChainStatus>(255);
+    BOOST_CHECK(chainregistry::ValidateChainRecord(invalid) == chainregistry::RecordValidationError::UNKNOWN_STATUS);
+    invalid = records[0];
+    invalid.updated_height = invalid.registered_height - 1;
+    BOOST_CHECK(chainregistry::ValidateChainRecord(invalid) == chainregistry::RecordValidationError::INVALID_HEIGHTS);
+    invalid = records[0];
+    invalid.retired_height = invalid.updated_height;
+    BOOST_CHECK(chainregistry::ValidateChainRecord(invalid) == chainregistry::RecordValidationError::INVALID_HEIGHTS);
+
+    load_result = loaded.LoadRecords({records[0], records[0]});
+    BOOST_CHECK(load_result.error == chainregistry::RegistryLoadError::DUPLICATE_CHAIN_ID);
+    BOOST_CHECK_EQUAL(loaded.ComputeRoot().GetHex(), loaded_root.GetHex());
+
+    auto control_collision{records};
+    control_collision[1].control_outpoint = control_collision[0].control_outpoint;
+    load_result = loaded.LoadRecords(std::move(control_collision));
+    BOOST_CHECK(load_result.error == chainregistry::RegistryLoadError::DUPLICATE_ACTIVE_CONTROL);
+    BOOST_CHECK_EQUAL(loaded.ComputeRoot().GetHex(), loaded_root.GetHex());
+}
+
 BOOST_AUTO_TEST_SUITE_END()

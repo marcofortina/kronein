@@ -35,6 +35,19 @@ enum class ChainStatus : uint8_t {
     RETIRED = 2,
 };
 
+enum class RecordValidationError : uint8_t {
+    NONE,
+    UNSUPPORTED_VERSION,
+    NULL_CHAIN_ID,
+    NULL_MANIFEST_HASH,
+    INVALID_TEMPLATE_ID,
+    INVALID_TEMPLATE_VERSION,
+    NULL_CONTROL_OUTPOINT,
+    NULL_METADATA_HASH,
+    UNKNOWN_STATUS,
+    INVALID_HEIGHTS,
+};
+
 /** Consensus state committed for every registered child chain. */
 struct ChainRecord {
     uint8_t record_version{CHAIN_RECORD_VERSION};
@@ -70,6 +83,8 @@ struct ChainRecord {
     friend bool operator==(const ChainRecord&, const ChainRecord&) = default;
 };
 
+RecordValidationError ValidateChainRecord(const ChainRecord& record);
+
 /** One reversible registry mutation. */
 struct RegistryUndo {
     ChainId chain_id;
@@ -94,6 +109,21 @@ enum class RegistryError : uint8_t {
     DUPLICATE_CHAIN_ID,
     UNKNOWN_CHAIN,
     RETIRED_CHAIN,
+};
+
+enum class RegistryLoadError : uint8_t {
+    NONE,
+    INVALID_RECORD,
+    DUPLICATE_CHAIN_ID,
+    DUPLICATE_ACTIVE_CONTROL,
+};
+
+struct RegistryLoadResult {
+    RegistryLoadError error{RegistryLoadError::NONE};
+    RecordValidationError record_error{RecordValidationError::NONE};
+    std::optional<ChainId> chain_id;
+
+    bool IsValid() const { return error == RegistryLoadError::NONE; }
 };
 
 struct RegistryTransitionResult {
@@ -246,6 +276,8 @@ public:
     const ChainRecord* Find(const ChainId& chain_id) const;
     size_t Size() const { return m_records.size(); }
     const std::map<ChainId, ChainRecord>& Records() const { return m_records; }
+    /** Atomically replace state with validated records loaded from storage. */
+    RegistryLoadResult LoadRecords(std::vector<ChainRecord> records);
 
     /** Root commits to ordered records and their count. */
     uint256 ComputeRoot() const;

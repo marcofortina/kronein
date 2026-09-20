@@ -77,6 +77,28 @@ uint256 ComputeRegistryLeafHash(const ChainRecord& record)
     return hasher.GetSHA256();
 }
 
+RecordValidationError ValidateChainRecord(const ChainRecord& record)
+{
+    if (record.record_version != CHAIN_RECORD_VERSION) return RecordValidationError::UNSUPPORTED_VERSION;
+    if (record.chain_id.IsNull()) return RecordValidationError::NULL_CHAIN_ID;
+    if (record.manifest_hash.IsNull()) return RecordValidationError::NULL_MANIFEST_HASH;
+    if (record.template_id == 0) return RecordValidationError::INVALID_TEMPLATE_ID;
+    if (record.template_version == 0) return RecordValidationError::INVALID_TEMPLATE_VERSION;
+    if (record.control_outpoint.IsNull()) return RecordValidationError::NULL_CONTROL_OUTPOINT;
+    if (record.metadata_hash.IsNull()) return RecordValidationError::NULL_METADATA_HASH;
+    if (record.updated_height < record.registered_height) return RecordValidationError::INVALID_HEIGHTS;
+    if (record.status == ChainStatus::ACTIVE) {
+        if (record.retired_height != 0) return RecordValidationError::INVALID_HEIGHTS;
+    } else if (record.status == ChainStatus::RETIRED) {
+        if (record.retired_height == 0 || record.retired_height != record.updated_height) {
+            return RecordValidationError::INVALID_HEIGHTS;
+        }
+    } else {
+        return RecordValidationError::UNKNOWN_STATUS;
+    }
+    return RecordValidationError::NONE;
+}
+
 uint256 ComputeRegistryNodeHash(const uint256& left, const uint256& right)
 {
     auto hasher{TaggedHash(std::string{REGISTRY_NODE_HASH_TAG})};
@@ -231,6 +253,42 @@ const ChainRecord* ChainRegistry::Find(const ChainId& chain_id) const
 {
     const auto it{m_records.find(chain_id)};
     return it == m_records.end() ? nullptr : &it->second;
+}
+
+RegistryLoadResult ChainRegistry::LoadRecords(std::vector<ChainRecord> records)
+{
+    std::map<ChainId, ChainRecord> loaded_records;
+    std::map<COutPoint, ChainId> loaded_controls;
+    for (auto& record : records) {
+        const RecordValidationError record_error{ValidateChainRecord(record)};
+        if (record_error != RecordValidationError::NONE) {
+            RegistryLoadResult result;
+            result.error = RegistryLoadError::INVALID_RECORD;
+            result.record_error = record_error;
+            result.chain_id = record.chain_id;
+            return result;
+        }
+        const ChainId chain_id{record.chain_id};
+        const auto [_, inserted]{loaded_records.emplace(chain_id, std::move(record))};
+        if (!inserted) {
+            RegistryLoadResult result;
+            result.error = RegistryLoadError::DUPLICATE_CHAIN_ID;
+            result.chain_id = chain_id;
+            return result;
+        }
+        const ChainRecord& stored{loaded_records.at(chain_id)};
+        if (stored.status == ChainStatus::ACTIVE &&
+            !loaded_controls.emplace(stored.control_outpoint, chain_id).second) {
+            RegistryLoadResult result;
+            result.error = RegistryLoadError::DUPLICATE_ACTIVE_CONTROL;
+            result.chain_id = chain_id;
+            return result;
+        }
+    }
+
+    m_records = std::move(loaded_records);
+    m_control_index = std::move(loaded_controls);
+    return {};
 }
 
 uint256 ChainRegistry::ComputeRoot() const
