@@ -14,6 +14,7 @@
 #include <common/args.h>
 #include <consensus/amount.h>
 #include <consensus/chainregistry.h>
+#include <consensus/deposit_proof.h>
 #include <consensus/merkle.h>
 #include <consensus/params.h>
 #include <consensus/validation.h>
@@ -34,6 +35,7 @@
 #include <node/utxo_snapshot.h>
 #include <node/warnings.h>
 #include <primitives/block.h>
+#include <primitives/deposit.h>
 #include <primitives/transaction.h>
 #include <rpc/server.h>
 #include <rpc/server_util.h>
@@ -59,6 +61,7 @@
 
 #include <condition_variable>
 #include <iterator>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -3406,6 +3409,77 @@ static UniValue ChainRegistryInclusionProofToUniv(const chainregistry::RegistryI
     return result;
 }
 
+static UniValue MerkleBranchToUniv(const std::vector<uint256>& branch)
+{
+    UniValue result{UniValue::VARR};
+    for (const auto& hash : branch) result.push_back(hash.GetHex());
+    return result;
+}
+
+static UniValue DepositEntryToUniv(const node::DepositIndexEntry& entry,
+                                   int confirmations,
+                                   bool proof_available)
+{
+    UniValue outpoint{UniValue::VOBJ};
+    outpoint.pushKV("txid", entry.outpoint.hash.GetHex());
+    outpoint.pushKV("vout", entry.outpoint.n);
+
+    UniValue destination{UniValue::VOBJ};
+    destination.pushKV("chain_id", entry.fund.chain_id.GetHex());
+    destination.pushKV("recipient_type", entry.fund.recipient_type);
+    destination.pushKV("recipient", HexStr(entry.fund.recipient));
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("deposit_id", entry.deposit_id.GetHex());
+    result.pushKV("outpoint", std::move(outpoint));
+    result.pushKV("amount", ValueFromAmount(entry.amount));
+    result.pushKV("destination", std::move(destination));
+    result.pushKV("blockhash", entry.block_hash.GetHex());
+    result.pushKV("blockheight", entry.block_height);
+    result.pushKV("transaction_index", entry.transaction_index);
+    result.pushKV("confirmations", confirmations);
+    result.pushKV("proof_available", proof_available);
+    result.pushKV("registry_root", entry.registry_root.GetHex());
+    result.pushKV("chain_record", ChainRegistryRecordToUniv(entry.chain_record));
+    result.pushKV("registry_proof", ChainRegistryInclusionProofToUniv(entry.registry_proof));
+    return result;
+}
+
+static COutPoint ParseDepositOutPoint(const UniValue& txid_arg, const UniValue& vout_arg)
+{
+    const Txid txid{Txid::FromUint256(ParseHashV(txid_arg, "txid"))};
+    const int64_t parsed_vout{vout_arg.getInt<int64_t>()};
+    if (txid.IsNull()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "txid must not be null");
+    }
+    if (parsed_vout < 0 ||
+        static_cast<uint64_t>(parsed_vout) >= COutPoint::NULL_INDEX) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "vout must be less than 4294967295");
+    }
+    return COutPoint{txid, static_cast<uint32_t>(parsed_vout)};
+}
+
+static std::string SerializeDepositProofHex(const chainregistry::DepositProof& proof)
+{
+    DataStream stream;
+    stream << proof;
+    return HexStr(stream);
+}
+
+static std::string SerializeHeaderHex(const CBlockHeader& header)
+{
+    DataStream stream;
+    stream << header;
+    return HexStr(stream);
+}
+
+static std::string SerializeBaseTransactionHex(const CMutableTransaction& transaction)
+{
+    DataStream stream;
+    stream << TX_BASE(transaction);
+    return HexStr(stream);
+}
+
 static UniValue ChainRegistryProofEntryToUniv(const chainregistry::RegistryProofEntry& entry)
 {
     UniValue result{UniValue::VOBJ};
@@ -3470,6 +3544,9 @@ static RPCHelpMan getchainregistryinfo()
             {RPCResult::Type::NUM, "height", "Block height paired with this registry state"},
             {RPCResult::Type::STR_HEX, "root", "Count-committed deterministic registry root"},
             {RPCResult::Type::NUM, "size", "Number of registered child-chain records"},
+            {RPCResult::Type::NUM, "deposit_history_start_height", "First height covered completely by the persistent deposit index"},
+            {RPCResult::Type::BOOL, "deposit_history_complete", "Whether the deposit index covers the chain from genesis"},
+            {RPCResult::Type::NUM, "deposit_count", "Number of indexed deposits in the covered active-chain history"},
         }},
         RPCExamples{
             HelpExampleCli("getchainregistryinfo", "")
@@ -3502,6 +3579,188 @@ static RPCHelpMan getchainregistryinfo()
     result.pushKV("height", state.height);
     result.pushKV("root", state.registry_root.GetHex());
     result.pushKV("size", state.record_count);
+    result.pushKV("deposit_history_start_height", state.deposit_history_start_height);
+    result.pushKV("deposit_history_complete", state.deposit_history_start_height == 0);
+    result.pushKV("deposit_count", state.deposit_count);
+    return result;
+}
+    };
+}
+
+static const std::vector<RPCResult> DEPOSIT_INDEX_ENTRY_RESULT{
+    {RPCResult::Type::STR_HEX, "deposit_id", "Network-bound identifier derived from main genesis hash and funding outpoint"},
+    {RPCResult::Type::OBJ, "outpoint", "Irreversibly burned main-chain output", {
+        {RPCResult::Type::STR_HEX, "txid", "Funding transaction id"},
+        {RPCResult::Type::NUM, "vout", "Funding output index"},
+    }},
+    {RPCResult::Type::STR_AMOUNT, "amount", "Amount burned on the main chain in KNE"},
+    {RPCResult::Type::OBJ, "destination", "Canonical child destination", {
+        {RPCResult::Type::STR_HEX, "chain_id", "Destination child-chain identifier"},
+        {RPCResult::Type::NUM, "recipient_type", "Child-template recipient namespace"},
+        {RPCResult::Type::STR_HEX, "recipient", "Canonical recipient bytes"},
+    }},
+    {RPCResult::Type::STR_HEX, "blockhash", "Containing main-chain block hash"},
+    {RPCResult::Type::NUM, "blockheight", "Containing main-chain block height"},
+    {RPCResult::Type::NUM, "transaction_index", "Funding transaction position in the block"},
+    {RPCResult::Type::NUM, "confirmations", "Current active-chain confirmations"},
+    {RPCResult::Type::BOOL, "proof_available", "Whether the block data required to export a KDPR proof is currently available"},
+    {RPCResult::Type::STR_HEX, "registry_root", "Historical registry root committed by the containing block"},
+    {RPCResult::Type::OBJ, "chain_record", "Historical active child-chain record", CHAIN_REGISTRY_RECORD_RESULT},
+    {RPCResult::Type::OBJ, "registry_proof", "Historical record inclusion proof", CHAIN_REGISTRY_INCLUSION_PROOF_RESULT},
+};
+
+static RPCHelpMan getdepositstatus()
+{
+    return RPCHelpMan{
+        "getdepositstatus",
+        "Look up a consensus-validated one-way child deposit by its main-chain outpoint. This uses the persistent compact index and remains available when the containing block has been pruned.\n",
+        {
+            {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Funding transaction id"},
+            {"vout", RPCArg::Type::NUM, RPCArg::Optional::NO, "Funding output index"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "", {
+            {RPCResult::Type::STR_HEX, "deposit_id", "Derived network-bound deposit identifier"},
+            {RPCResult::Type::BOOL, "found", "Whether the deposit exists in the indexed active-chain history"},
+            {RPCResult::Type::NUM, "history_start_height", "First height completely covered by this index"},
+            {RPCResult::Type::BOOL, "history_complete", "Whether indexed history starts at genesis"},
+            {RPCResult::Type::OBJ, "deposit", /*optional=*/true, "Validated deposit", DEPOSIT_INDEX_ENTRY_RESULT},
+        }},
+        RPCExamples{
+            HelpExampleCli("getdepositstatus", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" 0")
+            + HelpExampleRpc("getdepositstatus", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\", 0")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const COutPoint outpoint{ParseDepositOutPoint(
+        self.Arg<UniValue>("txid"), self.Arg<UniValue>("vout"))};
+    ChainstateManager& chainman{EnsureAnyChainman(request.context)};
+    LOCK(cs_main);
+    const Chainstate& chainstate{chainman.ActiveChainstate()};
+    const auto& registry_state{chainstate.ChainRegistryState()};
+    const auto& state{registry_state.State()};
+    const chainregistry::DepositId deposit_id{chainregistry::DeriveDepositId(
+        chainman.GetConsensus().hashGenesisBlock, outpoint)};
+    const auto entry{registry_state.FindDeposit(deposit_id)};
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("deposit_id", deposit_id.GetHex());
+    result.pushKV("found", entry.has_value());
+    result.pushKV("history_start_height", state.deposit_history_start_height);
+    result.pushKV("history_complete", state.deposit_history_start_height == 0);
+    if (!entry) return result;
+
+    const CBlockIndex* block_index{chainman.m_blockman.LookupBlockIndex(entry->block_hash)};
+    if (!block_index || block_index->nHeight != static_cast<int>(entry->block_height) ||
+        !chainstate.m_chain.Contains(block_index)) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "deposit index references a block outside the active chain");
+    }
+    const int confirmations{chainstate.m_chain.Height() - block_index->nHeight + 1};
+    const bool proof_available{(block_index->nStatus & BLOCK_HAVE_DATA) != 0};
+    result.pushKV("deposit", DepositEntryToUniv(*entry, confirmations, proof_available));
+    return result;
+}
+    };
+}
+
+static RPCHelpMan getdepositproof()
+{
+    return RPCHelpMan{
+        "getdepositproof",
+        "Build and independently validate a canonical KDPR v1 proof for a consensus-validated one-way child deposit. The child must separately authenticate the returned block header in the main-chain header chain and apply its confirmation policy.\n",
+        {
+            {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Funding transaction id"},
+            {"vout", RPCArg::Type::NUM, RPCArg::Optional::NO, "Funding output index"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "", {
+            {RPCResult::Type::STR_HEX, "proof", "Canonical serialized KDPR v1 package"},
+            {RPCResult::Type::NUM, "proof_version", "KDPR format version"},
+            {RPCResult::Type::STR_HEX, "main_genesis_hash", "Main-network identity bound into the proof"},
+            {RPCResult::Type::OBJ, "deposit", "Indexed deposit metadata", DEPOSIT_INDEX_ENTRY_RESULT},
+            {RPCResult::Type::STR_HEX, "block_header", "Serialized containing main-chain block header"},
+            {RPCResult::Type::STR_HEX, "funding_transaction", "Serialized stripped funding transaction"},
+            {RPCResult::Type::ARR, "transaction_merkle_branch", "Funding transaction branch from leaf to root", {
+                {RPCResult::Type::STR_HEX, "", "Sibling hash"},
+            }},
+            {RPCResult::Type::STR_HEX, "coinbase_transaction", "Serialized stripped coinbase transaction carrying the registry commitment"},
+            {RPCResult::Type::ARR, "coinbase_merkle_branch", "Coinbase branch from leaf to root", {
+                {RPCResult::Type::STR_HEX, "", "Sibling hash"},
+            }},
+        }},
+        RPCExamples{
+            HelpExampleCli("getdepositproof", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" 0")
+            + HelpExampleRpc("getdepositproof", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\", 0")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const COutPoint outpoint{ParseDepositOutPoint(
+        self.Arg<UniValue>("txid"), self.Arg<UniValue>("vout"))};
+    ChainstateManager& chainman{EnsureAnyChainman(request.context)};
+    const CBlockIndex* block_index{nullptr};
+    node::DepositIndexEntry entry;
+    int confirmations{0};
+    const uint256 main_genesis_hash{chainman.GetConsensus().hashGenesisBlock};
+    const chainregistry::DepositId deposit_id{chainregistry::DeriveDepositId(
+        main_genesis_hash, outpoint)};
+    {
+        LOCK(cs_main);
+        const Chainstate& chainstate{chainman.ActiveChainstate()};
+        const auto indexed{chainstate.ChainRegistryState().FindDeposit(deposit_id)};
+        if (!indexed) {
+            const auto start{chainstate.ChainRegistryState().State().deposit_history_start_height};
+            throw JSONRPCError(
+                RPC_INVALID_ADDRESS_OR_KEY,
+                strprintf("deposit not found in active-chain index (history is complete from height %u)", start));
+        }
+        entry = *indexed;
+        block_index = chainman.m_blockman.LookupBlockIndex(entry.block_hash);
+        if (!block_index || block_index->nHeight != static_cast<int>(entry.block_height) ||
+            !chainstate.m_chain.Contains(block_index)) {
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "deposit index references a block outside the active chain");
+        }
+        confirmations = chainstate.m_chain.Height() - block_index->nHeight + 1;
+    }
+
+    const CBlock block{GetBlockChecked(chainman.m_blockman, *block_index)};
+    if (block.GetHash() != entry.block_hash || entry.transaction_index >= block.vtx.size() ||
+        block.vtx.empty() || block.vtx[entry.transaction_index]->GetHash() != entry.outpoint.hash ||
+        entry.outpoint.n >= block.vtx[entry.transaction_index]->vout.size()) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "deposit index does not match the stored block");
+    }
+
+    chainregistry::DepositProof proof{
+        .main_genesis_hash = main_genesis_hash,
+        .block_height = entry.block_height,
+        .block_header = static_cast<const CBlockHeader&>(block),
+        .funding_transaction = CMutableTransaction{*block.vtx[entry.transaction_index]},
+        .funding_vout = entry.outpoint.n,
+        .transaction_index = entry.transaction_index,
+        .transaction_merkle_branch = TransactionMerklePath(block, entry.transaction_index),
+        .coinbase_transaction = CMutableTransaction{*block.vtx[0]},
+        .coinbase_merkle_branch = TransactionMerklePath(block, 0),
+        .chain_record = entry.chain_record,
+        .registry_proof = entry.registry_proof,
+    };
+    const auto validation{chainregistry::ValidateDepositProofStructure(
+        proof, main_genesis_hash, entry.fund.chain_id)};
+    if (!validation.IsValid() || validation.deposit_id != entry.deposit_id ||
+        validation.registry_root != entry.registry_root || !validation.fund ||
+        validation.fund->amount != entry.amount || validation.fund->fund != entry.fund) {
+        throw JSONRPCError(
+            RPC_INTERNAL_ERROR,
+            strprintf("generated deposit proof failed validation (%u)",
+                      static_cast<unsigned>(validation.error)));
+    }
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("proof", SerializeDepositProofHex(proof));
+    result.pushKV("proof_version", proof.version);
+    result.pushKV("main_genesis_hash", main_genesis_hash.GetHex());
+    result.pushKV("deposit", DepositEntryToUniv(entry, confirmations, /*proof_available=*/true));
+    result.pushKV("block_header", SerializeHeaderHex(proof.block_header));
+    result.pushKV("funding_transaction", SerializeBaseTransactionHex(proof.funding_transaction));
+    result.pushKV("transaction_merkle_branch", MerkleBranchToUniv(proof.transaction_merkle_branch));
+    result.pushKV("coinbase_transaction", SerializeBaseTransactionHex(proof.coinbase_transaction));
+    result.pushKV("coinbase_merkle_branch", MerkleBranchToUniv(proof.coinbase_merkle_branch));
     return result;
 }
     };
@@ -3678,6 +3937,8 @@ void RegisterBlockchainRPCCommands(CRPCTable& t)
         {"blockchain", &loadtxoutset},
         {"blockchain", &getchainstates},
         {"blockchain", &getchainregistryinfo},
+        {"blockchain", &getdepositstatus},
+        {"blockchain", &getdepositproof},
         {"blockchain", &listchildchains},
         {"blockchain", &getchildchain},
         {"hidden", &invalidateblock},

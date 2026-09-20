@@ -6,6 +6,10 @@
 
 from decimal import Decimal
 
+from test_framework.messages import (
+    COIN,
+    tx_from_hex,
+)
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
@@ -134,6 +138,9 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(info["height"], 0)
         assert_equal(info["bestblockhash"], node.getbestblockhash())
         assert_equal(info["size"], 0)
+        assert_equal(info["deposit_history_start_height"], 0)
+        assert_equal(info["deposit_history_complete"], True)
+        assert_equal(info["deposit_count"], 0)
 
         self.log.info("Activate registry consensus and verify the empty committed view")
         self.generate(node, 1)
@@ -144,6 +151,14 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(info["bestblockhash"], node.getbestblockhash())
         assert_equal(info["size"], 0)
         assert_equal(len(info["root"]), 64)
+
+        missing_deposit = node.getdepositstatus("01" * 32, 0)
+        assert_equal(missing_deposit["found"], False)
+        assert_equal(missing_deposit["history_start_height"], 0)
+        assert_equal(missing_deposit["history_complete"], True)
+        assert_raises_rpc_error(-5, "deposit not found", node.getdepositproof, "01" * 32, 0)
+        assert_raises_rpc_error(-8, "txid must not be null", node.getdepositstatus, "00" * 32, 0)
+        assert_raises_rpc_error(-8, "vout must be less than", node.getdepositstatus, "01" * 32, -1)
 
         page = node.listchildchains()
         assert_equal(page["bestblockhash"], info["bestblockhash"])
@@ -228,6 +243,54 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert "inclusion_proof" in registered
         registered_info = node.getchainregistryinfo()
 
+        self.log.info("Index and export a canonical proof for an irreversible child deposit")
+        deposit_destination = node.createfundchainoutput(chain_id, 1, "42" * 32)
+        deposit_amount = Decimal("0.25000000")
+        explicit_fee = Decimal("0.00100000")
+        deposit_utxo = max(wallet.listunspent(1), key=lambda utxo: utxo["amount"])
+        raw_deposit = node.createrawtransaction(
+            [{"txid": deposit_utxo["txid"], "vout": deposit_utxo["vout"]}],
+            [
+                {"data": deposit_destination["data"]},
+                {wallet.getnewaddress(): deposit_utxo["amount"] - deposit_amount - explicit_fee},
+            ],
+        )
+        mutable_deposit = tx_from_hex(raw_deposit)
+        mutable_deposit.vout[0].nValue = int(deposit_amount * COIN)
+        signed_deposit = wallet.signrawtransactionwithwallet(mutable_deposit.serialize().hex())
+        assert_equal(signed_deposit["complete"], True)
+        deposit_txid = node.sendrawtransaction(
+            hexstring=signed_deposit["hex"],
+            maxburnamount=deposit_amount,
+        )
+        deposit_block = self.generatetoaddress(node, 1, wallet.getnewaddress())[0]
+
+        deposit_status = node.getdepositstatus(deposit_txid, 0)
+        assert_equal(deposit_status["found"], True)
+        assert_equal(deposit_status["history_complete"], True)
+        assert_equal(deposit_status["deposit"]["deposit_id"], deposit_status["deposit_id"])
+        assert_equal(deposit_status["deposit"]["outpoint"], {"txid": deposit_txid, "vout": 0})
+        assert_equal(deposit_status["deposit"]["amount"], deposit_amount)
+        assert_equal(deposit_status["deposit"]["destination"], {
+            "chain_id": chain_id,
+            "recipient_type": 1,
+            "recipient": "42" * 32,
+        })
+        assert_equal(deposit_status["deposit"]["blockhash"], deposit_block)
+        assert_equal(deposit_status["deposit"]["confirmations"], 1)
+        assert_equal(deposit_status["deposit"]["proof_available"], True)
+        assert_equal(deposit_status["deposit"]["registry_root"], registered_info["root"])
+        assert_equal(deposit_status["deposit"]["chain_record"], registered["chain"])
+
+        deposit_proof = node.getdepositproof(deposit_txid, 0)
+        assert_equal(deposit_proof["proof_version"], 1)
+        assert_equal(deposit_proof["main_genesis_hash"], node.getblockhash(0))
+        assert_equal(deposit_proof["deposit"], deposit_status["deposit"])
+        assert len(deposit_proof["funding_transaction"]) > 20
+        assert_equal(len(deposit_proof["block_header"]), 160)
+        assert deposit_proof["proof"].startswith("4b44505201")
+        assert_equal(node.getchainregistryinfo()["deposit_count"], 1)
+
         successor_address = wallet.getnewaddress()
         update_psbt = wallet.walletcreatechainregistrypsbt("update", {
             "chain_id": chain_id,
@@ -290,7 +353,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(rolled_back_update["chain"]["control_outpoint"], {"txid": update_txid, "vout": 1})
 
         node.invalidateblock(update_block)
-        assert_equal(node.getbestblockhash(), registration_block)
+        assert_equal(node.getbestblockhash(), deposit_block)
         assert_equal(node.getchainregistryinfo()["root"], registered_info["root"])
         rolled_back_registration = node.getchildchain(chain_id)
         assert_equal(rolled_back_registration["chain"]["status"], "active")
@@ -299,6 +362,12 @@ class ChainRegistryTest(BitcoinTestFramework):
             "txid": registration_txid,
             "vout": 1,
         })
+
+        assert_equal(node.getdepositstatus(deposit_txid, 0)["found"], True)
+        node.invalidateblock(deposit_block)
+        assert_equal(node.getbestblockhash(), registration_block)
+        assert_equal(node.getdepositstatus(deposit_txid, 0)["found"], False)
+        assert_equal(node.getchainregistryinfo()["deposit_count"], 0)
 
         node.invalidateblock(registration_block)
         assert_equal(node.getbestblockhash(), pre_registration["bestblockhash"])
@@ -317,7 +386,9 @@ class ChainRegistryTest(BitcoinTestFramework):
         reconnected_info = node.getchainregistryinfo()
         assert_equal(reconnected_info["root"], retired_info["root"])
         assert_equal(reconnected_info["size"], retired_info["size"])
+        assert_equal(reconnected_info["deposit_count"], 1)
         assert_equal(node.getchildchain(chain_id)["chain"]["status"], "retired")
+        assert_equal(node.getdepositstatus(deposit_txid, 0)["found"], True)
 
         self.restart_node(0)
         node = self.nodes[0]
@@ -341,6 +412,7 @@ class ChainRegistryTest(BitcoinTestFramework):
             rebuilt_info = node.getchainregistryinfo()
             assert_equal(rebuilt_info["root"], retired_info["root"])
             assert_equal(rebuilt_info["size"], retired_info["size"])
+            assert_equal(rebuilt_info["deposit_count"], 1)
             rebuilt_chain = node.getchildchain(chain_id, True)
             assert_equal(rebuilt_chain["found"], True)
             assert_equal(rebuilt_chain["chain"]["status"], "retired")
@@ -365,11 +437,17 @@ class ChainRegistryTest(BitcoinTestFramework):
         pruned_chain = node.getchildchain(chain_id, True)
         assert_equal(pruned_chain["chain"]["status"], "retired")
         assert "inclusion_proof" in pruned_chain
+        pruned_deposit = node.getdepositstatus(deposit_txid, 0)
+        assert_equal(pruned_deposit["found"], True)
+        assert_equal(pruned_deposit["deposit"]["proof_available"], False)
+        assert_raises_rpc_error(-1, "Block not available (pruned data)",
+                                node.getdepositproof, deposit_txid, 0)
 
         self.restart_node(0, prune_args)
         node = self.nodes[0]
         assert_equal(node.getchainregistryinfo()["root"], retired_info["root"])
         assert_equal(node.getchildchain(chain_id, True)["chain"]["status"], "retired")
+        assert_equal(node.getdepositstatus(deposit_txid, 0)["found"], True)
 
 
 if __name__ == "__main__":
