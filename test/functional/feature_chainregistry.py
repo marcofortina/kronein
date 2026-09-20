@@ -295,6 +295,24 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(node.getchainregistryinfo()["root"], retired_info["root"])
         assert_equal(node.getchildchain(chain_id)["chain"]["status"], "retired")
 
+        self.log.info("Rebuild the registry through chainstate and full reindex")
+        registry_args = [
+            "-chainregistryactivationheight=1",
+            "-chainregistryminregistrationburn=1",
+            "-chainregistrymaxoperations=4",
+        ]
+        for reindex_arg in ["-reindex-chainstate", "-reindex"]:
+            self.restart_node(0, registry_args + [reindex_arg])
+            node = self.nodes[0]
+            assert_equal(node.getbestblockhash(), retirement_block)
+            rebuilt_info = node.getchainregistryinfo()
+            assert_equal(rebuilt_info["root"], retired_info["root"])
+            assert_equal(rebuilt_info["size"], retired_info["size"])
+            rebuilt_chain = node.getchildchain(chain_id, True)
+            assert_equal(rebuilt_chain["found"], True)
+            assert_equal(rebuilt_chain["chain"]["status"], "retired")
+            assert "inclusion_proof" in rebuilt_chain
+
 
 if __name__ == "__main__":
     ChainRegistryTest(__file__).main()
