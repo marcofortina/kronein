@@ -144,8 +144,8 @@ struct CoinbaseTx {
     CAmount block_reward_remaining;
     /*
      * To be included as the last outputs in the coinbase transaction.
-     * Currently this is only the witness commitment OP_RETURN, but future
-     * softforks or a custom mining patch could add more.
+     * This contains consensus-required registry and witness commitments in
+     * their required coinbase order.
      *
      * The dummy output that spends the full reward is excluded.
      */

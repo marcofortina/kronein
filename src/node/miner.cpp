@@ -11,6 +11,7 @@
 #include <coins.h>
 #include <common/args.h>
 #include <consensus/amount.h>
+#include <consensus/chainregistry.h>
 #include <consensus/consensus.h>
 #include <consensus/merkle.h>
 #include <consensus/tx_verify.h>
@@ -32,6 +33,42 @@
 #include <numeric>
 
 namespace node {
+
+namespace {
+
+std::optional<CTxOut> AddRegistryCommitment(CBlock& block, Chainstate& chainstate, int height)
+{
+    const auto& params{chainstate.m_chainman.GetConsensus().chain_registry};
+    if (!params.IsActive(height)) return std::nullopt;
+
+    chainregistry::ChainRegistry candidate{chainstate.ChainRegistryState().Registry()};
+    const auto result{candidate.ApplyBlock(block,
+                                           static_cast<uint32_t>(height),
+                                           chainstate.m_chainman.GetConsensus().hashGenesisBlock,
+                                           params.minimum_registration_burn,
+                                           params.maximum_operations,
+                                           chainregistry::CommitmentRequirement::OPTIONAL)};
+    if (!result.IsValid()) {
+        throw std::runtime_error(strprintf(
+            "Cannot construct child-chain registry commitment (error %u, transaction %s)",
+            static_cast<unsigned>(result.error),
+            result.tx_index ? util::ToString(*result.tx_index) : "none"));
+    }
+
+    CMutableTransaction coinbase{*block.vtx.front()};
+    coinbase.vout.emplace_back(0, chainregistry::BuildRegistryCommitment(result.computed_root));
+    block.vtx.front() = MakeTransactionRef(std::move(coinbase));
+    return block.vtx.front()->vout.back();
+}
+
+void RemoveRegistryCommitment(CMutableTransaction& coinbase)
+{
+    std::erase_if(coinbase.vout, [](const CTxOut& output) {
+        return chainregistry::ParseRegistryCommitment(output.scriptPubKey).root.has_value();
+    });
+}
+
+} // namespace
 
 int64_t GetMinimumTime(const CBlockIndex* pindexPrev, const Consensus::Params& consensus_params)
 {
@@ -70,10 +107,26 @@ int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParam
 void RegenerateCommitments(CBlock& block, ChainstateManager& chainman)
 {
     CMutableTransaction tx{*block.vtx.at(0)};
-    tx.vout.erase(tx.vout.begin() + GetWitnessCommitmentIndex(block));
+    if (const int witness_index{GetWitnessCommitmentIndex(block)};
+        witness_index != NO_WITNESS_COMMITMENT) {
+        tx.vout.erase(tx.vout.begin() + witness_index);
+    }
+    RemoveRegistryCommitment(tx);
     block.vtx.at(0) = MakeTransactionRef(tx);
 
-    const CBlockIndex* prev_block = WITH_LOCK(::cs_main, return chainman.m_blockman.LookupBlockIndex(block.hashPrevBlock));
+    const CBlockIndex* prev_block;
+    {
+        LOCK(::cs_main);
+        prev_block = chainman.m_blockman.LookupBlockIndex(block.hashPrevBlock);
+        if (!prev_block) throw std::runtime_error("Cannot regenerate commitments for an unknown parent block");
+        Chainstate& chainstate{chainman.ActiveChainstate()};
+        if (chainman.GetConsensus().chain_registry.IsActive(prev_block->nHeight + 1)) {
+            if (chainstate.m_chain.Tip() != prev_block) {
+                throw std::runtime_error("Cannot regenerate a registry commitment away from the active chain tip");
+            }
+            AddRegistryCommitment(block, chainstate, prev_block->nHeight + 1);
+        }
+    }
     chainman.GenerateCoinbaseCommitment(block, prev_block);
 
     block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -200,6 +253,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock()
     coinbase_tx.lock_time = coinbaseTx.nLockTime;
 
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
+    const auto registry_commitment{AddRegistryCommitment(*pblock, m_chainstate, nHeight)};
     m_chainstate.m_chainman.GenerateCoinbaseCommitment(*pblock, pindexPrev);
 
     const CTransactionRef& final_coinbase{pblock->vtx[0]};
@@ -209,6 +263,9 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock()
         // element of 32 bytes.
         Assert(witness_stack.size() == 1 && witness_stack[0].size() == 32);
         coinbase_tx.witness = uint256(witness_stack[0]);
+    }
+    if (registry_commitment) {
+        coinbase_tx.required_outputs.push_back(*registry_commitment);
     }
     if (const int witness_index = GetWitnessCommitmentIndex(*pblock); witness_index != NO_WITNESS_COMMITMENT) {
         Assert(witness_index >= 0 && static_cast<size_t>(witness_index) < final_coinbase->vout.size());

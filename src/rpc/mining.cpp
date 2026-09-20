@@ -11,6 +11,7 @@
 #include <chainparamsbase.h>
 #include <common/system.h>
 #include <consensus/amount.h>
+#include <consensus/chainregistry.h>
 #include <consensus/consensus.h>
 #include <consensus/merkle.h>
 #include <consensus/params.h>
@@ -604,6 +605,7 @@ static RPCHelpMan getblocktemplate()
                 {"rules", RPCArg::Type::ARR, RPCArg::Optional::NO, "A list of strings",
                 {
                     {"segwit", RPCArg::Type::STR, RPCArg::Optional::NO, "(literal) indicates client side segwit support"},
+                    {"chainregistry", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "(literal) required after child-chain registry activation"},
                     {"str", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "other client side supported softfork deployment"},
                 }},
                 {"longpollid", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "delay processing request until the result would vary significantly from the \"longpollid\" of a prior template"},
@@ -670,6 +672,7 @@ static RPCHelpMan getblocktemplate()
                 }},
                 {RPCResult::Type::STR_HEX, "signet_challenge", /*optional=*/true, "Only on signet"},
                 {RPCResult::Type::STR_HEX, "default_witness_commitment", /*optional=*/true, "a valid witness commitment for the unmodified block template"},
+                {RPCResult::Type::STR_HEX, "default_registry_commitment", /*optional=*/true, "the required KRRT child-chain registry commitment for the unmodified block template"},
             }},
         },
         RPCExamples{
@@ -827,6 +830,11 @@ static RPCHelpMan getblocktemplate()
         throw JSONRPCError(RPC_INVALID_PARAMETER, "getblocktemplate must be called with the signet rule set (call with {\"rules\": [\"segwit\", \"signet\"]})");
     }
 
+    if (consensusParams.chain_registry.IsActive(chainman.ActiveHeight() + 1) &&
+        !setClientRules.contains("chainregistry")) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "getblocktemplate must be called with the chainregistry rule set after activation (call with {\"rules\": [\"segwit\", \"chainregistry\"]})");
+    }
+
     // GBT must be called with 'segwit' set in the rules
     if (!setClientRules.contains("segwit")) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "getblocktemplate must be called with the segwit rule set (call with {\"rules\": [\"segwit\"]})");
@@ -917,6 +925,10 @@ static RPCHelpMan getblocktemplate()
     aRules.push_back("csv");
     aRules.push_back("!segwit");
     aRules.push_back("taproot");
+    if (consensusParams.chain_registry.IsActive(pindexPrev->nHeight + 1)) {
+        // A miner must preserve and update the KRRT coinbase commitment.
+        aRules.push_back("!chainregistry");
+    }
     if (consensusParams.signet_blocks) {
         // indicate to miner that they must understand signet rules
         // when attempting to mine with this template
@@ -958,9 +970,15 @@ static RPCHelpMan getblocktemplate()
         result.pushKV("signet_challenge", HexStr(consensusParams.signet_challenge));
     }
 
-    if (auto coinbase{block_template->getCoinbaseTx()}; coinbase.required_outputs.size() > 0) {
-        CHECK_NONFATAL(coinbase.required_outputs.size() == 1); // Only one output is currently expected
-        result.pushKV("default_witness_commitment", HexStr(coinbase.required_outputs[0].scriptPubKey));
+    if (const int witness_index{GetWitnessCommitmentIndex(block)};
+        witness_index != NO_WITNESS_COMMITMENT) {
+        result.pushKV("default_witness_commitment", HexStr(block.vtx[0]->vout[witness_index].scriptPubKey));
+    }
+    const auto registry_commitment{chainregistry::ExtractRegistryCommitment(*block.vtx[0])};
+    CHECK_NONFATAL(registry_commitment.IsValid());
+    if (registry_commitment.output_index) {
+        result.pushKV("default_registry_commitment",
+                      HexStr(block.vtx[0]->vout[*registry_commitment.output_index].scriptPubKey));
     }
 
     return result;

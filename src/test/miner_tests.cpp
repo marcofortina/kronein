@@ -3,9 +3,12 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <addresstype.h>
+#include <consensus/chainregistry.h>
+#include <consensus/merkle.h>
 #include <consensus/tx_check.h>
 #include <node/miner.h>
 #include <script/solver.h>
+#include <test/util/mining.h>
 #include <test/util/setup_common.h>
 #include <validation.h>
 
@@ -72,6 +75,70 @@ BOOST_AUTO_TEST_CASE(select_native_parent_child_package)
     BOOST_REQUIRE_EQUAL(block.vtx.size(), 3U);
     BOOST_CHECK(block.vtx[1]->GetHash() == parent.GetHash());
     BOOST_CHECK(block.vtx[2]->GetHash() == child.GetHash());
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+namespace {
+
+struct RegistryMinerSetup : public TestingSetup {
+    RegistryMinerSetup()
+        : TestingSetup{ChainType::REGTEST, TestOpts{.extra_args = {
+              "-chainregistryactivationheight=1",
+              "-chainregistryminregistrationburn=1",
+              "-chainregistrymaxoperations=4",
+          }}}
+    {
+    }
+};
+
+} // namespace
+
+BOOST_FIXTURE_TEST_SUITE(chainregistry_miner_tests, RegistryMinerSetup)
+
+BOOST_AUTO_TEST_CASE(create_active_registry_commitment)
+{
+    CKey key;
+    key.MakeNewKey(true);
+    BlockAssembler::Options options;
+    options.coinbase_output_script = GetScriptForDestination(WitnessV1Taproot{XOnlyPubKey{key.GetPubKey()}});
+    options.include_dummy_extranonce = true;
+
+    auto block_template{BlockAssembler{
+        m_node.chainman->ActiveChainstate(), m_node.mempool.get(), options}.CreateNewBlock()};
+    BOOST_REQUIRE(block_template);
+    CBlock& block{block_template->block};
+
+    const auto commitment{chainregistry::ExtractRegistryCommitment(*block.vtx[0])};
+    BOOST_REQUIRE(commitment.IsValid());
+    BOOST_REQUIRE(commitment.root.has_value());
+    {
+        LOCK(cs_main);
+        BOOST_CHECK(*commitment.root ==
+                    m_node.chainman->ActiveChainstate().ChainRegistryState().Registry().ComputeRoot());
+    }
+    BOOST_CHECK_EQUAL(block_template->m_coinbase_tx.required_outputs.size(), 2U);
+
+    const BlockValidationState valid{TestBlockValidity(
+        m_node.chainman->ActiveChainstate(), block, /*check_pow=*/false, /*check_merkle_root=*/false)};
+    BOOST_CHECK(valid.IsValid());
+
+    CBlock missing{block};
+    CMutableTransaction coinbase{*missing.vtx[0]};
+    coinbase.vout.erase(coinbase.vout.begin() + *commitment.output_index);
+    missing.vtx[0] = MakeTransactionRef(std::move(coinbase));
+    const BlockValidationState invalid{TestBlockValidity(
+        m_node.chainman->ActiveChainstate(), missing, /*check_pow=*/false, /*check_merkle_root=*/false)};
+    BOOST_CHECK(invalid.IsInvalid());
+    BOOST_CHECK_EQUAL(invalid.GetRejectReason(), "bad-chain-registry");
+
+    auto processed{std::make_shared<CBlock>(block)};
+    processed->hashMerkleRoot = BlockMerkleRoot(*processed);
+    BOOST_CHECK(!MineBlock(m_node, processed).IsNull());
+    LOCK(cs_main);
+    BOOST_CHECK_EQUAL(m_node.chainman->ActiveHeight(), 1);
+    BOOST_CHECK(m_node.chainman->ActiveChainstate().ChainRegistryState().State().best_block ==
+                processed->GetHash());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
