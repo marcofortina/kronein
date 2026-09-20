@@ -67,6 +67,7 @@ add_library(bitcoin_consensus STATIC EXCLUDE_FROM_ALL
   hash.cpp
   primitives/block.cpp
   primitives/chainregistry.cpp
+  primitives/deposit.cpp
   primitives/transaction.cpp
   pubkey.cpp
   script/interpreter.cpp
