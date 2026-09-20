@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # Copyright (c) 2024-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test that descriptor wallets rescan mempool transactions properly when importing."""
 
 from test_framework.address import (
     address_to_scriptpubkey,
-    ADDRESS_BCRT1_UNSPENDABLE,
+    ADDRESS_RKNE1_UNSPENDABLE,
 )
 from test_framework.messages import COIN
 from test_framework.test_framework import BitcoinTestFramework
@@ -53,7 +54,7 @@ class WalletRescanUnconfirmed(BitcoinTestFramework):
         # The only UTXO available to spend is tx_parent_to_reorg.
         assert_equal(len(w0_utxos), 1)
         assert_equal(w0_utxos[0]["txid"], tx_parent_to_reorg["txid"])
-        tx_child_unconfirmed_sweep = w0.sendall(recipients=[ADDRESS_BCRT1_UNSPENDABLE], options={"locktime":0})
+        tx_child_unconfirmed_sweep = w0.sendall(recipients=[ADDRESS_RKNE1_UNSPENDABLE], options={"locktime":0})
         assert tx_child_unconfirmed_sweep["txid"] in node.getrawmempool()
         node.syncwithvalidationinterfacequeue()
 

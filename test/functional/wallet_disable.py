@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2015-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test a node with the -disablewallet option.
@@ -8,7 +9,7 @@
 - Test that it is not possible to mine to an invalid address.
 """
 
-from test_framework.address import ADDRESS_BCRT1_UNSPENDABLE, output_key_to_p2tr
+from test_framework.address import ADDRESS_RKNE1_UNSPENDABLE, output_key_to_p2tr
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import assert_raises_rpc_error
 
@@ -24,7 +25,7 @@ class DisableWalletTest (BitcoinTestFramework):
         assert_raises_rpc_error(-32601, 'Method not found', self.nodes[0].getwalletinfo)
         x = self.nodes[0].validateaddress(output_key_to_p2tr(bytes(32), main=True))
         assert not x['isvalid']
-        x = self.nodes[0].validateaddress(ADDRESS_BCRT1_UNSPENDABLE)
+        x = self.nodes[0].validateaddress(ADDRESS_RKNE1_UNSPENDABLE)
         assert x['isvalid']
 
 

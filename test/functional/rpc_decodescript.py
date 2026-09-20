@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2015-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test decoding native output scripts via the decodescript RPC."""
@@ -20,7 +21,7 @@ class DecodeScriptTest(BitcoinTestFramework):
         result = self.nodes[0].decodescript("5120" + xonly_public_key)
         assert_equal(result["asm"], "1 " + xonly_public_key)
         assert_equal(result["type"], "witness_v1_taproot")
-        assert_equal(result["address"], "bcrt1pqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs7r922v")
+        assert_equal(result["address"], "rkne1pqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs6x0zj5")
 
         self.log.info("Decode an OP_RETURN output")
         result = self.nodes[0].decodescript("6a04deadbeef")

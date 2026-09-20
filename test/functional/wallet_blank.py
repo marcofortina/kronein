@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # Copyright (c) 2022-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
 
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.address import (
-    ADDRESS_BCRT1_UNSPENDABLE_DESCRIPTOR,
+    ADDRESS_RKNE1_UNSPENDABLE_DESCRIPTOR,
 )
 from test_framework.util import (
     assert_equal,
@@ -27,7 +28,7 @@ class WalletBlankTest(BitcoinTestFramework):
         info = wallet.getwalletinfo()
         assert_equal(info["blank"], True)
         wallet.importdescriptors([{
-            "desc": ADDRESS_BCRT1_UNSPENDABLE_DESCRIPTOR,
+            "desc": ADDRESS_RKNE1_UNSPENDABLE_DESCRIPTOR,
             "timestamp": "now",
         }])
         assert_equal(wallet.getwalletinfo()["blank"], True)

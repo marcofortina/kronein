@@ -78,7 +78,7 @@ class DescriptorTest(BitcoinTestFramework):
         assert_equal(private_info["hasprivatekeys"], True)
         assert priv_key not in private_info["descriptor"]
 
-        xpub = "tpubD6NzVbkrYhZ4WaWSyoBvQwbpLkojyoTZPRsgXELWz3Popb3qkjcJyJUGLnL4qHHoQvao8ESaAstxYSnhyswJ76uZPStJRJCTKvosUCJZL5B"
+        xpub = "KrpubTX7E33B4R29pw93b5wkY3ue6kf3UmUFtTSTH9QpmmL7u5CUfq6gBBuxML4Eov9RNfbmZLFHSXrWCyApiZif8p1AiwyGxrXuBi6M3jbkjJdo"
         self.test_desc(f"tr({xpub}/0/*)", isrange=True, issolvable=True, hasprivatekeys=False)
         self.test_desc(
             f"tr({xpub}/<0;1>/*)",

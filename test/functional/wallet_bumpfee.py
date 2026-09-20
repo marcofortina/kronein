@@ -541,7 +541,7 @@ def test_maxtxfee_fails(self, rbf_node, dest_address):
 
 def test_watchonly_psbt(self, peer_node, rbf_node, dest_address):
     self.log.info('Test that PSBT is returned for bumpfee in watchonly wallets')
-    xpriv = "tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK"
+    xpriv = "KrprvXJ7sdXeAaebXiey7yvDXgmhNCdCzN1Y36DXgM2RACzavCQ9XHZMve7dsUoSCAVrvH2cnVH5b2oCtgDsATtXKyhvUSurRftNtHnke6h3P4VP"
     priv_rec_desc = descsum_create(f"tr([00000001/86'/1'/0']{xpriv}/0/*)")
     pub_rec_desc = rbf_node.getdescriptorinfo(priv_rec_desc)["descriptor"]
     priv_change_desc = descsum_create(f"tr([00000001/86'/1'/0']{xpriv}/1/*)")

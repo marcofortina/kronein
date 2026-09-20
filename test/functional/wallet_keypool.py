@@ -31,13 +31,13 @@ class KeyPoolTest(BitcoinTestFramework):
         nodes[0].walletpassphrase('test', 10)
         nodes[0].importdescriptors([
             {
-                "desc": descsum_create("tr(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/0h/*h)"),
+                "desc": descsum_create("tr(KrprvXJ7sdXeAaebXiey7yvDXgmhNCdCzN1Y36DXgM2RACzavCQ9XHZMve7dsUoSCAVrvH2cnVH5b2oCtgDsATtXKyhvUSurRftNtHnke6h3P4VP/0h/*h)"),
                 "timestamp": "now",
                 "range": [0,0],
                 "active": True
             },
             {
-                "desc": descsum_create("tr(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/1h/*h)"),
+                "desc": descsum_create("tr(KrprvXJ7sdXeAaebXiey7yvDXgmhNCdCzN1Y36DXgM2RACzavCQ9XHZMve7dsUoSCAVrvH2cnVH5b2oCtgDsATtXKyhvUSurRftNtHnke6h3P4VP/1h/*h)"),
                 "timestamp": "now",
                 "range": [0,0],
                 "active": True,

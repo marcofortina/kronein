@@ -361,7 +361,7 @@ class PSBTTest(BitcoinTestFramework):
         tx.vin = [CTxIn(outpoint=COutPoint(hash=int('aa' * 32, 16), n=0), scriptSig=b"")]
         tx.vout = [CTxOut(nValue=0, scriptPubKey=b"")]
 
-        xpub = "tpubD6NzVbkrYhZ4XgiXtGrdW5XDAPFCL9h7we1vwNCpn8tGbBcgfVYjXyhWo4E1xkh56hjod1RhGjxbaTLV3X4FyWuejifB9jusQ46QzG87VKp"
+        xpub = "KrpubTX7E33B4R29pxFFfzRRF93ZVaHUw7pVT1ebXZYh5ZRcMqo3WjrcbkbBbnL8m3cpeMNvZq2GZdiZr1BNVdMn6gRApJF3qaycbnDdbFdneqAL"
         xpub_data, xpub_version = base58_to_byte(xpub)
         xpub_key = bytes([PSBT_GLOBAL_XPUB]) + bytes([xpub_version]) + xpub_data
 
@@ -389,8 +389,8 @@ class PSBTTest(BitcoinTestFramework):
         tx2.vin = [CTxIn(outpoint=COutPoint(hash=int('bb' * 32, 16), n=1), scriptSig=b"")]
         tx2.vout = [CTxOut(nValue=2, scriptPubKey=b"")]
 
-        xpub1 = "tpubD6NzVbkrYhZ4XgiXtGrdW5XDAPFCL9h7we1vwNCpn8tGbBcgfVYjXyhWo4E1xkh56hjod1RhGjxbaTLV3X4FyWuejifB9jusQ46QzG87VKp"
-        xpub2 = "tpubD6NzVbkrYhZ4WaWSyoBvQwbpLkojyoTZPRsgXELWz3Popb3qkjcJyJUGLnL4qHHoQvao8ESaAstxYSnhyswJ76uZPStJRJCTKvosUCJZL5B"
+        xpub1 = "KrpubTX7E33B4R29pxFFfzRRF93ZVaHUw7pVT1ebXZYh5ZRcMqo3WjrcbkbBbnL8m3cpeMNvZq2GZdiZr1BNVdMn6gRApJF3qaycbnDdbFdneqAL"
+        xpub2 = "KrpubTX7E33B4R29pw93b5wkY3ue6kf3UmUFtTSTH9QpmmL7u5CUfq6gBBuxML4Eov9RNfbmZLFHSXrWCyApiZif8p1AiwyGxrXuBi6M3jbkjJdo"
         xpub_key1 = global_xpub_key(xpub1)
         xpub_key2 = global_xpub_key(xpub2)
         xpub_value = b"\x00\x00\x00\x00"

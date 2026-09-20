@@ -6,7 +6,7 @@
 """Test native Bech32m address validation error messages."""
 
 from test_framework.address import (
-    ADDRESS_BCRT1_UNSPENDABLE,
+    ADDRESS_RKNE1_UNSPENDABLE,
     output_key_to_p2tr,
     p2a,
 )
@@ -18,13 +18,13 @@ from test_framework.util import (
     assert_raises_rpc_error,
 )
 
-BECH32M_VALID_TAPROOT = ADDRESS_BCRT1_UNSPENDABLE
+BECH32M_VALID_TAPROOT = ADDRESS_RKNE1_UNSPENDABLE
 BECH32M_VALID_CAPITALS = BECH32M_VALID_TAPROOT.upper()
 BECH32M_VALID_ANCHOR = p2a()
 
-BECH32M_INVALID_SIZE = bech32_encode("bcrt", [1] + convertbits(bytes(41), 8, 5))
+BECH32M_INVALID_SIZE = bech32_encode("rkne", [1] + convertbits(bytes(41), 8, 5))
 BECH32M_INVALID_PREFIX = output_key_to_p2tr(bytes(32), main=True)
-BECH32M_TOO_LONG = bech32_encode("bcrt", [1] + convertbits(bytes(50), 8, 5))
+BECH32M_TOO_LONG = bech32_encode("rkne", [1] + convertbits(bytes(50), 8, 5))
 BECH32M_ONE_ERROR = BECH32M_VALID_TAPROOT[:9] + 'p' + BECH32M_VALID_TAPROOT[10:]
 BECH32M_TWO_ERRORS = BECH32M_VALID_TAPROOT[:9] + 'p' + BECH32M_VALID_TAPROOT[10:20] + 'p' + BECH32M_VALID_TAPROOT[21:]
 BECH32M_NO_SEPARATOR = BECH32M_VALID_TAPROOT.replace('1', 'q', 1)
@@ -34,7 +34,7 @@ INVALID_ADDRESS = 'asfah14i8fajz0123f'
 INVALID_ADDRESS_2 = '1q049ldschfnwystcqnsvyfpj23mpsg3jcedq9xv'
 UNSUPPORTED_P2PKH = 'mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn'
 UNSUPPORTED_P2SH = '2N2JD6wb56AfK4tfmM6PwdVmoYk2dCKf4Br'
-UNSUPPORTED_P2WPKH = 'bcrt1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqdku202'
+UNSUPPORTED_P2WPKH = 'rkne1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqdku202'
 
 class InvalidAddressErrorMessageTest(BitcoinTestFramework):
     def set_test_params(self):
@@ -59,7 +59,7 @@ class InvalidAddressErrorMessageTest(BitcoinTestFramework):
 
     def test_validateaddress(self):
         self.check_invalid(BECH32M_INVALID_SIZE, "Only Taproot and pay-to-anchor Bech32m addresses are supported")
-        self.check_invalid(BECH32M_INVALID_PREFIX, 'Invalid prefix for Bech32m address (expected bcrt, got bc).')
+        self.check_invalid(BECH32M_INVALID_PREFIX, 'Invalid prefix for Bech32m address (expected rkne, got kne).')
         self.check_invalid(BECH32M_TOO_LONG, 'Bech32 string too long', list(range(90, len(BECH32M_TOO_LONG))))
         self.check_invalid(BECH32M_ONE_ERROR, 'Invalid Bech32m checksum', [9])
         self.check_invalid(BECH32M_TWO_ERRORS, 'Invalid Bech32m checksum', [9, 20])
@@ -90,7 +90,7 @@ class InvalidAddressErrorMessageTest(BitcoinTestFramework):
         node = self.nodes[0]
 
         assert_raises_rpc_error(-5, "Only Taproot and pay-to-anchor Bech32m addresses are supported", node.getaddressinfo, BECH32M_INVALID_SIZE)
-        assert_raises_rpc_error(-5, "Invalid prefix for Bech32m address (expected bcrt, got bc).", node.getaddressinfo, BECH32M_INVALID_PREFIX)
+        assert_raises_rpc_error(-5, "Invalid prefix for Bech32m address (expected rkne, got kne).", node.getaddressinfo, BECH32M_INVALID_PREFIX)
         assert_raises_rpc_error(-5, "Invalid separator position", node.getaddressinfo, INVALID_ADDRESS)
         for unsupported_address in [UNSUPPORTED_P2PKH, UNSUPPORTED_P2SH, UNSUPPORTED_P2WPKH]:
             assert_raises_rpc_error(-5, "Invalid", node.getaddressinfo, unsupported_address)

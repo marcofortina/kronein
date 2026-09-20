@@ -421,9 +421,9 @@ class ListSinceBlockTest(BitcoinTestFramework):
         self.log.info("Test descriptor lookup by scriptPubKey.")
 
         # Create a watch-only wallet tracking two Taproot multisig descriptors.
-        key_a = "tpubD6NzVbkrYhZ4YBNjUo96Jxd1u4XKWgnoc7LsA1jz3Yc2NiDbhtfBhaBtemB73n9V5vtJHwU6FVXwggTbeoJWQ1rzdz8ysDuQkpnaHyvnvzR"
-        key_b = "tpubD6NzVbkrYhZ4YHdDGMAYGaWxMSC1B6tPRTHuU5t3BcfcS3nrF523iFm5waFd1pP3ZvJt4Jr8XmCmsTBNx5suhcSgtzpGjGMASR3tau1hJz4"
-        key_c = "tpubD6NzVbkrYhZ4Y2RLiuEzNQkntjmsLpPYDm3LTRBYynUQtDtpzeUKAcb9sYthSFL3YR74cdFgF5mW8yKxv2W2CWuZDFR2dUpE5PF9kbrVXNZ"
+        key_a = "KrpubTX7E33B4R29pxjusawhhwvfJJxm4JMb8g7vTnCEEpqL7dKeRnFj3vBfye35r8eH4Lc54VxJxcU9C7QVcEe2M6v8ACWXeJTc98zKkZNFqqrp"
+        key_b = "KrpubTX7E33B4R29pxrAMNVj9uYZEmLRjxmgiVTsW6GNHxuPhgfDgKS5uvsFAvrAN6gWcpbVeGKgztjp2JBDPXvbkQWhrTXCwAW3tpab4rHA1HR5"
+        key_c = "KrpubTX7E33B4R29pxaxUq3oc1No5Je1c8VBsHmcw5bfom5CW8qKf51YBPE5ErpoSX7Tco6Hppe6Yc4NkZhMyVsDruRAimmoh4iWxTYnL1zHp6uk"
         multi_a = descsum_create(f"tr({key_a}/*,multi_a(1,{key_a}/*,{key_b}/*))")
         multi_b = descsum_create(f"tr({key_b}/*,multi_a(1,{key_b}/*,{key_c}/*))")
         self.nodes[0].createwallet(wallet_name="wo", disable_private_keys=True)

@@ -38,8 +38,8 @@ class WalletDescriptorTest(BitcoinTestFramework):
         # Verify that the parent descriptor is normalized
         # First remove the checksum
         desc_verify = parent_desc.split("#")[0]
-        # Next extract the xpub
-        desc_verify = re.sub(r"tpub\w+?(?=/)", "", desc_verify)
+        # Next extract the Kronein extended public key.
+        desc_verify = re.sub(r"K(?:t|s|r)?pub[1-9A-HJ-NP-Za-km-z]+(?=/)", "", desc_verify)
         # Extract origin info
         origin_match = re.search(r'\[([\da-fh/]+)\]', desc_verify)
         origin_part = origin_match.group(1) if origin_match else ""
@@ -137,7 +137,7 @@ class WalletDescriptorTest(BitcoinTestFramework):
         self.log.info("Test that unlock is needed when deriving only hardened keys in an encrypted wallet")
         with WalletUnlock(send_wrpc, "pass"):
             send_wrpc.importdescriptors([{
-                "desc": descsum_create("tr(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/0h/*h)"),
+                "desc": descsum_create("tr(KrprvXJ7sdXeAaebXiey7yvDXgmhNCdCzN1Y36DXgM2RACzavCQ9XHZMve7dsUoSCAVrvH2cnVH5b2oCtgDsATtXKyhvUSurRftNtHnke6h3P4VP/0h/*h)"),
                 "timestamp": "now",
                 "range": [0,10],
                 "active": True

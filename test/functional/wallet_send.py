@@ -197,8 +197,8 @@ class WalletSendTest(BitcoinTestFramework):
         # w2 contains the private keys for w3
         self.nodes[1].createwallet(wallet_name="w2", blank=True)
         w2 = self.nodes[1].get_wallet_rpc("w2")
-        xpriv = "tprv8ZgxMBicQKsPfHCsTwkiM1KT56RXbGGTqvc2hgqzycpwbHqqpcajQeMRZoBD35kW4RtyCemu6j34Ku5DEspmgjKdt2qe4SvRch5Kk8B8A2v"
-        xpub = "tpubD6NzVbkrYhZ4YkEfMbRJkQyZe7wTkbTNRECozCtJPtdLRn6cT1QKb8yHjwAPcAr26eHBFYs5iLiFFnCbwPRsncCKUKCfubHDMGKzMVcN1Jg"
+        xpriv = "KrprvXJ7sdXeAaebXkphLMiSv2F57VzLi8oXr81roozxwcqpSobCHyq9wFx8tsw15e5Szja5s29WsqStYyx466N3uU1mVyWmJWrZLfiTVKmCrACa"
+        xpub = "KrpubTX7E33B4R29pyJmoTjyvPP1r42BCYGFhVEnQcPNZBBMRgPXSXNUBokTNjD58h2ybMKTwTZhx5KKVgWEcXE9iVWTV2qbLLpywjRsAcsqn6UJ"
         w2.importdescriptors([{
             "desc": descsum_create("tr(" + xpriv + "/0/0/*)"),
             "timestamp": "now",

@@ -61,7 +61,7 @@ class SignRawTransactionWithWalletTest(BitcoinTestFramework):
         5) Script verification errors have certain properties ("txid", "vout", "witness", "sequence", "error")
         6) The verification errors refer to every input"""
         self.log.info("Test script verification errors")
-        privKeys = ['cUeKHd5orzT3mz8P9pxyREHfsWtVfgsfDjiZZBcjUBAaGk1BTj7N']
+        privKeys = ['d4xqaGXQZc7bg4BTN8YYbvfcsFh71MxZsWD5o117S6BRQ4j7kDSA']
         descriptor = self.nodes[0].getdescriptorinfo(f"rawtr({privKeys[0]})")["descriptor"]
         address = self.nodes[0].deriveaddresses(descriptor)[0]
         taproot_script = self.nodes[0].getaddressinfo(address)["scriptPubKey"]

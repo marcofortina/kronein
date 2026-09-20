@@ -36,7 +36,7 @@ class WalletHDTest(BitcoinTestFramework):
         assert_equal(change_addrV["hdkeypath"], "m/86h/1h/0h/1/0")
 
         # Import a non-HD private key in the HD wallet
-        non_hd_key = 'cS9umN9w6cDMuRVYdbkfE4c7YUFLJRoXMfhQ569uY4odiQbVN8Rt'
+        non_hd_key = 'd2US41bXoDsuoVYcquLEQkz4YD3we6tS1SBvJuYHVypUqjSgC1d8'
         non_hd_desc = descsum_create(f"tr({non_hd_key})")
         non_hd_add = self.nodes[1].deriveaddresses(non_hd_desc)[0]
         assert self.nodes[1].importdescriptors([{"desc": non_hd_desc, "timestamp": "now"}])[0]["success"]

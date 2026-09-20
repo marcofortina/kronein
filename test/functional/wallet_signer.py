@@ -89,7 +89,7 @@ class WalletSignerTest(BitcoinTestFramework):
         assert_equal(hww.getwalletinfo()["keypoolsize"], 10)
 
         address = hww.getnewaddress()
-        assert_equal(address, "bcrt1phw4cgpt6cd30kz9k4wkpwm872cdvhss29jga2xpmftelhqll62ms4e9sqj")
+        assert_equal(address, "rkne1phw4cgpt6cd30kz9k4wkpwm872cdvhss29jga2xpmftelhqll62ms3u0cc2")
         address_info = hww.getaddressinfo(address)
         assert_equal(address_info['solvable'], True)
         assert_equal(address_info['ismine'], True)
@@ -116,14 +116,14 @@ class WalletSignerTest(BitcoinTestFramework):
         assert mock_wallet.getwalletinfo()['private_keys_enabled']
 
         result = mock_wallet.importdescriptors([{
-            "desc": "tr([00000001/86h/1h/0']tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/0/*)#7ew68cn8",
+            "desc": "tr([00000001/86h/1h/0']KrprvXJ7sdXeAaebXiey7yvDXgmhNCdCzN1Y36DXgM2RACzavCQ9XHZMve7dsUoSCAVrvH2cnVH5b2oCtgDsATtXKyhvUSurRftNtHnke6h3P4VP/0/*)#4wmwql9e",
             "timestamp": 0,
             "range": [0,1],
             "internal": False,
             "active": True
         },
         {
-            "desc": "tr([00000001/86h/1h/0']tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/1/*)#0dtm6drl",
+            "desc": "tr([00000001/86h/1h/0']KrprvXJ7sdXeAaebXiey7yvDXgmhNCdCzN1Y36DXgM2RACzavCQ9XHZMve7dsUoSCAVrvH2cnVH5b2oCtgDsATtXKyhvUSurRftNtHnke6h3P4VP/1/*)#y670a24p",
             "timestamp": 0,
             "range": [0, 0],
             "internal": True,

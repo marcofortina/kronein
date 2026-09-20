@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2018-present The Bitcoin Core developers
+# Copyright (c) 2026 The Kronein Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,6 +8,10 @@ import os
 import sys
 import argparse
 import json
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+
+from test_framework.descriptors import descsum_create
 
 def perform_pre_checks():
     mock_result_path = os.path.join(os.getcwd(), "mock_result")
@@ -21,16 +26,13 @@ def enumerate(args):
     sys.stdout.write(json.dumps([{"fingerprint": "00000001", "type": "trezor", "model": "trezor_t"}]))
 
 def getdescriptors(args):
-    xpub = "tpubD6NzVbkrYhZ4WaWSyoBvQwbpLkojyoTZPRsgXELWz3Popb3qkjcJyJUGLnL4qHHoQvao8ESaAstxYSnhyswJ76uZPStJRJCTKvosUCJZL5B"
+    xpub = "KrpubTX7E33B4R29pw93b5wkY3ue6kf3UmUFtTSTH9QpmmL7u5CUfq6gBBuxML4Eov9RNfbmZLFHSXrWCyApiZif8p1AiwyGxrXuBi6M3jbkjJdo"
+    receive = "tr([00000001/86h/1h/" + args.account + "']" + xpub + "/0/*)"
+    internal = "tr([00000001/86h/1h/" + args.account + "']" + xpub + "/1/*)"
 
     sys.stdout.write(json.dumps({
-        "receive": [
-            "tr([00000001/86h/1h/" + args.account + "']" + xpub + "/0/*)#pcd5w87f"
-        ],
-        "internal": [
-            "tr([00000001/86h/1h/" + args.account + "']" + xpub + "/1/*)#svg4njw3"
-
-        ]
+        "receive": [descsum_create(receive)],
+        "internal": [descsum_create(internal)],
     }))
 
 
@@ -39,7 +41,7 @@ def displayaddress(args):
         return sys.stdout.write(json.dumps({"error": "Unexpected fingerprint", "fingerprint": args.fingerprint}))
 
     expected_desc = {
-        "tr([00000001/86h/1h/0h/0/0]c97dc3f4420402e01a113984311bf4a1b8de376cac0bdcfaf1b3ac81f13433c7)#puqqa90m": "bcrt1phw4cgpt6cd30kz9k4wkpwm872cdvhss29jga2xpmftelhqll62ms4e9sqj",
+        "tr([00000001/86h/1h/0h/0/0]c97dc3f4420402e01a113984311bf4a1b8de376cac0bdcfaf1b3ac81f13433c7)#puqqa90m": "rkne1phw4cgpt6cd30kz9k4wkpwm872cdvhss29jga2xpmftelhqll62ms3u0cc2",
     }
     if args.desc not in expected_desc:
         return sys.stdout.write(json.dumps({"error": "Unexpected descriptor", "desc": args.desc}))

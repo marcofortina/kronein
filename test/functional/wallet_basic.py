@@ -594,8 +594,8 @@ class WalletTest(BitcoinTestFramework):
 
         self.log.info("Testing 'listunspent' outputs the parent descriptor(s) of coins")
         # Create two Taproot descriptors, and send a UTXO to each.
-        desc_a = descsum_create("tr(tpubD6NzVbkrYhZ4YBNjUo96Jxd1u4XKWgnoc7LsA1jz3Yc2NiDbhtfBhaBtemB73n9V5vtJHwU6FVXwggTbeoJWQ1rzdz8ysDuQkpnaHyvnvzR/*)")
-        desc_b = descsum_create("tr(tpubD6NzVbkrYhZ4YHdDGMAYGaWxMSC1B6tPRTHuU5t3BcfcS3nrF523iFm5waFd1pP3ZvJt4Jr8XmCmsTBNx5suhcSgtzpGjGMASR3tau1hJz4/*)")
+        desc_a = descsum_create("tr(KrpubTX7E33B4R29pxjusawhhwvfJJxm4JMb8g7vTnCEEpqL7dKeRnFj3vBfye35r8eH4Lc54VxJxcU9C7QVcEe2M6v8ACWXeJTc98zKkZNFqqrp/*)")
+        desc_b = descsum_create("tr(KrpubTX7E33B4R29pxrAMNVj9uYZEmLRjxmgiVTsW6GNHxuPhgfDgKS5uvsFAvrAN6gWcpbVeGKgztjp2JBDPXvbkQWhrTXCwAW3tpab4rHA1HR5/*)")
         addr_a = self.nodes[0].deriveaddresses(desc_a, 0)[0]
         addr_b = self.nodes[0].deriveaddresses(desc_b, 0)[0]
         txid_a = self.nodes[0].sendtoaddress(addr_a, 0.01)
