@@ -61,6 +61,7 @@ endif()
 
 add_library(bitcoin_consensus STATIC EXCLUDE_FROM_ALL
   arith_uint256.cpp
+  consensus/bmm.cpp
   consensus/chainregistry.cpp
   consensus/deposit.cpp
   consensus/deposit_proof.cpp
@@ -68,6 +69,7 @@ add_library(bitcoin_consensus STATIC EXCLUDE_FROM_ALL
   consensus/tx_check.cpp
   hash.cpp
   primitives/block.cpp
+  primitives/bmm.cpp
   primitives/chainregistry.cpp
   primitives/deposit.cpp
   primitives/transaction.cpp
