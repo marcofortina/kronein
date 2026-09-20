@@ -25,7 +25,7 @@
                 "asm": "1 0101010101010101010101010101010101010101010101010101010101010101",
                 "desc": "rawtr(0101010101010101010101010101010101010101010101010101010101010101)#hmlllzsm",
                 "hex": "51200101010101010101010101010101010101010101010101010101010101010101",
-                "address": "bc1pqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqsyjer9e",
+                "address": "kne1pqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqstshygf",
                 "type": "witness_v1_taproot"
             }
         }

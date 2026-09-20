@@ -34,7 +34,7 @@
                 "asm": "1 0101010101010101010101010101010101010101010101010101010101010101",
                 "desc": "rawtr(0101010101010101010101010101010101010101010101010101010101010101)#hmlllzsm",
                 "hex": "51200101010101010101010101010101010101010101010101010101010101010101",
-                "address": "bc1pqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqsyjer9e",
+                "address": "kne1pqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqstshygf",
                 "type": "witness_v1_taproot"
             }
         },
@@ -45,7 +45,7 @@
                 "asm": "1 53a1f6e454df1aa2776a2814a721372d6258050de330b3c6d10ee8f4e0dda343",
                 "desc": "rawtr(53a1f6e454df1aa2776a2814a721372d6258050de330b3c6d10ee8f4e0dda343)#9xf6eq0k",
                 "hex": "512053a1f6e454df1aa2776a2814a721372d6258050de330b3c6d10ee8f4e0dda343",
-                "address": "bc1p2wsldez5mud2yam29q22wgfh9439spgduvct83k3pm50fcxa5dps59h4z5",
+                "address": "kne1p2wsldez5mud2yam29q22wgfh9439spgduvct83k3pm50fcxa5dpsm8ej0y",
                 "type": "witness_v1_taproot"
             }
         }
