@@ -6,14 +6,21 @@
 #define KRONEIN_PRIMITIVES_CHAINREGISTRY_H
 
 #include <attributes.h>
+#include <script/script.h>
+#include <serialize.h>
 #include <uint256.h>
 
+#include <array>
 #include <compare>
 #include <cstddef>
+#include <cstdint>
+#include <limits>
 #include <optional>
 #include <span>
 #include <string>
 #include <string_view>
+#include <variant>
+#include <vector>
 
 class COutPoint;
 
@@ -22,6 +29,8 @@ namespace chainregistry {
 namespace detail {
 struct ChainIdTag {};
 struct ChainSpecHashTag {};
+struct ManifestHashTag {};
+struct MetadataHashTag {};
 struct DepositIdTag {};
 } // namespace detail
 
@@ -78,15 +87,162 @@ public:
 using ChainId = Identifier<detail::ChainIdTag>;
 /** Tagged hash of the canonical pre-genesis consensus specification. */
 using ChainSpecHash = Identifier<detail::ChainSpecHashTag>;
+/** Tagged hash of the final manifest, including the derived genesis hash. */
+using ManifestHash = Identifier<detail::ManifestHashTag>;
+/** Hash commitment to mutable, externally stored display metadata. */
+using MetadataHash = Identifier<detail::MetadataHashTag>;
 /** Stable identity of a main-chain burn output. */
 using DepositId = Identifier<detail::DepositIdTag>;
 
 inline constexpr std::string_view CHAIN_SPEC_HASH_TAG{"Kronein/ChainSpec/v1"};
+inline constexpr std::string_view MANIFEST_HASH_TAG{"Kronein/ChainManifest/v1"};
 inline constexpr std::string_view CHAIN_ID_TAG{"Kronein/ChainId/v1"};
 inline constexpr std::string_view DEPOSIT_ID_TAG{"Kronein/DepositId/v1"};
 
+inline constexpr uint16_t PROTOCOL_VERSION{1};
+inline constexpr size_t MAX_CONSENSUS_PARAMETERS_SIZE{1024};
+inline constexpr size_t MAX_REGISTRY_DATA_SIZE{1200};
+inline constexpr std::array<unsigned char, 4> REGISTRY_MAGIC{'K', 'R', 'E', 'G'};
+inline constexpr uint8_t REGISTRY_ENVELOPE_VERSION{1};
+
+enum class AnchoringPolicy : uint8_t {
+    BMM_V1 = 1,
+};
+
+/** Immutable pre-genesis parameters used to derive ChainId. */
+struct ChainSpec {
+    uint16_t protocol_version{PROTOCOL_VERSION};
+    uint32_t template_id{0};
+    uint32_t template_version{0};
+    std::vector<unsigned char> consensus_parameters;
+    AnchoringPolicy anchoring_policy{AnchoringPolicy::BMM_V1};
+
+    SERIALIZE_METHODS(ChainSpec, obj)
+    {
+        uint8_t anchoring_policy;
+        SER_WRITE(obj, anchoring_policy = static_cast<uint8_t>(obj.anchoring_policy));
+        READWRITE(obj.protocol_version,
+                  obj.template_id,
+                  obj.template_version,
+                  obj.consensus_parameters,
+                  anchoring_policy);
+        SER_READ(obj, obj.anchoring_policy = static_cast<AnchoringPolicy>(anchoring_policy));
+    }
+
+    friend bool operator==(const ChainSpec&, const ChainSpec&) = default;
+};
+
+/** Final registration manifest created after ChainId and genesis derivation. */
+struct ChainManifest {
+    ChainSpec spec;
+    uint256 child_genesis_hash;
+    MetadataHash initial_metadata_hash;
+
+    SERIALIZE_METHODS(ChainManifest, obj)
+    {
+        READWRITE(obj.spec, obj.child_genesis_hash, obj.initial_metadata_hash);
+    }
+
+    friend bool operator==(const ChainManifest&, const ChainManifest&) = default;
+};
+
+enum class ManifestValidationError : uint8_t {
+    NONE,
+    UNSUPPORTED_PROTOCOL_VERSION,
+    INVALID_TEMPLATE_ID,
+    INVALID_TEMPLATE_VERSION,
+    CONSENSUS_PARAMETERS_TOO_LARGE,
+    UNKNOWN_ANCHORING_POLICY,
+    NULL_GENESIS,
+    NULL_METADATA_HASH,
+};
+
+enum class OperationType : uint8_t {
+    REGISTER = 1,
+    UPDATE = 2,
+    RETIRE = 3,
+};
+
+/** Registration consumes vin[anchor_input] as its unique pre-existing anchor. */
+struct RegisterChain {
+    uint32_t anchor_input{std::numeric_limits<uint32_t>::max()};
+    uint32_t control_output{std::numeric_limits<uint32_t>::max()};
+    ChainManifest manifest;
+
+    SERIALIZE_METHODS(RegisterChain, obj)
+    {
+        READWRITE(obj.anchor_input, obj.control_output, obj.manifest);
+    }
+
+    friend bool operator==(const RegisterChain&, const RegisterChain&) = default;
+};
+
+/** Update mutable metadata and rotate/recreate the control output. */
+struct UpdateChain {
+    ChainId chain_id;
+    uint32_t control_output{std::numeric_limits<uint32_t>::max()};
+    MetadataHash metadata_hash;
+
+    SERIALIZE_METHODS(UpdateChain, obj)
+    {
+        READWRITE(obj.chain_id, obj.control_output, obj.metadata_hash);
+    }
+
+    friend bool operator==(const UpdateChain&, const UpdateChain&) = default;
+};
+
+/** Permanently retire a registered chain. */
+struct RetireChain {
+    ChainId chain_id;
+
+    SERIALIZE_METHODS(RetireChain, obj) { READWRITE(obj.chain_id); }
+
+    friend bool operator==(const RetireChain&, const RetireChain&) = default;
+};
+
+using RegistryOperation = std::variant<RegisterChain, UpdateChain, RetireChain>;
+
+enum class OperationValidationError : uint8_t {
+    NONE,
+    INVALID_ANCHOR_INPUT,
+    INVALID_CONTROL_OUTPUT,
+    INVALID_MANIFEST,
+    NULL_CHAIN_ID,
+};
+
+enum class OperationParseError : uint8_t {
+    NONE,
+    NOT_REGISTRY,
+    MALFORMED_SCRIPT,
+    DATA_TOO_LARGE,
+    NON_CANONICAL_SCRIPT,
+    UNSUPPORTED_ENVELOPE_VERSION,
+    UNKNOWN_OPERATION_TYPE,
+    INVALID_PAYLOAD,
+    TRAILING_DATA,
+    INVALID_OPERATION,
+};
+
+struct OperationParseResult {
+    OperationParseError error{OperationParseError::NOT_REGISTRY};
+    std::optional<RegistryOperation> operation;
+
+    explicit operator bool() const { return error == OperationParseError::NONE && operation.has_value(); }
+};
+
 /** Hash canonical pre-genesis specification bytes. This function does not validate their schema. */
 ChainSpecHash ComputeChainSpecHash(std::span<const std::byte> canonical_spec);
+ChainSpecHash ComputeChainSpecHash(const ChainSpec& spec);
+ManifestHash ComputeManifestHash(const ChainManifest& manifest);
+
+ManifestValidationError ValidateManifest(const ChainManifest& manifest);
+OperationValidationError ValidateOperation(const RegistryOperation& operation);
+OperationType GetOperationType(const RegistryOperation& operation);
+
+/** Serialize an operation without validating it. */
+CScript BuildOperationScript(const RegistryOperation& operation);
+/** Parse and validate the canonical OP_RETURN envelope used by registry operations. */
+OperationParseResult ParseOperationScript(const CScript& script);
 
 /**
  * Derive a child-chain identity from the main network, registration outpoint,

@@ -10,7 +10,30 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <cstdint>
+#include <limits>
 #include <span>
+#include <string_view>
+#include <utility>
+#include <variant>
+#include <vector>
+
+namespace {
+
+chainregistry::ChainManifest ValidManifest()
+{
+    chainregistry::ChainSpec spec;
+    spec.template_id = 1;
+    spec.template_version = 2;
+    spec.consensus_parameters = ParseHex("aabbcc");
+    return {
+        .spec = std::move(spec),
+        .child_genesis_hash = uint256{"1111111111111111111111111111111111111111111111111111111111111111"},
+        .initial_metadata_hash = chainregistry::MetadataHash{"2222222222222222222222222222222222222222222222222222222222222222"},
+    };
+}
+
+} // namespace
 
 BOOST_AUTO_TEST_SUITE(chainregistry_tests)
 
@@ -34,7 +57,7 @@ BOOST_AUTO_TEST_CASE(identifier_serialization)
 
 BOOST_AUTO_TEST_CASE(chain_spec_hash_vectors)
 {
-    const auto empty_hash{chainregistry::ComputeChainSpecHash({})};
+    const auto empty_hash{chainregistry::ComputeChainSpecHash(std::span<const std::byte>{})};
     BOOST_CHECK_EQUAL(empty_hash.GetHex(), "c101f132eaa2d6c2e3a48a6f0bc62bd56c8c4d7914f2cf582f8fd280773a90f6");
 
     const auto spec{ParseHex("00010280ff")};
@@ -79,6 +102,153 @@ BOOST_AUTO_TEST_CASE(identifiers_commit_to_network_and_outpoint)
 
     BOOST_CHECK(deposit_a != deposit_other_network);
     BOOST_CHECK(deposit_a != deposit_other_vout);
+}
+
+BOOST_AUTO_TEST_CASE(chain_spec_and_manifest_vectors)
+{
+    const auto manifest{ValidManifest()};
+
+    DataStream spec_stream;
+    spec_stream << manifest.spec;
+    BOOST_CHECK_EQUAL(HexStr(spec_stream), "0100010000000200000003aabbcc01");
+    BOOST_CHECK_EQUAL(chainregistry::ComputeChainSpecHash(manifest.spec).GetHex(),
+                      "eceae475c8ab5b799405beb707bad137cad5674029b37feb6537608186d13159");
+
+    DataStream manifest_stream;
+    manifest_stream << manifest;
+    BOOST_CHECK_EQUAL(
+        HexStr(manifest_stream),
+        "0100010000000200000003aabbcc01"
+        "1111111111111111111111111111111111111111111111111111111111111111"
+        "2222222222222222222222222222222222222222222222222222222222222222");
+    BOOST_CHECK_EQUAL(chainregistry::ComputeManifestHash(manifest).GetHex(),
+                      "26a669a5688af69900bf6ce34d43d62b376dfdb9dfa1fcc505d385aae723ba9b");
+}
+
+BOOST_AUTO_TEST_CASE(manifest_validation)
+{
+    auto manifest{ValidManifest()};
+    BOOST_CHECK(chainregistry::ValidateManifest(manifest) == chainregistry::ManifestValidationError::NONE);
+
+    manifest.spec.protocol_version++;
+    BOOST_CHECK(chainregistry::ValidateManifest(manifest) == chainregistry::ManifestValidationError::UNSUPPORTED_PROTOCOL_VERSION);
+    manifest = ValidManifest();
+    manifest.spec.template_id = 0;
+    BOOST_CHECK(chainregistry::ValidateManifest(manifest) == chainregistry::ManifestValidationError::INVALID_TEMPLATE_ID);
+    manifest = ValidManifest();
+    manifest.spec.template_version = 0;
+    BOOST_CHECK(chainregistry::ValidateManifest(manifest) == chainregistry::ManifestValidationError::INVALID_TEMPLATE_VERSION);
+    manifest = ValidManifest();
+    manifest.spec.consensus_parameters.resize(chainregistry::MAX_CONSENSUS_PARAMETERS_SIZE + 1);
+    BOOST_CHECK(chainregistry::ValidateManifest(manifest) == chainregistry::ManifestValidationError::CONSENSUS_PARAMETERS_TOO_LARGE);
+    manifest = ValidManifest();
+    manifest.spec.anchoring_policy = static_cast<chainregistry::AnchoringPolicy>(255);
+    BOOST_CHECK(chainregistry::ValidateManifest(manifest) == chainregistry::ManifestValidationError::UNKNOWN_ANCHORING_POLICY);
+    manifest = ValidManifest();
+    manifest.child_genesis_hash.SetNull();
+    BOOST_CHECK(chainregistry::ValidateManifest(manifest) == chainregistry::ManifestValidationError::NULL_GENESIS);
+    manifest = ValidManifest();
+    manifest.initial_metadata_hash = {};
+    BOOST_CHECK(chainregistry::ValidateManifest(manifest) == chainregistry::ManifestValidationError::NULL_METADATA_HASH);
+}
+
+BOOST_AUTO_TEST_CASE(operation_script_vectors_and_roundtrip)
+{
+    const chainregistry::RegistryOperation registration{chainregistry::RegisterChain{
+        .anchor_input = 0,
+        .control_output = 1,
+        .manifest = ValidManifest(),
+    }};
+    const chainregistry::RegistryOperation update{chainregistry::UpdateChain{
+        .chain_id = chainregistry::ChainId{"3333333333333333333333333333333333333333333333333333333333333333"},
+        .control_output = 2,
+        .metadata_hash = chainregistry::MetadataHash{"4444444444444444444444444444444444444444444444444444444444444444"},
+    }};
+    const chainregistry::RegistryOperation retirement{chainregistry::RetireChain{
+        .chain_id = chainregistry::ChainId{"5555555555555555555555555555555555555555555555555555555555555555"},
+    }};
+
+    const std::vector<std::pair<chainregistry::RegistryOperation, std::string_view>> vectors{
+        {registration,
+         "6a4c5d4b524547010100000000010000000100010000000200000003aabbcc01"
+         "1111111111111111111111111111111111111111111111111111111111111111"
+         "2222222222222222222222222222222222222222222222222222222222222222"},
+        {update,
+         "6a4a4b52454701023333333333333333333333333333333333333333333333333333333333333333"
+         "020000004444444444444444444444444444444444444444444444444444444444444444"},
+        {retirement,
+         "6a264b52454701035555555555555555555555555555555555555555555555555555555555555555"},
+    };
+
+    for (const auto& [operation, expected_hex] : vectors) {
+        const CScript script{chainregistry::BuildOperationScript(operation)};
+        BOOST_CHECK(script.IsUnspendable());
+        BOOST_CHECK_EQUAL(HexStr(script), expected_hex);
+
+        const auto parsed{chainregistry::ParseOperationScript(script)};
+        BOOST_REQUIRE(parsed);
+        BOOST_CHECK(*parsed.operation == operation);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(operation_validation)
+{
+    chainregistry::RegistryOperation operation{chainregistry::RegisterChain{
+        .anchor_input = std::numeric_limits<uint32_t>::max(),
+        .control_output = 0,
+        .manifest = ValidManifest(),
+    }};
+    BOOST_CHECK(chainregistry::ValidateOperation(operation) == chainregistry::OperationValidationError::INVALID_ANCHOR_INPUT);
+
+    auto& registration{std::get<chainregistry::RegisterChain>(operation)};
+    registration.anchor_input = 0;
+    registration.control_output = std::numeric_limits<uint32_t>::max();
+    BOOST_CHECK(chainregistry::ValidateOperation(operation) == chainregistry::OperationValidationError::INVALID_CONTROL_OUTPUT);
+    registration.control_output = 0;
+    registration.manifest.child_genesis_hash.SetNull();
+    BOOST_CHECK(chainregistry::ValidateOperation(operation) == chainregistry::OperationValidationError::INVALID_MANIFEST);
+
+    operation = chainregistry::UpdateChain{};
+    BOOST_CHECK(chainregistry::ValidateOperation(operation) == chainregistry::OperationValidationError::NULL_CHAIN_ID);
+    operation = chainregistry::RetireChain{};
+    BOOST_CHECK(chainregistry::ValidateOperation(operation) == chainregistry::OperationValidationError::NULL_CHAIN_ID);
+}
+
+BOOST_AUTO_TEST_CASE(operation_parser_rejects_invalid_envelopes)
+{
+    BOOST_CHECK(chainregistry::ParseOperationScript(CScript{}).error == chainregistry::OperationParseError::NOT_REGISTRY);
+    BOOST_CHECK(chainregistry::ParseOperationScript(CScript{} << OP_RETURN).error == chainregistry::OperationParseError::NOT_REGISTRY);
+    BOOST_CHECK(chainregistry::ParseOperationScript(CScript{} << OP_RETURN << ParseHex("abcd")).error == chainregistry::OperationParseError::NOT_REGISTRY);
+
+    const auto bad_version{CScript{} << OP_RETURN << ParseHex("4b5245470203")};
+    BOOST_CHECK(chainregistry::ParseOperationScript(bad_version).error == chainregistry::OperationParseError::UNSUPPORTED_ENVELOPE_VERSION);
+    const auto unknown_type{CScript{} << OP_RETURN << ParseHex("4b52454701ff")};
+    BOOST_CHECK(chainregistry::ParseOperationScript(unknown_type).error == chainregistry::OperationParseError::UNKNOWN_OPERATION_TYPE);
+    const auto short_payload{CScript{} << OP_RETURN << ParseHex("4b5245470101")};
+    BOOST_CHECK(chainregistry::ParseOperationScript(short_payload).error == chainregistry::OperationParseError::INVALID_PAYLOAD);
+
+    auto oversized{ParseHex("4b524547")};
+    oversized.resize(chainregistry::MAX_REGISTRY_DATA_SIZE + 1);
+    BOOST_CHECK(chainregistry::ParseOperationScript(CScript{} << OP_RETURN << oversized).error == chainregistry::OperationParseError::DATA_TOO_LARGE);
+
+    const auto retirement_data{ParseHex(
+        "4b524547010355555555555555555555555555555555555555555555555555555555555555555500")};
+    BOOST_CHECK(chainregistry::ParseOperationScript(CScript{} << OP_RETURN << retirement_data).error == chainregistry::OperationParseError::TRAILING_DATA);
+
+    const auto canonical_retirement{ParseHex(
+        "4b52454701035555555555555555555555555555555555555555555555555555555555555555555555")};
+    const auto malformed{CScript{} << OP_RETURN << canonical_retirement << OP_0};
+    BOOST_CHECK(chainregistry::ParseOperationScript(malformed).error == chainregistry::OperationParseError::MALFORMED_SCRIPT);
+
+    CScript noncanonical;
+    noncanonical << OP_RETURN;
+    noncanonical.push_back(OP_PUSHDATA1);
+    noncanonical.push_back(static_cast<unsigned char>(canonical_retirement.size()));
+    noncanonical.insert(noncanonical.end(), canonical_retirement.begin(), canonical_retirement.end());
+    BOOST_CHECK(chainregistry::ParseOperationScript(noncanonical).error == chainregistry::OperationParseError::NON_CANONICAL_SCRIPT);
+
+    const chainregistry::RegistryOperation invalid{chainregistry::RetireChain{}};
+    BOOST_CHECK(chainregistry::ParseOperationScript(chainregistry::BuildOperationScript(invalid)).error == chainregistry::OperationParseError::INVALID_OPERATION);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
