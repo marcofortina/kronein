@@ -12,6 +12,7 @@
 #include <checkqueue.h>
 #include <clientversion.h>
 #include <consensus/amount.h>
+#include <consensus/chainregistry.h>
 #include <consensus/consensus.h>
 #include <consensus/merkle.h>
 #include <consensus/tx_check.h>
@@ -66,6 +67,7 @@
 #include <cassert>
 #include <chrono>
 #include <deque>
+#include <functional>
 #include <numeric>
 #include <optional>
 #include <ranges>
@@ -651,6 +653,9 @@ private:
     // only tests that are fast should be done here (to avoid CPU DoS).
     bool PreChecks(ATMPArgs& args, Workspace& ws) EXCLUSIVE_LOCKS_REQUIRED(cs_main, m_pool.cs);
 
+    /** Validate registry transitions against confirmed state and staged ancestors. */
+    bool ChainRegistryPolicyChecks(Workspace& ws) EXCLUSIVE_LOCKS_REQUIRED(cs_main, m_pool.cs);
+
     // Run checks for mempool replace-by-fee, only used in AcceptSingleTransaction.
     bool ReplacementChecks(Workspace& ws) EXCLUSIVE_LOCKS_REQUIRED(cs_main, m_pool.cs);
 
@@ -762,6 +767,87 @@ private:
         CleanupTemporaryCoins();
     }
 };
+
+bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
+{
+    AssertLockHeld(cs_main);
+    AssertLockHeld(m_pool.cs);
+    const auto& params{m_active_chainstate.m_chainman.GetConsensus().chain_registry};
+    if (!params.Enabled()) return true;
+
+    const auto current_operation{
+        chainregistry::ExtractTransactionOperation(*ws.m_ptx, params.minimum_registration_burn)};
+    const int next_height{m_active_chainstate.m_chain.Height() + 1};
+    if (!params.IsActive(next_height)) {
+        if (!current_operation.IsValid() || current_operation.operation) {
+            return ws.m_state.Invalid(TxValidationResult::TX_NOT_STANDARD,
+                                      "chain-registry-inactive");
+        }
+        return true;
+    }
+
+    chainregistry::ChainRegistry candidate{
+        m_active_chainstate.ChainRegistryState().Registry()};
+
+    // Rebuild only the relevant mempool overlay. Every registry update must
+    // spend its predecessor's control output, so all unconfirmed transitions
+    // needed by this subpackage are transaction ancestors.
+    std::set<Txid> visited;
+    std::set<Txid> visiting;
+    std::vector<const CTransaction*> ordered_ancestors;
+    const auto& removals{m_subpackage.m_changeset->GetRemovals()};
+    const auto visit_ancestors = [&](const auto& self, const CTransaction& tx) -> bool {
+        for (const CTxIn& input : tx.vin) {
+            const auto parent{m_pool.GetIter(input.prevout.hash)};
+            if (!parent) continue;
+            if (removals.contains(*parent)) {
+                return ws.m_state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY,
+                                          "chain-registry-replacement-dependency");
+            }
+            const CTransaction& parent_tx{(*parent)->GetTx()};
+            const Txid parent_id{parent_tx.GetHash()};
+            if (visited.contains(parent_id)) continue;
+            if (!visiting.insert(parent_id).second) {
+                return ws.m_state.Invalid(TxValidationResult::TX_CONSENSUS,
+                                          "chain-registry-ancestor-cycle");
+            }
+            if (!self(self, parent_tx)) return false;
+            visiting.erase(parent_id);
+            visited.insert(parent_id);
+            ordered_ancestors.push_back(&parent_tx);
+        }
+        return true;
+    };
+
+    const auto staged{m_subpackage.m_changeset->GetAddedTxns()};
+    for (const auto& tx : staged) {
+        if (!visit_ancestors(visit_ancestors, *tx)) return false;
+    }
+
+    const auto apply = [&](const CTransaction& tx) {
+        const auto result{candidate.ApplyTransaction(
+            tx,
+            static_cast<uint32_t>(next_height),
+            m_active_chainstate.m_chainman.GetConsensus().hashGenesisBlock,
+            params.minimum_registration_burn)};
+        if (result.IsValid()) return true;
+        return ws.m_state.Invalid(
+            TxValidationResult::TX_CONSENSUS,
+            "bad-chain-registry",
+            strprintf("registry error %u, transaction error %u, parse error %u, txid %s",
+                      static_cast<unsigned>(result.error),
+                      static_cast<unsigned>(result.tx_error),
+                      static_cast<unsigned>(result.parse_error),
+                      tx.GetHash().ToString()));
+    };
+    for (const CTransaction* tx : ordered_ancestors) {
+        if (!apply(*tx)) return false;
+    }
+    for (const auto& tx : staged) {
+        if (!apply(*tx)) return false;
+    }
+    return true;
+}
 
 bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
 {
@@ -925,6 +1011,8 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     ws.m_iters_conflicting = m_pool.GetIterSet(ws.m_conflicts);
 
     ws.m_parents = m_pool.GetParents(*ws.m_tx_handle);
+
+    if (!ChainRegistryPolicyChecks(ws)) return false;
 
     // We want to detect conflicts in any tx in a package to trigger package RBF logic
     m_subpackage.m_rbf |= !ws.m_conflicts.empty();
