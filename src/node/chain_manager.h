@@ -157,6 +157,10 @@ private:
     std::map<chainregistry::ChainId,
              std::unique_ptr<ReferenceChildRuntime>> m_loaded
         GUARDED_BY(m_mutex);
+    ChainManagerBlockView GetBlockViewLocked(
+        const chainregistry::ChainId& chain_id,
+        const uint256& block_hash) const
+        EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
 
 public:
     ChainManager(Consensus::Params main_params,
@@ -219,6 +223,8 @@ public:
     ChainManagerBlockView GetBlockView(
         const chainregistry::ChainId& chain_id,
         const uint256& block_hash) const;
+    ChainManagerBlockView GetTipBlockView(
+        const chainregistry::ChainId& chain_id) const;
     ChainManagerCoinView GetCoinView(
         const chainregistry::ChainId& chain_id,
         const COutPoint& outpoint) const;

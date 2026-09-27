@@ -458,6 +458,39 @@ ChainManagerBlockView ChainManager::GetBlockView(
     const uint256& block_hash) const
 {
     LOCK(m_mutex);
+    return GetBlockViewLocked(chain_id, block_hash);
+}
+
+ChainManagerBlockView ChainManager::GetTipBlockView(
+    const chainregistry::ChainId& chain_id) const
+{
+    LOCK(m_mutex);
+    if (chain_id.IsNull()) {
+        ChainManagerBlockView result;
+        result.error = ChainManagerBlockViewError::NULL_CHAIN_ID;
+        return result;
+    }
+    if (!m_definitions.contains(chain_id)) {
+        ChainManagerBlockView result;
+        result.error = ChainManagerBlockViewError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto loaded{m_loaded.find(chain_id)};
+    if (loaded == m_loaded.end()) {
+        ChainManagerBlockView result;
+        result.error = ChainManagerBlockViewError::CHAIN_NOT_LOADED;
+        return result;
+    }
+    const CBlockIndex* tip{loaded->second->Tip()};
+    Assume(tip);
+    return GetBlockViewLocked(chain_id, tip->GetBlockHash());
+}
+
+ChainManagerBlockView ChainManager::GetBlockViewLocked(
+    const chainregistry::ChainId& chain_id,
+    const uint256& block_hash) const
+{
+    AssertLockHeld(m_mutex);
     ChainManagerBlockView result;
     if (chain_id.IsNull()) {
         result.error = ChainManagerBlockViewError::NULL_CHAIN_ID;
