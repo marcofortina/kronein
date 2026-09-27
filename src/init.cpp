@@ -1846,6 +1846,11 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         Params().GenesisBlock(),
         args.GetDataDirNet() / "chains",
         node::DEFAULT_CHILD_CHAIN_DB_CACHE);
+    if (!node.child_chainman->IsCatalogReady()) {
+        return InitError(Untranslated(strprintf(
+            "Failed to load child chain catalog (error %d)",
+            static_cast<int>(node.child_chainman->CatalogError()))));
+    }
 
     assert(!node.peerman);
     node.peerman = PeerManager::make(*node.connman, *node.addrman,

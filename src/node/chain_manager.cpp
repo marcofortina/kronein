@@ -11,6 +11,8 @@
 namespace node {
 namespace {
 
+constexpr size_t CHILD_CHAIN_CATALOG_DB_CACHE{1 << 20};
+
 ChainManagerResult ManagerError(ChainManagerError error)
 {
     ChainManagerResult result;
@@ -29,6 +31,32 @@ ChainManager::ChainManager(Consensus::Params main_params,
       m_chains_directory{std::move(chains_directory)},
       m_cache_bytes{cache_bytes}
 {
+    m_catalog_db = std::make_unique<ChildChainCatalogDB>(
+        DBParams{
+            .path = m_chains_directory / "catalog",
+            .cache_bytes = CHILD_CHAIN_CATALOG_DB_CACHE,
+            .memory_only = false,
+            .wipe_data = false,
+            .obfuscate = true,
+        },
+        m_main_params.hashGenesisBlock);
+    auto loaded{m_catalog_db->Load()};
+    m_catalog_error = loaded.error;
+    if (!loaded.IsValid()) return;
+    if (!loaded.initialized && !m_catalog_db->WriteInitialState(/*sync=*/true)) {
+        m_catalog_error = ChildChainCatalogLoadError::DATABASE_WRITE_FAILED;
+        return;
+    }
+    for (auto& definition : loaded.definitions) {
+        const auto chain_id{definition.chain_id};
+        auto [_, inserted]{m_definitions.emplace(
+            chain_id, std::move(definition))};
+        if (!inserted) {
+            m_definitions.clear();
+            m_catalog_error = ChildChainCatalogLoadError::DUPLICATE_RECORD;
+            return;
+        }
+    }
 }
 
 ChainManager::~ChainManager() = default;
@@ -36,6 +64,9 @@ ChainManager::~ChainManager() = default;
 ChainManagerResult ChainManager::RegisterChain(
     const chainregistry::ReferenceChildDefinition& definition)
 {
+    if (!IsCatalogReady()) {
+        return ManagerError(ChainManagerError::CATALOG_UNAVAILABLE);
+    }
     if (definition.chain_id.IsNull()) {
         return ManagerError(ChainManagerError::NULL_CHAIN_ID);
     }
@@ -53,21 +84,29 @@ ChainManagerResult ChainManager::RegisterChain(
         return ManagerError(ChainManagerError::WRONG_MAIN_GENESIS);
     }
 
-    auto [entry, inserted]{m_definitions.emplace(
-        definition.chain_id, definition)};
     ChainManagerResult result;
-    if (!inserted) {
+    if (const auto entry{m_definitions.find(definition.chain_id)};
+        entry != m_definitions.end()) {
         if (entry->second != definition) {
             return ManagerError(ChainManagerError::DEFINITION_CONFLICT);
         }
         result.already_registered = true;
+        return result;
     }
+    if (!m_catalog_db->WriteDefinition(
+            definition, m_definitions.size(), /*sync=*/true)) {
+        return ManagerError(ChainManagerError::DATABASE_WRITE_FAILED);
+    }
+    m_definitions.emplace(definition.chain_id, definition);
     return result;
 }
 
 ChainManagerResult ChainManager::ForgetChain(
     const chainregistry::ChainId& chain_id)
 {
+    if (!IsCatalogReady()) {
+        return ManagerError(ChainManagerError::CATALOG_UNAVAILABLE);
+    }
     if (chain_id.IsNull()) {
         return ManagerError(ChainManagerError::NULL_CHAIN_ID);
     }
@@ -76,6 +115,10 @@ ChainManagerResult ChainManager::ForgetChain(
     }
     if (m_loaded.contains(chain_id)) {
         return ManagerError(ChainManagerError::CHAIN_LOADED);
+    }
+    if (!m_catalog_db->EraseDefinition(
+            chain_id, m_definitions.size(), /*sync=*/true)) {
+        return ManagerError(ChainManagerError::DATABASE_WRITE_FAILED);
     }
     m_definitions.erase(chain_id);
     return {};
@@ -87,6 +130,9 @@ ChainManagerResult ChainManager::LoadChain(
     bool wipe_data,
     bool sync)
 {
+    if (!IsCatalogReady()) {
+        return ManagerError(ChainManagerError::CATALOG_UNAVAILABLE);
+    }
     if (chain_id.IsNull()) {
         return ManagerError(ChainManagerError::NULL_CHAIN_ID);
     }
@@ -125,6 +171,9 @@ ChainManagerResult ChainManager::LoadChain(
 ChainManagerResult ChainManager::UnloadChain(
     const chainregistry::ChainId& chain_id)
 {
+    if (!IsCatalogReady()) {
+        return ManagerError(ChainManagerError::CATALOG_UNAVAILABLE);
+    }
     if (chain_id.IsNull()) {
         return ManagerError(ChainManagerError::NULL_CHAIN_ID);
     }

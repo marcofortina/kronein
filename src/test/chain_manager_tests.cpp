@@ -5,6 +5,7 @@
 #include <node/chain_manager.h>
 
 #include <chainparams.h>
+#include <dbwrapper.h>
 #include <primitives/chainregistry.h>
 #include <test/util/setup_common.h>
 
@@ -44,6 +45,7 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
     const fs::path root{m_args.GetDataDirBase() / "chains"};
     node::ChainManager manager{
         Params().GetConsensus(), Params().GenesisBlock(), root, 1 << 20};
+    BOOST_REQUIRE(manager.IsCatalogReady());
 
     const auto registered{manager.RegisterChain(first)};
     BOOST_REQUIRE(registered.IsValid());
@@ -116,30 +118,101 @@ BOOST_AUTO_TEST_CASE(reopens_only_an_explicitly_selected_chain)
             /*sync=*/true).IsValid());
     }
 
-    node::ChainManager restarted{
-        Params().GetConsensus(), Params().GenesisBlock(), root, 1 << 20};
-    BOOST_REQUIRE(restarted.RegisterChain(first).IsValid());
-    BOOST_REQUIRE(restarted.RegisterChain(second).IsValid());
-    BOOST_CHECK_EQUAL(restarted.LoadedCount(), 0U);
-    const auto loaded{restarted.LoadChain(
-        first.chain_id,
-        Params().GenesisBlock().nTime + 1,
-        /*wipe_data=*/false,
-        /*sync=*/true)};
-    BOOST_REQUIRE_MESSAGE(
-        loaded.IsValid(), static_cast<int>(loaded.runtime.error));
-    BOOST_CHECK(loaded.runtime.loaded_existing);
-    BOOST_CHECK(restarted.IsLoaded(first.chain_id));
-    BOOST_CHECK(!restarted.IsLoaded(second.chain_id));
+    {
+        node::ChainManager restarted{
+            Params().GetConsensus(), Params().GenesisBlock(), root, 1 << 20};
+        BOOST_REQUIRE(restarted.IsCatalogReady());
+        BOOST_CHECK(restarted.IsRegistered(first.chain_id));
+        BOOST_CHECK(restarted.IsRegistered(second.chain_id));
+        BOOST_CHECK_EQUAL(restarted.RegisteredCount(), 2U);
+        BOOST_CHECK_EQUAL(restarted.LoadedCount(), 0U);
+        const auto loaded{restarted.LoadChain(
+            first.chain_id,
+            Params().GenesisBlock().nTime + 1,
+            /*wipe_data=*/false,
+            /*sync=*/true)};
+        BOOST_REQUIRE_MESSAGE(
+            loaded.IsValid(), static_cast<int>(loaded.runtime.error));
+        BOOST_CHECK(loaded.runtime.loaded_existing);
+        BOOST_CHECK(restarted.IsLoaded(first.chain_id));
+        BOOST_CHECK(!restarted.IsLoaded(second.chain_id));
 
-    const chainregistry::ChainId null_id;
+        const chainregistry::ChainId null_id;
+        BOOST_CHECK(
+            restarted.LoadChain(null_id, Params().GenesisBlock().nTime).error ==
+            node::ChainManagerError::NULL_CHAIN_ID);
+        BOOST_CHECK(
+            restarted.LoadChain(Definition(12).chain_id,
+                                Params().GenesisBlock().nTime).error ==
+            node::ChainManagerError::UNKNOWN_CHAIN);
+        BOOST_REQUIRE(restarted.ForgetChain(second.chain_id).IsValid());
+    }
+
+    node::ChainManager after_forget{
+        Params().GetConsensus(), Params().GenesisBlock(), root, 1 << 20};
+    BOOST_REQUIRE(after_forget.IsCatalogReady());
+    BOOST_CHECK(after_forget.IsRegistered(first.chain_id));
+    BOOST_CHECK(!after_forget.IsRegistered(second.chain_id));
+    BOOST_CHECK_EQUAL(after_forget.RegisteredCount(), 1U);
+    BOOST_CHECK_EQUAL(after_forget.LoadedCount(), 0U);
+}
+
+BOOST_AUTO_TEST_CASE(rejects_catalog_from_another_main_network)
+{
+    const auto definition{Definition(20)};
+    const fs::path root{m_args.GetDataDirBase() / "chains_wrong_main"};
+    {
+        node::ChainManager manager{
+            Params().GetConsensus(), Params().GenesisBlock(), root, 1 << 20};
+        BOOST_REQUIRE(manager.IsCatalogReady());
+        BOOST_REQUIRE(manager.RegisterChain(definition).IsValid());
+    }
+
+    auto wrong_params{Params().GetConsensus()};
+    wrong_params.hashGenesisBlock = ArithToUint256(arith_uint256{42});
+    node::ChainManager wrong_network{
+        std::move(wrong_params), Params().GenesisBlock(), root, 1 << 20};
+    BOOST_CHECK(!wrong_network.IsCatalogReady());
+    BOOST_CHECK(wrong_network.CatalogError() ==
+                node::ChildChainCatalogLoadError::WRONG_MAIN_GENESIS);
     BOOST_CHECK(
-        restarted.LoadChain(null_id, Params().GenesisBlock().nTime).error ==
-        node::ChainManagerError::NULL_CHAIN_ID);
-    BOOST_CHECK(
-        restarted.LoadChain(Definition(12).chain_id,
-                            Params().GenesisBlock().nTime).error ==
-        node::ChainManagerError::UNKNOWN_CHAIN);
+        wrong_network.RegisterChain(definition).error ==
+        node::ChainManagerError::CATALOG_UNAVAILABLE);
+}
+
+BOOST_AUTO_TEST_CASE(rejects_corrupt_persisted_definition)
+{
+    const auto definition{Definition(30)};
+    const fs::path root{m_args.GetDataDirBase() / "chains_corrupt_catalog"};
+    {
+        node::ChainManager manager{
+            Params().GetConsensus(), Params().GenesisBlock(), root, 1 << 20};
+        BOOST_REQUIRE(manager.RegisterChain(definition).IsValid());
+    }
+    {
+        CDBWrapper db{
+            DBParams{
+                .path = root / "catalog",
+                .cache_bytes = 1 << 20,
+                .obfuscate = true,
+            }};
+        node::ChildChainCatalogEntry corrupt{
+            .version = node::CHILD_CHAIN_CATALOG_ENTRY_VERSION + 1,
+            .chain_id = definition.chain_id,
+            .registration_anchor = definition.genesis.registration_anchor,
+            .manifest = definition.manifest,
+        };
+        db.Write(std::pair{uint8_t{'R'}, definition.chain_id},
+                 corrupt,
+                 /*fSync=*/true);
+    }
+
+    node::ChainManager corrupted{
+        Params().GetConsensus(), Params().GenesisBlock(), root, 1 << 20};
+    BOOST_CHECK(!corrupted.IsCatalogReady());
+    BOOST_CHECK(corrupted.CatalogError() ==
+                node::ChildChainCatalogLoadError::INVALID_RECORD);
+    BOOST_CHECK_EQUAL(corrupted.RegisteredCount(), 0U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

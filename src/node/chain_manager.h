@@ -7,6 +7,7 @@
 
 #include <chainregistry/child_template.h>
 #include <consensus/params.h>
+#include <node/child_chain_catalog_db.h>
 #include <node/child_chain.h>
 #include <primitives/block.h>
 #include <util/fs.h>
@@ -31,6 +32,8 @@ enum class ChainManagerError : uint8_t {
     CHAIN_LOADED,
     CHAIN_NOT_LOADED,
     INITIALIZATION_FAILED,
+    CATALOG_UNAVAILABLE,
+    DATABASE_WRITE_FAILED,
 };
 
 struct ChainManagerResult {
@@ -66,6 +69,9 @@ private:
     CBlockHeader m_main_genesis;
     fs::path m_chains_directory;
     size_t m_cache_bytes;
+    std::unique_ptr<ChildChainCatalogDB> m_catalog_db;
+    ChildChainCatalogLoadError m_catalog_error{
+        ChildChainCatalogLoadError::NONE};
     std::map<chainregistry::ChainId,
              chainregistry::ReferenceChildDefinition> m_definitions;
     std::map<chainregistry::ChainId,
@@ -77,6 +83,12 @@ public:
                  fs::path chains_directory,
                  size_t cache_bytes);
     ~ChainManager();
+
+    bool IsCatalogReady() const
+    {
+        return m_catalog_error == ChildChainCatalogLoadError::NONE;
+    }
+    ChildChainCatalogLoadError CatalogError() const { return m_catalog_error; }
 
     ChainManagerResult RegisterChain(
         const chainregistry::ReferenceChildDefinition& definition);
