@@ -257,6 +257,9 @@ BOOST_AUTO_TEST_CASE(blockchain_rpc_routes_explicit_child_chain)
     const auto main_info{CallRPC("getblockchaininfo")};
     BOOST_CHECK_NE(main_info.find_value("chain").get_str(), "child");
     BOOST_CHECK(main_info.find_value("chain_id").isNull());
+    const auto main_tips{CallRPC("getchaintips")};
+    BOOST_REQUIRE(!main_tips.empty());
+    BOOST_CHECK(main_tips[0].find_value("chain_id").isNull());
     BOOST_CHECK_EQUAL(CallRPC("getblockcount " + chain_id).getInt<int>(), 0);
     BOOST_CHECK_EQUAL(CallRPC("getbestblockhash " + chain_id).get_str(),
                       definition.genesis_hash.GetHex());
@@ -276,6 +279,14 @@ BOOST_AUTO_TEST_CASE(blockchain_rpc_routes_explicit_child_chain)
     BOOST_CHECK(!child_info.find_value("network_sync_available").get_bool());
     BOOST_CHECK(!child_info.find_value("safe_halt").get_bool());
     BOOST_CHECK(child_info.find_value("size_on_disk").isNull());
+    const auto child_tips{CallRPC("getchaintips " + chain_id)};
+    BOOST_REQUIRE_EQUAL(child_tips.size(), 1U);
+    BOOST_CHECK_EQUAL(child_tips[0].find_value("chain_id").get_str(),
+                      chain_id);
+    BOOST_CHECK_EQUAL(child_tips[0].find_value("hash").get_str(),
+                      definition.genesis_hash.GetHex());
+    BOOST_CHECK_EQUAL(child_tips[0].find_value("status").get_str(), "active");
+    BOOST_CHECK(!child_tips[0].find_value("bmm_eligible").get_bool());
     const auto child_header{CallRPC(
         "getblockheader " + definition.genesis_hash.GetHex() +
         " true " + chain_id)};
@@ -474,6 +485,12 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
     BOOST_CHECK(child_info.find_value("bmm_eligible").get_bool());
     BOOST_CHECK_EQUAL(child_info.find_value("chainwork").get_str(),
                       child_info.find_value("bmm_cumulative_work").get_str());
+    const auto child_tips{CallRPC("getchaintips " + chain_id)};
+    BOOST_REQUIRE_EQUAL(child_tips.size(), 1U);
+    BOOST_CHECK_EQUAL(child_tips[0].find_value("hash").get_str(),
+                      child_block.GetHash().GetHex());
+    BOOST_CHECK_EQUAL(child_tips[0].find_value("status").get_str(), "active");
+    BOOST_CHECK(child_tips[0].find_value("bmm_eligible").get_bool());
 
     const std::string coinbase_txid{
         child_block.vtx.front()->GetHash().GetHex()};

@@ -185,6 +185,30 @@ static node::ChainManagerCoinView GetLoadedChildCoinView(
                        "unhandled child coin view error");
 }
 
+static node::ChainManagerTipsView GetLoadedChildChainTipsView(
+    const std::any& context,
+    std::string_view chain_id)
+{
+    const auto view{EnsureAnyChildChainman(context).GetChainTipsView(
+        ParseChainId(chain_id))};
+    switch (view.error) {
+    case node::ChainManagerTipsViewError::NONE:
+        return view;
+    case node::ChainManagerTipsViewError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must not be null");
+    case node::ChainManagerTipsViewError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not configured locally");
+    case node::ChainManagerTipsViewError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_MISC_ERROR, "child chain is not loaded");
+    case node::ChainManagerTipsViewError::DATA_UNAVAILABLE:
+        throw JSONRPCError(RPC_INTERNAL_ERROR,
+                           "child chain DAG data is unavailable");
+    }
+    throw JSONRPCError(RPC_INTERNAL_ERROR,
+                       "unhandled child chain tips view error");
+}
+
 struct PreparedUTXOSnapshot {
     std::unique_ptr<CCoinsViewCursor> cursor;
     CCoinsStats stats;
@@ -377,6 +401,32 @@ UniValue childBlockchainInfoToJSON(const node::ChainManagerBlockView& view)
         warnings.push_back("Child chain runtime has failed");
     }
     result.pushKV("warnings", std::move(warnings));
+    return result;
+}
+
+UniValue childChainTipsToJSON(const node::ChainManagerTipsView& view)
+{
+    UniValue result{UniValue::VARR};
+    result.reserve(view.tips.size());
+    for (const auto& tip : view.tips) {
+        UniValue object{UniValue::VOBJ};
+        object.pushKV("chain_id", view.entry.chain_id.GetHex());
+        object.pushKV("height", tip.height);
+        object.pushKV("hash", tip.block_hash.GetHex());
+        object.pushKV("branchlen", tip.branch_length);
+        object.pushKV("status",
+                      tip.active ? "active" :
+                      tip.fork_score.eligible ? "valid-fork" :
+                      "bmm-ineligible");
+        object.pushKV("bmm_eligible", tip.fork_score.eligible);
+        object.pushKV("bmm_activation_main_height",
+                      tip.fork_score.activation_main_height);
+        object.pushKV("bmm_own_work",
+                      tip.fork_score.own_anchor_work.GetHex());
+        object.pushKV("bmm_cumulative_work",
+                      tip.fork_score.cumulative_anchor_work.GetHex());
+        result.push_back(std::move(object));
+    }
     return result;
 }
 
@@ -1732,12 +1782,16 @@ static RPCHelpMan getchaintips()
 {
     return RPCHelpMan{"getchaintips",
                 "Return information about all known tips in the block tree,"
-                " including the main chain as well as orphaned branches.\n",
-                {},
+                " including the selected chain as well as orphaned branches.\n"
+                "Omit chain_id for the main chain. Child results include fully validated BMM candidates retained in the local DAG.\n",
+                {
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
+                },
                 RPCResult{
                     RPCResult::Type::ARR, "", "",
                     {{RPCResult::Type::OBJ, "", "",
                         {
+                            {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Child-chain identifier; present only for child results"},
                             {RPCResult::Type::NUM, "height", "height of the chain tip"},
                             {RPCResult::Type::STR_HEX, "hash", "block hash of the tip"},
                             {RPCResult::Type::NUM, "branchlen", "zero for main chain, otherwise length of branch connecting the tip to the main chain"},
@@ -1747,14 +1801,25 @@ static RPCHelpMan getchaintips()
             "2.  \"headers-only\"          Not all blocks for this branch are available, but the headers are valid\n"
             "3.  \"valid-headers\"         All blocks are available for this branch, but they were never fully validated\n"
             "4.  \"valid-fork\"            This branch is not part of the active chain, but is fully validated\n"
-            "5.  \"active\"                This is the tip of the active main chain, which is certainly valid"},
+            "5.  \"active\"                This is the tip of the selected active chain, which is certainly valid\n"
+            "6.  \"bmm-ineligible\"        Child branch is fully validated but lacks an eligible anchor path on the active main chain"},
+                            {RPCResult::Type::BOOL, "bmm_eligible", /*optional=*/true, "Whether this child tip is eligible for BMM fork choice"},
+                            {RPCResult::Type::NUM, "bmm_activation_main_height", /*optional=*/true, "Earliest active main height anchoring this child tip after its parent"},
+                            {RPCResult::Type::STR_HEX, "bmm_own_work", /*optional=*/true, "Active main-chain work committed directly to this child tip"},
+                            {RPCResult::Type::STR_HEX, "bmm_cumulative_work", /*optional=*/true, "Cumulative BMM work along this child branch"},
                         }}}},
                 RPCExamples{
                     HelpExampleCli("getchaintips", "")
+            + HelpExampleCli("getchaintips", "\"chain_id\"")
             + HelpExampleRpc("getchaintips", "")
+            + HelpExampleRpc("getchaintips", "\"chain_id\"")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
+    if (const auto chain_id{self.MaybeArg<std::string_view>("chain_id")}) {
+        return childChainTipsToJSON(
+            GetLoadedChildChainTipsView(request.context, *chain_id));
+    }
     ChainstateManager& chainman = EnsureAnyChainman(request.context);
     LOCK(cs_main);
     CChain& active_chain = chainman.ActiveChain();
