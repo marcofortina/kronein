@@ -114,6 +114,31 @@ static node::ChainManagerView GetLoadedChildChainView(
                        "unhandled child chain view error");
 }
 
+static node::ChainManagerBlockView GetLoadedChildBlockView(
+    const std::any& context,
+    std::string_view chain_id,
+    const uint256& block_hash)
+{
+    const auto view{EnsureAnyChildChainman(context).GetBlockView(
+        ParseChainId(chain_id), block_hash)};
+    switch (view.error) {
+    case node::ChainManagerBlockViewError::NONE:
+        return view;
+    case node::ChainManagerBlockViewError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must not be null");
+    case node::ChainManagerBlockViewError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not configured locally");
+    case node::ChainManagerBlockViewError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_MISC_ERROR, "child chain is not loaded");
+    case node::ChainManagerBlockViewError::BLOCK_NOT_FOUND:
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                           "Child block not found");
+    }
+    throw JSONRPCError(RPC_INTERNAL_ERROR,
+                       "unhandled child block view error");
+}
+
 struct PreparedUTXOSnapshot {
     std::unique_ptr<CCoinsViewCursor> cursor;
     CCoinsStats stats;
@@ -225,6 +250,77 @@ UniValue blockheaderToJSON(const CBlockIndex& tip, const CBlockIndex& blockindex
         result.pushKV("previousblockhash", blockindex.pprev->GetBlockHash().GetHex());
     if (pnext)
         result.pushKV("nextblockhash", pnext->GetBlockHash().GetHex());
+    return result;
+}
+
+UniValue childBlockHeaderToJSON(const node::ChainManagerBlockView& view)
+{
+    const auto& child{view.block};
+    const CBlockHeader* header{child.block
+        ? static_cast<const CBlockHeader*>(&*child.block)
+        : nullptr};
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", view.entry.chain_id.GetHex());
+    result.pushKV("hash", child.block_hash.GetHex());
+    result.pushKV("confirmations", child.confirmations);
+    result.pushKV("height", child.height);
+    result.pushKV("version", header ? header->nVersion : 0);
+    result.pushKV("versionHex", strprintf("%08x", header ? header->nVersion : 0));
+    result.pushKV("merkleroot", header ? header->hashMerkleRoot.GetHex() : uint256{}.GetHex());
+    result.pushKV("time", child.time);
+    result.pushKV("mediantime", child.median_time);
+    result.pushKV("nonce", header ? header->nNonce : 0);
+    result.pushKV("bits", strprintf("%08x", header ? header->nBits : 0));
+    result.pushKV("target", uint256{}.GetHex());
+    result.pushKV("difficulty", 0.0);
+    result.pushKV("chainwork", child.fork_score.cumulative_anchor_work.GetHex());
+    result.pushKV("nTx", child.block ? child.block->vtx.size() : 0);
+    result.pushKV("virtual", child.virtual_genesis);
+    result.pushKV("bmm_eligible", child.fork_score.eligible);
+    result.pushKV("bmm_activation_main_height", child.fork_score.activation_main_height);
+    result.pushKV("bmm_own_work", child.fork_score.own_anchor_work.GetHex());
+    result.pushKV("bmm_cumulative_work", child.fork_score.cumulative_anchor_work.GetHex());
+    if (header && !header->hashPrevBlock.IsNull()) {
+        result.pushKV("previousblockhash", header->hashPrevBlock.GetHex());
+    }
+    if (child.next_block_hash) {
+        result.pushKV("nextblockhash", child.next_block_hash->GetHex());
+    }
+    return result;
+}
+
+UniValue coinbaseTxToJSON(const CTransaction& coinbase_tx);
+
+UniValue childBlockToJSON(const node::ChainManagerBlockView& view,
+                          TxVerbosity verbosity)
+{
+    Assume(view.block.block);
+    const CBlock& block{*view.block.block};
+    UniValue result{childBlockHeaderToJSON(view)};
+    result.pushKV("strippedsize", ::GetSerializeSize(TX_BASE(block)));
+    result.pushKV("size", ::GetSerializeSize(TX_WITH_WITNESS(block)));
+    result.pushKV("weight", ::GetBlockWeight(block));
+    Assume(!block.vtx.empty());
+    result.pushKV("coinbase_tx", coinbaseTxToJSON(*block.vtx[0]));
+
+    UniValue transactions{UniValue::VARR};
+    transactions.reserve(block.vtx.size());
+    for (const auto& transaction : block.vtx) {
+        if (verbosity == TxVerbosity::SHOW_TXID) {
+            transactions.push_back(transaction->GetHash().GetHex());
+            continue;
+        }
+        UniValue encoded{UniValue::VOBJ};
+        TxToUniv(
+            *transaction,
+            view.block.block_hash,
+            encoded,
+            /*include_hex=*/true,
+            /*txundo=*/nullptr,
+            verbosity);
+        transactions.push_back(std::move(encoded));
+    }
+    result.pushKV("tx", std::move(transactions));
     return result;
 }
 
@@ -667,16 +763,19 @@ static RPCHelpMan getblockheader()
     return RPCHelpMan{
         "getblockheader",
         "If verbose is false, returns a string that is serialized, hex-encoded data for blockheader 'hash'.\n"
-                "If verbose is true, returns an Object with information about blockheader <hash>.\n",
+                "If verbose is true, returns an Object with information about blockheader <hash>.\n"
+                "Omit chain_id for the main chain. A child genesis is a virtual descriptor and only has a verbose representation.\n",
                 {
                     {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The block hash"},
                     {"verbose", RPCArg::Type::BOOL, RPCArg::Default{true}, "true for a json object, false for the hex-encoded data"},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 {
                     RPCResult{"for verbose = true",
                         RPCResult::Type::OBJ, "", "",
                         {
                             {RPCResult::Type::STR_HEX, "hash", "the block hash (same as provided)"},
+                            {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Child-chain identifier; present only for child results"},
                             {RPCResult::Type::NUM, "confirmations", "The number of confirmations, or -1 if the block is not on the main chain"},
                             {RPCResult::Type::NUM, "height", "The block height or index"},
                             {RPCResult::Type::NUM, "version", "The block version"},
@@ -688,8 +787,13 @@ static RPCHelpMan getblockheader()
                             {RPCResult::Type::STR_HEX, "bits", "nBits: compact representation of the block difficulty target"},
                             {RPCResult::Type::STR_HEX, "target", "The difficulty target"},
                             {RPCResult::Type::NUM, "difficulty", "The difficulty"},
-                            {RPCResult::Type::STR_HEX, "chainwork", "Expected number of hashes required to produce the current chain"},
+                            {RPCResult::Type::STR_HEX, "chainwork", "Expected main-chain work; for a child, cumulative active BMM anchor work"},
                             {RPCResult::Type::NUM, "nTx", "The number of transactions in the block"},
+                            {RPCResult::Type::BOOL, "virtual", /*optional=*/true, "Whether this is the non-serialized child genesis descriptor"},
+                            {RPCResult::Type::BOOL, "bmm_eligible", /*optional=*/true, "Whether this child block is eligible for BMM fork choice"},
+                            {RPCResult::Type::NUM, "bmm_activation_main_height", /*optional=*/true, "Earliest active main height anchoring the child block after its parent"},
+                            {RPCResult::Type::STR_HEX, "bmm_own_work", /*optional=*/true, "Active main-chain anchor work committed directly to this child block"},
+                            {RPCResult::Type::STR_HEX, "bmm_cumulative_work", /*optional=*/true, "Cumulative BMM work along this child branch"},
                             {RPCResult::Type::STR_HEX, "previousblockhash", /*optional=*/true, "The hash of the previous block (if available)"},
                             {RPCResult::Type::STR_HEX, "nextblockhash", /*optional=*/true, "The hash of the next block (if available)"},
                         }},
@@ -707,6 +811,23 @@ static RPCHelpMan getblockheader()
     bool fVerbose = true;
     if (!request.params[1].isNull())
         fVerbose = request.params[1].get_bool();
+
+    if (const auto chain_id{self.MaybeArg<std::string_view>("chain_id")}) {
+        const auto view{GetLoadedChildBlockView(
+            request.context, *chain_id, hash)};
+        if (!fVerbose) {
+            if (view.block.virtual_genesis) {
+                throw JSONRPCError(
+                    RPC_MISC_ERROR,
+                    "The child genesis is a virtual descriptor and has no serialized block header");
+            }
+            Assume(view.block.block);
+            DataStream stream;
+            stream << static_cast<const CBlockHeader&>(*view.block.block);
+            return HexStr(stream);
+        }
+        return childBlockHeaderToJSON(view);
+    }
 
     const CBlockIndex* pblockindex;
     const CBlockIndex* tip;
@@ -831,10 +952,12 @@ static RPCHelpMan getblock()
         "If verbosity is 0, returns a string that is serialized, hex-encoded data for block 'hash'.\n"
                 "If verbosity is 1, returns an Object with information about block <hash>.\n"
                 "If verbosity is 2, returns an Object with information about block <hash> and information about each transaction.\n"
-                "If verbosity is 3, returns an Object with information about block <hash> and information about each transaction, including prevout information for inputs (only for unpruned blocks in the current best chain).\n",
+                "If verbosity is 3, returns an Object with information about block <hash> and information about each transaction, including prevout information for inputs (only for unpruned blocks in the current best chain).\n"
+                "Omit chain_id for the main chain. A child genesis is a virtual descriptor and has no serialized block.\n",
                 {
                     {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The block hash"},
                     {"verbosity", RPCArg::Type::NUM, RPCArg::Default{1}, "0 for hex-encoded data, 1 for a JSON object, 2 for JSON object with transaction data, and 3 for JSON object with transaction data including prevout information for inputs"},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 {
                     RPCResult{"for verbosity = 0",
@@ -843,6 +966,7 @@ static RPCHelpMan getblock()
                 RPCResult::Type::OBJ, "", "",
                 {
                     {RPCResult::Type::STR_HEX, "hash", "the block hash (same as provided)"},
+                    {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Child-chain identifier; present only for child results"},
                     {RPCResult::Type::NUM, "confirmations", "The number of confirmations, or -1 if the block is not on the main chain"},
                     {RPCResult::Type::NUM, "size", "The block size"},
                     {RPCResult::Type::NUM, "strippedsize", "The block size excluding witness data"},
@@ -867,8 +991,13 @@ static RPCHelpMan getblock()
                     {RPCResult::Type::STR_HEX, "bits", "nBits: compact representation of the block difficulty target"},
                     {RPCResult::Type::STR_HEX, "target", "The difficulty target"},
                     {RPCResult::Type::NUM, "difficulty", "The difficulty"},
-                    {RPCResult::Type::STR_HEX, "chainwork", "Expected number of hashes required to produce the chain up to this block (in hex)"},
+                    {RPCResult::Type::STR_HEX, "chainwork", "Expected main-chain work; for a child, cumulative active BMM anchor work"},
                     {RPCResult::Type::NUM, "nTx", "The number of transactions in the block"},
+                    {RPCResult::Type::BOOL, "virtual", /*optional=*/true, "Whether this is the non-serialized child genesis descriptor"},
+                    {RPCResult::Type::BOOL, "bmm_eligible", /*optional=*/true, "Whether this child block is eligible for BMM fork choice"},
+                    {RPCResult::Type::NUM, "bmm_activation_main_height", /*optional=*/true, "Earliest active main height anchoring the child block after its parent"},
+                    {RPCResult::Type::STR_HEX, "bmm_own_work", /*optional=*/true, "Active main-chain anchor work committed directly to this child block"},
+                    {RPCResult::Type::STR_HEX, "bmm_cumulative_work", /*optional=*/true, "Cumulative BMM work along this child branch"},
                     {RPCResult::Type::STR_HEX, "previousblockhash", /*optional=*/true, "The hash of the previous block (if available)"},
                     {RPCResult::Type::STR_HEX, "nextblockhash", /*optional=*/true, "The hash of the next block (if available)"},
                 }},
@@ -907,6 +1036,27 @@ static RPCHelpMan getblock()
     uint256 hash(ParseHashV(request.params[0], "blockhash"));
 
     int verbosity{ParseVerbosity(request.params[1], /*default_verbosity=*/1)};
+
+    if (const auto chain_id{self.MaybeArg<std::string_view>("chain_id")}) {
+        const auto view{GetLoadedChildBlockView(
+            request.context, *chain_id, hash)};
+        if (view.block.virtual_genesis) {
+            throw JSONRPCError(
+                RPC_MISC_ERROR,
+                "The child genesis is a virtual descriptor and has no serialized block");
+        }
+        Assume(view.block.block);
+        if (verbosity <= 0) {
+            DataStream stream;
+            stream << TX_WITH_WITNESS(*view.block.block);
+            return HexStr(stream);
+        }
+        const TxVerbosity transaction_verbosity{
+            verbosity == 1 ? TxVerbosity::SHOW_TXID
+                           : verbosity == 2 ? TxVerbosity::SHOW_DETAILS
+                                            : TxVerbosity::SHOW_DETAILS_AND_PREVOUT};
+        return childBlockToJSON(view, transaction_verbosity);
+    }
 
     const CBlockIndex* pblockindex;
     const CBlockIndex* tip;

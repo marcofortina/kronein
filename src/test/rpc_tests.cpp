@@ -4,10 +4,15 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chainparams.h>
+#include <consensus/merkle.h>
 #include <core_io.h>
+#include <hash.h>
 #include <interfaces/chain.h>
 #include <node/chain_manager.h>
 #include <node/context.h>
+#include <pow.h>
+#include <primitives/bmm.h>
+#include <primitives/chainregistry.h>
 #include <rpc/blockchain.h>
 #include <rpc/client.h>
 #include <rpc/server.h>
@@ -42,6 +47,98 @@ static chainregistry::ReferenceChildDefinition RpcChildDefinition()
             "4444444444444444444444444444444444444444444444444444444444444444"})};
     BOOST_REQUIRE(result.IsValid());
     return *result.definition;
+}
+
+static CBlock RpcChildBlock(
+    const chainregistry::ReferenceChildDefinition& definition)
+{
+    CMutableTransaction coinbase;
+    coinbase.vin.emplace_back(COutPoint{});
+    coinbase.vin.front().scriptSig =
+        CScript{} << int64_t{1} << std::vector<unsigned char>{0};
+    coinbase.vin.front().scriptWitness.stack = {
+        std::vector<unsigned char>(32)};
+
+    CBlock block;
+    block.nVersion = CBlockHeader::CURRENT_VERSION;
+    block.hashPrevBlock = definition.genesis_hash;
+    block.nTime = Params().GenesisBlock().nTime + 1;
+    block.vtx = {MakeTransactionRef(std::move(coinbase))};
+    const auto& reserved{
+        block.vtx.front()->vin.front().scriptWitness.stack.front()};
+    uint256 commitment{BlockWitnessMerkleRoot(block)};
+    CHash256().Write(commitment).Write(reserved).Finalize(commitment);
+    std::vector<unsigned char> payload{0xaa, 0x21, 0xa9, 0xed};
+    payload.insert(payload.end(), commitment.begin(), commitment.end());
+    CMutableTransaction committed_coinbase{*block.vtx.front()};
+    committed_coinbase.vout.emplace_back(
+        0, CScript{} << OP_RETURN << payload);
+    block.vtx.front() = MakeTransactionRef(std::move(committed_coinbase));
+    block.hashMerkleRoot = BlockMerkleRoot(block);
+    return block;
+}
+
+static chainregistry::BmmAnchorProof RpcBmmProof(
+    CBlock& main_block,
+    const chainregistry::ReferenceChildDefinition& definition,
+    const uint256& child_block_hash)
+{
+    const auto& params{Params().GetConsensus()};
+    const chainregistry::ChainRecord record{
+        .record_version = chainregistry::CHAIN_RECORD_VERSION,
+        .chain_id = definition.chain_id,
+        .manifest_hash = definition.manifest_hash,
+        .template_id = definition.manifest.spec.template_id,
+        .template_version = definition.manifest.spec.template_version,
+        .control_outpoint = COutPoint{
+            Txid{"2222222222222222222222222222222222222222222222222222222222222222"}, 0},
+        .metadata_hash = definition.manifest.initial_metadata_hash,
+        .status = chainregistry::ChainStatus::ACTIVE,
+    };
+    chainregistry::ChainRegistry registry;
+    BOOST_REQUIRE(registry.LoadRecords({record}).IsValid());
+
+    CMutableTransaction coinbase;
+    coinbase.vin.emplace_back(COutPoint{});
+    coinbase.vout.emplace_back(
+        0, chainregistry::BuildRegistryCommitment(registry.ComputeRoot()));
+    CMutableTransaction proposal;
+    proposal.vin.emplace_back(COutPoint{
+        Txid{"3333333333333333333333333333333333333333333333333333333333333333"}, 0});
+    proposal.vout.emplace_back(
+        0,
+        chainregistry::BuildBmmAnchorScript({
+            .chain_id = definition.chain_id,
+            .child_block_hash = child_block_hash,
+        }));
+
+    CBlockIndex main_parent{Params().GenesisBlock()};
+    main_parent.phashBlock = &params.hashGenesisBlock;
+    main_parent.nHeight = 0;
+    main_parent.nChainWork = GetBlockProof(main_parent);
+    main_parent.nTimeMax = main_parent.nTime;
+    main_block.nVersion = CBlockHeader::CURRENT_VERSION;
+    main_block.hashPrevBlock = main_parent.GetBlockHash();
+    main_block.nTime = main_parent.nTime + 1;
+    main_block.nBits = GetNextWorkRequired(&main_parent, &main_block, params);
+    main_block.vtx = {
+        MakeTransactionRef(coinbase), MakeTransactionRef(proposal)};
+    main_block.hashMerkleRoot = BlockMerkleRoot(main_block);
+    // ChainManager::AddMainHeader is the ingress for headers already validated
+    // by the local main chainstate, so this fixture must not mine it again.
+
+    return {
+        .main_genesis_hash = params.hashGenesisBlock,
+        .block_height = 1,
+        .block_header = main_block,
+        .anchor_transaction = proposal,
+        .transaction_index = 1,
+        .transaction_merkle_branch = TransactionMerklePath(main_block, 1),
+        .coinbase_transaction = coinbase,
+        .coinbase_merkle_branch = TransactionMerklePath(main_block, 0),
+        .chain_record = record,
+        .registry_proof = *registry.GetInclusionProof(definition.chain_id),
+    };
 }
 
 class HasJSON
@@ -160,8 +257,37 @@ BOOST_AUTO_TEST_CASE(blockchain_rpc_routes_explicit_child_chain)
                       definition.genesis_hash.GetHex());
     BOOST_CHECK_EQUAL(CallRPC("getblockhash 0 " + chain_id).get_str(),
                       definition.genesis_hash.GetHex());
+    const auto child_header{CallRPC(
+        "getblockheader " + definition.genesis_hash.GetHex() +
+        " true " + chain_id)};
+    BOOST_CHECK_EQUAL(child_header.find_value("chain_id").get_str(), chain_id);
+    BOOST_CHECK_EQUAL(child_header.find_value("hash").get_str(),
+                      definition.genesis_hash.GetHex());
+    BOOST_CHECK(child_header.find_value("virtual").get_bool());
+    BOOST_CHECK_EQUAL(child_header.find_value("height").getInt<int>(), 0);
+    BOOST_CHECK_EQUAL(child_header.find_value("confirmations").getInt<int>(), 1);
     BOOST_CHECK_EQUAL(CallRPC("getblockcount").getInt<int>(), main_height);
     BOOST_CHECK_EQUAL(CallRPC("getbestblockhash").get_str(), main_tip);
+    BOOST_CHECK_EQUAL(CallRPC("getblockheader " + main_tip + " false").get_str().size(), 160U);
+
+    for (const std::string& command : {
+             "getblockheader " + definition.genesis_hash.GetHex() + " false " + chain_id,
+             "getblock " + definition.genesis_hash.GetHex() + " 0 " + chain_id}) {
+        BOOST_CHECK_EXCEPTION(
+            CallRPC(command),
+            std::runtime_error,
+            [](const std::runtime_error& error) {
+                return std::string_view{error.what()}.find(
+                           "virtual descriptor") != std::string_view::npos;
+            });
+    }
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("getblockheader " + std::string(64, '2') + " true " + chain_id),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find(
+                       "Child block not found") != std::string_view::npos;
+        });
 
     BOOST_CHECK_EXCEPTION(
         CallRPC("getblockhash 1 " + chain_id),
@@ -265,6 +391,53 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
                        "child runtime rejected request") !=
                    std::string_view::npos;
         });
+
+    const CBlock child_block{RpcChildBlock(definition)};
+    CBlock main_anchor;
+    const auto valid_proof{
+        RpcBmmProof(main_anchor, definition, child_block.GetHash())};
+    const auto main_update{manager.AddMainHeader(
+        main_anchor, main_anchor.nTime, /*sync=*/true)};
+    BOOST_REQUIRE_EQUAL(main_update.unloaded.size(), 0U);
+    BOOST_REQUIRE_EQUAL(main_update.advanced.size(), 1U);
+    DataStream valid_proof_stream;
+    valid_proof_stream << valid_proof;
+    DataStream child_block_stream;
+    child_block_stream << TX_WITH_WITNESS(child_block);
+    const std::string valid_proof_hex{HexStr(valid_proof_stream)};
+    const std::string child_block_hex{HexStr(child_block_stream)};
+    const auto submitted{CallRPC(
+        "submitchildblock " + chain_id + " " + child_block_hex + " " +
+        valid_proof_hex)};
+    BOOST_CHECK(submitted.find_value("accepted").get_bool());
+    BOOST_CHECK_EQUAL(submitted.find_value("blockhash").get_str(),
+                      child_block.GetHash().GetHex());
+    BOOST_CHECK_EQUAL(submitted.find_value("bestblockhash").get_str(),
+                      child_block.GetHash().GetHex());
+
+    DataStream child_header_stream;
+    child_header_stream << static_cast<const CBlockHeader&>(child_block);
+    BOOST_CHECK_EQUAL(
+        CallRPC("getblockheader " + child_block.GetHash().GetHex() +
+                " false " + chain_id).get_str(),
+        HexStr(child_header_stream));
+    const auto child_header{CallRPC(
+        "getblockheader " + child_block.GetHash().GetHex() +
+        " true " + chain_id)};
+    BOOST_CHECK_EQUAL(child_header.find_value("chain_id").get_str(), chain_id);
+    BOOST_CHECK(!child_header.find_value("virtual").get_bool());
+    BOOST_CHECK(child_header.find_value("bmm_eligible").get_bool());
+    BOOST_CHECK_EQUAL(child_header.find_value("height").getInt<int>(), 1);
+    BOOST_CHECK_EQUAL(child_header.find_value("confirmations").getInt<int>(), 1);
+    BOOST_CHECK_EQUAL(
+        CallRPC("getblock " + child_block.GetHash().GetHex() +
+                " 0 " + chain_id).get_str(),
+        child_block_hex);
+    const auto verbose_block{CallRPC(
+        "getblock " + child_block.GetHash().GetHex() + " 2 " + chain_id)};
+    BOOST_CHECK_EQUAL(verbose_block.find_value("chain_id").get_str(), chain_id);
+    BOOST_CHECK_EQUAL(verbose_block.find_value("tx").size(), 1U);
+    BOOST_CHECK(verbose_block.find_value("tx")[0].isObject());
 }
 
 BOOST_AUTO_TEST_CASE(rpc_namedparams)
