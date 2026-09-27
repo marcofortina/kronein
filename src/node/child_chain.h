@@ -90,6 +90,7 @@ private:
     bool RebuildChildIndex(uint32_t genesis_time);
     bool BuildBranchState(CBlockIndex& parent,
                           int64_t current_time,
+                          const chainregistry::MainHeaderChain& main_headers,
                           CCoinsViewCache& coins,
                           chainregistry::DepositImportState& imports,
                           ReferenceChildRuntimeResult& result) const;
@@ -97,6 +98,7 @@ private:
         const chainregistry::ChildForkChoiceResult& selected,
         std::span<const chainregistry::ChildForkCandidate> candidates,
         int64_t current_time,
+        const chainregistry::MainHeaderChain& main_headers,
         bool sync,
         ReferenceChildRuntimeResult& result);
     bool Usable() const { return m_initialized && !m_failed; }
@@ -109,6 +111,7 @@ private:
         std::unique_ptr<chainregistry::MainHeaderChain> candidate_headers,
         ReferenceChildRuntimeResult result,
         const CBlockHeader* added_header,
+        int64_t current_time,
         bool sync);
 
 public:
@@ -131,6 +134,7 @@ public:
         bool sync = false);
     ReferenceChildRuntimeResult SelectValidatedMainTip(
         const uint256& active_tip,
+        int64_t current_time,
         bool sync = false);
     ReferenceChildRuntimeResult StageBmmAnchor(
         const chainregistry::BmmAnchorProof& anchor_proof,

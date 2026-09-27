@@ -612,7 +612,7 @@ BOOST_AUTO_TEST_CASE(pending_anchor_survives_restart_and_is_pruned_by_reorg)
     }
 }
 
-BOOST_AUTO_TEST_CASE(main_reorg_atomically_rolls_back_orphaned_child_suffix)
+BOOST_AUTO_TEST_CASE(main_reorg_preserves_orphaned_child_candidates)
 {
     const auto definition{Definition()};
     const auto& params{Params().GetConsensus()};
@@ -702,11 +702,13 @@ BOOST_AUTO_TEST_CASE(main_reorg_atomically_rolls_back_orphaned_child_suffix)
         BOOST_CHECK(reorganized.disconnected_child_blocks[1] == first_child_hash);
         BOOST_CHECK_EQUAL(runtime.State().child_height, 0U);
         BOOST_CHECK_EQUAL(runtime.State().anchor_count, 0U);
+        BOOST_CHECK_EQUAL(runtime.State().side_candidate_count, 2U);
+        BOOST_CHECK_EQUAL(runtime.State().candidate_anchor_count, 2U);
         BOOST_CHECK(runtime.Tip()->GetBlockHash() == definition.genesis_hash);
         BOOST_CHECK(runtime.MainHeaders()->Tip()->GetBlockHash() == fork3.GetHash());
-        CBlock removed;
-        BOOST_CHECK(!runtime.ReadBlock(first_child_hash, removed));
-        BOOST_CHECK(!runtime.ReadBlock(second_child_hash, removed));
+        CBlock retained;
+        BOOST_CHECK(runtime.ReadBlock(first_child_hash, retained));
+        BOOST_CHECK(runtime.ReadBlock(second_child_hash, retained));
     }
 
     {
@@ -721,9 +723,112 @@ BOOST_AUTO_TEST_CASE(main_reorg_atomically_rolls_back_orphaned_child_suffix)
         BOOST_CHECK_EQUAL(runtime.State().header_count, 6U);
         BOOST_CHECK_EQUAL(runtime.State().child_height, 0U);
         BOOST_CHECK_EQUAL(runtime.State().anchor_count, 0U);
+        BOOST_CHECK_EQUAL(runtime.State().side_candidate_count, 2U);
+        BOOST_CHECK_EQUAL(runtime.State().candidate_anchor_count, 2U);
         BOOST_CHECK(runtime.Tip()->GetBlockHash() == definition.genesis_hash);
         BOOST_CHECK(runtime.MainHeaders()->Tip()->GetBlockHash() == fork3.GetHash());
+        CBlock retained;
+        BOOST_CHECK(runtime.ReadBlock(first_child_hash, retained));
+        BOOST_CHECK(runtime.ReadBlock(second_child_hash, retained));
     }
+}
+
+BOOST_AUTO_TEST_CASE(main_reorg_activates_surviving_child_fork)
+{
+    const auto definition{Definition()};
+    const auto& params{Params().GetConsensus()};
+    const CBlock& main_genesis{Params().GenesisBlock()};
+    const fs::path path{
+        m_args.GetDataDirBase() / "reference_child_main_reselect"};
+
+    node::ReferenceChildRuntime runtime{params, definition};
+    BOOST_REQUIRE(runtime.Initialize(
+        ChildDBParams(path, /*wipe=*/true),
+        main_genesis,
+        main_genesis.nTime,
+        /*sync=*/true).IsValid());
+    const CBlockIndex* child_genesis{runtime.Tip()};
+    BOOST_REQUIRE(child_genesis);
+
+    const CBlock canonical{ChildBlock(*child_genesis)};
+    const uint256 canonical_hash{canonical.GetHash()};
+    CBlock surviving{ChildBlock(*child_genesis)};
+    uint256 surviving_hash;
+    do {
+        ++surviving.nTime;
+        surviving_hash = surviving.GetHash();
+    } while (!(canonical_hash < surviving_hash));
+
+    const CBlockIndex* main_parent{runtime.MainHeaders()->Tip()};
+    BOOST_REQUIRE(main_parent);
+    CBlock surviving_anchor_block;
+    const auto surviving_anchor{MakeBmmProof(
+        surviving_anchor_block,
+        *main_parent,
+        params,
+        definition,
+        surviving_hash)};
+    BOOST_REQUIRE(runtime.AddMainHeader(
+        surviving_anchor_block,
+        surviving_anchor_block.nTime,
+        /*sync=*/true).IsValid());
+    BOOST_REQUIRE(runtime.StageBmmAnchor(
+        surviving_anchor, surviving.nTime, /*sync=*/true).IsValid());
+
+    main_parent = runtime.MainHeaders()->Tip();
+    BOOST_REQUIRE(main_parent);
+    CBlock canonical_anchor_block;
+    const auto canonical_anchor{MakeBmmProof(
+        canonical_anchor_block,
+        *main_parent,
+        params,
+        definition,
+        canonical_hash)};
+    BOOST_REQUIRE(runtime.AddMainHeader(
+        canonical_anchor_block,
+        canonical_anchor_block.nTime,
+        /*sync=*/true).IsValid());
+    BOOST_REQUIRE(runtime.ConnectBlock(
+        canonical,
+        canonical_anchor,
+        canonical.nTime,
+        /*sync=*/true).IsValid());
+
+    const auto stored{runtime.ConnectBlock(
+        surviving,
+        surviving_anchor,
+        surviving.nTime,
+        /*sync=*/true)};
+    BOOST_REQUIRE_MESSAGE(stored.IsValid(), static_cast<int>(stored.error));
+    BOOST_CHECK(stored.candidate_stored);
+    BOOST_CHECK(stored.selected_child_head == canonical_hash);
+    BOOST_CHECK(runtime.Tip()->GetBlockHash() == canonical_hash);
+
+    const CBlockIndex* common_main{
+        runtime.MainHeaders()->Find(surviving_anchor_block.GetHash())};
+    BOOST_REQUIRE(common_main);
+    const CBlockHeader fork2{MineMainHeader(*common_main, params)};
+    BOOST_REQUIRE(runtime.AddMainHeader(
+        fork2, fork2.nTime, /*sync=*/true).IsValid());
+    const CBlockIndex* fork2_index{
+        runtime.MainHeaders()->Find(fork2.GetHash())};
+    BOOST_REQUIRE(fork2_index);
+    const CBlockHeader fork3{MineMainHeader(*fork2_index, params)};
+    const auto reorganized{runtime.AddMainHeader(
+        fork3, fork3.nTime, /*sync=*/true)};
+    BOOST_REQUIRE_MESSAGE(
+        reorganized.IsValid(), static_cast<int>(reorganized.error));
+    BOOST_REQUIRE_EQUAL(reorganized.disconnected_child_blocks.size(), 1U);
+    BOOST_CHECK(
+        reorganized.disconnected_child_blocks.front() == canonical_hash);
+    BOOST_CHECK(reorganized.selected_child_head == surviving_hash);
+    BOOST_CHECK(!reorganized.reorganization_required);
+    BOOST_CHECK(runtime.Tip()->GetBlockHash() == surviving_hash);
+    BOOST_CHECK_EQUAL(runtime.State().child_height, 1U);
+    BOOST_CHECK_EQUAL(runtime.State().side_candidate_count, 1U);
+    BOOST_CHECK_EQUAL(runtime.State().candidate_anchor_count, 1U);
+    CBlock retained;
+    BOOST_CHECK(runtime.ReadBlock(canonical_hash, retained));
 }
 
 BOOST_AUTO_TEST_CASE(main_headers_are_validated_and_persisted)

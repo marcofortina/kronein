@@ -1411,7 +1411,6 @@ bool ChildChainDB::WriteMainChainUpdate(
     }
     CoinTransition coin_transition;
     std::set<uint256> disconnected_hashes;
-    std::set<uint256> removed_candidate_anchor_main_blocks;
     for (const auto& disconnected : disconnected_blocks) {
         const CBlock& block{disconnected.block};
         const chainregistry::ReferenceChildBlockUndo& undo{disconnected.undo};
@@ -1453,36 +1452,42 @@ bool ChildChainDB::WriteMainChainUpdate(
             batch.Erase(ImportKey{DB_IMPORT, deposit_id});
         }
 
-        std::vector<std::pair<CandidateAnchorKey,
-                              ChildCandidateBmmAnchorRecord>>
-            candidate_anchors;
-        if (!CollectCandidateAnchorsForChild(
-                m_db,
-                main_headers,
-                m_child_chain,
-                block_hash,
-                state,
-                candidate_anchors,
-                &removed_candidate_anchor_main_blocks)) {
+        ChildCandidateRecord candidate{
+            .block = block,
+            .undo = undo,
+        };
+        candidate.serialized_size = GetSerializeSize(candidate);
+        const uint256 main_block_hash{
+            stored_anchor.proof.block_header.GetHash()};
+        const CandidateAnchorKey candidate_anchor_key{
+            DB_CANDIDATE_BMM_ANCHOR, main_block_hash};
+        const uint64_t candidate_anchor_size{
+            GetSerializeSize(stored_anchor.proof)};
+        const ChildCandidateBmmAnchorRecord candidate_anchor{
+            .child_block_hash = block_hash,
+            .serialized_size = candidate_anchor_size,
+            .proof = stored_anchor.proof,
+        };
+        if (!IsValidStoredCandidate(candidate, block_hash) ||
+            !IsValidStoredCandidateAnchor(
+                candidate_anchor, main_headers, m_child_chain) ||
+            m_db.Exists(CandidateKey{DB_SIDE_CANDIDATE, block_hash}) ||
+            m_db.Exists(candidate_anchor_key) ||
+            state.side_candidate_count == MAX_CHILD_SIDE_CANDIDATES ||
+            candidate.serialized_size >
+                MAX_CHILD_SIDE_CANDIDATE_BYTES -
+                    state.side_candidate_bytes ||
+            state.candidate_anchor_count ==
+                MAX_CHILD_CANDIDATE_BMM_ANCHORS ||
+            candidate_anchor_size >
+                MAX_CHILD_CANDIDATE_BMM_BYTES -
+                    state.candidate_anchor_bytes) {
             return false;
         }
-        uint64_t removed_anchor_bytes{0};
-        for (const auto& [key, record] : candidate_anchors) {
-            if (!removed_candidate_anchor_main_blocks.insert(key.second).second ||
-                record.serialized_size >
-                    std::numeric_limits<uint64_t>::max() -
-                        removed_anchor_bytes) {
-                return false;
-            }
-            removed_anchor_bytes += record.serialized_size;
-            batch.Erase(key);
-        }
-        if (candidate_anchors.size() > state.candidate_anchor_count ||
-            removed_anchor_bytes > state.candidate_anchor_bytes) {
-            return false;
-        }
-        state.candidate_anchor_count -= candidate_anchors.size();
-        state.candidate_anchor_bytes -= removed_anchor_bytes;
+        ++state.side_candidate_count;
+        state.side_candidate_bytes += candidate.serialized_size;
+        ++state.candidate_anchor_count;
+        state.candidate_anchor_bytes += candidate_anchor_size;
 
         const int64_t previous_delta{coin_transition.count_delta};
         if (!ApplyDisconnectCoinTransition(
@@ -1509,6 +1514,9 @@ bool ChildChainDB::WriteMainChainUpdate(
         batch.Erase(BlockKey{DB_BLOCK, block_hash});
         batch.Erase(UndoKey{DB_UNDO, block_hash});
         batch.Erase(AnchorKey{DB_BMM_ANCHOR, block_hash});
+        batch.Write(
+            CandidateKey{DB_SIDE_CANDIDATE, block_hash}, candidate);
+        batch.Write(candidate_anchor_key, candidate_anchor);
     }
 
     if (imports.Size() != state.import_count ||
@@ -2162,7 +2170,7 @@ bool ChildChainDB::WriteChildReorganization(
     bool sync)
 {
     ChildChainDBState state;
-    if (disconnected_blocks.empty() || connected_blocks.empty() ||
+    if ((disconnected_blocks.empty() && connected_blocks.empty()) ||
         !m_db.Read(DB_STATE, state) ||
         !ValidConfiguration(state,
                             m_child_chain,

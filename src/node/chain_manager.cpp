@@ -241,7 +241,8 @@ ChainManagerMainUpdate ChainManager::SynchronizeMainChain(
             if (!result.IsValid()) break;
         }
         if (result.IsValid()) {
-            result = runtime.SelectValidatedMainTip(active_tip, sync);
+            result = runtime.SelectValidatedMainTip(
+                active_tip, current_time, sync);
         }
         if (!result.IsValid()) {
             update.unloaded.push_back({

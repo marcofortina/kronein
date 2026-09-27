@@ -123,6 +123,7 @@ bool ReferenceChildRuntime::RebuildChildIndex(uint32_t genesis_time)
 bool ReferenceChildRuntime::BuildBranchState(
     CBlockIndex& parent,
     int64_t current_time,
+    const chainregistry::MainHeaderChain& main_headers,
     CCoinsViewCache& coins,
     chainregistry::DepositImportState& imports,
     ReferenceChildRuntimeResult& result) const
@@ -176,7 +177,7 @@ bool ReferenceChildRuntime::BuildBranchState(
             *entry->pprev,
             current_time,
             m_definition,
-            *m_main_headers,
+            main_headers,
             coins,
             imports);
         if (!result.child_block.IsValid() || !result.child_block.undo ||
@@ -191,19 +192,23 @@ bool ReferenceChildRuntime::ActivateSelectedHead(
     const chainregistry::ChildForkChoiceResult& selected,
     std::span<const chainregistry::ChildForkCandidate> candidates,
     int64_t current_time,
+    const chainregistry::MainHeaderChain& main_headers,
     bool sync,
     ReferenceChildRuntimeResult& result)
 {
     if (!selected.IsValid() || selected.head.IsNull() || !m_tip ||
-        selected.head == m_tip->GetBlockHash() ||
-        selected.head == m_definition.genesis_hash) {
+        selected.head == m_tip->GetBlockHash()) {
         return false;
     }
-    const auto selected_entry{m_child_index.find(selected.head)};
-    if (selected_entry == m_child_index.end()) return false;
+    CBlockIndex* selected_tip{m_genesis.get()};
+    if (selected.head != m_definition.genesis_hash) {
+        const auto selected_entry{m_child_index.find(selected.head)};
+        if (selected_entry == m_child_index.end()) return false;
+        selected_tip = selected_entry->second.get();
+    }
 
     CBlockIndex* old_branch{m_tip};
-    CBlockIndex* new_branch{selected_entry->second.get()};
+    CBlockIndex* new_branch{selected_tip};
     std::vector<CBlockIndex*> disconnected_index;
     std::vector<CBlockIndex*> connected_index;
     while (old_branch->nHeight > new_branch->nHeight) {
@@ -220,7 +225,7 @@ bool ReferenceChildRuntime::ActivateSelectedHead(
         old_branch = old_branch->pprev;
         new_branch = new_branch->pprev;
     }
-    if (disconnected_index.empty() || connected_index.empty()) return false;
+    if (disconnected_index.empty() && connected_index.empty()) return false;
     std::reverse(connected_index.begin(), connected_index.end());
 
     std::map<uint256, const chainregistry::ChildForkCandidate*> by_hash;
@@ -274,15 +279,16 @@ bool ReferenceChildRuntime::ActivateSelectedHead(
     CCoinsViewCache candidate_coins{m_db.get(), /*deterministic=*/true};
     chainregistry::DepositImportState candidate_imports{m_imports};
     if (!BuildBranchState(
-            *selected_entry->second,
+            *selected_tip,
             current_time,
+            main_headers,
             candidate_coins,
             candidate_imports,
             result)) {
         return false;
     }
     if (!m_db->WriteChildReorganization(
-            *m_main_headers,
+            main_headers,
             candidate_imports,
             disconnected,
             connected,
@@ -305,7 +311,7 @@ bool ReferenceChildRuntime::ActivateSelectedHead(
         result.error = ReferenceChildRuntimeError::FAILED_RUNTIME;
         return false;
     }
-    m_tip = selected_entry->second.get();
+    m_tip = selected_tip;
     result.disconnected_child_blocks.reserve(disconnected_index.size());
     for (const CBlockIndex* entry : disconnected_index) {
         result.disconnected_child_blocks.push_back(entry->GetBlockHash());
@@ -406,6 +412,7 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::Initialize(
             selected,
             *candidates,
             current_time,
+            *m_main_headers,
             sync,
             result)) {
         if (result.error == ReferenceChildRuntimeError::NONE) {
@@ -434,7 +441,8 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::Initialize(
         const uint256 active_tip{validated_active_headers->empty()
             ? m_main_params.hashGenesisBlock
             : validated_active_headers->back().GetHash()};
-        auto selected{SelectValidatedMainTip(active_tip, sync)};
+        auto selected{SelectValidatedMainTip(
+            active_tip, current_time, sync)};
         if (!selected.IsValid()) {
             selected.loaded_existing = true;
             return selected;
@@ -506,11 +514,16 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::AddMainHeaderImpl(
     }
     if (result.main_header.already_known) return result;
     return CommitMainChainUpdate(
-        std::move(candidate_headers), std::move(result), &header, sync);
+        std::move(candidate_headers),
+        std::move(result),
+        &header,
+        current_time,
+        sync);
 }
 
 ReferenceChildRuntimeResult ReferenceChildRuntime::SelectValidatedMainTip(
     const uint256& active_tip,
+    int64_t current_time,
     bool sync)
 {
     if (!m_initialized) {
@@ -533,13 +546,18 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::SelectValidatedMainTip(
         return result;
     }
     return CommitMainChainUpdate(
-        std::move(candidate_headers), std::move(result), nullptr, sync);
+        std::move(candidate_headers),
+        std::move(result),
+        nullptr,
+        current_time,
+        sync);
 }
 
 ReferenceChildRuntimeResult ReferenceChildRuntime::CommitMainChainUpdate(
     std::unique_ptr<chainregistry::MainHeaderChain> candidate_headers,
     ReferenceChildRuntimeResult result,
     const CBlockHeader* added_header,
+    int64_t current_time,
     bool sync)
 {
     chainregistry::DepositImportState candidate_imports{m_imports};
@@ -592,11 +610,6 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::CommitMainChainUpdate(
             candidate_child_tip = candidate_child_tip->pprev;
         }
     }
-    if (!disconnected_blocks.empty() && m_state.side_candidate_count != 0) {
-        result.error =
-            ReferenceChildRuntimeError::MAIN_REORG_ROLLBACK_FAILED;
-        return result;
-    }
     const bool persisted{added_header
         ? m_db->WriteMainHeaderAndDisconnect(
               *candidate_headers,
@@ -631,10 +644,39 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::CommitMainChainUpdate(
         return result;
     }
     m_tip = candidate_child_tip;
-    for (const auto& child_hash : disconnected_hashes) {
-        m_child_index.erase(child_hash);
-    }
     result.disconnected_child_blocks = std::move(disconnected_hashes);
+    if (!m_imports.IsSafeHalted()) {
+        const auto candidates{m_db->ReadForkCandidates(*m_main_headers)};
+        if (!candidates) {
+            m_failed = true;
+            result.error = ReferenceChildRuntimeError::FAILED_RUNTIME;
+            return result;
+        }
+        const auto selected{chainregistry::SelectChildFork(
+            m_definition.genesis_hash, *candidates)};
+        if (!selected.IsValid()) {
+            m_failed = true;
+            result.error = ReferenceChildRuntimeError::FAILED_RUNTIME;
+            return result;
+        }
+        result.selected_child_head = selected.head;
+        result.reorganization_required =
+            selected.head != m_tip->GetBlockHash();
+        if (result.reorganization_required &&
+            !ActivateSelectedHead(
+                selected,
+                *candidates,
+                current_time,
+                *m_main_headers,
+                sync,
+                result)) {
+            if (result.error == ReferenceChildRuntimeError::NONE) {
+                result.error =
+                    ReferenceChildRuntimeError::CHILD_REORGANIZATION_FAILED;
+            }
+            return result;
+        }
+    }
     return result;
 }
 
@@ -708,6 +750,7 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::StageBmmAnchor(
                 selected,
                 *candidates,
                 current_time,
+                *m_main_headers,
                 sync,
                 result)) {
             if (result.error == ReferenceChildRuntimeError::NONE) {
@@ -771,6 +814,7 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
     if (!BuildBranchState(
             *parent,
             current_time,
+            *m_main_headers,
             candidate_coins,
             candidate_imports,
             result)) {
@@ -830,6 +874,7 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
                 selected,
                 *candidates,
                 current_time,
+                *m_main_headers,
                 sync,
                 result)) {
             if (result.error == ReferenceChildRuntimeError::NONE) {
