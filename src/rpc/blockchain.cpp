@@ -139,6 +139,28 @@ static node::ChainManagerBlockView GetLoadedChildBlockView(
                        "unhandled child block view error");
 }
 
+static node::ChainManagerCoinView GetLoadedChildCoinView(
+    const std::any& context,
+    std::string_view chain_id,
+    const COutPoint& outpoint)
+{
+    const auto view{EnsureAnyChildChainman(context).GetCoinView(
+        ParseChainId(chain_id), outpoint)};
+    switch (view.error) {
+    case node::ChainManagerCoinViewError::NONE:
+        return view;
+    case node::ChainManagerCoinViewError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must not be null");
+    case node::ChainManagerCoinViewError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not configured locally");
+    case node::ChainManagerCoinViewError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_MISC_ERROR, "child chain is not loaded");
+    }
+    throw JSONRPCError(RPC_INTERNAL_ERROR,
+                       "unhandled child coin view error");
+}
+
 struct PreparedUTXOSnapshot {
     std::unique_ptr<CCoinsViewCursor> cursor;
     CCoinsStats stats;
@@ -1384,15 +1406,18 @@ static RPCHelpMan gettxout()
 {
     return RPCHelpMan{
         "gettxout",
-        "Returns details about an unspent transaction output.\n",
+        "Returns details about an unspent transaction output.\n"
+        "When chain_id is omitted, this operates on the main chain.\n",
         {
             {"txid", RPCArg::Type::STR, RPCArg::Optional::NO, "The transaction id"},
             {"n", RPCArg::Type::NUM, RPCArg::Optional::NO, "vout number"},
-            {"include_mempool", RPCArg::Type::BOOL, RPCArg::Default{true}, "Whether to include the mempool. Note that an unspent output that is spent in the mempool won't appear."},
+            {"include_mempool", RPCArg::Type::BOOL, RPCArg::Default{true}, "Whether to include the mempool. Note that an unspent output that is spent in the mempool won't appear. Child-chain runtimes currently expose confirmed UTXOs only."},
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full non-null child-chain identifier"},
         },
         {
             RPCResult{"If the UTXO was not found", RPCResult::Type::NONE, "", ""},
             RPCResult{"Otherwise", RPCResult::Type::OBJ, "", "", {
+                {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Child-chain identifier; present only for child results"},
                 {RPCResult::Type::STR_HEX, "bestblock", "The hash of the block at the tip of the chain"},
                 {RPCResult::Type::NUM, "confirmations", "The number of confirmations"},
                 {RPCResult::Type::STR_AMOUNT, "value", "The transaction value in " + CURRENCY_UNIT},
@@ -1411,22 +1436,45 @@ static RPCHelpMan gettxout()
             + HelpExampleCli("listunspent", "") +
             "\nView the details\n"
             + HelpExampleCli("gettxout", "\"txid\" 1") +
+            HelpExampleCli("gettxout", "\"txid\" 1 true \"chain_id\"") +
             "\nAs a JSON-RPC call\n"
-            + HelpExampleRpc("gettxout", "\"txid\", 1")
+            + HelpExampleRpc("gettxout", "\"txid\", 1") +
+            HelpExampleRpc("gettxout", "\"txid\", 1, true, \"chain_id\"")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     NodeContext& node = EnsureAnyNodeContext(request.context);
-    ChainstateManager& chainman = EnsureChainman(node);
-    LOCK(cs_main);
-
-    UniValue ret(UniValue::VOBJ);
-
     auto hash{Txid::FromUint256(ParseHashV(request.params[0], "txid"))};
     COutPoint out{hash, request.params[1].getInt<uint32_t>()};
     bool fMempool = true;
     if (!request.params[2].isNull())
         fMempool = request.params[2].get_bool();
+
+    UniValue ret(UniValue::VOBJ);
+    if (!request.params[3].isNull()) {
+        const auto view{GetLoadedChildCoinView(
+            request.context, request.params[3].get_str(), out)};
+        if (!view.coin) return UniValue::VNULL;
+        if (view.coin->nHeight > view.entry.height) {
+            throw JSONRPCError(
+                RPC_INTERNAL_ERROR,
+                "child UTXO confirmation height exceeds the active tip");
+        }
+        ret.pushKV("chain_id", view.entry.chain_id.GetHex());
+        ret.pushKV("bestblock", view.entry.tip.GetHex());
+        ret.pushKV("confirmations",
+                   view.entry.height - view.coin->nHeight + 1);
+        ret.pushKV("value", ValueFromAmount(view.coin->out.nValue));
+        UniValue o(UniValue::VOBJ);
+        ScriptToUniv(view.coin->out.scriptPubKey, /*out=*/o,
+                     /*include_hex=*/true, /*include_address=*/true);
+        ret.pushKV("scriptPubKey", std::move(o));
+        ret.pushKV("coinbase", static_cast<bool>(view.coin->fCoinBase));
+        return ret;
+    }
+
+    ChainstateManager& chainman = EnsureChainman(node);
+    LOCK(cs_main);
 
     Chainstate& active_chainstate = chainman.ActiveChainstate();
     CCoinsViewCache* coins_view = &active_chainstate.CoinsTip();

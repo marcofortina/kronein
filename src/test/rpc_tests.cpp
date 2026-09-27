@@ -58,6 +58,8 @@ static CBlock RpcChildBlock(
         CScript{} << int64_t{1} << std::vector<unsigned char>{0};
     coinbase.vin.front().scriptWitness.stack = {
         std::vector<unsigned char>(32)};
+    coinbase.vout.emplace_back(
+        0, CScript{} << OP_1 << std::vector<unsigned char>(32, 1));
 
     CBlock block;
     block.nVersion = CBlockHeader::CURRENT_VERSION;
@@ -269,6 +271,8 @@ BOOST_AUTO_TEST_CASE(blockchain_rpc_routes_explicit_child_chain)
     BOOST_CHECK_EQUAL(CallRPC("getblockcount").getInt<int>(), main_height);
     BOOST_CHECK_EQUAL(CallRPC("getbestblockhash").get_str(), main_tip);
     BOOST_CHECK_EQUAL(CallRPC("getblockheader " + main_tip + " false").get_str().size(), 160U);
+    BOOST_CHECK(CallRPC(
+        "gettxout " + std::string(64, 'f') + " 0").isNull());
 
     for (const std::string& command : {
              "getblockheader " + definition.genesis_hash.GetHex() + " false " + chain_id,
@@ -299,6 +303,13 @@ BOOST_AUTO_TEST_CASE(blockchain_rpc_routes_explicit_child_chain)
     BOOST_REQUIRE(manager.UnloadChain(definition.chain_id).IsValid());
     BOOST_CHECK_EXCEPTION(
         CallRPC("getblockcount " + chain_id),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find("not loaded") !=
+                   std::string_view::npos;
+        });
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("gettxout " + std::string(64, 'f') + " 0 true " + chain_id),
         std::runtime_error,
         [](const std::runtime_error& error) {
             return std::string_view{error.what()}.find("not loaded") !=
@@ -438,6 +449,22 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
     BOOST_CHECK_EQUAL(verbose_block.find_value("chain_id").get_str(), chain_id);
     BOOST_CHECK_EQUAL(verbose_block.find_value("tx").size(), 1U);
     BOOST_CHECK(verbose_block.find_value("tx")[0].isObject());
+
+    const std::string coinbase_txid{
+        child_block.vtx.front()->GetHash().GetHex()};
+    const auto child_coin{CallRPC(
+        "gettxout " + coinbase_txid + " 0 true " + chain_id)};
+    BOOST_CHECK_EQUAL(child_coin.find_value("chain_id").get_str(), chain_id);
+    BOOST_CHECK_EQUAL(child_coin.find_value("bestblock").get_str(),
+                      child_block.GetHash().GetHex());
+    BOOST_CHECK_EQUAL(child_coin.find_value("confirmations").getInt<int>(), 1);
+    BOOST_CHECK_EQUAL(child_coin.find_value("value").getValStr(), "0.00000000");
+    BOOST_CHECK(child_coin.find_value("coinbase").get_bool());
+    BOOST_CHECK_EQUAL(
+        child_coin.find_value("scriptPubKey").find_value("hex").get_str(),
+        HexStr(CScript{} << OP_1 << std::vector<unsigned char>(32, 1)));
+    BOOST_CHECK(CallRPC(
+        "gettxout " + coinbase_txid + " 2 true " + chain_id).isNull());
 }
 
 BOOST_AUTO_TEST_CASE(rpc_namedparams)
