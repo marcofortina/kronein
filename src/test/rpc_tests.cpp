@@ -254,11 +254,28 @@ BOOST_AUTO_TEST_CASE(blockchain_rpc_routes_explicit_child_chain)
     const std::string chain_id{definition.chain_id.GetHex()};
     const int main_height{CallRPC("getblockcount").getInt<int>()};
     const std::string main_tip{CallRPC("getbestblockhash").get_str()};
+    const auto main_info{CallRPC("getblockchaininfo")};
+    BOOST_CHECK_NE(main_info.find_value("chain").get_str(), "child");
+    BOOST_CHECK(main_info.find_value("chain_id").isNull());
     BOOST_CHECK_EQUAL(CallRPC("getblockcount " + chain_id).getInt<int>(), 0);
     BOOST_CHECK_EQUAL(CallRPC("getbestblockhash " + chain_id).get_str(),
                       definition.genesis_hash.GetHex());
     BOOST_CHECK_EQUAL(CallRPC("getblockhash 0 " + chain_id).get_str(),
                       definition.genesis_hash.GetHex());
+    const auto child_info{CallRPC("getblockchaininfo " + chain_id)};
+    BOOST_CHECK_EQUAL(child_info.find_value("chain").get_str(), "child");
+    BOOST_CHECK_EQUAL(child_info.find_value("chain_id").get_str(), chain_id);
+    BOOST_CHECK_EQUAL(child_info.find_value("genesis_hash").get_str(),
+                      definition.genesis_hash.GetHex());
+    BOOST_CHECK_EQUAL(child_info.find_value("context_state").get_str(),
+                      "loaded");
+    BOOST_CHECK_EQUAL(child_info.find_value("blocks").getInt<int>(), 0);
+    BOOST_CHECK_EQUAL(child_info.find_value("headers").getInt<int>(), 0);
+    BOOST_CHECK_EQUAL(child_info.find_value("bestblockhash").get_str(),
+                      definition.genesis_hash.GetHex());
+    BOOST_CHECK(!child_info.find_value("network_sync_available").get_bool());
+    BOOST_CHECK(!child_info.find_value("safe_halt").get_bool());
+    BOOST_CHECK(child_info.find_value("size_on_disk").isNull());
     const auto child_header{CallRPC(
         "getblockheader " + definition.genesis_hash.GetHex() +
         " true " + chain_id)};
@@ -449,6 +466,14 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
     BOOST_CHECK_EQUAL(verbose_block.find_value("chain_id").get_str(), chain_id);
     BOOST_CHECK_EQUAL(verbose_block.find_value("tx").size(), 1U);
     BOOST_CHECK(verbose_block.find_value("tx")[0].isObject());
+    const auto child_info{CallRPC("getblockchaininfo " + chain_id)};
+    BOOST_CHECK_EQUAL(child_info.find_value("blocks").getInt<int>(), 1);
+    BOOST_CHECK_EQUAL(child_info.find_value("headers").getInt<int>(), 1);
+    BOOST_CHECK_EQUAL(child_info.find_value("bestblockhash").get_str(),
+                      child_block.GetHash().GetHex());
+    BOOST_CHECK(child_info.find_value("bmm_eligible").get_bool());
+    BOOST_CHECK_EQUAL(child_info.find_value("chainwork").get_str(),
+                      child_info.find_value("bmm_cumulative_work").get_str());
 
     const std::string coinbase_txid{
         child_block.vtx.front()->GetHash().GetHex()};

@@ -139,6 +139,30 @@ static node::ChainManagerBlockView GetLoadedChildBlockView(
                        "unhandled child block view error");
 }
 
+static node::ChainManagerBlockView GetLoadedChildTipBlockView(
+    const std::any& context,
+    std::string_view chain_id)
+{
+    const auto view{EnsureAnyChildChainman(context).GetTipBlockView(
+        ParseChainId(chain_id))};
+    switch (view.error) {
+    case node::ChainManagerBlockViewError::NONE:
+        return view;
+    case node::ChainManagerBlockViewError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must not be null");
+    case node::ChainManagerBlockViewError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not configured locally");
+    case node::ChainManagerBlockViewError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_MISC_ERROR, "child chain is not loaded");
+    case node::ChainManagerBlockViewError::BLOCK_NOT_FOUND:
+        throw JSONRPCError(RPC_INTERNAL_ERROR,
+                           "loaded child chain tip is unavailable");
+    }
+    throw JSONRPCError(RPC_INTERNAL_ERROR,
+                       "unhandled child tip view error");
+}
+
 static node::ChainManagerCoinView GetLoadedChildCoinView(
     const std::any& context,
     std::string_view chain_id,
@@ -308,6 +332,51 @@ UniValue childBlockHeaderToJSON(const node::ChainManagerBlockView& view)
     if (child.next_block_hash) {
         result.pushKV("nextblockhash", child.next_block_hash->GetHex());
     }
+    return result;
+}
+
+UniValue childBlockchainInfoToJSON(const node::ChainManagerBlockView& view)
+{
+    const auto& entry{view.entry};
+    const auto& tip{view.block};
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain", "child");
+    result.pushKV("chain_id", entry.chain_id.GetHex());
+    result.pushKV("genesis_hash", entry.genesis_hash.GetHex());
+    result.pushKV("template_id", entry.template_id);
+    result.pushKV("template_version", entry.template_version);
+    result.pushKV("context_state",
+                  entry.failed ? "failed" :
+                  entry.safe_halt ? "safe_halt" : "loaded");
+    result.pushKV("blocks", entry.height);
+    result.pushKV("headers", entry.height);
+    result.pushKV("bestblockhash", entry.tip.GetHex());
+    result.pushKV("bits", strprintf("%08x", 0));
+    result.pushKV("target", uint256{}.GetHex());
+    result.pushKV("difficulty", 0.0);
+    result.pushKV("time", tip.time);
+    result.pushKV("mediantime", tip.median_time);
+    result.pushKV("verificationprogress", 1.0);
+    result.pushKV("initialblockdownload", false);
+    result.pushKV("chainwork", tip.fork_score.cumulative_anchor_work.GetHex());
+    result.pushKV("pruned", false);
+    result.pushKV("safe_halt", entry.safe_halt);
+    result.pushKV("network_sync_available", false);
+    result.pushKV("main_height", entry.main_height);
+    result.pushKV("main_tip", entry.main_tip.GetHex());
+    result.pushKV("bmm_eligible", tip.fork_score.eligible);
+    result.pushKV("bmm_activation_main_height",
+                  tip.fork_score.activation_main_height);
+    result.pushKV("bmm_own_work", tip.fork_score.own_anchor_work.GetHex());
+    result.pushKV("bmm_cumulative_work",
+                  tip.fork_score.cumulative_anchor_work.GetHex());
+    UniValue warnings{UniValue::VARR};
+    if (entry.safe_halt) {
+        warnings.push_back("Child chain is in SAFE_HALT");
+    } else if (entry.failed) {
+        warnings.push_back("Child chain runtime has failed");
+    }
+    result.pushKV("warnings", std::move(warnings));
     return result;
 }
 
@@ -1543,29 +1612,45 @@ static RPCHelpMan verifychain()
 RPCHelpMan getblockchaininfo()
 {
     return RPCHelpMan{"getblockchaininfo",
-        "Returns an object containing various state info regarding blockchain processing.\n",
-        {},
+        "Returns an object containing various state info regarding blockchain processing.\n"
+        "Omit chain_id for the main chain. Child results describe the locally loaded runtime; child networking and synchronization are not implemented yet.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
+        },
         RPCResult{
             RPCResult::Type::OBJ, "", "",
             {
-                {RPCResult::Type::STR, "chain", "current network name (" LIST_CHAIN_NAMES ")"},
+                {RPCResult::Type::STR, "chain", "current main network name (" LIST_CHAIN_NAMES ") or 'child'"},
+                {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Child-chain identifier; present only for child results"},
+                {RPCResult::Type::STR_HEX, "genesis_hash", /*optional=*/true, "Child genesis descriptor hash; present only for child results"},
+                {RPCResult::Type::NUM, "template_id", /*optional=*/true, "Child template identifier"},
+                {RPCResult::Type::NUM, "template_version", /*optional=*/true, "Child template version"},
+                {RPCResult::Type::STR, "context_state", /*optional=*/true, "Child runtime state: loaded, safe_halt, or failed"},
                 {RPCResult::Type::NUM, "blocks", "the height of the most-work fully-validated chain. The genesis block has height 0"},
-                {RPCResult::Type::NUM, "headers", "the current number of headers we have validated"},
+                {RPCResult::Type::NUM, "headers", "the current number of validated headers; equals blocks for a child runtime without header-only synchronization"},
                 {RPCResult::Type::STR, "bestblockhash", "the hash of the currently best block"},
-                {RPCResult::Type::STR_HEX, "bits", "nBits: compact representation of the block difficulty target"},
-                {RPCResult::Type::STR_HEX, "target", "The difficulty target"},
-                {RPCResult::Type::NUM, "difficulty", "the current difficulty"},
+                {RPCResult::Type::STR_HEX, "bits", "nBits: compact representation of the block difficulty target; zero for a BMM child"},
+                {RPCResult::Type::STR_HEX, "target", "The difficulty target; zero for a BMM child"},
+                {RPCResult::Type::NUM, "difficulty", "the current difficulty; zero for a BMM child"},
                 {RPCResult::Type::NUM_TIME, "time", "The block time expressed in " + UNIX_EPOCH_TIME},
                 {RPCResult::Type::NUM_TIME, "mediantime", "The median block time expressed in " + UNIX_EPOCH_TIME},
-                {RPCResult::Type::NUM, "verificationprogress", "estimate of verification progress [0..1]"},
-                {RPCResult::Type::BOOL, "initialblockdownload", "(debug information) estimate of whether this node is in Initial Block Download mode"},
-                {RPCResult::Type::STR_HEX, "chainwork", "total amount of work in active chain, in hexadecimal"},
-                {RPCResult::Type::NUM, "size_on_disk", "the estimated size of the block and undo files on disk"},
+                {RPCResult::Type::NUM, "verificationprogress", "estimate of verification progress [0..1]; one for all locally accepted child data"},
+                {RPCResult::Type::BOOL, "initialblockdownload", "(debug information) estimate of whether this node is in Initial Block Download mode; false until child networking exists"},
+                {RPCResult::Type::STR_HEX, "chainwork", "total PoW on main or cumulative active BMM anchor work on a child, in hexadecimal"},
+                {RPCResult::Type::NUM, "size_on_disk", /*optional=*/true, "the estimated size of the main-chain block and undo files on disk; currently unavailable for child runtimes"},
                 {RPCResult::Type::BOOL, "pruned", "if the blocks are subject to pruning"},
                 {RPCResult::Type::NUM, "pruneheight", /*optional=*/true, "the first block unpruned, all previous blocks were pruned (only present if pruning is enabled)"},
                 {RPCResult::Type::BOOL, "automatic_pruning", /*optional=*/true, "whether automatic pruning is enabled (only present if pruning is enabled)"},
                 {RPCResult::Type::NUM, "prune_target_size", /*optional=*/true, "the target size used by pruning (only present if automatic pruning is enabled)"},
                 {RPCResult::Type::STR_HEX, "signet_challenge", /*optional=*/true, "the P2TR block challenge scriptPubKey, in hexadecimal (only present if the current network is a signet)"},
+                {RPCResult::Type::BOOL, "safe_halt", /*optional=*/true, "Whether the child runtime is fail-closed after an invalidated imported deposit"},
+                {RPCResult::Type::BOOL, "network_sync_available", /*optional=*/true, "Whether child P2P synchronization is implemented"},
+                {RPCResult::Type::NUM, "main_height", /*optional=*/true, "Height of the active main-chain tip tracked by the child runtime"},
+                {RPCResult::Type::STR_HEX, "main_tip", /*optional=*/true, "Active main-chain tip tracked by the child runtime"},
+                {RPCResult::Type::BOOL, "bmm_eligible", /*optional=*/true, "Whether the active child tip is eligible for BMM fork choice"},
+                {RPCResult::Type::NUM, "bmm_activation_main_height", /*optional=*/true, "Earliest active main height anchoring the child tip after its parent"},
+                {RPCResult::Type::STR_HEX, "bmm_own_work", /*optional=*/true, "Active main-chain work committed directly to the child tip"},
+                {RPCResult::Type::STR_HEX, "bmm_cumulative_work", /*optional=*/true, "Cumulative BMM work along the active child branch"},
                 {RPCResult::Type::ARR, "warnings", "any network and blockchain warnings",
                     {
                         {RPCResult::Type::STR, "", "warning"},
@@ -1574,10 +1659,16 @@ RPCHelpMan getblockchaininfo()
             }},
         RPCExamples{
             HelpExampleCli("getblockchaininfo", "")
+            + HelpExampleCli("getblockchaininfo", "\"chain_id\"")
             + HelpExampleRpc("getblockchaininfo", "")
+            + HelpExampleRpc("getblockchaininfo", "\"chain_id\"")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
+    if (const auto chain_id{self.MaybeArg<std::string_view>("chain_id")}) {
+        return childBlockchainInfoToJSON(
+            GetLoadedChildTipBlockView(request.context, *chain_id));
+    }
     ChainstateManager& chainman = EnsureAnyChainman(request.context);
     LOCK(cs_main);
     Chainstate& active_chainstate = chainman.ActiveChainstate();
