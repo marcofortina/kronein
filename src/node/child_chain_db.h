@@ -210,6 +210,12 @@ struct ChildChainDBDisconnect {
     chainregistry::ReferenceChildBlockUndo undo;
 };
 
+struct ChildChainDBConnect {
+    CBlock block;
+    chainregistry::ReferenceChildBlockUndo undo;
+    chainregistry::BmmAnchorProof primary_anchor;
+};
+
 /** Persistent state owned by one explicitly loaded child chain. */
 class ChildChainDB : public CCoinsView
 {
@@ -283,6 +289,12 @@ public:
                                      const CBlock& block,
                                      const chainregistry::ReferenceChildBlockUndo& undo,
                                      bool sync = false);
+    bool WriteChildReorganization(
+        const chainregistry::MainHeaderChain& main_headers,
+        const chainregistry::DepositImportState& imports,
+        std::span<const ChildChainDBDisconnect> disconnected_blocks,
+        std::span<const ChildChainDBConnect> connected_blocks,
+        bool sync = false);
 
     std::optional<Coin> GetCoin(const COutPoint& outpoint) const override;
     bool HaveCoin(const COutPoint& outpoint) const override;

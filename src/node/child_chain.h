@@ -41,6 +41,8 @@ enum class ReferenceChildRuntimeError : uint8_t {
     BMM_ANCHOR_PERSIST_FAILED,
     CHILD_BLOCK_REJECTED,
     CHILD_BLOCK_PERSIST_FAILED,
+    CHILD_REORGANIZATION_FAILED,
+    CHILD_REORGANIZATION_PERSIST_FAILED,
     CHILD_DISCONNECT_REJECTED,
     CHILD_DISCONNECT_PERSIST_FAILED,
     CACHE_ACKNOWLEDGEMENT_FAILED,
@@ -91,6 +93,12 @@ private:
                           CCoinsViewCache& coins,
                           chainregistry::DepositImportState& imports,
                           ReferenceChildRuntimeResult& result) const;
+    bool ActivateSelectedHead(
+        const chainregistry::ChildForkChoiceResult& selected,
+        std::span<const chainregistry::ChildForkCandidate> candidates,
+        int64_t current_time,
+        bool sync,
+        ReferenceChildRuntimeResult& result);
     bool Usable() const { return m_initialized && !m_failed; }
     ReferenceChildRuntimeResult AddMainHeaderImpl(
         const CBlockHeader& header,

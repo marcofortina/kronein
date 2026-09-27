@@ -448,9 +448,11 @@ BOOST_AUTO_TEST_CASE(validates_and_restores_noncanonical_branches)
             /*sync=*/true)};
         BOOST_REQUIRE_MESSAGE(stored.IsValid(), static_cast<int>(stored.error));
         BOOST_CHECK(stored.candidate_stored);
-        BOOST_CHECK(stored.reorganization_required);
+        BOOST_CHECK(!stored.reorganization_required);
         BOOST_CHECK(stored.selected_child_head == competing_hash);
-        BOOST_CHECK(runtime.Tip()->GetBlockHash() == canonical_hash);
+        BOOST_REQUIRE_EQUAL(stored.disconnected_child_blocks.size(), 1U);
+        BOOST_CHECK(stored.disconnected_child_blocks.front() == canonical_hash);
+        BOOST_CHECK(runtime.Tip()->GetBlockHash() == competing_hash);
         BOOST_CHECK_EQUAL(runtime.State().side_candidate_count, 1U);
         BOOST_CHECK_EQUAL(runtime.State().candidate_anchor_count, 2U);
         BOOST_CHECK_EQUAL(runtime.State().pending_anchor_count, 0U);
@@ -485,11 +487,11 @@ BOOST_AUTO_TEST_CASE(validates_and_restores_noncanonical_branches)
             /*sync=*/true)};
         BOOST_REQUIRE_MESSAGE(
             extended.IsValid(), static_cast<int>(extended.error));
-        BOOST_CHECK(extended.candidate_stored);
-        BOOST_CHECK(extended.reorganization_required);
+        BOOST_CHECK(!extended.candidate_stored);
+        BOOST_CHECK(!extended.reorganization_required);
         BOOST_CHECK(extended.selected_child_head == extension_hash);
-        BOOST_CHECK_EQUAL(runtime.State().side_candidate_count, 2U);
-        BOOST_CHECK(runtime.Tip()->GetBlockHash() == canonical_hash);
+        BOOST_CHECK_EQUAL(runtime.State().side_candidate_count, 1U);
+        BOOST_CHECK(runtime.Tip()->GetBlockHash() == extension_hash);
     }
 
     {
@@ -502,13 +504,16 @@ BOOST_AUTO_TEST_CASE(validates_and_restores_noncanonical_branches)
         BOOST_REQUIRE_MESSAGE(loaded.IsValid(), static_cast<int>(loaded.error));
         BOOST_CHECK(loaded.loaded_existing);
         BOOST_REQUIRE(runtime.Tip());
-        BOOST_CHECK(runtime.Tip()->GetBlockHash() == canonical_hash);
-        BOOST_CHECK_EQUAL(runtime.State().child_height, 1U);
-        BOOST_CHECK_EQUAL(runtime.State().side_candidate_count, 2U);
+        BOOST_CHECK(runtime.Tip()->GetBlockHash() == extension_hash);
+        BOOST_CHECK_EQUAL(runtime.State().child_height, 2U);
+        BOOST_CHECK_EQUAL(runtime.State().side_candidate_count, 1U);
         CBlock restored_competing;
         CBlock restored_extension;
+        CBlock restored_demoted;
         BOOST_CHECK(runtime.ReadBlock(competing_hash, restored_competing));
         BOOST_CHECK(runtime.ReadBlock(extension_hash, restored_extension));
+        BOOST_CHECK(runtime.ReadBlock(canonical_hash, restored_demoted));
+        BOOST_CHECK(restored_demoted.GetHash() == canonical_hash);
     }
 }
 

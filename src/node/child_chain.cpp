@@ -187,6 +187,134 @@ bool ReferenceChildRuntime::BuildBranchState(
     return coins.GetBestBlock() == parent.GetBlockHash();
 }
 
+bool ReferenceChildRuntime::ActivateSelectedHead(
+    const chainregistry::ChildForkChoiceResult& selected,
+    std::span<const chainregistry::ChildForkCandidate> candidates,
+    int64_t current_time,
+    bool sync,
+    ReferenceChildRuntimeResult& result)
+{
+    if (!selected.IsValid() || selected.head.IsNull() || !m_tip ||
+        selected.head == m_tip->GetBlockHash() ||
+        selected.head == m_definition.genesis_hash) {
+        return false;
+    }
+    const auto selected_entry{m_child_index.find(selected.head)};
+    if (selected_entry == m_child_index.end()) return false;
+
+    CBlockIndex* old_branch{m_tip};
+    CBlockIndex* new_branch{selected_entry->second.get()};
+    std::vector<CBlockIndex*> disconnected_index;
+    std::vector<CBlockIndex*> connected_index;
+    while (old_branch->nHeight > new_branch->nHeight) {
+        disconnected_index.push_back(old_branch);
+        old_branch = old_branch->pprev;
+    }
+    while (new_branch->nHeight > old_branch->nHeight) {
+        connected_index.push_back(new_branch);
+        new_branch = new_branch->pprev;
+    }
+    while (old_branch != new_branch) {
+        disconnected_index.push_back(old_branch);
+        connected_index.push_back(new_branch);
+        old_branch = old_branch->pprev;
+        new_branch = new_branch->pprev;
+    }
+    if (disconnected_index.empty() || connected_index.empty()) return false;
+    std::reverse(connected_index.begin(), connected_index.end());
+
+    std::map<uint256, const chainregistry::ChildForkCandidate*> by_hash;
+    for (const auto& candidate : candidates) {
+        if (!by_hash.emplace(candidate.block_hash, &candidate).second) {
+            return false;
+        }
+    }
+
+    std::vector<ChildChainDBDisconnect> disconnected;
+    disconnected.reserve(disconnected_index.size());
+    for (CBlockIndex* entry : disconnected_index) {
+        ChildChainDBDisconnect record;
+        if (!m_db->ReadBlock(entry->GetBlockHash(), record.block) ||
+            !m_db->ReadUndo(entry->GetBlockHash(), record.undo)) {
+            return false;
+        }
+        disconnected.push_back(std::move(record));
+    }
+
+    std::vector<ChildChainDBConnect> connected;
+    connected.reserve(connected_index.size());
+    for (CBlockIndex* entry : connected_index) {
+        const uint256 hash{entry->GetBlockHash()};
+        const auto candidate{by_hash.find(hash)};
+        const auto score{selected.scores.find(hash)};
+        if (candidate == by_hash.end() || score == selected.scores.end() ||
+            !score->second.eligible) {
+            return false;
+        }
+        const auto primary{std::find_if(
+            candidate->second->anchors.begin(),
+            candidate->second->anchors.end(),
+            [&](const chainregistry::ChildForkAnchor& anchor) {
+                return anchor.main_height ==
+                    score->second.activation_main_height;
+            })};
+        if (primary == candidate->second->anchors.end()) return false;
+        const auto anchor{m_db->ReadCandidateBmmAnchor(
+            primary->main_block_hash)};
+        ChildChainDBConnect record;
+        if (!anchor || anchor->child_block_hash != hash ||
+            !m_db->ReadBlock(hash, record.block) ||
+            !m_db->ReadUndo(hash, record.undo)) {
+            return false;
+        }
+        record.primary_anchor = anchor->proof;
+        connected.push_back(std::move(record));
+    }
+
+    CCoinsViewCache candidate_coins{m_db.get(), /*deterministic=*/true};
+    chainregistry::DepositImportState candidate_imports{m_imports};
+    if (!BuildBranchState(
+            *selected_entry->second,
+            current_time,
+            candidate_coins,
+            candidate_imports,
+            result)) {
+        return false;
+    }
+    if (!m_db->WriteChildReorganization(
+            *m_main_headers,
+            candidate_imports,
+            disconnected,
+            connected,
+            sync)) {
+        result.error =
+            ReferenceChildRuntimeError::CHILD_REORGANIZATION_PERSIST_FAILED;
+        return false;
+    }
+    try {
+        candidate_coins.Flush();
+    } catch (const std::exception&) {
+        m_failed = true;
+        result.error =
+            ReferenceChildRuntimeError::CACHE_ACKNOWLEDGEMENT_FAILED;
+        return false;
+    }
+    m_imports = std::move(candidate_imports);
+    if (!m_db->ReadState(m_state)) {
+        m_failed = true;
+        result.error = ReferenceChildRuntimeError::FAILED_RUNTIME;
+        return false;
+    }
+    m_tip = selected_entry->second.get();
+    result.disconnected_child_blocks.reserve(disconnected_index.size());
+    for (const CBlockIndex* entry : disconnected_index) {
+        result.disconnected_child_blocks.push_back(entry->GetBlockHash());
+    }
+    result.selected_child_head = m_tip->GetBlockHash();
+    result.reorganization_required = false;
+    return true;
+}
+
 ReferenceChildRuntimeResult ReferenceChildRuntime::Initialize(
     const DBParams& db_params,
     const CBlockHeader& main_genesis,
@@ -637,7 +765,20 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
         }
         result.candidate_stored = true;
         result.selected_child_head = selected.head;
-        result.reorganization_required = selected.head != m_tip->GetBlockHash();
+        result.reorganization_required =
+            selected.head != m_tip->GetBlockHash();
+        if (result.reorganization_required &&
+            !ActivateSelectedHead(
+                selected,
+                *candidates,
+                current_time,
+                sync,
+                result)) {
+            if (result.error == ReferenceChildRuntimeError::NONE) {
+                result.error =
+                    ReferenceChildRuntimeError::CHILD_REORGANIZATION_FAILED;
+            }
+        }
         return result;
     }
     if (!m_db->WriteConnectedChildBlock(

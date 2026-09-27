@@ -568,15 +568,15 @@ std::optional<Coin> CurrentCoin(const CCoinsView& view,
     return view.GetCoin(outpoint);
 }
 
-std::optional<CoinTransition> BuildConnectCoinTransition(
+bool ApplyConnectCoinTransition(
     const CCoinsView& view,
     const CBlock& block,
-    const chainregistry::ReferenceChildBlockUndo& undo)
+    const chainregistry::ReferenceChildBlockUndo& undo,
+    CoinTransition& result)
 {
     if (block.vtx.empty() || undo.coins.vtxundo.size() + 1 != block.vtx.size()) {
-        return std::nullopt;
+        return false;
     }
-    CoinTransition result;
     for (size_t index{0}; index < block.vtx.size(); ++index) {
         const CTransaction& transaction{*block.vtx[index]};
         for (size_t output_index{0};
@@ -589,16 +589,16 @@ std::optional<CoinTransition> BuildConnectCoinTransition(
                     result.changes,
                     COutPoint{transaction.GetHash(),
                               static_cast<uint32_t>(output_index)})) {
-                return std::nullopt;
+                return false;
             }
         }
         if (index > 0) {
             const CTxUndo& transaction_undo{undo.coins.vtxundo[index - 1]};
             if (chainregistry::IsReferenceChildImport(transaction)) {
-                if (!transaction_undo.vprevout.empty()) return std::nullopt;
+                if (!transaction_undo.vprevout.empty()) return false;
             } else {
                 if (transaction_undo.vprevout.size() != transaction.vin.size()) {
-                    return std::nullopt;
+                    return false;
                 }
                 for (size_t input_index{0};
                      input_index < transaction.vin.size();
@@ -609,7 +609,7 @@ std::optional<CoinTransition> BuildConnectCoinTransition(
                     if (!current ||
                         !IsValidStoredCoin(expected, undo.block_height) ||
                         !CoinsEqual(*current, expected)) {
-                        return std::nullopt;
+                        return false;
                     }
                     result.changes[previous] = std::nullopt;
                     --result.count_delta;
@@ -627,11 +627,23 @@ std::optional<CoinTransition> BuildConnectCoinTransition(
                       static_cast<int>(undo.block_height),
                       transaction.IsCoinBase()};
             if (!IsValidStoredCoin(coin, undo.block_height)) {
-                return std::nullopt;
+                return false;
             }
             result.changes[outpoint] = std::move(coin);
             ++result.count_delta;
         }
+    }
+    return true;
+}
+
+std::optional<CoinTransition> BuildConnectCoinTransition(
+    const CCoinsView& view,
+    const CBlock& block,
+    const chainregistry::ReferenceChildBlockUndo& undo)
+{
+    CoinTransition result;
+    if (!ApplyConnectCoinTransition(view, block, undo, result)) {
+        return std::nullopt;
     }
     return result;
 }
@@ -2137,6 +2149,316 @@ bool ChildChainDB::WriteDisconnectedChildBlock(
     batch.Erase(UndoKey{DB_UNDO, disconnected_child_block});
     batch.Erase(AnchorKey{DB_BMM_ANCHOR, disconnected_child_block});
     for (const auto& [key, record] : candidate_anchors) batch.Erase(key);
+    batch.Write(DB_STATE, state);
+    m_db.WriteBatch(batch, sync);
+    return true;
+}
+
+bool ChildChainDB::WriteChildReorganization(
+    const chainregistry::MainHeaderChain& main_headers,
+    const chainregistry::DepositImportState& imports,
+    std::span<const ChildChainDBDisconnect> disconnected_blocks,
+    std::span<const ChildChainDBConnect> connected_blocks,
+    bool sync)
+{
+    ChildChainDBState state;
+    if (disconnected_blocks.empty() || connected_blocks.empty() ||
+        !m_db.Read(DB_STATE, state) ||
+        !ValidConfiguration(state,
+                            m_child_chain,
+                            m_main_genesis_hash,
+                            m_minimum_confirmations,
+                            m_child_genesis_hash) ||
+        state.safe_halt || imports.IsSafeHalted() ||
+        main_headers.Params().hashGenesisBlock != m_main_genesis_hash ||
+        !main_headers.IsInitialized() ||
+        main_headers.Tip()->GetBlockHash() != state.main_tip) {
+        return false;
+    }
+
+    struct DemotedBlock {
+        uint256 hash;
+        ChildCandidateRecord candidate;
+        ChildBmmAnchorRecord primary_anchor;
+        CandidateAnchorKey candidate_anchor_key;
+        ChildCandidateBmmAnchorRecord candidate_anchor;
+    };
+    struct PromotedBlock {
+        uint256 hash;
+        ChildCandidateRecord candidate;
+        CandidateAnchorKey candidate_anchor_key;
+        ChildCandidateBmmAnchorRecord candidate_anchor;
+        ChildBmmAnchorRecord primary_anchor;
+    };
+
+    std::vector<DemotedBlock> demoted;
+    demoted.reserve(disconnected_blocks.size());
+    std::set<uint256> child_hashes;
+    std::set<chainregistry::DepositId> disconnected_imports;
+    uint256 fork_hash{state.child_tip};
+    uint32_t fork_height{state.child_height};
+    uint64_t demoted_bytes{0};
+    uint64_t demoted_anchor_bytes{0};
+    CoinTransition coin_transition;
+    for (const auto& disconnected : disconnected_blocks) {
+        const uint256 hash{disconnected.block.GetHash()};
+        StoredChildBlock stored_block;
+        chainregistry::ReferenceChildBlockUndo stored_undo;
+        ChildBmmAnchorRecord primary_anchor;
+        if (!child_hashes.insert(hash).second || hash != fork_hash ||
+            fork_height == 0 ||
+            !m_db.Read(BlockKey{DB_BLOCK, hash}, stored_block) ||
+            !m_db.Read(UndoKey{DB_UNDO, hash}, stored_undo) ||
+            !m_db.Read(AnchorKey{DB_BMM_ANCHOR, hash}, primary_anchor) ||
+            !BlocksEqual(stored_block.block, disconnected.block) ||
+            stored_undo != disconnected.undo ||
+            disconnected.undo.block_height != fork_height ||
+            disconnected.undo.block_hash != hash ||
+            disconnected.undo.parent_hash !=
+                disconnected.block.hashPrevBlock ||
+            primary_anchor.child_block_hash != hash ||
+            !IsValidStoredAnchor(
+                primary_anchor,
+                main_headers,
+                m_child_chain,
+                /*allow_inactive=*/false) ||
+            m_db.Exists(CandidateKey{DB_SIDE_CANDIDATE, hash})) {
+            return false;
+        }
+        ChildCandidateRecord candidate{
+            .block = disconnected.block,
+            .undo = disconnected.undo,
+        };
+        candidate.serialized_size = GetSerializeSize(candidate);
+        const uint256 main_block_hash{
+            primary_anchor.proof.block_header.GetHash()};
+        const CandidateAnchorKey candidate_anchor_key{
+            DB_CANDIDATE_BMM_ANCHOR, main_block_hash};
+        const uint64_t anchor_size{GetSerializeSize(primary_anchor.proof)};
+        ChildCandidateBmmAnchorRecord candidate_anchor{
+            .child_block_hash = hash,
+            .serialized_size = anchor_size,
+            .proof = primary_anchor.proof,
+        };
+        if (!IsValidStoredCandidate(candidate, hash) ||
+            !IsValidStoredCandidateAnchor(
+                candidate_anchor, main_headers, m_child_chain) ||
+            m_db.Exists(candidate_anchor_key) ||
+            candidate.serialized_size >
+                std::numeric_limits<uint64_t>::max() - demoted_bytes ||
+            anchor_size >
+                std::numeric_limits<uint64_t>::max() -
+                    demoted_anchor_bytes ||
+            !ApplyDisconnectCoinTransition(
+                *this,
+                disconnected.block,
+                disconnected.undo,
+                coin_transition)) {
+            return false;
+        }
+        demoted_bytes += candidate.serialized_size;
+        demoted_anchor_bytes += anchor_size;
+        for (const auto& deposit_id : disconnected.undo.imports.imports) {
+            const auto stored{ReadImport(deposit_id)};
+            if (!disconnected_imports.insert(deposit_id).second || !stored ||
+                stored->child_block_hash != hash) {
+                return false;
+            }
+        }
+        fork_hash = disconnected.undo.parent_hash;
+        --fork_height;
+        demoted.push_back({
+            .hash = hash,
+            .candidate = std::move(candidate),
+            .primary_anchor = std::move(primary_anchor),
+            .candidate_anchor_key = candidate_anchor_key,
+            .candidate_anchor = std::move(candidate_anchor),
+        });
+    }
+
+    uint32_t previous_anchor_height{0};
+    if (fork_height > 0) {
+        const auto fork_anchor{ReadBmmAnchor(fork_hash)};
+        if (!fork_anchor) return false;
+        previous_anchor_height = fork_anchor->proof.block_height;
+    } else if (fork_hash != m_child_genesis_hash) {
+        return false;
+    }
+
+    std::vector<PromotedBlock> promoted;
+    promoted.reserve(connected_blocks.size());
+    std::set<chainregistry::DepositId> connected_imports;
+    uint256 expected_parent{fork_hash};
+    uint32_t expected_height{fork_height};
+    uint64_t promoted_bytes{0};
+    uint64_t promoted_anchor_bytes{0};
+    for (const auto& connected : connected_blocks) {
+        const uint256 hash{connected.block.GetHash()};
+        if (expected_height == std::numeric_limits<uint32_t>::max()) {
+            return false;
+        }
+        ++expected_height;
+        const CandidateKey candidate_key{DB_SIDE_CANDIDATE, hash};
+        ChildCandidateRecord candidate;
+        if (!child_hashes.insert(hash).second ||
+            connected.block.hashPrevBlock != expected_parent ||
+            connected.undo.block_hash != hash ||
+            connected.undo.parent_hash != expected_parent ||
+            connected.undo.block_height != expected_height ||
+            !m_db.Read(candidate_key, candidate) ||
+            !IsValidStoredCandidate(candidate, hash) ||
+            !BlocksEqual(candidate.block, connected.block) ||
+            candidate.undo != connected.undo ||
+            connected.primary_anchor.block_height <=
+                previous_anchor_height ||
+            m_db.Exists(BlockKey{DB_BLOCK, hash}) ||
+            m_db.Exists(UndoKey{DB_UNDO, hash}) ||
+            m_db.Exists(AnchorKey{DB_BMM_ANCHOR, hash})) {
+            return false;
+        }
+        const auto authenticated{main_headers.AuthenticateBmmAnchor(
+            connected.primary_anchor,
+            m_child_chain,
+            /*minimum_confirmations=*/1)};
+        if (!authenticated.IsValid() || !authenticated.proof.anchor ||
+            authenticated.proof.anchor->child_block_hash != hash) {
+            return false;
+        }
+        const uint256 main_block_hash{
+            connected.primary_anchor.block_header.GetHash()};
+        const CandidateAnchorKey candidate_anchor_key{
+            DB_CANDIDATE_BMM_ANCHOR, main_block_hash};
+        ChildCandidateBmmAnchorRecord candidate_anchor;
+        if (!m_db.Read(candidate_anchor_key, candidate_anchor) ||
+            candidate_anchor.child_block_hash != hash ||
+            BmmProofHash(candidate_anchor.proof) !=
+                BmmProofHash(connected.primary_anchor) ||
+            !IsValidStoredCandidateAnchor(
+                candidate_anchor, main_headers, m_child_chain) ||
+            candidate.serialized_size >
+                std::numeric_limits<uint64_t>::max() - promoted_bytes ||
+            candidate_anchor.serialized_size >
+                std::numeric_limits<uint64_t>::max() -
+                    promoted_anchor_bytes ||
+            !ApplyConnectCoinTransition(
+                *this,
+                connected.block,
+                connected.undo,
+                coin_transition)) {
+            return false;
+        }
+        promoted_bytes += candidate.serialized_size;
+        promoted_anchor_bytes += candidate_anchor.serialized_size;
+        for (const auto& deposit_id : connected.undo.imports.imports) {
+            const auto* imported{imports.Find(deposit_id)};
+            if (!connected_imports.insert(deposit_id).second || !imported ||
+                imported->child_block_hash != hash ||
+                imported->child_block_height != expected_height ||
+                (m_db.Exists(ImportKey{DB_IMPORT, deposit_id}) &&
+                 !disconnected_imports.contains(deposit_id))) {
+                return false;
+            }
+        }
+        previous_anchor_height = connected.primary_anchor.block_height;
+        expected_parent = hash;
+        promoted.push_back({
+            .hash = hash,
+            .candidate = std::move(candidate),
+            .candidate_anchor_key = candidate_anchor_key,
+            .candidate_anchor = std::move(candidate_anchor),
+            .primary_anchor = {
+                .child_block_hash = hash,
+                .proof = connected.primary_anchor,
+            },
+        });
+    }
+
+    if (promoted.size() > state.side_candidate_count ||
+        promoted_bytes > state.side_candidate_bytes ||
+        promoted.size() > state.candidate_anchor_count ||
+        promoted_anchor_bytes > state.candidate_anchor_bytes ||
+        demoted.size() >
+            MAX_CHILD_SIDE_CANDIDATES -
+                (state.side_candidate_count - promoted.size()) ||
+        demoted_bytes >
+            MAX_CHILD_SIDE_CANDIDATE_BYTES -
+                (state.side_candidate_bytes - promoted_bytes) ||
+        demoted.size() >
+            MAX_CHILD_CANDIDATE_BMM_ANCHORS -
+                (state.candidate_anchor_count - promoted.size()) ||
+        demoted_anchor_bytes >
+            MAX_CHILD_CANDIDATE_BMM_BYTES -
+                (state.candidate_anchor_bytes - promoted_anchor_bytes) ||
+        disconnected_imports.size() > state.import_count ||
+        imports.Size() !=
+            state.import_count - disconnected_imports.size() +
+                connected_imports.size() ||
+        !ImportsMatchMainChain(main_headers, imports)) {
+        return false;
+    }
+
+    if ((coin_transition.count_delta < 0 &&
+         static_cast<uint64_t>(-coin_transition.count_delta) >
+             state.coin_count) ||
+        (coin_transition.count_delta > 0 &&
+         static_cast<uint64_t>(coin_transition.count_delta) >
+             std::numeric_limits<uint64_t>::max() - state.coin_count)) {
+        return false;
+    }
+
+    state.child_tip = expected_parent;
+    state.child_height = expected_height;
+    state.anchor_count = expected_height;
+    state.side_candidate_count =
+        state.side_candidate_count - promoted.size() + demoted.size();
+    state.side_candidate_bytes =
+        state.side_candidate_bytes - promoted_bytes + demoted_bytes;
+    state.candidate_anchor_count =
+        state.candidate_anchor_count - promoted.size() + demoted.size();
+    state.candidate_anchor_bytes =
+        state.candidate_anchor_bytes - promoted_anchor_bytes +
+        demoted_anchor_bytes;
+    state.import_count = imports.Size();
+    const bool subtract_coins{coin_transition.count_delta < 0};
+    const uint64_t coin_magnitude{subtract_coins
+        ? static_cast<uint64_t>(-coin_transition.count_delta)
+        : static_cast<uint64_t>(coin_transition.count_delta)};
+    state.coin_count = subtract_coins
+        ? state.coin_count - coin_magnitude
+        : state.coin_count + coin_magnitude;
+
+    CDBBatch batch{m_db};
+    for (const auto& deposit_id : disconnected_imports) {
+        batch.Erase(ImportKey{DB_IMPORT, deposit_id});
+    }
+    for (const auto& deposit_id : connected_imports) {
+        batch.Write(ImportKey{DB_IMPORT, deposit_id}, *imports.Find(deposit_id));
+    }
+    for (const auto& [outpoint, coin] : coin_transition.changes) {
+        if (coin) {
+            batch.Write(CoinKey{DB_COIN, outpoint}, *coin);
+        } else {
+            batch.Erase(CoinKey{DB_COIN, outpoint});
+        }
+    }
+    for (const auto& entry : demoted) {
+        batch.Erase(BlockKey{DB_BLOCK, entry.hash});
+        batch.Erase(UndoKey{DB_UNDO, entry.hash});
+        batch.Erase(AnchorKey{DB_BMM_ANCHOR, entry.hash});
+        batch.Write(
+            CandidateKey{DB_SIDE_CANDIDATE, entry.hash}, entry.candidate);
+        batch.Write(entry.candidate_anchor_key, entry.candidate_anchor);
+    }
+    for (const auto& entry : promoted) {
+        batch.Erase(CandidateKey{DB_SIDE_CANDIDATE, entry.hash});
+        batch.Erase(entry.candidate_anchor_key);
+        batch.Write(
+            BlockKey{DB_BLOCK, entry.hash},
+            StoredChildBlock{entry.candidate.block});
+        batch.Write(UndoKey{DB_UNDO, entry.hash}, entry.candidate.undo);
+        batch.Write(
+            AnchorKey{DB_BMM_ANCHOR, entry.hash}, entry.primary_anchor);
+    }
     batch.Write(DB_STATE, state);
     m_db.WriteBatch(batch, sync);
     return true;
