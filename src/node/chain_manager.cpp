@@ -502,6 +502,50 @@ ChainManagerBlockView ChainManager::GetBlockView(
     return result;
 }
 
+ChainManagerCoinView ChainManager::GetCoinView(
+    const chainregistry::ChainId& chain_id,
+    const COutPoint& outpoint) const
+{
+    LOCK(m_mutex);
+    ChainManagerCoinView result;
+    if (chain_id.IsNull()) {
+        result.error = ChainManagerCoinViewError::NULL_CHAIN_ID;
+        return result;
+    }
+    const auto definition{m_definitions.find(chain_id)};
+    if (definition == m_definitions.end()) {
+        result.error = ChainManagerCoinViewError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto loaded{m_loaded.find(chain_id)};
+    if (loaded == m_loaded.end()) {
+        result.error = ChainManagerCoinViewError::CHAIN_NOT_LOADED;
+        return result;
+    }
+    const auto& runtime{*loaded->second};
+    const auto* child_tip{runtime.Tip()};
+    const auto* main_tip{runtime.MainHeaders()->Tip()};
+    Assume(child_tip);
+    Assume(main_tip);
+    result.entry = {
+        .chain_id = chain_id,
+        .manifest_hash = definition->second.manifest_hash,
+        .template_id = definition->second.manifest.spec.template_id,
+        .template_version = definition->second.manifest.spec.template_version,
+        .genesis_hash = definition->second.genesis_hash,
+        .data_path = DataPath(chain_id),
+        .loaded = true,
+        .failed = runtime.IsFailed(),
+        .safe_halt = runtime.Imports().IsSafeHalted(),
+        .height = runtime.State().child_height,
+        .tip = child_tip->GetBlockHash(),
+        .main_height = static_cast<uint32_t>(main_tip->nHeight),
+        .main_tip = main_tip->GetBlockHash(),
+    };
+    result.coin = runtime.GetCoin(outpoint);
+    return result;
+}
+
 std::vector<ChainManagerEntry> ChainManager::List() const
 {
     LOCK(m_mutex);

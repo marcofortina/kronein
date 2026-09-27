@@ -148,12 +148,23 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
     BOOST_CHECK(
         manager.GetBlockView(first.chain_id, uint256{42}).error ==
         node::ChainManagerBlockViewError::BLOCK_NOT_FOUND);
+    const auto missing_coin{manager.GetCoinView(
+        first.chain_id, COutPoint{Txid::FromUint256(uint256{42}), 0})};
+    BOOST_REQUIRE(missing_coin.IsValid());
+    BOOST_CHECK(!missing_coin.coin);
+    BOOST_CHECK(missing_coin.entry.tip == first.genesis_hash);
     BOOST_CHECK(manager.GetChainView(first.chain_id, 1).error ==
                 node::ChainManagerViewError::HEIGHT_OUT_OF_RANGE);
     BOOST_CHECK(manager.GetChainView(second.chain_id).error ==
                 node::ChainManagerViewError::CHAIN_NOT_LOADED);
     BOOST_CHECK(manager.GetChainView(chainregistry::ChainId{}).error ==
                 node::ChainManagerViewError::NULL_CHAIN_ID);
+    BOOST_CHECK(manager.GetCoinView(
+        second.chain_id, COutPoint{}).error ==
+        node::ChainManagerCoinViewError::CHAIN_NOT_LOADED);
+    BOOST_CHECK(manager.GetCoinView(
+        chainregistry::ChainId{}, COutPoint{}).error ==
+        node::ChainManagerCoinViewError::NULL_CHAIN_ID);
 
     const auto already_loaded{manager.LoadChain(
         first.chain_id, Params().GenesisBlock().nTime)};
