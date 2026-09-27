@@ -37,6 +37,7 @@ add_executable(test_bitcoin
   bswap_tests.cpp
   caches_tests.cpp
   chain_tests.cpp
+  chain_manager_tests.cpp
   chainparams_tests.cpp
   chainregistry_tests.cpp
   child_block_tests.cpp
