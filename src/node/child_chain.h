@@ -20,6 +20,8 @@
 #include <span>
 #include <vector>
 
+class CCoinsViewCache;
+
 namespace node {
 
 enum class ReferenceChildRuntimeError : uint8_t {
@@ -53,6 +55,9 @@ struct ReferenceChildRuntimeResult {
     chainregistry::ReferenceChildBlockResult child_block;
     std::vector<uint256> disconnected_child_blocks;
     bool bmm_anchor_already_known{false};
+    bool candidate_stored{false};
+    bool reorganization_required{false};
+    uint256 selected_child_head;
     bool loaded_existing{false};
 
     bool IsValid() const { return error == ReferenceChildRuntimeError::NONE; }
@@ -81,6 +86,11 @@ private:
     bool m_failed{false};
 
     bool RebuildChildIndex(uint32_t genesis_time);
+    bool BuildBranchState(CBlockIndex& parent,
+                          int64_t current_time,
+                          CCoinsViewCache& coins,
+                          chainregistry::DepositImportState& imports,
+                          ReferenceChildRuntimeResult& result) const;
     bool Usable() const { return m_initialized && !m_failed; }
     ReferenceChildRuntimeResult AddMainHeaderImpl(
         const CBlockHeader& header,

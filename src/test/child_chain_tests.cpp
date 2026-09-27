@@ -362,6 +362,156 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
     }
 }
 
+BOOST_AUTO_TEST_CASE(validates_and_restores_noncanonical_branches)
+{
+    const auto definition{Definition()};
+    const auto& params{Params().GetConsensus()};
+    const CBlock& main_genesis{Params().GenesisBlock()};
+    const fs::path path{
+        m_args.GetDataDirBase() / "reference_child_candidates"};
+    uint256 canonical_hash;
+    uint256 competing_hash;
+    uint256 extension_hash;
+    CBlockHeader final_main_tip;
+
+    {
+        node::ReferenceChildRuntime runtime{params, definition};
+        BOOST_REQUIRE(runtime.Initialize(
+            ChildDBParams(path, /*wipe=*/true),
+            main_genesis,
+            main_genesis.nTime,
+            /*sync=*/true).IsValid());
+        const CBlockIndex* child_genesis{runtime.Tip()};
+        BOOST_REQUIRE(child_genesis);
+
+        const CBlock canonical{ChildBlock(*child_genesis)};
+        canonical_hash = canonical.GetHash();
+        const CBlockIndex* main_parent{runtime.MainHeaders()->Tip()};
+        BOOST_REQUIRE(main_parent);
+        CBlock canonical_anchor_block;
+        const auto canonical_anchor{MakeBmmProof(
+            canonical_anchor_block,
+            *main_parent,
+            params,
+            definition,
+            canonical_hash)};
+        BOOST_REQUIRE(runtime.AddMainHeader(
+            canonical_anchor_block,
+            canonical_anchor_block.nTime,
+            /*sync=*/true).IsValid());
+        BOOST_REQUIRE(runtime.ConnectBlock(
+            canonical,
+            canonical_anchor,
+            canonical.nTime,
+            /*sync=*/true).IsValid());
+
+        CBlock competing{ChildBlock(*child_genesis)};
+        ++competing.nTime;
+        competing_hash = competing.GetHash();
+        BOOST_REQUIRE(competing_hash != canonical_hash);
+        main_parent = runtime.MainHeaders()->Tip();
+        BOOST_REQUIRE(main_parent);
+        CBlock competing_anchor_block;
+        const auto competing_anchor{MakeBmmProof(
+            competing_anchor_block,
+            *main_parent,
+            params,
+            definition,
+            competing_hash)};
+        BOOST_REQUIRE(runtime.AddMainHeader(
+            competing_anchor_block,
+            competing_anchor_block.nTime,
+            /*sync=*/true).IsValid());
+        BOOST_REQUIRE(runtime.StageBmmAnchor(
+            competing_anchor, /*sync=*/true).IsValid());
+
+        main_parent = runtime.MainHeaders()->Tip();
+        BOOST_REQUIRE(main_parent);
+        CBlock repeated_anchor_block;
+        const auto repeated_anchor{MakeBmmProof(
+            repeated_anchor_block,
+            *main_parent,
+            params,
+            definition,
+            competing_hash)};
+        BOOST_REQUIRE(runtime.AddMainHeader(
+            repeated_anchor_block,
+            repeated_anchor_block.nTime,
+            /*sync=*/true).IsValid());
+        BOOST_REQUIRE(runtime.StageBmmAnchor(
+            repeated_anchor, /*sync=*/true).IsValid());
+
+        const auto stored{runtime.ConnectBlock(
+            competing,
+            competing_anchor,
+            competing.nTime,
+            /*sync=*/true)};
+        BOOST_REQUIRE_MESSAGE(stored.IsValid(), static_cast<int>(stored.error));
+        BOOST_CHECK(stored.candidate_stored);
+        BOOST_CHECK(stored.reorganization_required);
+        BOOST_CHECK(stored.selected_child_head == competing_hash);
+        BOOST_CHECK(runtime.Tip()->GetBlockHash() == canonical_hash);
+        BOOST_CHECK_EQUAL(runtime.State().side_candidate_count, 1U);
+        BOOST_CHECK_EQUAL(runtime.State().candidate_anchor_count, 2U);
+        BOOST_CHECK_EQUAL(runtime.State().pending_anchor_count, 0U);
+
+        CBlockIndex competing_index{competing};
+        competing_index.phashBlock = &competing_hash;
+        competing_index.pprev = const_cast<CBlockIndex*>(child_genesis);
+        competing_index.nHeight = 1;
+        competing_index.nTimeMax = std::max(
+            child_genesis->nTimeMax, competing_index.nTime);
+        competing_index.BuildSkip();
+        const CBlock extension{ChildBlock(competing_index)};
+        extension_hash = extension.GetHash();
+        main_parent = runtime.MainHeaders()->Tip();
+        BOOST_REQUIRE(main_parent);
+        CBlock extension_anchor_block;
+        const auto extension_anchor{MakeBmmProof(
+            extension_anchor_block,
+            *main_parent,
+            params,
+            definition,
+            extension_hash)};
+        BOOST_REQUIRE(runtime.AddMainHeader(
+            extension_anchor_block,
+            extension_anchor_block.nTime,
+            /*sync=*/true).IsValid());
+        final_main_tip = extension_anchor_block;
+        const auto extended{runtime.ConnectBlock(
+            extension,
+            extension_anchor,
+            extension.nTime,
+            /*sync=*/true)};
+        BOOST_REQUIRE_MESSAGE(
+            extended.IsValid(), static_cast<int>(extended.error));
+        BOOST_CHECK(extended.candidate_stored);
+        BOOST_CHECK(extended.reorganization_required);
+        BOOST_CHECK(extended.selected_child_head == extension_hash);
+        BOOST_CHECK_EQUAL(runtime.State().side_candidate_count, 2U);
+        BOOST_CHECK(runtime.Tip()->GetBlockHash() == canonical_hash);
+    }
+
+    {
+        node::ReferenceChildRuntime runtime{params, definition};
+        const auto loaded{runtime.Initialize(
+            ChildDBParams(path, /*wipe=*/false),
+            main_genesis,
+            final_main_tip.nTime + 1,
+            /*sync=*/true)};
+        BOOST_REQUIRE_MESSAGE(loaded.IsValid(), static_cast<int>(loaded.error));
+        BOOST_CHECK(loaded.loaded_existing);
+        BOOST_REQUIRE(runtime.Tip());
+        BOOST_CHECK(runtime.Tip()->GetBlockHash() == canonical_hash);
+        BOOST_CHECK_EQUAL(runtime.State().child_height, 1U);
+        BOOST_CHECK_EQUAL(runtime.State().side_candidate_count, 2U);
+        CBlock restored_competing;
+        CBlock restored_extension;
+        BOOST_CHECK(runtime.ReadBlock(competing_hash, restored_competing));
+        BOOST_CHECK(runtime.ReadBlock(extension_hash, restored_extension));
+    }
+}
+
 BOOST_AUTO_TEST_CASE(pending_anchor_survives_restart_and_is_pruned_by_reorg)
 {
     const auto definition{Definition()};

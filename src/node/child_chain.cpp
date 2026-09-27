@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <exception>
+#include <set>
 #include <utility>
 #include <vector>
 
@@ -52,44 +53,138 @@ bool ReferenceChildRuntime::RebuildChildIndex(uint32_t genesis_time)
     m_genesis->nHeight = 0;
     m_genesis->nTimeMax = genesis_time;
 
-    std::vector<CBlock> reverse_blocks;
-    reverse_blocks.reserve(m_state.child_height);
-    uint256 block_hash{m_state.child_tip};
-    for (uint32_t height{m_state.child_height}; height > 0; --height) {
-        CBlock block;
-        if (!m_db->ReadBlock(block_hash, block) ||
-            block.GetHash() != block_hash) {
+    m_child_index.clear();
+    const auto candidates{m_db->ReadForkCandidates(*m_main_headers)};
+    if (!candidates) return false;
+    std::map<uint256, const chainregistry::ChildForkCandidate*> by_hash;
+    for (const auto& candidate : *candidates) {
+        if (!by_hash.emplace(candidate.block_hash, &candidate).second) {
             return false;
         }
-        block_hash = block.hashPrevBlock;
-        reverse_blocks.push_back(std::move(block));
     }
-    if (block_hash != m_definition.genesis_hash) return false;
-    std::reverse(reverse_blocks.begin(), reverse_blocks.end());
 
-    m_child_index.clear();
-    CBlockIndex* parent{m_genesis.get()};
-    for (uint32_t height{1}; height <= reverse_blocks.size(); ++height) {
-        const CBlock& block{reverse_blocks[height - 1]};
-        if (block.hashPrevBlock != parent->GetBlockHash()) return false;
-        const uint256 hash{block.GetHash()};
+    std::set<uint256> visiting;
+    const auto build = [&](const auto& self,
+                           const uint256& hash) -> CBlockIndex* {
+        const auto existing{m_child_index.find(hash)};
+        if (existing != m_child_index.end()) return existing->second.get();
+        const auto candidate{by_hash.find(hash)};
+        if (candidate == by_hash.end() || !visiting.insert(hash).second) {
+            return nullptr;
+        }
+        CBlockIndex* parent{nullptr};
+        if (candidate->second->parent_hash == m_definition.genesis_hash) {
+            parent = m_genesis.get();
+        } else {
+            parent = self(self, candidate->second->parent_hash);
+        }
+        if (!parent) return nullptr;
+
+        CBlock block;
+        chainregistry::ReferenceChildBlockUndo undo;
+        if (!m_db->ReadBlock(hash, block) ||
+            !m_db->ReadUndo(hash, undo) || block.GetHash() != hash ||
+            block.hashPrevBlock != parent->GetBlockHash() ||
+            undo.block_hash != hash ||
+            undo.parent_hash != block.hashPrevBlock ||
+            undo.block_height != static_cast<uint32_t>(parent->nHeight + 1)) {
+            return nullptr;
+        }
         auto index{std::make_unique<CBlockIndex>(block)};
         index->pprev = parent;
-        index->nHeight = static_cast<int>(height);
+        index->nHeight = parent->nHeight + 1;
         index->nTimeMax = std::max(parent->nTimeMax, index->nTime);
         index->nTx = block.vtx.size();
         index->BuildSkip();
-        auto [stored, inserted]{m_child_index.emplace(hash, std::move(index))};
-        if (!inserted) return false;
+        auto [stored, inserted]{
+            m_child_index.emplace(hash, std::move(index))};
+        if (!inserted) return nullptr;
         stored->second->phashBlock = &stored->first;
-        parent = stored->second.get();
+        visiting.erase(hash);
+        return stored->second.get();
+    };
+    for (const auto& [hash, candidate] : by_hash) {
+        if (!build(build, hash)) return false;
     }
-    if (parent->GetBlockHash() != m_state.child_tip ||
-        parent->nHeight != static_cast<int>(m_state.child_height)) {
+
+    if (m_state.child_tip == m_definition.genesis_hash) {
+        m_tip = m_genesis.get();
+    } else {
+        const auto tip{m_child_index.find(m_state.child_tip)};
+        if (tip == m_child_index.end()) return false;
+        m_tip = tip->second.get();
+    }
+    if (m_tip->nHeight != static_cast<int>(m_state.child_height)) {
         return false;
     }
-    m_tip = parent;
     return true;
+}
+
+bool ReferenceChildRuntime::BuildBranchState(
+    CBlockIndex& parent,
+    int64_t current_time,
+    CCoinsViewCache& coins,
+    chainregistry::DepositImportState& imports,
+    ReferenceChildRuntimeResult& result) const
+{
+    if (!m_tip || parent.GetAncestor(0) != m_genesis.get()) return false;
+    CBlockIndex* canonical{m_tip};
+    CBlockIndex* branch{&parent};
+    std::vector<CBlockIndex*> branch_path;
+    while (canonical->nHeight > branch->nHeight) {
+        CBlock block;
+        chainregistry::ReferenceChildBlockUndo undo;
+        const uint256 hash{canonical->GetBlockHash()};
+        if (!m_db->ReadBlock(hash, block) || !m_db->ReadUndo(hash, undo)) {
+            return false;
+        }
+        result.child_block = chainregistry::DisconnectReferenceChildBlock(
+            block, undo, coins, imports);
+        if (!result.child_block.IsValid()) return false;
+        canonical = canonical->pprev;
+    }
+    while (branch->nHeight > canonical->nHeight) {
+        branch_path.push_back(branch);
+        branch = branch->pprev;
+    }
+    while (canonical != branch) {
+        CBlock block;
+        chainregistry::ReferenceChildBlockUndo undo;
+        const uint256 hash{canonical->GetBlockHash()};
+        if (!m_db->ReadBlock(hash, block) || !m_db->ReadUndo(hash, undo)) {
+            return false;
+        }
+        result.child_block = chainregistry::DisconnectReferenceChildBlock(
+            block, undo, coins, imports);
+        if (!result.child_block.IsValid()) return false;
+        canonical = canonical->pprev;
+        branch_path.push_back(branch);
+        branch = branch->pprev;
+    }
+
+    std::reverse(branch_path.begin(), branch_path.end());
+    for (CBlockIndex* entry : branch_path) {
+        CBlock block;
+        chainregistry::ReferenceChildBlockUndo stored_undo;
+        const uint256 hash{entry->GetBlockHash()};
+        if (!m_db->ReadBlock(hash, block) ||
+            !m_db->ReadUndo(hash, stored_undo)) {
+            return false;
+        }
+        result.child_block = chainregistry::ConnectReferenceChildBlock(
+            block,
+            *entry->pprev,
+            current_time,
+            m_definition,
+            *m_main_headers,
+            coins,
+            imports);
+        if (!result.child_block.IsValid() || !result.child_block.undo ||
+            *result.child_block.undo != stored_undo) {
+            return false;
+        }
+    }
+    return coins.GetBestBlock() == parent.GetBlockHash();
 }
 
 ReferenceChildRuntimeResult ReferenceChildRuntime::Initialize(
@@ -342,6 +437,11 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::CommitMainChainUpdate(
             candidate_child_tip = candidate_child_tip->pprev;
         }
     }
+    if (!disconnected_blocks.empty() && m_state.side_candidate_count != 0) {
+        result.error =
+            ReferenceChildRuntimeError::MAIN_REORG_ROLLBACK_FAILED;
+        return result;
+    }
     const bool persisted{added_header
         ? m_db->WriteMainHeaderAndDisconnect(
               *candidate_headers,
@@ -456,13 +556,17 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
         result.error = ReferenceChildRuntimeError::BMM_ANCHOR_REJECTED;
         return result;
     }
-    if (m_tip != m_genesis.get()) {
-        const auto previous{m_db->ReadBmmAnchor(m_tip->GetBlockHash())};
-        if (!previous ||
-            anchor_proof.block_height <= previous->proof.block_height) {
-            result.error = ReferenceChildRuntimeError::BMM_ANCHOR_REJECTED;
-            return result;
+    CBlockIndex* parent{nullptr};
+    if (block.hashPrevBlock == m_definition.genesis_hash) {
+        parent = m_genesis.get();
+    } else {
+        const auto found_parent{m_child_index.find(block.hashPrevBlock)};
+        if (found_parent != m_child_index.end()) {
+            parent = found_parent->second.get();
         }
+    }
+    if (!parent) {
+        return RuntimeError(ReferenceChildRuntimeError::CHILD_BLOCK_REJECTED);
     }
     auto [slot, inserted]{m_child_index.try_emplace(block_hash)};
     if (!inserted) {
@@ -470,17 +574,27 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
     }
     slot->second = std::make_unique<CBlockIndex>(block);
     slot->second->phashBlock = &slot->first;
-    slot->second->pprev = m_tip;
-    slot->second->nHeight = m_tip->nHeight + 1;
-    slot->second->nTimeMax = std::max(m_tip->nTimeMax, slot->second->nTime);
+    slot->second->pprev = parent;
+    slot->second->nHeight = parent->nHeight + 1;
+    slot->second->nTimeMax = std::max(parent->nTimeMax, slot->second->nTime);
     slot->second->nTx = block.vtx.size();
     slot->second->BuildSkip();
 
     CCoinsViewCache candidate_coins{m_db.get(), /*deterministic=*/true};
     chainregistry::DepositImportState candidate_imports{m_imports};
+    if (!BuildBranchState(
+            *parent,
+            current_time,
+            candidate_coins,
+            candidate_imports,
+            result)) {
+        m_child_index.erase(slot);
+        result.error = ReferenceChildRuntimeError::CHILD_BLOCK_REJECTED;
+        return result;
+    }
     result.child_block = chainregistry::ConnectReferenceChildBlock(
         block,
-        *m_tip,
+        *parent,
         current_time,
         m_definition,
         *m_main_headers,
@@ -489,6 +603,41 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
     if (!result.child_block.IsValid()) {
         m_child_index.erase(slot);
         result.error = ReferenceChildRuntimeError::CHILD_BLOCK_REJECTED;
+        return result;
+    }
+    if (parent != m_tip) {
+        if (!m_db->WriteValidatedChildCandidate(
+                *m_main_headers,
+                block,
+                *result.child_block.undo,
+                anchor_proof,
+                sync)) {
+            m_child_index.erase(slot);
+            result.error =
+                ReferenceChildRuntimeError::CHILD_BLOCK_PERSIST_FAILED;
+            return result;
+        }
+        if (!m_db->ReadState(m_state)) {
+            m_failed = true;
+            result.error = ReferenceChildRuntimeError::FAILED_RUNTIME;
+            return result;
+        }
+        const auto candidates{m_db->ReadForkCandidates(*m_main_headers)};
+        if (!candidates) {
+            m_failed = true;
+            result.error = ReferenceChildRuntimeError::FAILED_RUNTIME;
+            return result;
+        }
+        const auto selected{chainregistry::SelectChildFork(
+            m_definition.genesis_hash, *candidates)};
+        if (!selected.IsValid()) {
+            m_failed = true;
+            result.error = ReferenceChildRuntimeError::FAILED_RUNTIME;
+            return result;
+        }
+        result.candidate_stored = true;
+        result.selected_child_head = selected.head;
+        result.reorganization_required = selected.head != m_tip->GetBlockHash();
         return result;
     }
     if (!m_db->WriteConnectedChildBlock(
@@ -517,6 +666,7 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
         return result;
     }
     m_tip = slot->second.get();
+    result.selected_child_head = m_tip->GetBlockHash();
     return result;
 }
 
