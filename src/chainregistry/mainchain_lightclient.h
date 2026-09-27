@@ -7,6 +7,7 @@
 
 #include <arith_uint256.h>
 #include <chain.h>
+#include <consensus/bmm.h>
 #include <consensus/deposit_proof.h>
 #include <consensus/params.h>
 #include <primitives/block.h>
@@ -113,6 +114,27 @@ struct AuthenticatedDepositResult {
     bool IsValid() const { return error == AuthenticatedDepositError::NONE; }
 };
 
+enum class AuthenticatedBmmAnchorError : uint8_t {
+    NONE,
+    INVALID_CONFIRMATION_POLICY,
+    STRUCTURAL_PROOF_INVALID,
+    HEADER_UNKNOWN,
+    HEADER_HEIGHT_MISMATCH,
+    HEADER_NOT_ACTIVE,
+    INSUFFICIENT_CHAINWORK,
+    IMMATURE,
+};
+
+struct AuthenticatedBmmAnchorResult {
+    AuthenticatedBmmAnchorError error{AuthenticatedBmmAnchorError::NONE};
+    BmmProofValidationResult proof;
+    int confirmations{0};
+    arith_uint256 anchor_chain_work;
+    arith_uint256 tip_chain_work;
+
+    bool IsValid() const { return error == AuthenticatedBmmAnchorError::NONE; }
+};
+
 /**
  * Minimal main-chain header DAG for child-chain consensus.
  *
@@ -148,6 +170,10 @@ public:
 
     AuthenticatedDepositResult AuthenticateDeposit(
         const DepositProof& proof,
+        const ChainId& expected_child_chain,
+        uint32_t minimum_confirmations) const;
+    AuthenticatedBmmAnchorResult AuthenticateBmmAnchor(
+        const BmmAnchorProof& proof,
         const ChainId& expected_child_chain,
         uint32_t minimum_confirmations) const;
 };

@@ -5,6 +5,7 @@
 #include <chainregistry/mainchain_lightclient.h>
 
 #include <chainparams.h>
+#include <consensus/bmm.h>
 #include <consensus/merkle.h>
 #include <pow.h>
 #include <primitives/deposit.h>
@@ -112,6 +113,57 @@ chainregistry::DepositProof DepositBlock(CBlock& block,
         .block_header = block,
         .funding_transaction = funding,
         .funding_vout = 0,
+        .transaction_index = 1,
+        .transaction_merkle_branch = TransactionMerklePath(block, 1),
+        .coinbase_transaction = coinbase,
+        .coinbase_merkle_branch = TransactionMerklePath(block, 0),
+        .chain_record = record,
+        .registry_proof = *registry.GetInclusionProof(CHILD_CHAIN),
+    };
+}
+
+chainregistry::BmmAnchorProof BmmBlock(CBlock& block,
+                                       const CBlockIndex& parent,
+                                       const Consensus::Params& params,
+                                       const uint256& child_block_hash)
+{
+    const auto record{ChildRecord()};
+    chainregistry::ChainRegistry registry;
+    BOOST_REQUIRE(registry.LoadRecords({record}).IsValid());
+
+    CMutableTransaction coinbase;
+    coinbase.vin.emplace_back(COutPoint{});
+    coinbase.vout.emplace_back(
+        0, chainregistry::BuildRegistryCommitment(registry.ComputeRoot()));
+
+    CMutableTransaction proposal;
+    proposal.vin.emplace_back(COutPoint{
+        Txid{"6666666666666666666666666666666666666666666666666666666666666666"}, 0});
+    proposal.vout.emplace_back(
+        0,
+        chainregistry::BuildBmmAnchorScript({
+            .chain_id = CHILD_CHAIN,
+            .child_block_hash = child_block_hash,
+        }));
+
+    block.nVersion = CBlockHeader::CURRENT_VERSION;
+    block.hashPrevBlock = parent.GetBlockHash();
+    block.nTime = parent.nTime + 1;
+    block.nBits = GetNextWorkRequired(&parent, &block, params);
+    block.vtx = {MakeTransactionRef(coinbase), MakeTransactionRef(proposal)};
+    block.hashMerkleRoot = BlockMerkleRoot(block);
+
+    const auto seed{GetRandomXSeed(&parent, parent.nHeight + 1, params)};
+    BOOST_REQUIRE(seed.has_value());
+    uint64_t max_tries{1'000'000};
+    BOOST_REQUIRE(MineProofOfWork(
+        block, *seed, params, max_tries, /*threads=*/1, /*use_full_memory=*/false));
+
+    return {
+        .main_genesis_hash = params.hashGenesisBlock,
+        .block_height = static_cast<uint32_t>(parent.nHeight + 1),
+        .block_header = block,
+        .anchor_transaction = proposal,
         .transaction_index = 1,
         .transaction_merkle_branch = TransactionMerklePath(block, 1),
         .coinbase_transaction = coinbase,
@@ -245,6 +297,58 @@ BOOST_AUTO_TEST_CASE(authenticates_only_mature_active_deposits)
     result = chain.AuthenticateDeposit(proof, other_child, 2);
     BOOST_CHECK(result.error ==
                 chainregistry::AuthenticatedDepositError::STRUCTURAL_PROOF_INVALID);
+}
+
+BOOST_AUTO_TEST_CASE(authenticates_only_mature_active_bmm_anchors)
+{
+    const auto& params{Params().GetConsensus()};
+    const CBlock& genesis{Params().GenesisBlock()};
+    chainregistry::MainHeaderChain chain{params};
+    BOOST_REQUIRE(chain.Initialize(genesis).IsValid());
+    const CBlockIndex* genesis_index{chain.Find(genesis.GetHash())};
+    BOOST_REQUIRE(genesis_index);
+
+    constexpr uint256 child_block_hash{
+        "7777777777777777777777777777777777777777777777777777777777777777"};
+    CBlock anchor_block;
+    const auto proof{BmmBlock(
+        anchor_block, *genesis_index, params, child_block_hash)};
+    BOOST_REQUIRE(chain.AddHeader(
+        anchor_block, anchor_block.nTime).IsValid());
+
+    auto result{chain.AuthenticateBmmAnchor(proof, CHILD_CHAIN, 0)};
+    BOOST_CHECK(result.error == chainregistry::AuthenticatedBmmAnchorError::
+                                    INVALID_CONFIRMATION_POLICY);
+
+    result = chain.AuthenticateBmmAnchor(proof, CHILD_CHAIN, 2);
+    BOOST_CHECK(result.error ==
+                chainregistry::AuthenticatedBmmAnchorError::IMMATURE);
+    BOOST_CHECK_EQUAL(result.confirmations, 1);
+
+    const CBlockIndex* anchor_index{chain.Find(anchor_block.GetHash())};
+    BOOST_REQUIRE(anchor_index);
+    const CBlockHeader confirmation{MineHeader(*anchor_index, params, 70)};
+    BOOST_REQUIRE(chain.AddHeader(
+        confirmation, confirmation.nTime).IsValid());
+    result = chain.AuthenticateBmmAnchor(proof, CHILD_CHAIN, 2);
+    BOOST_REQUIRE(result.IsValid());
+    BOOST_REQUIRE(result.proof.anchor.has_value());
+    BOOST_CHECK(result.proof.anchor->chain_id == CHILD_CHAIN);
+    BOOST_CHECK(result.proof.anchor->child_block_hash == child_block_hash);
+    BOOST_CHECK(result.anchor_chain_work == anchor_index->nChainWork);
+    BOOST_CHECK(result.tip_chain_work == chain.Tip()->nChainWork);
+
+    auto tampered{proof};
+    tampered.block_height++;
+    result = chain.AuthenticateBmmAnchor(tampered, CHILD_CHAIN, 2);
+    BOOST_CHECK(result.error == chainregistry::AuthenticatedBmmAnchorError::
+                                    HEADER_HEIGHT_MISMATCH);
+
+    constexpr chainregistry::ChainId other_child{
+        "9999999999999999999999999999999999999999999999999999999999999999"};
+    result = chain.AuthenticateBmmAnchor(proof, other_child, 2);
+    BOOST_CHECK(result.error == chainregistry::AuthenticatedBmmAnchorError::
+                                    STRUCTURAL_PROOF_INVALID);
 }
 
 BOOST_AUTO_TEST_CASE(restores_validated_dag_and_explicit_equal_work_tip)

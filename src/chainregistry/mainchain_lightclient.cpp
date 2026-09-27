@@ -34,6 +34,16 @@ AuthenticatedDepositResult DepositError(
     return result;
 }
 
+AuthenticatedBmmAnchorResult BmmError(
+    AuthenticatedBmmAnchorError error,
+    BmmProofValidationResult proof = {})
+{
+    AuthenticatedBmmAnchorResult result;
+    result.error = error;
+    result.proof = std::move(proof);
+    return result;
+}
+
 MainHeaderLoadResult LoadError(MainHeaderLoadError error,
                                std::optional<size_t> failed_record = std::nullopt,
                                MainHeaderError header_error = MainHeaderError::NONE)
@@ -298,6 +308,59 @@ AuthenticatedDepositResult MainHeaderChain::AuthenticateDeposit(
     AuthenticatedDepositResult result;
     result.proof = structural;
     result.confirmations = confirmations;
+    result.tip_chain_work = m_tip->nChainWork;
+    return result;
+}
+
+AuthenticatedBmmAnchorResult MainHeaderChain::AuthenticateBmmAnchor(
+    const BmmAnchorProof& proof,
+    const ChainId& expected_child_chain,
+    uint32_t minimum_confirmations) const
+{
+    if (minimum_confirmations == 0) {
+        return BmmError(
+            AuthenticatedBmmAnchorError::INVALID_CONFIRMATION_POLICY);
+    }
+    const auto structural{ValidateBmmAnchorProofStructure(
+        proof, m_params.hashGenesisBlock, expected_child_chain)};
+    if (!structural.IsValid()) {
+        return BmmError(
+            AuthenticatedBmmAnchorError::STRUCTURAL_PROOF_INVALID,
+            structural);
+    }
+    const CBlockIndex* entry{Find(proof.block_header.GetHash())};
+    if (!entry) {
+        return BmmError(
+            AuthenticatedBmmAnchorError::HEADER_UNKNOWN, structural);
+    }
+    if (entry->nHeight != static_cast<int>(proof.block_height)) {
+        return BmmError(
+            AuthenticatedBmmAnchorError::HEADER_HEIGHT_MISMATCH,
+            structural);
+    }
+    if (!IsActive(*entry)) {
+        return BmmError(
+            AuthenticatedBmmAnchorError::HEADER_NOT_ACTIVE, structural);
+    }
+    if (m_tip->nChainWork < UintToArith256(m_params.nMinimumChainWork)) {
+        return BmmError(
+            AuthenticatedBmmAnchorError::INSUFFICIENT_CHAINWORK,
+            structural);
+    }
+    const int confirmations{m_tip->nHeight - entry->nHeight + 1};
+    if (confirmations < static_cast<int64_t>(minimum_confirmations)) {
+        auto result{BmmError(
+            AuthenticatedBmmAnchorError::IMMATURE, structural)};
+        result.confirmations = confirmations;
+        result.anchor_chain_work = entry->nChainWork;
+        result.tip_chain_work = m_tip->nChainWork;
+        return result;
+    }
+
+    AuthenticatedBmmAnchorResult result;
+    result.proof = structural;
+    result.confirmations = confirmations;
+    result.anchor_chain_work = entry->nChainWork;
     result.tip_chain_work = m_tip->nChainWork;
     return result;
 }
