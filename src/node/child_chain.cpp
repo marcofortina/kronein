@@ -404,10 +404,23 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::StageBmmAnchor(
         return result;
     }
     const uint256 main_block_hash{anchor_proof.block_header.GetHash()};
+    const uint256 child_block_hash{
+        result.bmm_anchor.proof.anchor->child_block_hash};
+    CBlock known_block;
+    const bool child_block_known{m_db->ReadBlock(
+        child_block_hash, known_block)};
+    const auto primary_anchor{m_db->ReadBmmAnchor(child_block_hash)};
     const bool already_known{
-        m_db->ReadPendingBmmAnchor(main_block_hash).has_value()};
-    if (!m_db->WritePendingBmmAnchor(
-            *m_main_headers, anchor_proof, sync)) {
+        m_db->ReadPendingBmmAnchor(main_block_hash).has_value() ||
+        m_db->ReadCandidateBmmAnchor(main_block_hash).has_value() ||
+        (primary_anchor &&
+         primary_anchor->proof.block_header.GetHash() == main_block_hash)};
+    const bool persisted{child_block_known
+        ? m_db->WriteCandidateBmmAnchor(
+              *m_main_headers, anchor_proof, sync)
+        : m_db->WritePendingBmmAnchor(
+              *m_main_headers, anchor_proof, sync)};
+    if (!persisted) {
         result.error = ReferenceChildRuntimeError::BMM_ANCHOR_PERSIST_FAILED;
         return result;
     }
@@ -416,7 +429,7 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::StageBmmAnchor(
         result.error = ReferenceChildRuntimeError::FAILED_RUNTIME;
         return result;
     }
-    result.pending_anchor_already_known = already_known;
+    result.bmm_anchor_already_known = already_known;
     return result;
 }
 
@@ -540,7 +553,7 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::DisconnectTip(bool sync)
         return result;
     }
     if (!m_db->WriteDisconnectedChildBlock(
-            candidate_imports, block, undo, sync)) {
+            *m_main_headers, candidate_imports, block, undo, sync)) {
         result.error =
             ReferenceChildRuntimeError::CHILD_DISCONNECT_PERSIST_FAILED;
         return result;

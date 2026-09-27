@@ -351,6 +351,7 @@ BOOST_AUTO_TEST_CASE(persists_headers_imports_and_child_undo)
         BOOST_REQUIRE(imports.DisconnectImports(
             child_block.GetHash(), child_undo.imports));
         BOOST_REQUIRE(db.WriteDisconnectedChildBlock(
+            headers,
             imports,
             child_block,
             child_undo,
@@ -708,6 +709,163 @@ BOOST_AUTO_TEST_CASE(main_reorg_atomically_disconnects_child_import_and_utxo)
         BOOST_CHECK(state.child_tip == CHILD_GENESIS);
         BOOST_CHECK_EQUAL(state.child_height, 0U);
         BOOST_CHECK_EQUAL(imports.Size(), 0U);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(persists_bounded_candidate_dag_and_repeated_anchors)
+{
+    const auto& params{Params().GetConsensus()};
+    const CBlock& genesis{Params().GenesisBlock()};
+    const fs::path path{m_args.GetDataDirBase() / "child_chain_candidates"};
+    CBlock first{MakeChildBlock(CHILD_GENESIS, 1)};
+    CBlock second{MakeChildBlock(CHILD_GENESIS, 1)};
+    second.nNonce = 1;
+    BOOST_REQUIRE(first.GetHash() != second.GetHash());
+
+    CBlockHeader final_main_tip;
+    chainregistry::BmmAnchorProof first_anchor;
+    chainregistry::BmmAnchorProof second_anchor;
+    chainregistry::BmmAnchorProof repeated_first_anchor;
+    {
+        chainregistry::MainHeaderChain headers{params};
+        BOOST_REQUIRE(headers.Initialize(genesis).IsValid());
+        chainregistry::DepositImportState imports{CHILD_CHAIN, 2};
+        node::ChildChainDB db{{
+                                  .path = path,
+                                  .cache_bytes = 1 << 20,
+                                  .wipe_data = true,
+                                  .obfuscate = true,
+                              },
+                              CHILD_CHAIN,
+                              params.hashGenesisBlock,
+                              2,
+                              CHILD_GENESIS};
+        BOOST_REQUIRE(db.WriteInitialState(headers, imports, /*sync=*/true));
+
+        const CBlockIndex* parent{headers.Find(genesis.GetHash())};
+        BOOST_REQUIRE(parent);
+        CBlock first_anchor_block;
+        first_anchor = MakeBmmProof(
+            first_anchor_block, *parent, params, first.GetHash());
+        AddAndPersist(db, headers, imports, first_anchor_block);
+        BOOST_REQUIRE(db.WritePendingBmmAnchor(
+            headers, first_anchor, /*sync=*/true));
+        const chainregistry::ReferenceChildBlockUndo first_undo{
+            .block_hash = first.GetHash(),
+            .parent_hash = CHILD_GENESIS,
+            .block_height = 1,
+            .coins = {},
+            .imports = {},
+        };
+        BOOST_REQUIRE(db.WriteValidatedChildCandidate(
+            headers,
+            first,
+            first_undo,
+            first_anchor,
+            /*sync=*/true));
+
+        parent = headers.Find(first_anchor_block.GetHash());
+        BOOST_REQUIRE(parent);
+        CBlock second_anchor_block;
+        second_anchor = MakeBmmProof(
+            second_anchor_block, *parent, params, second.GetHash());
+        AddAndPersist(db, headers, imports, second_anchor_block);
+        const chainregistry::ReferenceChildBlockUndo second_undo{
+            .block_hash = second.GetHash(),
+            .parent_hash = CHILD_GENESIS,
+            .block_height = 1,
+            .coins = {},
+            .imports = {},
+        };
+        BOOST_REQUIRE(db.WriteValidatedChildCandidate(
+            headers,
+            second,
+            second_undo,
+            second_anchor,
+            /*sync=*/true));
+
+        parent = headers.Find(second_anchor_block.GetHash());
+        BOOST_REQUIRE(parent);
+        CBlock repeated_anchor_block;
+        repeated_first_anchor = MakeBmmProof(
+            repeated_anchor_block, *parent, params, first.GetHash());
+        AddAndPersist(db, headers, imports, repeated_anchor_block);
+        final_main_tip = repeated_anchor_block;
+        BOOST_REQUIRE(db.WriteCandidateBmmAnchor(
+            headers, repeated_first_anchor, /*sync=*/true));
+
+        node::ChildChainDBState state;
+        BOOST_REQUIRE(db.ReadState(state));
+        BOOST_CHECK_EQUAL(state.side_candidate_count, 2U);
+        BOOST_CHECK_GT(state.side_candidate_bytes, 0U);
+        BOOST_CHECK_EQUAL(state.candidate_anchor_count, 3U);
+        BOOST_CHECK_GT(state.candidate_anchor_bytes, 0U);
+        BOOST_CHECK_EQUAL(state.pending_anchor_count, 0U);
+
+        const auto fork_candidates{db.ReadForkCandidates(headers)};
+        BOOST_REQUIRE(fork_candidates.has_value());
+        const auto selected{chainregistry::SelectChildFork(
+            CHILD_GENESIS, *fork_candidates)};
+        BOOST_REQUIRE(selected.IsValid());
+        BOOST_CHECK(selected.head == first.GetHash());
+        BOOST_CHECK(
+            selected.scores.at(first.GetHash()).own_anchor_work ==
+            selected.scores.at(second.GetHash()).own_anchor_work * 2);
+
+        CCoinsViewCache coins{&db, /*deterministic=*/true};
+        AddCoins(coins, *first.vtx.front(), 1);
+        coins.SetBestBlock(first.GetHash());
+        BOOST_REQUIRE(db.WriteConnectedChildBlock(
+            headers,
+            imports,
+            first,
+            first_undo,
+            first_anchor,
+            /*sync=*/true));
+        coins.Flush();
+
+        BOOST_REQUIRE(db.ReadState(state));
+        BOOST_CHECK_EQUAL(state.child_height, 1U);
+        BOOST_CHECK(state.child_tip == first.GetHash());
+        BOOST_CHECK_EQUAL(state.side_candidate_count, 1U);
+        BOOST_CHECK_EQUAL(state.anchor_count, 1U);
+        BOOST_CHECK_EQUAL(state.candidate_anchor_count, 2U);
+        BOOST_CHECK(!db.ReadSideCandidate(first.GetHash()).has_value());
+        BOOST_CHECK(db.ReadSideCandidate(second.GetHash()).has_value());
+
+        const auto promoted_candidates{db.ReadForkCandidates(headers)};
+        BOOST_REQUIRE(promoted_candidates.has_value());
+        const auto promoted{chainregistry::SelectChildFork(
+            CHILD_GENESIS, *promoted_candidates)};
+        BOOST_REQUIRE(promoted.IsValid());
+        BOOST_CHECK(promoted.head == first.GetHash());
+    }
+
+    {
+        chainregistry::MainHeaderChain headers{params};
+        chainregistry::DepositImportState imports{CHILD_CHAIN, 2};
+        node::ChildChainDB db{{
+                                  .path = path,
+                                  .cache_bytes = 1 << 20,
+                                  .obfuscate = true,
+                              },
+                              CHILD_CHAIN,
+                              params.hashGenesisBlock,
+                              2,
+                              CHILD_GENESIS};
+        node::ChildChainDBState state;
+        const auto loaded{
+            db.Load(headers, imports, state, final_main_tip.nTime + 1)};
+        BOOST_REQUIRE_MESSAGE(loaded.IsValid(), static_cast<int>(loaded.error));
+        BOOST_CHECK_EQUAL(state.child_height, 1U);
+        BOOST_CHECK_EQUAL(state.side_candidate_count, 1U);
+        BOOST_CHECK_EQUAL(state.candidate_anchor_count, 2U);
+        const auto candidates{db.ReadForkCandidates(headers)};
+        BOOST_REQUIRE(candidates.has_value());
+        const auto selected{
+            chainregistry::SelectChildFork(CHILD_GENESIS, *candidates)};
+        BOOST_REQUIRE(selected.IsValid());
+        BOOST_CHECK(selected.head == first.GetHash());
     }
 }
 

@@ -6,6 +6,7 @@
 
 #include <consensus/amount.h>
 #include <hash.h>
+#include <pow.h>
 #include <primitives/block.h>
 
 #include <algorithm>
@@ -29,10 +30,14 @@ constexpr uint8_t DB_UNDO{'U'};
 constexpr uint8_t DB_SAFE_HALT{'X'};
 constexpr uint8_t DB_BMM_ANCHOR{'A'};
 constexpr uint8_t DB_PENDING_BMM_ANCHOR{'P'};
+constexpr uint8_t DB_SIDE_CANDIDATE{'D'};
+constexpr uint8_t DB_CANDIDATE_BMM_ANCHOR{'V'};
 
 using AnchorKey = std::pair<uint8_t, uint256>;
 using BlockKey = std::pair<uint8_t, uint256>;
 using CoinKey = std::pair<uint8_t, COutPoint>;
+using CandidateKey = std::pair<uint8_t, uint256>;
+using CandidateAnchorKey = std::pair<uint8_t, uint256>;
 using HeaderKey = std::pair<uint8_t, uint256>;
 using ImportKey = std::pair<uint8_t, chainregistry::DepositId>;
 using PendingAnchorKey = std::pair<uint8_t, uint256>;
@@ -93,7 +98,13 @@ bool ValidConfiguration(const ChildChainDBState& state,
            !state.child_tip.IsNull() &&
            state.anchor_count == state.child_height &&
            state.pending_anchor_count <= MAX_CHILD_PENDING_BMM_ANCHORS &&
-           state.pending_anchor_bytes <= MAX_CHILD_PENDING_BMM_BYTES;
+           state.pending_anchor_bytes <= MAX_CHILD_PENDING_BMM_BYTES &&
+           state.side_candidate_count <= MAX_CHILD_SIDE_CANDIDATES &&
+           state.side_candidate_bytes <= MAX_CHILD_SIDE_CANDIDATE_BYTES &&
+           state.candidate_anchor_count <=
+               MAX_CHILD_CANDIDATE_BMM_ANCHORS &&
+           state.candidate_anchor_bytes <=
+               MAX_CHILD_CANDIDATE_BMM_BYTES;
 }
 
 bool ImportsMatchMainChain(const chainregistry::MainHeaderChain& main_headers,
@@ -172,6 +183,50 @@ bool IsValidStoredPendingAnchor(
     if (allow_inactive) return true;
     return main_headers.AuthenticateBmmAnchor(
         record.proof, child_chain, /*minimum_confirmations=*/1).IsValid();
+}
+
+bool IsValidStoredCandidateAnchor(
+    const ChildCandidateBmmAnchorRecord& record,
+    const chainregistry::MainHeaderChain& main_headers,
+    const chainregistry::ChainId& child_chain)
+{
+    if (record.version != CHILD_CANDIDATE_BMM_ANCHOR_RECORD_VERSION ||
+        record.child_block_hash.IsNull() || record.serialized_size == 0 ||
+        record.serialized_size > MAX_CHILD_PENDING_BMM_PROOF_SIZE ||
+        record.serialized_size != GetSerializeSize(record.proof)) {
+        return false;
+    }
+    const auto structural{chainregistry::ValidateBmmAnchorProofStructure(
+        record.proof,
+        main_headers.Params().hashGenesisBlock,
+        child_chain)};
+    if (!structural.IsValid() || !structural.anchor ||
+        structural.anchor->child_block_hash != record.child_block_hash) {
+        return false;
+    }
+    const auto status{
+        main_headers.GetStatus(record.proof.block_header.GetHash())};
+    return status.known &&
+           status.height == static_cast<int>(record.proof.block_height);
+}
+
+std::optional<ChildBmmAnchorRecord> PrimaryAnchorForMainBlock(
+    const CDBWrapper& db,
+    const uint256& main_block_hash)
+{
+    std::unique_ptr<CDBIterator> cursor{const_cast<CDBWrapper&>(db).NewIterator()};
+    cursor->Seek(AnchorKey{DB_BMM_ANCHOR, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix) || prefix != DB_BMM_ANCHOR) break;
+        ChildBmmAnchorRecord record;
+        if (!cursor->GetValue(record)) return std::nullopt;
+        if (record.proof.block_header.GetHash() == main_block_hash) {
+            return record;
+        }
+        cursor->Next();
+    }
+    return std::nullopt;
 }
 
 bool PruneInactivePendingAnchors(
@@ -265,6 +320,50 @@ bool CollectPendingAnchorsForChild(
     }
     return count == state.pending_anchor_count &&
            bytes == state.pending_anchor_bytes;
+}
+
+bool CollectCandidateAnchorsForChild(
+    const CDBWrapper& db,
+    const chainregistry::MainHeaderChain& main_headers,
+    const chainregistry::ChainId& child_chain,
+    const uint256& child_block_hash,
+    const ChildChainDBState& state,
+    std::vector<std::pair<CandidateAnchorKey,
+                          ChildCandidateBmmAnchorRecord>>& matches,
+    const std::set<uint256>* ignored = nullptr)
+{
+    uint64_t count{0};
+    uint64_t bytes{0};
+    std::unique_ptr<CDBIterator> cursor{const_cast<CDBWrapper&>(db).NewIterator()};
+    cursor->Seek(CandidateAnchorKey{DB_CANDIDATE_BMM_ANCHOR, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) return false;
+        if (prefix != DB_CANDIDATE_BMM_ANCHOR) break;
+        CandidateAnchorKey key;
+        ChildCandidateBmmAnchorRecord record;
+        if (!cursor->GetKey(key) || !cursor->GetValue(record) ||
+            key.second != record.proof.block_header.GetHash() ||
+            !IsValidStoredCandidateAnchor(
+                record, main_headers, child_chain) ||
+            count == std::numeric_limits<uint64_t>::max() ||
+            record.serialized_size >
+                std::numeric_limits<uint64_t>::max() - bytes) {
+            return false;
+        }
+        if (ignored && ignored->contains(key.second)) {
+            cursor->Next();
+            continue;
+        }
+        ++count;
+        bytes += record.serialized_size;
+        if (record.child_block_hash == child_block_hash) {
+            matches.emplace_back(key, std::move(record));
+        }
+        cursor->Next();
+    }
+    return count == state.candidate_anchor_count &&
+           bytes == state.candidate_anchor_bytes;
 }
 
 bool StoredAnchorsMatchMainChain(
@@ -386,6 +485,26 @@ std::optional<std::vector<chainregistry::DepositId>> BlockImportIds(
             transaction.vin.front().prevout.hash.ToUint256()));
     }
     return imports;
+}
+
+bool IsValidStoredCandidate(const ChildCandidateRecord& record,
+                            const uint256& expected_hash)
+{
+    if (record.version != CHILD_CANDIDATE_RECORD_VERSION ||
+        expected_hash.IsNull() || record.block.GetHash() != expected_hash ||
+        record.block.hashPrevBlock.IsNull() || record.block.vtx.empty() ||
+        record.undo.version !=
+            chainregistry::REFERENCE_CHILD_BLOCK_UNDO_VERSION ||
+        record.undo.block_hash != expected_hash ||
+        record.undo.parent_hash != record.block.hashPrevBlock ||
+        record.undo.block_height == 0 || record.serialized_size == 0 ||
+        record.serialized_size > MAX_CHILD_CANDIDATE_RECORD_SIZE ||
+        record.serialized_size != GetSerializeSize(record)) {
+        return false;
+    }
+    const auto imports{BlockImportIds(record.block)};
+    return imports && *imports == record.undo.imports.imports &&
+           record.undo.coins.vtxundo.size() + 1 == record.block.vtx.size();
 }
 
 bool ApplyBlockToCoinSet(const CBlock& block,
@@ -582,6 +701,23 @@ std::optional<CoinTransition> BuildDisconnectCoinTransition(
     return result;
 }
 
+std::optional<uint32_t> StoredChildHeight(
+    const CDBWrapper& db,
+    const uint256& child_genesis_hash,
+    const uint256& block_hash)
+{
+    if (block_hash == child_genesis_hash) return 0;
+    chainregistry::ReferenceChildBlockUndo canonical_undo;
+    if (db.Read(UndoKey{DB_UNDO, block_hash}, canonical_undo)) {
+        return canonical_undo.block_height;
+    }
+    ChildCandidateRecord candidate;
+    if (db.Read(CandidateKey{DB_SIDE_CANDIDATE, block_hash}, candidate)) {
+        return candidate.undo.block_height;
+    }
+    return std::nullopt;
+}
+
 } // namespace
 
 ChildChainDB::ChildChainDB(const DBParams& params,
@@ -612,6 +748,8 @@ ChildChainDBLoadResult ChildChainDB::Load(
         if (HasKeyWithPrefix(m_db, DB_BLOCK) ||
             HasKeyWithPrefix(m_db, DB_BMM_ANCHOR) ||
             HasKeyWithPrefix(m_db, DB_PENDING_BMM_ANCHOR) ||
+            HasKeyWithPrefix(m_db, DB_SIDE_CANDIDATE) ||
+            HasKeyWithPrefix(m_db, DB_CANDIDATE_BMM_ANCHOR) ||
             HasKeyWithPrefix(m_db, DB_COIN) ||
             HasKeyWithPrefix(m_db, DB_HEADER) ||
             HasKeyWithPrefix(m_db, DB_IMPORT) ||
@@ -804,6 +942,8 @@ ChildChainDBLoadResult ChildChainDB::Load(
 
     uint64_t pending_count{0};
     uint64_t pending_bytes{0};
+    std::set<uint256> pending_main_blocks;
+    std::set<uint256> pending_child_blocks;
     cursor.reset(const_cast<CDBWrapper&>(m_db).NewIterator());
     cursor->Seek(PendingAnchorKey{DB_PENDING_BMM_ANCHOR, {}});
     while (cursor->Valid()) {
@@ -833,6 +973,7 @@ ChildChainDBLoadResult ChildChainDB::Load(
                 m_child_chain,
                 /*allow_inactive=*/false) ||
             blocks.contains(record.child_block_hash) ||
+            !pending_main_blocks.insert(key.second).second ||
             pending_count == std::numeric_limits<uint64_t>::max() ||
             record.serialized_size >
                 std::numeric_limits<uint64_t>::max() - pending_bytes) {
@@ -841,6 +982,7 @@ ChildChainDBLoadResult ChildChainDB::Load(
         }
         ++pending_count;
         pending_bytes += record.serialized_size;
+        pending_child_blocks.insert(record.child_block_hash);
         cursor->Next();
     }
     if (pending_count != stored_state.pending_anchor_count ||
@@ -875,6 +1017,162 @@ ChildChainDBLoadResult ChildChainDB::Load(
     }
     if (undos.size() != blocks.size()) {
         return LoadError(ChildChainDBLoadError::INVALID_UNDO);
+    }
+
+    std::map<uint256, ChildCandidateRecord> side_candidates;
+    uint64_t side_candidate_bytes{0};
+    cursor.reset(const_cast<CDBWrapper&>(m_db).NewIterator());
+    cursor->Seek(CandidateKey{DB_SIDE_CANDIDATE, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) {
+            return LoadError(
+                ChildChainDBLoadError::CANDIDATE_KEY_DECODE_FAILED);
+        }
+        if (prefix != DB_SIDE_CANDIDATE) break;
+        CandidateKey key;
+        if (!cursor->GetKey(key)) {
+            return LoadError(
+                ChildChainDBLoadError::CANDIDATE_KEY_DECODE_FAILED);
+        }
+        ChildCandidateRecord record;
+        if (!cursor->GetValue(record)) {
+            return LoadError(
+                ChildChainDBLoadError::CANDIDATE_DECODE_FAILED);
+        }
+        if (record.block.GetHash() != key.second) {
+            return LoadError(
+                ChildChainDBLoadError::CANDIDATE_KEY_MISMATCH);
+        }
+        if (blocks.contains(key.second) ||
+            !IsValidStoredCandidate(record, key.second) ||
+            record.serialized_size >
+                std::numeric_limits<uint64_t>::max() - side_candidate_bytes ||
+            !side_candidates.emplace(key.second, std::move(record)).second) {
+            return LoadError(ChildChainDBLoadError::INVALID_CANDIDATE_DAG);
+        }
+        side_candidate_bytes += side_candidates.at(key.second).serialized_size;
+        cursor->Next();
+    }
+    if (side_candidates.size() != stored_state.side_candidate_count ||
+        side_candidate_bytes != stored_state.side_candidate_bytes ||
+        side_candidates.size() > MAX_CHILD_SIDE_CANDIDATES ||
+        side_candidate_bytes > MAX_CHILD_SIDE_CANDIDATE_BYTES) {
+        return LoadError(
+            ChildChainDBLoadError::CANDIDATE_COUNT_MISMATCH);
+    }
+    for (const auto& [hash, candidate] : side_candidates) {
+        if (pending_child_blocks.contains(hash)) {
+            return LoadError(
+                ChildChainDBLoadError::INVALID_PENDING_BMM_ANCHOR);
+        }
+    }
+
+    enum class CandidateVisit : uint8_t {
+        UNVISITED,
+        VISITING,
+        VISITED,
+    };
+    std::map<uint256, CandidateVisit> candidate_visits;
+    const auto validate_candidate = [&](const auto& self,
+                                        const uint256& hash) -> bool {
+        CandidateVisit& visit{candidate_visits[hash]};
+        if (visit == CandidateVisit::VISITED) return true;
+        if (visit == CandidateVisit::VISITING) return false;
+        visit = CandidateVisit::VISITING;
+        const ChildCandidateRecord& candidate{side_candidates.at(hash)};
+        uint32_t parent_height{0};
+        if (candidate.block.hashPrevBlock != stored_state.child_genesis_hash) {
+            const auto side_parent{
+                side_candidates.find(candidate.block.hashPrevBlock)};
+            if (side_parent != side_candidates.end()) {
+                if (!self(self, side_parent->first)) return false;
+                parent_height = side_parent->second.undo.block_height;
+            } else {
+                const auto canonical_parent{
+                    undos.find(candidate.block.hashPrevBlock)};
+                if (canonical_parent == undos.end()) return false;
+                parent_height = canonical_parent->second.block_height;
+            }
+        }
+        if (parent_height == std::numeric_limits<uint32_t>::max() ||
+            candidate.undo.block_height != parent_height + 1) {
+            return false;
+        }
+        visit = CandidateVisit::VISITED;
+        return true;
+    };
+    for (const auto& [hash, candidate] : side_candidates) {
+        if (!validate_candidate(validate_candidate, hash)) {
+            return LoadError(ChildChainDBLoadError::INVALID_CANDIDATE_DAG);
+        }
+    }
+
+    std::set<uint256> anchored_main_blocks{pending_main_blocks};
+    for (const auto& [hash, anchor] : anchors) {
+        if (!anchored_main_blocks
+                 .insert(anchor.proof.block_header.GetHash())
+                 .second) {
+            return LoadError(ChildChainDBLoadError::INVALID_BMM_ANCHOR);
+        }
+    }
+    std::map<uint256, uint64_t> side_anchor_counts;
+    uint64_t candidate_anchor_count{0};
+    uint64_t candidate_anchor_bytes{0};
+    cursor.reset(const_cast<CDBWrapper&>(m_db).NewIterator());
+    cursor->Seek(CandidateAnchorKey{DB_CANDIDATE_BMM_ANCHOR, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) {
+            return LoadError(
+                ChildChainDBLoadError::CANDIDATE_ANCHOR_KEY_DECODE_FAILED);
+        }
+        if (prefix != DB_CANDIDATE_BMM_ANCHOR) break;
+        CandidateAnchorKey key;
+        if (!cursor->GetKey(key)) {
+            return LoadError(
+                ChildChainDBLoadError::CANDIDATE_ANCHOR_KEY_DECODE_FAILED);
+        }
+        ChildCandidateBmmAnchorRecord record;
+        if (!cursor->GetValue(record)) {
+            return LoadError(
+                ChildChainDBLoadError::CANDIDATE_ANCHOR_DECODE_FAILED);
+        }
+        if (record.proof.block_header.GetHash() != key.second) {
+            return LoadError(
+                ChildChainDBLoadError::CANDIDATE_ANCHOR_KEY_MISMATCH);
+        }
+        if ((!blocks.contains(record.child_block_hash) &&
+             !side_candidates.contains(record.child_block_hash)) ||
+            !IsValidStoredCandidateAnchor(
+                record, main_headers, m_child_chain) ||
+            !anchored_main_blocks.insert(key.second).second ||
+            candidate_anchor_count == std::numeric_limits<uint64_t>::max() ||
+            record.serialized_size >
+                std::numeric_limits<uint64_t>::max() -
+                    candidate_anchor_bytes) {
+            return LoadError(
+                ChildChainDBLoadError::INVALID_CANDIDATE_BMM_ANCHOR);
+        }
+        ++candidate_anchor_count;
+        candidate_anchor_bytes += record.serialized_size;
+        if (side_candidates.contains(record.child_block_hash)) {
+            ++side_anchor_counts[record.child_block_hash];
+        }
+        cursor->Next();
+    }
+    if (candidate_anchor_count != stored_state.candidate_anchor_count ||
+        candidate_anchor_bytes != stored_state.candidate_anchor_bytes ||
+        candidate_anchor_count > MAX_CHILD_CANDIDATE_BMM_ANCHORS ||
+        candidate_anchor_bytes > MAX_CHILD_CANDIDATE_BMM_BYTES) {
+        return LoadError(
+            ChildChainDBLoadError::CANDIDATE_ANCHOR_COUNT_MISMATCH);
+    }
+    for (const auto& [hash, candidate] : side_candidates) {
+        if (side_anchor_counts[hash] == 0) {
+            return LoadError(
+                ChildChainDBLoadError::INVALID_CANDIDATE_BMM_ANCHOR);
+        }
     }
 
     std::vector<std::pair<const CBlock*,
@@ -991,6 +1289,8 @@ bool ChildChainDB::WriteInitialState(
         m_db.Exists(DB_STATE) || HasKeyWithPrefix(m_db, DB_BLOCK) ||
         HasKeyWithPrefix(m_db, DB_BMM_ANCHOR) ||
         HasKeyWithPrefix(m_db, DB_PENDING_BMM_ANCHOR) ||
+        HasKeyWithPrefix(m_db, DB_SIDE_CANDIDATE) ||
+        HasKeyWithPrefix(m_db, DB_CANDIDATE_BMM_ANCHOR) ||
         HasKeyWithPrefix(m_db, DB_COIN) ||
         HasKeyWithPrefix(m_db, DB_HEADER) ||
         HasKeyWithPrefix(m_db, DB_IMPORT) || HasKeyWithPrefix(m_db, DB_UNDO) ||
@@ -1099,6 +1399,7 @@ bool ChildChainDB::WriteMainChainUpdate(
     }
     CoinTransition coin_transition;
     std::set<uint256> disconnected_hashes;
+    std::set<uint256> removed_candidate_anchor_main_blocks;
     for (const auto& disconnected : disconnected_blocks) {
         const CBlock& block{disconnected.block};
         const chainregistry::ReferenceChildBlockUndo& undo{disconnected.undo};
@@ -1139,6 +1440,37 @@ bool ChildChainDB::WriteMainChainUpdate(
             }
             batch.Erase(ImportKey{DB_IMPORT, deposit_id});
         }
+
+        std::vector<std::pair<CandidateAnchorKey,
+                              ChildCandidateBmmAnchorRecord>>
+            candidate_anchors;
+        if (!CollectCandidateAnchorsForChild(
+                m_db,
+                main_headers,
+                m_child_chain,
+                block_hash,
+                state,
+                candidate_anchors,
+                &removed_candidate_anchor_main_blocks)) {
+            return false;
+        }
+        uint64_t removed_anchor_bytes{0};
+        for (const auto& [key, record] : candidate_anchors) {
+            if (!removed_candidate_anchor_main_blocks.insert(key.second).second ||
+                record.serialized_size >
+                    std::numeric_limits<uint64_t>::max() -
+                        removed_anchor_bytes) {
+                return false;
+            }
+            removed_anchor_bytes += record.serialized_size;
+            batch.Erase(key);
+        }
+        if (candidate_anchors.size() > state.candidate_anchor_count ||
+            removed_anchor_bytes > state.candidate_anchor_bytes) {
+            return false;
+        }
+        state.candidate_anchor_count -= candidate_anchors.size();
+        state.candidate_anchor_bytes -= removed_anchor_bytes;
 
         const int64_t previous_delta{coin_transition.count_delta};
         if (!ApplyDisconnectCoinTransition(
@@ -1233,7 +1565,11 @@ bool ChildChainDB::WritePendingBmmAnchor(
         main_headers.Params().hashGenesisBlock != m_main_genesis_hash ||
         !main_headers.IsInitialized() ||
         main_headers.Tip()->GetBlockHash() != state.main_tip ||
-        m_db.Exists(AnchorKey{DB_BMM_ANCHOR, child_block_hash})) {
+        m_db.Exists(BlockKey{DB_BLOCK, child_block_hash}) ||
+        m_db.Exists(CandidateKey{DB_SIDE_CANDIDATE, child_block_hash}) ||
+        PrimaryAnchorForMainBlock(m_db, main_block_hash) ||
+        m_db.Exists(CandidateAnchorKey{
+            DB_CANDIDATE_BMM_ANCHOR, main_block_hash})) {
         return false;
     }
 
@@ -1260,6 +1596,226 @@ bool ChildChainDB::WritePendingBmmAnchor(
     return true;
 }
 
+bool ChildChainDB::WriteValidatedChildCandidate(
+    const chainregistry::MainHeaderChain& main_headers,
+    const CBlock& block,
+    const chainregistry::ReferenceChildBlockUndo& undo,
+    const chainregistry::BmmAnchorProof& anchor_proof,
+    bool sync)
+{
+    const uint256 child_block_hash{block.GetHash()};
+    const auto authenticated{main_headers.AuthenticateBmmAnchor(
+        anchor_proof, m_child_chain, /*minimum_confirmations=*/1)};
+    if (!authenticated.IsValid() || !authenticated.proof.anchor ||
+        authenticated.proof.anchor->child_block_hash != child_block_hash) {
+        return false;
+    }
+
+    ChildCandidateRecord candidate{
+        .block = block,
+        .undo = undo,
+    };
+    candidate.serialized_size = GetSerializeSize(candidate);
+    ChildChainDBState state;
+    const auto parent_height{
+        StoredChildHeight(m_db, m_child_genesis_hash, block.hashPrevBlock)};
+    if (!m_db.Read(DB_STATE, state) ||
+        !ValidConfiguration(state,
+                            m_child_chain,
+                            m_main_genesis_hash,
+                            m_minimum_confirmations,
+                            m_child_genesis_hash) ||
+        state.safe_halt || !parent_height ||
+        *parent_height == std::numeric_limits<uint32_t>::max() ||
+        undo.block_height != *parent_height + 1 ||
+        !IsValidStoredCandidate(candidate, child_block_hash) ||
+        candidate.serialized_size >
+            MAX_CHILD_SIDE_CANDIDATE_BYTES - state.side_candidate_bytes ||
+        state.side_candidate_count == MAX_CHILD_SIDE_CANDIDATES ||
+        main_headers.Params().hashGenesisBlock != m_main_genesis_hash ||
+        !main_headers.IsInitialized() ||
+        main_headers.Tip()->GetBlockHash() != state.main_tip ||
+        m_db.Exists(BlockKey{DB_BLOCK, child_block_hash}) ||
+        m_db.Exists(UndoKey{DB_UNDO, child_block_hash}) ||
+        m_db.Exists(CandidateKey{DB_SIDE_CANDIDATE, child_block_hash})) {
+        return false;
+    }
+
+    std::vector<std::pair<PendingAnchorKey, ChildPendingBmmAnchorRecord>> pending;
+    if (!CollectPendingAnchorsForChild(
+            m_db,
+            main_headers,
+            m_child_chain,
+            child_block_hash,
+            state,
+            pending)) {
+        return false;
+    }
+
+    std::map<uint256, ChildCandidateBmmAnchorRecord> anchors;
+    uint64_t removed_pending_bytes{0};
+    for (const auto& [key, record] : pending) {
+        if (record.serialized_size >
+            std::numeric_limits<uint64_t>::max() - removed_pending_bytes) {
+            return false;
+        }
+        removed_pending_bytes += record.serialized_size;
+        anchors.emplace(
+            key.second,
+            ChildCandidateBmmAnchorRecord{
+                .child_block_hash = child_block_hash,
+                .serialized_size = record.serialized_size,
+                .proof = record.proof,
+            });
+    }
+    const uint256 supplied_main_block{anchor_proof.block_header.GetHash()};
+    const uint64_t supplied_size{GetSerializeSize(anchor_proof)};
+    const auto supplied{anchors.find(supplied_main_block)};
+    if (supplied != anchors.end()) {
+        if (BmmProofHash(supplied->second.proof) !=
+            BmmProofHash(anchor_proof)) {
+            return false;
+        }
+    } else {
+        anchors.emplace(
+            supplied_main_block,
+            ChildCandidateBmmAnchorRecord{
+                .child_block_hash = child_block_hash,
+                .serialized_size = supplied_size,
+                .proof = anchor_proof,
+            });
+    }
+
+    uint64_t added_anchor_bytes{0};
+    for (const auto& [main_block_hash, record] : anchors) {
+        if (!IsValidStoredCandidateAnchor(
+                record, main_headers, m_child_chain) ||
+            PrimaryAnchorForMainBlock(m_db, main_block_hash) ||
+            m_db.Exists(CandidateAnchorKey{
+                DB_CANDIDATE_BMM_ANCHOR, main_block_hash}) ||
+            record.serialized_size >
+                std::numeric_limits<uint64_t>::max() - added_anchor_bytes) {
+            return false;
+        }
+        added_anchor_bytes += record.serialized_size;
+    }
+    if (pending.size() > state.pending_anchor_count ||
+        removed_pending_bytes > state.pending_anchor_bytes ||
+        anchors.size() >
+            MAX_CHILD_CANDIDATE_BMM_ANCHORS -
+                state.candidate_anchor_count ||
+        added_anchor_bytes >
+            MAX_CHILD_CANDIDATE_BMM_BYTES - state.candidate_anchor_bytes) {
+        return false;
+    }
+
+    ++state.side_candidate_count;
+    state.side_candidate_bytes += candidate.serialized_size;
+    state.candidate_anchor_count += anchors.size();
+    state.candidate_anchor_bytes += added_anchor_bytes;
+    state.pending_anchor_count -= pending.size();
+    state.pending_anchor_bytes -= removed_pending_bytes;
+    CDBBatch batch{m_db};
+    batch.Write(
+        CandidateKey{DB_SIDE_CANDIDATE, child_block_hash}, candidate);
+    for (const auto& [main_block_hash, record] : anchors) {
+        batch.Write(
+            CandidateAnchorKey{DB_CANDIDATE_BMM_ANCHOR, main_block_hash},
+            record);
+    }
+    for (const auto& [key, record] : pending) batch.Erase(key);
+    batch.Write(DB_STATE, state);
+    m_db.WriteBatch(batch, sync);
+    return true;
+}
+
+bool ChildChainDB::WriteCandidateBmmAnchor(
+    const chainregistry::MainHeaderChain& main_headers,
+    const chainregistry::BmmAnchorProof& anchor_proof,
+    bool sync)
+{
+    const auto authenticated{main_headers.AuthenticateBmmAnchor(
+        anchor_proof, m_child_chain, /*minimum_confirmations=*/1)};
+    if (!authenticated.IsValid() || !authenticated.proof.anchor) return false;
+    const uint256 child_block_hash{
+        authenticated.proof.anchor->child_block_hash};
+    const uint256 main_block_hash{anchor_proof.block_header.GetHash()};
+    const uint64_t serialized_size{GetSerializeSize(anchor_proof)};
+    const ChildCandidateBmmAnchorRecord record{
+        .child_block_hash = child_block_hash,
+        .serialized_size = serialized_size,
+        .proof = anchor_proof,
+    };
+
+    ChildChainDBState state;
+    if (!m_db.Read(DB_STATE, state) ||
+        !ValidConfiguration(state,
+                            m_child_chain,
+                            m_main_genesis_hash,
+                            m_minimum_confirmations,
+                            m_child_genesis_hash) ||
+        state.safe_halt ||
+        (!m_db.Exists(BlockKey{DB_BLOCK, child_block_hash}) &&
+         !m_db.Exists(CandidateKey{
+             DB_SIDE_CANDIDATE, child_block_hash})) ||
+        !IsValidStoredCandidateAnchor(record, main_headers, m_child_chain) ||
+        main_headers.Tip()->GetBlockHash() != state.main_tip) {
+        return false;
+    }
+
+    const CandidateAnchorKey key{
+        DB_CANDIDATE_BMM_ANCHOR, main_block_hash};
+    ChildCandidateBmmAnchorRecord existing;
+    if (m_db.Read(key, existing)) {
+        return existing.child_block_hash == child_block_hash &&
+               existing.serialized_size == serialized_size &&
+               BmmProofHash(existing.proof) == BmmProofHash(anchor_proof);
+    }
+    const auto primary{PrimaryAnchorForMainBlock(m_db, main_block_hash)};
+    if (primary) {
+        return primary->child_block_hash == child_block_hash &&
+               BmmProofHash(primary->proof) == BmmProofHash(anchor_proof);
+    }
+    if (m_db.Exists(key) ||
+        state.candidate_anchor_count ==
+            MAX_CHILD_CANDIDATE_BMM_ANCHORS ||
+        serialized_size >
+            MAX_CHILD_CANDIDATE_BMM_BYTES -
+                state.candidate_anchor_bytes) {
+        return false;
+    }
+
+    const PendingAnchorKey pending_key{
+        DB_PENDING_BMM_ANCHOR, main_block_hash};
+    ChildPendingBmmAnchorRecord pending;
+    bool erase_pending{false};
+    if (m_db.Read(pending_key, pending)) {
+        if (pending.child_block_hash != child_block_hash ||
+            pending.serialized_size != serialized_size ||
+            BmmProofHash(pending.proof) != BmmProofHash(anchor_proof) ||
+            state.pending_anchor_count == 0 ||
+            serialized_size > state.pending_anchor_bytes) {
+            return false;
+        }
+        erase_pending = true;
+    } else if (m_db.Exists(pending_key)) {
+        return false;
+    }
+
+    ++state.candidate_anchor_count;
+    state.candidate_anchor_bytes += serialized_size;
+    if (erase_pending) {
+        --state.pending_anchor_count;
+        state.pending_anchor_bytes -= serialized_size;
+    }
+    CDBBatch batch{m_db};
+    batch.Write(key, record);
+    if (erase_pending) batch.Erase(pending_key);
+    batch.Write(DB_STATE, state);
+    m_db.WriteBatch(batch, sync);
+    return true;
+}
+
 bool ChildChainDB::WriteConnectedChildBlock(
     const chainregistry::MainHeaderChain& main_headers,
     const chainregistry::DepositImportState& imports,
@@ -1270,6 +1826,10 @@ bool ChildChainDB::WriteConnectedChildBlock(
 {
     const uint256 child_block_hash{block.GetHash()};
     ChildChainDBState state;
+    ChildCandidateRecord stored_candidate;
+    const CandidateKey candidate_key{
+        DB_SIDE_CANDIDATE, child_block_hash};
+    const bool promoting_candidate{m_db.Read(candidate_key, stored_candidate)};
     const ChildBmmAnchorRecord anchor_record{
         .child_block_hash = child_block_hash,
         .proof = anchor_proof,
@@ -1298,7 +1858,13 @@ bool ChildChainDB::WriteConnectedChildBlock(
             state.import_count + undo.imports.imports.size() ||
         m_db.Exists(BlockKey{DB_BLOCK, child_block_hash}) ||
         m_db.Exists(UndoKey{DB_UNDO, child_block_hash}) ||
-        m_db.Exists(AnchorKey{DB_BMM_ANCHOR, child_block_hash})) {
+        m_db.Exists(AnchorKey{DB_BMM_ANCHOR, child_block_hash}) ||
+        (!promoting_candidate && m_db.Exists(candidate_key)) ||
+        (promoting_candidate &&
+         (!IsValidStoredCandidate(stored_candidate, child_block_hash) ||
+          !BlocksEqual(stored_candidate.block, block) ||
+          stored_candidate.undo != undo || state.side_candidate_count == 0 ||
+          stored_candidate.serialized_size > state.side_candidate_bytes))) {
         return false;
     }
     if (state.child_height > 0) {
@@ -1351,7 +1917,29 @@ bool ChildChainDB::WriteConnectedChildBlock(
         return false;
     }
     const uint256 supplied_main_block{anchor_proof.block_header.GetHash()};
+    const CandidateAnchorKey supplied_candidate_anchor_key{
+        DB_CANDIDATE_BMM_ANCHOR, supplied_main_block};
+    ChildCandidateBmmAnchorRecord supplied_candidate_anchor;
+    const bool erase_supplied_candidate_anchor{
+        m_db.Read(supplied_candidate_anchor_key,
+                  supplied_candidate_anchor)};
+    if (erase_supplied_candidate_anchor &&
+        (supplied_candidate_anchor.child_block_hash != child_block_hash ||
+         supplied_candidate_anchor.serialized_size >
+             state.candidate_anchor_bytes ||
+         state.candidate_anchor_count == 0 ||
+         BmmProofHash(supplied_candidate_anchor.proof) !=
+             BmmProofHash(anchor_proof))) {
+        return false;
+    }
+    if (!erase_supplied_candidate_anchor &&
+        m_db.Exists(supplied_candidate_anchor_key)) {
+        return false;
+    }
     uint64_t removed_pending_bytes{0};
+    uint64_t retained_anchor_bytes{0};
+    std::map<uint256, ChildCandidateBmmAnchorRecord>
+        retained_pending_anchors;
     for (const auto& [key, record] : pending) {
         if (key.second == supplied_main_block &&
             BmmProofHash(record.proof) != BmmProofHash(anchor_proof)) {
@@ -1362,13 +1950,48 @@ bool ChildChainDB::WriteConnectedChildBlock(
             return false;
         }
         removed_pending_bytes += record.serialized_size;
+        if (key.second == supplied_main_block) continue;
+        ChildCandidateBmmAnchorRecord retained{
+            .child_block_hash = child_block_hash,
+            .serialized_size = record.serialized_size,
+            .proof = record.proof,
+        };
+        if (!IsValidStoredCandidateAnchor(
+                retained, main_headers, m_child_chain) ||
+            PrimaryAnchorForMainBlock(m_db, key.second) ||
+            m_db.Exists(CandidateAnchorKey{
+                DB_CANDIDATE_BMM_ANCHOR, key.second}) ||
+            record.serialized_size >
+                std::numeric_limits<uint64_t>::max() -
+                    retained_anchor_bytes) {
+            return false;
+        }
+        retained_anchor_bytes += record.serialized_size;
+        retained_pending_anchors.emplace(key.second, std::move(retained));
     }
     if (pending.size() > state.pending_anchor_count ||
-        removed_pending_bytes > state.pending_anchor_bytes) {
+        removed_pending_bytes > state.pending_anchor_bytes ||
+        retained_pending_anchors.size() >
+            MAX_CHILD_CANDIDATE_BMM_ANCHORS -
+                state.candidate_anchor_count ||
+        retained_anchor_bytes >
+            MAX_CHILD_CANDIDATE_BMM_BYTES -
+                state.candidate_anchor_bytes) {
         return false;
     }
     state.pending_anchor_count -= pending.size();
     state.pending_anchor_bytes -= removed_pending_bytes;
+    state.candidate_anchor_count += retained_pending_anchors.size();
+    state.candidate_anchor_bytes += retained_anchor_bytes;
+    if (promoting_candidate) {
+        --state.side_candidate_count;
+        state.side_candidate_bytes -= stored_candidate.serialized_size;
+    }
+    if (erase_supplied_candidate_anchor) {
+        --state.candidate_anchor_count;
+        state.candidate_anchor_bytes -=
+            supplied_candidate_anchor.serialized_size;
+    }
     if (transition->count_delta < 0) {
         state.coin_count -= static_cast<uint64_t>(-transition->count_delta);
     } else {
@@ -1388,6 +2011,16 @@ bool ChildChainDB::WriteConnectedChildBlock(
     batch.Write(BlockKey{DB_BLOCK, child_block_hash}, StoredChildBlock{block});
     batch.Write(UndoKey{DB_UNDO, child_block_hash}, undo);
     batch.Write(AnchorKey{DB_BMM_ANCHOR, child_block_hash}, anchor_record);
+    if (promoting_candidate) batch.Erase(candidate_key);
+    if (erase_supplied_candidate_anchor) {
+        batch.Erase(supplied_candidate_anchor_key);
+    }
+    for (const auto& [main_block_hash, record] :
+         retained_pending_anchors) {
+        batch.Write(
+            CandidateAnchorKey{DB_CANDIDATE_BMM_ANCHOR, main_block_hash},
+            record);
+    }
     for (const auto& pending_entry : pending) batch.Erase(pending_entry.first);
     batch.Write(DB_STATE, state);
     m_db.WriteBatch(batch, sync);
@@ -1395,6 +2028,7 @@ bool ChildChainDB::WriteConnectedChildBlock(
 }
 
 bool ChildChainDB::WriteDisconnectedChildBlock(
+    const chainregistry::MainHeaderChain& main_headers,
     const chainregistry::DepositImportState& imports,
     const CBlock& block,
     const chainregistry::ReferenceChildBlockUndo& undo,
@@ -1417,6 +2051,9 @@ bool ChildChainDB::WriteDisconnectedChildBlock(
                             m_main_genesis_hash,
                             m_minimum_confirmations,
                             m_child_genesis_hash) ||
+        main_headers.Params().hashGenesisBlock != m_main_genesis_hash ||
+        !main_headers.IsInitialized() ||
+        main_headers.Tip()->GetBlockHash() != state.main_tip ||
         state.child_tip != disconnected_child_block ||
         undo.version != chainregistry::REFERENCE_CHILD_BLOCK_UNDO_VERSION ||
         undo.block_hash != disconnected_child_block ||
@@ -1439,6 +2076,31 @@ bool ChildChainDB::WriteDisconnectedChildBlock(
             imports.Find(deposit_id)) return false;
     }
 
+    std::vector<std::pair<CandidateAnchorKey,
+                          ChildCandidateBmmAnchorRecord>>
+        candidate_anchors;
+    if (!CollectCandidateAnchorsForChild(
+            m_db,
+            main_headers,
+            m_child_chain,
+            disconnected_child_block,
+            state,
+            candidate_anchors)) {
+        return false;
+    }
+    uint64_t removed_anchor_bytes{0};
+    for (const auto& [key, record] : candidate_anchors) {
+        if (record.serialized_size >
+            std::numeric_limits<uint64_t>::max() - removed_anchor_bytes) {
+            return false;
+        }
+        removed_anchor_bytes += record.serialized_size;
+    }
+    if (candidate_anchors.size() > state.candidate_anchor_count ||
+        removed_anchor_bytes > state.candidate_anchor_bytes) {
+        return false;
+    }
+
     const auto transition{BuildDisconnectCoinTransition(*this, block, undo)};
     if (!transition) return false;
     if ((transition->count_delta < 0 &&
@@ -1453,6 +2115,8 @@ bool ChildChainDB::WriteDisconnectedChildBlock(
     --state.child_height;
     --state.anchor_count;
     state.import_count -= undo.imports.imports.size();
+    state.candidate_anchor_count -= candidate_anchors.size();
+    state.candidate_anchor_bytes -= removed_anchor_bytes;
     if (transition->count_delta < 0) {
         state.coin_count -= static_cast<uint64_t>(-transition->count_delta);
     } else {
@@ -1472,6 +2136,7 @@ bool ChildChainDB::WriteDisconnectedChildBlock(
     batch.Erase(BlockKey{DB_BLOCK, disconnected_child_block});
     batch.Erase(UndoKey{DB_UNDO, disconnected_child_block});
     batch.Erase(AnchorKey{DB_BMM_ANCHOR, disconnected_child_block});
+    for (const auto& [key, record] : candidate_anchors) batch.Erase(key);
     batch.Write(DB_STATE, state);
     m_db.WriteBatch(batch, sync);
     return true;
@@ -1539,15 +2204,172 @@ bool ChildChainDB::ReadBlock(const uint256& child_block_hash,
                              CBlock& block) const
 {
     StoredChildBlock stored;
-    if (!m_db.Read(BlockKey{DB_BLOCK, child_block_hash}, stored)) return false;
-    block = std::move(stored.block);
+    if (m_db.Read(BlockKey{DB_BLOCK, child_block_hash}, stored)) {
+        block = std::move(stored.block);
+        return true;
+    }
+    const auto candidate{ReadSideCandidate(child_block_hash)};
+    if (!candidate) return false;
+    block = candidate->block;
     return true;
+}
+
+std::optional<ChildCandidateRecord> ChildChainDB::ReadSideCandidate(
+    const uint256& child_block_hash) const
+{
+    ChildCandidateRecord record;
+    if (!m_db.Read(
+            CandidateKey{DB_SIDE_CANDIDATE, child_block_hash}, record)) {
+        return std::nullopt;
+    }
+    return record;
+}
+
+std::optional<std::vector<chainregistry::ChildForkCandidate>>
+ChildChainDB::ReadForkCandidates(
+    const chainregistry::MainHeaderChain& main_headers) const
+{
+    ChildChainDBState state;
+    if (!m_db.Read(DB_STATE, state) ||
+        !ValidConfiguration(state,
+                            m_child_chain,
+                            m_main_genesis_hash,
+                            m_minimum_confirmations,
+                            m_child_genesis_hash) ||
+        main_headers.Params().hashGenesisBlock != m_main_genesis_hash ||
+        !main_headers.IsInitialized() ||
+        main_headers.Tip()->GetBlockHash() != state.main_tip) {
+        return std::nullopt;
+    }
+
+    std::map<uint256, chainregistry::ChildForkCandidate> candidates;
+    std::unique_ptr<CDBIterator> cursor{
+        const_cast<CDBWrapper&>(m_db).NewIterator()};
+    cursor->Seek(BlockKey{DB_BLOCK, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) return std::nullopt;
+        if (prefix != DB_BLOCK) break;
+        BlockKey key;
+        StoredChildBlock stored;
+        if (!cursor->GetKey(key) || !cursor->GetValue(stored) ||
+            stored.block.GetHash() != key.second ||
+            !candidates.emplace(
+                key.second,
+                chainregistry::ChildForkCandidate{
+                    .block_hash = key.second,
+                    .parent_hash = stored.block.hashPrevBlock,
+                    .anchors = {},
+                }).second) {
+            return std::nullopt;
+        }
+        cursor->Next();
+    }
+
+    cursor.reset(const_cast<CDBWrapper&>(m_db).NewIterator());
+    cursor->Seek(CandidateKey{DB_SIDE_CANDIDATE, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) return std::nullopt;
+        if (prefix != DB_SIDE_CANDIDATE) break;
+        CandidateKey key;
+        ChildCandidateRecord stored;
+        if (!cursor->GetKey(key) || !cursor->GetValue(stored) ||
+            !IsValidStoredCandidate(stored, key.second) ||
+            !candidates.emplace(
+                key.second,
+                chainregistry::ChildForkCandidate{
+                    .block_hash = key.second,
+                    .parent_hash = stored.block.hashPrevBlock,
+                    .anchors = {},
+                }).second) {
+            return std::nullopt;
+        }
+        cursor->Next();
+    }
+    if (candidates.size() != state.child_height + state.side_candidate_count) {
+        return std::nullopt;
+    }
+
+    const auto add_anchor = [&](const uint256& child_block_hash,
+                                const chainregistry::BmmAnchorProof& proof)
+        -> bool {
+        auto candidate{candidates.find(child_block_hash)};
+        if (candidate == candidates.end()) return false;
+        const uint256 main_block_hash{proof.block_header.GetHash()};
+        const auto status{main_headers.GetStatus(main_block_hash)};
+        if (!status.known ||
+            status.height != static_cast<int>(proof.block_height)) {
+            return false;
+        }
+        if (!status.active) return true;
+        const CBlockIndex* entry{main_headers.Find(main_block_hash)};
+        if (!entry) return false;
+        const arith_uint256 work{GetBlockProof(*entry)};
+        if (work == 0) return false;
+        candidate->second.anchors.push_back({
+            .main_block_hash = main_block_hash,
+            .main_height = proof.block_height,
+            .work = work,
+        });
+        return true;
+    };
+
+    cursor.reset(const_cast<CDBWrapper&>(m_db).NewIterator());
+    cursor->Seek(AnchorKey{DB_BMM_ANCHOR, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) return std::nullopt;
+        if (prefix != DB_BMM_ANCHOR) break;
+        AnchorKey key;
+        ChildBmmAnchorRecord record;
+        if (!cursor->GetKey(key) || !cursor->GetValue(record) ||
+            key.second != record.child_block_hash ||
+            !IsValidStoredAnchor(
+                record,
+                main_headers,
+                m_child_chain,
+                /*allow_inactive=*/true) ||
+            !add_anchor(record.child_block_hash, record.proof)) {
+            return std::nullopt;
+        }
+        cursor->Next();
+    }
+
+    cursor.reset(const_cast<CDBWrapper&>(m_db).NewIterator());
+    cursor->Seek(CandidateAnchorKey{DB_CANDIDATE_BMM_ANCHOR, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) return std::nullopt;
+        if (prefix != DB_CANDIDATE_BMM_ANCHOR) break;
+        CandidateAnchorKey key;
+        ChildCandidateBmmAnchorRecord record;
+        if (!cursor->GetKey(key) || !cursor->GetValue(record) ||
+            key.second != record.proof.block_header.GetHash() ||
+            !IsValidStoredCandidateAnchor(
+                record, main_headers, m_child_chain) ||
+            !add_anchor(record.child_block_hash, record.proof)) {
+            return std::nullopt;
+        }
+        cursor->Next();
+    }
+
+    std::vector<chainregistry::ChildForkCandidate> result;
+    result.reserve(candidates.size());
+    for (auto& [hash, candidate] : candidates) {
+        result.push_back(std::move(candidate));
+    }
+    return result;
 }
 
 bool ChildChainDB::ReadUndo(const uint256& child_block_hash,
                             chainregistry::ReferenceChildBlockUndo& undo) const
 {
-    return m_db.Read(UndoKey{DB_UNDO, child_block_hash}, undo);
+    if (m_db.Read(UndoKey{DB_UNDO, child_block_hash}, undo)) return true;
+    const auto candidate{ReadSideCandidate(child_block_hash)};
+    if (!candidate) return false;
+    undo = candidate->undo;
+    return true;
 }
 
 std::optional<ChildBmmAnchorRecord> ChildChainDB::ReadBmmAnchor(
@@ -1566,6 +2388,18 @@ ChildChainDB::ReadPendingBmmAnchor(const uint256& main_block_hash) const
     ChildPendingBmmAnchorRecord record;
     if (!m_db.Read(
             PendingAnchorKey{DB_PENDING_BMM_ANCHOR, main_block_hash}, record)) {
+        return std::nullopt;
+    }
+    return record;
+}
+
+std::optional<ChildCandidateBmmAnchorRecord>
+ChildChainDB::ReadCandidateBmmAnchor(const uint256& main_block_hash) const
+{
+    ChildCandidateBmmAnchorRecord record;
+    if (!m_db.Read(
+            CandidateAnchorKey{DB_CANDIDATE_BMM_ANCHOR, main_block_hash},
+            record)) {
         return std::nullopt;
     }
     return record;

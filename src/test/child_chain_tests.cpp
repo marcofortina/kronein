@@ -227,13 +227,13 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
         const auto staged{runtime.StageBmmAnchor(
             anchor_proof, /*sync=*/true)};
         BOOST_REQUIRE_MESSAGE(staged.IsValid(), static_cast<int>(staged.error));
-        BOOST_CHECK(!staged.pending_anchor_already_known);
+        BOOST_CHECK(!staged.bmm_anchor_already_known);
         BOOST_CHECK_EQUAL(runtime.State().pending_anchor_count, 1U);
         BOOST_CHECK_GT(runtime.State().pending_anchor_bytes, 0U);
         const auto duplicate_stage{runtime.StageBmmAnchor(
             anchor_proof, /*sync=*/true)};
         BOOST_REQUIRE(duplicate_stage.IsValid());
-        BOOST_CHECK(duplicate_stage.pending_anchor_already_known);
+        BOOST_CHECK(duplicate_stage.bmm_anchor_already_known);
         BOOST_CHECK_EQUAL(runtime.State().pending_anchor_count, 1U);
 
         main_parent = runtime.MainHeaders()->Tip();
@@ -264,6 +264,31 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
         BOOST_CHECK(runtime.State().child_tip == child_hash);
         BOOST_CHECK_EQUAL(runtime.State().pending_anchor_count, 0U);
         BOOST_CHECK_EQUAL(runtime.State().pending_anchor_bytes, 0U);
+        BOOST_CHECK_EQUAL(runtime.State().candidate_anchor_count, 1U);
+        const auto duplicate_connected_anchor{runtime.StageBmmAnchor(
+            repeated_anchor_proof, /*sync=*/true)};
+        BOOST_REQUIRE(duplicate_connected_anchor.IsValid());
+        BOOST_CHECK(duplicate_connected_anchor.bmm_anchor_already_known);
+        BOOST_CHECK_EQUAL(runtime.State().candidate_anchor_count, 1U);
+
+        main_parent = runtime.MainHeaders()->Tip();
+        BOOST_REQUIRE(main_parent);
+        CBlock third_main_anchor;
+        const auto third_anchor_proof{MakeBmmProof(
+            third_main_anchor,
+            *main_parent,
+            params,
+            definition,
+            child_hash)};
+        BOOST_REQUIRE(runtime.AddMainHeader(
+            third_main_anchor,
+            third_main_anchor.nTime,
+            /*sync=*/true).IsValid());
+        const auto third_staged{runtime.StageBmmAnchor(
+            third_anchor_proof, /*sync=*/true)};
+        BOOST_REQUIRE(third_staged.IsValid());
+        BOOST_CHECK(!third_staged.bmm_anchor_already_known);
+        BOOST_CHECK_EQUAL(runtime.State().candidate_anchor_count, 2U);
 
         CBlock stored;
         BOOST_REQUIRE(runtime.ReadBlock(child_hash, stored));
@@ -384,7 +409,7 @@ BOOST_AUTO_TEST_CASE(pending_anchor_survives_restart_and_is_pruned_by_reorg)
         BOOST_CHECK_EQUAL(runtime.State().pending_anchor_count, 1U);
         const auto duplicate{runtime.StageBmmAnchor(proof, /*sync=*/true)};
         BOOST_REQUIRE(duplicate.IsValid());
-        BOOST_CHECK(duplicate.pending_anchor_already_known);
+        BOOST_CHECK(duplicate.bmm_anchor_already_known);
 
         const CBlockIndex* genesis_index{
             runtime.MainHeaders()->Find(main_genesis.GetHash())};

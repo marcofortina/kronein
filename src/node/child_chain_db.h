@@ -6,6 +6,7 @@
 #define KRONEIN_NODE_CHILD_CHAIN_DB_H
 
 #include <chainregistry/child_block.h>
+#include <chainregistry/child_fork_choice.h>
 #include <chainregistry/deposit_import.h>
 #include <chainregistry/mainchain_lightclient.h>
 #include <consensus/bmm.h>
@@ -22,12 +23,19 @@
 
 namespace node {
 
-inline constexpr uint8_t CHILD_CHAIN_DB_VERSION{4};
+inline constexpr uint8_t CHILD_CHAIN_DB_VERSION{5};
 inline constexpr uint8_t CHILD_BMM_ANCHOR_RECORD_VERSION{1};
 inline constexpr uint8_t CHILD_PENDING_BMM_ANCHOR_RECORD_VERSION{1};
+inline constexpr uint8_t CHILD_CANDIDATE_RECORD_VERSION{1};
+inline constexpr uint8_t CHILD_CANDIDATE_BMM_ANCHOR_RECORD_VERSION{1};
 inline constexpr uint64_t MAX_CHILD_PENDING_BMM_ANCHORS{256};
 inline constexpr uint64_t MAX_CHILD_PENDING_BMM_PROOF_SIZE{4'000'000};
 inline constexpr uint64_t MAX_CHILD_PENDING_BMM_BYTES{64 * 1024 * 1024};
+inline constexpr uint64_t MAX_CHILD_SIDE_CANDIDATES{1'024};
+inline constexpr uint64_t MAX_CHILD_CANDIDATE_RECORD_SIZE{16 * 1024 * 1024};
+inline constexpr uint64_t MAX_CHILD_SIDE_CANDIDATE_BYTES{256 * 1024 * 1024};
+inline constexpr uint64_t MAX_CHILD_CANDIDATE_BMM_ANCHORS{4'096};
+inline constexpr uint64_t MAX_CHILD_CANDIDATE_BMM_BYTES{256 * 1024 * 1024};
 
 struct ChildBmmAnchorRecord {
     uint8_t version{CHILD_BMM_ANCHOR_RECORD_VERSION};
@@ -55,6 +63,38 @@ struct ChildPendingBmmAnchorRecord {
     }
 };
 
+/** A validated, non-canonical child block retained for deterministic fork choice. */
+struct ChildCandidateRecord {
+    uint8_t version{CHILD_CANDIDATE_RECORD_VERSION};
+    uint64_t serialized_size{0};
+    CBlock block;
+    chainregistry::ReferenceChildBlockUndo undo;
+
+    SERIALIZE_METHODS(ChildCandidateRecord, obj)
+    {
+        READWRITE(obj.version,
+                  obj.serialized_size,
+                  TX_WITH_WITNESS(obj.block),
+                  obj.undo);
+    }
+};
+
+/** One authenticated main-chain anchor retained for a known child candidate. */
+struct ChildCandidateBmmAnchorRecord {
+    uint8_t version{CHILD_CANDIDATE_BMM_ANCHOR_RECORD_VERSION};
+    uint256 child_block_hash;
+    uint64_t serialized_size{0};
+    chainregistry::BmmAnchorProof proof;
+
+    SERIALIZE_METHODS(ChildCandidateBmmAnchorRecord, obj)
+    {
+        READWRITE(obj.version,
+                  obj.child_block_hash,
+                  obj.serialized_size,
+                  obj.proof);
+    }
+};
+
 struct ChildChainDBState {
     uint8_t version{CHILD_CHAIN_DB_VERSION};
     chainregistry::ChainId child_chain;
@@ -68,6 +108,10 @@ struct ChildChainDBState {
     uint64_t anchor_count{0};
     uint64_t pending_anchor_count{0};
     uint64_t pending_anchor_bytes{0};
+    uint64_t side_candidate_count{0};
+    uint64_t side_candidate_bytes{0};
+    uint64_t candidate_anchor_count{0};
+    uint64_t candidate_anchor_bytes{0};
     uint64_t import_count{0};
     uint64_t coin_count{0};
     bool safe_halt{false};
@@ -86,6 +130,10 @@ struct ChildChainDBState {
                   obj.anchor_count,
                   obj.pending_anchor_count,
                   obj.pending_anchor_bytes,
+                  obj.side_candidate_count,
+                  obj.side_candidate_bytes,
+                  obj.candidate_anchor_count,
+                  obj.candidate_anchor_bytes,
                   obj.import_count,
                   obj.coin_count,
                   obj.safe_halt);
@@ -132,6 +180,16 @@ enum class ChildChainDBLoadError : uint8_t {
     PENDING_ANCHOR_DECODE_FAILED,
     PENDING_ANCHOR_COUNT_MISMATCH,
     INVALID_PENDING_BMM_ANCHOR,
+    CANDIDATE_KEY_DECODE_FAILED,
+    CANDIDATE_KEY_MISMATCH,
+    CANDIDATE_DECODE_FAILED,
+    CANDIDATE_COUNT_MISMATCH,
+    INVALID_CANDIDATE_DAG,
+    CANDIDATE_ANCHOR_KEY_DECODE_FAILED,
+    CANDIDATE_ANCHOR_KEY_MISMATCH,
+    CANDIDATE_ANCHOR_DECODE_FAILED,
+    CANDIDATE_ANCHOR_COUNT_MISMATCH,
+    INVALID_CANDIDATE_BMM_ANCHOR,
     COIN_KEY_DECODE_FAILED,
     COIN_DECODE_FAILED,
     COIN_COUNT_MISMATCH,
@@ -204,13 +262,24 @@ public:
         const chainregistry::MainHeaderChain& main_headers,
         const chainregistry::BmmAnchorProof& anchor_proof,
         bool sync = false);
+    bool WriteValidatedChildCandidate(
+        const chainregistry::MainHeaderChain& main_headers,
+        const CBlock& block,
+        const chainregistry::ReferenceChildBlockUndo& undo,
+        const chainregistry::BmmAnchorProof& anchor_proof,
+        bool sync = false);
+    bool WriteCandidateBmmAnchor(
+        const chainregistry::MainHeaderChain& main_headers,
+        const chainregistry::BmmAnchorProof& anchor_proof,
+        bool sync = false);
     bool WriteConnectedChildBlock(const chainregistry::MainHeaderChain& main_headers,
                                   const chainregistry::DepositImportState& imports,
                                   const CBlock& block,
                                   const chainregistry::ReferenceChildBlockUndo& undo,
                                   const chainregistry::BmmAnchorProof& anchor_proof,
                                   bool sync = false);
-    bool WriteDisconnectedChildBlock(const chainregistry::DepositImportState& imports,
+    bool WriteDisconnectedChildBlock(const chainregistry::MainHeaderChain& main_headers,
+                                     const chainregistry::DepositImportState& imports,
                                      const CBlock& block,
                                      const chainregistry::ReferenceChildBlockUndo& undo,
                                      bool sync = false);
@@ -225,11 +294,18 @@ public:
         const chainregistry::DepositId& deposit_id) const;
     bool ReadState(ChildChainDBState& state) const;
     bool ReadBlock(const uint256& child_block_hash, CBlock& block) const;
+    std::optional<ChildCandidateRecord> ReadSideCandidate(
+        const uint256& child_block_hash) const;
+    std::optional<std::vector<chainregistry::ChildForkCandidate>>
+    ReadForkCandidates(
+        const chainregistry::MainHeaderChain& main_headers) const;
     bool ReadUndo(const uint256& child_block_hash,
                   chainregistry::ReferenceChildBlockUndo& undo) const;
     std::optional<ChildBmmAnchorRecord> ReadBmmAnchor(
         const uint256& child_block_hash) const;
     std::optional<ChildPendingBmmAnchorRecord> ReadPendingBmmAnchor(
+        const uint256& main_block_hash) const;
+    std::optional<ChildCandidateBmmAnchorRecord> ReadCandidateBmmAnchor(
         const uint256& main_block_hash) const;
 };
 

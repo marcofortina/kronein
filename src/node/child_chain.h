@@ -52,7 +52,7 @@ struct ReferenceChildRuntimeResult {
     chainregistry::DepositReconcileResult reconcile;
     chainregistry::ReferenceChildBlockResult child_block;
     std::vector<uint256> disconnected_child_blocks;
-    bool pending_anchor_already_known{false};
+    bool bmm_anchor_already_known{false};
     bool loaded_existing{false};
 
     bool IsValid() const { return error == ReferenceChildRuntimeError::NONE; }
