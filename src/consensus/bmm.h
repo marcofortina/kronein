@@ -124,6 +124,37 @@ struct BmmProofValidationResult {
     bool IsValid() const { return error == BmmProofValidationError::NONE; }
 };
 
+struct BlockBmmAnchor {
+    uint32_t transaction_index{0};
+    uint32_t output_index{0};
+    BmmAnchor anchor;
+
+    friend bool operator==(const BlockBmmAnchor&, const BlockBmmAnchor&) = default;
+};
+
+enum class BmmBlockValidationError : uint8_t {
+    NONE,
+    EMPTY_BLOCK,
+    INVALID_COINBASE,
+    COINBASE_ANCHOR,
+    INVALID_PROPOSAL,
+    TOO_MANY_ANCHORS,
+    DUPLICATE_CHAIN,
+    UNKNOWN_CHAIN,
+    INACTIVE_CHAIN,
+};
+
+struct BmmBlockValidationResult {
+    BmmBlockValidationError error{BmmBlockValidationError::NONE};
+    TxBmmAnchorError transaction_error{TxBmmAnchorError::NONE};
+    BmmAnchorParseError parse_error{BmmAnchorParseError::NONE};
+    std::optional<uint32_t> transaction_index;
+    std::optional<ChainId> chain_id;
+    std::vector<BlockBmmAnchor> anchors;
+
+    bool IsValid() const { return error == BmmBlockValidationError::NONE; }
+};
+
 /**
  * Validate proof structure against an already-authenticated main header.
  * Header PoW, height, chainwork, finality and canonical-chain membership are
@@ -133,6 +164,15 @@ BmmProofValidationResult ValidateBmmAnchorProofStructure(
     const BmmAnchorProof& proof,
     const uint256& expected_main_genesis_hash,
     std::optional<ChainId> expected_child_chain = std::nullopt);
+
+/**
+ * Validate all KBMM proposals in one main-chain block against the final
+ * registry state committed by that same block.
+ */
+BmmBlockValidationResult ValidateBlockBmmAnchors(
+    const CBlock& block,
+    const ChainRegistry& final_registry,
+    uint32_t maximum_anchors);
 
 } // namespace chainregistry
 

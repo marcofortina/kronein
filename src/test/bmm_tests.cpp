@@ -10,7 +10,10 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <array>
+#include <span>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -81,6 +84,33 @@ chainregistry::BmmAnchorProof Proof()
         .chain_record = record,
         .registry_proof = *registry.GetInclusionProof(CHILD_CHAIN),
     };
+}
+
+CTransactionRef Proposal(const chainregistry::ChainId& chain_id,
+                         const uint256& child_block_hash,
+                         unsigned char input_byte)
+{
+    std::array<unsigned char, 32> input{};
+    input.fill(input_byte);
+    CMutableTransaction proposal;
+    proposal.vin.emplace_back(
+        COutPoint{Txid::FromUint256(uint256{std::span{input}}), 0});
+    proposal.vout.emplace_back(
+        0,
+        chainregistry::BuildBmmAnchorScript({
+            .chain_id = chain_id,
+            .child_block_hash = child_block_hash,
+        }));
+    return MakeTransactionRef(std::move(proposal));
+}
+
+CTransactionRef Coinbase(const uint256& registry_root)
+{
+    CMutableTransaction coinbase;
+    coinbase.vin.emplace_back(COutPoint{});
+    coinbase.vout.emplace_back(
+        0, chainregistry::BuildRegistryCommitment(registry_root));
+    return MakeTransactionRef(std::move(coinbase));
 }
 
 } // namespace
@@ -233,6 +263,103 @@ BOOST_AUTO_TEST_CASE(proof_rejects_wrong_domains_and_tampering)
         chainregistry::MAX_BMM_PROOF_MERKLE_BRANCH + 1);
     DataStream oversized;
     BOOST_CHECK_THROW(oversized << proof, std::ios_base::failure);
+}
+
+BOOST_AUTO_TEST_CASE(block_validation_uses_final_registry_and_unique_chains)
+{
+    const auto first{Record()};
+    auto second{first};
+    second.chain_id = chainregistry::ChainId{
+        "7777777777777777777777777777777777777777777777777777777777777777"};
+    second.control_outpoint = COutPoint{
+        Txid{"8888888888888888888888888888888888888888888888888888888888888888"}, 0};
+    chainregistry::ChainRegistry registry;
+    BOOST_REQUIRE(registry.LoadRecords({first, second}).IsValid());
+
+    CBlock block;
+    block.vtx = {
+        Coinbase(registry.ComputeRoot()),
+        Proposal(first.chain_id, CHILD_BLOCK, 1),
+        Proposal(second.chain_id,
+                 uint256{"9999999999999999999999999999999999999999999999999999999999999999"},
+                 2),
+    };
+    auto result{chainregistry::ValidateBlockBmmAnchors(block, registry, 2)};
+    BOOST_REQUIRE(result.IsValid());
+    BOOST_REQUIRE_EQUAL(result.anchors.size(), 2U);
+    BOOST_CHECK(result.anchors[0].anchor.chain_id == first.chain_id);
+    BOOST_CHECK_EQUAL(result.anchors[0].transaction_index, 1U);
+    BOOST_CHECK_EQUAL(result.anchors[0].output_index, 0U);
+
+    result = chainregistry::ValidateBlockBmmAnchors(block, registry, 1);
+    BOOST_CHECK(result.error ==
+                chainregistry::BmmBlockValidationError::TOO_MANY_ANCHORS);
+    BOOST_CHECK(result.chain_id == second.chain_id);
+
+    block.vtx[2] = Proposal(first.chain_id, CHILD_BLOCK, 2);
+    result = chainregistry::ValidateBlockBmmAnchors(block, registry, 2);
+    BOOST_CHECK(result.error ==
+                chainregistry::BmmBlockValidationError::DUPLICATE_CHAIN);
+
+    constexpr chainregistry::ChainId unknown{
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab"};
+    block.vtx.resize(2);
+    block.vtx[1] = Proposal(unknown, CHILD_BLOCK, 3);
+    result = chainregistry::ValidateBlockBmmAnchors(block, registry, 2);
+    BOOST_CHECK(result.error ==
+                chainregistry::BmmBlockValidationError::UNKNOWN_CHAIN);
+
+    second.status = chainregistry::ChainStatus::RETIRED;
+    second.updated_height = 11;
+    second.retired_height = 11;
+    BOOST_REQUIRE(registry.LoadRecords({first, second}).IsValid());
+    block.vtx[1] = Proposal(second.chain_id, CHILD_BLOCK, 4);
+    result = chainregistry::ValidateBlockBmmAnchors(block, registry, 2);
+    BOOST_CHECK(result.error ==
+                chainregistry::BmmBlockValidationError::INACTIVE_CHAIN);
+}
+
+BOOST_AUTO_TEST_CASE(block_validation_rejects_coinbase_and_malformed_proposals)
+{
+    chainregistry::ChainRegistry registry;
+    BOOST_REQUIRE(registry.LoadRecords({Record()}).IsValid());
+
+    CBlock block;
+    auto result{chainregistry::ValidateBlockBmmAnchors(block, registry, 1)};
+    BOOST_CHECK(result.error == chainregistry::BmmBlockValidationError::EMPTY_BLOCK);
+
+    block.vtx = {Proposal(CHILD_CHAIN, CHILD_BLOCK, 1)};
+    result = chainregistry::ValidateBlockBmmAnchors(block, registry, 1);
+    BOOST_CHECK(result.error ==
+                chainregistry::BmmBlockValidationError::INVALID_COINBASE);
+
+    CMutableTransaction anchor_coinbase;
+    anchor_coinbase.vin.emplace_back(COutPoint{});
+    anchor_coinbase.vout.emplace_back(
+        0,
+        chainregistry::BuildBmmAnchorScript({
+            .chain_id = CHILD_CHAIN,
+            .child_block_hash = CHILD_BLOCK,
+        }));
+    block.vtx = {MakeTransactionRef(std::move(anchor_coinbase))};
+    result = chainregistry::ValidateBlockBmmAnchors(block, registry, 1);
+    BOOST_CHECK(result.error ==
+                chainregistry::BmmBlockValidationError::COINBASE_ANCHOR);
+
+    CMutableTransaction malformed{*Proposal(CHILD_CHAIN, CHILD_BLOCK, 2)};
+    malformed.vout.emplace_back(
+        0,
+        chainregistry::BuildBmmAnchorScript({
+            .chain_id = CHILD_CHAIN,
+            .child_block_hash = CHILD_BLOCK,
+        }));
+    block.vtx = {Coinbase(registry.ComputeRoot()),
+                 MakeTransactionRef(std::move(malformed))};
+    result = chainregistry::ValidateBlockBmmAnchors(block, registry, 1);
+    BOOST_CHECK(result.error ==
+                chainregistry::BmmBlockValidationError::INVALID_PROPOSAL);
+    BOOST_CHECK(result.transaction_error ==
+                chainregistry::TxBmmAnchorError::MULTIPLE_ANCHORS);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

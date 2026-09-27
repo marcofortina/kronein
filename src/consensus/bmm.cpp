@@ -6,6 +6,9 @@
 
 #include <hash.h>
 
+#include <set>
+#include <utility>
+
 namespace chainregistry {
 namespace {
 
@@ -13,6 +16,22 @@ BmmProofValidationResult ProofError(BmmProofValidationError error)
 {
     BmmProofValidationResult result;
     result.error = error;
+    return result;
+}
+
+BmmBlockValidationResult BlockError(
+    BmmBlockValidationError error,
+    std::optional<uint32_t> transaction_index = std::nullopt,
+    std::optional<ChainId> chain_id = std::nullopt,
+    TxBmmAnchorError transaction_error = TxBmmAnchorError::NONE,
+    BmmAnchorParseError parse_error = BmmAnchorParseError::NONE)
+{
+    BmmBlockValidationResult result;
+    result.error = error;
+    result.transaction_error = transaction_error;
+    result.parse_error = parse_error;
+    result.transaction_index = transaction_index;
+    result.chain_id = std::move(chain_id);
     return result;
 }
 
@@ -96,6 +115,80 @@ BmmProofValidationResult ValidateBmmAnchorProofStructure(
     BmmProofValidationResult result;
     result.anchor = *extracted.anchor;
     result.registry_root = *commitment.root;
+    return result;
+}
+
+BmmBlockValidationResult ValidateBlockBmmAnchors(
+    const CBlock& block,
+    const ChainRegistry& final_registry,
+    uint32_t maximum_anchors)
+{
+    if (block.vtx.empty()) {
+        return BlockError(BmmBlockValidationError::EMPTY_BLOCK);
+    }
+    if (!block.vtx.front()->IsCoinBase()) {
+        return BlockError(BmmBlockValidationError::INVALID_COINBASE, 0);
+    }
+
+    const auto coinbase_anchor{
+        ExtractTransactionBmmAnchor(*block.vtx.front())};
+    if (!coinbase_anchor.IsValid() || coinbase_anchor.anchor) {
+        return BlockError(BmmBlockValidationError::COINBASE_ANCHOR,
+                          0,
+                          coinbase_anchor.anchor
+                              ? std::optional{coinbase_anchor.anchor->chain_id}
+                              : std::nullopt,
+                          coinbase_anchor.error,
+                          coinbase_anchor.parse_error);
+    }
+
+    BmmBlockValidationResult result;
+    std::set<ChainId> seen_chains;
+    for (size_t transaction_index{1}; transaction_index < block.vtx.size();
+         ++transaction_index) {
+        const CTransaction& transaction{*block.vtx[transaction_index]};
+        if (transaction.IsCoinBase()) {
+            return BlockError(
+                BmmBlockValidationError::INVALID_COINBASE,
+                static_cast<uint32_t>(transaction_index));
+        }
+        const auto extracted{ExtractTransactionBmmAnchor(transaction)};
+        if (!extracted.IsValid()) {
+            return BlockError(BmmBlockValidationError::INVALID_PROPOSAL,
+                              static_cast<uint32_t>(transaction_index),
+                              std::nullopt,
+                              extracted.error,
+                              extracted.parse_error);
+        }
+        if (!extracted.anchor) continue;
+        const ChainId& chain_id{extracted.anchor->chain_id};
+        if (!seen_chains.insert(chain_id).second) {
+            return BlockError(BmmBlockValidationError::DUPLICATE_CHAIN,
+                              static_cast<uint32_t>(transaction_index),
+                              chain_id);
+        }
+        const ChainRecord* record{final_registry.Find(chain_id)};
+        if (!record) {
+            return BlockError(BmmBlockValidationError::UNKNOWN_CHAIN,
+                              static_cast<uint32_t>(transaction_index),
+                              chain_id);
+        }
+        if (record->status != ChainStatus::ACTIVE) {
+            return BlockError(BmmBlockValidationError::INACTIVE_CHAIN,
+                              static_cast<uint32_t>(transaction_index),
+                              chain_id);
+        }
+        if (result.anchors.size() >= maximum_anchors) {
+            return BlockError(BmmBlockValidationError::TOO_MANY_ANCHORS,
+                              static_cast<uint32_t>(transaction_index),
+                              chain_id);
+        }
+        result.anchors.push_back(BlockBmmAnchor{
+            .transaction_index = static_cast<uint32_t>(transaction_index),
+            .output_index = *extracted.output_index,
+            .anchor = *extracted.anchor,
+        });
+    }
     return result;
 }
 
