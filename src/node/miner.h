@@ -6,6 +6,8 @@
 #ifndef BITCOIN_NODE_MINER_H
 #define BITCOIN_NODE_MINER_H
 
+#include <consensus/amount.h>
+#include <consensus/chainregistry.h>
 #include <interfaces/types.h>
 #include <node/types.h>
 #include <policy/policy.h>
@@ -16,6 +18,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <set>
 
 #include <boost/multi_index/identity.hpp>
 #include <boost/multi_index/indexed_by.hpp>
@@ -70,6 +73,15 @@ private:
     int nHeight;
     int64_t m_lock_time_cutoff;
 
+    // Candidate child-chain protocol state for the transactions selected so
+    // far. It prevents a later registry transition from invalidating an
+    // already selected deposit or BMM anchor.
+    chainregistry::ChainRegistry m_registry_candidate;
+    size_t m_registry_operation_count{0};
+    std::vector<chainregistry::ChainId> m_deposit_chains;
+    CAmount m_deposit_total_amount{0};
+    std::set<chainregistry::ChainId> m_bmm_anchor_chains;
+
     const CChainParams& chainparams;
     const CTxMemPool* const m_mempool;
     Chainstate& m_chainstate;
@@ -113,10 +125,9 @@ private:
     // helper functions for addChunks()
     /** Test if a new chunk would "fit" in the block */
     bool TestChunkBlockLimits(FeePerWeight chunk_feerate) const;
-    /** Perform locktime checks on each transaction in a chunk:
-      * This check should always succeed, and is here
-      * only as an extra check in case of a bug */
-    bool TestChunkTransactions(const std::vector<CTxMemPoolEntryRef>& txs) const;
+    /** Check finality and atomically advance the candidate child-chain
+     * protocol state for a block-builder chunk. */
+    bool TestChunkTransactions(const std::vector<CTxMemPoolEntryRef>& txs);
 };
 
 /**

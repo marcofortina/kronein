@@ -12,6 +12,7 @@
 #include <checkqueue.h>
 #include <clientversion.h>
 #include <consensus/amount.h>
+#include <consensus/bmm.h>
 #include <consensus/chainregistry.h>
 #include <consensus/deposit.h>
 #include <consensus/consensus.h>
@@ -779,10 +780,12 @@ bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
     const auto current_operation{
         chainregistry::ExtractTransactionOperation(*ws.m_ptx, params.minimum_registration_burn)};
     const auto current_funds{chainregistry::ExtractTransactionFunds(*ws.m_ptx)};
+    const auto current_anchor{chainregistry::ExtractTransactionBmmAnchor(*ws.m_ptx)};
     const int next_height{m_active_chainstate.m_chain.Height() + 1};
     if (!params.IsActive(next_height)) {
         if (!current_operation.IsValid() || current_operation.operation ||
-            !current_funds.IsValid() || !current_funds.funds.empty()) {
+            !current_funds.IsValid() || !current_funds.funds.empty() ||
+            !current_anchor.IsValid() || current_anchor.anchor) {
             return ws.m_state.Invalid(TxValidationResult::TX_NOT_STANDARD,
                                       "chain-registry-inactive");
         }
@@ -792,6 +795,11 @@ bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
         (!current_funds.IsValid() || !current_funds.funds.empty())) {
         return ws.m_state.Invalid(TxValidationResult::TX_NOT_STANDARD,
                                   "chain-deposits-inactive");
+    }
+    if (!params.BmmActive(next_height) &&
+        (!current_anchor.IsValid() || current_anchor.anchor)) {
+        return ws.m_state.Invalid(TxValidationResult::TX_NOT_STANDARD,
+                                  "chain-bmm-inactive");
     }
 
     chainregistry::ChainRegistry candidate{
@@ -880,6 +888,37 @@ bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
                           static_cast<unsigned>(deposits.parse_error),
                           deposits.transaction ? strprintf(", txid %s", deposits.transaction->ToString()) : "",
                           deposits.output_index ? strprintf(", vout %u", *deposits.output_index) : ""));
+        }
+    }
+    if (params.BmmActive(next_height)) {
+        CMutableTransaction coinbase;
+        coinbase.vin.resize(1);
+        coinbase.vin.front().prevout.SetNull();
+        CBlock candidate_block;
+        candidate_block.vtx.reserve(
+            1 + ordered_ancestors.size() + staged.size());
+        candidate_block.vtx.push_back(MakeTransactionRef(std::move(coinbase)));
+        for (const CTransaction* tx : ordered_ancestors) {
+            candidate_block.vtx.push_back(MakeTransactionRef(*tx));
+        }
+        candidate_block.vtx.insert(
+            candidate_block.vtx.end(), staged.begin(), staged.end());
+        const auto anchors{chainregistry::ValidateBlockBmmAnchors(
+            candidate_block, candidate, params.maximum_bmm_anchors)};
+        if (!anchors.IsValid()) {
+            return ws.m_state.Invalid(
+                TxValidationResult::TX_CONSENSUS,
+                "bad-chain-bmm",
+                strprintf("BMM error %u, transaction error %u, parse error %u%s%s",
+                          static_cast<unsigned>(anchors.error),
+                          static_cast<unsigned>(anchors.transaction_error),
+                          static_cast<unsigned>(anchors.parse_error),
+                          anchors.transaction_index
+                              ? strprintf(", transaction %u", *anchors.transaction_index)
+                              : "",
+                          anchors.chain_id
+                              ? strprintf(", chain %s", anchors.chain_id->ToString())
+                              : ""));
         }
     }
     return true;

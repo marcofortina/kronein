@@ -11,6 +11,7 @@
 #include <coins.h>
 #include <common/args.h>
 #include <consensus/amount.h>
+#include <consensus/bmm.h>
 #include <consensus/chainregistry.h>
 #include <consensus/consensus.h>
 #include <consensus/merkle.h>
@@ -171,6 +172,11 @@ void BlockAssembler::resetBlock()
     // These counters do not include coinbase tx
     nBlockTx = 0;
     nFees = 0;
+    m_registry_candidate = {};
+    m_registry_operation_count = 0;
+    m_deposit_chains.clear();
+    m_deposit_total_amount = 0;
+    m_bmm_anchor_chains.clear();
 }
 
 std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock()
@@ -197,6 +203,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock()
     CBlockIndex* pindexPrev = m_chainstate.m_chain.Tip();
     assert(pindexPrev != nullptr);
     nHeight = pindexPrev->nHeight + 1;
+    m_registry_candidate = m_chainstate.ChainRegistryState().Registry();
 
     pblock->nVersion = CBlockHeader::CURRENT_VERSION;
 
@@ -304,15 +311,91 @@ bool BlockAssembler::TestChunkBlockLimits(FeePerWeight chunk_feerate) const
     return true;
 }
 
-// Perform transaction-level checks before adding to block:
-// - transaction finality (locktime)
-bool BlockAssembler::TestChunkTransactions(const std::vector<CTxMemPoolEntryRef>& txs) const
+// Check finality and advance a candidate child-chain protocol state before
+// adding a chunk. State is published only when the whole chunk can coexist
+// with every registry transition, deposit and BMM anchor selected so far.
+bool BlockAssembler::TestChunkTransactions(const std::vector<CTxMemPoolEntryRef>& txs)
 {
+    const Consensus::Params& consensus{chainparams.GetConsensus()};
+    const auto& params{consensus.chain_registry};
+    chainregistry::ChainRegistry candidate{m_registry_candidate};
+    size_t operation_count{m_registry_operation_count};
+    std::vector<chainregistry::ChainId> new_deposit_chains;
+    CAmount deposit_total{m_deposit_total_amount};
+    std::set<chainregistry::ChainId> new_anchor_chains;
+
     for (const auto tx : txs) {
-        if (!IsFinalTx(tx.get().GetTx(), nHeight, m_lock_time_cutoff)) {
+        const CTransaction& transaction{tx.get().GetTx()};
+        if (!IsFinalTx(transaction, nHeight, m_lock_time_cutoff)) {
+            return false;
+        }
+        if (!params.IsActive(nHeight)) continue;
+
+        const auto commitment{chainregistry::ExtractRegistryCommitment(transaction)};
+        if (!commitment.IsValid() || commitment.root) return false;
+
+        const auto transition{candidate.ApplyTransaction(
+            transaction,
+            static_cast<uint32_t>(nHeight),
+            consensus.hashGenesisBlock,
+            params.minimum_registration_burn)};
+        if (!transition.IsValid()) return false;
+        if (transition.HasOperation() && ++operation_count > params.maximum_operations) {
+            return false;
+        }
+
+        const auto funds{chainregistry::ExtractTransactionFunds(transaction)};
+        if (!funds.IsValid()) return false;
+        if (!params.DepositsActive(nHeight) && !funds.funds.empty()) return false;
+        for (const auto& output : funds.funds) {
+            if (new_deposit_chains.size() + m_deposit_chains.size() >=
+                    params.maximum_deposits ||
+                output.amount < params.minimum_deposit_amount ||
+                output.amount > MAX_MONEY - deposit_total) {
+                return false;
+            }
+            deposit_total += output.amount;
+            new_deposit_chains.push_back(output.fund.chain_id);
+        }
+
+        const auto anchor{chainregistry::ExtractTransactionBmmAnchor(transaction)};
+        if (!anchor.IsValid()) return false;
+        if (!anchor.anchor) continue;
+        if (!params.BmmActive(nHeight) ||
+            m_bmm_anchor_chains.size() + new_anchor_chains.size() >=
+                params.maximum_bmm_anchors ||
+            m_bmm_anchor_chains.contains(anchor.anchor->chain_id) ||
+            !new_anchor_chains.insert(anchor.anchor->chain_id).second) {
             return false;
         }
     }
+
+    const auto is_active = [&candidate](const chainregistry::ChainId& chain_id) {
+        const auto* record{candidate.Find(chain_id)};
+        return record && record->status == chainregistry::ChainStatus::ACTIVE;
+    };
+    for (const auto& chain_id : m_deposit_chains) {
+        if (!is_active(chain_id)) return false;
+    }
+    for (const auto& chain_id : new_deposit_chains) {
+        if (!is_active(chain_id)) return false;
+    }
+    for (const auto& chain_id : m_bmm_anchor_chains) {
+        if (!is_active(chain_id)) return false;
+    }
+    for (const auto& chain_id : new_anchor_chains) {
+        if (!is_active(chain_id)) return false;
+    }
+
+    m_registry_candidate = std::move(candidate);
+    m_registry_operation_count = operation_count;
+    m_deposit_chains.insert(
+        m_deposit_chains.end(),
+        new_deposit_chains.begin(),
+        new_deposit_chains.end());
+    m_deposit_total_amount = deposit_total;
+    m_bmm_anchor_chains.insert(
+        new_anchor_chains.begin(), new_anchor_chains.end());
     return true;
 }
 
