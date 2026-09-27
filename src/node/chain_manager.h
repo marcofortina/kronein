@@ -102,6 +102,22 @@ struct ChainManagerView {
     bool IsValid() const { return error == ChainManagerViewError::NONE; }
 };
 
+enum class ChainManagerBlockViewError : uint8_t {
+    NONE,
+    NULL_CHAIN_ID,
+    UNKNOWN_CHAIN,
+    CHAIN_NOT_LOADED,
+    BLOCK_NOT_FOUND,
+};
+
+struct ChainManagerBlockView {
+    ChainManagerBlockViewError error{ChainManagerBlockViewError::NONE};
+    ChainManagerEntry entry;
+    ReferenceChildBlockView block;
+
+    bool IsValid() const { return error == ChainManagerBlockViewError::NONE; }
+};
+
 /**
  * Opt-in owner for isolated child runtimes.
  *
@@ -185,6 +201,9 @@ public:
     ChainManagerView GetChainView(
         const chainregistry::ChainId& chain_id,
         std::optional<int> height = std::nullopt) const;
+    ChainManagerBlockView GetBlockView(
+        const chainregistry::ChainId& chain_id,
+        const uint256& block_hash) const;
     std::vector<ChainManagerEntry> List() const;
     size_t RegisteredCount() const;
     size_t LoadedCount() const;

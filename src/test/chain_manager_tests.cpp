@@ -137,6 +137,17 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
     BOOST_REQUIRE(genesis_view.IsValid());
     BOOST_REQUIRE(genesis_view.block_hash);
     BOOST_CHECK(*genesis_view.block_hash == first.genesis_hash);
+    const auto genesis_block_view{
+        manager.GetBlockView(first.chain_id, first.genesis_hash)};
+    BOOST_REQUIRE(genesis_block_view.IsValid());
+    BOOST_CHECK(genesis_block_view.block.virtual_genesis);
+    BOOST_CHECK(!genesis_block_view.block.block);
+    BOOST_CHECK(genesis_block_view.block.active);
+    BOOST_CHECK_EQUAL(genesis_block_view.block.height, 0);
+    BOOST_CHECK_EQUAL(genesis_block_view.block.confirmations, 1);
+    BOOST_CHECK(
+        manager.GetBlockView(first.chain_id, uint256{42}).error ==
+        node::ChainManagerBlockViewError::BLOCK_NOT_FOUND);
     BOOST_CHECK(manager.GetChainView(first.chain_id, 1).error ==
                 node::ChainManagerViewError::HEIGHT_OUT_OF_RANGE);
     BOOST_CHECK(manager.GetChainView(second.chain_id).error ==

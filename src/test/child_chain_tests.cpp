@@ -294,6 +294,26 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
         BOOST_REQUIRE(runtime.ReadBlock(child_hash, stored));
         BOOST_CHECK(stored.vtx.front()->GetWitnessHash() ==
                     block.vtx.front()->GetWitnessHash());
+        const auto child_view{runtime.GetBlockView(child_hash)};
+        BOOST_REQUIRE(child_view);
+        BOOST_REQUIRE(child_view->block);
+        BOOST_CHECK(child_view->block->GetHash() == child_hash);
+        BOOST_CHECK(child_view->active);
+        BOOST_CHECK(!child_view->virtual_genesis);
+        BOOST_CHECK_EQUAL(child_view->height, 1);
+        BOOST_CHECK_EQUAL(child_view->confirmations, 1);
+        BOOST_CHECK(child_view->fork_score.eligible);
+        BOOST_CHECK(child_view->fork_score.cumulative_anchor_work > 0);
+        const auto genesis_view{
+            runtime.GetBlockView(definition.genesis_hash)};
+        BOOST_REQUIRE(genesis_view);
+        BOOST_CHECK(genesis_view->virtual_genesis);
+        BOOST_CHECK(!genesis_view->block);
+        BOOST_CHECK(genesis_view->active);
+        BOOST_CHECK_EQUAL(genesis_view->confirmations, 2);
+        BOOST_REQUIRE(genesis_view->next_block_hash);
+        BOOST_CHECK(*genesis_view->next_block_hash == child_hash);
+        BOOST_CHECK(!runtime.GetBlockView(uint256{42}));
 
         const CBlock invalid{ChildBlock(*runtime.Tip(), /*reward=*/1)};
         main_parent = runtime.MainHeaders()->Tip();

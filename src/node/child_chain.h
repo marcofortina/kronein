@@ -7,6 +7,7 @@
 
 #include <chain.h>
 #include <chainregistry/child_block.h>
+#include <chainregistry/child_fork_choice.h>
 #include <chainregistry/child_template.h>
 #include <chainregistry/deposit_import.h>
 #include <chainregistry/mainchain_lightclient.h>
@@ -63,6 +64,19 @@ struct ReferenceChildRuntimeResult {
     bool loaded_existing{false};
 
     bool IsValid() const { return error == ReferenceChildRuntimeError::NONE; }
+};
+
+struct ReferenceChildBlockView {
+    uint256 block_hash;
+    std::optional<CBlock> block;
+    int height{0};
+    int confirmations{-1};
+    uint32_t time{0};
+    int64_t median_time{0};
+    bool active{false};
+    bool virtual_genesis{false};
+    std::optional<uint256> next_block_hash;
+    chainregistry::ChildForkScore fork_score;
 };
 
 /**
@@ -160,6 +174,8 @@ public:
     const ChildChainDBState& State() const { return m_state; }
     const CBlockIndex* Tip() const { return m_tip; }
     std::optional<uint256> GetBlockHash(int height) const;
+    std::optional<ReferenceChildBlockView> GetBlockView(
+        const uint256& block_hash) const;
     std::optional<Coin> GetCoin(const COutPoint& outpoint) const;
     bool ReadBlock(const uint256& block_hash, CBlock& block) const;
 };

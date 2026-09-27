@@ -988,6 +988,61 @@ std::optional<uint256> ReferenceChildRuntime::GetBlockHash(int height) const
     return index->GetBlockHash();
 }
 
+std::optional<ReferenceChildBlockView> ReferenceChildRuntime::GetBlockView(
+    const uint256& block_hash) const
+{
+    if (!Usable() || !m_tip || !m_genesis || !m_db) return std::nullopt;
+
+    const CBlockIndex* index{nullptr};
+    const bool virtual_genesis{block_hash == m_definition.genesis_hash};
+    if (virtual_genesis) {
+        index = m_genesis.get();
+    } else {
+        const auto found{m_child_index.find(block_hash)};
+        if (found == m_child_index.end()) return std::nullopt;
+        index = found->second.get();
+    }
+
+    ReferenceChildBlockView result{
+        .block_hash = block_hash,
+        .block = std::nullopt,
+        .height = index->nHeight,
+        .confirmations = -1,
+        .time = index->nTime,
+        .median_time = index->GetMedianTimePast(),
+        .active = false,
+        .virtual_genesis = virtual_genesis,
+        .next_block_hash = std::nullopt,
+        .fork_score = {},
+    };
+    const CBlockIndex* active{m_tip->GetAncestor(index->nHeight)};
+    result.active = active && active->GetBlockHash() == block_hash;
+    if (result.active) {
+        result.confirmations = m_tip->nHeight - index->nHeight + 1;
+        if (index->nHeight < m_tip->nHeight) {
+            const CBlockIndex* next{m_tip->GetAncestor(index->nHeight + 1)};
+            Assume(next);
+            result.next_block_hash = next->GetBlockHash();
+        }
+    }
+    if (virtual_genesis) return result;
+
+    CBlock block;
+    if (!m_db->ReadBlock(block_hash, block) || block.GetHash() != block_hash) {
+        return std::nullopt;
+    }
+    result.block = std::move(block);
+    const auto candidates{m_db->ReadForkCandidates(*m_main_headers)};
+    if (!candidates) return std::nullopt;
+    const auto selected{chainregistry::SelectChildFork(
+        m_definition.genesis_hash, *candidates)};
+    if (!selected.IsValid()) return std::nullopt;
+    const auto score{selected.scores.find(block_hash)};
+    if (score == selected.scores.end()) return std::nullopt;
+    result.fork_score = score->second;
+    return result;
+}
+
 bool ReferenceChildRuntime::ReadBlock(const uint256& block_hash,
                                       CBlock& block) const
 {
