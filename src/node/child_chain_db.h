@@ -8,6 +8,7 @@
 #include <chainregistry/child_block.h>
 #include <chainregistry/deposit_import.h>
 #include <chainregistry/mainchain_lightclient.h>
+#include <consensus/bmm.h>
 #include <coins.h>
 #include <dbwrapper.h>
 #include <primitives/chainregistry.h>
@@ -19,7 +20,22 @@
 
 namespace node {
 
-inline constexpr uint8_t CHILD_CHAIN_DB_VERSION{2};
+inline constexpr uint8_t CHILD_CHAIN_DB_VERSION{3};
+inline constexpr uint8_t CHILD_BMM_ANCHOR_RECORD_VERSION{1};
+
+struct ChildBmmAnchorRecord {
+    uint8_t version{CHILD_BMM_ANCHOR_RECORD_VERSION};
+    uint256 child_block_hash;
+    chainregistry::BmmAnchorProof proof;
+
+    SERIALIZE_METHODS(ChildBmmAnchorRecord, obj)
+    {
+        READWRITE(obj.version, obj.child_block_hash, obj.proof);
+    }
+
+    friend bool operator==(const ChildBmmAnchorRecord&,
+                           const ChildBmmAnchorRecord&) = default;
+};
 
 struct ChildChainDBState {
     uint8_t version{CHILD_CHAIN_DB_VERSION};
@@ -31,6 +47,7 @@ struct ChildChainDBState {
     uint256 child_genesis_hash;
     uint256 child_tip;
     uint32_t child_height{0};
+    uint64_t anchor_count{0};
     uint64_t import_count{0};
     uint64_t coin_count{0};
     bool safe_halt{false};
@@ -46,6 +63,7 @@ struct ChildChainDBState {
                   obj.child_genesis_hash,
                   obj.child_tip,
                   obj.child_height,
+                  obj.anchor_count,
                   obj.import_count,
                   obj.coin_count,
                   obj.safe_halt);
@@ -82,6 +100,11 @@ enum class ChildChainDBLoadError : uint8_t {
     BLOCK_DECODE_FAILED,
     BLOCK_COUNT_MISMATCH,
     INVALID_BLOCK_CHAIN,
+    ANCHOR_KEY_DECODE_FAILED,
+    ANCHOR_KEY_MISMATCH,
+    ANCHOR_DECODE_FAILED,
+    ANCHOR_COUNT_MISMATCH,
+    INVALID_BMM_ANCHOR,
     COIN_KEY_DECODE_FAILED,
     COIN_DECODE_FAILED,
     COIN_COUNT_MISMATCH,
@@ -126,9 +149,11 @@ public:
                          const chainregistry::DepositImportState& imports,
                          const CBlockHeader& header,
                          bool sync = false);
-    bool WriteConnectedChildBlock(const chainregistry::DepositImportState& imports,
+    bool WriteConnectedChildBlock(const chainregistry::MainHeaderChain& main_headers,
+                                  const chainregistry::DepositImportState& imports,
                                   const CBlock& block,
                                   const chainregistry::ReferenceChildBlockUndo& undo,
+                                  const chainregistry::BmmAnchorProof& anchor_proof,
                                   bool sync = false);
     bool WriteDisconnectedChildBlock(const chainregistry::DepositImportState& imports,
                                      const CBlock& block,
@@ -147,6 +172,8 @@ public:
     bool ReadBlock(const uint256& child_block_hash, CBlock& block) const;
     bool ReadUndo(const uint256& child_block_hash,
                   chainregistry::ReferenceChildBlockUndo& undo) const;
+    std::optional<ChildBmmAnchorRecord> ReadBmmAnchor(
+        const uint256& child_block_hash) const;
 };
 
 } // namespace node

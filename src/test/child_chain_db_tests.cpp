@@ -121,6 +121,56 @@ chainregistry::DepositProof MakeDepositProof(CBlock& block,
     };
 }
 
+chainregistry::BmmAnchorProof MakeBmmProof(
+    CBlock& block,
+    const CBlockIndex& parent,
+    const Consensus::Params& params,
+    const uint256& child_block_hash)
+{
+    const auto record{ChildRecord()};
+    chainregistry::ChainRegistry registry;
+    BOOST_REQUIRE(registry.LoadRecords({record}).IsValid());
+
+    CMutableTransaction coinbase;
+    coinbase.vin.emplace_back(COutPoint{});
+    coinbase.vout.emplace_back(
+        0, chainregistry::BuildRegistryCommitment(registry.ComputeRoot()));
+    CMutableTransaction proposal;
+    proposal.vin.emplace_back(COutPoint{
+        Txid{"6666666666666666666666666666666666666666666666666666666666666666"}, 0});
+    proposal.vout.emplace_back(
+        0,
+        chainregistry::BuildBmmAnchorScript({
+            .chain_id = CHILD_CHAIN,
+            .child_block_hash = child_block_hash,
+        }));
+
+    block.nVersion = CBlockHeader::CURRENT_VERSION;
+    block.hashPrevBlock = parent.GetBlockHash();
+    block.nTime = parent.nTime + 1;
+    block.nBits = GetNextWorkRequired(&parent, &block, params);
+    block.vtx = {MakeTransactionRef(coinbase), MakeTransactionRef(proposal)};
+    block.hashMerkleRoot = BlockMerkleRoot(block);
+    const auto seed{GetRandomXSeed(&parent, parent.nHeight + 1, params)};
+    BOOST_REQUIRE(seed.has_value());
+    uint64_t max_tries{1'000'000};
+    BOOST_REQUIRE(MineProofOfWork(
+        block, *seed, params, max_tries, /*threads=*/1, /*use_full_memory=*/false));
+
+    return {
+        .main_genesis_hash = params.hashGenesisBlock,
+        .block_height = static_cast<uint32_t>(parent.nHeight + 1),
+        .block_header = block,
+        .anchor_transaction = proposal,
+        .transaction_index = 1,
+        .transaction_merkle_branch = TransactionMerklePath(block, 1),
+        .coinbase_transaction = coinbase,
+        .coinbase_merkle_branch = TransactionMerklePath(block, 0),
+        .chain_record = record,
+        .registry_proof = *registry.GetInclusionProof(CHILD_CHAIN),
+    };
+}
+
 CBlock MakeChildBlock(
     const uint256& parent,
     uint32_t height,
@@ -181,7 +231,7 @@ BOOST_AUTO_TEST_CASE(persists_headers_imports_and_child_undo)
     CBlock child_block;
     chainregistry::DepositId deposit_id;
     chainregistry::ReferenceChildBlockUndo child_undo;
-    CBlockHeader confirmation;
+    CBlockHeader main_tip;
     {
         chainregistry::MainHeaderChain headers{params};
         BOOST_REQUIRE(headers.Initialize(genesis).IsValid());
@@ -209,11 +259,19 @@ BOOST_AUTO_TEST_CASE(persists_headers_imports_and_child_undo)
         AddAndPersist(db, headers, imports, deposit_block);
         const CBlockIndex* deposit_index{headers.Find(deposit_block.GetHash())};
         BOOST_REQUIRE(deposit_index);
-        confirmation = MineHeader(*deposit_index, params, 1);
+        const CBlockHeader confirmation{MineHeader(*deposit_index, params, 1)};
         AddAndPersist(db, headers, imports, confirmation);
 
         deposit_id = ProofDepositId(proof, params.hashGenesisBlock);
         child_block = MakeChildBlock(CHILD_GENESIS, 1, deposit_id);
+        const CBlockIndex* confirmation_index{
+            headers.Find(confirmation.GetHash())};
+        BOOST_REQUIRE(confirmation_index);
+        CBlock anchor_block;
+        const auto anchor_proof{MakeBmmProof(
+            anchor_block, *confirmation_index, params, child_block.GetHash())};
+        AddAndPersist(db, headers, imports, anchor_block);
+        main_tip = anchor_block;
         const auto imported{
             imports.ImportProof(proof, headers, child_block.GetHash(), 1)};
         BOOST_REQUIRE(imported.IsValid());
@@ -232,7 +290,12 @@ BOOST_AUTO_TEST_CASE(persists_headers_imports_and_child_undo)
         }
         coin_cache.SetBestBlock(child_block.GetHash());
         BOOST_REQUIRE(db.WriteConnectedChildBlock(
-            imports, child_block, child_undo, /*sync=*/true));
+            headers,
+            imports,
+            child_block,
+            child_undo,
+            anchor_proof,
+            /*sync=*/true));
         coin_cache.Flush();
         const auto stored{db.ReadImport(deposit_id)};
         BOOST_REQUIRE(stored.has_value());
@@ -252,15 +315,16 @@ BOOST_AUTO_TEST_CASE(persists_headers_imports_and_child_undo)
                               2,
                               CHILD_GENESIS};
         node::ChildChainDBState state;
-        const auto loaded{db.Load(headers, imports, state, confirmation.nTime + 1)};
+        const auto loaded{db.Load(headers, imports, state, main_tip.nTime + 1)};
         BOOST_REQUIRE_MESSAGE(loaded.IsValid(), static_cast<int>(loaded.error));
         BOOST_CHECK(loaded.initialized);
-        BOOST_CHECK_EQUAL(state.header_count, 3U);
+        BOOST_CHECK_EQUAL(state.header_count, 4U);
+        BOOST_CHECK_EQUAL(state.anchor_count, 1U);
         BOOST_CHECK_EQUAL(state.import_count, 1U);
         BOOST_CHECK_EQUAL(state.coin_count, 2U);
         BOOST_CHECK(state.child_tip == child_block.GetHash());
         BOOST_CHECK_EQUAL(state.child_height, 1U);
-        BOOST_CHECK(headers.Tip()->GetBlockHash() == confirmation.GetHash());
+        BOOST_CHECK(headers.Tip()->GetBlockHash() == main_tip.GetHash());
         BOOST_CHECK(imports.Find(deposit_id) != nullptr);
         chainregistry::ReferenceChildBlockUndo stored_undo;
         BOOST_REQUIRE(db.ReadUndo(child_block.GetHash(), stored_undo));
@@ -268,6 +332,9 @@ BOOST_AUTO_TEST_CASE(persists_headers_imports_and_child_undo)
         CBlock stored_block;
         BOOST_REQUIRE(db.ReadBlock(child_block.GetHash(), stored_block));
         BOOST_CHECK(stored_block.vtx.size() == child_block.vtx.size());
+        const auto stored_anchor{db.ReadBmmAnchor(child_block.GetHash())};
+        BOOST_REQUIRE(stored_anchor.has_value());
+        BOOST_CHECK(stored_anchor->child_block_hash == child_block.GetHash());
         BOOST_CHECK(db.HaveCoin(COutPoint{child_block.vtx.front()->GetHash(), 0}));
         BOOST_CHECK(db.HaveCoin(COutPoint{child_block.vtx.back()->GetHash(), 0}));
 
@@ -290,6 +357,7 @@ BOOST_AUTO_TEST_CASE(persists_headers_imports_and_child_undo)
             /*sync=*/true));
         coin_cache.Flush();
         BOOST_CHECK(!db.ReadImport(deposit_id).has_value());
+        BOOST_CHECK(!db.ReadBmmAnchor(child_block.GetHash()).has_value());
         BOOST_CHECK(!db.HaveCoin(COutPoint{child_block.vtx.front()->GetHash(), 0}));
     }
 
@@ -306,7 +374,7 @@ BOOST_AUTO_TEST_CASE(persists_headers_imports_and_child_undo)
                               2,
                               CHILD_GENESIS};
         node::ChildChainDBState state;
-        BOOST_REQUIRE(db.Load(headers, imports, state, confirmation.nTime + 1).IsValid());
+        BOOST_REQUIRE(db.Load(headers, imports, state, main_tip.nTime + 1).IsValid());
         BOOST_CHECK_EQUAL(imports.Size(), 0U);
         BOOST_CHECK_EQUAL(state.import_count, 0U);
         BOOST_CHECK_EQUAL(state.coin_count, 0U);
@@ -326,7 +394,7 @@ BOOST_AUTO_TEST_CASE(persists_headers_imports_and_child_undo)
                               2,
                               CHILD_GENESIS};
         node::ChildChainDBState state;
-        BOOST_CHECK(db.Load(headers, imports, state, confirmation.nTime + 1).error ==
+        BOOST_CHECK(db.Load(headers, imports, state, main_tip.nTime + 1).error ==
                     node::ChildChainDBLoadError::CONFIGURATION_MISMATCH);
     }
 }
@@ -338,8 +406,9 @@ BOOST_AUTO_TEST_CASE(persists_safe_halt_across_restart)
     const fs::path path{m_args.GetDataDirBase() / "child_chain_safe_halt"};
 
     CBlock child_block;
-    CBlockHeader fork3;
+    CBlockHeader fork4;
     chainregistry::DepositId deposit_id;
+    chainregistry::BmmAnchorProof anchor_proof;
     {
         chainregistry::MainHeaderChain headers{params};
         BOOST_REQUIRE(headers.Initialize(genesis).IsValid());
@@ -368,6 +437,13 @@ BOOST_AUTO_TEST_CASE(persists_safe_halt_across_restart)
 
         deposit_id = ProofDepositId(proof, params.hashGenesisBlock);
         child_block = MakeChildBlock(CHILD_GENESIS, 1, deposit_id);
+        const CBlockIndex* confirmation_index{
+            headers.Find(confirmation.GetHash())};
+        BOOST_REQUIRE(confirmation_index);
+        CBlock anchor_block;
+        anchor_proof = MakeBmmProof(
+            anchor_block, *confirmation_index, params, child_block.GetHash());
+        AddAndPersist(db, headers, imports, anchor_block);
         const auto imported{
             imports.ImportProof(proof, headers, child_block.GetHash(), 1)};
         BOOST_REQUIRE(imported.IsValid());
@@ -379,7 +455,12 @@ BOOST_AUTO_TEST_CASE(persists_safe_halt_across_restart)
             .imports = imported.undo,
         };
         BOOST_REQUIRE(db.WriteConnectedChildBlock(
-            imports, child_block, child_undo, /*sync=*/true));
+            headers,
+            imports,
+            child_block,
+            child_undo,
+            anchor_proof,
+            /*sync=*/true));
 
         const CBlockHeader fork1{MineHeader(*genesis_index, params, 20)};
         AddAndPersist(db, headers, imports, fork1);
@@ -389,12 +470,16 @@ BOOST_AUTO_TEST_CASE(persists_safe_halt_across_restart)
         AddAndPersist(db, headers, imports, fork2);
         const CBlockIndex* fork2_index{headers.Find(fork2.GetHash())};
         BOOST_REQUIRE(fork2_index);
-        fork3 = MineHeader(*fork2_index, params, 22);
-        BOOST_REQUIRE(headers.AddHeader(fork3, fork3.nTime).IsValid());
-        BOOST_CHECK(!db.WriteMainHeader(headers, imports, fork3));
+        const CBlockHeader fork3{MineHeader(*fork2_index, params, 22)};
+        AddAndPersist(db, headers, imports, fork3);
+        const CBlockIndex* fork3_index{headers.Find(fork3.GetHash())};
+        BOOST_REQUIRE(fork3_index);
+        fork4 = MineHeader(*fork3_index, params, 23);
+        BOOST_REQUIRE(headers.AddHeader(fork4, fork4.nTime).IsValid());
+        BOOST_CHECK(!db.WriteMainHeader(headers, imports, fork4));
         const auto halted{imports.Reconcile(headers)};
         BOOST_REQUIRE(halted.newly_halted);
-        BOOST_REQUIRE(db.WriteMainHeader(headers, imports, fork3, /*sync=*/true));
+        BOOST_REQUIRE(db.WriteMainHeader(headers, imports, fork4, /*sync=*/true));
     }
 
     {
@@ -410,15 +495,15 @@ BOOST_AUTO_TEST_CASE(persists_safe_halt_across_restart)
                               2,
                               CHILD_GENESIS};
         node::ChildChainDBState state;
-        const auto loaded{db.Load(headers, imports, state, fork3.nTime + 1)};
+        const auto loaded{db.Load(headers, imports, state, fork4.nTime + 1)};
         BOOST_REQUIRE_MESSAGE(loaded.IsValid(), static_cast<int>(loaded.error));
         BOOST_CHECK(state.safe_halt);
         BOOST_CHECK(imports.IsSafeHalted());
         BOOST_REQUIRE(imports.SafeHalt().has_value());
-        BOOST_CHECK(imports.SafeHalt()->observed_main_tip == fork3.GetHash());
+        BOOST_CHECK(imports.SafeHalt()->observed_main_tip == fork4.GetHash());
         BOOST_REQUIRE_EQUAL(imports.SafeHalt()->affected_imports.size(), 1U);
         BOOST_CHECK(imports.SafeHalt()->affected_imports.front() == deposit_id);
-        BOOST_CHECK(headers.Tip()->GetBlockHash() == fork3.GetHash());
+        BOOST_CHECK(headers.Tip()->GetBlockHash() == fork4.GetHash());
         const CBlock next{MakeChildBlock(child_block.GetHash(), 2)};
         const chainregistry::ReferenceChildBlockUndo next_undo{
             .block_hash = next.GetHash(),
@@ -428,8 +513,67 @@ BOOST_AUTO_TEST_CASE(persists_safe_halt_across_restart)
             .imports = {},
         };
         BOOST_CHECK(!db.WriteConnectedChildBlock(
-            imports, next, next_undo, /*sync=*/true));
+            headers,
+            imports,
+            next,
+            next_undo,
+            anchor_proof,
+            /*sync=*/true));
     }
+}
+
+BOOST_AUTO_TEST_CASE(rejects_main_reorg_that_orphans_a_child_anchor)
+{
+    const auto& params{Params().GetConsensus()};
+    const CBlock& genesis{Params().GenesisBlock()};
+    const fs::path path{m_args.GetDataDirBase() / "child_chain_anchor_reorg"};
+    chainregistry::MainHeaderChain headers{params};
+    BOOST_REQUIRE(headers.Initialize(genesis).IsValid());
+    chainregistry::DepositImportState imports{CHILD_CHAIN, 2};
+    node::ChildChainDB db{{
+                              .path = path,
+                              .cache_bytes = 1 << 20,
+                              .wipe_data = true,
+                              .obfuscate = true,
+                          },
+                          CHILD_CHAIN,
+                          params.hashGenesisBlock,
+                          2,
+                          CHILD_GENESIS};
+    BOOST_REQUIRE(db.WriteInitialState(headers, imports, /*sync=*/true));
+
+    const CBlock child_block{MakeChildBlock(CHILD_GENESIS, 1)};
+    const CBlockIndex* genesis_index{headers.Find(genesis.GetHash())};
+    BOOST_REQUIRE(genesis_index);
+    CBlock anchor_block;
+    const auto anchor_proof{MakeBmmProof(
+        anchor_block, *genesis_index, params, child_block.GetHash())};
+    AddAndPersist(db, headers, imports, anchor_block);
+    const chainregistry::ReferenceChildBlockUndo undo{
+        .block_hash = child_block.GetHash(),
+        .parent_hash = CHILD_GENESIS,
+        .block_height = 1,
+        .coins = {},
+        .imports = {},
+    };
+    BOOST_REQUIRE(db.WriteConnectedChildBlock(
+        headers, imports, child_block, undo, anchor_proof, /*sync=*/true));
+
+    const CBlockHeader fork1{MineHeader(*genesis_index, params, 0x70)};
+    AddAndPersist(db, headers, imports, fork1);
+    const CBlockIndex* fork1_index{headers.Find(fork1.GetHash())};
+    BOOST_REQUIRE(fork1_index);
+    const CBlockHeader fork2{MineHeader(*fork1_index, params, 0x71)};
+    BOOST_REQUIRE(headers.AddHeader(fork2, fork2.nTime).IsValid());
+    BOOST_CHECK(headers.Tip()->GetBlockHash() == fork2.GetHash());
+    BOOST_CHECK(!db.WriteMainHeader(headers, imports, fork2, /*sync=*/true));
+
+    node::ChildChainDBState state;
+    BOOST_REQUIRE(db.ReadState(state));
+    BOOST_CHECK_EQUAL(state.header_count, 3U);
+    BOOST_CHECK(state.main_tip == anchor_block.GetHash());
+    BOOST_CHECK(state.child_tip == child_block.GetHash());
+    BOOST_CHECK_EQUAL(state.anchor_count, 1U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

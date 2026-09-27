@@ -103,6 +103,75 @@ CBlockHeader MineMainHeader(const CBlockIndex& parent,
     return header;
 }
 
+chainregistry::BmmAnchorProof MakeBmmProof(
+    CBlock& main_block,
+    const CBlockIndex& parent,
+    const Consensus::Params& params,
+    const chainregistry::ReferenceChildDefinition& definition,
+    const uint256& child_block_hash)
+{
+    const chainregistry::ChainRecord record{
+        .record_version = chainregistry::CHAIN_RECORD_VERSION,
+        .chain_id = definition.chain_id,
+        .manifest_hash = definition.manifest_hash,
+        .template_id = definition.manifest.spec.template_id,
+        .template_version = definition.manifest.spec.template_version,
+        .control_outpoint = COutPoint{
+            Txid{"2222222222222222222222222222222222222222222222222222222222222222"}, 0},
+        .metadata_hash = definition.manifest.initial_metadata_hash,
+        .status = chainregistry::ChainStatus::ACTIVE,
+        .registered_height = 0,
+        .updated_height = 0,
+    };
+    chainregistry::ChainRegistry registry;
+    BOOST_REQUIRE(registry.LoadRecords({record}).IsValid());
+
+    CMutableTransaction coinbase;
+    coinbase.vin.emplace_back(COutPoint{});
+    coinbase.vout.emplace_back(
+        0, chainregistry::BuildRegistryCommitment(registry.ComputeRoot()));
+    CMutableTransaction proposal;
+    proposal.vin.emplace_back(COutPoint{
+        Txid{"3333333333333333333333333333333333333333333333333333333333333333"}, 0});
+    proposal.vout.emplace_back(
+        0,
+        chainregistry::BuildBmmAnchorScript({
+            .chain_id = definition.chain_id,
+            .child_block_hash = child_block_hash,
+        }));
+
+    main_block.nVersion = CBlockHeader::CURRENT_VERSION;
+    main_block.hashPrevBlock = parent.GetBlockHash();
+    main_block.nTime = parent.nTime + 1;
+    main_block.nBits = GetNextWorkRequired(&parent, &main_block, params);
+    main_block.vtx = {
+        MakeTransactionRef(coinbase), MakeTransactionRef(proposal)};
+    main_block.hashMerkleRoot = BlockMerkleRoot(main_block);
+    const auto seed{GetRandomXSeed(&parent, parent.nHeight + 1, params)};
+    BOOST_REQUIRE(seed.has_value());
+    uint64_t max_tries{1'000'000};
+    BOOST_REQUIRE(MineProofOfWork(
+        main_block,
+        *seed,
+        params,
+        max_tries,
+        /*threads=*/1,
+        /*use_full_memory=*/false));
+
+    return {
+        .main_genesis_hash = params.hashGenesisBlock,
+        .block_height = static_cast<uint32_t>(parent.nHeight + 1),
+        .block_header = main_block,
+        .anchor_transaction = proposal,
+        .transaction_index = 1,
+        .transaction_merkle_branch = TransactionMerklePath(main_block, 1),
+        .coinbase_transaction = coinbase,
+        .coinbase_merkle_branch = TransactionMerklePath(main_block, 0),
+        .chain_record = record,
+        .registry_proof = *registry.GetInclusionProof(definition.chain_id),
+    };
+}
+
 DBParams ChildDBParams(const fs::path& path, bool wipe)
 {
     return {
@@ -141,8 +210,22 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
 
         const CBlock block{ChildBlock(*runtime.Tip())};
         child_hash = block.GetHash();
+        const CBlockIndex* main_parent{runtime.MainHeaders()->Tip()};
+        BOOST_REQUIRE(main_parent);
+        CBlock main_anchor;
+        const auto anchor_proof{MakeBmmProof(
+            main_anchor, *main_parent, params, definition, child_hash)};
+        const auto unknown_anchor{runtime.ConnectBlock(
+            block, anchor_proof, block.nTime, /*sync=*/true)};
+        BOOST_CHECK(unknown_anchor.error ==
+                    node::ReferenceChildRuntimeError::BMM_ANCHOR_REJECTED);
+        BOOST_CHECK(unknown_anchor.bmm_anchor.error ==
+                    chainregistry::AuthenticatedBmmAnchorError::HEADER_UNKNOWN);
+        BOOST_CHECK_EQUAL(runtime.State().child_height, 0U);
+        BOOST_REQUIRE(runtime.AddMainHeader(
+            main_anchor, main_anchor.nTime, /*sync=*/true).IsValid());
         const auto connected{runtime.ConnectBlock(
-            block, block.nTime, /*sync=*/true)};
+            block, anchor_proof, block.nTime, /*sync=*/true)};
         BOOST_REQUIRE_MESSAGE(
             connected.IsValid(),
             static_cast<int>(connected.error) << ":" <<
@@ -158,8 +241,24 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
                     block.vtx.front()->GetWitnessHash());
 
         const CBlock invalid{ChildBlock(*runtime.Tip(), /*reward=*/1)};
+        main_parent = runtime.MainHeaders()->Tip();
+        BOOST_REQUIRE(main_parent);
+        CBlock invalid_main_anchor;
+        const auto invalid_anchor_proof{MakeBmmProof(
+            invalid_main_anchor,
+            *main_parent,
+            params,
+            definition,
+            invalid.GetHash())};
+        BOOST_REQUIRE(runtime.AddMainHeader(
+            invalid_main_anchor,
+            invalid_main_anchor.nTime,
+            /*sync=*/true).IsValid());
         const auto rejected{runtime.ConnectBlock(
-            invalid, invalid.nTime, /*sync=*/true)};
+            invalid,
+            invalid_anchor_proof,
+            invalid.nTime,
+            /*sync=*/true)};
         BOOST_CHECK(rejected.error ==
                     node::ReferenceChildRuntimeError::CHILD_BLOCK_REJECTED);
         BOOST_CHECK_MESSAGE(

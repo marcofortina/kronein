@@ -26,7 +26,9 @@ constexpr uint8_t DB_HEADER{'H'};
 constexpr uint8_t DB_IMPORT{'I'};
 constexpr uint8_t DB_UNDO{'U'};
 constexpr uint8_t DB_SAFE_HALT{'X'};
+constexpr uint8_t DB_BMM_ANCHOR{'A'};
 
+using AnchorKey = std::pair<uint8_t, uint256>;
 using BlockKey = std::pair<uint8_t, uint256>;
 using CoinKey = std::pair<uint8_t, COutPoint>;
 using HeaderKey = std::pair<uint8_t, uint256>;
@@ -85,7 +87,8 @@ bool ValidConfiguration(const ChildChainDBState& state,
            !state.main_tip.IsNull() && state.header_count != 0 &&
            !state.child_genesis_hash.IsNull() &&
            state.child_genesis_hash == child_genesis_hash &&
-           !state.child_tip.IsNull();
+           !state.child_tip.IsNull() &&
+           state.anchor_count == state.child_height;
 }
 
 bool ImportsMatchMainChain(const chainregistry::MainHeaderChain& main_headers,
@@ -99,6 +102,64 @@ bool ImportsMatchMainChain(const chainregistry::MainHeaderChain& main_headers,
         }
     }
     return true;
+}
+
+bool IsValidStoredAnchor(
+    const ChildBmmAnchorRecord& record,
+    const chainregistry::MainHeaderChain& main_headers,
+    const chainregistry::ChainId& child_chain,
+    bool allow_inactive)
+{
+    if (record.version != CHILD_BMM_ANCHOR_RECORD_VERSION ||
+        record.child_block_hash.IsNull()) {
+        return false;
+    }
+    const auto structural{chainregistry::ValidateBmmAnchorProofStructure(
+        record.proof,
+        main_headers.Params().hashGenesisBlock,
+        child_chain)};
+    if (!structural.IsValid() || !structural.anchor ||
+        structural.anchor->child_block_hash != record.child_block_hash) {
+        return false;
+    }
+    const auto status{main_headers.GetStatus(
+        record.proof.block_header.GetHash())};
+    if (!status.known ||
+        status.height != static_cast<int>(record.proof.block_height)) {
+        return false;
+    }
+    if (allow_inactive) return true;
+    return main_headers.AuthenticateBmmAnchor(
+        record.proof, child_chain, /*minimum_confirmations=*/1).IsValid();
+}
+
+bool StoredAnchorsMatchMainChain(
+    const CDBWrapper& db,
+    const chainregistry::MainHeaderChain& main_headers,
+    const chainregistry::ChainId& child_chain,
+    uint64_t expected_count,
+    bool allow_inactive)
+{
+    uint64_t count{0};
+    std::unique_ptr<CDBIterator> cursor{const_cast<CDBWrapper&>(db).NewIterator()};
+    cursor->Seek(AnchorKey{DB_BMM_ANCHOR, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) return false;
+        if (prefix != DB_BMM_ANCHOR) break;
+        AnchorKey key;
+        ChildBmmAnchorRecord record;
+        if (!cursor->GetKey(key) || !cursor->GetValue(record) ||
+            key.second != record.child_block_hash ||
+            !IsValidStoredAnchor(
+                record, main_headers, child_chain, allow_inactive) ||
+            count == std::numeric_limits<uint64_t>::max()) {
+            return false;
+        }
+        ++count;
+        cursor->Next();
+    }
+    return count == expected_count;
 }
 
 bool CoinsEqual(const Coin& left, const Coin& right)
@@ -352,6 +413,7 @@ ChildChainDBLoadResult ChildChainDB::Load(
             return LoadError(ChildChainDBLoadError::STATE_DECODE_FAILED);
         }
         if (HasKeyWithPrefix(m_db, DB_BLOCK) ||
+            HasKeyWithPrefix(m_db, DB_BMM_ANCHOR) ||
             HasKeyWithPrefix(m_db, DB_COIN) ||
             HasKeyWithPrefix(m_db, DB_HEADER) ||
             HasKeyWithPrefix(m_db, DB_IMPORT) ||
@@ -488,6 +550,40 @@ ChildChainDBLoadResult ChildChainDB::Load(
         return LoadError(ChildChainDBLoadError::BLOCK_COUNT_MISMATCH);
     }
 
+    std::map<uint256, ChildBmmAnchorRecord> anchors;
+    cursor.reset(const_cast<CDBWrapper&>(m_db).NewIterator());
+    cursor->Seek(AnchorKey{DB_BMM_ANCHOR, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) {
+            return LoadError(
+                ChildChainDBLoadError::ANCHOR_KEY_DECODE_FAILED);
+        }
+        if (prefix != DB_BMM_ANCHOR) break;
+        AnchorKey key;
+        if (!cursor->GetKey(key)) {
+            return LoadError(
+                ChildChainDBLoadError::ANCHOR_KEY_DECODE_FAILED);
+        }
+        ChildBmmAnchorRecord record;
+        if (!cursor->GetValue(record)) {
+            return LoadError(ChildChainDBLoadError::ANCHOR_DECODE_FAILED);
+        }
+        if (record.child_block_hash != key.second) {
+            return LoadError(ChildChainDBLoadError::ANCHOR_KEY_MISMATCH);
+        }
+        if (!IsValidStoredAnchor(
+                record, main_headers, m_child_chain, stored_state.safe_halt) ||
+            !anchors.emplace(key.second, std::move(record)).second) {
+            return LoadError(ChildChainDBLoadError::INVALID_BMM_ANCHOR);
+        }
+        cursor->Next();
+    }
+    if (anchors.size() != stored_state.anchor_count ||
+        anchors.size() != blocks.size()) {
+        return LoadError(ChildChainDBLoadError::ANCHOR_COUNT_MISMATCH);
+    }
+
     std::map<uint256, chainregistry::ReferenceChildBlockUndo> undos;
     cursor.reset(const_cast<CDBWrapper&>(m_db).NewIterator());
     cursor->Seek(UndoKey{DB_UNDO, {}});
@@ -541,7 +637,14 @@ ChildChainDBLoadResult ChildChainDB::Load(
 
     std::set<chainregistry::DepositId> undo_imports;
     CoinSet expected_coins;
+    uint32_t previous_anchor_height{0};
     for (const auto& [block, undo] : active_blocks) {
+        const auto anchor{anchors.find(undo->block_hash)};
+        if (anchor == anchors.end() ||
+            anchor->second.proof.block_height <= previous_anchor_height) {
+            return LoadError(ChildChainDBLoadError::INVALID_BMM_ANCHOR);
+        }
+        previous_anchor_height = anchor->second.proof.block_height;
         std::set<chainregistry::DepositId> local;
         for (const auto& deposit_id : undo->imports.imports) {
             const auto* imported{imports.Find(deposit_id)};
@@ -619,6 +722,7 @@ bool ChildChainDB::WriteInitialState(
         imports.MinimumConfirmations() != m_minimum_confirmations ||
         imports.Size() != 0 || imports.IsSafeHalted() ||
         m_db.Exists(DB_STATE) || HasKeyWithPrefix(m_db, DB_BLOCK) ||
+        HasKeyWithPrefix(m_db, DB_BMM_ANCHOR) ||
         HasKeyWithPrefix(m_db, DB_COIN) ||
         HasKeyWithPrefix(m_db, DB_HEADER) ||
         HasKeyWithPrefix(m_db, DB_IMPORT) || HasKeyWithPrefix(m_db, DB_UNDO) ||
@@ -661,7 +765,13 @@ bool ChildChainDB::WriteMainHeader(
         main_headers.Params().hashGenesisBlock != m_main_genesis_hash ||
         !main_headers.IsInitialized() ||
         main_headers.ExportHeaders().size() != state.header_count + 1 ||
-        !ImportsMatchMainChain(main_headers, imports)) {
+        !ImportsMatchMainChain(main_headers, imports) ||
+        !StoredAnchorsMatchMainChain(
+            m_db,
+            main_headers,
+            m_child_chain,
+            state.anchor_count,
+            imports.IsSafeHalted())) {
         return false;
     }
     const uint256 hash{header.GetHash()};
@@ -697,13 +807,19 @@ bool ChildChainDB::WriteMainHeader(
 }
 
 bool ChildChainDB::WriteConnectedChildBlock(
+    const chainregistry::MainHeaderChain& main_headers,
     const chainregistry::DepositImportState& imports,
     const CBlock& block,
     const chainregistry::ReferenceChildBlockUndo& undo,
+    const chainregistry::BmmAnchorProof& anchor_proof,
     bool sync)
 {
     const uint256 child_block_hash{block.GetHash()};
     ChildChainDBState state;
+    const ChildBmmAnchorRecord anchor_record{
+        .child_block_hash = child_block_hash,
+        .proof = anchor_proof,
+    };
     if (!m_db.Read(DB_STATE, state) ||
         !ValidConfiguration(state,
                             m_child_chain,
@@ -711,6 +827,11 @@ bool ChildChainDB::WriteConnectedChildBlock(
                             m_minimum_confirmations,
                             m_child_genesis_hash) ||
         state.safe_halt || imports.IsSafeHalted() || child_block_hash.IsNull() ||
+        main_headers.Params().hashGenesisBlock != m_main_genesis_hash ||
+        !main_headers.IsInitialized() ||
+        main_headers.Tip()->GetBlockHash() != state.main_tip ||
+        !IsValidStoredAnchor(
+            anchor_record, main_headers, m_child_chain, /*allow_inactive=*/false) ||
         state.child_height == std::numeric_limits<uint32_t>::max() ||
         block.hashPrevBlock != state.child_tip ||
         undo.version != chainregistry::REFERENCE_CHILD_BLOCK_UNDO_VERSION ||
@@ -722,8 +843,16 @@ bool ChildChainDB::WriteConnectedChildBlock(
         imports.Size() !=
             state.import_count + undo.imports.imports.size() ||
         m_db.Exists(BlockKey{DB_BLOCK, child_block_hash}) ||
-        m_db.Exists(UndoKey{DB_UNDO, child_block_hash})) {
+        m_db.Exists(UndoKey{DB_UNDO, child_block_hash}) ||
+        m_db.Exists(AnchorKey{DB_BMM_ANCHOR, child_block_hash})) {
         return false;
+    }
+    if (state.child_height > 0) {
+        const auto previous{ReadBmmAnchor(state.child_tip)};
+        if (!previous ||
+            anchor_proof.block_height <= previous->proof.block_height) {
+            return false;
+        }
     }
 
     const auto expected_imports{BlockImportIds(block)};
@@ -754,6 +883,8 @@ bool ChildChainDB::WriteConnectedChildBlock(
 
     state.child_tip = child_block_hash;
     state.child_height = undo.block_height;
+    ++state.anchor_count;
+    if (state.anchor_count != state.child_height) return false;
     state.import_count += undo.imports.imports.size();
     if (transition->count_delta < 0) {
         state.coin_count -= static_cast<uint64_t>(-transition->count_delta);
@@ -773,6 +904,7 @@ bool ChildChainDB::WriteConnectedChildBlock(
     }
     batch.Write(BlockKey{DB_BLOCK, child_block_hash}, StoredChildBlock{block});
     batch.Write(UndoKey{DB_UNDO, child_block_hash}, undo);
+    batch.Write(AnchorKey{DB_BMM_ANCHOR, child_block_hash}, anchor_record);
     batch.Write(DB_STATE, state);
     m_db.WriteBatch(batch, sync);
     return true;
@@ -788,10 +920,14 @@ bool ChildChainDB::WriteDisconnectedChildBlock(
     ChildChainDBState state;
     StoredChildBlock stored_block;
     chainregistry::ReferenceChildBlockUndo stored_undo;
+    ChildBmmAnchorRecord stored_anchor;
     if (!m_db.Read(DB_STATE, state) ||
         !m_db.Read(BlockKey{DB_BLOCK, disconnected_child_block}, stored_block) ||
         !m_db.Read(UndoKey{DB_UNDO, disconnected_child_block}, stored_undo) ||
+        !m_db.Read(AnchorKey{DB_BMM_ANCHOR, disconnected_child_block},
+                   stored_anchor) ||
         !BlocksEqual(stored_block.block, block) || stored_undo != undo ||
+        stored_anchor.child_block_hash != disconnected_child_block ||
         !ValidConfiguration(state,
                             m_child_chain,
                             m_main_genesis_hash,
@@ -802,6 +938,7 @@ bool ChildChainDB::WriteDisconnectedChildBlock(
         undo.block_hash != disconnected_child_block ||
         undo.parent_hash != block.hashPrevBlock || undo.parent_hash.IsNull() ||
         undo.block_height != state.child_height || state.child_height == 0 ||
+        state.anchor_count != state.child_height ||
         undo.imports.imports.size() > state.import_count ||
         imports.Size() !=
             state.import_count - undo.imports.imports.size() ||
@@ -830,6 +967,7 @@ bool ChildChainDB::WriteDisconnectedChildBlock(
 
     state.child_tip = undo.parent_hash;
     --state.child_height;
+    --state.anchor_count;
     state.import_count -= undo.imports.imports.size();
     if (transition->count_delta < 0) {
         state.coin_count -= static_cast<uint64_t>(-transition->count_delta);
@@ -849,6 +987,7 @@ bool ChildChainDB::WriteDisconnectedChildBlock(
     }
     batch.Erase(BlockKey{DB_BLOCK, disconnected_child_block});
     batch.Erase(UndoKey{DB_UNDO, disconnected_child_block});
+    batch.Erase(AnchorKey{DB_BMM_ANCHOR, disconnected_child_block});
     batch.Write(DB_STATE, state);
     m_db.WriteBatch(batch, sync);
     return true;
@@ -925,6 +1064,16 @@ bool ChildChainDB::ReadUndo(const uint256& child_block_hash,
                             chainregistry::ReferenceChildBlockUndo& undo) const
 {
     return m_db.Read(UndoKey{DB_UNDO, child_block_hash}, undo);
+}
+
+std::optional<ChildBmmAnchorRecord> ChildChainDB::ReadBmmAnchor(
+    const uint256& child_block_hash) const
+{
+    ChildBmmAnchorRecord record;
+    if (!m_db.Read(AnchorKey{DB_BMM_ANCHOR, child_block_hash}, record)) {
+        return std::nullopt;
+    }
+    return record;
 }
 
 } // namespace node

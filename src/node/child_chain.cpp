@@ -200,6 +200,7 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::AddMainHeader(
 
 ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
     const CBlock& block,
+    const chainregistry::BmmAnchorProof& anchor_proof,
     int64_t current_time,
     bool sync)
 {
@@ -210,6 +211,24 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
         return RuntimeError(ReferenceChildRuntimeError::FAILED_RUNTIME);
     }
     const uint256 block_hash{block.GetHash()};
+    ReferenceChildRuntimeResult result;
+    result.bmm_anchor = m_main_headers->AuthenticateBmmAnchor(
+        anchor_proof,
+        m_definition.chain_id,
+        /*minimum_confirmations=*/1);
+    if (!result.bmm_anchor.IsValid() || !result.bmm_anchor.proof.anchor ||
+        result.bmm_anchor.proof.anchor->child_block_hash != block_hash) {
+        result.error = ReferenceChildRuntimeError::BMM_ANCHOR_REJECTED;
+        return result;
+    }
+    if (m_tip != m_genesis.get()) {
+        const auto previous{m_db->ReadBmmAnchor(m_tip->GetBlockHash())};
+        if (!previous ||
+            anchor_proof.block_height <= previous->proof.block_height) {
+            result.error = ReferenceChildRuntimeError::BMM_ANCHOR_REJECTED;
+            return result;
+        }
+    }
     auto [slot, inserted]{m_child_index.try_emplace(block_hash)};
     if (!inserted) {
         return RuntimeError(ReferenceChildRuntimeError::CHILD_BLOCK_REJECTED);
@@ -224,7 +243,6 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
 
     CCoinsViewCache candidate_coins{m_db.get(), /*deterministic=*/true};
     chainregistry::DepositImportState candidate_imports{m_imports};
-    ReferenceChildRuntimeResult result;
     result.child_block = chainregistry::ConnectReferenceChildBlock(
         block,
         *m_tip,
@@ -239,7 +257,12 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
         return result;
     }
     if (!m_db->WriteConnectedChildBlock(
-            candidate_imports, block, *result.child_block.undo, sync)) {
+            *m_main_headers,
+            candidate_imports,
+            block,
+            *result.child_block.undo,
+            anchor_proof,
+            sync)) {
         m_child_index.erase(slot);
         result.error = ReferenceChildRuntimeError::CHILD_BLOCK_PERSIST_FAILED;
         return result;

@@ -32,6 +32,7 @@ enum class ReferenceChildRuntimeError : uint8_t {
     CHILD_INDEX_REBUILD_FAILED,
     MAIN_HEADER_REJECTED,
     MAIN_HEADER_PERSIST_FAILED,
+    BMM_ANCHOR_REJECTED,
     CHILD_BLOCK_REJECTED,
     CHILD_BLOCK_PERSIST_FAILED,
     CHILD_DISCONNECT_REJECTED,
@@ -43,6 +44,7 @@ struct ReferenceChildRuntimeResult {
     ReferenceChildRuntimeError error{ReferenceChildRuntimeError::NONE};
     ChildChainDBLoadResult database_load;
     chainregistry::MainHeaderResult main_header;
+    chainregistry::AuthenticatedBmmAnchorResult bmm_anchor;
     chainregistry::DepositReconcileResult reconcile;
     chainregistry::ReferenceChildBlockResult child_block;
     bool loaded_existing{false};
@@ -89,6 +91,7 @@ public:
                                               int64_t current_time,
                                               bool sync = false);
     ReferenceChildRuntimeResult ConnectBlock(const CBlock& block,
+                                             const chainregistry::BmmAnchorProof& anchor_proof,
                                              int64_t current_time,
                                              bool sync = false);
     ReferenceChildRuntimeResult DisconnectTip(bool sync = false);
