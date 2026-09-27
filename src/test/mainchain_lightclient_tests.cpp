@@ -376,6 +376,32 @@ BOOST_AUTO_TEST_CASE(restores_validated_dag_and_explicit_equal_work_tip)
         records, b1.GetHash(), b1.nTime).IsValid());
     BOOST_CHECK(restored_other_tie.Tip()->GetBlockHash() == b1.GetHash());
 
+    chainregistry::MainHeaderChain restored_local{params};
+    BOOST_REQUIRE(restored_local.LoadValidatedHeaders(
+        records, b1.GetHash(), b1.nTime).IsValid());
+    BOOST_CHECK(restored_local.Tip()->GetBlockHash() == b1.GetHash());
+
+    chainregistry::MainHeaderChain copied{restored_local};
+    BOOST_CHECK(copied.Tip()->GetBlockHash() == b1.GetHash());
+    const CBlockIndex* copied_b1{copied.Find(b1.GetHash())};
+    BOOST_REQUIRE(copied_b1);
+    const CBlockHeader b2{MineHeader(*copied_b1, params, 42)};
+    BOOST_REQUIRE(copied.AddValidatedHeader(b2, b2.nTime).IsValid());
+    BOOST_CHECK(copied.Tip()->GetBlockHash() == b2.GetHash());
+    BOOST_CHECK(restored_local.Find(b2.GetHash()) == nullptr);
+
+    CBlockHeader invalid_difficulty{b2};
+    invalid_difficulty.hashMerkleRoot = uint256{43};
+    invalid_difficulty.nBits--;
+    BOOST_CHECK(copied.AddValidatedHeader(
+                    invalid_difficulty, invalid_difficulty.nTime).error ==
+                chainregistry::MainHeaderError::INVALID_DIFFICULTY);
+    BOOST_REQUIRE(copied.SelectValidatedTip(genesis.GetHash()).IsValid());
+    chainregistry::MainHeaderChain copied_lower_work{copied};
+    BOOST_CHECK(copied_lower_work.Tip()->GetBlockHash() == genesis.GetHash());
+    BOOST_REQUIRE(copied_lower_work.SelectValidatedTip(b2.GetHash()).IsValid());
+    BOOST_CHECK(copied_lower_work.Tip()->GetBlockHash() == b2.GetHash());
+
     chainregistry::MainHeaderChain invalid_tip{params};
     BOOST_CHECK(invalid_tip.LoadHeaders(
                     records, genesis.GetHash(), b1.nTime).error ==

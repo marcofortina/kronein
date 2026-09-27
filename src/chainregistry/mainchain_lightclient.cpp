@@ -62,6 +62,24 @@ MainHeaderChain::MainHeaderChain(Consensus::Params params)
 {
 }
 
+MainHeaderChain::MainHeaderChain(const MainHeaderChain& other)
+    : m_params{other.m_params}
+{
+    if (!other.m_tip) return;
+    const auto records{other.ExportHeaders()};
+    int64_t current_time{0};
+    for (const auto& record : records) {
+        current_time = std::max(current_time, record.header.GetBlockTime());
+    }
+    const auto loaded{LoadHeadersImpl(
+        records,
+        other.m_tip->GetBlockHash(),
+        current_time,
+        /*verify_proof_of_work=*/false,
+        /*require_most_work_tip=*/false)};
+    Assume(loaded.IsValid());
+}
+
 MainHeaderResult MainHeaderChain::Initialize(const CBlockHeader& genesis)
 {
     m_headers.clear();
@@ -95,6 +113,23 @@ MainHeaderResult MainHeaderChain::Initialize(const CBlockHeader& genesis)
 MainHeaderResult MainHeaderChain::AddHeader(const CBlockHeader& header,
                                             int64_t current_time)
 {
+    return AddHeaderImpl(
+        header, current_time, /*verify_proof_of_work=*/true);
+}
+
+MainHeaderResult MainHeaderChain::AddValidatedHeader(
+    const CBlockHeader& header,
+    int64_t current_time)
+{
+    return AddHeaderImpl(
+        header, current_time, /*verify_proof_of_work=*/false);
+}
+
+MainHeaderResult MainHeaderChain::AddHeaderImpl(
+    const CBlockHeader& header,
+    int64_t current_time,
+    bool verify_proof_of_work)
+{
     const uint256 hash{header.GetHash()};
     if (!m_tip) return HeaderError(MainHeaderError::NOT_INITIALIZED, hash);
     if (const auto known{m_headers.find(hash)}; known != m_headers.end()) {
@@ -117,12 +152,14 @@ MainHeaderResult MainHeaderChain::AddHeader(const CBlockHeader& header,
     if (header.nBits != GetNextWorkRequired(parent, &header, m_params)) {
         return HeaderError(MainHeaderError::INVALID_DIFFICULTY, hash);
     }
-    const auto randomx_seed{GetRandomXSeed(parent, height, m_params)};
-    if (!randomx_seed) {
-        return HeaderError(MainHeaderError::RANDOMX_SEED_UNAVAILABLE, hash);
-    }
-    if (!CheckProofOfWork(header, *randomx_seed, m_params)) {
-        return HeaderError(MainHeaderError::INVALID_PROOF_OF_WORK, hash);
+    if (verify_proof_of_work) {
+        const auto randomx_seed{GetRandomXSeed(parent, height, m_params)};
+        if (!randomx_seed) {
+            return HeaderError(MainHeaderError::RANDOMX_SEED_UNAVAILABLE, hash);
+        }
+        if (!CheckProofOfWork(header, *randomx_seed, m_params)) {
+            return HeaderError(MainHeaderError::INVALID_PROOF_OF_WORK, hash);
+        }
     }
     if (header.GetBlockTime() <= parent->GetMedianTimePast()) {
         return HeaderError(MainHeaderError::TIME_TOO_OLD, hash);
@@ -166,6 +203,34 @@ MainHeaderResult MainHeaderChain::AddHeader(const CBlockHeader& header,
     return result;
 }
 
+MainHeaderResult MainHeaderChain::SelectValidatedTip(
+    const uint256& active_tip)
+{
+    if (!m_tip) {
+        return HeaderError(MainHeaderError::NOT_INITIALIZED, active_tip);
+    }
+    const auto selected{m_headers.find(active_tip)};
+    if (selected == m_headers.end()) {
+        return HeaderError(MainHeaderError::UNKNOWN_PARENT, active_tip);
+    }
+    MainHeaderResult result;
+    result.block_hash = active_tip;
+    result.height = selected->second.nHeight;
+    if (m_tip == &selected->second) {
+        result.already_known = true;
+        return result;
+    }
+    const CBlockIndex* old_tip{m_tip};
+    const CBlockIndex* fork{LastCommonAncestor(old_tip, &selected->second)};
+    result.became_best = true;
+    result.previous_best = old_tip->GetBlockHash();
+    result.fork_height = fork->nHeight;
+    result.disconnected_headers = static_cast<uint32_t>(
+        old_tip->nHeight - fork->nHeight);
+    m_tip = &selected->second;
+    return result;
+}
+
 std::vector<MainHeaderRecord> MainHeaderChain::ExportHeaders() const
 {
     std::vector<MainHeaderRecord> records;
@@ -187,6 +252,47 @@ MainHeaderLoadResult MainHeaderChain::LoadHeaders(
     std::span<const MainHeaderRecord> records,
     const uint256& active_tip,
     int64_t current_time)
+{
+    return LoadHeadersImpl(
+        records,
+        active_tip,
+        current_time,
+        /*verify_proof_of_work=*/true,
+        /*require_most_work_tip=*/true);
+}
+
+MainHeaderLoadResult MainHeaderChain::LoadValidatedHeaders(
+    std::span<const MainHeaderRecord> records,
+    const uint256& active_tip,
+    int64_t current_time)
+{
+    return LoadHeadersImpl(
+        records,
+        active_tip,
+        current_time,
+        /*verify_proof_of_work=*/false,
+        /*require_most_work_tip=*/true);
+}
+
+MainHeaderLoadResult MainHeaderChain::LoadHeadersWithValidatedTip(
+    std::span<const MainHeaderRecord> records,
+    const uint256& active_tip,
+    int64_t current_time)
+{
+    return LoadHeadersImpl(
+        records,
+        active_tip,
+        current_time,
+        /*verify_proof_of_work=*/true,
+        /*require_most_work_tip=*/false);
+}
+
+MainHeaderLoadResult MainHeaderChain::LoadHeadersImpl(
+    std::span<const MainHeaderRecord> records,
+    const uint256& active_tip,
+    int64_t current_time,
+    bool verify_proof_of_work,
+    bool require_most_work_tip)
 {
     if (records.empty()) return LoadError(MainHeaderLoadError::EMPTY);
 
@@ -222,7 +328,8 @@ MainHeaderLoadResult MainHeaderChain::LoadHeaders(
         if (ordered[index].height == 0) {
             return LoadError(MainHeaderLoadError::INVALID_HEIGHT, index);
         }
-        const auto added{loaded.AddHeader(ordered[index].header, current_time)};
+        const auto added{loaded.AddHeaderImpl(
+            ordered[index].header, current_time, verify_proof_of_work)};
         if (!added.IsValid()) {
             return LoadError(
                 MainHeaderLoadError::HEADER_REJECTED, index, added.error);
@@ -234,7 +341,8 @@ MainHeaderLoadResult MainHeaderChain::LoadHeaders(
 
     const CBlockIndex* preferred{loaded.Find(active_tip)};
     if (!preferred || !loaded.m_tip ||
-        preferred->nChainWork != loaded.m_tip->nChainWork) {
+        (require_most_work_tip &&
+         preferred->nChainWork != loaded.m_tip->nChainWork)) {
         return LoadError(MainHeaderLoadError::INVALID_ACTIVE_TIP);
     }
 

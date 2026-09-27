@@ -17,6 +17,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <span>
 #include <vector>
 
 namespace node {
@@ -81,6 +82,16 @@ private:
 
     bool RebuildChildIndex(uint32_t genesis_time);
     bool Usable() const { return m_initialized && !m_failed; }
+    ReferenceChildRuntimeResult AddMainHeaderImpl(
+        const CBlockHeader& header,
+        int64_t current_time,
+        bool sync,
+        bool validated_by_main_chainstate);
+    ReferenceChildRuntimeResult CommitMainChainUpdate(
+        std::unique_ptr<chainregistry::MainHeaderChain> candidate_headers,
+        ReferenceChildRuntimeResult result,
+        const CBlockHeader* added_header,
+        bool sync);
 
 public:
     ReferenceChildRuntime(
@@ -91,10 +102,18 @@ public:
     ReferenceChildRuntimeResult Initialize(const DBParams& db_params,
                                            const CBlockHeader& main_genesis,
                                            int64_t current_time,
-                                           bool sync = false);
+                                           bool sync = false,
+                                           std::optional<std::span<const CBlockHeader>> validated_active_headers = std::nullopt);
     ReferenceChildRuntimeResult AddMainHeader(const CBlockHeader& header,
                                               int64_t current_time,
                                               bool sync = false);
+    ReferenceChildRuntimeResult AddValidatedMainHeader(
+        const CBlockHeader& header,
+        int64_t current_time,
+        bool sync = false);
+    ReferenceChildRuntimeResult SelectValidatedMainTip(
+        const uint256& active_tip,
+        bool sync = false);
     ReferenceChildRuntimeResult StageBmmAnchor(
         const chainregistry::BmmAnchorProof& anchor_proof,
         bool sync = false);

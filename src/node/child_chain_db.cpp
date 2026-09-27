@@ -324,6 +324,49 @@ bool BlocksEqual(const CBlock& left, const CBlock& right)
     return true;
 }
 
+bool HeadersMatchValidatedActivePrefix(
+    std::span<const chainregistry::MainHeaderRecord> records,
+    std::span<const CBlockHeader> validated_active_headers,
+    const uint256& main_genesis_hash,
+    const uint256& stored_tip)
+{
+    if (records.empty() || records.size() > validated_active_headers.size() + 1) {
+        return false;
+    }
+    std::vector<chainregistry::MainHeaderRecord> ordered{
+        records.begin(), records.end()};
+    std::sort(ordered.begin(), ordered.end(), [](const auto& lhs, const auto& rhs) {
+        if (lhs.height != rhs.height) return lhs.height < rhs.height;
+        return lhs.header.GetHash() < rhs.header.GetHash();
+    });
+    if (ordered.front().height != 0 ||
+        ordered.front().header.GetHash() != main_genesis_hash) {
+        return false;
+    }
+    for (size_t index{1}; index < ordered.size(); ++index) {
+        if (ordered[index].height != index ||
+            ordered[index].header.GetHash() !=
+                validated_active_headers[index - 1].GetHash()) {
+            return false;
+        }
+    }
+    return ordered.back().header.GetHash() == stored_tip;
+}
+
+bool TipMatchesValidatedActiveChain(
+    std::span<const CBlockHeader> validated_active_headers,
+    const uint256& main_genesis_hash,
+    const uint256& stored_tip)
+{
+    if (stored_tip == main_genesis_hash) return true;
+    return std::any_of(
+        validated_active_headers.begin(),
+        validated_active_headers.end(),
+        [&](const CBlockHeader& header) {
+            return header.GetHash() == stored_tip;
+        });
+}
+
 bool IsValidStoredCoin(const Coin& coin, uint32_t maximum_height)
 {
     return !coin.IsSpent() && coin.nHeight > 0 &&
@@ -558,7 +601,8 @@ ChildChainDBLoadResult ChildChainDB::Load(
     chainregistry::MainHeaderChain& main_headers,
     chainregistry::DepositImportState& imports,
     ChildChainDBState& state,
-    int64_t current_time) const
+    int64_t current_time,
+    std::optional<std::span<const CBlockHeader>> validated_active_headers) const
 {
     ChildChainDBState stored_state;
     if (!m_db.Read(DB_STATE, stored_state)) {
@@ -619,8 +663,28 @@ ChildChainDBLoadResult ChildChainDB::Load(
     if (header_records.size() != stored_state.header_count) {
         return LoadError(ChildChainDBLoadError::HEADER_COUNT_MISMATCH);
     }
-    auto header_result{main_headers.LoadHeaders(
-        header_records, stored_state.main_tip, current_time)};
+    const bool matches_validated_main{
+        validated_active_headers &&
+        HeadersMatchValidatedActivePrefix(
+            header_records,
+            *validated_active_headers,
+            m_main_genesis_hash,
+            stored_state.main_tip)};
+    chainregistry::MainHeaderLoadResult header_result;
+    if (matches_validated_main) {
+        header_result = main_headers.LoadValidatedHeaders(
+            header_records, stored_state.main_tip, current_time);
+    } else if (validated_active_headers &&
+               TipMatchesValidatedActiveChain(
+                   *validated_active_headers,
+                   m_main_genesis_hash,
+                   stored_state.main_tip)) {
+        header_result = main_headers.LoadHeadersWithValidatedTip(
+            header_records, stored_state.main_tip, current_time);
+    } else {
+        header_result = main_headers.LoadHeaders(
+            header_records, stored_state.main_tip, current_time);
+    }
     if (!header_result.IsValid()) {
         return LoadError(
             ChildChainDBLoadError::INVALID_HEADERS, std::move(header_result));
@@ -918,7 +982,7 @@ bool ChildChainDB::WriteInitialState(
     if (m_child_chain.IsNull() || m_main_genesis_hash.IsNull() ||
         m_minimum_confirmations == 0 || m_child_genesis_hash.IsNull() ||
         main_headers.Params().hashGenesisBlock != m_main_genesis_hash ||
-        !main_headers.IsInitialized() || headers.size() != 1 ||
+        !main_headers.IsInitialized() || headers.empty() ||
         headers.front().height != 0 ||
         headers.front().header.GetHash() != m_main_genesis_hash ||
         imports.ChildChain() != m_child_chain ||
@@ -938,13 +1002,15 @@ bool ChildChainDB::WriteInitialState(
         .child_chain = m_child_chain,
         .main_genesis_hash = m_main_genesis_hash,
         .minimum_confirmations = m_minimum_confirmations,
-        .main_tip = m_main_genesis_hash,
-        .header_count = 1,
+        .main_tip = main_headers.Tip()->GetBlockHash(),
+        .header_count = headers.size(),
         .child_genesis_hash = m_child_genesis_hash,
         .child_tip = m_child_genesis_hash,
     };
     CDBBatch batch{m_db};
-    batch.Write(HeaderKey{DB_HEADER, m_main_genesis_hash}, headers.front());
+    for (const auto& header : headers) {
+        batch.Write(HeaderKey{DB_HEADER, header.header.GetHash()}, header);
+    }
     batch.Write(DB_STATE, state);
     m_db.WriteBatch(batch, sync);
     return true;
@@ -967,7 +1033,29 @@ bool ChildChainDB::WriteMainHeaderAndDisconnect(
     std::span<const ChildChainDBDisconnect> disconnected_blocks,
     bool sync)
 {
+    return WriteMainChainUpdate(
+        main_headers, imports, &header, disconnected_blocks, sync);
+}
+
+bool ChildChainDB::WriteMainTipAndDisconnect(
+    const chainregistry::MainHeaderChain& main_headers,
+    const chainregistry::DepositImportState& imports,
+    std::span<const ChildChainDBDisconnect> disconnected_blocks,
+    bool sync)
+{
+    return WriteMainChainUpdate(
+        main_headers, imports, nullptr, disconnected_blocks, sync);
+}
+
+bool ChildChainDB::WriteMainChainUpdate(
+    const chainregistry::MainHeaderChain& main_headers,
+    const chainregistry::DepositImportState& imports,
+    const CBlockHeader* added_header,
+    std::span<const ChildChainDBDisconnect> disconnected_blocks,
+    bool sync)
+{
     ChildChainDBState state;
+    const auto headers{main_headers.ExportHeaders()};
     if (!m_db.Read(DB_STATE, state) ||
         !ValidConfiguration(state,
                             m_child_chain,
@@ -978,13 +1066,20 @@ bool ChildChainDB::WriteMainHeaderAndDisconnect(
         imports.MinimumConfirmations() != m_minimum_confirmations ||
         main_headers.Params().hashGenesisBlock != m_main_genesis_hash ||
         !main_headers.IsInitialized() ||
-        main_headers.ExportHeaders().size() != state.header_count + 1 ||
+        headers.size() != state.header_count + (added_header ? 1 : 0) ||
         (imports.IsSafeHalted() && !disconnected_blocks.empty())) {
         return false;
     }
-    const uint256 hash{header.GetHash()};
-    const CBlockIndex* entry{main_headers.Find(hash)};
-    if (!entry || m_db.Exists(HeaderKey{DB_HEADER, hash})) return false;
+    const uint256 added_hash{added_header ? added_header->GetHash() : uint256{}};
+    const CBlockIndex* added_entry{
+        added_header ? main_headers.Find(added_hash) : nullptr};
+    if (added_header &&
+        (!added_entry || m_db.Exists(HeaderKey{DB_HEADER, added_hash}))) {
+        return false;
+    }
+    if (!added_header && state.main_tip == main_headers.Tip()->GetBlockHash()) {
+        return false;
+    }
 
     std::optional<chainregistry::DepositSafeHalt> stored_halt;
     if (state.safe_halt) {
@@ -1092,13 +1187,15 @@ bool ChildChainDB::WriteMainHeaderAndDisconnect(
     }
 
     state.main_tip = main_headers.Tip()->GetBlockHash();
-    ++state.header_count;
     state.safe_halt = imports.IsSafeHalted();
-    const chainregistry::MainHeaderRecord record{
-        .height = static_cast<uint32_t>(entry->nHeight),
-        .header = header,
-    };
-    batch.Write(HeaderKey{DB_HEADER, hash}, record);
+    if (added_header) {
+        ++state.header_count;
+        const chainregistry::MainHeaderRecord record{
+            .height = static_cast<uint32_t>(added_entry->nHeight),
+            .header = *added_header,
+        };
+        batch.Write(HeaderKey{DB_HEADER, added_hash}, record);
+    }
     if (!stored_halt && imports.SafeHalt()) {
         batch.Write(DB_SAFE_HALT, *imports.SafeHalt());
     }

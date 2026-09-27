@@ -151,16 +151,50 @@ private:
     CBlockIndex* m_tip{nullptr};
 
     bool IsActive(const CBlockIndex& entry) const;
+    MainHeaderResult AddHeaderImpl(const CBlockHeader& header,
+                                   int64_t current_time,
+                                   bool verify_proof_of_work);
+    MainHeaderLoadResult LoadHeadersImpl(
+        std::span<const MainHeaderRecord> records,
+        const uint256& active_tip,
+        int64_t current_time,
+        bool verify_proof_of_work,
+        bool require_most_work_tip);
 
 public:
     explicit MainHeaderChain(Consensus::Params params);
+    MainHeaderChain(const MainHeaderChain& other);
 
     MainHeaderResult Initialize(const CBlockHeader& genesis);
     MainHeaderResult AddHeader(const CBlockHeader& header, int64_t current_time);
+    /**
+     * Add a header already fully validated by the local main chainstate.
+     *
+     * All inexpensive structural, difficulty and timestamp checks are repeated,
+     * but RandomX is not recomputed. Callers must only pass headers obtained
+     * directly from a successfully connected local main-chain block.
+     */
+    MainHeaderResult AddValidatedHeader(const CBlockHeader& header,
+                                        int64_t current_time);
+    /** Select the active tip reported by the validated local main chainstate. */
+    MainHeaderResult SelectValidatedTip(const uint256& active_tip);
     std::vector<MainHeaderRecord> ExportHeaders() const;
     MainHeaderLoadResult LoadHeaders(std::span<const MainHeaderRecord> records,
                                      const uint256& active_tip,
                                      int64_t current_time);
+    /**
+     * Restore records whose hashes and heights were matched against the local,
+     * already validated main chainstate by the caller.
+     */
+    MainHeaderLoadResult LoadValidatedHeaders(
+        std::span<const MainHeaderRecord> records,
+        const uint256& active_tip,
+        int64_t current_time);
+    /** Fully verify stored headers while trusting local chainstate fork choice. */
+    MainHeaderLoadResult LoadHeadersWithValidatedTip(
+        std::span<const MainHeaderRecord> records,
+        const uint256& active_tip,
+        int64_t current_time);
 
     bool IsInitialized() const { return m_tip != nullptr; }
     const Consensus::Params& Params() const { return m_params; }

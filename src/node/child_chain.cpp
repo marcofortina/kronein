@@ -96,7 +96,8 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::Initialize(
     const DBParams& db_params,
     const CBlockHeader& main_genesis,
     int64_t current_time,
-    bool sync)
+    bool sync,
+    std::optional<std::span<const CBlockHeader>> validated_active_headers)
 {
     if (m_initialized || m_db) {
         return RuntimeError(ReferenceChildRuntimeError::ALREADY_INITIALIZED);
@@ -122,7 +123,12 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::Initialize(
         m_definition.genesis_hash);
     ReferenceChildRuntimeResult result;
     result.database_load =
-        m_db->Load(*m_main_headers, m_imports, m_state, current_time);
+        m_db->Load(
+            *m_main_headers,
+            m_imports,
+            m_state,
+            current_time,
+            validated_active_headers);
     if (!result.database_load.IsValid()) {
         result.error = ReferenceChildRuntimeError::DATABASE_LOAD_FAILED;
         m_failed = true;
@@ -135,6 +141,17 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::Initialize(
             result.error = ReferenceChildRuntimeError::MAIN_HEADER_REJECTED;
             m_failed = true;
             return result;
+        }
+        for (const CBlockHeader& header :
+             validated_active_headers.value_or(std::span<const CBlockHeader>{})) {
+            result.main_header =
+                m_main_headers->AddValidatedHeader(header, current_time);
+            if (!result.main_header.IsValid()) {
+                result.error =
+                    ReferenceChildRuntimeError::MAIN_HEADER_REJECTED;
+                m_failed = true;
+                return result;
+            }
         }
         if (!m_db->WriteInitialState(*m_main_headers, m_imports, sync) ||
             !m_db->ReadState(m_state)) {
@@ -149,6 +166,36 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::Initialize(
         return result;
     }
     m_initialized = true;
+    if (result.loaded_existing && validated_active_headers) {
+        for (const CBlockHeader& header : *validated_active_headers) {
+            auto advanced{AddValidatedMainHeader(
+                header, current_time, sync)};
+            if (!advanced.IsValid()) {
+                advanced.loaded_existing = true;
+                return advanced;
+            }
+            result.main_header = std::move(advanced.main_header);
+            result.reconcile = std::move(advanced.reconcile);
+            result.disconnected_child_blocks.insert(
+                result.disconnected_child_blocks.end(),
+                advanced.disconnected_child_blocks.begin(),
+                advanced.disconnected_child_blocks.end());
+        }
+        const uint256 active_tip{validated_active_headers->empty()
+            ? m_main_params.hashGenesisBlock
+            : validated_active_headers->back().GetHash()};
+        auto selected{SelectValidatedMainTip(active_tip, sync)};
+        if (!selected.IsValid()) {
+            selected.loaded_existing = true;
+            return selected;
+        }
+        result.main_header = std::move(selected.main_header);
+        result.reconcile = std::move(selected.reconcile);
+        result.disconnected_child_blocks.insert(
+            result.disconnected_child_blocks.end(),
+            selected.disconnected_child_blocks.begin(),
+            selected.disconnected_child_blocks.end());
+    }
     return result;
 }
 
@@ -157,6 +204,31 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::AddMainHeader(
     int64_t current_time,
     bool sync)
 {
+    return AddMainHeaderImpl(
+        header,
+        current_time,
+        sync,
+        /*validated_by_main_chainstate=*/false);
+}
+
+ReferenceChildRuntimeResult ReferenceChildRuntime::AddValidatedMainHeader(
+    const CBlockHeader& header,
+    int64_t current_time,
+    bool sync)
+{
+    return AddMainHeaderImpl(
+        header,
+        current_time,
+        sync,
+        /*validated_by_main_chainstate=*/true);
+}
+
+ReferenceChildRuntimeResult ReferenceChildRuntime::AddMainHeaderImpl(
+    const CBlockHeader& header,
+    int64_t current_time,
+    bool sync,
+    bool validated_by_main_chainstate)
+{
     if (!m_initialized) {
         return RuntimeError(ReferenceChildRuntimeError::NOT_INITIALIZED);
     }
@@ -164,24 +236,62 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::AddMainHeader(
         return RuntimeError(ReferenceChildRuntimeError::FAILED_RUNTIME);
     }
 
-    auto candidate_headers{
-        std::make_unique<chainregistry::MainHeaderChain>(m_main_params)};
-    const auto loaded{candidate_headers->LoadHeaders(
-        m_main_headers->ExportHeaders(),
-        m_main_headers->Tip()->GetBlockHash(),
-        current_time)};
-    if (!loaded.IsValid()) {
-        m_failed = true;
-        return RuntimeError(ReferenceChildRuntimeError::FAILED_RUNTIME);
+    if (m_main_headers->Find(header.GetHash())) {
+        ReferenceChildRuntimeResult result;
+        result.main_header = validated_by_main_chainstate
+            ? m_main_headers->AddValidatedHeader(header, current_time)
+            : m_main_headers->AddHeader(header, current_time);
+        return result;
     }
+    auto candidate_headers{
+        std::make_unique<chainregistry::MainHeaderChain>(*m_main_headers)};
 
     ReferenceChildRuntimeResult result;
-    result.main_header = candidate_headers->AddHeader(header, current_time);
+    result.main_header = validated_by_main_chainstate
+        ? candidate_headers->AddValidatedHeader(header, current_time)
+        : candidate_headers->AddHeader(header, current_time);
     if (!result.main_header.IsValid()) {
         result.error = ReferenceChildRuntimeError::MAIN_HEADER_REJECTED;
         return result;
     }
     if (result.main_header.already_known) return result;
+    return CommitMainChainUpdate(
+        std::move(candidate_headers), std::move(result), &header, sync);
+}
+
+ReferenceChildRuntimeResult ReferenceChildRuntime::SelectValidatedMainTip(
+    const uint256& active_tip,
+    bool sync)
+{
+    if (!m_initialized) {
+        return RuntimeError(ReferenceChildRuntimeError::NOT_INITIALIZED);
+    }
+    if (m_failed) {
+        return RuntimeError(ReferenceChildRuntimeError::FAILED_RUNTIME);
+    }
+    if (m_main_headers->Tip()->GetBlockHash() == active_tip) {
+        ReferenceChildRuntimeResult result;
+        result.main_header = m_main_headers->SelectValidatedTip(active_tip);
+        return result;
+    }
+    auto candidate_headers{
+        std::make_unique<chainregistry::MainHeaderChain>(*m_main_headers)};
+    ReferenceChildRuntimeResult result;
+    result.main_header = candidate_headers->SelectValidatedTip(active_tip);
+    if (!result.main_header.IsValid()) {
+        result.error = ReferenceChildRuntimeError::MAIN_HEADER_REJECTED;
+        return result;
+    }
+    return CommitMainChainUpdate(
+        std::move(candidate_headers), std::move(result), nullptr, sync);
+}
+
+ReferenceChildRuntimeResult ReferenceChildRuntime::CommitMainChainUpdate(
+    std::unique_ptr<chainregistry::MainHeaderChain> candidate_headers,
+    ReferenceChildRuntimeResult result,
+    const CBlockHeader* added_header,
+    bool sync)
+{
     chainregistry::DepositImportState candidate_imports{m_imports};
     result.reconcile = candidate_imports.Reconcile(*candidate_headers);
     CCoinsViewCache candidate_coins{m_db.get(), /*deterministic=*/true};
@@ -232,12 +342,19 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::AddMainHeader(
             candidate_child_tip = candidate_child_tip->pprev;
         }
     }
-    if (!m_db->WriteMainHeaderAndDisconnect(
-            *candidate_headers,
-            candidate_imports,
-            header,
-            disconnected_blocks,
-            sync)) {
+    const bool persisted{added_header
+        ? m_db->WriteMainHeaderAndDisconnect(
+              *candidate_headers,
+              candidate_imports,
+              *added_header,
+              disconnected_blocks,
+              sync)
+        : m_db->WriteMainTipAndDisconnect(
+              *candidate_headers,
+              candidate_imports,
+              disconnected_blocks,
+              sync)};
+    if (!persisted) {
         result.error = ReferenceChildRuntimeError::MAIN_HEADER_PERSIST_FAILED;
         return result;
     }

@@ -162,6 +162,13 @@ private:
     const uint32_t m_minimum_confirmations;
     const uint256 m_child_genesis_hash;
 
+    bool WriteMainChainUpdate(
+        const chainregistry::MainHeaderChain& main_headers,
+        const chainregistry::DepositImportState& imports,
+        const CBlockHeader* added_header,
+        std::span<const ChildChainDBDisconnect> disconnected_blocks,
+        bool sync);
+
 public:
     ChildChainDB(const DBParams& params,
                  chainregistry::ChainId child_chain,
@@ -170,9 +177,10 @@ public:
                  uint256 child_genesis_hash);
 
     ChildChainDBLoadResult Load(chainregistry::MainHeaderChain& main_headers,
-                                 chainregistry::DepositImportState& imports,
-                                 ChildChainDBState& state,
-                                 int64_t current_time) const;
+                                chainregistry::DepositImportState& imports,
+                                ChildChainDBState& state,
+                                int64_t current_time,
+                                std::optional<std::span<const CBlockHeader>> validated_active_headers = std::nullopt) const;
 
     bool WriteInitialState(const chainregistry::MainHeaderChain& main_headers,
                            const chainregistry::DepositImportState& imports,
@@ -185,6 +193,11 @@ public:
         const chainregistry::MainHeaderChain& main_headers,
         const chainregistry::DepositImportState& imports,
         const CBlockHeader& header,
+        std::span<const ChildChainDBDisconnect> disconnected_blocks,
+        bool sync = false);
+    bool WriteMainTipAndDisconnect(
+        const chainregistry::MainHeaderChain& main_headers,
+        const chainregistry::DepositImportState& imports,
         std::span<const ChildChainDBDisconnect> disconnected_blocks,
         bool sync = false);
     bool WritePendingBmmAnchor(
