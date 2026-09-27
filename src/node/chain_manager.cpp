@@ -64,6 +64,7 @@ ChainManager::~ChainManager() = default;
 ChainManagerResult ChainManager::RegisterChain(
     const chainregistry::ReferenceChildDefinition& definition)
 {
+    LOCK(m_mutex);
     if (!IsCatalogReady()) {
         return ManagerError(ChainManagerError::CATALOG_UNAVAILABLE);
     }
@@ -104,6 +105,7 @@ ChainManagerResult ChainManager::RegisterChain(
 ChainManagerResult ChainManager::ForgetChain(
     const chainregistry::ChainId& chain_id)
 {
+    LOCK(m_mutex);
     if (!IsCatalogReady()) {
         return ManagerError(ChainManagerError::CATALOG_UNAVAILABLE);
     }
@@ -130,6 +132,7 @@ ChainManagerResult ChainManager::LoadChain(
     bool wipe_data,
     bool sync)
 {
+    LOCK(m_mutex);
     if (!IsCatalogReady()) {
         return ManagerError(ChainManagerError::CATALOG_UNAVAILABLE);
     }
@@ -171,6 +174,7 @@ ChainManagerResult ChainManager::LoadChain(
 ChainManagerResult ChainManager::UnloadChain(
     const chainregistry::ChainId& chain_id)
 {
+    LOCK(m_mutex);
     if (!IsCatalogReady()) {
         return ManagerError(ChainManagerError::CATALOG_UNAVAILABLE);
     }
@@ -189,6 +193,7 @@ ChainManagerResult ChainManager::UnloadChain(
 ReferenceChildRuntime* ChainManager::Get(
     const chainregistry::ChainId& chain_id)
 {
+    LOCK(m_mutex);
     const auto entry{m_loaded.find(chain_id)};
     return entry == m_loaded.end() ? nullptr : entry->second.get();
 }
@@ -196,6 +201,7 @@ ReferenceChildRuntime* ChainManager::Get(
 const ReferenceChildRuntime* ChainManager::Get(
     const chainregistry::ChainId& chain_id) const
 {
+    LOCK(m_mutex);
     const auto entry{m_loaded.find(chain_id)};
     return entry == m_loaded.end() ? nullptr : entry->second.get();
 }
@@ -203,11 +209,13 @@ const ReferenceChildRuntime* ChainManager::Get(
 bool ChainManager::IsRegistered(
     const chainregistry::ChainId& chain_id) const
 {
+    LOCK(m_mutex);
     return !chain_id.IsNull() && m_definitions.contains(chain_id);
 }
 
 bool ChainManager::IsLoaded(const chainregistry::ChainId& chain_id) const
 {
+    LOCK(m_mutex);
     return !chain_id.IsNull() && m_loaded.contains(chain_id);
 }
 
@@ -220,6 +228,7 @@ fs::path ChainManager::DataPath(
 
 std::vector<ChainManagerEntry> ChainManager::List() const
 {
+    LOCK(m_mutex);
     std::vector<ChainManagerEntry> result;
     result.reserve(m_definitions.size());
     for (const auto& [chain_id, definition] : m_definitions) {
@@ -238,6 +247,18 @@ std::vector<ChainManagerEntry> ChainManager::List() const
         result.push_back(std::move(entry));
     }
     return result;
+}
+
+size_t ChainManager::RegisteredCount() const
+{
+    LOCK(m_mutex);
+    return m_definitions.size();
+}
+
+size_t ChainManager::LoadedCount() const
+{
+    LOCK(m_mutex);
+    return m_loaded.size();
 }
 
 } // namespace node

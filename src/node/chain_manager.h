@@ -10,6 +10,7 @@
 #include <node/child_chain_catalog_db.h>
 #include <node/child_chain.h>
 #include <primitives/block.h>
+#include <sync.h>
 #include <util/fs.h>
 
 #include <cstddef>
@@ -72,10 +73,13 @@ private:
     std::unique_ptr<ChildChainCatalogDB> m_catalog_db;
     ChildChainCatalogLoadError m_catalog_error{
         ChildChainCatalogLoadError::NONE};
+    mutable Mutex m_mutex;
     std::map<chainregistry::ChainId,
-             chainregistry::ReferenceChildDefinition> m_definitions;
+             chainregistry::ReferenceChildDefinition> m_definitions
+        GUARDED_BY(m_mutex);
     std::map<chainregistry::ChainId,
-             std::unique_ptr<ReferenceChildRuntime>> m_loaded;
+             std::unique_ptr<ReferenceChildRuntime>> m_loaded
+        GUARDED_BY(m_mutex);
 
 public:
     ChainManager(Consensus::Params main_params,
@@ -106,8 +110,8 @@ public:
     bool IsLoaded(const chainregistry::ChainId& chain_id) const;
     fs::path DataPath(const chainregistry::ChainId& chain_id) const;
     std::vector<ChainManagerEntry> List() const;
-    size_t RegisteredCount() const { return m_definitions.size(); }
-    size_t LoadedCount() const { return m_loaded.size(); }
+    size_t RegisteredCount() const;
+    size_t LoadedCount() const;
 };
 
 } // namespace node

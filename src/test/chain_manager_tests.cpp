@@ -11,6 +11,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <thread>
+
 namespace {
 
 const chainregistry::MetadataHash METADATA_HASH{
@@ -213,6 +215,34 @@ BOOST_AUTO_TEST_CASE(rejects_corrupt_persisted_definition)
     BOOST_CHECK(corrupted.CatalogError() ==
                 node::ChildChainCatalogLoadError::INVALID_RECORD);
     BOOST_CHECK_EQUAL(corrupted.RegisteredCount(), 0U);
+}
+
+BOOST_AUTO_TEST_CASE(serializes_concurrent_catalog_updates)
+{
+    const fs::path root{m_args.GetDataDirBase() / "chains_concurrent"};
+    node::ChainManager manager{
+        Params().GetConsensus(), Params().GenesisBlock(), root, 1 << 20};
+    BOOST_REQUIRE(manager.IsCatalogReady());
+
+    constexpr size_t count{8};
+    std::vector<chainregistry::ReferenceChildDefinition> definitions;
+    definitions.reserve(count);
+    for (size_t index{0}; index < count; ++index) {
+        definitions.push_back(Definition(100 + index));
+    }
+    std::vector<node::ChainManagerResult> results(count);
+    std::vector<std::thread> workers;
+    workers.reserve(count);
+    for (size_t index{0}; index < count; ++index) {
+        workers.emplace_back([&, index] {
+            results[index] = manager.RegisterChain(definitions[index]);
+        });
+    }
+    for (auto& worker : workers) worker.join();
+
+    for (const auto& result : results) BOOST_CHECK(result.IsValid());
+    BOOST_CHECK_EQUAL(manager.RegisteredCount(), count);
+    BOOST_CHECK_EQUAL(manager.List().size(), count);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
