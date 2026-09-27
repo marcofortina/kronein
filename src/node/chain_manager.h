@@ -133,6 +133,22 @@ struct ChainManagerCoinView {
     bool IsValid() const { return error == ChainManagerCoinViewError::NONE; }
 };
 
+enum class ChainManagerTipsViewError : uint8_t {
+    NONE,
+    NULL_CHAIN_ID,
+    UNKNOWN_CHAIN,
+    CHAIN_NOT_LOADED,
+    DATA_UNAVAILABLE,
+};
+
+struct ChainManagerTipsView {
+    ChainManagerTipsViewError error{ChainManagerTipsViewError::NONE};
+    ChainManagerEntry entry;
+    std::vector<ReferenceChildChainTipView> tips;
+
+    bool IsValid() const { return error == ChainManagerTipsViewError::NONE; }
+};
+
 /**
  * Opt-in owner for isolated child runtimes.
  *
@@ -228,6 +244,8 @@ public:
     ChainManagerCoinView GetCoinView(
         const chainregistry::ChainId& chain_id,
         const COutPoint& outpoint) const;
+    ChainManagerTipsView GetChainTipsView(
+        const chainregistry::ChainId& chain_id) const;
     std::vector<ChainManagerEntry> List() const;
     size_t RegisteredCount() const;
     size_t LoadedCount() const;

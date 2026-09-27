@@ -579,6 +579,38 @@ ChainManagerCoinView ChainManager::GetCoinView(
     return result;
 }
 
+ChainManagerTipsView ChainManager::GetChainTipsView(
+    const chainregistry::ChainId& chain_id) const
+{
+    LOCK(m_mutex);
+    ChainManagerTipsView result;
+    if (chain_id.IsNull()) {
+        result.error = ChainManagerTipsViewError::NULL_CHAIN_ID;
+        return result;
+    }
+    if (!m_definitions.contains(chain_id)) {
+        result.error = ChainManagerTipsViewError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto loaded{m_loaded.find(chain_id)};
+    if (loaded == m_loaded.end()) {
+        result.error = ChainManagerTipsViewError::CHAIN_NOT_LOADED;
+        return result;
+    }
+    const CBlockIndex* tip{loaded->second->Tip()};
+    Assume(tip);
+    const auto tip_view{GetBlockViewLocked(chain_id, tip->GetBlockHash())};
+    Assume(tip_view.IsValid());
+    result.entry = tip_view.entry;
+    const auto tips{loaded->second->GetChainTips()};
+    if (!tips) {
+        result.error = ChainManagerTipsViewError::DATA_UNAVAILABLE;
+        return result;
+    }
+    result.tips = *tips;
+    return result;
+}
+
 std::vector<ChainManagerEntry> ChainManager::List() const
 {
     LOCK(m_mutex);

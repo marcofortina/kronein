@@ -729,6 +729,17 @@ BOOST_AUTO_TEST_CASE(main_reorg_preserves_orphaned_child_candidates)
         CBlock retained;
         BOOST_CHECK(runtime.ReadBlock(first_child_hash, retained));
         BOOST_CHECK(runtime.ReadBlock(second_child_hash, retained));
+        const auto tips{runtime.GetChainTips()};
+        BOOST_REQUIRE(tips);
+        BOOST_REQUIRE_EQUAL(tips->size(), 2U);
+        BOOST_CHECK(tips->at(0).block_hash == second_child_hash);
+        BOOST_CHECK_EQUAL(tips->at(0).height, 2);
+        BOOST_CHECK_EQUAL(tips->at(0).branch_length, 2);
+        BOOST_CHECK(!tips->at(0).active);
+        BOOST_CHECK(!tips->at(0).fork_score.eligible);
+        BOOST_CHECK(tips->at(1).block_hash == definition.genesis_hash);
+        BOOST_CHECK(tips->at(1).active);
+        BOOST_CHECK_EQUAL(tips->at(1).branch_length, 0);
     }
 
     {
@@ -750,6 +761,12 @@ BOOST_AUTO_TEST_CASE(main_reorg_preserves_orphaned_child_candidates)
         CBlock retained;
         BOOST_CHECK(runtime.ReadBlock(first_child_hash, retained));
         BOOST_CHECK(runtime.ReadBlock(second_child_hash, retained));
+        const auto tips{runtime.GetChainTips()};
+        BOOST_REQUIRE(tips);
+        BOOST_REQUIRE_EQUAL(tips->size(), 2U);
+        BOOST_CHECK(tips->at(0).block_hash == second_child_hash);
+        BOOST_CHECK(tips->at(1).block_hash == definition.genesis_hash);
+        BOOST_CHECK(tips->at(1).active);
     }
 }
 

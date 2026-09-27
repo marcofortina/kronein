@@ -79,6 +79,14 @@ struct ReferenceChildBlockView {
     chainregistry::ChildForkScore fork_score;
 };
 
+struct ReferenceChildChainTipView {
+    uint256 block_hash;
+    int height{0};
+    int branch_length{0};
+    bool active{false};
+    chainregistry::ChildForkScore fork_score;
+};
+
 /**
  * First isolated runtime for one reference-template child chain.
  *
@@ -176,6 +184,7 @@ public:
     std::optional<uint256> GetBlockHash(int height) const;
     std::optional<ReferenceChildBlockView> GetBlockView(
         const uint256& block_hash) const;
+    std::optional<std::vector<ReferenceChildChainTipView>> GetChainTips() const;
     std::optional<Coin> GetCoin(const COutPoint& outpoint) const;
     bool ReadBlock(const uint256& block_hash, CBlock& block) const;
 };

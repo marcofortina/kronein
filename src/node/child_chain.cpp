@@ -1043,6 +1043,75 @@ std::optional<ReferenceChildBlockView> ReferenceChildRuntime::GetBlockView(
     return result;
 }
 
+std::optional<std::vector<ReferenceChildChainTipView>>
+ReferenceChildRuntime::GetChainTips() const
+{
+    if (!Usable() || !m_tip || !m_genesis || !m_db) return std::nullopt;
+
+    const auto candidates{m_db->ReadForkCandidates(*m_main_headers)};
+    if (!candidates) return std::nullopt;
+    const auto selected{chainregistry::SelectChildFork(
+        m_definition.genesis_hash, *candidates)};
+    if (!selected.IsValid()) return std::nullopt;
+
+    std::set<uint256> parents;
+    for (const auto& [_, index] : m_child_index) {
+        Assume(index->pprev);
+        parents.insert(index->pprev->GetBlockHash());
+    }
+
+    std::set<uint256> tip_hashes{m_tip->GetBlockHash()};
+    for (const auto& [hash, _] : m_child_index) {
+        if (!parents.contains(hash)) tip_hashes.insert(hash);
+    }
+
+    std::vector<ReferenceChildChainTipView> result;
+    result.reserve(tip_hashes.size());
+    for (const uint256& hash : tip_hashes) {
+        const CBlockIndex* index;
+        if (hash == m_definition.genesis_hash) {
+            index = m_genesis.get();
+        } else {
+            const auto found{m_child_index.find(hash)};
+            if (found == m_child_index.end()) return std::nullopt;
+            index = found->second.get();
+        }
+
+        const CBlockIndex* branch{index};
+        const CBlockIndex* active{m_tip};
+        while (branch->nHeight > active->nHeight) branch = branch->pprev;
+        while (active->nHeight > branch->nHeight) active = active->pprev;
+        while (branch != active) {
+            if (!branch || !active) return std::nullopt;
+            branch = branch->pprev;
+            active = active->pprev;
+        }
+        Assume(branch);
+
+        ReferenceChildChainTipView view{
+            .block_hash = hash,
+            .height = index->nHeight,
+            .branch_length = index->nHeight - branch->nHeight,
+            .active = hash == m_tip->GetBlockHash(),
+            .fork_score = {},
+        };
+        if (hash != m_definition.genesis_hash) {
+            const auto score{selected.scores.find(hash)};
+            if (score == selected.scores.end()) return std::nullopt;
+            view.fork_score = score->second;
+        }
+        result.push_back(std::move(view));
+    }
+    std::sort(result.begin(), result.end(),
+              [](const auto& left, const auto& right) {
+                  if (left.height != right.height) {
+                      return left.height > right.height;
+                  }
+                  return left.block_hash < right.block_hash;
+              });
+    return result;
+}
+
 bool ReferenceChildRuntime::ReadBlock(const uint256& block_hash,
                                       CBlock& block) const
 {
