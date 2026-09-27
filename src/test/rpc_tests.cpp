@@ -31,6 +31,18 @@ static UniValue JSON(std::string_view json)
     return value;
 }
 
+static chainregistry::ReferenceChildDefinition RpcChildDefinition()
+{
+    const auto result{chainregistry::BuildReferenceChildDefinition(
+        Params().GetConsensus().hashGenesisBlock,
+        COutPoint{Txid::FromUint256(uint256{1}), 0},
+        chainregistry::MakeReferenceChildSpec({}),
+        chainregistry::MetadataHash{
+            "4444444444444444444444444444444444444444444444444444444444444444"})};
+    BOOST_REQUIRE(result.IsValid());
+    return *result.definition;
+}
+
 class HasJSON
 {
 public:
@@ -126,6 +138,59 @@ BOOST_AUTO_TEST_CASE(child_chain_lifecycle_rpc)
                            "not configured locally") != std::string_view::npos;
             });
     }
+}
+
+BOOST_AUTO_TEST_CASE(blockchain_rpc_routes_explicit_child_chain)
+{
+    const auto definition{RpcChildDefinition()};
+    auto& manager{*m_node.child_chainman};
+    BOOST_REQUIRE(manager.RegisterChain(definition).IsValid());
+    BOOST_REQUIRE(manager.LoadChain(
+        definition.chain_id,
+        Params().GenesisBlock().nTime,
+        /*wipe_data=*/true,
+        /*sync=*/true).IsValid());
+
+    const std::string chain_id{definition.chain_id.GetHex()};
+    const int main_height{CallRPC("getblockcount").getInt<int>()};
+    const std::string main_tip{CallRPC("getbestblockhash").get_str()};
+    BOOST_CHECK_EQUAL(CallRPC("getblockcount " + chain_id).getInt<int>(), 0);
+    BOOST_CHECK_EQUAL(CallRPC("getbestblockhash " + chain_id).get_str(),
+                      definition.genesis_hash.GetHex());
+    BOOST_CHECK_EQUAL(CallRPC("getblockhash 0 " + chain_id).get_str(),
+                      definition.genesis_hash.GetHex());
+    BOOST_CHECK_EQUAL(CallRPC("getblockcount").getInt<int>(), main_height);
+    BOOST_CHECK_EQUAL(CallRPC("getbestblockhash").get_str(), main_tip);
+
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("getblockhash 1 " + chain_id),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find("height out of range") !=
+                   std::string_view::npos;
+        });
+    BOOST_REQUIRE(manager.UnloadChain(definition.chain_id).IsValid());
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("getblockcount " + chain_id),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find("not loaded") !=
+                   std::string_view::npos;
+        });
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("getbestblockhash " + std::string(64, '0')),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find("non-null bytes") !=
+                   std::string_view::npos;
+        });
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("getblockcount " + std::string(64, '1')),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find("not configured") !=
+                   std::string_view::npos;
+        });
 }
 
 BOOST_AUTO_TEST_CASE(rpc_namedparams)

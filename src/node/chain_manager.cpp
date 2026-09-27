@@ -338,6 +338,55 @@ fs::path ChainManager::DataPath(
     return m_chains_directory / fs::PathFromString(chain_id.GetHex());
 }
 
+ChainManagerView ChainManager::GetChainView(
+    const chainregistry::ChainId& chain_id,
+    std::optional<int> height) const
+{
+    LOCK(m_mutex);
+    ChainManagerView result;
+    if (chain_id.IsNull()) {
+        result.error = ChainManagerViewError::NULL_CHAIN_ID;
+        return result;
+    }
+    const auto definition{m_definitions.find(chain_id)};
+    if (definition == m_definitions.end()) {
+        result.error = ChainManagerViewError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto loaded{m_loaded.find(chain_id)};
+    if (loaded == m_loaded.end()) {
+        result.error = ChainManagerViewError::CHAIN_NOT_LOADED;
+        return result;
+    }
+    const auto& runtime{*loaded->second};
+    const auto* child_tip{runtime.Tip()};
+    const auto* main_tip{runtime.MainHeaders()->Tip()};
+    Assume(child_tip);
+    Assume(main_tip);
+    result.entry = {
+        .chain_id = chain_id,
+        .manifest_hash = definition->second.manifest_hash,
+        .template_id = definition->second.manifest.spec.template_id,
+        .template_version = definition->second.manifest.spec.template_version,
+        .genesis_hash = definition->second.genesis_hash,
+        .data_path = DataPath(chain_id),
+        .loaded = true,
+        .failed = runtime.IsFailed(),
+        .safe_halt = runtime.Imports().IsSafeHalted(),
+        .height = runtime.State().child_height,
+        .tip = child_tip->GetBlockHash(),
+        .main_height = static_cast<uint32_t>(main_tip->nHeight),
+        .main_tip = main_tip->GetBlockHash(),
+    };
+    if (height) {
+        result.block_hash = runtime.GetBlockHash(*height);
+        if (!result.block_hash) {
+            result.error = ChainManagerViewError::HEIGHT_OUT_OF_RANGE;
+        }
+    }
+    return result;
+}
+
 std::vector<ChainManagerEntry> ChainManager::List() const
 {
     LOCK(m_mutex);
@@ -358,6 +407,7 @@ std::vector<ChainManagerEntry> ChainManager::List() const
             entry.failed = loaded->second->IsFailed();
             entry.safe_halt = loaded->second->Imports().IsSafeHalted();
             entry.height = loaded->second->State().child_height;
+            entry.tip = loaded->second->Tip()->GetBlockHash();
             const auto* main_tip{loaded->second->MainHeaders()->Tip()};
             Assume(main_tip);
             entry.main_height = static_cast<uint32_t>(main_tip->nHeight);

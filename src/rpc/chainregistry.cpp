@@ -862,6 +862,7 @@ RPCHelpMan listchildchainruntimes()
                     {RPCResult::Type::BOOL, "failed", /*optional=*/true, "Whether the loaded runtime has failed"},
                     {RPCResult::Type::BOOL, "safe_halt", /*optional=*/true, "Whether irreversible main reorg protection is active"},
                     {RPCResult::Type::NUM, "child_height", /*optional=*/true, "Loaded child height"},
+                    {RPCResult::Type::STR_HEX, "bestblockhash", /*optional=*/true, "Loaded child tip"},
                     {RPCResult::Type::NUM, "main_height", /*optional=*/true, "Main-header light-client height"},
                     {RPCResult::Type::STR_HEX, "main_bestblockhash", /*optional=*/true, "Main-header light-client tip"},
                     {RPCResult::Type::STR, "data_path", /*optional=*/true, "Local chain directory"},
@@ -926,6 +927,7 @@ RPCHelpMan listchildchainruntimes()
             chain.pushKV("safe_halt", configured->second.safe_halt);
             chain.pushKV("child_height", configured->second.height);
             if (configured->second.loaded) {
+                chain.pushKV("bestblockhash", configured->second.tip.GetHex());
                 chain.pushKV("main_height", configured->second.main_height);
                 chain.pushKV("main_bestblockhash", configured->second.main_tip.GetHex());
             }
@@ -950,6 +952,7 @@ RPCHelpMan listchildchainruntimes()
         chain.pushKV("state", "orphaned");
         chain.pushKV("child_height", entry.height);
         if (entry.loaded) {
+            chain.pushKV("bestblockhash", entry.tip.GetHex());
             chain.pushKV("main_height", entry.main_height);
             chain.pushKV("main_bestblockhash", entry.main_tip.GetHex());
         }
@@ -979,6 +982,7 @@ RPCHelpMan loadchildchain()
             {RPCResult::Type::BOOL, "loaded", "Whether the runtime is loaded"},
             {RPCResult::Type::BOOL, "already_loaded", "Whether it was loaded before this call"},
             {RPCResult::Type::NUM, "height", "Current child height"},
+            {RPCResult::Type::STR_HEX, "bestblockhash", "Current child tip"},
             {RPCResult::Type::BOOL, "safe_halt", "Whether irreversible reorg protection is active"},
             {RPCResult::Type::NUM, "main_height", "Current main-header light-client height"},
             {RPCResult::Type::STR_HEX, "main_bestblockhash", "Current main-header light-client tip"},
@@ -1040,6 +1044,7 @@ RPCHelpMan loadchildchain()
     result.pushKV("loaded", entry->loaded);
     result.pushKV("already_loaded", loaded.already_loaded);
     result.pushKV("height", entry->height);
+    result.pushKV("bestblockhash", entry->tip.GetHex());
     result.pushKV("safe_halt", entry->safe_halt);
     result.pushKV("main_height", entry->main_height);
     result.pushKV("main_bestblockhash", entry->main_tip.GetHex());

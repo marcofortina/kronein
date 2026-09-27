@@ -80,8 +80,25 @@ struct ChainManagerEntry {
     bool failed{false};
     bool safe_halt{false};
     uint32_t height{0};
+    uint256 tip{};
     uint32_t main_height{0};
     uint256 main_tip{};
+};
+
+enum class ChainManagerViewError : uint8_t {
+    NONE,
+    NULL_CHAIN_ID,
+    UNKNOWN_CHAIN,
+    CHAIN_NOT_LOADED,
+    HEIGHT_OUT_OF_RANGE,
+};
+
+struct ChainManagerView {
+    ChainManagerViewError error{ChainManagerViewError::NONE};
+    ChainManagerEntry entry;
+    std::optional<uint256> block_hash;
+
+    bool IsValid() const { return error == ChainManagerViewError::NONE; }
 };
 
 /**
@@ -153,6 +170,9 @@ public:
     std::optional<chainregistry::ReferenceChildDefinition> Definition(
         const chainregistry::ChainId& chain_id) const;
     fs::path DataPath(const chainregistry::ChainId& chain_id) const;
+    ChainManagerView GetChainView(
+        const chainregistry::ChainId& chain_id,
+        std::optional<int> height = std::nullopt) const;
     std::vector<ChainManagerEntry> List() const;
     size_t RegisteredCount() const;
     size_t LoadedCount() const;

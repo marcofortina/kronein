@@ -129,6 +129,21 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
     }
     BOOST_CHECK_EQUAL(loaded_entries, 1U);
 
+    const auto view{manager.GetChainView(first.chain_id)};
+    BOOST_REQUIRE(view.IsValid());
+    BOOST_CHECK_EQUAL(view.entry.height, 0U);
+    BOOST_CHECK(view.entry.tip == first.genesis_hash);
+    const auto genesis_view{manager.GetChainView(first.chain_id, 0)};
+    BOOST_REQUIRE(genesis_view.IsValid());
+    BOOST_REQUIRE(genesis_view.block_hash);
+    BOOST_CHECK(*genesis_view.block_hash == first.genesis_hash);
+    BOOST_CHECK(manager.GetChainView(first.chain_id, 1).error ==
+                node::ChainManagerViewError::HEIGHT_OUT_OF_RANGE);
+    BOOST_CHECK(manager.GetChainView(second.chain_id).error ==
+                node::ChainManagerViewError::CHAIN_NOT_LOADED);
+    BOOST_CHECK(manager.GetChainView(chainregistry::ChainId{}).error ==
+                node::ChainManagerViewError::NULL_CHAIN_ID);
+
     const auto already_loaded{manager.LoadChain(
         first.chain_id, Params().GenesisBlock().nTime)};
     BOOST_REQUIRE(already_loaded.IsValid());

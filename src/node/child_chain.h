@@ -136,6 +136,7 @@ public:
     const chainregistry::DepositImportState& Imports() const { return m_imports; }
     const ChildChainDBState& State() const { return m_state; }
     const CBlockIndex* Tip() const { return m_tip; }
+    std::optional<uint256> GetBlockHash(int height) const;
     std::optional<Coin> GetCoin(const COutPoint& outpoint) const;
     bool ReadBlock(const uint256& block_hash, CBlock& block) const;
 };

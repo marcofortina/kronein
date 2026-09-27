@@ -571,6 +571,16 @@ std::optional<Coin> ReferenceChildRuntime::GetCoin(
     return m_db->GetCoin(outpoint);
 }
 
+std::optional<uint256> ReferenceChildRuntime::GetBlockHash(int height) const
+{
+    if (!Usable() || !m_tip || height < 0 || height > m_tip->nHeight) {
+        return std::nullopt;
+    }
+    const CBlockIndex* index{m_tip->GetAncestor(height)};
+    if (!index) return std::nullopt;
+    return index->GetBlockHash();
+}
+
 bool ReferenceChildRuntime::ReadBlock(const uint256& block_hash,
                                       CBlock& block) const
 {

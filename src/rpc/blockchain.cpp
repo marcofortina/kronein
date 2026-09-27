@@ -30,6 +30,7 @@
 #include <net_processing.h>
 #include <node/blockstorage.h>
 #include <node/chainregistry.h>
+#include <node/chain_manager.h>
 #include <node/context.h>
 #include <node/transaction.h>
 #include <node/utxo_snapshot.h>
@@ -78,6 +79,40 @@ using node::BlockManager;
 using node::NodeContext;
 using node::SnapshotMetadata;
 using util::MakeUnorderedList;
+
+static chainregistry::ChainId ParseChainId(std::string_view value)
+{
+    const auto chain_id{chainregistry::ChainId::FromHex(value)};
+    if (!chain_id || chain_id->IsNull()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "chain_id must be exactly 32 non-null bytes encoded as hexadecimal");
+    }
+    return *chain_id;
+}
+
+static node::ChainManagerView GetLoadedChildChainView(
+    const std::any& context,
+    std::string_view chain_id,
+    std::optional<int> height = std::nullopt)
+{
+    const auto view{EnsureAnyChildChainman(context).GetChainView(
+        ParseChainId(chain_id), height)};
+    switch (view.error) {
+    case node::ChainManagerViewError::NONE:
+        return view;
+    case node::ChainManagerViewError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must not be null");
+    case node::ChainManagerViewError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not configured locally");
+    case node::ChainManagerViewError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_MISC_ERROR, "child chain is not loaded");
+    case node::ChainManagerViewError::HEIGHT_OUT_OF_RANGE:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Block height out of range");
+    }
+    throw JSONRPCError(RPC_INTERNAL_ERROR,
+                       "unhandled child chain view error");
+}
 
 struct PreparedUTXOSnapshot {
     std::unique_ptr<CCoinsViewCursor> cursor;
@@ -261,8 +296,10 @@ static RPCHelpMan getblockcount()
     return RPCHelpMan{
         "getblockcount",
         "Returns the height of the most-work fully-validated chain.\n"
-                "The genesis block has height 0.\n",
-                {},
+                "The genesis block has height 0. Omit chain_id for the main chain.\n",
+                {
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
+                },
                 RPCResult{
                     RPCResult::Type::NUM, "", "The current block count"},
                 RPCExamples{
@@ -271,6 +308,9 @@ static RPCHelpMan getblockcount()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
+    if (const auto chain_id{self.MaybeArg<std::string_view>("chain_id")}) {
+        return GetLoadedChildChainView(request.context, *chain_id).entry.height;
+    }
     ChainstateManager& chainman = EnsureAnyChainman(request.context);
     LOCK(cs_main);
     return chainman.ActiveChain().Height();
@@ -282,8 +322,11 @@ static RPCHelpMan getbestblockhash()
 {
     return RPCHelpMan{
         "getbestblockhash",
-        "Returns the hash of the best (tip) block in the most-work fully-validated chain.\n",
-                {},
+        "Returns the hash of the best (tip) block in the selected fully-validated chain.\n"
+                "Omit chain_id for the main chain.\n",
+                {
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
+                },
                 RPCResult{
                     RPCResult::Type::STR_HEX, "", "the block hash, hex-encoded"},
                 RPCExamples{
@@ -292,6 +335,10 @@ static RPCHelpMan getbestblockhash()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
+    if (const auto chain_id{self.MaybeArg<std::string_view>("chain_id")}) {
+        return GetLoadedChildChainView(request.context, *chain_id)
+            .entry.tip.GetHex();
+    }
     ChainstateManager& chainman = EnsureAnyChainman(request.context);
     LOCK(cs_main);
     return chainman.ActiveChain().Tip()->GetBlockHash().GetHex();
@@ -582,9 +629,11 @@ static RPCHelpMan getblockhash()
 {
     return RPCHelpMan{
         "getblockhash",
-        "Returns hash of block in best-block-chain at height provided.\n",
+        "Returns hash of block in the selected best block chain at the provided height.\n"
+                "Omit chain_id for the main chain.\n",
                 {
                     {"height", RPCArg::Type::NUM, RPCArg::Optional::NO, "The height index"},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 RPCResult{
                     RPCResult::Type::STR_HEX, "", "The block hash"},
@@ -594,11 +643,16 @@ static RPCHelpMan getblockhash()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
+    int nHeight = self.Arg<int>("height");
+    if (const auto chain_id{self.MaybeArg<std::string_view>("chain_id")}) {
+        return GetLoadedChildChainView(
+                   request.context, *chain_id, nHeight)
+            .block_hash->GetHex();
+    }
     ChainstateManager& chainman = EnsureAnyChainman(request.context);
     LOCK(cs_main);
     const CChain& active_chain = chainman.ActiveChain();
 
-    int nHeight = request.params[0].getInt<int>();
     if (nHeight < 0 || nHeight > active_chain.Height())
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Block height out of range");
 
@@ -3363,16 +3417,6 @@ return RPCHelpMan{
     return obj;
 }
     };
-}
-
-static chainregistry::ChainId ParseChainId(std::string_view value)
-{
-    const auto chain_id{chainregistry::ChainId::FromHex(value)};
-    if (!chain_id || chain_id->IsNull()) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER,
-                           "chain_id must be exactly 32 non-null bytes encoded as hexadecimal");
-    }
-    return *chain_id;
 }
 
 static UniValue ChainRegistryRecordToUniv(const chainregistry::ChainRecord& record)
