@@ -19,6 +19,7 @@ class ChainstateManager;
 class PeerManager;
 class BanMan;
 namespace node {
+class ChainManager;
 struct NodeContext;
 } // namespace node
 namespace interfaces {
@@ -34,6 +35,8 @@ ArgsManager& EnsureArgsman(const node::NodeContext& node);
 ArgsManager& EnsureAnyArgsman(const std::any& context);
 ChainstateManager& EnsureChainman(const node::NodeContext& node);
 ChainstateManager& EnsureAnyChainman(const std::any& context);
+node::ChainManager& EnsureChildChainman(const node::NodeContext& node);
+node::ChainManager& EnsureAnyChildChainman(const std::any& context);
 CBlockPolicyEstimator& EnsureFeeEstimator(const node::NodeContext& node);
 CBlockPolicyEstimator& EnsureAnyFeeEstimator(const std::any& context);
 CConnman& EnsureConnman(const node::NodeContext& node);

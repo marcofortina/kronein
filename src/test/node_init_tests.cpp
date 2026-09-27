@@ -50,8 +50,10 @@ BOOST_AUTO_TEST_CASE(init_test)
     TestInit init{m_node};
     BOOST_CHECK(AppInitInterfaces(m_node));
     BOOST_CHECK(AppInitMain(m_node));
+    BOOST_REQUIRE(m_node.child_chainman);
     Interrupt(m_node);
     Shutdown(m_node);
+    BOOST_CHECK(!m_node.child_chainman);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

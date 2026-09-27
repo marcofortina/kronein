@@ -19,6 +19,8 @@
 
 namespace node {
 
+static constexpr size_t DEFAULT_CHILD_CHAIN_DB_CACHE{8 << 20};
+
 enum class ChainManagerError : uint8_t {
     NONE,
     NULL_CHAIN_ID,

@@ -7,6 +7,7 @@
 #include <chain.h>
 #include <common/args.h>
 #include <net_processing.h>
+#include <node/chain_manager.h>
 #include <node/context.h>
 #include <node/miner.h>
 #include <policy/fees/block_policy_estimator.h>
@@ -82,6 +83,19 @@ ChainstateManager& EnsureChainman(const NodeContext& node)
 ChainstateManager& EnsureAnyChainman(const std::any& context)
 {
     return EnsureChainman(EnsureAnyNodeContext(context));
+}
+
+node::ChainManager& EnsureChildChainman(const NodeContext& node)
+{
+    if (!node.child_chainman) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Child chain manager not found");
+    }
+    return *node.child_chainman;
+}
+
+node::ChainManager& EnsureAnyChildChainman(const std::any& context)
+{
+    return EnsureChildChainman(EnsureAnyNodeContext(context));
 }
 
 CBlockPolicyEstimator& EnsureFeeEstimator(const NodeContext& node)
