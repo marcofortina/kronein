@@ -6,11 +6,13 @@
 
 #include <chainparams.h>
 #include <dbwrapper.h>
+#include <pow.h>
 #include <primitives/chainregistry.h>
 #include <test/util/setup_common.h>
 
 #include <boost/test/unit_test.hpp>
 
+#include <array>
 #include <thread>
 
 namespace {
@@ -34,6 +36,43 @@ chainregistry::ReferenceChildDefinition Definition(uint32_t index)
         METADATA_HASH)};
     BOOST_REQUIRE(result.IsValid());
     return *result.definition;
+}
+
+CBlockHeader MineHeader(const CBlockIndex& parent,
+                        const Consensus::Params& params,
+                        uint8_t discriminator)
+{
+    CBlockHeader header;
+    header.nVersion = CBlockHeader::CURRENT_VERSION;
+    header.hashPrevBlock = parent.GetBlockHash();
+    header.hashMerkleRoot = uint256{discriminator};
+    header.nTime = parent.nTime + 1;
+    header.nBits = GetNextWorkRequired(&parent, &header, params);
+    const auto seed{GetRandomXSeed(&parent, parent.nHeight + 1, params)};
+    BOOST_REQUIRE(seed.has_value());
+    uint64_t max_tries{1'000'000};
+    BOOST_REQUIRE(MineProofOfWork(
+        header, *seed, params, max_tries,
+        /*threads=*/1, /*use_full_memory=*/false));
+    return header;
+}
+
+chainregistry::ChainRecord Record(
+    const chainregistry::ReferenceChildDefinition& definition,
+    chainregistry::ChainStatus status = chainregistry::ChainStatus::ACTIVE)
+{
+    return {
+        .chain_id = definition.chain_id,
+        .manifest_hash = definition.manifest_hash,
+        .template_id = definition.manifest.spec.template_id,
+        .template_version = definition.manifest.spec.template_version,
+        .control_outpoint = definition.genesis.registration_anchor,
+        .metadata_hash = definition.manifest.initial_metadata_hash,
+        .status = status,
+        .registered_height = 1,
+        .updated_height = 1,
+        .retired_height = status == chainregistry::ChainStatus::RETIRED ? 2U : 0U,
+    };
 }
 
 } // namespace
@@ -243,6 +282,105 @@ BOOST_AUTO_TEST_CASE(serializes_concurrent_catalog_updates)
     for (const auto& result : results) BOOST_CHECK(result.IsValid());
     BOOST_CHECK_EQUAL(manager.RegisteredCount(), count);
     BOOST_CHECK_EQUAL(manager.List().size(), count);
+}
+
+BOOST_AUTO_TEST_CASE(synchronizes_main_headers_and_reconciles_registry)
+{
+    const auto first{Definition(200)};
+    const auto second{Definition(201)};
+    const fs::path root{m_args.GetDataDirBase() / "chains_main_updates"};
+    node::ChainManager manager{
+        Params().GetConsensus(), Params().GenesisBlock(), root, 1 << 20};
+    BOOST_REQUIRE(manager.RegisterChain(first).IsValid());
+    BOOST_REQUIRE(manager.RegisterChain(second).IsValid());
+
+    CBlockIndex genesis{Params().GenesisBlock()};
+    genesis.phashBlock = &Params().GetConsensus().hashGenesisBlock;
+    genesis.nHeight = 0;
+    genesis.nChainWork = GetBlockProof(genesis);
+    genesis.nTimeMax = genesis.nTime;
+    const CBlockHeader header{MineHeader(genesis, Params().GetConsensus(), 1)};
+
+    const std::array<CBlockHeader, 1> headers{header};
+    BOOST_REQUIRE(manager.LoadChain(
+        first.chain_id,
+        header.nTime,
+        /*wipe_data=*/true,
+        /*sync=*/true,
+        headers).IsValid());
+    BOOST_REQUIRE(manager.LoadChain(
+        second.chain_id,
+        header.nTime,
+        /*wipe_data=*/true,
+        /*sync=*/true).IsValid());
+
+    const auto advanced{manager.AddMainHeader(
+        header, header.nTime, /*sync=*/true)};
+    BOOST_REQUIRE_EQUAL(advanced.unloaded.size(), 0U);
+    BOOST_REQUIRE_EQUAL(advanced.advanced.size(), 1U);
+    BOOST_CHECK(advanced.advanced.front() == second.chain_id);
+    for (const auto& entry : manager.List()) {
+        BOOST_CHECK(entry.loaded);
+        BOOST_CHECK_EQUAL(entry.main_height, 1U);
+        BOOST_CHECK(entry.main_tip == header.GetHash());
+    }
+
+    const auto disconnected{manager.SynchronizeMainChain(
+        {},
+        Params().GetConsensus().hashGenesisBlock,
+        header.nTime,
+        /*sync=*/true)};
+    BOOST_REQUIRE_EQUAL(disconnected.unloaded.size(), 0U);
+    BOOST_REQUIRE_EQUAL(disconnected.advanced.size(), 2U);
+    for (const auto& entry : manager.List()) {
+        BOOST_CHECK_EQUAL(entry.main_height, 0U);
+        BOOST_CHECK(entry.main_tip == Params().GetConsensus().hashGenesisBlock);
+    }
+
+    BOOST_REQUIRE(manager.UnloadChain(second.chain_id).IsValid());
+    BOOST_REQUIRE(manager.LoadChain(
+        second.chain_id,
+        header.nTime,
+        /*wipe_data=*/false,
+        /*sync=*/true,
+        headers).IsValid());
+    for (const auto& entry : manager.List()) {
+        BOOST_CHECK_EQUAL(
+            entry.main_height,
+            entry.chain_id == second.chain_id ? 1U : 0U);
+    }
+    const auto reconnected{manager.SynchronizeMainChain(
+        headers,
+        header.GetHash(),
+        header.nTime,
+        /*sync=*/true)};
+    BOOST_REQUIRE_EQUAL(reconnected.unloaded.size(), 0U);
+    BOOST_REQUIRE_EQUAL(reconnected.advanced.size(), 1U);
+    BOOST_CHECK(reconnected.advanced.front() == first.chain_id);
+    for (const auto& entry : manager.List()) {
+        BOOST_CHECK_EQUAL(entry.main_height, 1U);
+        BOOST_CHECK(entry.main_tip == header.GetHash());
+    }
+
+    std::map<chainregistry::ChainId, chainregistry::ChainRecord> registry{
+        {first.chain_id, Record(first)},
+    };
+    const auto missing{manager.ReconcileRegistry(registry)};
+    BOOST_REQUIRE_EQUAL(missing.unloaded.size(), 1U);
+    BOOST_CHECK(missing.unloaded.front().chain_id == second.chain_id);
+    BOOST_CHECK(missing.unloaded.front().reason ==
+                node::ChainManagerUnloadReason::REGISTRY_MISSING);
+    BOOST_CHECK(manager.IsLoaded(first.chain_id));
+    BOOST_CHECK(!manager.IsLoaded(second.chain_id));
+
+    registry.at(first.chain_id) =
+        Record(first, chainregistry::ChainStatus::RETIRED);
+    const auto retired{manager.ReconcileRegistry(registry)};
+    BOOST_REQUIRE_EQUAL(retired.unloaded.size(), 1U);
+    BOOST_CHECK(retired.unloaded.front().chain_id == first.chain_id);
+    BOOST_CHECK(retired.unloaded.front().reason ==
+                node::ChainManagerUnloadReason::REGISTRY_RETIRED);
+    BOOST_CHECK_EQUAL(manager.LoadedCount(), 0U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -260,6 +260,8 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(loaded["loaded"], True)
         assert_equal(loaded["already_loaded"], False)
         assert_equal(loaded["height"], 0)
+        assert_equal(loaded["main_height"], node.getblockcount())
+        assert_equal(loaded["main_bestblockhash"], node.getbestblockhash())
         assert_equal(node.loadchildchain(chain_id)["already_loaded"], True)
         assert_equal(node.listchildchainruntimes()["chains"][0]["state"], "loaded")
         assert_equal(node.unloadchildchain(chain_id)["loaded"], False)
@@ -270,6 +272,10 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(node.addchildchain(
             registration_anchor,
             reference_child["manifest"])["already_configured"], False)
+        reloaded = node.loadchildchain(chain_id)
+        assert_equal(reloaded["loaded"], True)
+        assert_equal(reloaded["main_height"], node.getblockcount())
+        assert_equal(reloaded["main_bestblockhash"], node.getbestblockhash())
         assert_raises_rpc_error(-8, "chain_id must not be null",
                                 node.loadchildchain, "00" * 32)
 
@@ -354,7 +360,26 @@ class ChainRegistryTest(BitcoinTestFramework):
         updated = node.getchildchain(chain_id)
         assert_equal(updated["chain"]["metadata_hash"], "33" * 32)
         assert_equal(updated["chain"]["control_outpoint"], {"txid": update_txid, "vout": 1})
+        updated_runtime = node.listchildchainruntimes()["chains"][0]
+        assert_equal(updated_runtime["loaded"], True)
+        assert_equal(updated_runtime["main_height"], node.getblockcount())
+        assert_equal(updated_runtime["main_bestblockhash"], node.getbestblockhash())
         updated_info = node.getchainregistryinfo()
+
+        self.log.info("Follow an active-main disconnect and reconnect while loaded")
+        node.invalidateblock(update_block)
+        node.syncwithvalidationinterfacequeue()
+        disconnected_runtime = node.listchildchainruntimes()["chains"][0]
+        assert_equal(disconnected_runtime["loaded"], True)
+        assert_equal(disconnected_runtime["main_height"], node.getblockcount())
+        assert_equal(disconnected_runtime["main_bestblockhash"], deposit_block)
+        node.reconsiderblock(update_block)
+        node.syncwithvalidationinterfacequeue()
+        assert_equal(node.getbestblockhash(), update_block)
+        reconnected_runtime = node.listchildchainruntimes()["chains"][0]
+        assert_equal(reconnected_runtime["loaded"], True)
+        assert_equal(reconnected_runtime["main_height"], node.getblockcount())
+        assert_equal(reconnected_runtime["main_bestblockhash"], update_block)
 
         retirement_psbt = wallet.walletcreatechainregistrypsbt("retire", {
             "chain_id": chain_id,

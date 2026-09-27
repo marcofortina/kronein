@@ -41,6 +41,7 @@ class SignalInterrupt;
 
 namespace node {
 class ChainManager;
+class ChildChainNotifications;
 class KernelNotifications;
 class Warnings;
 
@@ -73,6 +74,8 @@ struct NodeContext {
     std::unique_ptr<ChainstateManager> chainman;
     //! Opt-in owner for all locally configured child-chain runtimes.
     std::unique_ptr<ChainManager> child_chainman;
+    //! Active-main notifications feeding loaded child runtimes.
+    std::unique_ptr<ChildChainNotifications> child_chain_notifications;
     std::unique_ptr<BanMan> banman;
     ArgsManager* args{nullptr}; // Currently a raw pointer because the memory is not managed by this struct
     std::vector<BaseIndex*> indexes; // raw pointers because memory is not managed by this struct

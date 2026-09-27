@@ -24,6 +24,7 @@
 #include <net_processing.h>
 #include <node/blockstorage.h>
 #include <node/chain_manager.h>
+#include <node/child_chain_notifications.h>
 #include <node/chainstate.h>
 #include <node/context.h>
 #include <node/kernel_notifications.h>
@@ -316,6 +317,7 @@ ChainTestingSetup::~ChainTestingSetup()
     m_node.args = nullptr;
     m_node.mempool.reset();
     Assert(!m_node.fee_estimator); // Each test must create a local object, if they wish to use the fee_estimator
+    m_node.child_chain_notifications.reset();
     m_node.child_chainman.reset();
     m_node.chainman.reset();
     m_node.validation_signals.reset();

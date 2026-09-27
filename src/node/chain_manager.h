@@ -6,6 +6,7 @@
 #define KRONEIN_NODE_CHAIN_MANAGER_H
 
 #include <chainregistry/child_template.h>
+#include <consensus/chainregistry.h>
 #include <consensus/params.h>
 #include <node/child_chain_catalog_db.h>
 #include <node/child_chain.h>
@@ -18,6 +19,8 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <span>
+#include <utility>
 #include <vector>
 
 namespace node {
@@ -36,6 +39,25 @@ enum class ChainManagerError : uint8_t {
     INITIALIZATION_FAILED,
     CATALOG_UNAVAILABLE,
     DATABASE_WRITE_FAILED,
+};
+
+enum class ChainManagerUnloadReason : uint8_t {
+    REGISTRY_MISSING,
+    REGISTRY_RETIRED,
+    REGISTRY_DEFINITION_MISMATCH,
+    MAIN_HEADER_REJECTED,
+};
+
+struct ChainManagerRuntimeEvent {
+    chainregistry::ChainId chain_id;
+    ChainManagerUnloadReason reason;
+    ReferenceChildRuntimeError runtime_error{
+        ReferenceChildRuntimeError::NONE};
+};
+
+struct ChainManagerMainUpdate {
+    std::vector<chainregistry::ChainId> advanced;
+    std::vector<ChainManagerRuntimeEvent> unloaded;
 };
 
 struct ChainManagerResult {
@@ -58,6 +80,8 @@ struct ChainManagerEntry {
     bool failed{false};
     bool safe_halt{false};
     uint32_t height{0};
+    uint32_t main_height{0};
+    uint256 main_tip{};
 };
 
 /**
@@ -104,8 +128,22 @@ public:
     ChainManagerResult LoadChain(const chainregistry::ChainId& chain_id,
                                  int64_t current_time,
                                  bool wipe_data = false,
-                                 bool sync = false);
+                                 bool sync = false,
+                                 std::span<const CBlockHeader> main_headers = {});
     ChainManagerResult UnloadChain(const chainregistry::ChainId& chain_id);
+    /** Feed a header already connected by the local main chainstate. */
+    ChainManagerMainUpdate AddMainHeader(
+        const CBlockHeader& header,
+        int64_t current_time,
+        bool sync = false);
+    ChainManagerMainUpdate SynchronizeMainChain(
+        std::span<const CBlockHeader> active_headers,
+        const uint256& active_tip,
+        int64_t current_time,
+        bool sync = false);
+    ChainManagerMainUpdate ReconcileRegistry(
+        const std::map<chainregistry::ChainId,
+                       chainregistry::ChainRecord>& records);
 
     ReferenceChildRuntime* Get(const chainregistry::ChainId& chain_id);
     const ReferenceChildRuntime* Get(

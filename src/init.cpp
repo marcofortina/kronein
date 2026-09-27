@@ -49,6 +49,7 @@
 #include <node/blockstorage.h>
 #include <node/caches.h>
 #include <node/chain_manager.h>
+#include <node/child_chain_notifications.h>
 #include <node/chainstate.h>
 #include <node/chainstatemanager_args.h>
 #include <node/context.h>
@@ -405,6 +406,7 @@ void Shutdown(NodeContext& node)
     }
     node.mempool.reset();
     node.fee_estimator.reset();
+    node.child_chain_notifications.reset();
     node.child_chainman.reset();
     node.chainman.reset();
     node.validation_signals.reset();
@@ -1255,6 +1257,7 @@ static ChainstateLoadResult InitAndLoadChainstate(
     // This function may be called twice, so any dirty state must be reset.
     node.notifications->setChainstateLoaded(false); // Drop state, such as a cached tip block
     node.mempool.reset();
+    assert(!node.child_chain_notifications);
     node.child_chainman.reset();
     node.chainman.reset(); // Drop state, such as an initialized m_block_tree_db
 
@@ -1851,6 +1854,12 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
             "Failed to load child chain catalog (error %d)",
             static_cast<int>(node.child_chainman->CatalogError()))));
     }
+    assert(!node.child_chain_notifications);
+    node.child_chain_notifications =
+        std::make_unique<node::ChildChainNotifications>(
+            *node.child_chainman, chainman);
+    validation_signals.RegisterValidationInterface(
+        node.child_chain_notifications.get());
 
     assert(!node.peerman);
     node.peerman = PeerManager::make(*node.connman, *node.addrman,

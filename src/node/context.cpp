@@ -14,6 +14,7 @@
 #include <net_processing.h>
 #include <netgroup.h>
 #include <node/chain_manager.h>
+#include <node/child_chain_notifications.h>
 #include <node/kernel_notifications.h>
 #include <node/warnings.h>
 #include <policy/fees/block_policy_estimator.h>

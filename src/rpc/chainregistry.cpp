@@ -291,6 +291,25 @@ struct MainRegistrySnapshot {
     std::map<chainregistry::ChainId, chainregistry::ChainRecord> records;
 };
 
+struct ActiveMainHeaders {
+    uint256 tip;
+    std::vector<CBlockHeader> headers;
+};
+
+ActiveMainHeaders GetActiveMainHeaders(ChainstateManager& chainman)
+{
+    LOCK(cs_main);
+    const CChain& active{chainman.ActiveChain()};
+    ActiveMainHeaders result;
+    if (!active.Tip()) return result;
+    result.tip = active.Tip()->GetBlockHash();
+    result.headers.reserve(active.Height());
+    for (int height{1}; height <= active.Height(); ++height) {
+        result.headers.push_back(Assert(active[height])->GetBlockHeader());
+    }
+    return result;
+}
+
 MainRegistrySnapshot GetMainRegistrySnapshot(ChainstateManager& chainman)
 {
     LOCK(cs_main);
@@ -843,6 +862,8 @@ RPCHelpMan listchildchainruntimes()
                     {RPCResult::Type::BOOL, "failed", /*optional=*/true, "Whether the loaded runtime has failed"},
                     {RPCResult::Type::BOOL, "safe_halt", /*optional=*/true, "Whether irreversible main reorg protection is active"},
                     {RPCResult::Type::NUM, "child_height", /*optional=*/true, "Loaded child height"},
+                    {RPCResult::Type::NUM, "main_height", /*optional=*/true, "Main-header light-client height"},
+                    {RPCResult::Type::STR_HEX, "main_bestblockhash", /*optional=*/true, "Main-header light-client tip"},
                     {RPCResult::Type::STR, "data_path", /*optional=*/true, "Local chain directory"},
                 }},
             }},
@@ -904,6 +925,10 @@ RPCHelpMan listchildchainruntimes()
             chain.pushKV("failed", configured->second.failed);
             chain.pushKV("safe_halt", configured->second.safe_halt);
             chain.pushKV("child_height", configured->second.height);
+            if (configured->second.loaded) {
+                chain.pushKV("main_height", configured->second.main_height);
+                chain.pushKV("main_bestblockhash", configured->second.main_tip.GetHex());
+            }
             local.erase(configured);
         }
         chains.push_back(std::move(chain));
@@ -924,6 +949,10 @@ RPCHelpMan listchildchainruntimes()
         chain.pushKV("safe_halt", entry.safe_halt);
         chain.pushKV("state", "orphaned");
         chain.pushKV("child_height", entry.height);
+        if (entry.loaded) {
+            chain.pushKV("main_height", entry.main_height);
+            chain.pushKV("main_bestblockhash", entry.main_tip.GetHex());
+        }
         chains.push_back(std::move(chain));
     }
 
@@ -951,6 +980,8 @@ RPCHelpMan loadchildchain()
             {RPCResult::Type::BOOL, "already_loaded", "Whether it was loaded before this call"},
             {RPCResult::Type::NUM, "height", "Current child height"},
             {RPCResult::Type::BOOL, "safe_halt", "Whether irreversible reorg protection is active"},
+            {RPCResult::Type::NUM, "main_height", "Current main-header light-client height"},
+            {RPCResult::Type::STR_HEX, "main_bestblockhash", "Current main-header light-client tip"},
         }},
         RPCExamples{
             HelpExampleCli("loadchildchain", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"")
@@ -967,12 +998,30 @@ RPCHelpMan loadchildchain()
     }
     EnsureRegistryMatchesDefinition(
         GetMainRegistrySnapshot(chainman), *definition, /*require_active=*/true);
+    const auto active_headers{GetActiveMainHeaders(chainman)};
     const auto loaded{manager.LoadChain(
         chain_id,
         Now<NodeSeconds>().time_since_epoch().count(),
         /*wipe_data=*/false,
-        /*sync=*/true)};
+        /*sync=*/true,
+        active_headers.headers)};
     if (!loaded.IsValid()) ThrowChainManagerError(loaded);
+
+    const auto refreshed_headers{GetActiveMainHeaders(chainman)};
+    if (refreshed_headers.tip != active_headers.tip) {
+        const auto update{manager.SynchronizeMainChain(
+            refreshed_headers.headers,
+            refreshed_headers.tip,
+            Now<NodeSeconds>().time_since_epoch().count(),
+            /*sync=*/true)};
+        if (std::any_of(
+                update.unloaded.begin(), update.unloaded.end(),
+                [&](const auto& event) { return event.chain_id == chain_id; })) {
+            throw JSONRPCError(
+                RPC_MISC_ERROR,
+                "child runtime failed while synchronizing the active main-header chain");
+        }
+    }
 
     try {
         EnsureRegistryMatchesDefinition(
@@ -992,6 +1041,8 @@ RPCHelpMan loadchildchain()
     result.pushKV("already_loaded", loaded.already_loaded);
     result.pushKV("height", entry->height);
     result.pushKV("safe_halt", entry->safe_halt);
+    result.pushKV("main_height", entry->main_height);
+    result.pushKV("main_bestblockhash", entry->main_tip.GetHex());
     return result;
 }
     };

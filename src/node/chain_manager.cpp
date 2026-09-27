@@ -130,7 +130,8 @@ ChainManagerResult ChainManager::LoadChain(
     const chainregistry::ChainId& chain_id,
     int64_t current_time,
     bool wipe_data,
-    bool sync)
+    bool sync,
+    std::span<const CBlockHeader> main_headers)
 {
     LOCK(m_mutex);
     if (!IsCatalogReady()) {
@@ -162,7 +163,8 @@ ChainManagerResult ChainManager::LoadChain(
         },
         m_main_genesis,
         current_time,
-        sync);
+        sync,
+        std::optional<std::span<const CBlockHeader>>{main_headers});
     if (!result.runtime.IsValid()) {
         result.error = ChainManagerError::INITIALIZATION_FAILED;
         return result;
@@ -188,6 +190,106 @@ ChainManagerResult ChainManager::UnloadChain(
         return ManagerError(ChainManagerError::CHAIN_NOT_LOADED);
     }
     return {};
+}
+
+ChainManagerMainUpdate ChainManager::AddMainHeader(
+    const CBlockHeader& header,
+    int64_t current_time,
+    bool sync)
+{
+    LOCK(m_mutex);
+    ChainManagerMainUpdate update;
+    for (auto entry{m_loaded.begin()}; entry != m_loaded.end();) {
+        const auto advanced{
+            entry->second->AddValidatedMainHeader(
+                header, current_time, sync)};
+        if (!advanced.IsValid()) {
+            update.unloaded.push_back({
+                .chain_id = entry->first,
+                .reason = ChainManagerUnloadReason::MAIN_HEADER_REJECTED,
+                .runtime_error = advanced.error,
+            });
+            entry = m_loaded.erase(entry);
+            continue;
+        }
+        if (!advanced.main_header.already_known) {
+            update.advanced.push_back(entry->first);
+        }
+        ++entry;
+    }
+    return update;
+}
+
+ChainManagerMainUpdate ChainManager::SynchronizeMainChain(
+    std::span<const CBlockHeader> active_headers,
+    const uint256& active_tip,
+    int64_t current_time,
+    bool sync)
+{
+    LOCK(m_mutex);
+    ChainManagerMainUpdate update;
+    for (auto entry{m_loaded.begin()}; entry != m_loaded.end();) {
+        auto& runtime{*entry->second};
+        if (runtime.MainHeaders()->Tip()->GetBlockHash() == active_tip) {
+            ++entry;
+            continue;
+        }
+        ReferenceChildRuntimeResult result;
+        for (const CBlockHeader& header : active_headers) {
+            result = runtime.AddValidatedMainHeader(
+                header, current_time, sync);
+            if (!result.IsValid()) break;
+        }
+        if (result.IsValid()) {
+            result = runtime.SelectValidatedMainTip(active_tip, sync);
+        }
+        if (!result.IsValid()) {
+            update.unloaded.push_back({
+                .chain_id = entry->first,
+                .reason = ChainManagerUnloadReason::MAIN_HEADER_REJECTED,
+                .runtime_error = result.error,
+            });
+            entry = m_loaded.erase(entry);
+            continue;
+        }
+        update.advanced.push_back(entry->first);
+        ++entry;
+    }
+    return update;
+}
+
+ChainManagerMainUpdate ChainManager::ReconcileRegistry(
+    const std::map<chainregistry::ChainId,
+                   chainregistry::ChainRecord>& records)
+{
+    LOCK(m_mutex);
+    ChainManagerMainUpdate update;
+    for (auto entry{m_loaded.begin()}; entry != m_loaded.end();) {
+        const auto record{records.find(entry->first)};
+        std::optional<ChainManagerUnloadReason> reason;
+        if (record == records.end()) {
+            reason = ChainManagerUnloadReason::REGISTRY_MISSING;
+        } else if (record->second.status != chainregistry::ChainStatus::ACTIVE) {
+            reason = ChainManagerUnloadReason::REGISTRY_RETIRED;
+        } else {
+            const auto& definition{entry->second->Definition()};
+            if (record->second.manifest_hash != definition.manifest_hash ||
+                record->second.template_id != definition.manifest.spec.template_id ||
+                record->second.template_version != definition.manifest.spec.template_version) {
+                reason = ChainManagerUnloadReason::REGISTRY_DEFINITION_MISMATCH;
+            }
+        }
+        if (reason) {
+            update.unloaded.push_back({
+                .chain_id = entry->first,
+                .reason = *reason,
+            });
+            entry = m_loaded.erase(entry);
+            continue;
+        }
+        ++entry;
+    }
+    return update;
 }
 
 ReferenceChildRuntime* ChainManager::Get(
@@ -256,6 +358,10 @@ std::vector<ChainManagerEntry> ChainManager::List() const
             entry.failed = loaded->second->IsFailed();
             entry.safe_halt = loaded->second->Imports().IsSafeHalted();
             entry.height = loaded->second->State().child_height;
+            const auto* main_tip{loaded->second->MainHeaders()->Tip()};
+            Assume(main_tip);
+            entry.main_height = static_cast<uint32_t>(main_tip->nHeight);
+            entry.main_tip = main_tip->GetBlockHash();
         }
         result.push_back(std::move(entry));
     }
