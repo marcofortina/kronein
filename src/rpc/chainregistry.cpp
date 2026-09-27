@@ -2,6 +2,9 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
+#include <chainregistry/child_template.h>
+#include <consensus/chainregistry.h>
+#include <node/chain_manager.h>
 #include <primitives/chainregistry.h>
 #include <primitives/deposit.h>
 #include <primitives/transaction.h>
@@ -12,7 +15,9 @@
 #include <uint256.h>
 #include <univalue.h>
 #include <util/check.h>
+#include <util/fs.h>
 #include <util/strencodings.h>
+#include <util/time.h>
 #include <validation.h>
 
 #include <algorithm>
@@ -102,6 +107,7 @@ chainregistry::ChainSpec ParseChainSpec(const UniValue& value)
     const UniValue& object{value.get_obj()};
     RPCTypeCheckObj(object,
                     {
+                        {"protocol_version", UniValueType{UniValue::VNUM}},
                         {"template_id", UniValueType{UniValue::VNUM}},
                         {"template_version", UniValueType{UniValue::VNUM}},
                         {"consensus_parameters", UniValueType{UniValue::VSTR}},
@@ -113,6 +119,12 @@ chainregistry::ChainSpec ParseChainSpec(const UniValue& value)
         !object.exists("consensus_parameters")) {
         throw JSONRPCError(RPC_INVALID_PARAMETER,
                            "spec requires template_id, template_version, and consensus_parameters");
+    }
+    if (object.exists("protocol_version") &&
+        ParseUint32(object.find_value("protocol_version"), "spec.protocol_version") !=
+            chainregistry::PROTOCOL_VERSION) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "spec.protocol_version is not supported");
     }
 
     const std::string anchoring_policy{object.exists("anchoring_policy")
@@ -246,6 +258,7 @@ std::vector<RPCArg> ChainSpecArgs()
         {"template_version", RPCArg::Type::NUM, RPCArg::Optional::NO, "Non-zero template version"},
         {"consensus_parameters", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Canonical template parameters (maximum 1024 bytes)"},
         {"anchoring_policy", RPCArg::Type::STR, RPCArg::Default{"bmm_v1"}, "Anchoring policy; only bmm_v1 is defined"},
+        {"protocol_version", RPCArg::Type::NUM, RPCArg::Default{chainregistry::PROTOCOL_VERSION}, "Registry protocol version"},
     };
 }
 
@@ -270,6 +283,95 @@ const std::vector<RPCResult> CHAIN_MANIFEST_RESULT{
     {RPCResult::Type::STR_HEX, "child_genesis_hash", "Derived child genesis hash"},
     {RPCResult::Type::STR_HEX, "metadata_hash", "Initial metadata commitment"},
 };
+
+struct MainRegistrySnapshot {
+    uint256 best_block;
+    uint32_t height{0};
+    uint256 root;
+    std::map<chainregistry::ChainId, chainregistry::ChainRecord> records;
+};
+
+MainRegistrySnapshot GetMainRegistrySnapshot(ChainstateManager& chainman)
+{
+    LOCK(cs_main);
+    const auto& registry_state{
+        chainman.ActiveChainstate().ChainRegistryState()};
+    return {
+        .best_block = registry_state.State().best_block,
+        .height = registry_state.State().height,
+        .root = registry_state.State().registry_root,
+        .records = registry_state.Registry().Records(),
+    };
+}
+
+std::string RegistryStatusName(chainregistry::ChainStatus status)
+{
+    return status == chainregistry::ChainStatus::ACTIVE ? "active" : "retired";
+}
+
+void EnsureRegistryMatchesDefinition(
+    const MainRegistrySnapshot& snapshot,
+    const chainregistry::ReferenceChildDefinition& definition,
+    bool require_active)
+{
+    const auto found{snapshot.records.find(definition.chain_id)};
+    if (found == snapshot.records.end()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not registered on the active main chain");
+    }
+    const auto& record{found->second};
+    if (record.manifest_hash != definition.manifest_hash ||
+        record.template_id != definition.manifest.spec.template_id ||
+        record.template_version != definition.manifest.spec.template_version) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "local child manifest does not match the active main-chain registry record");
+    }
+    if (require_active && record.status != chainregistry::ChainStatus::ACTIVE) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is retired on the active main chain");
+    }
+}
+
+[[noreturn]] void ThrowChainManagerError(
+    const node::ChainManagerResult& result)
+{
+    switch (result.error) {
+    case node::ChainManagerError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must not be null");
+    case node::ChainManagerError::INVALID_DEFINITION:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "invalid child-chain definition");
+    case node::ChainManagerError::WRONG_MAIN_GENESIS:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child definition belongs to another main network");
+    case node::ChainManagerError::DEFINITION_CONFLICT:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "a different manifest is already configured for chain_id");
+    case node::ChainManagerError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not configured locally");
+    case node::ChainManagerError::CHAIN_LOADED:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "unload the child chain before forgetting it");
+    case node::ChainManagerError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not loaded");
+    case node::ChainManagerError::INITIALIZATION_FAILED:
+        throw JSONRPCError(
+            RPC_MISC_ERROR,
+            strprintf("failed to initialize child runtime (error %u)",
+                      static_cast<unsigned>(result.runtime.error)));
+    case node::ChainManagerError::CATALOG_UNAVAILABLE:
+        throw JSONRPCError(RPC_DATABASE_ERROR,
+                           "child chain catalog is unavailable");
+    case node::ChainManagerError::DATABASE_WRITE_FAILED:
+        throw JSONRPCError(RPC_DATABASE_ERROR,
+                           "failed to update child chain catalog");
+    case node::ChainManagerError::NONE:
+        break;
+    }
+    throw JSONRPCError(RPC_INTERNAL_ERROR, "unknown child chain manager error");
+}
 
 RPCHelpMan derivechildchainid()
 {
@@ -308,6 +410,72 @@ RPCHelpMan derivechildchainid()
     result.pushKV("spec_hex", SerializeHex(spec));
     result.pushKV("chain_spec_hash", spec_hash.GetHex());
     result.pushKV("chain_id", chainregistry::DeriveChainId(main_genesis_hash, anchor, spec_hash).GetHex());
+    return result;
+}
+    };
+}
+
+RPCHelpMan createreferencechildmanifest()
+{
+    return RPCHelpMan{
+        "createreferencechildmanifest",
+        "Create the complete deterministic manifest for the supported reference child template. The result can be committed by REGISTER and later passed unchanged to addchildchain.\n",
+        {
+            {"registration_anchor", RPCArg::Type::OBJ, RPCArg::Optional::NO, "Pre-existing UTXO that REGISTER will consume", OutPointArgs()},
+            {"metadata_hash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Initial external metadata commitment"},
+            {"max_block_weight", RPCArg::Type::NUM, RPCArg::Default{chainregistry::MAX_CHILD_BLOCK_WEIGHT}, "Child block weight limit"},
+            {"deposit_maturity", RPCArg::Type::NUM, RPCArg::Default{144}, "Required main-chain confirmations before import"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Deterministic reference-child definition", {
+            {RPCResult::Type::STR_HEX, "main_genesis_hash", "Main-network genesis domain"},
+            {RPCResult::Type::OBJ, "registration_anchor", "Registration anchor", {
+                {RPCResult::Type::STR_HEX, "txid", "Transaction id"},
+                {RPCResult::Type::NUM, "vout", "Output index"},
+            }},
+            {RPCResult::Type::STR_HEX, "chain_id", "Derived full child-chain identifier"},
+            {RPCResult::Type::STR_HEX, "chain_spec_hash", "Tagged specification hash"},
+            {RPCResult::Type::STR_HEX, "manifest_hash", "Tagged complete manifest hash"},
+            {RPCResult::Type::STR_HEX, "genesis_hash", "Deterministic child genesis hash"},
+            {RPCResult::Type::OBJ, "manifest", "Complete canonical manifest", CHAIN_MANIFEST_RESULT},
+            {RPCResult::Type::STR_HEX, "manifest_hex", "Canonical serialized manifest"},
+        }},
+        RPCExamples{
+            HelpExampleCli("createreferencechildmanifest", "'{\"txid\":\"0000000000000000000000000000000000000000000000000000000000000001\",\"vout\":0}' \"1111111111111111111111111111111111111111111111111111111111111111\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const COutPoint anchor{ParseOutPoint(
+        self.Arg<UniValue>("registration_anchor"), "registration_anchor")};
+    const chainregistry::ReferenceChildParameters parameters{
+        .max_block_weight = ParseUint32(
+            self.Arg<UniValue>("max_block_weight"), "max_block_weight"),
+        .deposit_maturity = ParseUint32(
+            self.Arg<UniValue>("deposit_maturity"), "deposit_maturity"),
+    };
+    const auto main_genesis_hash{
+        EnsureAnyChainman(request.context).GetConsensus().hashGenesisBlock};
+    const auto definition{chainregistry::BuildReferenceChildDefinition(
+        main_genesis_hash,
+        anchor,
+        chainregistry::MakeReferenceChildSpec(parameters),
+        ParseMetadataHash(self.Arg<UniValue>("metadata_hash")))};
+    if (!definition.IsValid() || !definition.definition) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("invalid reference-child parameters (error %u, parameters %u)",
+                      static_cast<unsigned>(definition.error),
+                      static_cast<unsigned>(definition.parameters_error)));
+    }
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("main_genesis_hash", main_genesis_hash.GetHex());
+    result.pushKV("registration_anchor", OutPointToUniv(anchor));
+    result.pushKV("chain_id", definition.definition->chain_id.GetHex());
+    result.pushKV("chain_spec_hash", definition.definition->chain_spec_hash.GetHex());
+    result.pushKV("manifest_hash", definition.definition->manifest_hash.GetHex());
+    result.pushKV("genesis_hash", definition.definition->genesis_hash.GetHex());
+    result.pushKV("manifest", ManifestToUniv(definition.definition->manifest));
+    result.pushKV("manifest_hex", SerializeHex(definition.definition->manifest));
     return result;
 }
     };
@@ -571,16 +739,340 @@ RPCHelpMan decodechainregistryoperation()
     };
 }
 
+RPCHelpMan addchildchain()
+{
+    return RPCHelpMan{
+        "addchildchain",
+        "Persist a complete manifest in the local child-chain catalog. This does not register a chain on consensus and does not load or synchronize it. The derived definition must exactly match a record on the active main chain.\n",
+        {
+            {"registration_anchor", RPCArg::Type::OBJ, RPCArg::Optional::NO, "Pre-existing UTXO consumed by the confirmed REGISTER operation", OutPointArgs()},
+            {"manifest", RPCArg::Type::OBJ, RPCArg::Optional::NO, "Complete canonical child manifest", {
+                {"spec", RPCArg::Type::OBJ, RPCArg::Optional::NO, "Immutable consensus specification", ChainSpecArgs()},
+                {"child_genesis_hash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Derived child genesis hash"},
+                {"metadata_hash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Initial metadata commitment"},
+            }},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Locally configured child chain", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Full child-chain identifier"},
+            {RPCResult::Type::STR_HEX, "manifest_hash", "Validated manifest hash"},
+            {RPCResult::Type::STR_HEX, "genesis_hash", "Derived child genesis hash"},
+            {RPCResult::Type::BOOL, "already_configured", "Whether the identical definition was already present"},
+            {RPCResult::Type::BOOL, "loaded", "Whether the child runtime is loaded"},
+            {RPCResult::Type::STR, "registry_status", "Current main-chain registry status"},
+        }},
+        RPCExamples{
+            HelpExampleCli("addchildchain", "'{\"txid\":\"...\",\"vout\":0}' '{\"spec\":{...},\"child_genesis_hash\":\"...\",\"metadata_hash\":\"...\"}'")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    ChainstateManager& chainman{EnsureAnyChainman(request.context)};
+    node::ChainManager& manager{EnsureAnyChildChainman(request.context)};
+    const COutPoint anchor{ParseOutPoint(
+        self.Arg<UniValue>("registration_anchor"), "registration_anchor")};
+    const UniValue manifest_value{self.Arg<UniValue>("manifest").get_obj()};
+    RPCTypeCheckObj(manifest_value,
+                    {
+                        {"spec", UniValueType{UniValue::VOBJ}},
+                        {"child_genesis_hash", UniValueType{UniValue::VSTR}},
+                        {"metadata_hash", UniValueType{UniValue::VSTR}},
+                    },
+                    /*fAllowNull=*/false,
+                    /*fStrict=*/true);
+    const auto validated{chainregistry::ValidateReferenceChildManifest(
+        chainman.GetConsensus().hashGenesisBlock,
+        anchor,
+        ParseManifest(manifest_value))};
+    if (!validated.IsValid() || !validated.definition) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("invalid reference-child manifest (error %u, parameters %u, manifest %u)",
+                      static_cast<unsigned>(validated.error),
+                      static_cast<unsigned>(validated.parameters_error),
+                      static_cast<unsigned>(validated.manifest_error)));
+    }
+
+    const auto registry{GetMainRegistrySnapshot(chainman)};
+    EnsureRegistryMatchesDefinition(
+        registry, *validated.definition, /*require_active=*/false);
+    const auto registered{manager.RegisterChain(*validated.definition)};
+    if (!registered.IsValid()) ThrowChainManagerError(registered);
+
+    const auto entries{manager.List()};
+    const auto entry{std::find_if(entries.begin(), entries.end(), [&](const auto& candidate) {
+        return candidate.chain_id == validated.definition->chain_id;
+    })};
+    Assume(entry != entries.end());
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", entry->chain_id.GetHex());
+    result.pushKV("manifest_hash", entry->manifest_hash.GetHex());
+    result.pushKV("genesis_hash", entry->genesis_hash.GetHex());
+    result.pushKV("already_configured", registered.already_registered);
+    result.pushKV("loaded", entry->loaded);
+    result.pushKV("registry_status", RegistryStatusName(
+        registry.records.at(entry->chain_id).status));
+    return result;
+}
+    };
+}
+
+RPCHelpMan listchildchainruntimes()
+{
+    return RPCHelpMan{
+        "listchildchainruntimes",
+        "List every child record in the active main-chain registry together with local configuration and runtime state. Unconfigured records remain catalog-visible and are never synchronized automatically.\n",
+        {},
+        RPCResult{RPCResult::Type::OBJ, "", "Registry and local runtime view", {
+            {RPCResult::Type::STR_HEX, "bestblockhash", "Main-chain block committing the registry view"},
+            {RPCResult::Type::NUM, "height", "Main-chain registry height"},
+            {RPCResult::Type::STR_HEX, "root", "Committed registry root"},
+            {RPCResult::Type::ARR, "chains", "Known child chains", {
+                {RPCResult::Type::OBJ, "", "One child-chain view", {
+                    {RPCResult::Type::STR_HEX, "chain_id", "Full child-chain identifier"},
+                    {RPCResult::Type::STR, "state", "available, configured, loaded, retired, unsupported-template, manifest-mismatch, or orphaned"},
+                    {RPCResult::Type::BOOL, "registry_found", "Whether the active main registry contains this chain"},
+                    {RPCResult::Type::STR, "registry_status", /*optional=*/true, "active or retired"},
+                    {RPCResult::Type::STR_HEX, "manifest_hash", "Complete manifest commitment"},
+                    {RPCResult::Type::STR_HEX, "metadata_hash", /*optional=*/true, "Current registry metadata commitment"},
+                    {RPCResult::Type::NUM, "template_id", "Consensus template identifier"},
+                    {RPCResult::Type::NUM, "template_version", "Consensus template version"},
+                    {RPCResult::Type::STR_HEX, "genesis_hash", /*optional=*/true, "Locally validated child genesis hash"},
+                    {RPCResult::Type::BOOL, "supported", "Whether this node supports the registered template"},
+                    {RPCResult::Type::BOOL, "configured", "Whether a complete manifest is stored locally"},
+                    {RPCResult::Type::BOOL, "manifest_matches_registry", /*optional=*/true, "Whether the local manifest matches this active registry record"},
+                    {RPCResult::Type::BOOL, "loaded", "Whether the runtime is loaded"},
+                    {RPCResult::Type::BOOL, "failed", /*optional=*/true, "Whether the loaded runtime has failed"},
+                    {RPCResult::Type::BOOL, "safe_halt", /*optional=*/true, "Whether irreversible main reorg protection is active"},
+                    {RPCResult::Type::NUM, "child_height", /*optional=*/true, "Loaded child height"},
+                    {RPCResult::Type::STR, "data_path", /*optional=*/true, "Local chain directory"},
+                }},
+            }},
+        }},
+        RPCExamples{
+            HelpExampleCli("listchildchainruntimes", "")
+            + HelpExampleRpc("listchildchainruntimes", "")
+        },
+        [&](const RPCHelpMan&, const JSONRPCRequest& request) -> UniValue
+{
+    ChainstateManager& chainman{EnsureAnyChainman(request.context)};
+    node::ChainManager& manager{EnsureAnyChildChainman(request.context)};
+    const auto registry{GetMainRegistrySnapshot(chainman)};
+    const auto local_entries{manager.List()};
+    std::map<chainregistry::ChainId, node::ChainManagerEntry> local;
+    for (const auto& entry : local_entries) local.emplace(entry.chain_id, entry);
+
+    UniValue chains{UniValue::VARR};
+    for (const auto& [chain_id, record] : registry.records) {
+        const auto configured{local.find(chain_id)};
+        const bool supported{
+            record.template_id == chainregistry::REFERENCE_CHILD_TEMPLATE_ID &&
+            record.template_version == chainregistry::REFERENCE_CHILD_TEMPLATE_VERSION};
+        const bool manifest_matches{
+            configured != local.end() &&
+            configured->second.manifest_hash == record.manifest_hash &&
+            configured->second.template_id == record.template_id &&
+            configured->second.template_version == record.template_version};
+        UniValue chain{UniValue::VOBJ};
+        chain.pushKV("chain_id", chain_id.GetHex());
+        chain.pushKV("registry_found", true);
+        chain.pushKV("registry_status", RegistryStatusName(record.status));
+        chain.pushKV("manifest_hash", record.manifest_hash.GetHex());
+        chain.pushKV("metadata_hash", record.metadata_hash.GetHex());
+        chain.pushKV("template_id", record.template_id);
+        chain.pushKV("template_version", record.template_version);
+        chain.pushKV("supported", supported);
+        chain.pushKV("configured", configured != local.end());
+        chain.pushKV("loaded", configured != local.end() && configured->second.loaded);
+        if (configured != local.end()) {
+            chain.pushKV("manifest_matches_registry", manifest_matches);
+        }
+        if (record.status == chainregistry::ChainStatus::RETIRED) {
+            chain.pushKV("state", "retired");
+        } else if (!supported) {
+            chain.pushKV("state", "unsupported-template");
+        } else if (configured != local.end() && !manifest_matches) {
+            chain.pushKV("state", "manifest-mismatch");
+        } else if (configured != local.end() && configured->second.loaded) {
+            chain.pushKV("state", "loaded");
+        } else if (configured != local.end()) {
+            chain.pushKV("state", "configured");
+        } else {
+            chain.pushKV("state", "available");
+        }
+        if (configured != local.end()) {
+            chain.pushKV("genesis_hash", configured->second.genesis_hash.GetHex());
+            chain.pushKV("data_path", fs::PathToString(configured->second.data_path));
+            chain.pushKV("failed", configured->second.failed);
+            chain.pushKV("safe_halt", configured->second.safe_halt);
+            chain.pushKV("child_height", configured->second.height);
+            local.erase(configured);
+        }
+        chains.push_back(std::move(chain));
+    }
+    for (const auto& [chain_id, entry] : local) {
+        UniValue chain{UniValue::VOBJ};
+        chain.pushKV("chain_id", chain_id.GetHex());
+        chain.pushKV("manifest_hash", entry.manifest_hash.GetHex());
+        chain.pushKV("template_id", entry.template_id);
+        chain.pushKV("template_version", entry.template_version);
+        chain.pushKV("genesis_hash", entry.genesis_hash.GetHex());
+        chain.pushKV("data_path", fs::PathToString(entry.data_path));
+        chain.pushKV("registry_found", false);
+        chain.pushKV("supported", true);
+        chain.pushKV("configured", true);
+        chain.pushKV("loaded", entry.loaded);
+        chain.pushKV("failed", entry.failed);
+        chain.pushKV("safe_halt", entry.safe_halt);
+        chain.pushKV("state", "orphaned");
+        chain.pushKV("child_height", entry.height);
+        chains.push_back(std::move(chain));
+    }
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("bestblockhash", registry.best_block.GetHex());
+    result.pushKV("height", registry.height);
+    result.pushKV("root", registry.root.GetHex());
+    result.pushKV("chains", std::move(chains));
+    return result;
+}
+    };
+}
+
+RPCHelpMan loadchildchain()
+{
+    return RPCHelpMan{
+        "loadchildchain",
+        "Load one locally configured active child chain. This is always opt-in; catalog entries are not automatically loaded after restart.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null child-chain identifier"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Loaded child runtime", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Full child-chain identifier"},
+            {RPCResult::Type::BOOL, "loaded", "Whether the runtime is loaded"},
+            {RPCResult::Type::BOOL, "already_loaded", "Whether it was loaded before this call"},
+            {RPCResult::Type::NUM, "height", "Current child height"},
+            {RPCResult::Type::BOOL, "safe_halt", "Whether irreversible reorg protection is active"},
+        }},
+        RPCExamples{
+            HelpExampleCli("loadchildchain", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const auto chain_id{ParseChainId(self.Arg<UniValue>("chain_id"))};
+    ChainstateManager& chainman{EnsureAnyChainman(request.context)};
+    node::ChainManager& manager{EnsureAnyChildChainman(request.context)};
+    const auto definition{manager.Definition(chain_id)};
+    if (!definition) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not configured locally");
+    }
+    EnsureRegistryMatchesDefinition(
+        GetMainRegistrySnapshot(chainman), *definition, /*require_active=*/true);
+    const auto loaded{manager.LoadChain(
+        chain_id,
+        Now<NodeSeconds>().time_since_epoch().count(),
+        /*wipe_data=*/false,
+        /*sync=*/true)};
+    if (!loaded.IsValid()) ThrowChainManagerError(loaded);
+
+    try {
+        EnsureRegistryMatchesDefinition(
+            GetMainRegistrySnapshot(chainman), *definition, /*require_active=*/true);
+    } catch (...) {
+        if (!loaded.already_loaded) manager.UnloadChain(chain_id);
+        throw;
+    }
+    const auto entries{manager.List()};
+    const auto entry{std::find_if(entries.begin(), entries.end(), [&](const auto& candidate) {
+        return candidate.chain_id == chain_id;
+    })};
+    Assume(entry != entries.end() && entry->loaded);
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", entry->chain_id.GetHex());
+    result.pushKV("loaded", entry->loaded);
+    result.pushKV("already_loaded", loaded.already_loaded);
+    result.pushKV("height", entry->height);
+    result.pushKV("safe_halt", entry->safe_halt);
+    return result;
+}
+    };
+}
+
+RPCHelpMan unloadchildchain()
+{
+    return RPCHelpMan{
+        "unloadchildchain",
+        "Stop and close one loaded child runtime without removing its manifest or data.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null child-chain identifier"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Unload result", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Full child-chain identifier"},
+            {RPCResult::Type::BOOL, "loaded", "False after a successful unload"},
+        }},
+        RPCExamples{
+            HelpExampleCli("unloadchildchain", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const auto chain_id{ParseChainId(self.Arg<UniValue>("chain_id"))};
+    const auto unloaded{
+        EnsureAnyChildChainman(request.context).UnloadChain(chain_id)};
+    if (!unloaded.IsValid()) ThrowChainManagerError(unloaded);
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", chain_id.GetHex());
+    result.pushKV("loaded", false);
+    return result;
+}
+    };
+}
+
+RPCHelpMan forgetchildchain()
+{
+    return RPCHelpMan{
+        "forgetchildchain",
+        "Remove one unloaded manifest from the local catalog. Existing child-chain data is deliberately preserved and can be reopened by adding the same manifest again.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null child-chain identifier"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Catalog removal result", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Full child-chain identifier"},
+            {RPCResult::Type::BOOL, "configured", "False after successful removal"},
+            {RPCResult::Type::BOOL, "data_preserved", "Always true; this RPC never deletes chain data"},
+        }},
+        RPCExamples{
+            HelpExampleCli("forgetchildchain", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const auto chain_id{ParseChainId(self.Arg<UniValue>("chain_id"))};
+    const auto forgotten{
+        EnsureAnyChildChainman(request.context).ForgetChain(chain_id)};
+    if (!forgotten.IsValid()) ThrowChainManagerError(forgotten);
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", chain_id.GetHex());
+    result.pushKV("configured", false);
+    result.pushKV("data_preserved", true);
+    return result;
+}
+    };
+}
+
 } // namespace
 
 void RegisterChainRegistryRPCCommands(CRPCTable& table)
 {
     static const CRPCCommand commands[]{
         {"util", &derivechildchainid},
+        {"util", &createreferencechildmanifest},
         {"util", &createfundchainoutput},
         {"util", &decodefundchainoutput},
         {"util", &createchainregistryoperation},
         {"util", &decodechainregistryoperation},
+        {"control", &addchildchain},
+        {"control", &listchildchainruntimes},
+        {"control", &loadchildchain},
+        {"control", &unloadchildchain},
+        {"control", &forgetchildchain},
     };
     for (const auto& command : commands) table.appendCommand(&command);
 }

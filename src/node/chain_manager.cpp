@@ -219,6 +219,16 @@ bool ChainManager::IsLoaded(const chainregistry::ChainId& chain_id) const
     return !chain_id.IsNull() && m_loaded.contains(chain_id);
 }
 
+std::optional<chainregistry::ReferenceChildDefinition>
+ChainManager::Definition(const chainregistry::ChainId& chain_id) const
+{
+    LOCK(m_mutex);
+    if (chain_id.IsNull()) return std::nullopt;
+    const auto entry{m_definitions.find(chain_id)};
+    if (entry == m_definitions.end()) return std::nullopt;
+    return entry->second;
+}
+
 fs::path ChainManager::DataPath(
     const chainregistry::ChainId& chain_id) const
 {
@@ -234,6 +244,9 @@ std::vector<ChainManagerEntry> ChainManager::List() const
     for (const auto& [chain_id, definition] : m_definitions) {
         ChainManagerEntry entry{
             .chain_id = chain_id,
+            .manifest_hash = definition.manifest_hash,
+            .template_id = definition.manifest.spec.template_id,
+            .template_version = definition.manifest.spec.template_version,
             .genesis_hash = definition.genesis_hash,
             .data_path = DataPath(chain_id),
         };

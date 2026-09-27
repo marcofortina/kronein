@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace node {
@@ -48,6 +49,9 @@ struct ChainManagerResult {
 
 struct ChainManagerEntry {
     chainregistry::ChainId chain_id;
+    chainregistry::ManifestHash manifest_hash;
+    uint32_t template_id{0};
+    uint32_t template_version{0};
     uint256 genesis_hash;
     fs::path data_path;
     bool loaded{false};
@@ -108,6 +112,8 @@ public:
         const chainregistry::ChainId& chain_id) const;
     bool IsRegistered(const chainregistry::ChainId& chain_id) const;
     bool IsLoaded(const chainregistry::ChainId& chain_id) const;
+    std::optional<chainregistry::ReferenceChildDefinition> Definition(
+        const chainregistry::ChainId& chain_id) const;
     fs::path DataPath(const chainregistry::ChainId& chain_id) const;
     std::vector<ChainManagerEntry> List() const;
     size_t RegisteredCount() const;

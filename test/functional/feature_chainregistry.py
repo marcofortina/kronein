@@ -192,15 +192,18 @@ class ChainRegistryTest(BitcoinTestFramework):
         anchor_utxo = wallet.listunspent(1)[0]
         registration_anchor = {"txid": anchor_utxo["txid"], "vout": anchor_utxo["vout"]}
         control_address = wallet.getnewaddress()
+        reference_child = node.createreferencechildmanifest(
+            registration_anchor, "22" * 32)
         wallet_spec = {
-            "template_id": 1,
-            "template_version": 1,
-            "consensus_parameters": "01020304",
+            "template_id": reference_child["manifest"]["spec"]["template_id"],
+            "template_version": reference_child["manifest"]["spec"]["template_version"],
+            "consensus_parameters": reference_child["manifest"]["spec"]["consensus_parameters"],
+            "anchoring_policy": reference_child["manifest"]["spec"]["anchoring_policy"],
         }
         registration_psbt = wallet.walletcreatechainregistrypsbt("register", {
             "registration_anchor": registration_anchor,
             "spec": wallet_spec,
-            "child_genesis_hash": "11" * 32,
+            "child_genesis_hash": reference_child["genesis_hash"],
             "metadata_hash": "22" * 32,
             "control_address": control_address,
         }, {"fee_rate": 1})
@@ -238,6 +241,37 @@ class ChainRegistryTest(BitcoinTestFramework):
         })
         assert "inclusion_proof" in registered
         registered_info = node.getchainregistryinfo()
+
+        self.log.info("Configure and exercise the opt-in child runtime lifecycle")
+        runtimes = node.listchildchainruntimes()
+        assert_equal(len(runtimes["chains"]), 1)
+        assert_equal(runtimes["chains"][0]["chain_id"], chain_id)
+        assert_equal(runtimes["chains"][0]["state"], "available")
+        assert_equal(runtimes["chains"][0]["configured"], False)
+        configured = node.addchildchain(
+            registration_anchor, reference_child["manifest"])
+        assert_equal(configured["chain_id"], chain_id)
+        assert_equal(configured["already_configured"], False)
+        assert_equal(configured["loaded"], False)
+        assert_equal(node.addchildchain(
+            registration_anchor,
+            reference_child["manifest"])["already_configured"], True)
+        loaded = node.loadchildchain(chain_id)
+        assert_equal(loaded["loaded"], True)
+        assert_equal(loaded["already_loaded"], False)
+        assert_equal(loaded["height"], 0)
+        assert_equal(node.loadchildchain(chain_id)["already_loaded"], True)
+        assert_equal(node.listchildchainruntimes()["chains"][0]["state"], "loaded")
+        assert_equal(node.unloadchildchain(chain_id)["loaded"], False)
+        forgotten = node.forgetchildchain(chain_id)
+        assert_equal(forgotten["configured"], False)
+        assert_equal(forgotten["data_preserved"], True)
+        assert_equal(node.listchildchainruntimes()["chains"][0]["state"], "available")
+        assert_equal(node.addchildchain(
+            registration_anchor,
+            reference_child["manifest"])["already_configured"], False)
+        assert_raises_rpc_error(-8, "chain_id must not be null",
+                                node.loadchildchain, "00" * 32)
 
         self.log.info("Index and export a canonical proof for an irreversible child deposit")
         deposit_amount = Decimal("0.25000000")
@@ -342,6 +376,12 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert retired["chain"]["retired_height"] > 0
         assert_equal(node.listchildchains()["chains"], [])
         assert_equal(node.listchildchains(None, 100, True)["chains"][0]["chain_id"], chain_id)
+        retired_runtime = node.listchildchainruntimes()["chains"][0]
+        assert_equal(retired_runtime["state"], "retired")
+        assert_equal(retired_runtime["configured"], True)
+        assert_equal(retired_runtime["loaded"], False)
+        assert_raises_rpc_error(-8, "retired on the active main chain",
+                                node.loadchildchain, chain_id)
         retired_info = node.getchainregistryinfo()
 
         assert_raises_rpc_error(-8, "chain_id must be exactly 32 non-null bytes",
@@ -392,6 +432,10 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(reconnected_info["size"], retired_info["size"])
         assert_equal(reconnected_info["deposit_count"], 1)
         assert_equal(node.getchildchain(chain_id)["chain"]["status"], "retired")
+        persisted_runtime = node.listchildchainruntimes()["chains"][0]
+        assert_equal(persisted_runtime["state"], "retired")
+        assert_equal(persisted_runtime["configured"], True)
+        assert_equal(persisted_runtime["loaded"], False)
         assert_equal(node.getdepositstatus(deposit_txid, 0)["found"], True)
 
         self.restart_node(0)

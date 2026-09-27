@@ -3,8 +3,10 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <chainparams.h>
 #include <core_io.h>
 #include <interfaces/chain.h>
+#include <node/chain_manager.h>
 #include <node/context.h>
 #include <rpc/blockchain.h>
 #include <rpc/client.h>
@@ -47,6 +49,16 @@ private:
 class RPCTestingSetup : public TestingSetup
 {
 public:
+    RPCTestingSetup()
+    {
+        m_node.child_chainman = std::make_unique<node::ChainManager>(
+            Params().GetConsensus(),
+            Params().GenesisBlock(),
+            m_args.GetDataDirNet() / "chains",
+            node::DEFAULT_CHILD_CHAIN_DB_CACHE);
+        BOOST_REQUIRE(m_node.child_chainman->IsCatalogReady());
+    }
+
     UniValue TransformParams(const UniValue& params, std::vector<std::pair<std::string, bool>> arg_names) const;
     UniValue CallRPC(std::string args);
 };
@@ -86,6 +98,35 @@ UniValue RPCTestingSetup::CallRPC(std::string args)
 
 
 BOOST_FIXTURE_TEST_SUITE(rpc_tests, RPCTestingSetup)
+
+BOOST_AUTO_TEST_CASE(child_chain_lifecycle_rpc)
+{
+    const auto result{CallRPC("listchildchainruntimes")};
+    BOOST_CHECK(result.isObject());
+    BOOST_CHECK(result.find_value("chains").isArray());
+    BOOST_CHECK_EQUAL(result.find_value("chains").size(), 0U);
+
+    const std::string null_id(64, '0');
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("loadchildchain " + null_id),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find("must not be null") !=
+                   std::string_view::npos;
+        });
+
+    const std::string unknown_id(64, '1');
+    for (const std::string command : {
+             "loadchildchain ", "unloadchildchain ", "forgetchildchain "}) {
+        BOOST_CHECK_EXCEPTION(
+            CallRPC(command + unknown_id),
+            std::runtime_error,
+            [](const std::runtime_error& error) {
+                return std::string_view{error.what()}.find(
+                           "not configured locally") != std::string_view::npos;
+            });
+    }
+}
 
 BOOST_AUTO_TEST_CASE(rpc_namedparams)
 {
