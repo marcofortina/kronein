@@ -3,7 +3,9 @@
 // file COPYING or https://opensource.org/license/mit/.
 
 #include <chainregistry/child_template.h>
+#include <consensus/bmm.h>
 #include <consensus/chainregistry.h>
+#include <consensus/consensus.h>
 #include <node/chain_manager.h>
 #include <primitives/chainregistry.h>
 #include <primitives/deposit.h>
@@ -23,6 +25,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <initializer_list>
+#include <ios>
 #include <limits>
 #include <map>
 #include <optional>
@@ -68,6 +71,66 @@ chainregistry::MetadataHash ParseMetadataHash(const UniValue& value)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "metadata_hash must not be null");
     }
     return *metadata_hash;
+}
+
+std::vector<unsigned char> ParseBoundedHex(const UniValue& value,
+                                           std::string_view name,
+                                           size_t maximum_size)
+{
+    const std::string encoded{value.get_str()};
+    if (!IsHex(encoded)) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("%s must be a non-empty hexadecimal string", name));
+    }
+    if (encoded.size() / 2 > maximum_size) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("%s exceeds the maximum size of %u bytes",
+                      name,
+                      maximum_size));
+    }
+    return ParseHex(encoded);
+}
+
+chainregistry::BmmAnchorProof ParseBmmProof(const UniValue& value)
+{
+    const auto bytes{ParseBoundedHex(
+        value,
+        "bmm_proof",
+        node::MAX_CHILD_PENDING_BMM_PROOF_SIZE)};
+    chainregistry::BmmAnchorProof proof;
+    try {
+        SpanReader reader{bytes};
+        reader >> proof;
+        if (!reader.empty()) {
+            throw std::ios_base::failure("Trailing data after BMM proof.");
+        }
+    } catch (const std::ios_base::failure& error) {
+        throw JSONRPCError(
+            RPC_DESERIALIZATION_ERROR,
+            strprintf("BMM proof decode failed: %s", error.what()));
+    }
+    return proof;
+}
+
+CBlock ParseChildBlock(const UniValue& value)
+{
+    const auto bytes{ParseBoundedHex(
+        value, "block", MAX_BLOCK_SERIALIZED_SIZE)};
+    CBlock block;
+    try {
+        SpanReader reader{bytes};
+        reader >> TX_WITH_WITNESS(block);
+        if (!reader.empty()) {
+            throw std::ios_base::failure("Trailing data after child block.");
+        }
+    } catch (const std::ios_base::failure& error) {
+        throw JSONRPCError(
+            RPC_DESERIALIZATION_ERROR,
+            strprintf("Child block decode failed: %s", error.what()));
+    }
+    return block;
 }
 
 COutPoint ParseOutPoint(const UniValue& value, std::string_view name)
@@ -380,6 +443,13 @@ void EnsureRegistryMatchesDefinition(
             RPC_MISC_ERROR,
             strprintf("failed to initialize child runtime (error %u)",
                       static_cast<unsigned>(result.runtime.error)));
+    case node::ChainManagerError::RUNTIME_REJECTED:
+        throw JSONRPCError(
+            RPC_VERIFY_REJECTED,
+            strprintf("child runtime rejected request (runtime error %u, BMM error %u, block error %u)",
+                      static_cast<unsigned>(result.runtime.error),
+                      static_cast<unsigned>(result.runtime.bmm_anchor.error),
+                      static_cast<unsigned>(result.runtime.child_block.error)));
     case node::ChainManagerError::CATALOG_UNAVAILABLE:
         throw JSONRPCError(RPC_DATABASE_ERROR,
                            "child chain catalog is unavailable");
@@ -1082,6 +1152,118 @@ RPCHelpMan unloadchildchain()
     };
 }
 
+RPCHelpMan submitchildanchor()
+{
+    return RPCHelpMan{
+        "submitchildanchor",
+        "Authenticate and persist one BMM anchor proof for a loaded child chain. If the referenced child block is already known, the additional main-chain work may immediately select and activate its branch.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null child-chain identifier"},
+            {"bmm_proof", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Canonical serialized BMM anchor proof"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Anchor submission result", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Child-chain identifier"},
+            {RPCResult::Type::STR_HEX, "child_block_hash", "Child block committed by the proof"},
+            {RPCResult::Type::BOOL, "already_known", "Whether this exact main-chain anchor was already stored"},
+            {RPCResult::Type::STR_HEX, "selected_head", /*optional=*/true, "Fork-choice result when the referenced child block is known"},
+            {RPCResult::Type::STR_HEX, "bestblockhash", "Active child-chain tip after processing"},
+            {RPCResult::Type::ARR, "disconnected", "Child blocks disconnected by an immediate reorganization", {
+                {RPCResult::Type::STR_HEX, "", "Disconnected child block hash"},
+            }},
+        }},
+        RPCExamples{
+            HelpExampleCli("submitchildanchor", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" \"4b425052...\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const auto chain_id{ParseChainId(self.Arg<UniValue>("chain_id"))};
+    const auto proof{ParseBmmProof(self.Arg<UniValue>("bmm_proof"))};
+    node::ChainManager& manager{EnsureAnyChildChainman(request.context)};
+    const auto submitted{manager.StageBmmAnchor(
+        chain_id,
+        proof,
+        Now<NodeSeconds>().time_since_epoch().count(),
+        /*sync=*/true)};
+    if (!submitted.IsValid()) ThrowChainManagerError(submitted);
+    Assume(submitted.runtime.bmm_anchor.proof.anchor);
+    const auto view{manager.GetChainView(chain_id)};
+    Assume(view.IsValid());
+
+    UniValue disconnected{UniValue::VARR};
+    for (const auto& hash : submitted.runtime.disconnected_child_blocks) {
+        disconnected.push_back(hash.GetHex());
+    }
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", chain_id.GetHex());
+    result.pushKV("child_block_hash", submitted.runtime.bmm_anchor.proof.anchor->child_block_hash.GetHex());
+    result.pushKV("already_known", submitted.runtime.bmm_anchor_already_known);
+    if (!submitted.runtime.selected_child_head.IsNull()) {
+        result.pushKV("selected_head", submitted.runtime.selected_child_head.GetHex());
+    }
+    result.pushKV("bestblockhash", view.entry.tip.GetHex());
+    result.pushKV("disconnected", std::move(disconnected));
+    return result;
+}
+    };
+}
+
+RPCHelpMan submitchildblock()
+{
+    return RPCHelpMan{
+        "submitchildblock",
+        "Validate and persist one child block together with its authenticated BMM proof. The block may extend the active tip or enter the bounded competing-branch DAG; fork choice can reorganize the child chain immediately.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null child-chain identifier"},
+            {"block", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Serialized child block, including witness data"},
+            {"bmm_proof", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Canonical serialized BMM anchor proof committing to this child block"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Child block submission result", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Child-chain identifier"},
+            {RPCResult::Type::STR_HEX, "blockhash", "Submitted child block hash"},
+            {RPCResult::Type::BOOL, "accepted", "True after validation and durable persistence"},
+            {RPCResult::Type::BOOL, "candidate_stored", "Whether the block was first persisted on a competing branch"},
+            {RPCResult::Type::STR_HEX, "selected_head", "Fork-choice result"},
+            {RPCResult::Type::STR_HEX, "bestblockhash", "Active child-chain tip after processing"},
+            {RPCResult::Type::ARR, "disconnected", "Child blocks disconnected by a reorganization", {
+                {RPCResult::Type::STR_HEX, "", "Disconnected child block hash"},
+            }},
+        }},
+        RPCExamples{
+            HelpExampleCli("submitchildblock", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" \"blockhex\" \"4b425052...\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const auto chain_id{ParseChainId(self.Arg<UniValue>("chain_id"))};
+    const CBlock block{ParseChildBlock(self.Arg<UniValue>("block"))};
+    const auto proof{ParseBmmProof(self.Arg<UniValue>("bmm_proof"))};
+    node::ChainManager& manager{EnsureAnyChildChainman(request.context)};
+    const auto submitted{manager.SubmitBlock(
+        chain_id,
+        block,
+        proof,
+        Now<NodeSeconds>().time_since_epoch().count(),
+        /*sync=*/true)};
+    if (!submitted.IsValid()) ThrowChainManagerError(submitted);
+    const auto view{manager.GetChainView(chain_id)};
+    Assume(view.IsValid());
+
+    UniValue disconnected{UniValue::VARR};
+    for (const auto& hash : submitted.runtime.disconnected_child_blocks) {
+        disconnected.push_back(hash.GetHex());
+    }
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", chain_id.GetHex());
+    result.pushKV("blockhash", block.GetHash().GetHex());
+    result.pushKV("accepted", true);
+    result.pushKV("candidate_stored", submitted.runtime.candidate_stored);
+    result.pushKV("selected_head", submitted.runtime.selected_child_head.GetHex());
+    result.pushKV("bestblockhash", view.entry.tip.GetHex());
+    result.pushKV("disconnected", std::move(disconnected));
+    return result;
+}
+    };
+}
+
 RPCHelpMan forgetchildchain()
 {
     return RPCHelpMan{
@@ -1128,6 +1310,8 @@ void RegisterChainRegistryRPCCommands(CRPCTable& table)
         {"control", &listchildchainruntimes},
         {"control", &loadchildchain},
         {"control", &unloadchildchain},
+        {"mining", &submitchildanchor},
+        {"mining", &submitchildblock},
         {"control", &forgetchildchain},
     };
     for (const auto& command : commands) table.appendCommand(&command);

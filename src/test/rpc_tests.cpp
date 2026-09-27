@@ -12,6 +12,7 @@
 #include <rpc/client.h>
 #include <rpc/server.h>
 #include <rpc/util.h>
+#include <streams.h>
 #include <test/util/common.h>
 #include <test/util/setup_common.h>
 #include <univalue.h>
@@ -189,6 +190,79 @@ BOOST_AUTO_TEST_CASE(blockchain_rpc_routes_explicit_child_chain)
         std::runtime_error,
         [](const std::runtime_error& error) {
             return std::string_view{error.what()}.find("not configured") !=
+                   std::string_view::npos;
+        });
+}
+
+BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
+{
+    const auto definition{RpcChildDefinition()};
+    auto& manager{*m_node.child_chainman};
+    const std::string chain_id{definition.chain_id.GetHex()};
+    const std::string unknown_id(64, '1');
+
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("submitchildanchor " + chain_id + " zz"),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find(
+                       "non-empty hexadecimal") != std::string_view::npos;
+        });
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("submitchildanchor " + chain_id + " 00"),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find(
+                       "BMM proof decode failed") != std::string_view::npos;
+        });
+
+    const chainregistry::BmmAnchorProof proof;
+    DataStream proof_stream;
+    proof_stream << proof;
+    const std::string proof_hex{HexStr(proof_stream)};
+    CBlock block;
+    DataStream block_stream;
+    block_stream << TX_WITH_WITNESS(block);
+    const std::string block_hex{HexStr(block_stream)};
+
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("submitchildanchor " + unknown_id + " " + proof_hex),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find(
+                       "not configured locally") != std::string_view::npos;
+        });
+    BOOST_REQUIRE(manager.RegisterChain(definition).IsValid());
+    for (const std::string& command : {
+             "submitchildanchor " + chain_id + " " + proof_hex,
+             "submitchildblock " + chain_id + " " + block_hex + " " + proof_hex}) {
+        BOOST_CHECK_EXCEPTION(
+            CallRPC(command),
+            std::runtime_error,
+            [](const std::runtime_error& error) {
+                return std::string_view{error.what()}.find(
+                           "not loaded") != std::string_view::npos;
+            });
+    }
+
+    BOOST_REQUIRE(manager.LoadChain(
+        definition.chain_id,
+        Params().GenesisBlock().nTime,
+        /*wipe_data=*/true,
+        /*sync=*/true).IsValid());
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("submitchildblock " + chain_id + " 00 " + proof_hex),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find(
+                       "Child block decode failed") != std::string_view::npos;
+        });
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("submitchildanchor " + chain_id + " " + proof_hex),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find(
+                       "child runtime rejected request") !=
                    std::string_view::npos;
         });
 }

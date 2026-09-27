@@ -213,6 +213,62 @@ BOOST_AUTO_TEST_CASE(reopens_only_an_explicitly_selected_chain)
     BOOST_CHECK_EQUAL(after_forget.LoadedCount(), 0U);
 }
 
+BOOST_AUTO_TEST_CASE(serializes_child_submission_through_loaded_runtime)
+{
+    const auto definition{Definition(13)};
+    const auto unknown{Definition(14)};
+    const fs::path root{m_args.GetDataDirBase() / "chains_submission"};
+    node::ChainManager manager{
+        Params().GetConsensus(), Params().GenesisBlock(), root, 1 << 20};
+    BOOST_REQUIRE(manager.RegisterChain(definition).IsValid());
+
+    const chainregistry::ChainId null_id;
+    const chainregistry::BmmAnchorProof proof;
+    const CBlock block;
+    BOOST_CHECK(
+        manager.StageBmmAnchor(
+            null_id, proof, Params().GenesisBlock().nTime).error ==
+        node::ChainManagerError::NULL_CHAIN_ID);
+    BOOST_CHECK(
+        manager.SubmitBlock(
+            unknown.chain_id,
+            block,
+            proof,
+            Params().GenesisBlock().nTime).error ==
+        node::ChainManagerError::UNKNOWN_CHAIN);
+    BOOST_CHECK(
+        manager.StageBmmAnchor(
+            definition.chain_id,
+            proof,
+            Params().GenesisBlock().nTime).error ==
+        node::ChainManagerError::CHAIN_NOT_LOADED);
+
+    BOOST_REQUIRE(manager.LoadChain(
+        definition.chain_id,
+        Params().GenesisBlock().nTime,
+        /*wipe_data=*/true,
+        /*sync=*/true).IsValid());
+    const auto rejected_anchor{manager.StageBmmAnchor(
+        definition.chain_id,
+        proof,
+        Params().GenesisBlock().nTime,
+        /*sync=*/true)};
+    BOOST_CHECK(rejected_anchor.error ==
+                node::ChainManagerError::RUNTIME_REJECTED);
+    BOOST_CHECK(rejected_anchor.runtime.error ==
+                node::ReferenceChildRuntimeError::BMM_ANCHOR_REJECTED);
+    const auto rejected_block{manager.SubmitBlock(
+        definition.chain_id,
+        block,
+        proof,
+        Params().GenesisBlock().nTime,
+        /*sync=*/true)};
+    BOOST_CHECK(rejected_block.error ==
+                node::ChainManagerError::RUNTIME_REJECTED);
+    BOOST_CHECK(rejected_block.runtime.error ==
+                node::ReferenceChildRuntimeError::BMM_ANCHOR_REJECTED);
+}
+
 BOOST_AUTO_TEST_CASE(rejects_catalog_from_another_main_network)
 {
     const auto definition{Definition(20)};

@@ -37,6 +37,7 @@ enum class ChainManagerError : uint8_t {
     CHAIN_LOADED,
     CHAIN_NOT_LOADED,
     INITIALIZATION_FAILED,
+    RUNTIME_REJECTED,
     CATALOG_UNAVAILABLE,
     DATABASE_WRITE_FAILED,
 };
@@ -148,6 +149,17 @@ public:
                                  bool sync = false,
                                  std::span<const CBlockHeader> main_headers = {});
     ChainManagerResult UnloadChain(const chainregistry::ChainId& chain_id);
+    ChainManagerResult StageBmmAnchor(
+        const chainregistry::ChainId& chain_id,
+        const chainregistry::BmmAnchorProof& anchor_proof,
+        int64_t current_time,
+        bool sync = false);
+    ChainManagerResult SubmitBlock(
+        const chainregistry::ChainId& chain_id,
+        const CBlock& block,
+        const chainregistry::BmmAnchorProof& anchor_proof,
+        int64_t current_time,
+        bool sync = false);
     /** Feed a header already connected by the local main chainstate. */
     ChainManagerMainUpdate AddMainHeader(
         const CBlockHeader& header,
