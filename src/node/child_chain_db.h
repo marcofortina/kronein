@@ -17,6 +17,8 @@
 
 #include <cstdint>
 #include <optional>
+#include <span>
+#include <vector>
 
 namespace node {
 
@@ -120,6 +122,11 @@ struct ChildChainDBLoadResult {
     bool IsValid() const { return error == ChildChainDBLoadError::NONE; }
 };
 
+struct ChildChainDBDisconnect {
+    CBlock block;
+    chainregistry::ReferenceChildBlockUndo undo;
+};
+
 /** Persistent state owned by one explicitly loaded child chain. */
 class ChildChainDB : public CCoinsView
 {
@@ -149,6 +156,12 @@ public:
                          const chainregistry::DepositImportState& imports,
                          const CBlockHeader& header,
                          bool sync = false);
+    bool WriteMainHeaderAndDisconnect(
+        const chainregistry::MainHeaderChain& main_headers,
+        const chainregistry::DepositImportState& imports,
+        const CBlockHeader& header,
+        std::span<const ChildChainDBDisconnect> disconnected_blocks,
+        bool sync = false);
     bool WriteConnectedChildBlock(const chainregistry::MainHeaderChain& main_headers,
                                   const chainregistry::DepositImportState& imports,
                                   const CBlock& block,

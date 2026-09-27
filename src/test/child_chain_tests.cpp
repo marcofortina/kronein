@@ -307,6 +307,120 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
     }
 }
 
+BOOST_AUTO_TEST_CASE(main_reorg_atomically_rolls_back_orphaned_child_suffix)
+{
+    const auto definition{Definition()};
+    const auto& params{Params().GetConsensus()};
+    const CBlock& main_genesis{Params().GenesisBlock()};
+    const fs::path path{m_args.GetDataDirBase() / "reference_child_reorg"};
+    uint256 first_child_hash;
+    uint256 second_child_hash;
+    CBlockHeader fork3;
+
+    {
+        node::ReferenceChildRuntime runtime{params, definition};
+        BOOST_REQUIRE(runtime.Initialize(
+            ChildDBParams(path, /*wipe=*/true),
+            main_genesis,
+            main_genesis.nTime,
+            /*sync=*/true).IsValid());
+
+        const CBlock first_child{ChildBlock(*runtime.Tip())};
+        first_child_hash = first_child.GetHash();
+        const CBlockIndex* main_parent{runtime.MainHeaders()->Tip()};
+        BOOST_REQUIRE(main_parent);
+        CBlock first_anchor;
+        const auto first_proof{MakeBmmProof(
+            first_anchor,
+            *main_parent,
+            params,
+            definition,
+            first_child_hash)};
+        BOOST_REQUIRE(runtime.AddMainHeader(
+            first_anchor, first_anchor.nTime, /*sync=*/true).IsValid());
+        BOOST_REQUIRE(runtime.ConnectBlock(
+            first_child,
+            first_proof,
+            first_child.nTime,
+            /*sync=*/true).IsValid());
+
+        const CBlock second_child{ChildBlock(*runtime.Tip())};
+        second_child_hash = second_child.GetHash();
+        main_parent = runtime.MainHeaders()->Tip();
+        BOOST_REQUIRE(main_parent);
+        CBlock second_anchor;
+        const auto second_proof{MakeBmmProof(
+            second_anchor,
+            *main_parent,
+            params,
+            definition,
+            second_child_hash)};
+        BOOST_REQUIRE(runtime.AddMainHeader(
+            second_anchor, second_anchor.nTime, /*sync=*/true).IsValid());
+        BOOST_REQUIRE(runtime.ConnectBlock(
+            second_child,
+            second_proof,
+            second_child.nTime,
+            /*sync=*/true).IsValid());
+        BOOST_CHECK_EQUAL(runtime.State().child_height, 2U);
+
+        const CBlockIndex* genesis_index{
+            runtime.MainHeaders()->Find(main_genesis.GetHash())};
+        BOOST_REQUIRE(genesis_index);
+        const CBlockHeader fork1{MineMainHeader(*genesis_index, params)};
+        const auto fork1_result{runtime.AddMainHeader(
+            fork1, fork1.nTime, /*sync=*/true)};
+        BOOST_REQUIRE(fork1_result.IsValid());
+        BOOST_CHECK(fork1_result.disconnected_child_blocks.empty());
+        const CBlockIndex* fork1_index{
+            runtime.MainHeaders()->Find(fork1.GetHash())};
+        BOOST_REQUIRE(fork1_index);
+        const CBlockHeader fork2{MineMainHeader(*fork1_index, params)};
+        const auto fork2_result{runtime.AddMainHeader(
+            fork2, fork2.nTime, /*sync=*/true)};
+        BOOST_REQUIRE(fork2_result.IsValid());
+        BOOST_CHECK(fork2_result.disconnected_child_blocks.empty());
+        BOOST_CHECK_EQUAL(runtime.State().child_height, 2U);
+
+        const CBlockIndex* fork2_index{
+            runtime.MainHeaders()->Find(fork2.GetHash())};
+        BOOST_REQUIRE(fork2_index);
+        fork3 = MineMainHeader(*fork2_index, params);
+        const auto reorganized{runtime.AddMainHeader(
+            fork3, fork3.nTime, /*sync=*/true)};
+        BOOST_REQUIRE_MESSAGE(
+            reorganized.IsValid(), static_cast<int>(reorganized.error));
+        BOOST_CHECK(reorganized.main_header.became_best);
+        BOOST_CHECK_EQUAL(reorganized.main_header.disconnected_headers, 2U);
+        BOOST_REQUIRE_EQUAL(reorganized.disconnected_child_blocks.size(), 2U);
+        BOOST_CHECK(reorganized.disconnected_child_blocks[0] == second_child_hash);
+        BOOST_CHECK(reorganized.disconnected_child_blocks[1] == first_child_hash);
+        BOOST_CHECK_EQUAL(runtime.State().child_height, 0U);
+        BOOST_CHECK_EQUAL(runtime.State().anchor_count, 0U);
+        BOOST_CHECK(runtime.Tip()->GetBlockHash() == definition.genesis_hash);
+        BOOST_CHECK(runtime.MainHeaders()->Tip()->GetBlockHash() == fork3.GetHash());
+        CBlock removed;
+        BOOST_CHECK(!runtime.ReadBlock(first_child_hash, removed));
+        BOOST_CHECK(!runtime.ReadBlock(second_child_hash, removed));
+    }
+
+    {
+        node::ReferenceChildRuntime runtime{params, definition};
+        const auto loaded{runtime.Initialize(
+            ChildDBParams(path, /*wipe=*/false),
+            main_genesis,
+            fork3.nTime + 1,
+            /*sync=*/true)};
+        BOOST_REQUIRE_MESSAGE(loaded.IsValid(), static_cast<int>(loaded.error));
+        BOOST_CHECK(loaded.loaded_existing);
+        BOOST_CHECK_EQUAL(runtime.State().header_count, 6U);
+        BOOST_CHECK_EQUAL(runtime.State().child_height, 0U);
+        BOOST_CHECK_EQUAL(runtime.State().anchor_count, 0U);
+        BOOST_CHECK(runtime.Tip()->GetBlockHash() == definition.genesis_hash);
+        BOOST_CHECK(runtime.MainHeaders()->Tip()->GetBlockHash() == fork3.GetHash());
+    }
+}
+
 BOOST_AUTO_TEST_CASE(main_headers_are_validated_and_persisted)
 {
     const auto definition{Definition()};

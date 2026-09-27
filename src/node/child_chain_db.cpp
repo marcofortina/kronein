@@ -138,7 +138,8 @@ bool StoredAnchorsMatchMainChain(
     const chainregistry::MainHeaderChain& main_headers,
     const chainregistry::ChainId& child_chain,
     uint64_t expected_count,
-    bool allow_inactive)
+    bool allow_inactive,
+    const std::set<uint256>* ignored = nullptr)
 {
     uint64_t count{0};
     std::unique_ptr<CDBIterator> cursor{const_cast<CDBWrapper&>(db).NewIterator()};
@@ -150,8 +151,14 @@ bool StoredAnchorsMatchMainChain(
         AnchorKey key;
         ChildBmmAnchorRecord record;
         if (!cursor->GetKey(key) || !cursor->GetValue(record) ||
-            key.second != record.child_block_hash ||
-            !IsValidStoredAnchor(
+            key.second != record.child_block_hash) {
+            return false;
+        }
+        if (ignored && ignored->contains(key.second)) {
+            cursor->Next();
+            continue;
+        }
+        if (!IsValidStoredAnchor(
                 record, main_headers, child_chain, allow_inactive) ||
             count == std::numeric_limits<uint64_t>::max()) {
             return false;
@@ -333,15 +340,15 @@ std::optional<CoinTransition> BuildConnectCoinTransition(
     return result;
 }
 
-std::optional<CoinTransition> BuildDisconnectCoinTransition(
+bool ApplyDisconnectCoinTransition(
     const CCoinsView& view,
     const CBlock& block,
-    const chainregistry::ReferenceChildBlockUndo& undo)
+    const chainregistry::ReferenceChildBlockUndo& undo,
+    CoinTransition& result)
 {
     if (block.vtx.empty() || undo.coins.vtxundo.size() + 1 != block.vtx.size()) {
-        return std::nullopt;
+        return false;
     }
-    CoinTransition result;
     for (size_t reverse_index{block.vtx.size()}; reverse_index > 0;) {
         const size_t index{--reverse_index};
         const CTransaction& transaction{*block.vtx[index]};
@@ -357,7 +364,7 @@ std::optional<CoinTransition> BuildDisconnectCoinTransition(
                                 static_cast<int>(undo.block_height),
                                 transaction.IsCoinBase()};
             if (!current || !CoinsEqual(*current, expected)) {
-                return std::nullopt;
+                return false;
             }
             result.changes[outpoint] = std::nullopt;
             --result.count_delta;
@@ -365,11 +372,11 @@ std::optional<CoinTransition> BuildDisconnectCoinTransition(
         if (index == 0) continue;
         const CTxUndo& transaction_undo{undo.coins.vtxundo[index - 1]};
         if (chainregistry::IsReferenceChildImport(transaction)) {
-            if (!transaction_undo.vprevout.empty()) return std::nullopt;
+            if (!transaction_undo.vprevout.empty()) return false;
             continue;
         }
         if (transaction_undo.vprevout.size() != transaction.vin.size()) {
-            return std::nullopt;
+            return false;
         }
         for (size_t reverse_input{transaction.vin.size()}; reverse_input > 0;) {
             const size_t input_index{--reverse_input};
@@ -377,11 +384,23 @@ std::optional<CoinTransition> BuildDisconnectCoinTransition(
             const Coin& restored{transaction_undo.vprevout[input_index]};
             if (CurrentCoin(view, result.changes, previous) ||
                 !IsValidStoredCoin(restored, undo.block_height)) {
-                return std::nullopt;
+                return false;
             }
             result.changes[previous] = restored;
             ++result.count_delta;
         }
+    }
+    return true;
+}
+
+std::optional<CoinTransition> BuildDisconnectCoinTransition(
+    const CCoinsView& view,
+    const CBlock& block,
+    const chainregistry::ReferenceChildBlockUndo& undo)
+{
+    CoinTransition result;
+    if (!ApplyDisconnectCoinTransition(view, block, undo, result)) {
+        return std::nullopt;
     }
     return result;
 }
@@ -752,6 +771,17 @@ bool ChildChainDB::WriteMainHeader(
     const CBlockHeader& header,
     bool sync)
 {
+    return WriteMainHeaderAndDisconnect(
+        main_headers, imports, header, {}, sync);
+}
+
+bool ChildChainDB::WriteMainHeaderAndDisconnect(
+    const chainregistry::MainHeaderChain& main_headers,
+    const chainregistry::DepositImportState& imports,
+    const CBlockHeader& header,
+    std::span<const ChildChainDBDisconnect> disconnected_blocks,
+    bool sync)
+{
     ChildChainDBState state;
     if (!m_db.Read(DB_STATE, state) ||
         !ValidConfiguration(state,
@@ -761,17 +791,10 @@ bool ChildChainDB::WriteMainHeader(
                             m_child_genesis_hash) ||
         imports.ChildChain() != m_child_chain ||
         imports.MinimumConfirmations() != m_minimum_confirmations ||
-        imports.Size() != state.import_count ||
         main_headers.Params().hashGenesisBlock != m_main_genesis_hash ||
         !main_headers.IsInitialized() ||
         main_headers.ExportHeaders().size() != state.header_count + 1 ||
-        !ImportsMatchMainChain(main_headers, imports) ||
-        !StoredAnchorsMatchMainChain(
-            m_db,
-            main_headers,
-            m_child_chain,
-            state.anchor_count,
-            imports.IsSafeHalted())) {
+        (imports.IsSafeHalted() && !disconnected_blocks.empty())) {
         return false;
     }
     const uint256 hash{header.GetHash()};
@@ -789,6 +812,96 @@ bool ChildChainDB::WriteMainHeader(
     }
     if (state.safe_halt && !imports.IsSafeHalted()) return false;
 
+    CDBBatch batch{m_db};
+    CoinTransition coin_transition;
+    std::set<uint256> disconnected_hashes;
+    for (const auto& disconnected : disconnected_blocks) {
+        const CBlock& block{disconnected.block};
+        const chainregistry::ReferenceChildBlockUndo& undo{disconnected.undo};
+        const uint256 block_hash{block.GetHash()};
+        StoredChildBlock stored_block;
+        chainregistry::ReferenceChildBlockUndo stored_undo;
+        ChildBmmAnchorRecord stored_anchor;
+        if (!disconnected_hashes.insert(block_hash).second ||
+            !m_db.Read(BlockKey{DB_BLOCK, block_hash}, stored_block) ||
+            !m_db.Read(UndoKey{DB_UNDO, block_hash}, stored_undo) ||
+            !m_db.Read(AnchorKey{DB_BMM_ANCHOR, block_hash}, stored_anchor) ||
+            !BlocksEqual(stored_block.block, block) || stored_undo != undo ||
+            stored_anchor.child_block_hash != block_hash ||
+            !IsValidStoredAnchor(
+                stored_anchor,
+                main_headers,
+                m_child_chain,
+                /*allow_inactive=*/true) ||
+            main_headers.GetStatus(stored_anchor.proof.block_header.GetHash()).active ||
+            state.child_tip != block_hash || state.child_height == 0 ||
+            undo.version != chainregistry::REFERENCE_CHILD_BLOCK_UNDO_VERSION ||
+            undo.block_hash != block_hash ||
+            undo.parent_hash != block.hashPrevBlock || undo.parent_hash.IsNull() ||
+            undo.block_height != state.child_height ||
+            undo.imports.imports.size() > state.import_count ||
+            state.anchor_count != state.child_height) {
+            return false;
+        }
+        const auto expected_imports{BlockImportIds(block)};
+        if (!expected_imports || *expected_imports != undo.imports.imports) {
+            return false;
+        }
+        for (const auto& deposit_id : undo.imports.imports) {
+            const auto stored{ReadImport(deposit_id)};
+            if (!stored || stored->child_block_hash != block_hash ||
+                imports.Find(deposit_id)) {
+                return false;
+            }
+            batch.Erase(ImportKey{DB_IMPORT, deposit_id});
+        }
+
+        const int64_t previous_delta{coin_transition.count_delta};
+        if (!ApplyDisconnectCoinTransition(
+                *this, block, undo, coin_transition)) {
+            return false;
+        }
+        const int64_t delta{coin_transition.count_delta - previous_delta};
+        if ((delta < 0 &&
+             static_cast<uint64_t>(-delta) > state.coin_count) ||
+            (delta > 0 &&
+             static_cast<uint64_t>(delta) >
+                 std::numeric_limits<uint64_t>::max() - state.coin_count)) {
+            return false;
+        }
+        const bool subtract{delta < 0};
+        const uint64_t magnitude{subtract ? static_cast<uint64_t>(-delta)
+                                          : static_cast<uint64_t>(delta)};
+        state.coin_count = subtract ? state.coin_count - magnitude
+                                    : state.coin_count + magnitude;
+        state.child_tip = undo.parent_hash;
+        --state.child_height;
+        --state.anchor_count;
+        state.import_count -= undo.imports.imports.size();
+        batch.Erase(BlockKey{DB_BLOCK, block_hash});
+        batch.Erase(UndoKey{DB_UNDO, block_hash});
+        batch.Erase(AnchorKey{DB_BMM_ANCHOR, block_hash});
+    }
+
+    if (imports.Size() != state.import_count ||
+        !ImportsMatchMainChain(main_headers, imports) ||
+        !StoredAnchorsMatchMainChain(
+            m_db,
+            main_headers,
+            m_child_chain,
+            state.anchor_count,
+            imports.IsSafeHalted(),
+            &disconnected_hashes)) {
+        return false;
+    }
+    for (const auto& [outpoint, coin] : coin_transition.changes) {
+        if (coin) {
+            batch.Write(CoinKey{DB_COIN, outpoint}, *coin);
+        } else {
+            batch.Erase(CoinKey{DB_COIN, outpoint});
+        }
+    }
+
     state.main_tip = main_headers.Tip()->GetBlockHash();
     ++state.header_count;
     state.safe_halt = imports.IsSafeHalted();
@@ -796,7 +909,6 @@ bool ChildChainDB::WriteMainHeader(
         .height = static_cast<uint32_t>(entry->nHeight),
         .header = header,
     };
-    CDBBatch batch{m_db};
     batch.Write(HeaderKey{DB_HEADER, hash}, record);
     if (!stored_halt && imports.SafeHalt()) {
         batch.Write(DB_SAFE_HALT, *imports.SafeHalt());

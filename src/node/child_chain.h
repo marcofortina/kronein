@@ -17,6 +17,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <vector>
 
 namespace node {
 
@@ -32,6 +33,7 @@ enum class ReferenceChildRuntimeError : uint8_t {
     CHILD_INDEX_REBUILD_FAILED,
     MAIN_HEADER_REJECTED,
     MAIN_HEADER_PERSIST_FAILED,
+    MAIN_REORG_ROLLBACK_FAILED,
     BMM_ANCHOR_REJECTED,
     CHILD_BLOCK_REJECTED,
     CHILD_BLOCK_PERSIST_FAILED,
@@ -47,6 +49,7 @@ struct ReferenceChildRuntimeResult {
     chainregistry::AuthenticatedBmmAnchorResult bmm_anchor;
     chainregistry::DepositReconcileResult reconcile;
     chainregistry::ReferenceChildBlockResult child_block;
+    std::vector<uint256> disconnected_child_blocks;
     bool loaded_existing{false};
 
     bool IsValid() const { return error == ReferenceChildRuntimeError::NONE; }

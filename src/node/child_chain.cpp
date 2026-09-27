@@ -184,17 +184,85 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::AddMainHeader(
     if (result.main_header.already_known) return result;
     chainregistry::DepositImportState candidate_imports{m_imports};
     result.reconcile = candidate_imports.Reconcile(*candidate_headers);
-    if (!m_db->WriteMainHeader(
-            *candidate_headers, candidate_imports, header, sync)) {
+    CCoinsViewCache candidate_coins{m_db.get(), /*deterministic=*/true};
+    CBlockIndex* candidate_child_tip{m_tip};
+    std::vector<ChildChainDBDisconnect> disconnected_blocks;
+    std::vector<uint256> disconnected_hashes;
+    if (!candidate_imports.IsSafeHalted()) {
+        while (candidate_child_tip != m_genesis.get()) {
+            const uint256 child_hash{candidate_child_tip->GetBlockHash()};
+            const auto anchor{m_db->ReadBmmAnchor(child_hash)};
+            if (!anchor) {
+                result.error =
+                    ReferenceChildRuntimeError::MAIN_REORG_ROLLBACK_FAILED;
+                return result;
+            }
+            const auto authenticated{candidate_headers->AuthenticateBmmAnchor(
+                anchor->proof,
+                m_definition.chain_id,
+                /*minimum_confirmations=*/1)};
+            if (authenticated.IsValid()) break;
+            if (authenticated.error !=
+                chainregistry::AuthenticatedBmmAnchorError::HEADER_NOT_ACTIVE) {
+                result.error =
+                    ReferenceChildRuntimeError::MAIN_REORG_ROLLBACK_FAILED;
+                return result;
+            }
+
+            ChildChainDBDisconnect disconnected;
+            if (!m_db->ReadBlock(child_hash, disconnected.block) ||
+                !m_db->ReadUndo(child_hash, disconnected.undo)) {
+                result.error =
+                    ReferenceChildRuntimeError::MAIN_REORG_ROLLBACK_FAILED;
+                return result;
+            }
+            result.child_block =
+                chainregistry::DisconnectReferenceChildBlock(
+                    disconnected.block,
+                    disconnected.undo,
+                    candidate_coins,
+                    candidate_imports);
+            if (!result.child_block.IsValid()) {
+                result.error =
+                    ReferenceChildRuntimeError::MAIN_REORG_ROLLBACK_FAILED;
+                return result;
+            }
+            disconnected_hashes.push_back(child_hash);
+            disconnected_blocks.push_back(std::move(disconnected));
+            candidate_child_tip = candidate_child_tip->pprev;
+        }
+    }
+    if (!m_db->WriteMainHeaderAndDisconnect(
+            *candidate_headers,
+            candidate_imports,
+            header,
+            disconnected_blocks,
+            sync)) {
         result.error = ReferenceChildRuntimeError::MAIN_HEADER_PERSIST_FAILED;
         return result;
+    }
+    if (!disconnected_blocks.empty()) {
+        try {
+            candidate_coins.Flush();
+        } catch (const std::exception&) {
+            m_failed = true;
+            result.error =
+                ReferenceChildRuntimeError::CACHE_ACKNOWLEDGEMENT_FAILED;
+            return result;
+        }
     }
     m_main_headers = std::move(candidate_headers);
     m_imports = std::move(candidate_imports);
     if (!m_db->ReadState(m_state)) {
         m_failed = true;
         result.error = ReferenceChildRuntimeError::FAILED_RUNTIME;
+        return result;
     }
+    m_tip = candidate_child_tip;
+    for (const auto& child_hash : disconnected_hashes) {
+        m_child_index.erase(child_hash);
+    }
+    result.disconnected_child_blocks = std::move(disconnected_hashes);
     return result;
 }
 
