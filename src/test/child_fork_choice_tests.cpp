@@ -126,6 +126,23 @@ BOOST_AUTO_TEST_CASE(ignores_anchors_not_after_parent_activation)
                 arith_uint256{7});
 }
 
+BOOST_AUTO_TEST_CASE(retains_unanchored_ancestors_without_selecting_them)
+{
+    const uint256 genesis{Hash(1)};
+    const auto selected{chainregistry::SelectChildFork(
+        genesis,
+        {
+            Candidate(10, 1, {}),
+            Candidate(20, 10, {Anchor(102, 2, 7)}),
+            Candidate(11, 1, {Anchor(101, 1, 3)}),
+        })};
+
+    BOOST_REQUIRE(selected.IsValid());
+    BOOST_CHECK(!selected.scores.at(Hash(10)).eligible);
+    BOOST_CHECK(!selected.scores.at(Hash(20)).eligible);
+    BOOST_CHECK(selected.head == Hash(11));
+}
+
 BOOST_AUTO_TEST_CASE(uses_height_then_hash_as_deterministic_tie_break)
 {
     const uint256 genesis{Hash(1)};

@@ -71,11 +71,6 @@ ChildForkChoiceResult SelectChildFork(
                 ChildForkChoiceError::DUPLICATE_BLOCK,
                 candidate.block_hash);
         }
-        if (candidate.anchors.empty()) {
-            return ForkError(
-                ChildForkChoiceError::EMPTY_ANCHORS,
-                candidate.block_hash);
-        }
         for (const auto& anchor : candidate.anchors) {
             if (anchor.main_block_hash.IsNull()) {
                 return ForkError(

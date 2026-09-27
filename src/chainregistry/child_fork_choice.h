@@ -44,7 +44,6 @@ enum class ChildForkChoiceError : uint8_t {
     GENESIS_REDEFINED,
     DUPLICATE_BLOCK,
     UNKNOWN_PARENT,
-    EMPTY_ANCHORS,
     NULL_MAIN_BLOCK,
     INVALID_MAIN_HEIGHT,
     ZERO_MAIN_WORK,
@@ -70,10 +69,11 @@ struct ChildForkChoiceResult {
  * Select a child head from an unordered candidate DAG.
  *
  * Every active main block may contribute its proof-of-work to at most one
- * child candidate. A candidate becomes eligible at its earliest anchor after
- * its parent's activation height. All of its eligible anchors contribute work
- * once, and branch work is the sum along the child ancestry. Equal work is
- * resolved by greater child height and then the lower child block hash.
+ * child candidate. Candidates without an active anchor remain in the DAG as
+ * ineligible ancestors. A candidate becomes eligible at its earliest anchor
+ * after its parent's activation height. All of its eligible anchors contribute
+ * work once, and branch work is the sum along the child ancestry. Equal work
+ * is resolved by greater child height and then the lower child block hash.
  */
 ChildForkChoiceResult SelectChildFork(
     const uint256& child_genesis_hash,
