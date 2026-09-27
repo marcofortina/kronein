@@ -22,8 +22,12 @@
 
 namespace node {
 
-inline constexpr uint8_t CHILD_CHAIN_DB_VERSION{3};
+inline constexpr uint8_t CHILD_CHAIN_DB_VERSION{4};
 inline constexpr uint8_t CHILD_BMM_ANCHOR_RECORD_VERSION{1};
+inline constexpr uint8_t CHILD_PENDING_BMM_ANCHOR_RECORD_VERSION{1};
+inline constexpr uint64_t MAX_CHILD_PENDING_BMM_ANCHORS{256};
+inline constexpr uint64_t MAX_CHILD_PENDING_BMM_PROOF_SIZE{4'000'000};
+inline constexpr uint64_t MAX_CHILD_PENDING_BMM_BYTES{64 * 1024 * 1024};
 
 struct ChildBmmAnchorRecord {
     uint8_t version{CHILD_BMM_ANCHOR_RECORD_VERSION};
@@ -39,6 +43,18 @@ struct ChildBmmAnchorRecord {
                            const ChildBmmAnchorRecord&) = default;
 };
 
+struct ChildPendingBmmAnchorRecord {
+    uint8_t version{CHILD_PENDING_BMM_ANCHOR_RECORD_VERSION};
+    uint256 child_block_hash;
+    uint64_t serialized_size{0};
+    chainregistry::BmmAnchorProof proof;
+
+    SERIALIZE_METHODS(ChildPendingBmmAnchorRecord, obj)
+    {
+        READWRITE(obj.version, obj.child_block_hash, obj.serialized_size, obj.proof);
+    }
+};
+
 struct ChildChainDBState {
     uint8_t version{CHILD_CHAIN_DB_VERSION};
     chainregistry::ChainId child_chain;
@@ -50,6 +66,8 @@ struct ChildChainDBState {
     uint256 child_tip;
     uint32_t child_height{0};
     uint64_t anchor_count{0};
+    uint64_t pending_anchor_count{0};
+    uint64_t pending_anchor_bytes{0};
     uint64_t import_count{0};
     uint64_t coin_count{0};
     bool safe_halt{false};
@@ -66,6 +84,8 @@ struct ChildChainDBState {
                   obj.child_tip,
                   obj.child_height,
                   obj.anchor_count,
+                  obj.pending_anchor_count,
+                  obj.pending_anchor_bytes,
                   obj.import_count,
                   obj.coin_count,
                   obj.safe_halt);
@@ -107,6 +127,11 @@ enum class ChildChainDBLoadError : uint8_t {
     ANCHOR_DECODE_FAILED,
     ANCHOR_COUNT_MISMATCH,
     INVALID_BMM_ANCHOR,
+    PENDING_ANCHOR_KEY_DECODE_FAILED,
+    PENDING_ANCHOR_KEY_MISMATCH,
+    PENDING_ANCHOR_DECODE_FAILED,
+    PENDING_ANCHOR_COUNT_MISMATCH,
+    INVALID_PENDING_BMM_ANCHOR,
     COIN_KEY_DECODE_FAILED,
     COIN_DECODE_FAILED,
     COIN_COUNT_MISMATCH,
@@ -162,6 +187,10 @@ public:
         const CBlockHeader& header,
         std::span<const ChildChainDBDisconnect> disconnected_blocks,
         bool sync = false);
+    bool WritePendingBmmAnchor(
+        const chainregistry::MainHeaderChain& main_headers,
+        const chainregistry::BmmAnchorProof& anchor_proof,
+        bool sync = false);
     bool WriteConnectedChildBlock(const chainregistry::MainHeaderChain& main_headers,
                                   const chainregistry::DepositImportState& imports,
                                   const CBlock& block,
@@ -187,6 +216,8 @@ public:
                   chainregistry::ReferenceChildBlockUndo& undo) const;
     std::optional<ChildBmmAnchorRecord> ReadBmmAnchor(
         const uint256& child_block_hash) const;
+    std::optional<ChildPendingBmmAnchorRecord> ReadPendingBmmAnchor(
+        const uint256& main_block_hash) const;
 };
 
 } // namespace node

@@ -35,6 +35,7 @@ enum class ReferenceChildRuntimeError : uint8_t {
     MAIN_HEADER_PERSIST_FAILED,
     MAIN_REORG_ROLLBACK_FAILED,
     BMM_ANCHOR_REJECTED,
+    BMM_ANCHOR_PERSIST_FAILED,
     CHILD_BLOCK_REJECTED,
     CHILD_BLOCK_PERSIST_FAILED,
     CHILD_DISCONNECT_REJECTED,
@@ -50,6 +51,7 @@ struct ReferenceChildRuntimeResult {
     chainregistry::DepositReconcileResult reconcile;
     chainregistry::ReferenceChildBlockResult child_block;
     std::vector<uint256> disconnected_child_blocks;
+    bool pending_anchor_already_known{false};
     bool loaded_existing{false};
 
     bool IsValid() const { return error == ReferenceChildRuntimeError::NONE; }
@@ -93,6 +95,9 @@ public:
     ReferenceChildRuntimeResult AddMainHeader(const CBlockHeader& header,
                                               int64_t current_time,
                                               bool sync = false);
+    ReferenceChildRuntimeResult StageBmmAnchor(
+        const chainregistry::BmmAnchorProof& anchor_proof,
+        bool sync = false);
     ReferenceChildRuntimeResult ConnectBlock(const CBlock& block,
                                              const chainregistry::BmmAnchorProof& anchor_proof,
                                              int64_t current_time,

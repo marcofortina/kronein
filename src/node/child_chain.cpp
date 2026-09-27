@@ -266,6 +266,43 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::AddMainHeader(
     return result;
 }
 
+ReferenceChildRuntimeResult ReferenceChildRuntime::StageBmmAnchor(
+    const chainregistry::BmmAnchorProof& anchor_proof,
+    bool sync)
+{
+    if (!m_initialized) {
+        return RuntimeError(ReferenceChildRuntimeError::NOT_INITIALIZED);
+    }
+    if (m_failed) {
+        return RuntimeError(ReferenceChildRuntimeError::FAILED_RUNTIME);
+    }
+
+    ReferenceChildRuntimeResult result;
+    result.bmm_anchor = m_main_headers->AuthenticateBmmAnchor(
+        anchor_proof,
+        m_definition.chain_id,
+        /*minimum_confirmations=*/1);
+    if (!result.bmm_anchor.IsValid()) {
+        result.error = ReferenceChildRuntimeError::BMM_ANCHOR_REJECTED;
+        return result;
+    }
+    const uint256 main_block_hash{anchor_proof.block_header.GetHash()};
+    const bool already_known{
+        m_db->ReadPendingBmmAnchor(main_block_hash).has_value()};
+    if (!m_db->WritePendingBmmAnchor(
+            *m_main_headers, anchor_proof, sync)) {
+        result.error = ReferenceChildRuntimeError::BMM_ANCHOR_PERSIST_FAILED;
+        return result;
+    }
+    if (!m_db->ReadState(m_state)) {
+        m_failed = true;
+        result.error = ReferenceChildRuntimeError::FAILED_RUNTIME;
+        return result;
+    }
+    result.pending_anchor_already_known = already_known;
+    return result;
+}
+
 ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
     const CBlock& block,
     const chainregistry::BmmAnchorProof& anchor_proof,

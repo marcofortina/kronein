@@ -224,6 +224,34 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
         BOOST_CHECK_EQUAL(runtime.State().child_height, 0U);
         BOOST_REQUIRE(runtime.AddMainHeader(
             main_anchor, main_anchor.nTime, /*sync=*/true).IsValid());
+        const auto staged{runtime.StageBmmAnchor(
+            anchor_proof, /*sync=*/true)};
+        BOOST_REQUIRE_MESSAGE(staged.IsValid(), static_cast<int>(staged.error));
+        BOOST_CHECK(!staged.pending_anchor_already_known);
+        BOOST_CHECK_EQUAL(runtime.State().pending_anchor_count, 1U);
+        BOOST_CHECK_GT(runtime.State().pending_anchor_bytes, 0U);
+        const auto duplicate_stage{runtime.StageBmmAnchor(
+            anchor_proof, /*sync=*/true)};
+        BOOST_REQUIRE(duplicate_stage.IsValid());
+        BOOST_CHECK(duplicate_stage.pending_anchor_already_known);
+        BOOST_CHECK_EQUAL(runtime.State().pending_anchor_count, 1U);
+
+        main_parent = runtime.MainHeaders()->Tip();
+        BOOST_REQUIRE(main_parent);
+        CBlock repeated_main_anchor;
+        const auto repeated_anchor_proof{MakeBmmProof(
+            repeated_main_anchor,
+            *main_parent,
+            params,
+            definition,
+            child_hash)};
+        BOOST_REQUIRE(runtime.AddMainHeader(
+            repeated_main_anchor,
+            repeated_main_anchor.nTime,
+            /*sync=*/true).IsValid());
+        BOOST_REQUIRE(runtime.StageBmmAnchor(
+            repeated_anchor_proof, /*sync=*/true).IsValid());
+        BOOST_CHECK_EQUAL(runtime.State().pending_anchor_count, 2U);
         const auto connected{runtime.ConnectBlock(
             block, anchor_proof, block.nTime, /*sync=*/true)};
         BOOST_REQUIRE_MESSAGE(
@@ -234,6 +262,8 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
         BOOST_CHECK(runtime.Tip()->GetBlockHash() == child_hash);
         BOOST_CHECK_EQUAL(runtime.State().child_height, 1U);
         BOOST_CHECK(runtime.State().child_tip == child_hash);
+        BOOST_CHECK_EQUAL(runtime.State().pending_anchor_count, 0U);
+        BOOST_CHECK_EQUAL(runtime.State().pending_anchor_bytes, 0U);
 
         CBlock stored;
         BOOST_REQUIRE(runtime.ReadBlock(child_hash, stored));
@@ -304,6 +334,89 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
         BOOST_CHECK(loaded.loaded_existing);
         BOOST_CHECK_EQUAL(runtime.State().child_height, 0U);
         BOOST_CHECK(runtime.Tip()->GetBlockHash() == definition.genesis_hash);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(pending_anchor_survives_restart_and_is_pruned_by_reorg)
+{
+    const auto definition{Definition()};
+    const auto& params{Params().GetConsensus()};
+    const CBlock& main_genesis{Params().GenesisBlock()};
+    const fs::path path{m_args.GetDataDirBase() / "reference_child_pending"};
+    chainregistry::BmmAnchorProof proof;
+    CBlock anchor_block;
+    CBlockHeader fork2;
+
+    {
+        node::ReferenceChildRuntime runtime{params, definition};
+        BOOST_REQUIRE(runtime.Initialize(
+            ChildDBParams(path, /*wipe=*/true),
+            main_genesis,
+            main_genesis.nTime,
+            /*sync=*/true).IsValid());
+        const CBlock candidate{ChildBlock(*runtime.Tip())};
+        const CBlockIndex* main_parent{runtime.MainHeaders()->Tip()};
+        BOOST_REQUIRE(main_parent);
+        proof = MakeBmmProof(
+            anchor_block,
+            *main_parent,
+            params,
+            definition,
+            candidate.GetHash());
+        BOOST_REQUIRE(runtime.AddMainHeader(
+            anchor_block, anchor_block.nTime, /*sync=*/true).IsValid());
+        const auto staged{runtime.StageBmmAnchor(proof, /*sync=*/true)};
+        BOOST_REQUIRE(staged.IsValid());
+        BOOST_CHECK_EQUAL(runtime.State().pending_anchor_count, 1U);
+        BOOST_CHECK_GT(runtime.State().pending_anchor_bytes, 0U);
+        BOOST_CHECK_EQUAL(runtime.State().child_height, 0U);
+    }
+
+    {
+        node::ReferenceChildRuntime runtime{params, definition};
+        const auto loaded{runtime.Initialize(
+            ChildDBParams(path, /*wipe=*/false),
+            main_genesis,
+            anchor_block.nTime + 1,
+            /*sync=*/true)};
+        BOOST_REQUIRE_MESSAGE(loaded.IsValid(), static_cast<int>(loaded.error));
+        BOOST_CHECK(loaded.loaded_existing);
+        BOOST_CHECK_EQUAL(runtime.State().pending_anchor_count, 1U);
+        const auto duplicate{runtime.StageBmmAnchor(proof, /*sync=*/true)};
+        BOOST_REQUIRE(duplicate.IsValid());
+        BOOST_CHECK(duplicate.pending_anchor_already_known);
+
+        const CBlockIndex* genesis_index{
+            runtime.MainHeaders()->Find(main_genesis.GetHash())};
+        BOOST_REQUIRE(genesis_index);
+        const CBlockHeader fork1{MineMainHeader(*genesis_index, params)};
+        BOOST_REQUIRE(runtime.AddMainHeader(
+            fork1, fork1.nTime, /*sync=*/true).IsValid());
+        BOOST_CHECK_EQUAL(runtime.State().pending_anchor_count, 1U);
+        const CBlockIndex* fork1_index{
+            runtime.MainHeaders()->Find(fork1.GetHash())};
+        BOOST_REQUIRE(fork1_index);
+        fork2 = MineMainHeader(*fork1_index, params);
+        const auto reorg{runtime.AddMainHeader(
+            fork2, fork2.nTime, /*sync=*/true)};
+        BOOST_REQUIRE_MESSAGE(reorg.IsValid(), static_cast<int>(reorg.error));
+        BOOST_CHECK(reorg.main_header.became_best);
+        BOOST_CHECK_EQUAL(runtime.State().pending_anchor_count, 0U);
+        BOOST_CHECK_EQUAL(runtime.State().pending_anchor_bytes, 0U);
+        BOOST_CHECK_EQUAL(runtime.State().child_height, 0U);
+    }
+
+    {
+        node::ReferenceChildRuntime runtime{params, definition};
+        const auto loaded{runtime.Initialize(
+            ChildDBParams(path, /*wipe=*/false),
+            main_genesis,
+            fork2.nTime + 1,
+            /*sync=*/true)};
+        BOOST_REQUIRE_MESSAGE(loaded.IsValid(), static_cast<int>(loaded.error));
+        BOOST_CHECK_EQUAL(runtime.State().pending_anchor_count, 0U);
+        BOOST_CHECK_EQUAL(runtime.State().pending_anchor_bytes, 0U);
+        BOOST_CHECK(runtime.MainHeaders()->Tip()->GetBlockHash() == fork2.GetHash());
     }
 }
 

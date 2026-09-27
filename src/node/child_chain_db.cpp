@@ -5,6 +5,7 @@
 #include <node/child_chain_db.h>
 
 #include <consensus/amount.h>
+#include <hash.h>
 #include <primitives/block.h>
 
 #include <algorithm>
@@ -27,12 +28,14 @@ constexpr uint8_t DB_IMPORT{'I'};
 constexpr uint8_t DB_UNDO{'U'};
 constexpr uint8_t DB_SAFE_HALT{'X'};
 constexpr uint8_t DB_BMM_ANCHOR{'A'};
+constexpr uint8_t DB_PENDING_BMM_ANCHOR{'P'};
 
 using AnchorKey = std::pair<uint8_t, uint256>;
 using BlockKey = std::pair<uint8_t, uint256>;
 using CoinKey = std::pair<uint8_t, COutPoint>;
 using HeaderKey = std::pair<uint8_t, uint256>;
 using ImportKey = std::pair<uint8_t, chainregistry::DepositId>;
+using PendingAnchorKey = std::pair<uint8_t, uint256>;
 using UndoKey = std::pair<uint8_t, uint256>;
 using CoinSet = std::map<COutPoint, Coin>;
 using CoinChanges = std::map<COutPoint, std::optional<Coin>>;
@@ -88,7 +91,9 @@ bool ValidConfiguration(const ChildChainDBState& state,
            !state.child_genesis_hash.IsNull() &&
            state.child_genesis_hash == child_genesis_hash &&
            !state.child_tip.IsNull() &&
-           state.anchor_count == state.child_height;
+           state.anchor_count == state.child_height &&
+           state.pending_anchor_count <= MAX_CHILD_PENDING_BMM_ANCHORS &&
+           state.pending_anchor_bytes <= MAX_CHILD_PENDING_BMM_BYTES;
 }
 
 bool ImportsMatchMainChain(const chainregistry::MainHeaderChain& main_headers,
@@ -131,6 +136,135 @@ bool IsValidStoredAnchor(
     if (allow_inactive) return true;
     return main_headers.AuthenticateBmmAnchor(
         record.proof, child_chain, /*minimum_confirmations=*/1).IsValid();
+}
+
+uint256 BmmProofHash(const chainregistry::BmmAnchorProof& proof)
+{
+    return (HashWriter{} << proof).GetHash();
+}
+
+bool IsValidStoredPendingAnchor(
+    const ChildPendingBmmAnchorRecord& record,
+    const chainregistry::MainHeaderChain& main_headers,
+    const chainregistry::ChainId& child_chain,
+    bool allow_inactive)
+{
+    if (record.version != CHILD_PENDING_BMM_ANCHOR_RECORD_VERSION ||
+        record.child_block_hash.IsNull() || record.serialized_size == 0 ||
+        record.serialized_size > MAX_CHILD_PENDING_BMM_PROOF_SIZE ||
+        record.serialized_size != GetSerializeSize(record.proof)) {
+        return false;
+    }
+    const auto structural{chainregistry::ValidateBmmAnchorProofStructure(
+        record.proof,
+        main_headers.Params().hashGenesisBlock,
+        child_chain)};
+    if (!structural.IsValid() || !structural.anchor ||
+        structural.anchor->child_block_hash != record.child_block_hash) {
+        return false;
+    }
+    const auto status{
+        main_headers.GetStatus(record.proof.block_header.GetHash())};
+    if (!status.known ||
+        status.height != static_cast<int>(record.proof.block_height)) {
+        return false;
+    }
+    if (allow_inactive) return true;
+    return main_headers.AuthenticateBmmAnchor(
+        record.proof, child_chain, /*minimum_confirmations=*/1).IsValid();
+}
+
+bool PruneInactivePendingAnchors(
+    const CDBWrapper& db,
+    CDBBatch& batch,
+    const chainregistry::MainHeaderChain& main_headers,
+    const chainregistry::ChainId& child_chain,
+    ChildChainDBState& state)
+{
+    uint64_t stored_count{0};
+    uint64_t stored_bytes{0};
+    uint64_t active_count{0};
+    uint64_t active_bytes{0};
+    std::unique_ptr<CDBIterator> cursor{const_cast<CDBWrapper&>(db).NewIterator()};
+    cursor->Seek(PendingAnchorKey{DB_PENDING_BMM_ANCHOR, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) return false;
+        if (prefix != DB_PENDING_BMM_ANCHOR) break;
+        PendingAnchorKey key;
+        ChildPendingBmmAnchorRecord record;
+        if (!cursor->GetKey(key) || !cursor->GetValue(record) ||
+            key.second != record.proof.block_header.GetHash() ||
+            !IsValidStoredPendingAnchor(
+                record, main_headers, child_chain, /*allow_inactive=*/true) ||
+            stored_count == std::numeric_limits<uint64_t>::max() ||
+            record.serialized_size >
+                std::numeric_limits<uint64_t>::max() - stored_bytes) {
+            return false;
+        }
+        ++stored_count;
+        stored_bytes += record.serialized_size;
+        const auto status{main_headers.GetStatus(key.second)};
+        if (status.active) {
+            if (active_count == std::numeric_limits<uint64_t>::max() ||
+                record.serialized_size >
+                    std::numeric_limits<uint64_t>::max() - active_bytes) {
+                return false;
+            }
+            ++active_count;
+            active_bytes += record.serialized_size;
+        } else {
+            batch.Erase(key);
+        }
+        cursor->Next();
+    }
+    if (stored_count != state.pending_anchor_count ||
+        stored_bytes != state.pending_anchor_bytes ||
+        active_count > MAX_CHILD_PENDING_BMM_ANCHORS ||
+        active_bytes > MAX_CHILD_PENDING_BMM_BYTES) {
+        return false;
+    }
+    state.pending_anchor_count = active_count;
+    state.pending_anchor_bytes = active_bytes;
+    return true;
+}
+
+bool CollectPendingAnchorsForChild(
+    const CDBWrapper& db,
+    const chainregistry::MainHeaderChain& main_headers,
+    const chainregistry::ChainId& child_chain,
+    const uint256& child_block_hash,
+    const ChildChainDBState& state,
+    std::vector<std::pair<PendingAnchorKey, ChildPendingBmmAnchorRecord>>& matches)
+{
+    uint64_t count{0};
+    uint64_t bytes{0};
+    std::unique_ptr<CDBIterator> cursor{const_cast<CDBWrapper&>(db).NewIterator()};
+    cursor->Seek(PendingAnchorKey{DB_PENDING_BMM_ANCHOR, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) return false;
+        if (prefix != DB_PENDING_BMM_ANCHOR) break;
+        PendingAnchorKey key;
+        ChildPendingBmmAnchorRecord record;
+        if (!cursor->GetKey(key) || !cursor->GetValue(record) ||
+            key.second != record.proof.block_header.GetHash() ||
+            !IsValidStoredPendingAnchor(
+                record, main_headers, child_chain, /*allow_inactive=*/false) ||
+            count == std::numeric_limits<uint64_t>::max() ||
+            record.serialized_size >
+                std::numeric_limits<uint64_t>::max() - bytes) {
+            return false;
+        }
+        ++count;
+        bytes += record.serialized_size;
+        if (record.child_block_hash == child_block_hash) {
+            matches.emplace_back(key, std::move(record));
+        }
+        cursor->Next();
+    }
+    return count == state.pending_anchor_count &&
+           bytes == state.pending_anchor_bytes;
 }
 
 bool StoredAnchorsMatchMainChain(
@@ -433,6 +567,7 @@ ChildChainDBLoadResult ChildChainDB::Load(
         }
         if (HasKeyWithPrefix(m_db, DB_BLOCK) ||
             HasKeyWithPrefix(m_db, DB_BMM_ANCHOR) ||
+            HasKeyWithPrefix(m_db, DB_PENDING_BMM_ANCHOR) ||
             HasKeyWithPrefix(m_db, DB_COIN) ||
             HasKeyWithPrefix(m_db, DB_HEADER) ||
             HasKeyWithPrefix(m_db, DB_IMPORT) ||
@@ -603,6 +738,55 @@ ChildChainDBLoadResult ChildChainDB::Load(
         return LoadError(ChildChainDBLoadError::ANCHOR_COUNT_MISMATCH);
     }
 
+    uint64_t pending_count{0};
+    uint64_t pending_bytes{0};
+    cursor.reset(const_cast<CDBWrapper&>(m_db).NewIterator());
+    cursor->Seek(PendingAnchorKey{DB_PENDING_BMM_ANCHOR, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) {
+            return LoadError(
+                ChildChainDBLoadError::PENDING_ANCHOR_KEY_DECODE_FAILED);
+        }
+        if (prefix != DB_PENDING_BMM_ANCHOR) break;
+        PendingAnchorKey key;
+        if (!cursor->GetKey(key)) {
+            return LoadError(
+                ChildChainDBLoadError::PENDING_ANCHOR_KEY_DECODE_FAILED);
+        }
+        ChildPendingBmmAnchorRecord record;
+        if (!cursor->GetValue(record)) {
+            return LoadError(
+                ChildChainDBLoadError::PENDING_ANCHOR_DECODE_FAILED);
+        }
+        if (key.second != record.proof.block_header.GetHash()) {
+            return LoadError(
+                ChildChainDBLoadError::PENDING_ANCHOR_KEY_MISMATCH);
+        }
+        if (!IsValidStoredPendingAnchor(
+                record,
+                main_headers,
+                m_child_chain,
+                /*allow_inactive=*/false) ||
+            blocks.contains(record.child_block_hash) ||
+            pending_count == std::numeric_limits<uint64_t>::max() ||
+            record.serialized_size >
+                std::numeric_limits<uint64_t>::max() - pending_bytes) {
+            return LoadError(
+                ChildChainDBLoadError::INVALID_PENDING_BMM_ANCHOR);
+        }
+        ++pending_count;
+        pending_bytes += record.serialized_size;
+        cursor->Next();
+    }
+    if (pending_count != stored_state.pending_anchor_count ||
+        pending_bytes != stored_state.pending_anchor_bytes ||
+        pending_count > MAX_CHILD_PENDING_BMM_ANCHORS ||
+        pending_bytes > MAX_CHILD_PENDING_BMM_BYTES) {
+        return LoadError(
+            ChildChainDBLoadError::PENDING_ANCHOR_COUNT_MISMATCH);
+    }
+
     std::map<uint256, chainregistry::ReferenceChildBlockUndo> undos;
     cursor.reset(const_cast<CDBWrapper&>(m_db).NewIterator());
     cursor->Seek(UndoKey{DB_UNDO, {}});
@@ -742,6 +926,7 @@ bool ChildChainDB::WriteInitialState(
         imports.Size() != 0 || imports.IsSafeHalted() ||
         m_db.Exists(DB_STATE) || HasKeyWithPrefix(m_db, DB_BLOCK) ||
         HasKeyWithPrefix(m_db, DB_BMM_ANCHOR) ||
+        HasKeyWithPrefix(m_db, DB_PENDING_BMM_ANCHOR) ||
         HasKeyWithPrefix(m_db, DB_COIN) ||
         HasKeyWithPrefix(m_db, DB_HEADER) ||
         HasKeyWithPrefix(m_db, DB_IMPORT) || HasKeyWithPrefix(m_db, DB_UNDO) ||
@@ -813,6 +998,10 @@ bool ChildChainDB::WriteMainHeaderAndDisconnect(
     if (state.safe_halt && !imports.IsSafeHalted()) return false;
 
     CDBBatch batch{m_db};
+    if (!PruneInactivePendingAnchors(
+            m_db, batch, main_headers, m_child_chain, state)) {
+        return false;
+    }
     CoinTransition coin_transition;
     std::set<uint256> disconnected_hashes;
     for (const auto& disconnected : disconnected_blocks) {
@@ -918,6 +1107,62 @@ bool ChildChainDB::WriteMainHeaderAndDisconnect(
     return true;
 }
 
+bool ChildChainDB::WritePendingBmmAnchor(
+    const chainregistry::MainHeaderChain& main_headers,
+    const chainregistry::BmmAnchorProof& anchor_proof,
+    bool sync)
+{
+    ChildChainDBState state;
+    const auto authenticated{main_headers.AuthenticateBmmAnchor(
+        anchor_proof, m_child_chain, /*minimum_confirmations=*/1)};
+    if (!authenticated.IsValid() || !authenticated.proof.anchor) return false;
+    const uint256 child_block_hash{
+        authenticated.proof.anchor->child_block_hash};
+    const uint256 main_block_hash{anchor_proof.block_header.GetHash()};
+    const uint64_t serialized_size{GetSerializeSize(anchor_proof)};
+    const ChildPendingBmmAnchorRecord record{
+        .child_block_hash = child_block_hash,
+        .serialized_size = serialized_size,
+        .proof = anchor_proof,
+    };
+    if (!m_db.Read(DB_STATE, state) ||
+        !ValidConfiguration(state,
+                            m_child_chain,
+                            m_main_genesis_hash,
+                            m_minimum_confirmations,
+                            m_child_genesis_hash) ||
+        state.safe_halt || serialized_size == 0 ||
+        serialized_size > MAX_CHILD_PENDING_BMM_PROOF_SIZE ||
+        main_headers.Params().hashGenesisBlock != m_main_genesis_hash ||
+        !main_headers.IsInitialized() ||
+        main_headers.Tip()->GetBlockHash() != state.main_tip ||
+        m_db.Exists(AnchorKey{DB_BMM_ANCHOR, child_block_hash})) {
+        return false;
+    }
+
+    const PendingAnchorKey key{DB_PENDING_BMM_ANCHOR, main_block_hash};
+    ChildPendingBmmAnchorRecord existing;
+    if (m_db.Read(key, existing)) {
+        return existing.child_block_hash == child_block_hash &&
+               existing.serialized_size == serialized_size &&
+               BmmProofHash(existing.proof) == BmmProofHash(anchor_proof);
+    }
+    if (m_db.Exists(key) ||
+        state.pending_anchor_count == MAX_CHILD_PENDING_BMM_ANCHORS ||
+        serialized_size >
+            MAX_CHILD_PENDING_BMM_BYTES - state.pending_anchor_bytes) {
+        return false;
+    }
+
+    ++state.pending_anchor_count;
+    state.pending_anchor_bytes += serialized_size;
+    CDBBatch batch{m_db};
+    batch.Write(key, record);
+    batch.Write(DB_STATE, state);
+    m_db.WriteBatch(batch, sync);
+    return true;
+}
+
 bool ChildChainDB::WriteConnectedChildBlock(
     const chainregistry::MainHeaderChain& main_headers,
     const chainregistry::DepositImportState& imports,
@@ -998,6 +1243,35 @@ bool ChildChainDB::WriteConnectedChildBlock(
     ++state.anchor_count;
     if (state.anchor_count != state.child_height) return false;
     state.import_count += undo.imports.imports.size();
+    std::vector<std::pair<PendingAnchorKey, ChildPendingBmmAnchorRecord>> pending;
+    if (!CollectPendingAnchorsForChild(
+            m_db,
+            main_headers,
+            m_child_chain,
+            child_block_hash,
+            state,
+            pending)) {
+        return false;
+    }
+    const uint256 supplied_main_block{anchor_proof.block_header.GetHash()};
+    uint64_t removed_pending_bytes{0};
+    for (const auto& [key, record] : pending) {
+        if (key.second == supplied_main_block &&
+            BmmProofHash(record.proof) != BmmProofHash(anchor_proof)) {
+            return false;
+        }
+        if (record.serialized_size >
+            std::numeric_limits<uint64_t>::max() - removed_pending_bytes) {
+            return false;
+        }
+        removed_pending_bytes += record.serialized_size;
+    }
+    if (pending.size() > state.pending_anchor_count ||
+        removed_pending_bytes > state.pending_anchor_bytes) {
+        return false;
+    }
+    state.pending_anchor_count -= pending.size();
+    state.pending_anchor_bytes -= removed_pending_bytes;
     if (transition->count_delta < 0) {
         state.coin_count -= static_cast<uint64_t>(-transition->count_delta);
     } else {
@@ -1017,6 +1291,7 @@ bool ChildChainDB::WriteConnectedChildBlock(
     batch.Write(BlockKey{DB_BLOCK, child_block_hash}, StoredChildBlock{block});
     batch.Write(UndoKey{DB_UNDO, child_block_hash}, undo);
     batch.Write(AnchorKey{DB_BMM_ANCHOR, child_block_hash}, anchor_record);
+    for (const auto& pending_entry : pending) batch.Erase(pending_entry.first);
     batch.Write(DB_STATE, state);
     m_db.WriteBatch(batch, sync);
     return true;
@@ -1183,6 +1458,17 @@ std::optional<ChildBmmAnchorRecord> ChildChainDB::ReadBmmAnchor(
 {
     ChildBmmAnchorRecord record;
     if (!m_db.Read(AnchorKey{DB_BMM_ANCHOR, child_block_hash}, record)) {
+        return std::nullopt;
+    }
+    return record;
+}
+
+std::optional<ChildPendingBmmAnchorRecord>
+ChildChainDB::ReadPendingBmmAnchor(const uint256& main_block_hash) const
+{
+    ChildPendingBmmAnchorRecord record;
+    if (!m_db.Read(
+            PendingAnchorKey{DB_PENDING_BMM_ANCHOR, main_block_hash}, record)) {
         return std::nullopt;
     }
     return record;
