@@ -3027,11 +3027,12 @@ static bool ApplyRegistryStateResult(const node::ChainRegistryStateResult& regis
         return state.Invalid(
             BlockValidationResult::BLOCK_CONSENSUS,
             "bad-chain-registry",
-            strprintf("registry block error %u (transaction error %u, commitment error %u, deposit error %u)",
+            strprintf("registry block error %u (transaction error %u, commitment error %u, deposit error %u, BMM error %u)",
                       static_cast<unsigned>(registry_result.block_result.error),
                       static_cast<unsigned>(registry_result.block_result.transition.error),
                       static_cast<unsigned>(registry_result.block_result.commitment_error),
-                      static_cast<unsigned>(registry_result.block_result.deposits.error)));
+                      static_cast<unsigned>(registry_result.block_result.deposits.error),
+                      static_cast<unsigned>(registry_result.bmm_result.error)));
     }
     return state.Error(strprintf("child chain registry state error %u",
                                  static_cast<unsigned>(registry_result.error)));

@@ -6,6 +6,7 @@
 
 #include <consensus/merkle.h>
 #include <primitives/block.h>
+#include <primitives/bmm.h>
 #include <primitives/deposit.h>
 #include <primitives/transaction.h>
 #include <test/util/setup_common.h>
@@ -60,6 +61,24 @@ chainregistry::ChainRecord Record()
         .updated_height = 100,
         .retired_height = 0,
     };
+}
+
+CTransactionRef BmmProposal(const chainregistry::ChainId& chain_id,
+                            const uint256& child_block_hash,
+                            unsigned char input_byte)
+{
+    std::array<unsigned char, 32> input{};
+    input.fill(input_byte);
+    CMutableTransaction proposal;
+    proposal.vin.emplace_back(
+        COutPoint{Txid::FromUint256(uint256{std::span{input}}), 0});
+    proposal.vout.emplace_back(
+        0,
+        chainregistry::BuildBmmAnchorScript({
+            .chain_id = chain_id,
+            .child_block_hash = child_block_hash,
+        }));
+    return MakeTransactionRef(std::move(proposal));
 }
 
 } // namespace
@@ -252,6 +271,97 @@ BOOST_AUTO_TEST_CASE(indexes_snapshot_descendant_deposit_and_reverts_it)
             deposit_block_hash, snapshot_tip, 100, /*sync=*/true).IsValid());
         BOOST_CHECK_EQUAL(state.State().deposit_count, 0U);
         BOOST_CHECK(!state.FindDeposit(deposit_id).has_value());
+    }
+}
+
+BOOST_AUTO_TEST_CASE(indexes_bmm_anchor_across_restart_and_reorg)
+{
+    constexpr uint256 genesis_hash{
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
+    constexpr uint256 snapshot_tip{
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"};
+    constexpr uint256 child_block_hash{
+        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"};
+    const Consensus::Params::ChainRegistryParams registry_params{
+        .activation_height = 1,
+        .minimum_registration_burn = 1,
+        .maximum_operations = 4,
+        .bmm_activation_height = 101,
+        .maximum_bmm_anchors = 1,
+    };
+    const fs::path path{m_args.GetDataDirBase() / "chainregistry_state_bmm"};
+
+    const auto record{Record()};
+    chainregistry::ChainRegistry registry;
+    BOOST_REQUIRE(registry.LoadRecords({record}).IsValid());
+
+    CBlock anchored{Block(
+        snapshot_tip,
+        chainregistry::BuildRegistryCommitment(registry.ComputeRoot()))};
+    anchored.vtx.push_back(
+        BmmProposal(record.chain_id, child_block_hash, 1));
+    anchored.hashMerkleRoot = BlockMerkleRoot(anchored);
+    const uint256 anchored_hash{anchored.GetHash()};
+    const node::BmmAnchorId anchor_id{
+        .chain_id = record.chain_id,
+        .main_block_hash = anchored_hash,
+    };
+
+    {
+        node::ChainRegistryState state{registry_params, genesis_hash};
+        BOOST_REQUIRE(state.InitializeFromSnapshot(
+                               Params(path, /*wipe=*/true),
+                               snapshot_tip,
+                               100,
+                               registry,
+                               registry.ComputeRoot())
+                          .IsValid());
+        BOOST_CHECK_EQUAL(state.State().anchor_history_start_height, 101U);
+
+        CBlock duplicate{anchored};
+        duplicate.vtx.push_back(
+            BmmProposal(record.chain_id, child_block_hash, 2));
+        duplicate.hashMerkleRoot = BlockMerkleRoot(duplicate);
+        const auto rejected{state.ConnectBlock(
+            duplicate, 101, duplicate.GetHash())};
+        BOOST_CHECK(rejected.error ==
+                    node::ChainRegistryStateError::INVALID_BLOCK);
+        BOOST_CHECK(rejected.bmm_result.error ==
+                    chainregistry::BmmBlockValidationError::DUPLICATE_CHAIN);
+        BOOST_CHECK_EQUAL(state.State().anchor_count, 0U);
+
+        const auto connected{state.ConnectBlock(
+            anchored, 101, anchored_hash, /*sync=*/true)};
+        BOOST_REQUIRE(connected.IsValid());
+        BOOST_REQUIRE_EQUAL(connected.bmm_result.anchors.size(), 1U);
+        BOOST_CHECK_EQUAL(state.State().anchor_count, 1U);
+        const auto stored{state.FindAnchor(anchor_id)};
+        BOOST_REQUIRE(stored.has_value());
+        BOOST_CHECK(stored->anchor.child_block_hash == child_block_hash);
+        BOOST_CHECK(stored->transaction_id == anchored.vtx[1]->GetHash());
+        BOOST_CHECK_EQUAL(stored->transaction_index, 1U);
+    }
+
+    {
+        node::ChainRegistryState state{registry_params, genesis_hash};
+        BOOST_REQUIRE(state.Initialize(Params(path), anchored_hash, 101).IsValid());
+        BOOST_CHECK_EQUAL(state.State().anchor_count, 1U);
+        BOOST_REQUIRE(state.FindAnchor(anchor_id).has_value());
+        BOOST_REQUIRE(state.DisconnectBlock(
+                               anchored_hash,
+                               snapshot_tip,
+                               100,
+                               /*sync=*/true)
+                          .IsValid());
+        BOOST_CHECK_EQUAL(state.State().anchor_count, 0U);
+        BOOST_CHECK(!state.FindAnchor(anchor_id).has_value());
+    }
+
+    {
+        node::ChainRegistryState state{registry_params, genesis_hash};
+        BOOST_REQUIRE(state.Initialize(Params(path), snapshot_tip, 100).IsValid());
+        BOOST_CHECK_EQUAL(state.State().anchor_count, 0U);
+        BOOST_CHECK(!state.FindAnchor(anchor_id).has_value());
     }
 }
 

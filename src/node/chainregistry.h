@@ -33,6 +33,7 @@ enum class ChainRegistryStateError : uint8_t {
     INVALID_BLOCK,
     DATABASE_WRITE_FAILED,
     DEPOSIT_INDEX_FAILED,
+    ANCHOR_INDEX_FAILED,
     UNDO_MISSING,
     UNDO_FAILED,
 };
@@ -41,6 +42,7 @@ struct ChainRegistryStateResult {
     ChainRegistryStateError error{ChainRegistryStateError::NONE};
     ChainRegistryDBLoadResult load_result;
     chainregistry::RegistryBlockResult block_result;
+    chainregistry::BmmBlockValidationResult bmm_result;
 
     bool IsValid() const { return error == ChainRegistryStateError::NONE; }
 };
@@ -94,6 +96,7 @@ public:
     const chainregistry::ChainRegistry& Registry() const { return m_registry; }
     const ChainRegistryDBState& State() const { return m_state; }
     std::optional<DepositIndexEntry> FindDeposit(const chainregistry::DepositId& deposit_id) const;
+    std::optional<BmmAnchorIndexEntry> FindAnchor(const BmmAnchorId& anchor_id) const;
 };
 
 } // namespace node

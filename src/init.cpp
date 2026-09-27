@@ -497,6 +497,8 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
     argsman.AddArg("-chaindepositactivationheight=<n>", "Activate one-way child-chain deposits at regtest height <n> (requires an active chain registry and the other chaindeposit options)", ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::DEBUG_TEST);
     argsman.AddArg("-chaindepositminimumamount=<amt>", "Set the minimum regtest FUND_CHAIN burn in KNE (requires the other chaindeposit options)", ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::DEBUG_TEST);
     argsman.AddArg("-chaindepositmaxperblock=<n>", "Set the maximum number of FUND_CHAIN outputs per regtest block (requires the other chaindeposit options)", ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::DEBUG_TEST);
+    argsman.AddArg("-chainbmmactivationheight=<n>", "Activate child-chain BMM anchors at regtest height <n> (requires an active chain registry and -chainbmmmaxanchorsperblock)", ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::DEBUG_TEST);
+    argsman.AddArg("-chainbmmmaxanchorsperblock=<n>", "Set the maximum number of KBMM anchors per regtest block (requires -chainbmmactivationheight)", ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::DEBUG_TEST);
 #if HAVE_SYSTEM
     argsman.AddArg("-blocknotify=<cmd>", "Execute command when the best block changes (%s in cmd is replaced by block hash)", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
 #endif

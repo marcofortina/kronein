@@ -119,6 +119,8 @@ BOOST_AUTO_TEST_CASE(regtest_chain_registry_options)
         .deposit_activation_height = 50,
         .minimum_deposit_amount = COIN / 100,
         .maximum_deposits = 23,
+        .bmm_activation_height = 60,
+        .maximum_bmm_anchors = 31,
     };
     const auto params{CChainParams::RegTest(options)};
     const auto& registry{params->GetConsensus().chain_registry};
@@ -132,6 +134,10 @@ BOOST_AUTO_TEST_CASE(regtest_chain_registry_options)
     BOOST_CHECK(registry.DepositsActive(50));
     BOOST_CHECK_EQUAL(registry.minimum_deposit_amount, COIN / 100);
     BOOST_CHECK_EQUAL(registry.maximum_deposits, 23U);
+    BOOST_CHECK(registry.BmmEnabled());
+    BOOST_CHECK(!registry.BmmActive(59));
+    BOOST_CHECK(registry.BmmActive(60));
+    BOOST_CHECK_EQUAL(registry.maximum_bmm_anchors, 31U);
 }
 
 BOOST_AUTO_TEST_CASE(randomx_seed_schedule)

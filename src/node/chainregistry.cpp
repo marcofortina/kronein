@@ -73,6 +73,49 @@ std::optional<std::vector<DepositIndexEntry>> BuildDepositIndexEntries(
     return entries;
 }
 
+std::optional<std::vector<BmmAnchorIndexEntry>> BuildBmmAnchorIndexEntries(
+    const CBlock& block,
+    const uint256& block_hash,
+    uint32_t height,
+    const chainregistry::ChainRegistry& registry,
+    const chainregistry::BmmBlockValidationResult& anchors)
+{
+    std::vector<BmmAnchorIndexEntry> entries;
+    entries.reserve(anchors.anchors.size());
+    const uint256 registry_root{registry.ComputeRoot()};
+    for (const auto& anchor : anchors.anchors) {
+        if (anchor.transaction_index == 0 ||
+            anchor.transaction_index >= block.vtx.size() ||
+            anchor.output_index >= block.vtx[anchor.transaction_index]->vout.size()) {
+            return std::nullopt;
+        }
+        const CTransaction& transaction{*block.vtx[anchor.transaction_index]};
+        const auto* record{registry.Find(anchor.anchor.chain_id)};
+        const auto proof{registry.GetInclusionProof(anchor.anchor.chain_id)};
+        if (!record || record->status != chainregistry::ChainStatus::ACTIVE ||
+            !proof || chainregistry::ParseBmmAnchorScript(
+                          transaction.vout[anchor.output_index].scriptPubKey)
+                              .anchor != std::optional{anchor.anchor}) {
+            return std::nullopt;
+        }
+        entries.push_back(BmmAnchorIndexEntry{
+            .id = {
+                .chain_id = anchor.anchor.chain_id,
+                .main_block_hash = block_hash,
+            },
+            .anchor = anchor.anchor,
+            .block_height = height,
+            .transaction_id = transaction.GetHash(),
+            .transaction_index = anchor.transaction_index,
+            .output_index = anchor.output_index,
+            .registry_root = registry_root,
+            .chain_record = *record,
+            .registry_proof = *proof,
+        });
+    }
+    return entries;
+}
+
 } // namespace
 
 ChainRegistryState::ChainRegistryState(Consensus::Params::ChainRegistryParams params,
@@ -168,6 +211,8 @@ ChainRegistryStateResult ChainRegistryState::InitializeFromSnapshot(
         static_cast<uint32_t>(expected_height),
         registry,
         static_cast<uint32_t>(expected_height) + 1,
+        0,
+        static_cast<uint32_t>(expected_height) + 1,
         0)};
     if (!m_db->WriteInitialState(registry, snapshot_state, /*sync=*/true)) {
         return StateError(ChainRegistryStateError::DATABASE_WRITE_FAILED);
@@ -190,7 +235,9 @@ ChainRegistryStateResult ChainRegistryState::ConnectBlock(const CBlock& block,
     chainregistry::ChainRegistry candidate{m_registry};
     ChainRegistryDBUndo undo;
     std::vector<DepositIndexEntry> deposits;
+    std::vector<BmmAnchorIndexEntry> anchors;
     chainregistry::RegistryBlockResult block_result;
+    chainregistry::BmmBlockValidationResult bmm_result;
     if (m_params.IsActive(height)) {
         block_result = candidate.ApplyBlock(block,
                                             static_cast<uint32_t>(height),
@@ -212,18 +259,48 @@ ChainRegistryStateResult ChainRegistryState::ConnectBlock(const CBlock& block,
         deposits = *indexed;
         undo.deposits.reserve(deposits.size());
         for (const auto& deposit : deposits) undo.deposits.push_back(deposit.deposit_id);
+
+        if (m_params.BmmActive(height)) {
+            bmm_result = chainregistry::ValidateBlockBmmAnchors(
+                block, candidate, m_params.maximum_bmm_anchors);
+            if (!bmm_result.IsValid()) {
+                ChainRegistryStateResult result;
+                result.error = ChainRegistryStateError::INVALID_BLOCK;
+                result.block_result = std::move(block_result);
+                result.bmm_result = std::move(bmm_result);
+                return result;
+            }
+            const auto indexed_anchors{BuildBmmAnchorIndexEntries(
+                block,
+                block_hash,
+                static_cast<uint32_t>(height),
+                candidate,
+                bmm_result)};
+            if (!indexed_anchors) {
+                return StateError(ChainRegistryStateError::ANCHOR_INDEX_FAILED);
+            }
+            anchors = *indexed_anchors;
+            undo.anchors.reserve(anchors.size());
+            for (const auto& anchor : anchors) undo.anchors.push_back(anchor.id);
+        }
     }
 
     if (deposits.size() > std::numeric_limits<uint64_t>::max() - m_state.deposit_count) {
         return StateError(ChainRegistryStateError::DEPOSIT_INDEX_FAILED);
+    }
+    if (anchors.size() > std::numeric_limits<uint64_t>::max() - m_state.anchor_count) {
+        return StateError(ChainRegistryStateError::ANCHOR_INDEX_FAILED);
     }
     const auto next_state{MakeChainRegistryDBState(
         block_hash,
         static_cast<uint32_t>(height),
         candidate,
         m_state.deposit_history_start_height,
-        m_state.deposit_count + deposits.size())};
-    if (!m_db->WriteConnectedBlock(candidate, next_state, block_hash, undo, deposits, sync)) {
+        m_state.deposit_count + deposits.size(),
+        m_state.anchor_history_start_height,
+        m_state.anchor_count + anchors.size())};
+    if (!m_db->WriteConnectedBlock(
+            candidate, next_state, block_hash, undo, deposits, anchors, sync)) {
         return StateError(ChainRegistryStateError::DATABASE_WRITE_FAILED);
     }
     m_registry = std::move(candidate);
@@ -231,6 +308,7 @@ ChainRegistryStateResult ChainRegistryState::ConnectBlock(const CBlock& block,
 
     ChainRegistryStateResult result;
     result.block_result = std::move(block_result);
+    result.bmm_result = std::move(bmm_result);
     return result;
 }
 
@@ -268,8 +346,21 @@ ChainRegistryStateResult ChainRegistryState::ValidateBlock(const CBlock& block,
         result.block_result = std::move(block_result);
         return result;
     }
+    chainregistry::BmmBlockValidationResult bmm_result;
+    if (m_params.BmmActive(height)) {
+        bmm_result = chainregistry::ValidateBlockBmmAnchors(
+            block, candidate, m_params.maximum_bmm_anchors);
+        if (!bmm_result.IsValid()) {
+            ChainRegistryStateResult result;
+            result.error = ChainRegistryStateError::INVALID_BLOCK;
+            result.block_result = std::move(block_result);
+            result.bmm_result = std::move(bmm_result);
+            return result;
+        }
+    }
     ChainRegistryStateResult result;
     result.block_result = std::move(block_result);
+    result.bmm_result = std::move(bmm_result);
     return result;
 }
 
@@ -300,12 +391,17 @@ ChainRegistryStateResult ChainRegistryState::DisconnectBlock(const uint256& bloc
     if (undo.deposits.size() > m_state.deposit_count) {
         return StateError(ChainRegistryStateError::UNDO_FAILED);
     }
+    if (undo.anchors.size() > m_state.anchor_count) {
+        return StateError(ChainRegistryStateError::UNDO_FAILED);
+    }
     const auto parent_state{MakeChainRegistryDBState(
         parent_hash,
         parent_height < 0 ? 0 : static_cast<uint32_t>(parent_height),
         candidate,
         m_state.deposit_history_start_height,
-        m_state.deposit_count - undo.deposits.size())};
+        m_state.deposit_count - undo.deposits.size(),
+        m_state.anchor_history_start_height,
+        m_state.anchor_count - undo.anchors.size())};
     if (!m_db->WriteDisconnectedBlock(candidate, parent_state, block_hash, undo, sync)) {
         return StateError(ChainRegistryStateError::DATABASE_WRITE_FAILED);
     }
@@ -330,6 +426,13 @@ std::optional<DepositIndexEntry> ChainRegistryState::FindDeposit(
 {
     if (!m_initialized || !m_db) return std::nullopt;
     return m_db->ReadDeposit(deposit_id);
+}
+
+std::optional<BmmAnchorIndexEntry> ChainRegistryState::FindAnchor(
+    const BmmAnchorId& anchor_id) const
+{
+    if (!m_initialized || !m_db) return std::nullopt;
+    return m_db->ReadAnchor(anchor_id);
 }
 
 } // namespace node

@@ -34,6 +34,10 @@ struct Params {
         CAmount minimum_deposit_amount{0};
         /** Maximum number of FUND_CHAIN outputs accepted per block. */
         uint32_t maximum_deposits{0};
+        /** Negative means BMM anchor consensus rules are disabled. */
+        int bmm_activation_height{-1};
+        /** Maximum number of KBMM anchors accepted per block. */
+        uint32_t maximum_bmm_anchors{0};
 
         bool Enabled() const
         {
@@ -52,6 +56,16 @@ struct Params {
         bool DepositsActive(int height) const
         {
             return DepositsEnabled() && height >= deposit_activation_height;
+        }
+        bool BmmEnabled() const
+        {
+            return Enabled() &&
+                   bmm_activation_height >= activation_height &&
+                   maximum_bmm_anchors > 0;
+        }
+        bool BmmActive(int height) const
+        {
+            return BmmEnabled() && height >= bmm_activation_height;
         }
     };
 

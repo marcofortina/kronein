@@ -45,9 +45,12 @@ void ReadRegTestArgs(const ArgsManager& args, CChainParams::RegTestOptions& opti
     const bool has_deposit_activation{args.IsArgSet("-chaindepositactivationheight")};
     const bool has_deposit_minimum{args.IsArgSet("-chaindepositminimumamount")};
     const bool has_max_deposits{args.IsArgSet("-chaindepositmaxperblock")};
+    const bool has_bmm_activation{args.IsArgSet("-chainbmmactivationheight")};
+    const bool has_max_bmm_anchors{args.IsArgSet("-chainbmmmaxanchorsperblock")};
     const bool has_registry_options{has_activation || has_burn || has_max_operations};
     const bool has_deposit_options{has_deposit_activation || has_deposit_minimum || has_max_deposits};
-    if (!has_registry_options && !has_deposit_options) return;
+    const bool has_bmm_options{has_bmm_activation || has_max_bmm_anchors};
+    if (!has_registry_options && !has_deposit_options && !has_bmm_options) return;
     if (!has_activation || !has_burn || !has_max_operations) {
         throw std::runtime_error("The regtest chain registry requires -chainregistryactivationheight, "
                                  "-chainregistryminregistrationburn, and -chainregistrymaxoperations together.");
@@ -55,6 +58,10 @@ void ReadRegTestArgs(const ArgsManager& args, CChainParams::RegTestOptions& opti
     if (has_deposit_options && (!has_deposit_activation || !has_deposit_minimum || !has_max_deposits)) {
         throw std::runtime_error("Regtest child-chain deposits require -chaindepositactivationheight, "
                                  "-chaindepositminimumamount, and -chaindepositmaxperblock together.");
+    }
+    if (has_bmm_options && (!has_bmm_activation || !has_max_bmm_anchors)) {
+        throw std::runtime_error("Regtest BMM anchors require -chainbmmactivationheight and "
+                                 "-chainbmmmaxanchorsperblock together.");
     }
 
     const auto activation_height{args.GetIntArg("-chainregistryactivationheight")};
@@ -100,6 +107,21 @@ void ReadRegTestArgs(const ArgsManager& args, CChainParams::RegTestOptions& opti
         registry.deposit_activation_height = static_cast<int>(*deposit_activation_height);
         registry.minimum_deposit_amount = *minimum_deposit;
         registry.maximum_deposits = static_cast<uint32_t>(*maximum_deposits);
+    }
+    if (has_bmm_options) {
+        const auto bmm_activation_height{args.GetIntArg("-chainbmmactivationheight")};
+        if (!bmm_activation_height || *bmm_activation_height < *activation_height ||
+            *bmm_activation_height > std::numeric_limits<int>::max()) {
+            throw std::runtime_error("-chainbmmactivationheight must be between the chain registry "
+                                     "activation height and INT_MAX.");
+        }
+        const auto maximum_bmm_anchors{args.GetIntArg("-chainbmmmaxanchorsperblock")};
+        if (!maximum_bmm_anchors || *maximum_bmm_anchors < 1 ||
+            *maximum_bmm_anchors > std::numeric_limits<uint32_t>::max()) {
+            throw std::runtime_error("-chainbmmmaxanchorsperblock must be between 1 and UINT32_MAX.");
+        }
+        registry.bmm_activation_height = static_cast<int>(*bmm_activation_height);
+        registry.maximum_bmm_anchors = static_cast<uint32_t>(*maximum_bmm_anchors);
     }
     options.chain_registry = registry;
 }
