@@ -134,6 +134,7 @@ public:
         bool sync = false);
     ReferenceChildRuntimeResult StageBmmAnchor(
         const chainregistry::BmmAnchorProof& anchor_proof,
+        int64_t current_time,
         bool sync = false);
     ReferenceChildRuntimeResult ConnectBlock(const CBlock& block,
                                              const chainregistry::BmmAnchorProof& anchor_proof,

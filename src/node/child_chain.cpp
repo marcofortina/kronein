@@ -613,6 +613,7 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::CommitMainChainUpdate(
 
 ReferenceChildRuntimeResult ReferenceChildRuntime::StageBmmAnchor(
     const chainregistry::BmmAnchorProof& anchor_proof,
+    int64_t current_time,
     bool sync)
 {
     if (!m_initialized) {
@@ -658,6 +659,36 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::StageBmmAnchor(
         return result;
     }
     result.bmm_anchor_already_known = already_known;
+    if (child_block_known) {
+        const auto candidates{m_db->ReadForkCandidates(*m_main_headers)};
+        if (!candidates) {
+            m_failed = true;
+            result.error = ReferenceChildRuntimeError::FAILED_RUNTIME;
+            return result;
+        }
+        const auto selected{chainregistry::SelectChildFork(
+            m_definition.genesis_hash, *candidates)};
+        if (!selected.IsValid()) {
+            m_failed = true;
+            result.error = ReferenceChildRuntimeError::FAILED_RUNTIME;
+            return result;
+        }
+        result.selected_child_head = selected.head;
+        result.reorganization_required =
+            selected.head != m_tip->GetBlockHash();
+        if (result.reorganization_required &&
+            !ActivateSelectedHead(
+                selected,
+                *candidates,
+                current_time,
+                sync,
+                result)) {
+            if (result.error == ReferenceChildRuntimeError::NONE) {
+                result.error =
+                    ReferenceChildRuntimeError::CHILD_REORGANIZATION_FAILED;
+            }
+        }
+    }
     return result;
 }
 
