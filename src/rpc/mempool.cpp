@@ -824,6 +824,56 @@ UniValue ChildMempoolRelationsToJSON(
     return result;
 }
 
+UniValue ChildMempoolClusterToJSON(
+    const node::ReferenceChildMempoolView& view,
+    const Txid& txid,
+    const chainregistry::ChainId& chain_id)
+{
+    const ChildMempoolGraph graph{BuildChildMempoolGraph(view)};
+    if (!graph.entries.contains(txid)) {
+        throw JSONRPCError(
+            RPC_INVALID_ADDRESS_OR_KEY,
+            "Transaction not in child mempool");
+    }
+
+    std::set<Txid> cluster{txid};
+    std::vector<Txid> pending{txid};
+    while (!pending.empty()) {
+        const Txid current{pending.back()};
+        pending.pop_back();
+        for (const auto* links : {&graph.parents, &graph.children}) {
+            for (const Txid& linked : links->at(current)) {
+                if (cluster.insert(linked).second) pending.push_back(linked);
+            }
+        }
+    }
+
+    int64_t total_weight{0};
+    CAmount total_fee{0};
+    UniValue transactions{UniValue::VARR};
+    for (const auto& entry : view.entries) {
+        const Txid entry_txid{entry.transaction->GetHash()};
+        if (!cluster.contains(entry_txid)) continue;
+        total_weight += GetTransactionWeight(*entry.transaction);
+        total_fee += entry.fee;
+        transactions.push_back(entry_txid.ToString());
+    }
+
+    UniValue chunk{UniValue::VOBJ};
+    chunk.pushKV("chunkfee", ValueFromAmount(total_fee));
+    chunk.pushKV("chunkweight", total_weight);
+    chunk.pushKV("txs", std::move(transactions));
+    UniValue chunks{UniValue::VARR};
+    chunks.push_back(std::move(chunk));
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("clusterweight", total_weight);
+    result.pushKV("txcount", cluster.size());
+    result.pushKV("chunks", std::move(chunks));
+    result.pushKV("chain_id", chain_id.GetHex());
+    return result;
+}
+
 UniValue ChildMempoolInfoToJSON(
     const node::ReferenceChildMempoolView& view,
     const chainregistry::ChainId& chain_id)
@@ -1150,12 +1200,17 @@ static RPCHelpMan getmempooldescendants()
 static RPCHelpMan getmempoolcluster()
 {
     return RPCHelpMan{"getmempoolcluster",
-        "Returns mempool data for given cluster\n",
+        "Returns mempool data for given cluster.\n"
+        "A child cluster is returned as one aggregate dependency package because child block assembly does not use the main-chain fee-chunk ordering.\n",
         {
             {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The txid of a transaction in the cluster"},
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED,
+             "Non-null child-chain identifier. Omit to use the main chain."},
         },
         RPCResult{
-            RPCResult::Type::OBJ, "", "", ClusterDescription()},
+            RPCResult::Type::OBJ, "", "", Cat(
+                ClusterDescription(),
+                {{RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Selected child-chain identifier; omitted for main-chain results"}})},
         RPCExamples{
             HelpExampleCli("getmempoolcluster", "txid")
             + HelpExampleRpc("getmempoolcluster", "txid")
@@ -1163,11 +1218,18 @@ static RPCHelpMan getmempoolcluster()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     uint256 hash = ParseHashV(request.params[0], "txid");
+    auto txid = Txid::FromUint256(hash);
+
+    const auto child_chain{
+        OptionalChildChainId(request.params[1])};
+    if (child_chain) {
+        return ChildMempoolClusterToJSON(
+            GetChildMempool(request, *child_chain), txid, *child_chain);
+    }
 
     const CTxMemPool& mempool = EnsureAnyMemPool(request.context);
     LOCK(mempool.cs);
 
-    auto txid = Txid::FromUint256(hash);
     const auto entry{mempool.GetEntry(txid)};
     if (entry == nullptr) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Transaction not in mempool");
