@@ -1100,7 +1100,8 @@ ReferenceChildMempoolAcceptResult
 ReferenceChildRuntime::AcceptMempoolTransaction(
     CTransactionRef transaction,
     int64_t current_time,
-    int64_t entry_time)
+    int64_t entry_time,
+    std::optional<CAmount> max_fee)
 {
     ReferenceChildMempoolAcceptResult result;
     if (!transaction) {
@@ -1159,6 +1160,11 @@ ReferenceChildRuntime::AcceptMempoolTransaction(
         return result;
     }
     result.fee = result.validation.total_fees - m_mempool.TotalFees();
+    if (max_fee && result.fee > *max_fee) {
+        result.error =
+            ReferenceChildMempoolAcceptError::MAX_FEE_EXCEEDED;
+        return result;
+    }
     const auto added{m_mempool.Add(
         std::move(transaction), result.fee, entry_time)};
     result.pool_error = added.error;
@@ -1188,7 +1194,8 @@ void ReferenceChildRuntime::RevalidateMempool(
 
 ReferenceChildMempoolAcceptResult ReferenceChildRuntime::SubmitTransaction(
     CTransactionRef transaction,
-    int64_t current_time)
+    int64_t current_time,
+    std::optional<CAmount> max_fee)
 {
     if (!m_initialized) {
         ReferenceChildMempoolAcceptResult result;
@@ -1201,7 +1208,7 @@ ReferenceChildMempoolAcceptResult ReferenceChildRuntime::SubmitTransaction(
         return result;
     }
     return AcceptMempoolTransaction(
-        std::move(transaction), current_time, current_time);
+        std::move(transaction), current_time, current_time, max_fee);
 }
 
 ReferenceChildMempoolView ReferenceChildRuntime::GetMempool() const

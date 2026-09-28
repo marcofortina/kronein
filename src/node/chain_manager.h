@@ -169,6 +169,44 @@ struct ChainManagerTransactionBlockBuildResult {
     }
 };
 
+enum class ChainManagerMempoolAcceptError : uint8_t {
+    NONE,
+    NULL_CHAIN_ID,
+    UNKNOWN_CHAIN,
+    CHAIN_NOT_LOADED,
+    RUNTIME_REJECTED,
+};
+
+struct ChainManagerMempoolAcceptResult {
+    ChainManagerMempoolAcceptError error{
+        ChainManagerMempoolAcceptError::NONE};
+    ReferenceChildMempoolAcceptResult runtime;
+
+    bool IsValid() const
+    {
+        return error == ChainManagerMempoolAcceptError::NONE &&
+               runtime.IsValid();
+    }
+};
+
+enum class ChainManagerMempoolViewError : uint8_t {
+    NONE,
+    NULL_CHAIN_ID,
+    UNKNOWN_CHAIN,
+    CHAIN_NOT_LOADED,
+};
+
+struct ChainManagerMempoolView {
+    ChainManagerMempoolViewError error{
+        ChainManagerMempoolViewError::NONE};
+    ReferenceChildMempoolView runtime;
+
+    bool IsValid() const
+    {
+        return error == ChainManagerMempoolViewError::NONE;
+    }
+};
+
 struct ChainManagerEntry {
     chainregistry::ChainId chain_id;
     chainregistry::ManifestHash manifest_hash;
@@ -527,6 +565,14 @@ public:
         int64_t current_time,
         bool sync = false,
         bool require_empty_proposal_queue = false);
+    /** Admit a finalized transaction to one isolated child mempool. */
+    ChainManagerMempoolAcceptResult SubmitTransaction(
+        const chainregistry::ChainId& chain_id,
+        CTransactionRef transaction,
+        int64_t current_time,
+        std::optional<CAmount> max_fee = std::nullopt);
+    ChainManagerMempoolView GetMempool(
+        const chainregistry::ChainId& chain_id) const;
     /** Feed a header already connected by the local main chainstate. */
     ChainManagerMainUpdate AddMainHeader(
         const CBlockHeader& header,

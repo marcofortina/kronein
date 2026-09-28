@@ -759,6 +759,57 @@ ChainManagerTransactionBlockBuildResult ChainManager::BuildTransactionBlock(
     return result;
 }
 
+ChainManagerMempoolAcceptResult ChainManager::SubmitTransaction(
+    const chainregistry::ChainId& chain_id,
+    CTransactionRef transaction,
+    int64_t current_time,
+    std::optional<CAmount> max_fee)
+{
+    LOCK(m_mutex);
+    ChainManagerMempoolAcceptResult result;
+    if (chain_id.IsNull()) {
+        result.error = ChainManagerMempoolAcceptError::NULL_CHAIN_ID;
+        return result;
+    }
+    if (!m_definitions.contains(chain_id)) {
+        result.error = ChainManagerMempoolAcceptError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto runtime{m_loaded.find(chain_id)};
+    if (runtime == m_loaded.end()) {
+        result.error = ChainManagerMempoolAcceptError::CHAIN_NOT_LOADED;
+        return result;
+    }
+    result.runtime = runtime->second->SubmitTransaction(
+        std::move(transaction), current_time, max_fee);
+    if (!result.runtime.IsValid()) {
+        result.error = ChainManagerMempoolAcceptError::RUNTIME_REJECTED;
+    }
+    return result;
+}
+
+ChainManagerMempoolView ChainManager::GetMempool(
+    const chainregistry::ChainId& chain_id) const
+{
+    LOCK(m_mutex);
+    ChainManagerMempoolView result;
+    if (chain_id.IsNull()) {
+        result.error = ChainManagerMempoolViewError::NULL_CHAIN_ID;
+        return result;
+    }
+    if (!m_definitions.contains(chain_id)) {
+        result.error = ChainManagerMempoolViewError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto runtime{m_loaded.find(chain_id)};
+    if (runtime == m_loaded.end()) {
+        result.error = ChainManagerMempoolViewError::CHAIN_NOT_LOADED;
+        return result;
+    }
+    result.runtime = runtime->second->GetMempool();
+    return result;
+}
+
 ChainManagerMainUpdate ChainManager::AddMainHeader(
     const CBlockHeader& header,
     int64_t current_time,

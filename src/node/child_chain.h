@@ -93,6 +93,7 @@ enum class ReferenceChildMempoolAcceptError : uint8_t {
     IMPORT_NOT_ALLOWED,
     BUILD_FAILED,
     CONTEXT_REJECTED,
+    MAX_FEE_EXCEEDED,
     POOL_REJECTED,
 };
 
@@ -204,7 +205,8 @@ private:
     ReferenceChildMempoolAcceptResult AcceptMempoolTransaction(
         CTransactionRef transaction,
         int64_t current_time,
-        int64_t entry_time);
+        int64_t entry_time,
+        std::optional<CAmount> max_fee = std::nullopt);
     void RevalidateMempool(int64_t current_time,
                            ReferenceChildRuntimeResult& result);
 
@@ -266,7 +268,8 @@ public:
         int64_t current_time) const;
     ReferenceChildMempoolAcceptResult SubmitTransaction(
         CTransactionRef transaction,
-        int64_t current_time);
+        int64_t current_time,
+        std::optional<CAmount> max_fee = std::nullopt);
     ReferenceChildMempoolView GetMempool() const;
     ReferenceChildRuntimeResult DisconnectTip(bool sync = false);
 

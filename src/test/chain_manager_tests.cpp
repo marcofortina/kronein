@@ -124,6 +124,15 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
             std::nullopt,
             Params().GenesisBlock().nTime).error ==
         node::ChainManagerTransactionBlockBuildError::CHAIN_NOT_LOADED);
+    BOOST_CHECK(
+        manager.GetMempool(chainregistry::ChainId{}).error ==
+        node::ChainManagerMempoolViewError::NULL_CHAIN_ID);
+    BOOST_CHECK(
+        manager.GetMempool(Definition(99).chain_id).error ==
+        node::ChainManagerMempoolViewError::UNKNOWN_CHAIN);
+    BOOST_CHECK(
+        manager.GetMempool(first.chain_id).error ==
+        node::ChainManagerMempoolViewError::CHAIN_NOT_LOADED);
 
     const auto loaded{manager.LoadChain(
         first.chain_id,
@@ -136,6 +145,26 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
     BOOST_CHECK_EQUAL(manager.LoadedCount(), 1U);
     BOOST_REQUIRE(manager.Get(first.chain_id));
     BOOST_CHECK(!manager.Get(second.chain_id));
+    const auto child_mempool{manager.GetMempool(first.chain_id)};
+    BOOST_REQUIRE(child_mempool.IsValid());
+    BOOST_CHECK(child_mempool.runtime.entries.empty());
+    BOOST_CHECK_EQUAL(child_mempool.runtime.total_bytes, 0U);
+    BOOST_CHECK_EQUAL(child_mempool.runtime.total_fees, 0);
+
+    CMutableTransaction missing_input;
+    missing_input.vin.emplace_back(
+        COutPoint{Txid::FromUint256(uint256{1}), 0});
+    missing_input.vout.emplace_back(1, CScript{} << OP_TRUE);
+    const auto rejected{manager.SubmitTransaction(
+        first.chain_id,
+        MakeTransactionRef(std::move(missing_input)),
+        Params().GenesisBlock().nTime)};
+    BOOST_CHECK(
+        rejected.error ==
+        node::ChainManagerMempoolAcceptError::RUNTIME_REJECTED);
+    BOOST_CHECK(
+        rejected.runtime.error ==
+        node::ReferenceChildMempoolAcceptError::CONTEXT_REJECTED);
     BOOST_CHECK(
         manager.BuildTransactionBlock(
             first.chain_id,
