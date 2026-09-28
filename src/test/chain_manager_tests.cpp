@@ -172,6 +172,34 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
         manager.ScanWalletHistory(
             first.chain_id, {}, std::nullopt, /*max_blocks=*/0).error ==
         node::ChainManagerWalletHistoryError::INVALID_LIMIT);
+    BOOST_CHECK(
+        manager.ScanWalletHistory(
+            first.chain_id,
+            {},
+            std::nullopt,
+            node::MAX_CHILD_WALLET_HISTORY_BLOCKS_PER_SCAN + 1)
+            .error == node::ChainManagerWalletHistoryError::INVALID_LIMIT);
+
+    const std::vector<chainregistry::DepositProof> oversized_import_batch(
+        node::MAX_CHILD_IMPORTS_PER_BLOCK + 1);
+    BOOST_CHECK(
+        manager.BuildImportBlock(
+            first.chain_id,
+            oversized_import_batch,
+            Params().GenesisBlock().nTime)
+            .error ==
+        node::ChainManagerImportBlockBuildError::TOO_MANY_PROOFS);
+    const std::vector<chainregistry::DepositProof> maximum_import_batch(
+        node::MAX_CHILD_IMPORTS_PER_BLOCK);
+    const auto invalid_import{manager.BuildImportBlock(
+        first.chain_id,
+        maximum_import_batch,
+        Params().GenesisBlock().nTime)};
+    BOOST_CHECK(
+        invalid_import.error ==
+        node::ChainManagerImportBlockBuildError::IMPORT_REJECTED);
+    BOOST_REQUIRE(invalid_import.failed_proof);
+    BOOST_CHECK_EQUAL(*invalid_import.failed_proof, 0U);
 
     CMutableTransaction missing_input;
     missing_input.vin.emplace_back(
