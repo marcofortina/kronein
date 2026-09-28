@@ -244,7 +244,7 @@ BOOST_AUTO_TEST_CASE(rejects_child_connections_to_self)
     connman.ClearTestNodes();
 }
 
-BOOST_AUTO_TEST_CASE(limits_authenticated_inbound_peers_per_netgroup)
+BOOST_AUTO_TEST_CASE(limits_inbound_peers_per_netgroup_before_handshake)
 {
     const auto definition{Definition()};
     node::ChainManager manager{
@@ -316,9 +316,10 @@ BOOST_AUTO_TEST_CASE(limits_authenticated_inbound_peers_per_netgroup)
     BOOST_CHECK(!first->fDisconnect);
     BOOST_CHECK_EQUAL(events.HandshakenPeerCount(), 1U);
 
-    authenticate(*second, 211);
+    events.InitializeNode(*second, NODE_NONE);
     BOOST_CHECK(!second->fSuccessfullyConnected);
     BOOST_CHECK(second->fDisconnect);
+    BOOST_CHECK_EQUAL(events.PeerCount(), 1U);
     BOOST_CHECK_EQUAL(events.HandshakenPeerCount(), 1U);
     BOOST_CHECK_EQUAL(events.InboundNetgroupRejections(), 1U);
 

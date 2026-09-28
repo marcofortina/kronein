@@ -140,9 +140,23 @@ void ChildNetEvents::InitializeNode(
 {
     LOCK(m_mutex);
     CNode& mutable_node{const_cast<CNode&>(node)};
-    m_address_relay.emplace(
-        node.GetId(),
-        AddressRelayState{.keyed_netgroup = node.nKeyedNetGroup});
+    AddressRelayState relay{
+        .keyed_netgroup = node.nKeyedNetGroup,
+    };
+    if (node.IsInboundConn()) {
+        const auto netgroup{m_inbound_netgroups.find(node.nKeyedNetGroup)};
+        const size_t admitted{netgroup == m_inbound_netgroups.end()
+            ? 0
+            : netgroup->second};
+        if (admitted >= m_max_inbound_per_netgroup) {
+            ++m_inbound_netgroup_rejections;
+            mutable_node.fDisconnect = true;
+            return;
+        }
+        ++m_inbound_netgroups[node.nKeyedNetGroup];
+        relay.inbound_admitted = true;
+    }
+    m_address_relay.emplace(node.GetId(), relay);
     ApplyResult(
         mutable_node,
         m_processor.Connected(node.GetId(), node.GetLocalNonce()));
@@ -201,30 +215,6 @@ ChildNetProcessorResult ChildNetEvents::ProcessMessage(
         auto result{m_processor.ReceiveHello(peer, hello)};
         if (result.IsValid()) {
             auto relay{m_address_relay.find(peer)};
-            if (node.IsInboundConn()) {
-                if (relay == m_address_relay.end()) {
-                    result.error = ChildNetProcessorError::UNKNOWN_PEER;
-                    result.disconnect = true;
-                    result.outbound.clear();
-                    return result;
-                }
-                const auto netgroup{m_inbound_netgroups.find(
-                    relay->second.keyed_netgroup)};
-                const size_t admitted{netgroup == m_inbound_netgroups.end()
-                    ? 0
-                    : netgroup->second};
-                if (admitted >= m_max_inbound_per_netgroup) {
-                    m_processor.Disconnected(peer);
-                    ++m_inbound_netgroup_rejections;
-                    result.error =
-                        ChildNetProcessorError::INBOUND_NETGROUP_LIMIT;
-                    result.disconnect = true;
-                    result.outbound.clear();
-                    return result;
-                }
-                ++m_inbound_netgroups[relay->second.keyed_netgroup];
-                relay->second.inbound_admitted = true;
-            }
             node.fSuccessfullyConnected = true;
             if (!node.IsInboundConn()) m_addrman.Good(node.addr);
             if (m_discovery && !node.IsInboundConn() &&
