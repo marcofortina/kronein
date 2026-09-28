@@ -46,39 +46,20 @@ chainregistry::ReferenceChildDefinition Definition()
 
 CBlock ChildBlock(const CBlockIndex& parent, CAmount reward = 0)
 {
-    CMutableTransaction coinbase;
-    coinbase.vin.emplace_back(COutPoint{});
-    coinbase.vin.front().scriptSig =
-        CScript{} << static_cast<int64_t>(parent.nHeight + 1) <<
-        std::vector<unsigned char>{0};
-    coinbase.vin.front().scriptWitness.stack = {
-        std::vector<unsigned char>(32)};
+    std::optional<CTxOut> coinbase_output;
     if (reward != 0) {
-        coinbase.vout.emplace_back(
+        coinbase_output.emplace(
             reward,
             CScript{} << OP_1 << std::vector<unsigned char>(32, 1));
     }
-
-    CBlock block;
-    block.nVersion = CBlockHeader::CURRENT_VERSION;
-    block.hashPrevBlock = parent.GetBlockHash();
-    block.nTime = parent.nTime + 1;
-    block.nBits = 0;
-    block.nNonce = 0;
-    block.vtx = {MakeTransactionRef(std::move(coinbase))};
-
-    const auto& reserved{
-        block.vtx.front()->vin.front().scriptWitness.stack.front()};
-    uint256 commitment{BlockWitnessMerkleRoot(block)};
-    CHash256().Write(commitment).Write(reserved).Finalize(commitment);
-    std::vector<unsigned char> payload{0xaa, 0x21, 0xa9, 0xed};
-    payload.insert(payload.end(), commitment.begin(), commitment.end());
-    CMutableTransaction committed_coinbase{*block.vtx.front()};
-    committed_coinbase.vout.emplace_back(
-        0, CScript{} << OP_RETURN << payload);
-    block.vtx.front() = MakeTransactionRef(std::move(committed_coinbase));
-    block.hashMerkleRoot = BlockMerkleRoot(block);
-    return block;
+    auto built{chainregistry::BuildReferenceChildBlock(
+        parent,
+        parent.nTime + 1,
+        Definition(),
+        {},
+        std::move(coinbase_output))};
+    BOOST_REQUIRE(built.IsValid());
+    return std::move(*built.block);
 }
 
 CBlockHeader MineMainHeader(const CBlockIndex& parent,

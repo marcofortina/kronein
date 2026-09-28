@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <iterator>
 #include <limits>
 #include <set>
 #include <type_traits>
@@ -45,6 +46,16 @@ bool IsValidDefinition(const ReferenceChildDefinition& definition)
         definition.genesis.registration_anchor,
         definition.manifest)};
     return rebuilt.IsValid() && *rebuilt.definition == definition;
+}
+
+ReferenceChildBlockBuildResult BuildError(
+    ReferenceChildBlockBuildError error,
+    std::optional<size_t> failed_transaction = std::nullopt)
+{
+    ReferenceChildBlockBuildResult result;
+    result.error = error;
+    result.failed_transaction = failed_transaction;
+    return result;
 }
 
 bool CheckWitnessCommitment(const CBlock& block)
@@ -89,6 +100,103 @@ bool RestoreCoin(CCoinsViewCache& view,
 }
 
 } // namespace
+
+ReferenceChildBlockBuildResult BuildReferenceChildBlock(
+    const CBlockIndex& parent,
+    uint32_t block_time,
+    const ReferenceChildDefinition& definition,
+    std::vector<CTransactionRef> transactions,
+    std::optional<CTxOut> coinbase_output)
+{
+    if (!IsValidDefinition(definition)) {
+        return BuildError(
+            ReferenceChildBlockBuildError::INVALID_DEFINITION);
+    }
+    const CBlockIndex* genesis{parent.GetAncestor(0)};
+    if (!parent.phashBlock || parent.nHeight < 0 || !genesis ||
+        genesis->GetBlockHash() != definition.genesis_hash) {
+        return BuildError(ReferenceChildBlockBuildError::INVALID_PARENT);
+    }
+    if (parent.nHeight >= std::numeric_limits<int32_t>::max() - 1) {
+        return BuildError(ReferenceChildBlockBuildError::HEIGHT_OVERFLOW);
+    }
+    if (block_time <= parent.GetMedianTimePast() ||
+        block_time < parent.GetBlockTime()) {
+        return BuildError(ReferenceChildBlockBuildError::INVALID_TIME);
+    }
+    if (coinbase_output &&
+        (!MoneyRange(coinbase_output->nValue) ||
+         coinbase_output->nValue == 0)) {
+        return BuildError(
+            ReferenceChildBlockBuildError::INVALID_COINBASE_OUTPUT);
+    }
+
+    std::set<Txid> transaction_ids;
+    for (size_t index{0}; index < transactions.size(); ++index) {
+        const auto& transaction{transactions[index]};
+        if (!transaction || transaction->IsCoinBase()) {
+            return BuildError(
+                ReferenceChildBlockBuildError::INVALID_TRANSACTION,
+                index);
+        }
+        if (!transaction_ids.insert(transaction->GetHash()).second) {
+            return BuildError(
+                ReferenceChildBlockBuildError::DUPLICATE_TRANSACTION,
+                index);
+        }
+    }
+
+    CMutableTransaction coinbase;
+    coinbase.vin.emplace_back(COutPoint{});
+    coinbase.vin.front().scriptSig =
+        CScript{} << static_cast<int64_t>(parent.nHeight + 1) <<
+        std::vector<unsigned char>{0};
+    coinbase.vin.front().scriptWitness.stack = {
+        std::vector<unsigned char>(uint256::size())};
+    if (coinbase_output) {
+        coinbase.vout.push_back(std::move(*coinbase_output));
+    }
+
+    CBlock block;
+    block.nVersion = CBlockHeader::CURRENT_VERSION;
+    block.hashPrevBlock = parent.GetBlockHash();
+    block.nTime = block_time;
+    block.nBits = 0;
+    block.nNonce = 0;
+    block.vtx.reserve(transactions.size() + 1);
+    block.vtx.push_back(MakeTransactionRef(std::move(coinbase)));
+    std::move(transactions.begin(), transactions.end(),
+              std::back_inserter(block.vtx));
+
+    const auto& reserved{
+        block.vtx.front()->vin.front().scriptWitness.stack.front()};
+    uint256 commitment{BlockWitnessMerkleRoot(block)};
+    CHash256().Write(commitment).Write(reserved).Finalize(commitment);
+    std::vector<unsigned char> payload{0xaa, 0x21, 0xa9, 0xed};
+    payload.insert(payload.end(), commitment.begin(), commitment.end());
+    CMutableTransaction committed_coinbase{*block.vtx.front()};
+    committed_coinbase.vout.emplace_back(
+        0, CScript{} << OP_RETURN << payload);
+    block.vtx.front() = MakeTransactionRef(std::move(committed_coinbase));
+
+    bool mutated{false};
+    block.hashMerkleRoot = BlockMerkleRoot(block, &mutated);
+    if (mutated) {
+        return BuildError(
+            ReferenceChildBlockBuildError::MUTATED_MERKLE_TREE);
+    }
+    if (block.vtx.size() * WITNESS_SCALE_FACTOR >
+            definition.parameters.max_block_weight ||
+        GetBlockWeight(block) >
+            static_cast<int64_t>(definition.parameters.max_block_weight)) {
+        return BuildError(
+            ReferenceChildBlockBuildError::BLOCK_TOO_HEAVY);
+    }
+
+    ReferenceChildBlockBuildResult result;
+    result.block = std::move(block);
+    return result;
+}
 
 ReferenceChildBlockResult ConnectReferenceChildBlock(
     const CBlock& block,

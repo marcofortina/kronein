@@ -10,6 +10,7 @@
 #include <consensus/amount.h>
 #include <consensus/deposit_proof.h>
 #include <consensus/validation.h>
+#include <primitives/block.h>
 #include <script/script_error.h>
 #include <serialize.h>
 #include <undo.h>
@@ -17,14 +18,55 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <vector>
 
-class CBlock;
 class CBlockIndex;
 class CCoinsViewCache;
 
 namespace chainregistry {
 
 inline constexpr uint8_t REFERENCE_CHILD_BLOCK_UNDO_VERSION{1};
+
+enum class ReferenceChildBlockBuildError : uint8_t {
+    NONE,
+    INVALID_DEFINITION,
+    INVALID_PARENT,
+    HEIGHT_OVERFLOW,
+    INVALID_TIME,
+    INVALID_COINBASE_OUTPUT,
+    INVALID_TRANSACTION,
+    DUPLICATE_TRANSACTION,
+    MUTATED_MERKLE_TREE,
+    BLOCK_TOO_HEAVY,
+};
+
+struct ReferenceChildBlockBuildResult {
+    ReferenceChildBlockBuildError error{
+        ReferenceChildBlockBuildError::NONE};
+    std::optional<size_t> failed_transaction;
+    std::optional<CBlock> block;
+
+    bool IsValid() const
+    {
+        return error == ReferenceChildBlockBuildError::NONE &&
+               block.has_value();
+    }
+};
+
+/**
+ * Build the canonical structural form of a reference-child block.
+ *
+ * Transactions exclude the coinbase. An optional positive coinbase output is
+ * used to collect already-computed transaction fees; child chains have no
+ * independent subsidy. Contextual UTXO, IMPORT and fee validation remains the
+ * responsibility of ConnectReferenceChildBlock.
+ */
+ReferenceChildBlockBuildResult BuildReferenceChildBlock(
+    const CBlockIndex& parent,
+    uint32_t block_time,
+    const ReferenceChildDefinition& definition,
+    std::vector<CTransactionRef> transactions = {},
+    std::optional<CTxOut> coinbase_output = std::nullopt);
 
 /** Undo data for UTXOs and main-chain deposits consumed by one child block. */
 struct ReferenceChildBlockUndo {

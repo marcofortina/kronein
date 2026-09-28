@@ -79,53 +79,26 @@ chainregistry::ChainRecord Record(
     };
 }
 
-CMutableTransaction ChildCoinbase(int height,
-                                  CAmount reward,
-                                  const XOnlyPubKey& recipient)
-{
-    CMutableTransaction coinbase;
-    coinbase.vin.emplace_back(COutPoint{});
-    coinbase.vin.front().scriptSig =
-        CScript{} << height << std::vector<unsigned char>{0};
-    coinbase.vin.front().scriptWitness.stack = {
-        std::vector<unsigned char>(32)};
-    if (reward != 0) {
-        coinbase.vout.emplace_back(
-            reward,
-            GetScriptForDestination(WitnessV1Taproot{recipient}));
-    }
-    return coinbase;
-}
-
 CBlock ChildBlock(const CBlockIndex& parent,
                   CAmount reward,
                   const XOnlyPubKey& recipient,
                   std::vector<CTransactionRef> transactions = {})
 {
-    CBlock block;
-    block.nVersion = CBlockHeader::CURRENT_VERSION;
-    block.hashPrevBlock = parent.GetBlockHash();
-    block.nTime = parent.nTime + 1;
-    block.nBits = 0;
-    block.nNonce = 0;
-    block.vtx.push_back(MakeTransactionRef(
-        ChildCoinbase(parent.nHeight + 1, reward, recipient)));
-    block.vtx.insert(block.vtx.end(),
-                     transactions.begin(),
-                     transactions.end());
-
-    const std::vector<unsigned char>& reserved{
-        block.vtx.front()->vin.front().scriptWitness.stack.front()};
-    uint256 commitment{BlockWitnessMerkleRoot(block)};
-    CHash256().Write(commitment).Write(reserved).Finalize(commitment);
-    std::vector<unsigned char> payload{0xaa, 0x21, 0xa9, 0xed};
-    payload.insert(payload.end(), commitment.begin(), commitment.end());
-
-    CMutableTransaction coinbase{*block.vtx.front()};
-    coinbase.vout.emplace_back(0, CScript{} << OP_RETURN << payload);
-    block.vtx.front() = MakeTransactionRef(std::move(coinbase));
-    block.hashMerkleRoot = BlockMerkleRoot(block);
-    return block;
+    const auto definition{Definition()};
+    std::optional<CTxOut> coinbase_output;
+    if (reward != 0) {
+        coinbase_output.emplace(
+            reward,
+            GetScriptForDestination(WitnessV1Taproot{recipient}));
+    }
+    auto built{chainregistry::BuildReferenceChildBlock(
+        parent,
+        parent.nTime + 1,
+        definition,
+        std::move(transactions),
+        std::move(coinbase_output))};
+    BOOST_REQUIRE(built.IsValid());
+    return std::move(*built.block);
 }
 
 struct ChildState {
@@ -278,6 +251,69 @@ CMutableTransaction SignedSpend(
 } // namespace
 
 BOOST_FIXTURE_TEST_SUITE(child_block_tests, ChildBlockSetup)
+
+BOOST_AUTO_TEST_CASE(builds_canonical_structure_and_rejects_ambiguous_inputs)
+{
+    ChildState state;
+    const uint32_t block_time{state.genesis.nTime + 1};
+    auto built{chainregistry::BuildReferenceChildBlock(
+        state.genesis, block_time, state.definition)};
+    BOOST_REQUIRE(built.IsValid());
+    BOOST_REQUIRE(built.block);
+    BOOST_CHECK_EQUAL(built.block->nVersion, CBlockHeader::CURRENT_VERSION);
+    BOOST_CHECK(built.block->hashPrevBlock ==
+                state.genesis.GetBlockHash());
+    BOOST_CHECK_EQUAL(built.block->nTime, block_time);
+    BOOST_CHECK_EQUAL(built.block->nBits, 0U);
+    BOOST_CHECK_EQUAL(built.block->nNonce, 0U);
+    BOOST_REQUIRE_EQUAL(built.block->vtx.size(), 1U);
+    BOOST_CHECK(built.block->vtx.front()->IsCoinBase());
+    BOOST_CHECK(built.block->hashMerkleRoot ==
+                BlockMerkleRoot(*built.block));
+    BOOST_CHECK(GetWitnessCommitmentIndex(*built.block) !=
+                NO_WITNESS_COMMITMENT);
+
+    BOOST_CHECK(chainregistry::BuildReferenceChildBlock(
+                    state.genesis,
+                    state.genesis.nTime,
+                    state.definition)
+                    .error ==
+                chainregistry::ReferenceChildBlockBuildError::INVALID_TIME);
+    BOOST_CHECK(chainregistry::BuildReferenceChildBlock(
+                    state.genesis,
+                    block_time,
+                    state.definition,
+                    {},
+                    CTxOut{0, CScript{} << OP_TRUE})
+                    .error ==
+                chainregistry::ReferenceChildBlockBuildError::INVALID_COINBASE_OUTPUT);
+
+    CMutableTransaction transaction;
+    transaction.vin.emplace_back(COutPoint{
+        Txid{"5555555555555555555555555555555555555555555555555555555555555555"},
+        0});
+    transaction.vout.emplace_back(1, CScript{} << OP_TRUE);
+    const auto transaction_ref{MakeTransactionRef(transaction)};
+    const auto duplicate{chainregistry::BuildReferenceChildBlock(
+        state.genesis,
+        block_time,
+        state.definition,
+        {transaction_ref, transaction_ref})};
+    BOOST_CHECK(duplicate.error ==
+                chainregistry::ReferenceChildBlockBuildError::DUPLICATE_TRANSACTION);
+    BOOST_CHECK(duplicate.failed_transaction == 1U);
+
+    CMutableTransaction coinbase;
+    coinbase.vin.emplace_back(COutPoint{});
+    const auto nested_coinbase{chainregistry::BuildReferenceChildBlock(
+        state.genesis,
+        block_time,
+        state.definition,
+        {MakeTransactionRef(coinbase)})};
+    BOOST_CHECK(nested_coinbase.error ==
+                chainregistry::ReferenceChildBlockBuildError::INVALID_TRANSACTION);
+    BOOST_CHECK(nested_coinbase.failed_transaction == 0U);
+}
 
 BOOST_AUTO_TEST_CASE(connects_and_disconnects_zero_subsidy_block)
 {
