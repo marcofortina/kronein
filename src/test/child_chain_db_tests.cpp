@@ -223,6 +223,70 @@ void AddAndPersist(node::ChildChainDB& db,
 
 BOOST_FIXTURE_TEST_SUITE(child_chain_db_tests, ChildChainDBSetup)
 
+BOOST_AUTO_TEST_CASE(persists_bounded_local_proposals)
+{
+    const auto& params{Params().GetConsensus()};
+    const CBlock& genesis{Params().GenesisBlock()};
+    const fs::path path{m_args.GetDataDirBase() / "child_chain_proposals"};
+    const CBlock first{MakeChildBlock(CHILD_GENESIS, 1)};
+    CBlock second{MakeChildBlock(CHILD_GENESIS, 2)};
+    second.hashPrevBlock = CHILD_GENESIS;
+
+    {
+        chainregistry::MainHeaderChain headers{params};
+        BOOST_REQUIRE(headers.Initialize(genesis).IsValid());
+        chainregistry::DepositImportState imports{CHILD_CHAIN, 2};
+        node::ChildChainDB db{{
+                                  .path = path,
+                                  .cache_bytes = 1 << 20,
+                                  .wipe_data = true,
+                                  .obfuscate = true,
+                              },
+                              CHILD_CHAIN,
+                              params.hashGenesisBlock,
+                              2,
+                              CHILD_GENESIS};
+        BOOST_REQUIRE(db.WriteInitialState(headers, imports, /*sync=*/true));
+        BOOST_REQUIRE(db.WriteLocalProposal(first, 100, /*sync=*/true));
+        BOOST_REQUIRE(db.WriteLocalProposal(first, 200, /*sync=*/true));
+        BOOST_REQUIRE(db.WriteLocalProposal(second, 200, /*sync=*/true));
+        const auto proposals{db.ReadLocalProposals()};
+        BOOST_REQUIRE(proposals.has_value());
+        BOOST_REQUIRE_EQUAL(proposals->size(), 2U);
+        BOOST_CHECK_EQUAL(proposals->front().created_time, 100);
+        BOOST_CHECK(proposals->front().block.GetHash() == first.GetHash());
+        BOOST_CHECK(proposals->back().block.GetHash() == second.GetHash());
+    }
+
+    {
+        chainregistry::MainHeaderChain headers{params};
+        chainregistry::DepositImportState imports{CHILD_CHAIN, 2};
+        node::ChildChainDB db{{
+                                  .path = path,
+                                  .cache_bytes = 1 << 20,
+                                  .obfuscate = true,
+                              },
+                              CHILD_CHAIN,
+                              params.hashGenesisBlock,
+                              2,
+                              CHILD_GENESIS};
+        node::ChildChainDBState state;
+        const auto loaded{db.Load(headers, imports, state, genesis.nTime)};
+        BOOST_REQUIRE(loaded.IsValid());
+        BOOST_REQUIRE(loaded.initialized);
+        const auto stored{db.ReadLocalProposal(first.GetHash())};
+        BOOST_REQUIRE(stored.has_value());
+        BOOST_CHECK_EQUAL(stored->created_time, 100);
+        BOOST_CHECK(stored->block.GetHash() == first.GetHash());
+        BOOST_REQUIRE(db.EraseLocalProposal(first.GetHash(), /*sync=*/true));
+        BOOST_CHECK(!db.EraseLocalProposal(first.GetHash(), /*sync=*/true));
+        const auto proposals{db.ReadLocalProposals()};
+        BOOST_REQUIRE(proposals.has_value());
+        BOOST_REQUIRE_EQUAL(proposals->size(), 1U);
+        BOOST_CHECK(proposals->front().block.GetHash() == second.GetHash());
+    }
+}
+
 BOOST_AUTO_TEST_CASE(persists_headers_imports_and_child_undo)
 {
     const auto& params{Params().GetConsensus()};
@@ -290,6 +354,8 @@ BOOST_AUTO_TEST_CASE(persists_headers_imports_and_child_undo)
             AddCoins(coin_cache, *transaction, 1);
         }
         coin_cache.SetBestBlock(child_block.GetHash());
+        BOOST_REQUIRE(db.WriteLocalProposal(
+            child_block, child_block.nTime, /*sync=*/true));
         BOOST_REQUIRE(db.WriteConnectedChildBlock(
             headers,
             imports,
@@ -297,6 +363,7 @@ BOOST_AUTO_TEST_CASE(persists_headers_imports_and_child_undo)
             child_undo,
             anchor_proof,
             /*sync=*/true));
+        BOOST_CHECK(!db.ReadLocalProposal(child_block.GetHash()).has_value());
         const BlockFilter expected_filter{
             BlockFilterType::BASIC, child_block, child_undo.coins};
         const auto stored_filter{db.ReadBlockFilter(child_block.GetHash())};

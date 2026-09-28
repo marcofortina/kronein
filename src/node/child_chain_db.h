@@ -29,6 +29,7 @@ inline constexpr uint8_t CHILD_BLOCK_FILTER_RECORD_VERSION{1};
 inline constexpr uint8_t CHILD_PENDING_BMM_ANCHOR_RECORD_VERSION{1};
 inline constexpr uint8_t CHILD_CANDIDATE_RECORD_VERSION{1};
 inline constexpr uint8_t CHILD_CANDIDATE_BMM_ANCHOR_RECORD_VERSION{1};
+inline constexpr uint8_t CHILD_LOCAL_PROPOSAL_RECORD_VERSION{1};
 inline constexpr uint64_t MAX_CHILD_PENDING_BMM_ANCHORS{256};
 inline constexpr uint64_t MAX_CHILD_PENDING_BMM_PROOF_SIZE{4'000'000};
 inline constexpr uint64_t MAX_CHILD_PENDING_BMM_BYTES{64 * 1024 * 1024};
@@ -37,6 +38,9 @@ inline constexpr uint64_t MAX_CHILD_CANDIDATE_RECORD_SIZE{16 * 1024 * 1024};
 inline constexpr uint64_t MAX_CHILD_SIDE_CANDIDATE_BYTES{256 * 1024 * 1024};
 inline constexpr uint64_t MAX_CHILD_CANDIDATE_BMM_ANCHORS{4'096};
 inline constexpr uint64_t MAX_CHILD_CANDIDATE_BMM_BYTES{256 * 1024 * 1024};
+inline constexpr uint64_t MAX_CHILD_LOCAL_PROPOSALS{16};
+inline constexpr uint64_t MAX_CHILD_LOCAL_PROPOSAL_SIZE{16 * 1024 * 1024};
+inline constexpr uint64_t MAX_CHILD_LOCAL_PROPOSAL_BYTES{64 * 1024 * 1024};
 
 struct ChildBmmAnchorRecord {
     uint8_t version{CHILD_BMM_ANCHOR_RECORD_VERSION};
@@ -120,6 +124,22 @@ struct ChildCandidateBmmAnchorRecord {
                   obj.child_block_hash,
                   obj.serialized_size,
                   obj.proof);
+    }
+};
+
+/** A locally built block retained until its main-chain anchor is usable. */
+struct ChildLocalProposalRecord {
+    uint8_t version{CHILD_LOCAL_PROPOSAL_RECORD_VERSION};
+    uint64_t serialized_size{0};
+    int64_t created_time{0};
+    CBlock block;
+
+    SERIALIZE_METHODS(ChildLocalProposalRecord, obj)
+    {
+        READWRITE(obj.version,
+                  obj.serialized_size,
+                  obj.created_time,
+                  TX_WITH_WITNESS(obj.block));
     }
 };
 
@@ -328,6 +348,11 @@ public:
                                      const CBlock& block,
                                      const chainregistry::ReferenceChildBlockUndo& undo,
                                      bool sync = false);
+    bool WriteLocalProposal(const CBlock& block,
+                            int64_t created_time,
+                            bool sync = false);
+    bool EraseLocalProposal(const uint256& child_block_hash,
+                            bool sync = false);
     bool WriteChildReorganization(
         const chainregistry::MainHeaderChain& main_headers,
         const chainregistry::DepositImportState& imports,
@@ -369,6 +394,10 @@ public:
         const chainregistry::MainHeaderChain& main_headers) const;
     std::optional<ChildCandidateBmmAnchorRecord> ReadCandidateBmmAnchor(
         const uint256& main_block_hash) const;
+    std::optional<ChildLocalProposalRecord> ReadLocalProposal(
+        const uint256& child_block_hash) const;
+    std::optional<std::vector<ChildLocalProposalRecord>> ReadLocalProposals()
+        const;
 };
 
 } // namespace node

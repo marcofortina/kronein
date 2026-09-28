@@ -34,6 +34,7 @@ constexpr uint8_t DB_BMM_ANCHOR{'A'};
 constexpr uint8_t DB_PENDING_BMM_ANCHOR{'P'};
 constexpr uint8_t DB_SIDE_CANDIDATE{'D'};
 constexpr uint8_t DB_CANDIDATE_BMM_ANCHOR{'V'};
+constexpr uint8_t DB_LOCAL_PROPOSAL{'L'};
 
 using AnchorKey = std::pair<uint8_t, uint256>;
 using BlockKey = std::pair<uint8_t, uint256>;
@@ -43,6 +44,7 @@ using CandidateKey = std::pair<uint8_t, uint256>;
 using CandidateAnchorKey = std::pair<uint8_t, uint256>;
 using HeaderKey = std::pair<uint8_t, uint256>;
 using ImportKey = std::pair<uint8_t, chainregistry::DepositId>;
+using LocalProposalKey = std::pair<uint8_t, uint256>;
 using PendingAnchorKey = std::pair<uint8_t, uint256>;
 using UndoKey = std::pair<uint8_t, uint256>;
 using CoinSet = std::map<COutPoint, Coin>;
@@ -784,6 +786,48 @@ bool BlocksEqual(const CBlock& left, const CBlock& right)
     return true;
 }
 
+bool IsValidLocalProposal(const ChildLocalProposalRecord& record,
+                          const uint256& expected_hash)
+{
+    return record.version == CHILD_LOCAL_PROPOSAL_RECORD_VERSION &&
+           !expected_hash.IsNull() && record.block.GetHash() == expected_hash &&
+           record.serialized_size != 0 &&
+           record.serialized_size <= MAX_CHILD_LOCAL_PROPOSAL_SIZE &&
+           record.serialized_size == GetSerializeSize(TX_WITH_WITNESS(record.block)) &&
+           record.created_time >= 0;
+}
+
+std::optional<std::pair<uint64_t, uint64_t>> LocalProposalUsage(
+    const CDBWrapper& db)
+{
+    uint64_t count{0};
+    uint64_t bytes{0};
+    std::unique_ptr<CDBIterator> cursor{const_cast<CDBWrapper&>(db).NewIterator()};
+    cursor->Seek(LocalProposalKey{DB_LOCAL_PROPOSAL, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) return std::nullopt;
+        if (prefix != DB_LOCAL_PROPOSAL) break;
+        LocalProposalKey key;
+        ChildLocalProposalRecord record;
+        if (!cursor->GetKey(key) || !cursor->GetValue(record) ||
+            !IsValidLocalProposal(record, key.second) ||
+            count == std::numeric_limits<uint64_t>::max() ||
+            record.serialized_size >
+                std::numeric_limits<uint64_t>::max() - bytes) {
+            return std::nullopt;
+        }
+        ++count;
+        bytes += record.serialized_size;
+        cursor->Next();
+    }
+    if (count > MAX_CHILD_LOCAL_PROPOSALS ||
+        bytes > MAX_CHILD_LOCAL_PROPOSAL_BYTES) {
+        return std::nullopt;
+    }
+    return std::pair{count, bytes};
+}
+
 bool HeadersMatchValidatedActivePrefix(
     std::span<const chainregistry::MainHeaderRecord> records,
     std::span<const CBlockHeader> validated_active_headers,
@@ -1124,6 +1168,7 @@ ChildChainDBLoadResult ChildChainDB::Load(
             HasKeyWithPrefix(m_db, DB_PENDING_BMM_ANCHOR) ||
             HasKeyWithPrefix(m_db, DB_SIDE_CANDIDATE) ||
             HasKeyWithPrefix(m_db, DB_CANDIDATE_BMM_ANCHOR) ||
+            HasKeyWithPrefix(m_db, DB_LOCAL_PROPOSAL) ||
             HasKeyWithPrefix(m_db, DB_COIN) ||
             HasKeyWithPrefix(m_db, DB_HEADER) ||
             HasKeyWithPrefix(m_db, DB_IMPORT) ||
@@ -1730,6 +1775,7 @@ bool ChildChainDB::WriteInitialState(
         HasKeyWithPrefix(m_db, DB_PENDING_BMM_ANCHOR) ||
         HasKeyWithPrefix(m_db, DB_SIDE_CANDIDATE) ||
         HasKeyWithPrefix(m_db, DB_CANDIDATE_BMM_ANCHOR) ||
+        HasKeyWithPrefix(m_db, DB_LOCAL_PROPOSAL) ||
         HasKeyWithPrefix(m_db, DB_COIN) ||
         HasKeyWithPrefix(m_db, DB_HEADER) ||
         HasKeyWithPrefix(m_db, DB_IMPORT) || HasKeyWithPrefix(m_db, DB_UNDO) ||
@@ -2308,6 +2354,7 @@ bool ChildChainDB::WriteValidatedChildCandidate(
         CandidateKey{DB_SIDE_CANDIDATE, child_block_hash}, candidate);
     batch.Write(
         BlockFilterKey{DB_BLOCK_FILTER, child_block_hash}, *filter_record);
+    batch.Erase(LocalProposalKey{DB_LOCAL_PROPOSAL, child_block_hash});
     for (const auto& [main_block_hash, record] : anchors) {
         batch.Write(
             CandidateAnchorKey{DB_CANDIDATE_BMM_ANCHOR, main_block_hash},
@@ -2753,6 +2800,7 @@ bool ChildChainDB::WriteConnectedChildBlock(
     if (!promoting_candidate) batch.Write(filter_key, *filter_record);
     batch.Write(UndoKey{DB_UNDO, child_block_hash}, undo);
     batch.Write(AnchorKey{DB_BMM_ANCHOR, child_block_hash}, anchor_record);
+    batch.Erase(LocalProposalKey{DB_LOCAL_PROPOSAL, child_block_hash});
     if (promoting_candidate) batch.Erase(candidate_key);
     if (erase_supplied_candidate_anchor) {
         batch.Erase(supplied_candidate_anchor_key);
@@ -2769,6 +2817,57 @@ bool ChildChainDB::WriteConnectedChildBlock(
     if (pruned_candidates) {
         *pruned_candidates = pruning->selection.pruned;
     }
+    return true;
+}
+
+bool ChildChainDB::WriteLocalProposal(const CBlock& block,
+                                      int64_t created_time,
+                                      bool sync)
+{
+    const uint256 child_block_hash{block.GetHash()};
+    ChildLocalProposalRecord record{
+        .serialized_size = GetSerializeSize(TX_WITH_WITNESS(block)),
+        .created_time = created_time,
+        .block = block,
+    };
+    ChildChainDBState state;
+    if (!m_db.Read(DB_STATE, state) ||
+        !ValidConfiguration(state,
+                            m_child_chain,
+                            m_main_genesis_hash,
+                            m_minimum_confirmations,
+                            m_child_genesis_hash) ||
+        state.safe_halt || !IsValidLocalProposal(record, child_block_hash) ||
+        m_db.Exists(BlockKey{DB_BLOCK, child_block_hash}) ||
+        m_db.Exists(CandidateKey{DB_SIDE_CANDIDATE, child_block_hash})) {
+        return false;
+    }
+
+    const LocalProposalKey key{DB_LOCAL_PROPOSAL, child_block_hash};
+    ChildLocalProposalRecord existing;
+    if (m_db.Read(key, existing)) {
+        return IsValidLocalProposal(existing, child_block_hash) &&
+               BlocksEqual(existing.block, block);
+    }
+    if (m_db.Exists(key)) return false;
+
+    const auto usage{LocalProposalUsage(m_db)};
+    if (!usage || usage->first == MAX_CHILD_LOCAL_PROPOSALS ||
+        record.serialized_size >
+            MAX_CHILD_LOCAL_PROPOSAL_BYTES - usage->second) {
+        return false;
+    }
+    m_db.Write(key, record, sync);
+    return true;
+}
+
+bool ChildChainDB::EraseLocalProposal(const uint256& child_block_hash,
+                                      bool sync)
+{
+    if (child_block_hash.IsNull()) return false;
+    const LocalProposalKey key{DB_LOCAL_PROPOSAL, child_block_hash};
+    if (!m_db.Exists(key)) return false;
+    m_db.Erase(key, sync);
     return true;
 }
 
@@ -3591,6 +3690,47 @@ ChildChainDB::ReadCandidateBmmAnchor(const uint256& main_block_hash) const
         return std::nullopt;
     }
     return record;
+}
+
+std::optional<ChildLocalProposalRecord> ChildChainDB::ReadLocalProposal(
+    const uint256& child_block_hash) const
+{
+    ChildLocalProposalRecord record;
+    if (!m_db.Read(
+            LocalProposalKey{DB_LOCAL_PROPOSAL, child_block_hash}, record) ||
+        !IsValidLocalProposal(record, child_block_hash)) {
+        return std::nullopt;
+    }
+    return record;
+}
+
+std::optional<std::vector<ChildLocalProposalRecord>>
+ChildChainDB::ReadLocalProposals() const
+{
+    const auto usage{LocalProposalUsage(m_db)};
+    if (!usage) return std::nullopt;
+    std::vector<ChildLocalProposalRecord> proposals;
+    proposals.reserve(usage->first);
+    std::unique_ptr<CDBIterator> cursor{
+        const_cast<CDBWrapper&>(m_db).NewIterator()};
+    cursor->Seek(LocalProposalKey{DB_LOCAL_PROPOSAL, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) return std::nullopt;
+        if (prefix != DB_LOCAL_PROPOSAL) break;
+        ChildLocalProposalRecord record;
+        if (!cursor->GetValue(record)) return std::nullopt;
+        proposals.push_back(std::move(record));
+        cursor->Next();
+    }
+    std::sort(proposals.begin(), proposals.end(), [](const auto& left,
+                                                      const auto& right) {
+        if (left.created_time != right.created_time) {
+            return left.created_time < right.created_time;
+        }
+        return left.block.GetHash() < right.block.GetHash();
+    });
+    return proposals;
 }
 
 } // namespace node
