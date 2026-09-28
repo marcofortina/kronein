@@ -14,6 +14,7 @@
 #include <string_view>
 
 class CTransaction;
+struct CMutableTransaction;
 class PrecomputedTransactionData;
 class XOnlyPubKey;
 
@@ -45,6 +46,26 @@ public:
     ReferenceChildTransactionSignatureChecker(
         const ChainId& chain_id,
         const CTransaction* transaction,
+        unsigned int input_index,
+        const PrecomputedTransactionData& txdata,
+        MissingDataBehavior missing_data_behavior);
+};
+
+/** Mutable-transaction counterpart used while constructing child signatures. */
+class ReferenceChildMutableTransactionSignatureChecker final : public MutableTransactionSignatureChecker
+{
+private:
+    ChainId m_chain_id;
+
+protected:
+    bool VerifySchnorrSignature(std::span<const unsigned char> signature,
+                                const XOnlyPubKey& pubkey,
+                                const uint256& base_sighash) const override;
+
+public:
+    ReferenceChildMutableTransactionSignatureChecker(
+        const ChainId& chain_id,
+        const CMutableTransaction* transaction,
         unsigned int input_index,
         const PrecomputedTransactionData& txdata,
         MissingDataBehavior missing_data_behavior);

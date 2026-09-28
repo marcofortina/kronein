@@ -47,4 +47,29 @@ bool ReferenceChildTransactionSignatureChecker::VerifySchnorrSignature(
            pubkey.VerifySchnorr(*child_sighash, signature);
 }
 
+ReferenceChildMutableTransactionSignatureChecker::ReferenceChildMutableTransactionSignatureChecker(
+    const ChainId& chain_id,
+    const CMutableTransaction* transaction,
+    unsigned int input_index,
+    const PrecomputedTransactionData& txdata,
+    MissingDataBehavior missing_data_behavior)
+    : MutableTransactionSignatureChecker{transaction,
+                                         input_index,
+                                         txdata,
+                                         missing_data_behavior},
+      m_chain_id{chain_id}
+{
+}
+
+bool ReferenceChildMutableTransactionSignatureChecker::VerifySchnorrSignature(
+    std::span<const unsigned char> signature,
+    const XOnlyPubKey& pubkey,
+    const uint256& base_sighash) const
+{
+    const auto child_sighash{
+        ComputeReferenceChildSignatureHash(m_chain_id, base_sighash)};
+    return child_sighash.has_value() &&
+           pubkey.VerifySchnorr(*child_sighash, signature);
+}
+
 } // namespace chainregistry

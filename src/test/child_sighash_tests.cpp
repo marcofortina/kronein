@@ -3,6 +3,7 @@
 // file COPYING or https://opensource.org/license/mit/.
 
 #include <chainregistry/child_sighash.h>
+#include <chainregistry/child_sign.h>
 
 #include <addresstype.h>
 #include <key.h>
@@ -10,6 +11,8 @@
 #include <primitives/transaction.h>
 #include <script/interpreter.h>
 #include <script/script_error.h>
+#include <script/sign.h>
+#include <script/signingprovider.h>
 #include <script/solver.h>
 #include <test/util/setup_common.h>
 #include <util/strencodings.h>
@@ -132,6 +135,77 @@ BOOST_AUTO_TEST_CASE(signature_cannot_replay_across_chain_domains)
                               main_checker,
                               &error));
     BOOST_CHECK_EQUAL(error, SCRIPT_ERR_SCHNORR_SIG);
+}
+
+BOOST_AUTO_TEST_CASE(signature_creator_produces_only_child_domain_signatures)
+{
+    const CKey key{TestKey()};
+    const XOnlyPubKey pubkey{key.GetPubKey()};
+    const CScript script_pub_key{
+        GetScriptForDestination(WitnessV1Taproot{pubkey})};
+    const CTxOut spent_output{50'000, script_pub_key};
+
+    CMutableTransaction transaction;
+    transaction.vin.emplace_back(COutPoint{
+        Txid{"4444444444444444444444444444444444444444444444444444444444444444"},
+        1});
+    transaction.vout.emplace_back(49'000, script_pub_key);
+
+    PrecomputedTransactionData txdata;
+    txdata.Init(transaction, std::vector<CTxOut>{spent_output});
+
+    FlatSigningProvider provider;
+    provider.keys.emplace(key.GetPubKey().GetID(), key);
+
+    SignatureData signature_data;
+    const chainregistry::ReferenceChildSignatureCreator creator{
+        CHILD_A, transaction, 0, txdata, SIGHASH_DEFAULT};
+    BOOST_REQUIRE(ProduceSignature(
+        provider, creator, script_pub_key, signature_data));
+    BOOST_REQUIRE(signature_data.complete);
+    UpdateInput(transaction.vin.front(), signature_data);
+
+    ScriptError error{SCRIPT_ERR_UNKNOWN_ERROR};
+    const chainregistry::ReferenceChildMutableTransactionSignatureChecker child_a_checker{
+        CHILD_A, &transaction, 0, txdata, MissingDataBehavior::FAIL};
+    BOOST_CHECK(VerifyScript(transaction.vin.front().scriptSig,
+                             script_pub_key,
+                             &transaction.vin.front().scriptWitness,
+                             STANDARD_SCRIPT_VERIFY_FLAGS,
+                             child_a_checker,
+                             &error));
+    BOOST_CHECK_EQUAL(error, SCRIPT_ERR_OK);
+
+    const chainregistry::ReferenceChildMutableTransactionSignatureChecker child_b_checker{
+        CHILD_B, &transaction, 0, txdata, MissingDataBehavior::FAIL};
+    BOOST_CHECK(!VerifyScript(transaction.vin.front().scriptSig,
+                              script_pub_key,
+                              &transaction.vin.front().scriptWitness,
+                              STANDARD_SCRIPT_VERIFY_FLAGS,
+                              child_b_checker,
+                              &error));
+    BOOST_CHECK_EQUAL(error, SCRIPT_ERR_SCHNORR_SIG);
+
+    const MutableTransactionSignatureChecker main_checker{
+        &transaction, 0, txdata, MissingDataBehavior::FAIL};
+    BOOST_CHECK(!VerifyScript(transaction.vin.front().scriptSig,
+                              script_pub_key,
+                              &transaction.vin.front().scriptWitness,
+                              STANDARD_SCRIPT_VERIFY_FLAGS,
+                              main_checker,
+                              &error));
+    BOOST_CHECK_EQUAL(error, SCRIPT_ERR_SCHNORR_SIG);
+
+    SignatureData null_chain_signature;
+    const chainregistry::ReferenceChildSignatureCreator null_chain_creator{
+        chainregistry::ChainId{},
+        transaction,
+        0,
+        txdata,
+        SIGHASH_DEFAULT};
+    BOOST_CHECK(!ProduceSignature(
+        provider, null_chain_creator, script_pub_key, null_chain_signature));
+    BOOST_CHECK(!null_chain_signature.complete);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
