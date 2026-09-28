@@ -45,6 +45,8 @@ enum class ReferenceChildRuntimeError : uint8_t {
     BMM_ANCHOR_REJECTED,
     BMM_ANCHOR_UNAVAILABLE,
     BMM_ANCHOR_PERSIST_FAILED,
+    LOCAL_PROPOSAL_NOT_FOUND,
+    LOCAL_PROPOSAL_PERSIST_FAILED,
     CHILD_PARENT_UNAVAILABLE,
     CHILD_BLOCK_REJECTED,
     CHILD_BLOCK_PERSIST_FAILED,
@@ -187,6 +189,19 @@ public:
         const CBlock& block,
         int64_t current_time,
         bool sync = false);
+    /** Contextually validate and persist a local block awaiting BMM. */
+    ReferenceChildRuntimeResult StoreLocalProposal(
+        const CBlock& block,
+        int64_t current_time,
+        bool sync = false);
+    ReferenceChildRuntimeResult SubmitLocalProposal(
+        const uint256& block_hash,
+        const std::optional<chainregistry::BmmAnchorProof>& anchor_proof,
+        int64_t current_time,
+        bool sync = false);
+    ReferenceChildRuntimeResult RemoveLocalProposal(
+        const uint256& block_hash,
+        bool sync = false);
     /** Contextually validate a block extending the active tip without persistence. */
     chainregistry::ReferenceChildBlockResult ValidateTipBlock(
         const CBlock& block,
@@ -229,6 +244,10 @@ public:
     bool VerifyDatabase(int64_t current_time) const;
     bool ReadBlock(const uint256& block_hash, CBlock& block) const;
     std::optional<std::vector<ChildPendingBlockView>> GetPendingBlocks() const;
+    std::optional<ChildLocalProposalRecord> GetLocalProposal(
+        const uint256& block_hash) const;
+    std::optional<std::vector<ChildLocalProposalRecord>> GetLocalProposals()
+        const;
 };
 
 } // namespace node

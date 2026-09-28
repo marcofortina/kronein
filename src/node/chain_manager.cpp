@@ -57,6 +57,18 @@ ChainManagerImportBuildResult BuildAuthenticatedImport(
     return result;
 }
 
+std::pair<uint64_t, uint64_t> LocalProposalUsage(
+    const ReferenceChildRuntime& runtime)
+{
+    const auto proposals{runtime.GetLocalProposals()};
+    if (!proposals) return {};
+    uint64_t bytes{0};
+    for (const auto& proposal : *proposals) {
+        bytes += proposal.serialized_size;
+    }
+    return {proposals->size(), bytes};
+}
+
 } // namespace
 
 ChainManager::ChainManager(Consensus::Params main_params,
@@ -340,6 +352,104 @@ ChainManagerResult ChainManager::SubmitBlockData(
     return result;
 }
 
+ChainManagerResult ChainManager::StoreProposal(
+    const chainregistry::ChainId& chain_id,
+    const CBlock& block,
+    int64_t current_time,
+    bool sync)
+{
+    LOCK(m_mutex);
+    if (!IsCatalogReady()) {
+        return ManagerError(ChainManagerError::CATALOG_UNAVAILABLE);
+    }
+    ChainManagerResult result;
+    if (chain_id.IsNull()) {
+        result.error = ChainManagerError::NULL_CHAIN_ID;
+        return result;
+    }
+    if (!m_definitions.contains(chain_id)) {
+        result.error = ChainManagerError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto runtime{m_loaded.find(chain_id)};
+    if (runtime == m_loaded.end()) {
+        result.error = ChainManagerError::CHAIN_NOT_LOADED;
+        return result;
+    }
+    result.runtime = runtime->second->StoreLocalProposal(
+        block, current_time, sync);
+    if (!result.runtime.IsValid()) {
+        result.error = ChainManagerError::RUNTIME_REJECTED;
+    }
+    return result;
+}
+
+ChainManagerResult ChainManager::SubmitProposal(
+    const chainregistry::ChainId& chain_id,
+    const uint256& block_hash,
+    const std::optional<chainregistry::BmmAnchorProof>& anchor_proof,
+    int64_t current_time,
+    bool sync)
+{
+    LOCK(m_mutex);
+    if (!IsCatalogReady()) {
+        return ManagerError(ChainManagerError::CATALOG_UNAVAILABLE);
+    }
+    ChainManagerResult result;
+    if (chain_id.IsNull()) {
+        result.error = ChainManagerError::NULL_CHAIN_ID;
+        return result;
+    }
+    if (!m_definitions.contains(chain_id)) {
+        result.error = ChainManagerError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto runtime{m_loaded.find(chain_id)};
+    if (runtime == m_loaded.end()) {
+        result.error = ChainManagerError::CHAIN_NOT_LOADED;
+        return result;
+    }
+    const uint256 old_tip{runtime->second->Tip()->GetBlockHash()};
+    result.runtime = runtime->second->SubmitLocalProposal(
+        block_hash, anchor_proof, current_time, sync);
+    if (!result.runtime.IsValid()) {
+        result.error = ChainManagerError::RUNTIME_REJECTED;
+    } else if (runtime->second->Tip()->GetBlockHash() != old_tip) {
+        m_tip_changed_cv.notify_all();
+    }
+    return result;
+}
+
+ChainManagerResult ChainManager::RemoveProposal(
+    const chainregistry::ChainId& chain_id,
+    const uint256& block_hash,
+    bool sync)
+{
+    LOCK(m_mutex);
+    if (!IsCatalogReady()) {
+        return ManagerError(ChainManagerError::CATALOG_UNAVAILABLE);
+    }
+    ChainManagerResult result;
+    if (chain_id.IsNull()) {
+        result.error = ChainManagerError::NULL_CHAIN_ID;
+        return result;
+    }
+    if (!m_definitions.contains(chain_id)) {
+        result.error = ChainManagerError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto runtime{m_loaded.find(chain_id)};
+    if (runtime == m_loaded.end()) {
+        result.error = ChainManagerError::CHAIN_NOT_LOADED;
+        return result;
+    }
+    result.runtime = runtime->second->RemoveLocalProposal(block_hash, sync);
+    if (!result.runtime.IsValid()) {
+        result.error = ChainManagerError::RUNTIME_REJECTED;
+    }
+    return result;
+}
+
 ChainManagerImportBuildResult ChainManager::BuildImportTransaction(
     const chainregistry::ChainId& chain_id,
     const chainregistry::DepositProof& proof) const
@@ -365,7 +475,8 @@ ChainManagerImportBuildResult ChainManager::BuildImportTransaction(
 ChainManagerImportBlockBuildResult ChainManager::BuildImportBlock(
     const chainregistry::ChainId& chain_id,
     std::span<const chainregistry::DepositProof> proofs,
-    int64_t current_time) const
+    int64_t current_time,
+    bool sync)
 {
     LOCK(m_mutex);
     ChainManagerImportBlockBuildResult result;
@@ -447,6 +558,13 @@ ChainManagerImportBlockBuildResult ChainManager::BuildImportBlock(
     if (!result.validation.IsValid()) {
         result.error =
             ChainManagerImportBlockBuildError::CONTEXT_REJECTED;
+        return result;
+    }
+    const auto stored{runtime->second->StoreLocalProposal(
+        *result.build.block, current_time, sync)};
+    if (!stored.IsValid()) {
+        result.error =
+            ChainManagerImportBlockBuildError::PROPOSAL_PERSIST_FAILED;
     }
     return result;
 }
@@ -643,6 +761,8 @@ ChainManagerView ChainManager::GetChainViewLocked(
     const auto* child_tip{runtime.Tip()};
     const auto* main_tip{runtime.MainHeaders()->Tip()};
     const auto pending_blocks{runtime.GetPendingBlocks()};
+    const auto [local_proposal_count, local_proposal_bytes]{
+        LocalProposalUsage(runtime)};
     Assume(child_tip);
     Assume(main_tip);
     result.entry = {
@@ -663,6 +783,8 @@ ChainManagerView ChainManager::GetChainViewLocked(
         .pending_anchor_count = runtime.State().pending_anchor_count,
         .pending_anchor_bytes = runtime.State().pending_anchor_bytes,
         .pending_block_count = pending_blocks ? pending_blocks->size() : 0,
+        .local_proposal_count = local_proposal_count,
+        .local_proposal_bytes = local_proposal_bytes,
         .side_candidate_count = runtime.State().side_candidate_count,
         .side_candidate_bytes = runtime.State().side_candidate_bytes,
         .candidate_anchor_count = runtime.State().candidate_anchor_count,
@@ -822,6 +944,8 @@ ChainManagerBlockView ChainManager::GetBlockViewLocked(
     const auto* child_tip{runtime.Tip()};
     const auto* main_tip{runtime.MainHeaders()->Tip()};
     const auto pending_blocks{runtime.GetPendingBlocks()};
+    const auto [local_proposal_count, local_proposal_bytes]{
+        LocalProposalUsage(runtime)};
     Assume(child_tip);
     Assume(main_tip);
     result.entry = {
@@ -842,6 +966,8 @@ ChainManagerBlockView ChainManager::GetBlockViewLocked(
         .pending_anchor_count = runtime.State().pending_anchor_count,
         .pending_anchor_bytes = runtime.State().pending_anchor_bytes,
         .pending_block_count = pending_blocks ? pending_blocks->size() : 0,
+        .local_proposal_count = local_proposal_count,
+        .local_proposal_bytes = local_proposal_bytes,
         .side_candidate_count = runtime.State().side_candidate_count,
         .side_candidate_bytes = runtime.State().side_candidate_bytes,
         .candidate_anchor_count = runtime.State().candidate_anchor_count,
@@ -875,6 +1001,8 @@ ChainManagerCoinView ChainManager::GetCoinView(
     const auto* child_tip{runtime.Tip()};
     const auto* main_tip{runtime.MainHeaders()->Tip()};
     const auto pending_blocks{runtime.GetPendingBlocks()};
+    const auto [local_proposal_count, local_proposal_bytes]{
+        LocalProposalUsage(runtime)};
     Assume(child_tip);
     Assume(main_tip);
     result.entry = {
@@ -895,6 +1023,8 @@ ChainManagerCoinView ChainManager::GetCoinView(
         .pending_anchor_count = runtime.State().pending_anchor_count,
         .pending_anchor_bytes = runtime.State().pending_anchor_bytes,
         .pending_block_count = pending_blocks ? pending_blocks->size() : 0,
+        .local_proposal_count = local_proposal_count,
+        .local_proposal_bytes = local_proposal_bytes,
         .side_candidate_count = runtime.State().side_candidate_count,
         .side_candidate_bytes = runtime.State().side_candidate_bytes,
         .candidate_anchor_count = runtime.State().candidate_anchor_count,
@@ -960,6 +1090,44 @@ ChainManagerPendingBlocksView ChainManager::GetPendingBlocksView(
         return result;
     }
     result.blocks = std::move(*blocks);
+    return result;
+}
+
+ChainManagerProposalsView ChainManager::GetProposalsView(
+    const chainregistry::ChainId& chain_id,
+    std::optional<uint256> block_hash) const
+{
+    LOCK(m_mutex);
+    ChainManagerProposalsView result;
+    if (chain_id.IsNull()) {
+        result.error = ChainManagerProposalsViewError::NULL_CHAIN_ID;
+        return result;
+    }
+    if (!m_definitions.contains(chain_id)) {
+        result.error = ChainManagerProposalsViewError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto loaded{m_loaded.find(chain_id)};
+    if (loaded == m_loaded.end()) {
+        result.error = ChainManagerProposalsViewError::CHAIN_NOT_LOADED;
+        return result;
+    }
+    if (block_hash) {
+        const auto proposal{loaded->second->GetLocalProposal(*block_hash)};
+        if (!proposal) {
+            result.error =
+                ChainManagerProposalsViewError::PROPOSAL_NOT_FOUND;
+            return result;
+        }
+        result.proposals.push_back(*proposal);
+        return result;
+    }
+    const auto proposals{loaded->second->GetLocalProposals()};
+    if (!proposals) {
+        result.error = ChainManagerProposalsViewError::DATA_UNAVAILABLE;
+        return result;
+    }
+    result.proposals = *proposals;
     return result;
 }
 
@@ -1186,6 +1354,10 @@ std::vector<ChainManagerEntry> ChainManager::List() const
                     loaded->second->GetPendingBlocks()}) {
                 entry.pending_block_count = pending_blocks->size();
             }
+            const auto [local_proposal_count, local_proposal_bytes]{
+                LocalProposalUsage(*loaded->second)};
+            entry.local_proposal_count = local_proposal_count;
+            entry.local_proposal_bytes = local_proposal_bytes;
             entry.side_candidate_count = loaded->second->State().side_candidate_count;
             entry.side_candidate_bytes = loaded->second->State().side_candidate_bytes;
             entry.candidate_anchor_count = loaded->second->State().candidate_anchor_count;

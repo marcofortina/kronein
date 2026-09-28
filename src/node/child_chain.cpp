@@ -1066,6 +1066,73 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectStagedBlock(
     return ConnectBlock(block, pending->front().proof, current_time, sync);
 }
 
+ReferenceChildRuntimeResult ReferenceChildRuntime::StoreLocalProposal(
+    const CBlock& block,
+    int64_t current_time,
+    bool sync)
+{
+    if (!m_initialized) {
+        return RuntimeError(ReferenceChildRuntimeError::NOT_INITIALIZED);
+    }
+    if (m_failed) {
+        return RuntimeError(ReferenceChildRuntimeError::FAILED_RUNTIME);
+    }
+    ReferenceChildRuntimeResult result;
+    result.child_block = ValidateTipBlock(block, current_time);
+    if (!result.child_block.IsValid()) {
+        result.error = ReferenceChildRuntimeError::CHILD_BLOCK_REJECTED;
+        return result;
+    }
+    if (!m_db->WriteLocalProposal(block, current_time, sync)) {
+        result.error =
+            ReferenceChildRuntimeError::LOCAL_PROPOSAL_PERSIST_FAILED;
+        return result;
+    }
+    result.selected_child_head = m_tip->GetBlockHash();
+    return result;
+}
+
+ReferenceChildRuntimeResult ReferenceChildRuntime::SubmitLocalProposal(
+    const uint256& block_hash,
+    const std::optional<chainregistry::BmmAnchorProof>& anchor_proof,
+    int64_t current_time,
+    bool sync)
+{
+    if (!m_initialized) {
+        return RuntimeError(ReferenceChildRuntimeError::NOT_INITIALIZED);
+    }
+    if (m_failed) {
+        return RuntimeError(ReferenceChildRuntimeError::FAILED_RUNTIME);
+    }
+    const auto proposal{m_db->ReadLocalProposal(block_hash)};
+    if (!proposal) {
+        return RuntimeError(
+            ReferenceChildRuntimeError::LOCAL_PROPOSAL_NOT_FOUND);
+    }
+    return anchor_proof
+        ? ConnectBlock(proposal->block, *anchor_proof, current_time, sync)
+        : ConnectStagedBlock(proposal->block, current_time, sync);
+}
+
+ReferenceChildRuntimeResult ReferenceChildRuntime::RemoveLocalProposal(
+    const uint256& block_hash,
+    bool sync)
+{
+    if (!m_initialized) {
+        return RuntimeError(ReferenceChildRuntimeError::NOT_INITIALIZED);
+    }
+    if (m_failed) {
+        return RuntimeError(ReferenceChildRuntimeError::FAILED_RUNTIME);
+    }
+    if (!m_db->EraseLocalProposal(block_hash, sync)) {
+        return RuntimeError(
+            ReferenceChildRuntimeError::LOCAL_PROPOSAL_NOT_FOUND);
+    }
+    ReferenceChildRuntimeResult result;
+    result.selected_child_head = m_tip->GetBlockHash();
+    return result;
+}
+
 ReferenceChildRuntimeResult ReferenceChildRuntime::DisconnectTip(bool sync)
 {
     if (!m_initialized) {
@@ -1459,6 +1526,20 @@ ReferenceChildRuntime::GetPendingBlocks() const
 {
     if (!Usable() || !m_db || !m_main_headers) return std::nullopt;
     return m_db->ReadPendingBlocks(*m_main_headers);
+}
+
+std::optional<ChildLocalProposalRecord>
+ReferenceChildRuntime::GetLocalProposal(const uint256& block_hash) const
+{
+    if (!Usable() || !m_db || block_hash.IsNull()) return std::nullopt;
+    return m_db->ReadLocalProposal(block_hash);
+}
+
+std::optional<std::vector<ChildLocalProposalRecord>>
+ReferenceChildRuntime::GetLocalProposals() const
+{
+    if (!Usable() || !m_db) return std::nullopt;
+    return m_db->ReadLocalProposals();
 }
 
 } // namespace node

@@ -115,6 +115,7 @@ enum class ChainManagerImportBlockBuildError : uint8_t {
     DUPLICATE_DEPOSIT,
     BUILD_FAILED,
     CONTEXT_REJECTED,
+    PROPOSAL_PERSIST_FAILED,
 };
 
 struct ChainManagerImportBlockBuildResult {
@@ -152,6 +153,8 @@ struct ChainManagerEntry {
     uint64_t pending_anchor_count{0};
     uint64_t pending_anchor_bytes{0};
     uint64_t pending_block_count{0};
+    uint64_t local_proposal_count{0};
+    uint64_t local_proposal_bytes{0};
     uint64_t side_candidate_count{0};
     uint64_t side_candidate_bytes{0};
     uint64_t candidate_anchor_count{0};
@@ -267,6 +270,26 @@ struct ChainManagerPendingBlocksView {
     bool IsValid() const
     {
         return error == ChainManagerPendingBlocksViewError::NONE;
+    }
+};
+
+enum class ChainManagerProposalsViewError : uint8_t {
+    NONE,
+    NULL_CHAIN_ID,
+    UNKNOWN_CHAIN,
+    CHAIN_NOT_LOADED,
+    PROPOSAL_NOT_FOUND,
+    DATA_UNAVAILABLE,
+};
+
+struct ChainManagerProposalsView {
+    ChainManagerProposalsViewError error{
+        ChainManagerProposalsViewError::NONE};
+    std::vector<ChildLocalProposalRecord> proposals;
+
+    bool IsValid() const
+    {
+        return error == ChainManagerProposalsViewError::NONE;
     }
 };
 
@@ -413,6 +436,21 @@ public:
         const CBlock& block,
         int64_t current_time,
         bool sync = false);
+    ChainManagerResult StoreProposal(
+        const chainregistry::ChainId& chain_id,
+        const CBlock& block,
+        int64_t current_time,
+        bool sync = false);
+    ChainManagerResult SubmitProposal(
+        const chainregistry::ChainId& chain_id,
+        const uint256& block_hash,
+        const std::optional<chainregistry::BmmAnchorProof>& anchor_proof,
+        int64_t current_time,
+        bool sync = false);
+    ChainManagerResult RemoveProposal(
+        const chainregistry::ChainId& chain_id,
+        const uint256& block_hash,
+        bool sync = false);
     /** Build an IMPORT only after child-side light-client authentication. */
     ChainManagerImportBuildResult BuildImportTransaction(
         const chainregistry::ChainId& chain_id,
@@ -421,7 +459,8 @@ public:
     ChainManagerImportBlockBuildResult BuildImportBlock(
         const chainregistry::ChainId& chain_id,
         std::span<const chainregistry::DepositProof> proofs,
-        int64_t current_time) const;
+        int64_t current_time,
+        bool sync = false);
     /** Feed a header already connected by the local main chainstate. */
     ChainManagerMainUpdate AddMainHeader(
         const CBlockHeader& header,
@@ -467,6 +506,9 @@ public:
         const chainregistry::ChainId& chain_id) const;
     ChainManagerPendingBlocksView GetPendingBlocksView(
         const chainregistry::ChainId& chain_id) const;
+    ChainManagerProposalsView GetProposalsView(
+        const chainregistry::ChainId& chain_id,
+        std::optional<uint256> block_hash = std::nullopt) const;
     ChainManagerUTXOStatsView GetUTXOStatsView(
         const chainregistry::ChainId& chain_id,
         kernel::CoinStatsHashType hash_type,
