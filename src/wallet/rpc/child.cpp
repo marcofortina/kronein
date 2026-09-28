@@ -1,0 +1,635 @@
+// Copyright (c) 2026 The Kronein Core developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or https://opensource.org/license/mit/.
+
+#include <chainregistry/child_psbt.h>
+#include <chainregistry/child_psbt_sign.h>
+#include <chainregistry/child_template.h>
+#include <consensus/consensus.h>
+#include <consensus/tx_check.h>
+#include <consensus/validation.h>
+#include <core_io.h>
+#include <interfaces/chain.h>
+#include <policy/policy.h>
+#include <psbt.h>
+#include <random.h>
+#include <rpc/util.h>
+#include <script/signingprovider.h>
+#include <util/moneystr.h>
+#include <util/strencodings.h>
+#include <wallet/rpc/util.h>
+#include <wallet/rpc/child_util.h>
+#include <wallet/scriptpubkeyman.h>
+#include <wallet/wallet.h>
+#include <wallet/walletdb.h>
+
+#include <univalue.h>
+
+#include <algorithm>
+#include <map>
+#include <optional>
+#include <set>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <variant>
+#include <vector>
+
+namespace wallet {
+namespace {
+
+interfaces::ChildWalletScan ScanSupportedChildWallet(
+    const CWallet& wallet,
+    const chainregistry::ChainId& chain_id)
+{
+    auto scan{ScanChildWallet(wallet, chain_id)};
+    if (!scan.completed ||
+        scan.template_id != chainregistry::REFERENCE_CHILD_TEMPLATE_ID ||
+        scan.template_version !=
+            chainregistry::REFERENCE_CHILD_TEMPLATE_VERSION ||
+        scan.genesis_hash.IsNull()) {
+        throw JSONRPCError(
+            RPC_INTERNAL_ERROR,
+            "loaded child chain has an unsupported or incomplete consensus identity");
+    }
+    return scan;
+}
+
+chainregistry::ReferenceChildDefinition DefinitionFromScan(
+    const chainregistry::ChainId& chain_id,
+    const interfaces::ChildWalletScan& scan)
+{
+    chainregistry::ReferenceChildDefinition definition;
+    definition.chain_id = chain_id;
+    definition.genesis_hash = scan.genesis_hash;
+    return definition;
+}
+
+uint64_t Confirmations(const interfaces::ChildWalletScan& scan,
+                       const interfaces::ChildWalletCoin& coin)
+{
+    if (coin.height > scan.height) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR,
+                           "child wallet UTXO height exceeds the child tip");
+    }
+    return uint64_t{scan.height} - coin.height + 1;
+}
+
+bool IsMature(const interfaces::ChildWalletScan& scan,
+              const interfaces::ChildWalletCoin& coin)
+{
+    return !coin.coinbase || Confirmations(scan, coin) >= COINBASE_MATURITY;
+}
+
+void AddAmount(CAmount& total, CAmount amount, std::string_view name)
+{
+    if (amount < 0 || !MoneyRange(amount) ||
+        amount > MAX_MONEY - total) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("%s amount is out of range", name));
+    }
+    total += amount;
+}
+
+WitnessV1Taproot ParseChildRecipient(const UniValue& value)
+{
+    const std::vector<unsigned char> recipient{
+        ParseHexV(value, "recipient")};
+    if (!chainregistry::IsValidReferenceChildRecipient(
+            chainregistry::REFERENCE_CHILD_P2TR_RECIPIENT,
+            recipient)) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "recipient must be a valid 32-byte reference-child P2TR output key");
+    }
+    return WitnessV1Taproot{XOnlyPubKey{recipient}};
+}
+
+void CheckTransactionStructure(const CMutableTransaction& transaction)
+{
+    TxValidationState state;
+    if (!CheckTransaction(CTransaction{transaction}, state) ||
+        !CheckNativeTransaction(CTransaction{transaction}, state)) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("invalid child transaction: %s", state.ToString()));
+    }
+}
+
+void CheckSignedWeight(CMutableTransaction transaction)
+{
+    for (CTxIn& input : transaction.vin) {
+        input.scriptWitness.stack = {
+            std::vector<unsigned char>(64, 0)};
+    }
+    if (GetTransactionWeight(CTransaction{transaction}) >
+        MAX_STANDARD_TX_WEIGHT) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("child transaction exceeds maximum standard weight %d",
+                      MAX_STANDARD_TX_WEIGHT));
+    }
+}
+
+std::string EncodePSBT(const PartiallySignedTransaction& psbt)
+{
+    DataStream stream;
+    stream << psbt;
+    return EncodeBase64(stream.str());
+}
+
+std::map<COutPoint, const interfaces::ChildWalletCoin*>
+IndexChildCoins(const interfaces::ChildWalletScan& scan)
+{
+    std::map<COutPoint, const interfaces::ChildWalletCoin*> indexed;
+    for (const auto& coin : scan.coins) {
+        if (!MoneyRange(coin.output.nValue) || coin.output.nValue <= 0 ||
+            !indexed.emplace(coin.outpoint, &coin).second) {
+            throw JSONRPCError(RPC_INTERNAL_ERROR,
+                               "child wallet UTXO data is inconsistent");
+        }
+    }
+    return indexed;
+}
+
+void FillChildInput(
+    CWallet& wallet,
+    PartiallySignedTransaction& psbt,
+    unsigned int input_index,
+    const chainregistry::ReferenceChildDefinition& definition,
+    const PrecomputedTransactionData& txdata,
+    bool sign,
+    bool bip32_derivs,
+    bool finalize,
+    std::optional<int> sighash_type)
+{
+    LOCK(wallet.cs_wallet);
+    const CScript& script{psbt.inputs.at(input_index).witness_utxo.scriptPubKey};
+    bool found_provider{false};
+    for (ScriptPubKeyMan* manager : wallet.GetScriptPubKeyMans(script)) {
+        auto provider{manager->GetSigningProviderForTransaction(
+            script, /*include_private=*/sign)};
+        if (!provider) continue;
+        found_provider = true;
+        HidingSigningProvider filtered{
+            provider.get(),
+            /*hide_secret=*/!sign,
+            /*hide_origin=*/!bip32_derivs};
+        const auto updated{chainregistry::UpdateChildPSBTInput(
+            filtered,
+            psbt,
+            input_index,
+            definition,
+            txdata,
+            sighash_type,
+            finalize)};
+        if (!updated.IsValid()) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                strprintf("child PSBT input %u: %s (%s)",
+                          input_index,
+                          chainregistry::ChildPSBTSignErrorString(
+                              updated.error),
+                          chainregistry::ChildPSBTIdentityErrorString(
+                              updated.identity_error)));
+        }
+        if (updated.signature_complete) return;
+    }
+    if (!found_provider) {
+        throw JSONRPCError(
+            RPC_WALLET_ERROR,
+            strprintf("wallet has no signing provider for child input %u",
+                      input_index));
+    }
+}
+
+void FillChildOutputs(CWallet& wallet,
+                      PartiallySignedTransaction& psbt,
+                      bool bip32_derivs)
+{
+    LOCK(wallet.cs_wallet);
+    for (unsigned int index{0}; index < psbt.outputs.size(); ++index) {
+        const CScript& script{psbt.outputs[index].script};
+        for (ScriptPubKeyMan* manager : wallet.GetScriptPubKeyMans(script)) {
+            auto provider{manager->GetSigningProviderForTransaction(
+                script, /*include_private=*/false)};
+            if (!provider) continue;
+            HidingSigningProvider filtered{
+                provider.get(),
+                /*hide_secret=*/true,
+                /*hide_origin=*/!bip32_derivs};
+            UpdatePSBTOutput(filtered, psbt, index);
+        }
+    }
+}
+
+} // namespace
+
+RPCHelpMan walletcreatechildpsbt()
+{
+    return RPCHelpMan{
+        "walletcreatechildpsbt",
+        "Create and fund a PSBT spending confirmed wallet UTXOs on one loaded reference child chain.\n"
+        "Recipients are canonical 32-byte child P2TR output keys, not main-chain addresses. The absolute fee is explicit because child chains have no independent wallet fee estimator.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Exact non-null child-chain identifier"},
+            {"outputs", RPCArg::Type::ARR, RPCArg::Optional::NO, "Child transaction outputs", {
+                {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "One output", {
+                    {"recipient", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Valid 32-byte reference-child P2TR output key"},
+                    {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "Amount in KNE"},
+                }},
+            }},
+            {"fee", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "Exact absolute child-chain transaction fee in KNE"},
+            {"minconf", RPCArg::Type::NUM, RPCArg::Default{1}, "Minimum child-chain confirmations for selected inputs"},
+            {"bip32derivs", RPCArg::Type::BOOL, RPCArg::Default{true}, "Include known BIP32 derivation paths"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Funded child PSBT", {
+            {RPCResult::Type::STR, "psbt", "Base64-encoded PSBTv2 with mandatory Kronein child identity fields"},
+            {RPCResult::Type::STR_HEX, "chain_id", "Exact child-chain identifier"},
+            {RPCResult::Type::STR_HEX, "genesis_hash", "Loaded child genesis hash"},
+            {RPCResult::Type::STR_AMOUNT, "fee", "Exact transaction fee"},
+            {RPCResult::Type::NUM, "changepos", "Change output position, or -1"},
+            {RPCResult::Type::STR_AMOUNT, "change", "Change amount"},
+            {RPCResult::Type::NUM, "inputs", "Number of selected child UTXOs"},
+            {RPCResult::Type::STR_HEX, "child_tip", "Child tip used for coin selection"},
+            {RPCResult::Type::NUM, "child_height", "Child height used for coin selection"},
+        }},
+        RPCExamples{
+            HelpExampleCli(
+                "walletcreatechildpsbt",
+                "\"1111111111111111111111111111111111111111111111111111111111111111\" '[{\"recipient\":\"2222222222222222222222222222222222222222222222222222222222222222\",\"amount\":1.0}]' 0.00001")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const std::shared_ptr<CWallet> wallet_ptr{
+        GetWalletForJSONRPCRequest(request)};
+    if (!wallet_ptr) return UniValue::VNULL;
+    CWallet& wallet{*wallet_ptr};
+    wallet.BlockUntilSyncedToCurrentChain();
+
+    const auto chain_id{
+        ParseChildChainId(self.Arg<UniValue>("chain_id"))};
+    const CAmount requested_fee{
+        AmountFromValue(self.Arg<UniValue>("fee"))};
+    if (requested_fee < 0) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "fee must not be negative");
+    }
+    const int minconf{self.Arg<int>("minconf")};
+    if (minconf < 0) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "minconf must not be negative");
+    }
+    const bool bip32_derivs{self.Arg<bool>("bip32derivs")};
+
+    CMutableTransaction transaction;
+    CAmount required{requested_fee};
+    const UniValue& outputs{self.Arg<UniValue>("outputs")};
+    if (outputs.empty()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "outputs must not be empty");
+    }
+    for (const UniValue& output : outputs.getValues()) {
+        const UniValue& object{output.get_obj()};
+        RPCTypeCheckObj(object,
+                        {{"recipient", UniValueType(UniValue::VSTR)},
+                         {"amount", UniValueType()}},
+                        /*allow_null=*/false,
+                        /*strict=*/true);
+        const CAmount amount{
+            AmountFromValue(object.find_value("amount"))};
+        if (amount <= 0) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               "output amount must be positive");
+        }
+        AddAmount(required, amount, "total output");
+        CTxOut txout{
+            amount,
+            GetScriptForDestination(
+                ParseChildRecipient(object.find_value("recipient")))};
+        if (IsDust(txout, wallet.chain().relayDustFee())) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               "child output is below the dust threshold");
+        }
+        transaction.vout.push_back(std::move(txout));
+    }
+
+    const interfaces::ChildWalletScan scan{
+        ScanSupportedChildWallet(wallet, chain_id)};
+    const auto definition{DefinitionFromScan(chain_id, scan)};
+    std::vector<const interfaces::ChildWalletCoin*> candidates;
+    for (const auto& coin : scan.coins) {
+        if (!MoneyRange(coin.output.nValue) || coin.output.nValue <= 0) {
+            throw JSONRPCError(RPC_INTERNAL_ERROR,
+                               "child wallet UTXO amount is invalid");
+        }
+        if (Confirmations(scan, coin) < static_cast<uint64_t>(minconf) ||
+            !IsMature(scan, coin)) {
+            continue;
+        }
+        candidates.push_back(&coin);
+    }
+    std::sort(candidates.begin(), candidates.end(), [](const auto* left,
+                                                       const auto* right) {
+        if (left->output.nValue != right->output.nValue) {
+            return left->output.nValue > right->output.nValue;
+        }
+        return left->outpoint < right->outpoint;
+    });
+
+    CAmount selected{0};
+    std::vector<const interfaces::ChildWalletCoin*> selected_coins;
+    for (const auto* coin : candidates) {
+        selected_coins.push_back(coin);
+        AddAmount(selected, coin->output.nValue, "selected input");
+        if (selected >= required) break;
+    }
+    if (selected < required) {
+        throw JSONRPCError(
+            RPC_WALLET_INSUFFICIENT_FUNDS,
+            strprintf("insufficient mature child funds: need %s KNE, have %s KNE",
+                      FormatMoney(required), FormatMoney(selected)));
+    }
+
+    for (const auto* coin : selected_coins) {
+        transaction.vin.emplace_back(coin->outpoint);
+    }
+    const CAmount change{selected - required};
+    int change_position{-1};
+    if (change > 0) {
+        LOCK(wallet.cs_wallet);
+        auto destination{wallet.GetNewChangeDestination()};
+        if (!destination) {
+            throw JSONRPCError(
+                RPC_WALLET_KEYPOOL_RAN_OUT,
+                util::ErrorString(destination).original);
+        }
+        if (!std::holds_alternative<WitnessV1Taproot>(*destination)) {
+            throw JSONRPCError(
+                RPC_WALLET_ERROR,
+                "wallet did not derive a Taproot child change recipient");
+        }
+        CTxOut change_output{
+            change, GetScriptForDestination(*destination)};
+        if (IsDust(change_output, wallet.chain().relayDustFee())) {
+            throw JSONRPCError(
+                RPC_WALLET_ERROR,
+                "selected child change is below the dust threshold; adjust outputs or fee");
+        }
+        WalletBatch batch{wallet.GetDatabase()};
+        if (!wallet.SetAddressChildChain(batch, *destination, chain_id)) {
+            throw JSONRPCError(
+                RPC_WALLET_ERROR,
+                "wallet could not persist the child change context");
+        }
+        FastRandomContext random;
+        change_position = random.randrange(transaction.vout.size() + 1);
+        transaction.vout.insert(
+            transaction.vout.begin() + change_position,
+            std::move(change_output));
+    }
+
+    CheckTransactionStructure(transaction);
+    CheckSignedWeight(transaction);
+    PartiallySignedTransaction psbt{transaction};
+    for (unsigned int index{0}; index < selected_coins.size(); ++index) {
+        psbt.inputs[index].witness_utxo = selected_coins[index]->output;
+    }
+    const chainregistry::ChildPSBTIdentity identity{
+        .chain_id = chain_id,
+        .template_id = scan.template_id,
+        .template_version = scan.template_version,
+        .genesis_hash = scan.genesis_hash,
+    };
+    const auto identity_error{
+        chainregistry::AddChildPSBTIdentity(psbt, identity)};
+    if (identity_error != chainregistry::ChildPSBTIdentityError::NONE) {
+        throw JSONRPCError(
+            RPC_INTERNAL_ERROR,
+            strprintf("could not bind child PSBT identity: %s",
+                      chainregistry::ChildPSBTIdentityErrorString(
+                          identity_error)));
+    }
+    const auto txdata{PrecomputePSBTData(psbt)};
+    if (!txdata) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR,
+                           "could not precompute child PSBT data");
+    }
+    for (unsigned int index{0}; index < psbt.inputs.size(); ++index) {
+        FillChildInput(wallet,
+                       psbt,
+                       index,
+                       definition,
+                       *txdata,
+                       /*sign=*/false,
+                       bip32_derivs,
+                       /*finalize=*/false,
+                       SIGHASH_DEFAULT);
+    }
+    FillChildOutputs(wallet, psbt, bip32_derivs);
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("psbt", EncodePSBT(psbt));
+    result.pushKV("chain_id", chain_id.GetHex());
+    result.pushKV("genesis_hash", scan.genesis_hash.GetHex());
+    result.pushKV("fee", ValueFromAmount(requested_fee));
+    result.pushKV("changepos", change_position);
+    result.pushKV("change", ValueFromAmount(change));
+    result.pushKV("inputs", selected_coins.size());
+    result.pushKV("child_tip", scan.best_block.GetHex());
+    result.pushKV("child_height", scan.height);
+    return result;
+},
+    };
+}
+
+RPCHelpMan walletprocesschildpsbt()
+{
+    return RPCHelpMan{
+        "walletprocesschildpsbt",
+        "Verify a child PSBT against the exact loaded child UTXO set, add wallet metadata, and optionally sign in the child-chain signature domain.\n"
+        "Every input must be a wallet-owned UTXO associated with the embedded chain_id. The mandatory max_fee is checked before private keys are used.\n" +
+            HELP_REQUIRING_PASSPHRASE,
+        {
+            {"psbt", RPCArg::Type::STR, RPCArg::Optional::NO, "Base64-encoded child PSBTv2"},
+            {"max_fee", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "Maximum absolute child-chain fee authorized by the caller"},
+            {"sign", RPCArg::Type::BOOL, RPCArg::Default{true}, "Sign wallet-owned inputs"},
+            {"sighashtype", RPCArg::Type::STR, RPCArg::Default{"DEFAULT"}, "Signature hash type"},
+            {"bip32derivs", RPCArg::Type::BOOL, RPCArg::Default{true}, "Include BIP32 derivation paths"},
+            {"finalize", RPCArg::Type::BOOL, RPCArg::Default{true}, "Finalize inputs when possible"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Processed child PSBT", {
+            {RPCResult::Type::STR, "psbt", "Updated base64-encoded child PSBTv2"},
+            {RPCResult::Type::STR_HEX, "chain_id", "Verified child-chain identifier"},
+            {RPCResult::Type::STR_HEX, "genesis_hash", "Verified loaded child genesis hash"},
+            {RPCResult::Type::STR_AMOUNT, "fee", "Verified child transaction fee"},
+            {RPCResult::Type::BOOL, "complete", "Whether all finalized input witnesses verify in the child domain"},
+            {RPCResult::Type::STR_HEX, "hex", /*optional=*/true, "Final child transaction when complete"},
+            {RPCResult::Type::STR_HEX, "txid", /*optional=*/true, "Final child transaction identifier when complete"},
+        }},
+        RPCExamples{
+            HelpExampleCli("walletprocesschildpsbt",
+                           "\"cHNidP8...\" 0.001")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const std::shared_ptr<CWallet> wallet_ptr{
+        GetWalletForJSONRPCRequest(request)};
+    if (!wallet_ptr) return UniValue::VNULL;
+    CWallet& wallet{*wallet_ptr};
+    wallet.BlockUntilSyncedToCurrentChain();
+
+    auto decoded{DecodeBase64PSBT(
+        std::string{self.Arg<std::string_view>("psbt")})};
+    if (!decoded) {
+        throw JSONRPCError(
+            RPC_DESERIALIZATION_ERROR,
+            strprintf("child PSBT decode failed: %s",
+                      util::ErrorString(decoded).original));
+    }
+    PartiallySignedTransaction psbt{std::move(*decoded)};
+    const auto parsed_identity{
+        chainregistry::ExtractChildPSBTIdentity(psbt)};
+    if (!parsed_identity.IsValid()) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("invalid child PSBT identity: %s",
+                      chainregistry::ChildPSBTIdentityErrorString(
+                          parsed_identity.error)));
+    }
+    const auto& identity{*parsed_identity.identity};
+    const interfaces::ChildWalletScan scan{
+        ScanSupportedChildWallet(wallet, identity.chain_id)};
+    const auto definition{DefinitionFromScan(identity.chain_id, scan)};
+    const auto identity_error{
+        chainregistry::VerifyChildPSBTIdentity(psbt, definition)};
+    if (identity_error != chainregistry::ChildPSBTIdentityError::NONE ||
+        identity.template_id != scan.template_id ||
+        identity.template_version != scan.template_version) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("child PSBT does not match the loaded child definition: %s",
+                      chainregistry::ChildPSBTIdentityErrorString(
+                          identity_error)));
+    }
+
+    const auto unsigned_tx{psbt.GetUnsignedTx()};
+    if (!unsigned_tx) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR,
+                           "child PSBT has no complete unsigned transaction");
+    }
+    CheckTransactionStructure(*unsigned_tx);
+    CheckSignedWeight(*unsigned_tx);
+    const auto coins{IndexChildCoins(scan)};
+    if (psbt.inputs.size() != unsigned_tx->vin.size()) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR,
+                           "child PSBT input maps do not match its transaction");
+    }
+
+    CAmount input_value{0};
+    for (unsigned int index{0}; index < unsigned_tx->vin.size(); ++index) {
+        const COutPoint& outpoint{unsigned_tx->vin[index].prevout};
+        const auto found{coins.find(outpoint)};
+        if (found == coins.end()) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                strprintf("child input %u is spent, unknown, or not owned by this wallet",
+                          index));
+        }
+        const auto& coin{*found->second};
+        if (!IsMature(scan, coin)) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                strprintf("child input %u spends an immature coinbase", index));
+        }
+        PSBTInput& input{psbt.inputs[index]};
+        if (!input.witness_utxo.IsNull() &&
+            input.witness_utxo != coin.output) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                strprintf("child input %u witness_utxo does not match the loaded UTXO set",
+                          index));
+        }
+        input.witness_utxo = coin.output;
+        AddAmount(input_value, coin.output.nValue, "child input");
+    }
+    CAmount output_value{0};
+    for (const CTxOut& output : unsigned_tx->vout) {
+        AddAmount(output_value, output.nValue, "child output");
+    }
+    if (output_value > input_value) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child PSBT outputs exceed its inputs");
+    }
+    const CAmount fee{input_value - output_value};
+    const CAmount maximum_fee{
+        AmountFromValue(self.Arg<UniValue>("max_fee"))};
+    if (maximum_fee < 0) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "max_fee must not be negative");
+    }
+    if (fee > maximum_fee) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("child transaction fee %s KNE exceeds authorized maximum %s KNE",
+                      FormatMoney(fee), FormatMoney(maximum_fee)));
+    }
+
+    const bool sign{self.Arg<bool>("sign")};
+    const bool bip32_derivs{self.Arg<bool>("bip32derivs")};
+    const bool finalize{self.Arg<bool>("finalize")};
+    const std::optional<int> sighash_type{
+        ParseSighashString(self.Arg<UniValue>("sighashtype"))};
+    if (sign) EnsureWalletIsUnlocked(wallet);
+    const auto txdata{PrecomputePSBTData(psbt)};
+    if (!txdata) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR,
+                           "could not precompute child PSBT data");
+    }
+    for (unsigned int index{0}; index < psbt.inputs.size(); ++index) {
+        FillChildInput(wallet,
+                       psbt,
+                       index,
+                       definition,
+                       *txdata,
+                       sign,
+                       bip32_derivs,
+                       finalize,
+                       sighash_type);
+    }
+    FillChildOutputs(wallet, psbt, bip32_derivs);
+
+    bool complete{true};
+    for (unsigned int index{0}; index < psbt.inputs.size(); ++index) {
+        complete &= chainregistry::ChildPSBTInputSignedAndVerified(
+            psbt, index, definition, *txdata);
+    }
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("psbt", EncodePSBT(psbt));
+    result.pushKV("chain_id", identity.chain_id.GetHex());
+    result.pushKV("genesis_hash", identity.genesis_hash.GetHex());
+    result.pushKV("fee", ValueFromAmount(fee));
+    result.pushKV("complete", complete);
+    if (complete) {
+        CMutableTransaction transaction;
+        const auto extracted{chainregistry::FinalizeAndExtractChildPSBT(
+            psbt, definition, transaction)};
+        if (!extracted.IsValid()) {
+            throw JSONRPCError(
+                RPC_INTERNAL_ERROR,
+                strprintf("could not extract complete child transaction: %s",
+                          chainregistry::ChildPSBTSignErrorString(
+                              extracted.error)));
+        }
+        const CTransaction final_transaction{transaction};
+        result.pushKV("hex", EncodeHexTx(final_transaction));
+        result.pushKV("txid", final_transaction.GetHash().GetHex());
+    }
+    return result;
+},
+    };
+}
+
+} // namespace wallet

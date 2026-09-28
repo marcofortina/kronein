@@ -889,6 +889,84 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(wallet.listunspent(
             1, 9999999, [], True,
             {"maximumAmount": Decimal("0.24999999")}, chain_id), [])
+
+        self.log.info("Create and sign a wallet PSBT in the child signature domain")
+        child_destination = attacker.getnewchildrecipient(
+            chain_id, "child-destination")
+        child_spend_amount = Decimal("0.10000000")
+        child_fee = Decimal("0.00001000")
+        assert_raises_rpc_error(
+            -8, "chain_id must be exactly 32 non-null bytes",
+            wallet.walletcreatechildpsbt,
+            "00" * 32,
+            [{"recipient": child_destination["recipient"],
+              "amount": child_spend_amount}],
+            child_fee)
+        child_psbt = wallet.walletcreatechildpsbt(
+            chain_id,
+            [{"recipient": child_destination["recipient"],
+              "amount": child_spend_amount}],
+            child_fee)
+        assert_equal(child_psbt["chain_id"], chain_id)
+        assert_equal(child_psbt["genesis_hash"],
+                     reference_child["genesis_hash"])
+        assert_equal(child_psbt["fee"], child_fee)
+        assert_equal(child_psbt["inputs"], 1)
+        assert child_psbt["changepos"] in [0, 1]
+        assert_equal(child_psbt["change"],
+                     deposit_amount - child_spend_amount - child_fee)
+        assert_equal(child_psbt["child_tip"], child_block["blockhash"])
+        assert_equal(child_psbt["child_height"], 1)
+        child_wallet_identities = wallet.listchildrecipients(chain_id)
+        assert_equal(child_wallet_identities["recipient_count"], 2)
+        assert child_identity in child_wallet_identities["recipients"]
+        child_change_identity = next(
+            identity for identity in child_wallet_identities["recipients"]
+            if identity != child_identity)
+        assert_equal(child_change_identity["chain_id"], chain_id)
+        assert_equal(child_change_identity["recipient_type"], 1)
+        assert_equal(child_change_identity["label"], "")
+        assert_equal(child_change_identity["scriptPubKey"],
+                     "5120" + child_change_identity["recipient"])
+
+        unsigned_child = wallet.walletprocesschildpsbt(
+            child_psbt["psbt"], child_fee, False)
+        assert_equal(unsigned_child["chain_id"], chain_id)
+        assert_equal(unsigned_child["fee"], child_fee)
+        assert_equal(unsigned_child["complete"], False)
+        assert "hex" not in unsigned_child
+        assert_raises_rpc_error(
+            -8, "exceeds authorized maximum",
+            wallet.walletprocesschildpsbt,
+            child_psbt["psbt"], Decimal("0.00000999"))
+
+        main_domain_psbt = wallet.walletprocesspsbt(child_psbt["psbt"])
+        assert_equal(main_domain_psbt["complete"], True)
+        assert_raises_rpc_error(
+            -8, "invalid child PSBT signature",
+            wallet.walletprocesschildpsbt,
+            main_domain_psbt["psbt"], child_fee)
+
+        signed_child = wallet.walletprocesschildpsbt(
+            child_psbt["psbt"], child_fee)
+        assert_equal(signed_child["chain_id"], chain_id)
+        assert_equal(signed_child["genesis_hash"],
+                     reference_child["genesis_hash"])
+        assert_equal(signed_child["fee"], child_fee)
+        assert_equal(signed_child["complete"], True)
+        decoded_child_spend = node.decoderawtransaction(signed_child["hex"])
+        assert_equal(decoded_child_spend["txid"], signed_child["txid"])
+        assert_equal(decoded_child_spend["vin"][0]["txid"],
+                     child_import["txid"])
+        assert_equal(decoded_child_spend["vin"][0]["vout"], 0)
+        assert_equal(len(decoded_child_spend["vin"][0]["txinwitness"]), 1)
+        destination_outputs = [
+            output for output in decoded_child_spend["vout"]
+            if output["scriptPubKey"]["hex"] ==
+            child_destination["scriptPubKey"]]
+        assert_equal(len(destination_outputs), 1)
+        assert_equal(destination_outputs[0]["value"], child_spend_amount)
+
         assert_equal(node.getchildpendingblocks(chain_id)["block_count"], 0)
         assert_equal(node.listchildproposals(chain_id)["proposal_count"], 0)
         anchored_bmm_status = node.getchildbmmstatus(chain_id)
@@ -1087,8 +1165,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(node.getchainregistryinfo()["root"], pre_registration["root"])
         assert_equal(node.getchildchain(chain_id)["found"], False)
         orphaned_identities = wallet.listchildrecipients(chain_id)
-        assert_equal(orphaned_identities["recipient_count"], 1)
-        assert_equal(orphaned_identities["recipients"][0], child_identity)
+        assert_equal(orphaned_identities, child_wallet_identities)
 
         self.log.info("Reload rolled-back state, reconnect the branch, and reload it again")
         self.restart_node(0)
@@ -1118,8 +1195,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(node.getchainregistryinfo()["root"], retired_info["root"])
         assert_equal(node.getchildchain(chain_id)["chain"]["status"], "retired")
         persisted_identities = wallet.listchildrecipients(chain_id)
-        assert_equal(persisted_identities["recipient_count"], 1)
-        assert_equal(persisted_identities["recipients"][0], child_identity)
+        assert_equal(persisted_identities, child_wallet_identities)
         assert_raises_rpc_error(
             -8, "child chain is retired",
             wallet.getnewchildrecipient, chain_id)
