@@ -126,8 +126,16 @@ static chainregistry::BmmAnchorProof RpcBmmProof(
     main_block.vtx = {
         MakeTransactionRef(coinbase), MakeTransactionRef(proposal)};
     main_block.hashMerkleRoot = BlockMerkleRoot(main_block);
-    // ChainManager::AddMainHeader is the ingress for headers already validated
-    // by the local main chainstate, so this fixture must not mine it again.
+    const auto seed{GetRandomXSeed(&main_parent, 1, params)};
+    BOOST_REQUIRE(seed);
+    uint64_t max_tries{1'000'000};
+    BOOST_REQUIRE(MineProofOfWork(
+        main_block,
+        *seed,
+        params,
+        max_tries,
+        /*threads=*/1,
+        /*use_full_memory=*/false));
 
     return {
         .main_genesis_hash = params.hashGenesisBlock,
@@ -301,6 +309,7 @@ BOOST_AUTO_TEST_CASE(blockchain_rpc_routes_explicit_child_chain)
     BOOST_CHECK_EQUAL(
         child_utxo_stats.find_value("transactions").getInt<int>(), 0);
     BOOST_CHECK(!child_utxo_stats.find_value("muhash").get_str().empty());
+    BOOST_CHECK(CallRPC("verifychain 4 0 " + chain_id).get_bool());
     const auto child_header{CallRPC(
         "getblockheader " + definition.genesis_hash.GetHex() +
         " true " + chain_id)};
@@ -589,6 +598,7 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
             return std::string_view{error.what()}.find(
                        "only for the current tip") != std::string_view::npos;
         });
+    BOOST_CHECK(CallRPC("verifychain 0 1 " + chain_id).get_bool());
     const auto selected_child_stats{CallRPC(
         "getblockstats 1 [\"height\",\"subsidy\"] " + chain_id)};
     BOOST_CHECK_EQUAL(selected_child_stats.find_value("chain_id").get_str(),

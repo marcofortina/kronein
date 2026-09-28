@@ -55,6 +55,7 @@
 #include <util/fs.h>
 #include <util/strencodings.h>
 #include <util/syserror.h>
+#include <util/time.h>
 #include <util/translation.h>
 #include <validation.h>
 #include <validationinterface.h>
@@ -234,6 +235,28 @@ static node::ChainManagerUTXOStatsView GetLoadedChildUTXOStatsView(
     }
     throw JSONRPCError(RPC_INTERNAL_ERROR,
                        "unhandled child UTXO statistics view error");
+}
+
+static node::ChainManagerVerifyResult VerifyLoadedChildChain(
+    const std::any& context,
+    std::string_view chain_id,
+    int64_t current_time)
+{
+    const auto result{EnsureAnyChildChainman(context).VerifyChain(
+        ParseChainId(chain_id), current_time)};
+    switch (result.error) {
+    case node::ChainManagerVerifyError::NONE:
+        return result;
+    case node::ChainManagerVerifyError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must not be null");
+    case node::ChainManagerVerifyError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not configured locally");
+    case node::ChainManagerVerifyError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_MISC_ERROR, "child chain is not loaded");
+    }
+    throw JSONRPCError(RPC_INTERNAL_ERROR,
+                       "unhandled child chain verification error");
 }
 
 struct PreparedUTXOSnapshot {
@@ -1692,11 +1715,13 @@ static RPCHelpMan verifychain()
 {
     return RPCHelpMan{
         "verifychain",
-        "Verifies blockchain database.\n",
+        "Verifies blockchain database.\n"
+        "When chain_id is omitted, this operates on the main chain. Child-chain verification always performs an exhaustive, non-mutating rebuild of persisted headers, blocks, undo, imports, DAG and UTXO state; checklevel and nblocks are accepted for API compatibility but do not weaken that verification.\n",
                 {
                     {"checklevel", RPCArg::Type::NUM, RPCArg::DefaultHint{strprintf("%d, range=0-4", DEFAULT_CHECKLEVEL)},
                         strprintf("How thorough the block verification is:\n%s", MakeUnorderedList(CHECKLEVEL_DOC))},
                     {"nblocks", RPCArg::Type::NUM, RPCArg::DefaultHint{strprintf("%d, 0=all", DEFAULT_CHECKBLOCKS)}, "The number of blocks to check."},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 RPCResult{
                     RPCResult::Type::BOOL, "", "Verification finished successfully. If false, check debug.log for reason."},
@@ -1708,6 +1733,14 @@ static RPCHelpMan verifychain()
 {
     const int check_level{request.params[0].isNull() ? DEFAULT_CHECKLEVEL : request.params[0].getInt<int>()};
     const int check_depth{request.params[1].isNull() ? DEFAULT_CHECKBLOCKS : request.params[1].getInt<int>()};
+
+    if (const auto chain_id{self.MaybeArg<std::string_view>("chain_id")}) {
+        return VerifyLoadedChildChain(
+                   request.context,
+                   *chain_id,
+                   Now<NodeSeconds>().time_since_epoch().count())
+            .verified;
+    }
 
     ChainstateManager& chainman = EnsureAnyChainman(request.context);
     LOCK(cs_main);

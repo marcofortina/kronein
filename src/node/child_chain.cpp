@@ -6,6 +6,7 @@
 
 #include <coins.h>
 #include <primitives/block.h>
+#include <util/log.h>
 
 #include <algorithm>
 #include <exception>
@@ -1159,23 +1160,42 @@ bool ReferenceChildRuntime::VerifyDatabase(int64_t current_time) const
     ChildChainDBState state;
     const auto loaded{m_db->Load(
         headers, imports, state, current_time)};
-    if (!loaded.IsValid() || !loaded.initialized || state != m_state ||
-        !headers.Tip() ||
-        headers.Tip()->GetBlockHash() != m_main_headers->Tip()->GetBlockHash() ||
-        imports.Imports() != m_imports.Imports() ||
-        imports.SafeHalt() != m_imports.SafeHalt() ||
-        state.child_tip != m_tip->GetBlockHash() ||
+    if (!loaded.IsValid()) {
+        LogError("Child chain verification failed while loading database: %d\n",
+                 static_cast<int>(loaded.error));
+        return false;
+    }
+    if (!loaded.initialized || state != m_state) {
+        LogError("Child chain verification found a runtime state mismatch\n");
+        return false;
+    }
+    if (!headers.Tip() || !m_main_headers->Tip() ||
+        headers.Tip()->GetBlockHash() != m_main_headers->Tip()->GetBlockHash()) {
+        LogError("Child chain verification found a main-header tip mismatch\n");
+        return false;
+    }
+    if (imports.Imports() != m_imports.Imports() ||
+        imports.SafeHalt() != m_imports.SafeHalt()) {
+        LogError("Child chain verification found an import state mismatch\n");
+        return false;
+    }
+    if (state.child_tip != m_tip->GetBlockHash() ||
         state.child_height != static_cast<uint32_t>(m_tip->nHeight)) {
+        LogError("Child chain verification found a child tip mismatch\n");
         return false;
     }
     const auto stored_headers{headers.ExportHeaders()};
     const auto active_headers{m_main_headers->ExportHeaders()};
-    if (stored_headers.size() != active_headers.size()) return false;
+    if (stored_headers.size() != active_headers.size()) {
+        LogError("Child chain verification found a main-header count mismatch\n");
+        return false;
+    }
     for (size_t index{0}; index < stored_headers.size(); ++index) {
         if (stored_headers[index].version != active_headers[index].version ||
             stored_headers[index].height != active_headers[index].height ||
             stored_headers[index].header.GetHash() !=
                 active_headers[index].header.GetHash()) {
+            LogError("Child chain verification found a main-header record mismatch\n");
             return false;
         }
     }
