@@ -8,7 +8,9 @@
 #include <consensus/consensus.h>
 #include <core_io.h>
 #include <node/chain_manager.h>
+#include <node/child_chain_notifications.h>
 #include <node/child_network_manager.h>
+#include <node/context.h>
 #include <primitives/chainregistry.h>
 #include <primitives/deposit.h>
 #include <primitives/transaction.h>
@@ -701,6 +703,33 @@ void EnsureRegistryMatchesDefinition(
     }
     throw JSONRPCError(RPC_INTERNAL_ERROR,
                        "unknown child proposal view error");
+}
+
+[[noreturn]] void ThrowChildAnchorCatchUpError(
+    node::ChildAnchorCatchUpError error)
+{
+    switch (error) {
+    case node::ChildAnchorCatchUpError::PROPOSALS_UNAVAILABLE:
+        throw JSONRPCError(
+            RPC_DATABASE_ERROR,
+            "failed to read durable child proposals during BMM anchor catch-up");
+    case node::ChildAnchorCatchUpError::ANCHOR_INDEX_UNAVAILABLE:
+        throw JSONRPCError(
+            RPC_DATABASE_ERROR,
+            "active main-chain BMM anchor index is unavailable");
+    case node::ChildAnchorCatchUpError::ANCHOR_INDEX_INCONSISTENT:
+        throw JSONRPCError(
+            RPC_DATABASE_ERROR,
+            "active main-chain BMM anchor index is inconsistent");
+    case node::ChildAnchorCatchUpError::PROOF_BUILD_FAILED:
+        throw JSONRPCError(
+            RPC_DATABASE_ERROR,
+            "failed to rebuild a historical BMM anchor proof");
+    case node::ChildAnchorCatchUpError::NONE:
+        break;
+    }
+    throw JSONRPCError(RPC_INTERNAL_ERROR,
+                       "unknown child BMM anchor catch-up error");
 }
 
 node::ChildNetworkConfig ParseChildNetworkConfig(const UniValue& options)
@@ -1440,6 +1469,16 @@ RPCHelpMan loadchildchain()
             {RPCResult::Type::BOOL, "safe_halt", "Whether irreversible reorg protection is active"},
             {RPCResult::Type::NUM, "main_height", "Current main-header light-client height"},
             {RPCResult::Type::STR_HEX, "main_bestblockhash", "Current main-header light-client tip"},
+            {RPCResult::Type::BOOL, "historical_anchor_index_complete", "Whether the bounded historical BMM lookup examined every indexed anchor for the durable local proposals"},
+            {RPCResult::Type::NUM, "historical_anchor_lookups", "Historical child-block anchor index entries examined"},
+            {RPCResult::Type::NUM, "local_proposals_checked", "Durable local proposals considered for historical anchor catch-up"},
+            {RPCResult::Type::NUM, "historical_anchors_found", "Active historical main-chain anchors found for local proposals"},
+            {RPCResult::Type::NUM, "historical_anchor_block_data_unavailable", "Matching anchors whose containing main block is pruned or unreadable"},
+            {RPCResult::Type::NUM, "historical_anchor_proofs_built", "Historical anchor proofs rebuilt from locally available main blocks"},
+            {RPCResult::Type::NUM, "historical_anchors_staged", "Historical anchor proofs accepted by the child runtime"},
+            {RPCResult::Type::NUM, "historical_proposals_activated", "Durable local proposals activated by historical anchors"},
+            {RPCResult::Type::NUM, "historical_proposal_activation_failures", "Local proposals found but rejected during historical activation"},
+            {RPCResult::Type::NUM, "historical_anchor_stage_failures", "Historical proofs rejected by the child runtime, normally because of a concurrent main-chain change"},
             {RPCResult::Type::BOOL, "network_running", "Whether the isolated child network is running"},
             {RPCResult::Type::BOOL, "network_already_running", "Whether the network was running before this call"},
             {RPCResult::Type::BOOL, "network_active", "Whether new child-network connections are enabled"},
@@ -1511,6 +1550,13 @@ RPCHelpMan loadchildchain()
         if (!loaded.already_loaded) manager.UnloadChain(chain_id);
         throw;
     }
+    node::NodeContext& node_context{EnsureAnyNodeContext(request.context)};
+    const auto catch_up{Assert(node_context.child_chain_notifications)
+                            ->CatchUpBmmAnchors(chain_id)};
+    if (!catch_up.IsValid()) {
+        if (!loaded.already_loaded) manager.UnloadChain(chain_id);
+        ThrowChildAnchorCatchUpError(catch_up.error);
+    }
     const bool network_already_running{networks.IsRunning(chain_id)};
     if (!network_already_running) {
         const auto started{networks.Start(
@@ -1537,6 +1583,20 @@ RPCHelpMan loadchildchain()
     result.pushKV("safe_halt", entry->safe_halt);
     result.pushKV("main_height", entry->main_height);
     result.pushKV("main_bestblockhash", entry->main_tip.GetHex());
+    result.pushKV("historical_anchor_index_complete", catch_up.index_complete);
+    result.pushKV("historical_anchor_lookups", catch_up.index_lookups);
+    result.pushKV("local_proposals_checked", catch_up.proposals);
+    result.pushKV("historical_anchors_found", catch_up.anchors_found);
+    result.pushKV("historical_anchor_block_data_unavailable",
+                  catch_up.block_data_unavailable);
+    result.pushKV("historical_anchor_proofs_built", catch_up.proofs_built);
+    result.pushKV("historical_anchors_staged", catch_up.anchors_staged);
+    result.pushKV("historical_proposals_activated",
+                  catch_up.proposals_activated);
+    result.pushKV("historical_proposal_activation_failures",
+                  catch_up.activation_failures);
+    result.pushKV("historical_anchor_stage_failures",
+                  catch_up.stage_failures);
     result.pushKV("network_already_running", network_already_running);
     PushChildNetworkStats(result, networks.GetStats(chain_id));
     return result;

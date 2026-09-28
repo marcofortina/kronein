@@ -5,7 +5,11 @@
 #ifndef KRONEIN_NODE_CHILD_CHAIN_NOTIFICATIONS_H
 #define KRONEIN_NODE_CHILD_CHAIN_NOTIFICATIONS_H
 
+#include <consensus/chainregistry.h>
 #include <validationinterface.h>
+
+#include <cstddef>
+#include <cstdint>
 
 class ChainstateManager;
 
@@ -14,6 +18,32 @@ namespace node {
 class ChainManager;
 class ChildNetworkManager;
 struct ChainManagerRuntimeEvent;
+
+inline constexpr uint64_t MAX_CHILD_ANCHOR_CATCH_UP_LOOKUPS{1024};
+
+enum class ChildAnchorCatchUpError : uint8_t {
+    NONE,
+    PROPOSALS_UNAVAILABLE,
+    ANCHOR_INDEX_UNAVAILABLE,
+    ANCHOR_INDEX_INCONSISTENT,
+    PROOF_BUILD_FAILED,
+};
+
+struct ChildAnchorCatchUpResult {
+    ChildAnchorCatchUpError error{ChildAnchorCatchUpError::NONE};
+    bool index_complete{true};
+    uint64_t index_lookups{0};
+    size_t proposals{0};
+    size_t anchors_found{0};
+    size_t block_data_unavailable{0};
+    size_t proofs_built{0};
+    size_t anchors_staged{0};
+    size_t proposals_activated{0};
+    size_t activation_failures{0};
+    size_t stage_failures{0};
+
+    bool IsValid() const { return error == ChildAnchorCatchUpError::NONE; }
+};
 
 /**
  * Feeds active main-chain progress into loaded child runtimes.
@@ -48,6 +78,13 @@ public:
                             ChildNetworkManager& networks,
                             ChainstateManager& chainman);
     ~ChildChainNotifications();
+
+    /**
+     * Reconcile durable local proposals with active historical main-chain
+     * anchors missed while their child runtime was unloaded.
+     */
+    ChildAnchorCatchUpResult CatchUpBmmAnchors(
+        const chainregistry::ChainId& chain_id);
 };
 
 } // namespace node
