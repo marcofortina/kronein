@@ -134,6 +134,39 @@ static std::vector<ChildWalletPayment> ParseChildSendPayments(
     return payments;
 }
 
+static std::vector<ChildWalletPayment> ParseChildRawPayments(
+    const CMutableTransaction& transaction,
+    const UniValue& subtract_fee_arg)
+{
+    std::vector<std::string> output_names;
+    output_names.reserve(transaction.vout.size());
+    for (size_t index{0}; index < transaction.vout.size(); ++index) {
+        output_names.push_back(strprintf("output %u", index));
+    }
+    const std::set<int> subtract_fee{
+        InterpretSubtractFeeFromOutputInstructions(
+            subtract_fee_arg, output_names)};
+    std::vector<ChildWalletPayment> payments;
+    payments.reserve(transaction.vout.size());
+    for (size_t index{0}; index < transaction.vout.size(); ++index) {
+        CTxDestination destination;
+        if (!ExtractDestination(transaction.vout[index].scriptPubKey,
+                                destination) ||
+            !std::holds_alternative<WitnessV1Taproot>(destination)) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                strprintf("child output %u must pay a Taproot recipient",
+                          index));
+        }
+        payments.push_back({
+            .recipient = std::get<WitnessV1Taproot>(destination),
+            .amount = transaction.vout[index].nValue,
+            .subtract_fee = subtract_fee.contains(index),
+        });
+    }
+    return payments;
+}
+
 static std::vector<ChildWalletSweepRecipient> ParseChildSweepRecipients(
     const UniValue& recipients_arg)
 {
@@ -1189,6 +1222,8 @@ RPCHelpMan fundrawtransaction()
                             .skip_type_check = true,
                             .oneline_description = "options",
                         }},
+                    {"child_fee", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "Exact absolute child-chain fee in KNE. Required with chain_id and invalid without it."},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain."},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
@@ -1217,6 +1252,95 @@ RPCHelpMan fundrawtransaction()
     CMutableTransaction tx;
     if (!DecodeHexTx(tx, request.params[0].get_str())) {
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
+    }
+    const auto chain_arg{self.MaybeArg<UniValue>("chain_id")};
+    const auto child_fee_arg{self.MaybeArg<UniValue>("child_fee")};
+    if (chain_arg) {
+        if (!child_fee_arg) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "child_fee is required when chain_id is specified");
+        }
+        if (!tx.vin.empty()) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "child fundrawtransaction currently requires automatic input selection");
+        }
+        if (tx.nLockTime != 0) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "child fundrawtransaction requires locktime 0");
+        }
+        if (!request.params[1].isNull() &&
+            !request.params[1].isObject()) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "child fundrawtransaction options must be an object");
+        }
+        UniValue options{request.params[1].isNull()
+                             ? UniValue::VOBJ
+                             : request.params[1]};
+        const std::set<std::string> supported_options{
+            "add_inputs",
+            "lock_unspents",
+            "minconf",
+            "subtract_fee_from_outputs",
+        };
+        for (const std::string& option : options.getKeys()) {
+            if (!supported_options.contains(option)) {
+                throw JSONRPCError(
+                    RPC_INVALID_PARAMETER,
+                    strprintf(
+                        "child fundrawtransaction does not support option %s",
+                        option));
+            }
+        }
+        if (options.exists("add_inputs") &&
+            !options["add_inputs"].get_bool()) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "child fundrawtransaction requires add_inputs=true");
+        }
+        const chainregistry::ChainId chain_id{
+            ParseChildChainId(*chain_arg)};
+        const int minconf{options.exists("minconf")
+                              ? options["minconf"].getInt<int>()
+                              : 0};
+        auto funded{CreateFundedChildPayments(
+            *pwallet,
+            chain_id,
+            ParseChildRawPayments(
+                tx, options["subtract_fee_from_outputs"]),
+            AmountFromValue(*child_fee_arg),
+            minconf,
+            /*bip32_derivs=*/false)};
+        if (options.exists("lock_unspents") &&
+            options["lock_unspents"].get_bool()) {
+            LOCK(pwallet->cs_wallet);
+            for (const COutPoint& input : funded.inputs) {
+                pwallet->LockChildCoin(
+                    chain_id, input, /*persist=*/false);
+            }
+        }
+        auto psbt{DecodeBase64PSBT(funded.psbt)};
+        const auto funded_transaction{
+            psbt ? psbt->GetUnsignedTx() : std::nullopt};
+        if (!funded_transaction) {
+            throw JSONRPCError(
+                RPC_INTERNAL_ERROR,
+                "could not extract funded child transaction");
+        }
+        UniValue result{UniValue::VOBJ};
+        result.pushKV(
+            "hex", EncodeHexTx(CTransaction{*funded_transaction}));
+        result.pushKV("fee", ValueFromAmount(funded.fee));
+        result.pushKV("changepos", funded.change_position);
+        return result;
+    }
+    if (child_fee_arg) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "child_fee is only valid when chain_id is specified");
     }
     UniValue options = request.params[1];
     std::vector<std::pair<CTxDestination, CAmount>> destinations;

@@ -11,13 +11,14 @@ import os
 import sys
 
 from test_framework.address import address_to_scriptpubkey
-from test_framework.messages import CBlock
+from test_framework.messages import COIN, CBlock, CTransaction, CTxOut
 from test_framework.psbt import (
     PSBT,
     PSBT_IN_TAP_BIP32_DERIVATION,
     PSBT_OUT_SCRIPT,
     PSBT_OUT_TAP_BIP32_DERIVATION,
 )
+from test_framework.script_util import output_key_to_p2tr_script
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
@@ -1992,6 +1993,32 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(compatible_processed["complete"], True)
         assert_equal(node.testmempoolaccept(
             [compatible_processed["hex"]], 0, chain_id)[0]["allowed"], True)
+
+        child_raw_tx = CTransaction()
+        child_raw_tx.vout = [CTxOut(
+            int(Decimal("0.00090000") * COIN),
+            output_key_to_p2tr_script(bytes.fromhex(child_many_b)))]
+        child_raw = child_raw_tx.serialize().hex()
+        assert_raises_rpc_error(
+            -8, "child_fee is only valid when chain_id is specified",
+            wallet.fundrawtransaction,
+            child_raw,
+            child_fee=child_send_fee)
+        compatible_raw_funded = wallet.fundrawtransaction(
+            child_raw,
+            {"minconf": 0},
+            child_fee=child_send_fee,
+            chain_id=chain_id)
+        assert_equal(compatible_raw_funded["fee"], child_send_fee)
+        assert compatible_raw_funded["changepos"] >= 0
+        compatible_raw_decoded = node.decoderawtransaction(
+            compatible_raw_funded["hex"])
+        assert len(compatible_raw_decoded["vin"]) > 0
+        assert_equal(
+            compatible_raw_decoded["vout"][
+                1 if compatible_raw_funded["changepos"] == 0 else 0
+            ]["value"],
+            Decimal("0.00090000"))
 
         child_mempool_before_test = node.getrawmempool(
             False, False, chain_id)
