@@ -62,6 +62,7 @@ private:
         BINDS_ROLE,
         DISCOVERY_ROLE,
         BOOTSTRAP_NODES_ROLE,
+        KNOWN_ADDRESSES_ROLE,
         RATE_LIMITED_REQUESTS_ROLE,
     };
 

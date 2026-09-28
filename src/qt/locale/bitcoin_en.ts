@@ -1008,12 +1008,12 @@
     </message>
     <message>
         <location line="+16"/>
-        <location line="+232"/>
+        <location line="+237"/>
         <source>Select a child chain to manage its local runtime.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-227"/>
+        <location line="-232"/>
         <source>Refresh</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1054,18 +1054,18 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+218"/>
-        <location line="+28"/>
+        <location line="+223"/>
+        <location line="+30"/>
         <source>Pause Network</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-240"/>
+        <location line="-247"/>
         <source>Forget…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+64"/>
+        <location line="+65"/>
         <source>Failed</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1096,11 +1096,17 @@
     </message>
     <message>
         <location line="+1"/>
-        <source>%1 connected • %2 authenticated</source>
+        <source>%1 connected • %2 authenticated • %3 known</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+25"/>
+        <location line="+166"/>
+        <source>Chain ID: %1
+State: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7 • discovery: %8 (%9 bootstrap, %10 known) • rate-limited block requests: %11</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-140"/>
         <source>No explicit child peers configured</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1140,6 +1146,11 @@ Bootstrap endpoints:
     </message>
     <message>
         <location line="+6"/>
+        <source>Known isolated peer-store addresses: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
         <source>Rate-limited block requests: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1185,18 +1196,12 @@ Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+56"/>
+        <location line="+58"/>
         <source>Resume Network</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+2"/>
-        <source>Chain ID: %1
-State: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7 • discovery: %8 (%9 bootstrap) • rate-limited block requests: %10</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+3"/>
+        <location line="+5"/>
         <location line="+1"/>
         <source>present</source>
         <translation type="unfinished"></translation>
@@ -1233,7 +1238,7 @@ State: %2 • registry: %3 • local configuration: %4 • network: %5 • expli
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+14"/>
         <source>Add Child Manifest</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1322,7 +1327,7 @@ Leave the field empty to disable inbound connections for this child chain.</sour
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+43"/>
+        <location line="+45"/>
         <source>Unload Child Chain</source>
         <translation type="unfinished"></translation>
     </message>
