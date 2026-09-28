@@ -4775,35 +4775,16 @@ static RPCHelpMan getdepositproof()
     }
 
     const CBlock block{GetBlockChecked(chainman.m_blockman, *block_index)};
-    if (block.GetHash() != entry.block_hash || entry.transaction_index >= block.vtx.size() ||
-        block.vtx.empty() || block.vtx[entry.transaction_index]->GetHash() != entry.outpoint.hash ||
-        entry.outpoint.n >= block.vtx[entry.transaction_index]->vout.size()) {
-        throw JSONRPCError(RPC_INTERNAL_ERROR, "deposit index does not match the stored block");
-    }
-
-    chainregistry::DepositProof proof{
-        .main_genesis_hash = main_genesis_hash,
-        .block_height = entry.block_height,
-        .block_header = static_cast<const CBlockHeader&>(block),
-        .funding_transaction = CMutableTransaction{*block.vtx[entry.transaction_index]},
-        .funding_vout = entry.outpoint.n,
-        .transaction_index = entry.transaction_index,
-        .transaction_merkle_branch = TransactionMerklePath(block, entry.transaction_index),
-        .coinbase_transaction = CMutableTransaction{*block.vtx[0]},
-        .coinbase_merkle_branch = TransactionMerklePath(block, 0),
-        .chain_record = entry.chain_record,
-        .registry_proof = entry.registry_proof,
-    };
-    const auto validation{chainregistry::ValidateDepositProofStructure(
-        proof, main_genesis_hash, entry.fund.chain_id)};
-    if (!validation.IsValid() || validation.deposit_id != entry.deposit_id ||
-        validation.registry_root != entry.registry_root || !validation.fund ||
-        validation.fund->amount != entry.amount || validation.fund->fund != entry.fund) {
+    const auto built{node::BuildDepositProof(
+        block, entry, main_genesis_hash)};
+    if (!built.IsValid()) {
         throw JSONRPCError(
             RPC_INTERNAL_ERROR,
-            strprintf("generated deposit proof failed validation (%u)",
-                      static_cast<unsigned>(validation.error)));
+            strprintf("failed to build deposit proof (build error %u, validation error %u)",
+                      static_cast<unsigned>(built.error),
+                      static_cast<unsigned>(built.validation.error)));
     }
+    const auto& proof{built.proof};
 
     UniValue result{UniValue::VOBJ};
     result.pushKV("proof", SerializeDepositProofHex(proof));

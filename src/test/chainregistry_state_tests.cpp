@@ -261,6 +261,33 @@ BOOST_AUTO_TEST_CASE(indexes_snapshot_descendant_deposit_and_reverts_it)
         BOOST_CHECK(indexed->registry_root == registry.ComputeRoot());
         BOOST_CHECK(chainregistry::VerifyRegistryInclusion(
             indexed->chain_record, indexed->registry_proof, indexed->registry_root));
+        const auto built{
+            node::BuildDepositProof(deposit_block, *indexed, genesis_hash)};
+        BOOST_REQUIRE(built.IsValid());
+        BOOST_CHECK(built.validation.deposit_id == deposit_id);
+        BOOST_REQUIRE(built.validation.fund);
+        BOOST_CHECK(built.validation.fund->amount == indexed->amount);
+        BOOST_CHECK(built.validation.fund->fund == indexed->fund);
+        BOOST_CHECK_EQUAL(built.proof.block_height, 101U);
+        BOOST_CHECK(built.proof.block_header.GetHash() == deposit_block_hash);
+        BOOST_CHECK_EQUAL(built.proof.transaction_index, 1U);
+
+        CBlock wrong_block{deposit_block};
+        ++wrong_block.nTime;
+        BOOST_CHECK(
+            node::BuildDepositProof(wrong_block, *indexed, genesis_hash)
+                .error == node::DepositProofBuildError::BLOCK_MISMATCH);
+        auto wrong_entry{*indexed};
+        ++wrong_entry.transaction_index;
+        BOOST_CHECK(
+            node::BuildDepositProof(deposit_block, wrong_entry, genesis_hash)
+                .error ==
+            node::DepositProofBuildError::TRANSACTION_MISMATCH);
+        wrong_entry = *indexed;
+        wrong_entry.registry_root = {};
+        BOOST_CHECK(
+            node::BuildDepositProof(deposit_block, wrong_entry, genesis_hash)
+                .error == node::DepositProofBuildError::PROOF_INVALID);
     }
 
     {

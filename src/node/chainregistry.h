@@ -6,6 +6,7 @@
 #define KRONEIN_NODE_CHAINREGISTRY_H
 
 #include <consensus/chainregistry.h>
+#include <consensus/deposit_proof.h>
 #include <consensus/params.h>
 #include <node/chainregistry_db.h>
 #include <uint256.h>
@@ -63,6 +64,28 @@ struct BmmAnchorProofBuildResult {
 
     bool IsValid() const { return error == BmmAnchorProofBuildError::NONE; }
 };
+
+enum class DepositProofBuildError : uint8_t {
+    NONE,
+    INVALID_INDEX_ENTRY,
+    BLOCK_MISMATCH,
+    TRANSACTION_MISMATCH,
+    PROOF_INVALID,
+};
+
+struct DepositProofBuildResult {
+    DepositProofBuildError error{DepositProofBuildError::NONE};
+    chainregistry::DepositProofValidationResult validation;
+    chainregistry::DepositProof proof;
+
+    bool IsValid() const { return error == DepositProofBuildError::NONE; }
+};
+
+/** Build and self-validate a KDPR from one consensus-indexed main deposit. */
+DepositProofBuildResult BuildDepositProof(
+    const CBlock& block,
+    const DepositIndexEntry& entry,
+    const uint256& main_genesis_hash);
 
 /** Build and self-validate a KBPR from one consensus-indexed main anchor. */
 BmmAnchorProofBuildResult BuildBmmAnchorProof(

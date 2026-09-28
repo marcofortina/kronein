@@ -120,6 +120,59 @@ std::optional<std::vector<BmmAnchorIndexEntry>> BuildBmmAnchorIndexEntries(
 
 } // namespace
 
+DepositProofBuildResult BuildDepositProof(
+    const CBlock& block,
+    const DepositIndexEntry& entry,
+    const uint256& main_genesis_hash)
+{
+    DepositProofBuildResult result;
+    if (entry.version != DEPOSIT_INDEX_ENTRY_VERSION ||
+        entry.deposit_id.IsNull() || entry.outpoint.IsNull() ||
+        entry.fund.chain_id.IsNull() ||
+        entry.chain_record.chain_id != entry.fund.chain_id) {
+        result.error = DepositProofBuildError::INVALID_INDEX_ENTRY;
+        return result;
+    }
+    if (block.GetHash() != entry.block_hash || block.vtx.empty()) {
+        result.error = DepositProofBuildError::BLOCK_MISMATCH;
+        return result;
+    }
+    if (entry.transaction_index == 0 ||
+        entry.transaction_index >= block.vtx.size() ||
+        block.vtx[entry.transaction_index]->GetHash() != entry.outpoint.hash ||
+        entry.outpoint.n >= block.vtx[entry.transaction_index]->vout.size()) {
+        result.error = DepositProofBuildError::TRANSACTION_MISMATCH;
+        return result;
+    }
+
+    result.proof = {
+        .main_genesis_hash = main_genesis_hash,
+        .block_height = entry.block_height,
+        .block_header = static_cast<const CBlockHeader&>(block),
+        .funding_transaction =
+            CMutableTransaction{*block.vtx[entry.transaction_index]},
+        .funding_vout = entry.outpoint.n,
+        .transaction_index = entry.transaction_index,
+        .transaction_merkle_branch =
+            TransactionMerklePath(block, entry.transaction_index),
+        .coinbase_transaction = CMutableTransaction{*block.vtx[0]},
+        .coinbase_merkle_branch = TransactionMerklePath(block, 0),
+        .chain_record = entry.chain_record,
+        .registry_proof = entry.registry_proof,
+    };
+    result.validation = chainregistry::ValidateDepositProofStructure(
+        result.proof, main_genesis_hash, entry.fund.chain_id);
+    if (!result.validation.IsValid() ||
+        result.validation.deposit_id != entry.deposit_id ||
+        result.validation.registry_root != entry.registry_root ||
+        !result.validation.fund ||
+        result.validation.fund->amount != entry.amount ||
+        result.validation.fund->fund != entry.fund) {
+        result.error = DepositProofBuildError::PROOF_INVALID;
+    }
+    return result;
+}
+
 BmmAnchorProofBuildResult BuildBmmAnchorProof(
     const CBlock& block,
     const BmmAnchorIndexEntry& entry,
