@@ -126,7 +126,8 @@ chainregistry::BmmAnchorProof MakeBmmProof(
     CBlock& block,
     const CBlockIndex& parent,
     const Consensus::Params& params,
-    const uint256& child_block_hash)
+    const uint256& child_block_hash,
+    bool mine_pow = true)
 {
     const auto record{ChildRecord()};
     chainregistry::ChainRegistry registry;
@@ -152,11 +153,14 @@ chainregistry::BmmAnchorProof MakeBmmProof(
     block.nBits = GetNextWorkRequired(&parent, &block, params);
     block.vtx = {MakeTransactionRef(coinbase), MakeTransactionRef(proposal)};
     block.hashMerkleRoot = BlockMerkleRoot(block);
-    const auto seed{GetRandomXSeed(&parent, parent.nHeight + 1, params)};
-    BOOST_REQUIRE(seed.has_value());
-    uint64_t max_tries{1'000'000};
-    BOOST_REQUIRE(MineProofOfWork(
-        block, *seed, params, max_tries, /*threads=*/1, /*use_full_memory=*/false));
+    if (mine_pow) {
+        const auto seed{GetRandomXSeed(&parent, parent.nHeight + 1, params)};
+        BOOST_REQUIRE(seed.has_value());
+        uint64_t max_tries{1'000'000};
+        BOOST_REQUIRE(MineProofOfWork(
+            block, *seed, params, max_tries,
+            /*threads=*/1, /*use_full_memory=*/false));
+    }
 
     return {
         .main_genesis_hash = params.hashGenesisBlock,
@@ -217,6 +221,15 @@ void AddAndPersist(node::ChildChainDB& db,
 {
     BOOST_REQUIRE(headers.AddHeader(header, header.nTime).IsValid());
     BOOST_REQUIRE(db.WriteMainHeader(headers, imports, header, /*sync=*/true));
+}
+
+void AddValidatedAndPersist(node::ChildChainDB& db,
+                            chainregistry::MainHeaderChain& headers,
+                            const chainregistry::DepositImportState& imports,
+                            const CBlockHeader& header)
+{
+    BOOST_REQUIRE(headers.AddValidatedHeader(header, header.nTime).IsValid());
+    BOOST_REQUIRE(db.WriteMainHeader(headers, imports, header));
 }
 
 } // namespace
@@ -296,6 +309,83 @@ BOOST_AUTO_TEST_CASE(persists_bounded_local_proposals)
         BOOST_REQUIRE(proposals.has_value());
         BOOST_CHECK(proposals->empty());
     }
+}
+
+BOOST_AUTO_TEST_CASE(bounds_pending_bmm_anchor_queue)
+{
+    const auto& params{Params().GetConsensus()};
+    const CBlock& genesis{Params().GenesisBlock()};
+    chainregistry::MainHeaderChain headers{params};
+    BOOST_REQUIRE(headers.Initialize(genesis).IsValid());
+    chainregistry::DepositImportState imports{CHILD_CHAIN, 2};
+    node::ChildChainDB db{{
+                              .path = m_args.GetDataDirBase() /
+                                  "child_chain_pending_anchor_limits",
+                              .cache_bytes = 1 << 20,
+                              .wipe_data = true,
+                              .obfuscate = true,
+                          },
+                          CHILD_CHAIN,
+                          params.hashGenesisBlock,
+                          2,
+                          CHILD_GENESIS};
+    BOOST_REQUIRE(db.WriteInitialState(headers, imports, /*sync=*/true));
+
+    const CBlock first_child{MakeChildBlock(CHILD_GENESIS, 1)};
+    chainregistry::BmmAnchorProof first_proof;
+    chainregistry::BmmAnchorProof overflow_proof;
+    for (uint64_t index{0};
+         index <= node::MAX_CHILD_PENDING_BMM_ANCHORS;
+         ++index) {
+        const CBlockIndex* parent{headers.Tip()};
+        BOOST_REQUIRE(parent);
+        CBlock main_block;
+        const uint256 child_block_hash{index == 0
+                ? first_child.GetHash()
+                : ArithToUint256(arith_uint256{index + 1})};
+        auto proof{MakeBmmProof(
+            main_block,
+            *parent,
+            params,
+            child_block_hash,
+            /*mine_pow=*/false)};
+        AddValidatedAndPersist(db, headers, imports, main_block);
+        if (index < node::MAX_CHILD_PENDING_BMM_ANCHORS) {
+            BOOST_REQUIRE(db.WritePendingBmmAnchor(headers, proof));
+            if (index == 0) first_proof = proof;
+        } else {
+            overflow_proof = proof;
+            BOOST_CHECK(!db.WritePendingBmmAnchor(headers, proof));
+        }
+    }
+
+    node::ChildChainDBState full_state;
+    BOOST_REQUIRE(db.ReadState(full_state));
+    BOOST_CHECK_EQUAL(
+        full_state.pending_anchor_count,
+        node::MAX_CHILD_PENDING_BMM_ANCHORS);
+    BOOST_CHECK_GT(full_state.pending_anchor_bytes, 0U);
+    BOOST_REQUIRE(db.WritePendingBmmAnchor(headers, first_proof));
+    node::ChildChainDBState duplicate_state;
+    BOOST_REQUIRE(db.ReadState(duplicate_state));
+    BOOST_CHECK(duplicate_state == full_state);
+
+    const chainregistry::ReferenceChildBlockUndo undo{
+        .block_hash = first_child.GetHash(),
+        .parent_hash = CHILD_GENESIS,
+        .block_height = 1,
+        .coins = {},
+        .imports = {},
+    };
+    BOOST_REQUIRE(db.WriteValidatedChildCandidate(
+        headers, first_child, undo, first_proof));
+    BOOST_REQUIRE(db.WritePendingBmmAnchor(headers, overflow_proof));
+    node::ChildChainDBState reused_state;
+    BOOST_REQUIRE(db.ReadState(reused_state));
+    BOOST_CHECK_EQUAL(
+        reused_state.pending_anchor_count,
+        node::MAX_CHILD_PENDING_BMM_ANCHORS);
+    BOOST_CHECK(reused_state.pending_anchor_bytes > 0);
 }
 
 BOOST_AUTO_TEST_CASE(persists_headers_imports_and_child_undo)
