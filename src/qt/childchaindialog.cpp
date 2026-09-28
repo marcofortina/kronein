@@ -18,6 +18,7 @@
 #include <QAbstractItemView>
 #include <QApplication>
 #include <QCheckBox>
+#include <QClipboard>
 #include <QComboBox>
 #include <QDialogButtonBox>
 #include <QFormLayout>
@@ -639,7 +640,14 @@ void ChildChainDialog::showBmmStatus(const QString& chain_id)
 
     const UniValue& pending{status.find_value("pending_blocks")};
     const UniValue& proposals{status.find_value("proposals")};
+    const bool safe_halt{BoolField(status, "safe_halt")};
+    const UniValue& affected_deposits{
+        status.find_value("safe_halt_affected_deposits")};
     if (!status.isObject() || !pending.isArray() || !proposals.isArray() ||
+        (safe_halt &&
+         (!status.find_value("safe_halt_reason").isStr() ||
+          !status.find_value("safe_halt_observed_main_tip").isStr() ||
+          !affected_deposits.isArray())) ||
         StringField(status, "chain_id").compare(
             chain_id, Qt::CaseInsensitive) != 0) {
         showRpcError(tr("Child BMM status"),
@@ -683,6 +691,38 @@ void ChildChainDialog::showBmmStatus(const QString& chain_id)
     layout->addWidget(summary);
 
     QStringList details;
+    if (safe_halt) {
+        auto* warning = new QLabel{
+            tr("CRITICAL: this child chain is permanently halted because an imported deposit left the authenticated main chain. Spending, migration, and BMM actions remain disabled."),
+            &dialog};
+        QFont warning_font{warning->font()};
+        warning_font.setBold(true);
+        warning->setFont(warning_font);
+        warning->setWordWrap(true);
+        warning->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        layout->addWidget(warning);
+
+        details.push_back(tr("Safe-halt evidence:"));
+        details.push_back(
+            QStringLiteral("  ") +
+            tr("Reason: %1").arg(StringField(status, "safe_halt_reason")));
+        details.push_back(
+            QStringLiteral("  ") +
+            tr("Observed main tip: %1")
+                .arg(StringField(status, "safe_halt_observed_main_tip")));
+        details.push_back(QStringLiteral("  ") + tr("Affected deposits:"));
+        for (const UniValue& deposit_id : affected_deposits.getValues()) {
+            if (deposit_id.isStr()) {
+                details.push_back(
+                    QStringLiteral("    ") +
+                    QString::fromStdString(deposit_id.get_str()));
+            }
+        }
+        if (affected_deposits.empty()) {
+            details.push_back(QStringLiteral("    ") + tr("none reported"));
+        }
+        details.push_back(QString{});
+    }
     if (!pending.empty()) {
         details.push_back(tr("Pending child block data:"));
         for (const UniValue& block : pending.getValues()) {
@@ -718,6 +758,18 @@ void ChildChainDialog::showBmmStatus(const QString& chain_id)
     detail_view->setLineWrapMode(QPlainTextEdit::NoWrap);
     layout->addWidget(detail_view, 1);
     auto* buttons = new QDialogButtonBox{QDialogButtonBox::Close, &dialog};
+    auto* copy_report = buttons->addButton(
+        safe_halt ? tr("Copy Evidence Report") : tr("Copy Status Report"),
+        QDialogButtonBox::ActionRole);
+    copy_report->setObjectName(QStringLiteral("childChainCopyBmmReportButton"));
+    connect(copy_report, &QPushButton::clicked, &dialog, [&dialog, status] {
+        QApplication::clipboard()->setText(
+            QString::fromStdString(status.write(2)));
+        QMessageBox::information(
+            &dialog,
+            ChildChainDialog::tr("Child BMM status"),
+            ChildChainDialog::tr("The diagnostic report was copied to the clipboard."));
+    });
     connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
     layout->addWidget(buttons);
     dialog.exec();
