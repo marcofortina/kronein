@@ -365,6 +365,24 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(foreign_child_address_info["solvable"], False)
         assert_equal(foreign_child_address_info["ischange"], False)
         assert_equal(foreign_child_address_info["labels"], [])
+        wallet.setlabel(child_recipient, "child-renamed", chain_id)
+        assert_equal(wallet.getaddressinfo(
+            child_recipient, chain_id)["labels"], ["child-renamed"])
+        assert_equal(wallet.getaddressesbylabel(
+            "child-renamed", chain_id), {
+                child_recipient: {
+                    "purpose": "receive",
+                    "chain_id": chain_id,
+                    "recipient_type": 1,
+                },
+            })
+        assert "child-renamed" in wallet.listlabels("receive", chain_id)
+        assert_equal(wallet.listlabels("send", chain_id), [])
+        assert_raises_rpc_error(
+            -4, "Recipient not found in child wallet",
+            attacker.setlabel,
+            child_recipient, "foreign", chain_id)
+        wallet.setlabel(child_recipient, "child-receive", chain_id)
         listed_identities = wallet.listchildrecipients(chain_id)
         assert_equal(listed_identities["chain_id"], chain_id)
         assert_equal(listed_identities["recipient_count"], 1)
@@ -1165,6 +1183,10 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(child_change_info["solvable"], True)
         assert_equal(child_change_info["ischange"], True)
         assert_equal(child_change_info["labels"], [])
+        assert_raises_rpc_error(
+            -4, "Child change recipients cannot be relabeled",
+            wallet.setlabel,
+            child_change_identity["recipient"], "change", chain_id)
 
         self.log.info("Restore child descriptor contexts in another wallet")
         exported_child_descriptors = [

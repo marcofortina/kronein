@@ -388,10 +388,11 @@ RPCHelpMan setlabel()
 {
     return RPCHelpMan{
         "setlabel",
-        "Sets the label associated with the given address.\n",
+        "Sets the label associated with the given address. When chain_id is present, relabel a wallet-owned non-change child recipient.\n",
                 {
-                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The Kronein address to be associated with a label."},
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The Kronein address, or 32-byte hexadecimal recipient when chain_id is present."},
                     {"label", RPCArg::Type::STR, RPCArg::Optional::NO, "The label to assign to the address."},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 RPCResult{RPCResult::Type::NONE, "", ""},
                 RPCExamples{
@@ -405,17 +406,48 @@ RPCHelpMan setlabel()
 
     LOCK(pwallet->cs_wallet);
 
-    CTxDestination dest = DecodeDestination(request.params[0].get_str());
-    if (!IsValidDestination(dest)) {
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Kronein address");
+    std::optional<chainregistry::ChainId> child_chain;
+    CTxDestination dest;
+    if (const auto chain_arg{self.MaybeArg<UniValue>("chain_id")}) {
+        child_chain = ParseChildChainId(*chain_arg);
+        dest = ParseChildRecipient(request.params[0]);
+        bool bound{false};
+        for (const auto& [owned, _] :
+             pwallet->ListChildRecipients(*child_chain)) {
+            if (owned == dest) {
+                bound = true;
+                break;
+            }
+        }
+        if (!bound || !pwallet->IsMine(dest)) {
+            throw JSONRPCError(
+                RPC_WALLET_ERROR,
+                "Recipient not found in child wallet");
+        }
+        const auto* address_book{pwallet->FindAddressBookEntry(
+            dest, /*allow_change=*/true)};
+        if (!address_book || address_book->IsChange()) {
+            throw JSONRPCError(
+                RPC_WALLET_ERROR,
+                "Child change recipients cannot be relabeled");
+        }
+    } else {
+        dest = DecodeDestination(request.params[0].get_str());
+        if (!IsValidDestination(dest)) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                               "Invalid Kronein address");
+        }
     }
 
     const std::string label{LabelFromValue(request.params[1])};
 
-    if (pwallet->IsMine(dest)) {
-        pwallet->SetAddressBook(dest, label, AddressPurpose::RECEIVE);
-    } else {
-        pwallet->SetAddressBook(dest, label, AddressPurpose::SEND);
+    const AddressPurpose purpose{
+        child_chain || pwallet->IsMine(dest)
+            ? AddressPurpose::RECEIVE
+            : AddressPurpose::SEND};
+    if (!pwallet->SetAddressBook(dest, label, purpose)) {
+        throw JSONRPCError(RPC_WALLET_ERROR,
+                           "Could not persist address label");
     }
 
     return UniValue::VNULL;
@@ -688,9 +720,10 @@ RPCHelpMan getaddressesbylabel()
 {
     return RPCHelpMan{
         "getaddressesbylabel",
-        "Returns the list of addresses assigned the specified label.\n",
+        "Returns the list of addresses assigned the specified label. When chain_id is present, keys are raw child recipients.\n",
                 {
                     {"label", RPCArg::Type::STR, RPCArg::Optional::NO, "The label."},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ_DYN, "", "json object with addresses as keys",
@@ -698,6 +731,8 @@ RPCHelpMan getaddressesbylabel()
                         {RPCResult::Type::OBJ, "address", "json object with information about address",
                         {
                             {RPCResult::Type::STR, "purpose", "Purpose of address (\"send\" for sending address, \"receive\" for receiving address)"},
+                            {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Selected child-chain identifier; present for child results"},
+                            {RPCResult::Type::NUM, "recipient_type", /*optional=*/true, "Reference child recipient namespace; present for child results"},
                         }},
                     }
                 },
@@ -713,6 +748,38 @@ RPCHelpMan getaddressesbylabel()
     LOCK(pwallet->cs_wallet);
 
     const std::string label{LabelFromValue(request.params[0])};
+
+    if (const auto chain_arg{self.MaybeArg<UniValue>("chain_id")}) {
+        const auto chain_id{ParseChildChainId(*chain_arg)};
+        UniValue result{UniValue::VOBJ};
+        for (const auto& [destination, recipient_label] :
+             pwallet->ListChildRecipients(chain_id)) {
+            const auto* recipient{
+                std::get_if<WitnessV1Taproot>(&destination)};
+            const auto* address_book{pwallet->FindAddressBookEntry(
+                destination, /*allow_change=*/true)};
+            if (!recipient || !address_book) {
+                throw JSONRPCError(
+                    RPC_WALLET_ERROR,
+                    "wallet contains an invalid child recipient context");
+            }
+            if (address_book->IsChange() || recipient_label != label) {
+                continue;
+            }
+            UniValue value{UniValue::VOBJ};
+            value.pushKV("purpose", "receive");
+            value.pushKV("chain_id", chain_id.GetHex());
+            value.pushKV("recipient_type",
+                         chainregistry::REFERENCE_CHILD_P2TR_RECIPIENT);
+            result.pushKVEnd(HexStr(*recipient), std::move(value));
+        }
+        if (result.empty()) {
+            throw JSONRPCError(
+                RPC_WALLET_INVALID_LABEL_NAME,
+                std::string("No child recipients with label " + label));
+        }
+        return result;
+    }
 
     // Find all addresses that have the given label
     UniValue ret(UniValue::VOBJ);
@@ -749,9 +816,10 @@ RPCHelpMan listlabels()
 {
     return RPCHelpMan{
         "listlabels",
-        "Returns the list of all labels, or labels that are assigned to addresses with a specific purpose.\n",
+        "Returns the list of all labels, or labels that are assigned to addresses with a specific purpose. When chain_id is present, only labels of that child's receiving recipients are returned.\n",
                 {
                     {"purpose", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Address purpose to list labels for ('send','receive'). An empty string is the same as not providing this argument."},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 RPCResult{
                     RPCResult::Type::ARR, "", "",
@@ -787,8 +855,25 @@ RPCHelpMan listlabels()
         }
     }
 
-    // Add to a set to sort by label name, then insert into Univalue array
-    std::set<std::string> label_set = pwallet->ListAddrBookLabels(purpose);
+    std::set<std::string> label_set;
+    if (const auto chain_arg{self.MaybeArg<UniValue>("chain_id")}) {
+        const auto chain_id{ParseChildChainId(*chain_arg)};
+        if (!purpose || *purpose == AddressPurpose::RECEIVE) {
+            for (const auto& [destination, label] :
+                 pwallet->ListChildRecipients(chain_id)) {
+                const auto* address_book{pwallet->FindAddressBookEntry(
+                    destination, /*allow_change=*/true)};
+                if (!address_book) {
+                    throw JSONRPCError(
+                        RPC_WALLET_ERROR,
+                        "wallet child recipient is missing its address-book record");
+                }
+                if (!address_book->IsChange()) label_set.insert(label);
+            }
+        }
+    } else {
+        label_set = pwallet->ListAddrBookLabels(purpose);
+    }
 
     UniValue ret(UniValue::VARR);
     for (const std::string& name : label_set) {
