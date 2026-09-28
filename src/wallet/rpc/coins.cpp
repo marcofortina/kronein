@@ -33,16 +33,20 @@ UniValue GetChildBalances(
     const interfaces::ChildWalletScan scan{
         ScanChildWallet(wallet, chain_id)};
     CAmount trusted{0};
+    CAmount untrusted_pending{0};
     CAmount immature{0};
     for (const interfaces::ChildWalletCoin& coin : scan.coins) {
-        if (coin.height > scan.height || !MoneyRange(coin.output.nValue)) {
+        if ((!coin.mempool && coin.height > scan.height) ||
+            !MoneyRange(coin.output.nValue)) {
             throw JSONRPCError(RPC_INTERNAL_ERROR,
                                "child wallet UTXO data is inconsistent");
         }
-        const uint64_t confirmations{
+        const uint64_t confirmations{coin.mempool ? 0 :
             uint64_t{scan.height} - coin.height + 1};
         CAmount& balance{
-            coin.coinbase && confirmations < COINBASE_MATURITY
+            coin.mempool && !coin.trusted
+                ? untrusted_pending
+                : coin.coinbase && confirmations < COINBASE_MATURITY
                 ? immature
                 : trusted};
         if (!MoneyRange(balance + coin.output.nValue)) {
@@ -54,7 +58,7 @@ UniValue GetChildBalances(
 
     UniValue mine{UniValue::VOBJ};
     mine.pushKV("trusted", ValueFromAmount(trusted));
-    mine.pushKV("untrusted_pending", ValueFromAmount(0));
+    mine.pushKV("untrusted_pending", ValueFromAmount(untrusted_pending));
     mine.pushKV("immature", ValueFromAmount(immature));
 
     UniValue last_processed{UniValue::VOBJ};
@@ -73,7 +77,8 @@ UniValue ListChildUnspent(
     const chainregistry::ChainId& chain_id,
     int min_depth,
     int max_depth,
-    const CoinFilterParams& filter)
+    const CoinFilterParams& filter,
+    bool include_unsafe)
 {
     const interfaces::ChildWalletScan scan{
         ScanChildWallet(wallet, chain_id)};
@@ -82,17 +87,19 @@ UniValue ListChildUnspent(
 
     LOCK(wallet.cs_wallet);
     for (const interfaces::ChildWalletCoin& coin : scan.coins) {
-        if (coin.height > scan.height || !MoneyRange(coin.output.nValue)) {
+        if ((!coin.mempool && coin.height > scan.height) ||
+            !MoneyRange(coin.output.nValue)) {
             throw JSONRPCError(RPC_INTERNAL_ERROR,
                                "child wallet UTXO data is inconsistent");
         }
-        const uint64_t confirmations{
+        const uint64_t confirmations{coin.mempool ? 0 :
             uint64_t{scan.height} - coin.height + 1};
         if (confirmations < static_cast<uint64_t>(std::max(min_depth, 0)) ||
             (max_depth >= 0 &&
              confirmations > static_cast<uint64_t>(max_depth)) ||
             coin.output.nValue < filter.min_amount ||
             coin.output.nValue > filter.max_amount ||
+            (coin.mempool && !coin.trusted && !include_unsafe) ||
             (coin.coinbase && confirmations < COINBASE_MATURITY &&
              !filter.include_immature_coinbase)) {
             continue;
@@ -131,7 +138,7 @@ UniValue ListChildUnspent(
             }
         }
         PushParentDescriptors(wallet, coin.output.scriptPubKey, entry);
-        entry.pushKV("safe", true);
+        entry.pushKV("safe", !coin.mempool || coin.trusted);
         results.push_back(std::move(entry));
 
         if (!MoneyRange(selected_amount + coin.output.nValue)) {
@@ -530,7 +537,7 @@ RPCHelpMan getbalances()
     return RPCHelpMan{
         "getbalances",
         "Returns an object with all balances in " + CURRENCY_UNIT + ".\n"
-        "When chain_id is omitted, balances are from the main-chain wallet as before. When an exact child chain is provided, the loaded child UTXO set is scanned for wallet recipients explicitly bound to that chain; child mempool balances are not yet available.\n",
+        "When chain_id is omitted, balances are from the main-chain wallet as before. When an exact child chain is provided, the loaded child UTXO set and isolated mempool are scanned for wallet recipients explicitly bound to that chain.\n",
         {
             {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
         },
@@ -596,7 +603,7 @@ RPCHelpMan listunspent()
         "Returns array of unspent transaction outputs\n"
                 "with between minconf and maxconf (inclusive) confirmations.\n"
                 "Optionally filter to only include txouts paid to specified addresses.\n"
-                "When chain_id is provided, scan the loaded child chain for wallet recipients explicitly bound to that chain. Child recipients are raw P2TR output keys, so the main-chain addresses filter must be empty.\n",
+                "When chain_id is provided, scan the loaded child chain and its isolated mempool for wallet recipients explicitly bound to that chain. Child recipients are raw P2TR output keys, so the main-chain addresses filter must be empty.\n",
                 {
                     {"minconf", RPCArg::Type::NUM, RPCArg::Default{1}, "The minimum confirmations to filter"},
                     {"maxconf", RPCArg::Type::NUM, RPCArg::Default{9999999}, "The maximum confirmations to filter"},
@@ -736,7 +743,8 @@ RPCHelpMan listunspent()
 
     if (child_chain) {
         return ListChildUnspent(
-            *pwallet, *child_chain, nMinDepth, nMaxDepth, filter_coins);
+            *pwallet, *child_chain, nMinDepth, nMaxDepth, filter_coins,
+            include_unsafe);
     }
 
     // Make sure the results are valid at least up to the most recent block

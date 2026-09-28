@@ -68,6 +68,7 @@ chainregistry::ReferenceChildDefinition DefinitionFromScan(
 uint64_t Confirmations(const interfaces::ChildWalletScan& scan,
                        const interfaces::ChildWalletCoin& coin)
 {
+    if (coin.mempool) return 0;
     if (coin.height > scan.height) {
         throw JSONRPCError(RPC_INTERNAL_ERROR,
                            "child wallet UTXO height exceeds the child tip");
@@ -230,7 +231,7 @@ RPCHelpMan walletcreatechildpsbt()
 {
     return RPCHelpMan{
         "walletcreatechildpsbt",
-        "Create and fund a PSBT spending confirmed wallet UTXOs on one loaded reference child chain.\n"
+        "Create and fund a PSBT spending wallet UTXOs on one loaded reference child chain.\n"
         "Recipients are canonical 32-byte child P2TR output keys, not main-chain addresses. The absolute fee is explicit because child chains have no independent wallet fee estimator.\n",
         {
             {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Exact non-null child-chain identifier"},

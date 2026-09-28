@@ -1141,6 +1141,35 @@ class ChainRegistryTest(BitcoinTestFramework):
                 chain_id)["activity"],
             [])
 
+        child_change = deposit_amount - child_spend_amount - child_fee
+        assert_equal(wallet.getbalances(chain_id)["mine"], {
+            "trusted": child_change,
+            "untrusted_pending": Decimal("0.00000000"),
+            "immature": Decimal("0.00000000"),
+        })
+        assert_equal(attacker.getbalances(chain_id)["mine"], {
+            "trusted": Decimal("0.00000000"),
+            "untrusted_pending": child_spend_amount,
+            "immature": Decimal("0.00000000"),
+        })
+        pending_change = wallet.listunspent(
+            0, 9999999, [], True, {}, chain_id)
+        assert_equal(len(pending_change), 1)
+        assert_equal(pending_change[0]["txid"], signed_child["txid"])
+        assert_equal(pending_change[0]["amount"], child_change)
+        assert_equal(pending_change[0]["confirmations"], 0)
+        assert_equal(pending_change[0]["safe"], True)
+        assert_equal(
+            wallet.listunspent(1, 9999999, [], True, {}, chain_id), [])
+        pending_destination = attacker.listunspent(
+            0, 9999999, [], True, {}, chain_id)
+        assert_equal(len(pending_destination), 1)
+        assert_equal(pending_destination[0]["amount"], child_spend_amount)
+        assert_equal(pending_destination[0]["confirmations"], 0)
+        assert_equal(pending_destination[0]["safe"], False)
+        assert_equal(
+            attacker.listunspent(0, 9999999, [], False, {}, chain_id), [])
+
         child_fee_recipient = wallet.getnewchildrecipient(
             chain_id, "child-fees")
         child_wallet_identities = wallet.listchildrecipients(chain_id)

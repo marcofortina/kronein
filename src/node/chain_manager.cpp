@@ -1478,7 +1478,8 @@ ChainManagerUTXOScanView ChainManager::ScanUTXOSet(
     const std::set<CScript>& needles,
     std::atomic<int>& progress,
     const std::atomic<bool>& should_abort,
-    const std::function<void()>& interruption_point) const
+    const std::function<void()>& interruption_point,
+    bool include_mempool) const
 {
     LOCK(m_mutex);
     ChainManagerUTXOScanView result;
@@ -1535,7 +1536,35 @@ ChainManagerUTXOScanView ChainManager::ScanUTXOSet(
     result.completed = !cursor->Valid();
     if (result.completed) progress = 100;
 
-    for (const auto& [_, coin] : result.matches) {
+    if (result.completed && include_mempool) {
+        const auto mempool{loaded->second->GetMempool()};
+        for (const auto& entry : mempool.entries) {
+            bool from_wallet{false};
+            for (const auto& input : entry.transaction->vin) {
+                from_wallet |= result.matches.contains(input.prevout);
+                from_wallet |= result.mempool_matches.contains(input.prevout);
+            }
+            for (const auto& input : entry.transaction->vin) {
+                result.matches.erase(input.prevout);
+                result.mempool_matches.erase(input.prevout);
+            }
+            for (size_t index{0}; index < entry.transaction->vout.size();
+                 ++index) {
+                const CTxOut& output{entry.transaction->vout[index]};
+                if (!needles.contains(output.scriptPubKey)) continue;
+                const COutPoint outpoint{
+                    entry.transaction->GetHash(),
+                    static_cast<uint32_t>(index)};
+                result.matches.emplace(
+                    outpoint,
+                    Coin{output, /*nHeightIn=*/0, /*fCoinBaseIn=*/false});
+                result.mempool_matches.emplace(outpoint, from_wallet);
+            }
+        }
+    }
+
+    for (const auto& [outpoint, coin] : result.matches) {
+        if (result.mempool_matches.contains(outpoint)) continue;
         if (coin.nHeight > result.entry.height) {
             result.error = ChainManagerUTXOStatsViewError::DATA_UNAVAILABLE;
             return result;

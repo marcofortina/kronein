@@ -430,6 +430,7 @@ struct ChainManagerUTXOScanView {
     bool completed{false};
     int64_t scanned{0};
     std::map<COutPoint, Coin> matches;
+    std::map<COutPoint, bool> mempool_matches;
     std::map<int, uint256> block_hashes;
 
     bool IsValid() const
@@ -634,7 +635,8 @@ public:
         const std::set<CScript>& needles,
         std::atomic<int>& progress,
         const std::atomic<bool>& should_abort,
-        const std::function<void()>& interruption_point = {}) const;
+        const std::function<void()>& interruption_point = {},
+        bool include_mempool = false) const;
     ChainManagerBlockFilterScanView ScanBlockFilters(
         const chainregistry::ChainId& chain_id,
         int start_height,

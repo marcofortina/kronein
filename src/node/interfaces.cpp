@@ -604,7 +604,8 @@ public:
             scripts,
             progress,
             should_abort,
-            m_node.rpc_interruption_point)};
+            m_node.rpc_interruption_point,
+            /*include_mempool=*/true)};
         switch (scan.error) {
         case ChainManagerUTXOStatsViewError::NONE:
             break;
@@ -635,11 +636,15 @@ public:
         result.coins.reserve(scan.matches.size());
         for (auto& [outpoint, coin] : scan.matches) {
             const bool coinbase{coin.IsCoinBase()};
+            const auto mempool{scan.mempool_matches.find(outpoint)};
             result.coins.push_back(ChildWalletCoin{
                 .outpoint = outpoint,
                 .output = std::move(coin.out),
                 .height = coin.nHeight,
                 .coinbase = coinbase,
+                .mempool = mempool != scan.mempool_matches.end(),
+                .trusted = mempool == scan.mempool_matches.end() ||
+                           mempool->second,
             });
         }
         return result;

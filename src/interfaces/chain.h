@@ -74,12 +74,14 @@ enum class ChildWalletScanError : uint8_t {
     DATA_UNAVAILABLE,
 };
 
-/** One confirmed child UTXO matching a script explicitly supplied by a wallet. */
+/** One child UTXO matching a script explicitly supplied by a wallet. */
 struct ChildWalletCoin {
     COutPoint outpoint;
     CTxOut output;
     uint32_t height{0};
     bool coinbase{false};
+    bool mempool{false};
+    bool trusted{true};
 };
 
 /** Lock-consistent scan of a loaded child's UTXO set at one exact tip. */
@@ -180,7 +182,7 @@ public:
     virtual ChainRegistrySnapshot getChainRegistrySnapshot(
         std::optional<chainregistry::ChainId> chain_id = std::nullopt) = 0;
 
-    //! Scan one loaded child's confirmed UTXO set for wallet-supplied scripts.
+    //! Scan one loaded child's UTXO set and mempool for wallet-supplied scripts.
     virtual ChildWalletScan scanChildWalletUTXOs(
         const chainregistry::ChainId& chain_id,
         const std::set<CScript>& scripts) = 0;
