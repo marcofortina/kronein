@@ -1170,6 +1170,9 @@ RPCHelpMan submitchildanchor()
             {RPCResult::Type::ARR, "disconnected", "Child blocks disconnected by an immediate reorganization", {
                 {RPCResult::Type::STR_HEX, "", "Disconnected child block hash"},
             }},
+            {RPCResult::Type::ARR, "pruned", "Losing side-candidate leaves removed to enforce the per-child storage budget", {
+                {RPCResult::Type::STR_HEX, "", "Pruned child candidate hash"},
+            }},
         }},
         RPCExamples{
             HelpExampleCli("submitchildanchor", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" \"4b425052...\"")
@@ -1193,6 +1196,10 @@ RPCHelpMan submitchildanchor()
     for (const auto& hash : submitted.runtime.disconnected_child_blocks) {
         disconnected.push_back(hash.GetHex());
     }
+    UniValue pruned{UniValue::VARR};
+    for (const auto& hash : submitted.runtime.pruned_child_candidates) {
+        pruned.push_back(hash.GetHex());
+    }
     UniValue result{UniValue::VOBJ};
     result.pushKV("chain_id", chain_id.GetHex());
     result.pushKV("child_block_hash", submitted.runtime.bmm_anchor.proof.anchor->child_block_hash.GetHex());
@@ -1202,6 +1209,7 @@ RPCHelpMan submitchildanchor()
     }
     result.pushKV("bestblockhash", view.entry.tip.GetHex());
     result.pushKV("disconnected", std::move(disconnected));
+    result.pushKV("pruned", std::move(pruned));
     return result;
 }
     };
@@ -1227,6 +1235,9 @@ RPCHelpMan submitchildblock()
             {RPCResult::Type::ARR, "disconnected", "Child blocks disconnected by a reorganization", {
                 {RPCResult::Type::STR_HEX, "", "Disconnected child block hash"},
             }},
+            {RPCResult::Type::ARR, "pruned", "Losing side-candidate leaves removed to enforce the per-child storage budget", {
+                {RPCResult::Type::STR_HEX, "", "Pruned child candidate hash"},
+            }},
         }},
         RPCExamples{
             HelpExampleCli("submitchildblock", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" \"blockhex\" \"4b425052...\"")
@@ -1251,6 +1262,10 @@ RPCHelpMan submitchildblock()
     for (const auto& hash : submitted.runtime.disconnected_child_blocks) {
         disconnected.push_back(hash.GetHex());
     }
+    UniValue pruned{UniValue::VARR};
+    for (const auto& hash : submitted.runtime.pruned_child_candidates) {
+        pruned.push_back(hash.GetHex());
+    }
     UniValue result{UniValue::VOBJ};
     result.pushKV("chain_id", chain_id.GetHex());
     result.pushKV("blockhash", block.GetHash().GetHex());
@@ -1259,6 +1274,7 @@ RPCHelpMan submitchildblock()
     result.pushKV("selected_head", submitted.runtime.selected_child_head.GetHex());
     result.pushKV("bestblockhash", view.entry.tip.GetHex());
     result.pushKV("disconnected", std::move(disconnected));
+    result.pushKV("pruned", std::move(pruned));
     return result;
 }
     };

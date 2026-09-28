@@ -476,6 +476,8 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
                       child_block.GetHash().GetHex());
     BOOST_CHECK_EQUAL(submitted.find_value("bestblockhash").get_str(),
                       child_block.GetHash().GetHex());
+    BOOST_CHECK(submitted.find_value("pruned").isArray());
+    BOOST_CHECK_EQUAL(submitted.find_value("pruned").size(), 0U);
 
     DataStream child_header_stream;
     child_header_stream << static_cast<const CBlockHeader&>(child_block);
