@@ -301,6 +301,8 @@ public:
     uint256 GetBestBlock() const override;
     void BatchWrite(CoinsViewCacheCursor& cursor,
                     const uint256& hash_block) override;
+    std::unique_ptr<CCoinsViewCursor> Cursor() const override;
+    size_t EstimateSize() const override;
 
     std::optional<chainregistry::ImportedDeposit> ReadImport(
         const chainregistry::DepositId& deposit_id) const;

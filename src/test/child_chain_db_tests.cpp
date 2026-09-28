@@ -338,6 +338,24 @@ BOOST_AUTO_TEST_CASE(persists_headers_imports_and_child_undo)
         BOOST_CHECK(db.HaveCoin(COutPoint{child_block.vtx.front()->GetHash(), 0}));
         BOOST_CHECK(db.HaveCoin(COutPoint{child_block.vtx.back()->GetHash(), 0}));
 
+        auto cursor{db.Cursor()};
+        BOOST_REQUIRE(cursor);
+        BOOST_CHECK(cursor->GetBestBlock() == child_block.GetHash());
+        std::map<COutPoint, Coin> cursor_coins;
+        while (cursor->Valid()) {
+            COutPoint outpoint;
+            Coin coin;
+            BOOST_REQUIRE(cursor->GetKey(outpoint));
+            BOOST_REQUIRE(cursor->GetValue(coin));
+            BOOST_REQUIRE(cursor_coins.emplace(outpoint, coin).second);
+            cursor->Next();
+        }
+        BOOST_CHECK_EQUAL(cursor_coins.size(), state.coin_count);
+        BOOST_CHECK(cursor_coins.contains(
+            COutPoint{child_block.vtx.front()->GetHash(), 0}));
+        BOOST_CHECK(cursor_coins.contains(
+            COutPoint{child_block.vtx.back()->GetHash(), 0}));
+
         CCoinsViewCache coin_cache{&db, /*deterministic=*/true};
         for (const auto& transaction : child_block.vtx) {
             for (size_t output{0}; output < transaction->vout.size(); ++output) {

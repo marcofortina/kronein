@@ -2530,6 +2530,64 @@ void ChildChainDB::BatchWrite(CoinsViewCacheCursor& cursor,
     }
 }
 
+namespace {
+
+class ChildChainCoinsCursor final : public CCoinsViewCursor
+{
+public:
+    ChildChainCoinsCursor(CDBIterator* cursor, const uint256& best_block)
+        : CCoinsViewCursor{best_block}, m_cursor{cursor}
+    {
+        m_cursor->Seek(CoinKey{DB_COIN, {}});
+        ReadKey();
+    }
+
+    bool GetKey(COutPoint& key) const override
+    {
+        if (!Valid()) return false;
+        key = m_key.second;
+        return true;
+    }
+
+    bool GetValue(Coin& coin) const override
+    {
+        return Valid() && m_cursor->GetValue(coin);
+    }
+
+    bool Valid() const override { return m_valid; }
+
+    void Next() override
+    {
+        if (!m_valid) return;
+        m_cursor->Next();
+        ReadKey();
+    }
+
+private:
+    void ReadKey()
+    {
+        m_valid = m_cursor->Valid() && m_cursor->GetKey(m_key) &&
+                  m_key.first == DB_COIN;
+    }
+
+    std::unique_ptr<CDBIterator> m_cursor;
+    CoinKey m_key;
+    bool m_valid{false};
+};
+
+} // namespace
+
+std::unique_ptr<CCoinsViewCursor> ChildChainDB::Cursor() const
+{
+    return std::make_unique<ChildChainCoinsCursor>(
+        const_cast<CDBWrapper&>(m_db).NewIterator(), GetBestBlock());
+}
+
+size_t ChildChainDB::EstimateSize() const
+{
+    return m_db.EstimateSize(DB_COIN, uint8_t{DB_COIN + 1});
+}
+
 bool ChildChainDB::ReadBlock(const uint256& child_block_hash,
                              CBlock& block) const
 {
