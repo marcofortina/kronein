@@ -3617,10 +3617,12 @@ static RPCHelpMan getblockfilter()
 {
     return RPCHelpMan{
         "getblockfilter",
-        "Retrieve a BIP 157 content filter for a particular block.\n",
+        "Retrieve a BIP 157 content filter for a particular block.\n"
+        "Omit chain_id for the main chain. Child basic filters are persisted by the child runtime and do not require the main-chain blockfilter index.\n",
                 {
                     {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The hash of the block"},
                     {"filtertype", RPCArg::Type::STR, RPCArg::Default{BlockFilterTypeName(BlockFilterType::BASIC)}, "The type name of the filter"},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
@@ -3640,6 +3642,31 @@ static RPCHelpMan getblockfilter()
     BlockFilterType filtertype;
     if (!BlockFilterTypeByName(filtertype_name, filtertype)) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Unknown filtertype");
+    }
+
+    if (const auto chain_id{self.MaybeArg<std::string_view>("chain_id")}) {
+        if (filtertype != BlockFilterType::BASIC) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                               "Unknown child filtertype");
+        }
+        const auto view{GetLoadedChildBlockView(
+            request.context, *chain_id, block_hash)};
+        if (view.block.virtual_genesis) {
+            throw JSONRPCError(
+                RPC_INVALID_ADDRESS_OR_KEY,
+                "The virtual child genesis has no BIP 157 block filter");
+        }
+        if (!view.block.basic_filter) {
+            throw JSONRPCError(
+                RPC_INTERNAL_ERROR,
+                "Child block filter is unavailable");
+        }
+        UniValue ret{UniValue::VOBJ};
+        ret.pushKV(
+            "filter", HexStr(view.block.basic_filter->encoded_filter));
+        ret.pushKV(
+            "header", view.block.basic_filter->filter_header.GetHex());
+        return ret;
     }
 
     BlockFilterIndex* index = GetBlockFilterIndex(filtertype);

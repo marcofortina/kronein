@@ -628,6 +628,25 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
     BOOST_CHECK_EQUAL(verbose_block.find_value("chain_id").get_str(), chain_id);
     BOOST_CHECK_EQUAL(verbose_block.find_value("tx").size(), 1U);
     BOOST_CHECK(verbose_block.find_value("tx")[0].isObject());
+    const BlockFilter expected_child_filter{
+        BlockFilterType::BASIC, child_block, CBlockUndo{}};
+    const auto child_filter{CallRPC(
+        "getblockfilter " + child_block.GetHash().GetHex() +
+        " basic " + chain_id)};
+    BOOST_CHECK_EQUAL(
+        child_filter.find_value("filter").get_str(),
+        HexStr(expected_child_filter.GetEncodedFilter()));
+    BOOST_CHECK_EQUAL(
+        child_filter.find_value("header").get_str(),
+        expected_child_filter.ComputeHeader({}).GetHex());
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("getblockfilter " + definition.genesis_hash.GetHex() +
+                " basic " + chain_id),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find(
+                       "virtual child genesis") != std::string_view::npos;
+        });
     const auto child_info{CallRPC("getblockchaininfo " + chain_id)};
     BOOST_CHECK_EQUAL(child_info.find_value("blocks").getInt<int>(), 1);
     BOOST_CHECK_EQUAL(child_info.find_value("headers").getInt<int>(), 1);
