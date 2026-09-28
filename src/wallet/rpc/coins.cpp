@@ -26,15 +26,50 @@
 namespace wallet {
 namespace {
 
-UniValue GetChildBalances(
-    const CWallet& wallet,
-    const chainregistry::ChainId& chain_id)
-{
-    const interfaces::ChildWalletScan scan{
-        ScanChildWallet(wallet, chain_id)};
+struct ChildBalances {
     CAmount trusted{0};
     CAmount untrusted_pending{0};
     CAmount immature{0};
+    CAmount used{0};
+    uint32_t height{0};
+    uint256 best_block;
+};
+
+ChildBalances CalculateChildBalances(
+    const CWallet& wallet,
+    const chainregistry::ChainId& chain_id,
+    int min_depth = 0,
+    bool avoid_reuse = false)
+{
+    const interfaces::ChildWalletScan scan{
+        ScanChildWallet(wallet, chain_id)};
+    std::set<CScript> used_scripts;
+    if (avoid_reuse) {
+        std::optional<int> start_height;
+        bool include_mempool{true};
+        do {
+            const auto page{ScanChildWalletHistory(
+                wallet, chain_id, start_height, include_mempool)};
+            if (page.best_block != scan.best_block ||
+                page.height != scan.height) {
+                throw JSONRPCError(
+                    RPC_MISC_ERROR,
+                    "child chain changed while wallet history was scanned; retry");
+            }
+            for (const auto& transaction : page.transactions) {
+                for (const CTxOut& spent : transaction.spent_outputs) {
+                    used_scripts.insert(spent.scriptPubKey);
+                }
+            }
+            start_height = page.next_height;
+            include_mempool = false;
+        } while (start_height);
+    }
+
+    ChildBalances balances{
+        .height = scan.height,
+        .best_block = scan.best_block,
+    };
     for (const interfaces::ChildWalletCoin& coin : scan.coins) {
         if ((!coin.mempool && coin.height > scan.height) ||
             !MoneyRange(coin.output.nValue)) {
@@ -43,27 +78,46 @@ UniValue GetChildBalances(
         }
         const uint64_t confirmations{coin.mempool ? 0 :
             uint64_t{scan.height} - coin.height + 1};
+        if (confirmations < static_cast<uint64_t>(std::max(min_depth, 0))) {
+            continue;
+        }
         CAmount& balance{
-            coin.mempool && !coin.trusted
-                ? untrusted_pending
-                : coin.coinbase && confirmations < COINBASE_MATURITY
-                ? immature
-                : trusted};
+            coin.coinbase && confirmations < COINBASE_MATURITY
+                ? balances.immature
+                : avoid_reuse && used_scripts.contains(coin.output.scriptPubKey)
+                ? balances.used
+                : coin.mempool && !coin.trusted
+                ? balances.untrusted_pending
+                : balances.trusted};
         if (!MoneyRange(balance + coin.output.nValue)) {
             throw JSONRPCError(RPC_INTERNAL_ERROR,
                                "child wallet balance is out of range");
         }
         balance += coin.output.nValue;
     }
+    return balances;
+}
+
+UniValue GetChildBalances(
+    const CWallet& wallet,
+    const chainregistry::ChainId& chain_id)
+{
+    const bool avoid_reuse{wallet.IsWalletFlagSet(WALLET_FLAG_AVOID_REUSE)};
+    const ChildBalances child_balances{
+        CalculateChildBalances(wallet, chain_id, 0, avoid_reuse)};
 
     UniValue mine{UniValue::VOBJ};
-    mine.pushKV("trusted", ValueFromAmount(trusted));
-    mine.pushKV("untrusted_pending", ValueFromAmount(untrusted_pending));
-    mine.pushKV("immature", ValueFromAmount(immature));
+    mine.pushKV("trusted", ValueFromAmount(child_balances.trusted));
+    mine.pushKV("untrusted_pending",
+                ValueFromAmount(child_balances.untrusted_pending));
+    mine.pushKV("immature", ValueFromAmount(child_balances.immature));
+    if (avoid_reuse) {
+        mine.pushKV("used", ValueFromAmount(child_balances.used));
+    }
 
     UniValue last_processed{UniValue::VOBJ};
-    last_processed.pushKV("hash", scan.best_block.GetHex());
-    last_processed.pushKV("height", scan.height);
+    last_processed.pushKV("hash", child_balances.best_block.GetHex());
+    last_processed.pushKV("height", child_balances.height);
 
     UniValue balances{UniValue::VOBJ};
     balances.pushKV("mine", std::move(mine));
@@ -307,10 +361,12 @@ RPCHelpMan getbalance()
         "getbalance",
         "Returns the total available balance.\n"
                 "The available balance is what the wallet considers currently spendable, and is\n"
-                "thus affected by options which limit spendability such as -spendzeroconfchange.\n",
+                "thus affected by options which limit spendability such as -spendzeroconfchange.\n"
+                "When chain_id is omitted, the main-chain balance is returned as before.\n",
                 {
                     {"minconf", RPCArg::Type::NUM, RPCArg::Default{0}, "Only include transactions confirmed at least this many times."},
                     {"avoid_reuse", RPCArg::Type::BOOL, RPCArg::Default{true}, "(only available if avoid_reuse wallet flag is set) Do not include balance in dirty outputs; addresses are considered dirty if they have previously been used in a transaction."},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 RPCResult{
                     RPCResult::Type::STR_AMOUNT, "amount", "The total amount in " + CURRENCY_UNIT + " received for this wallet."
@@ -332,11 +388,21 @@ RPCHelpMan getbalance()
     // the user could have gotten from another RPC command prior to now
     pwallet->BlockUntilSyncedToCurrentChain();
 
-    LOCK(pwallet->cs_wallet);
-
     const auto min_depth{self.Arg<int>("minconf")};
 
-    bool avoid_reuse = GetAvoidReuseFlag(*pwallet, request.params[1]);
+    bool avoid_reuse;
+    {
+        LOCK(pwallet->cs_wallet);
+        avoid_reuse = GetAvoidReuseFlag(*pwallet, request.params[1]);
+    }
+
+    if (const auto chain_arg{self.MaybeArg<UniValue>("chain_id")}) {
+        const auto balances{CalculateChildBalances(
+            *pwallet, ParseChildChainId(*chain_arg), min_depth, avoid_reuse)};
+        return ValueFromAmount(balances.trusted);
+    }
+
+    LOCK(pwallet->cs_wallet);
 
     const auto bal = GetBalance(*pwallet, min_depth, avoid_reuse);
 

@@ -356,10 +356,16 @@ class ChainRegistryTest(BitcoinTestFramework):
             wallet.getbalances, "00" * 32)
         assert_raises_rpc_error(
             -8, "chain_id must be exactly 32 non-null bytes",
+            wallet.getbalance, 0, False, "00" * 32)
+        assert_raises_rpc_error(
+            -8, "chain_id must be exactly 32 non-null bytes",
             wallet.listunspent, 1, 9999999, [], True, {}, "00" * 32)
         assert_raises_rpc_error(
             -8, "child chain is not configured locally",
             wallet.getbalances, chain_id)
+        assert_raises_rpc_error(
+            -8, "child chain is not configured locally",
+            wallet.getbalance, 0, False, chain_id)
 
         self.log.info("Reserve registry control outputs from ordinary wallet spending")
         control_outpoint = {"txid": registration_txid, "vout": 1}
@@ -1484,11 +1490,16 @@ class ChainRegistryTest(BitcoinTestFramework):
             "untrusted_pending": Decimal("0.00000000"),
             "immature": Decimal("0.00000000"),
         })
+        assert_equal(wallet.getbalance(0, False, chain_id), child_change)
+        assert_equal(wallet.getbalance(1, False, chain_id),
+                     Decimal("0.00000000"))
         assert_equal(attacker.getbalances(chain_id)["mine"], {
             "trusted": Decimal("0.00000000"),
             "untrusted_pending": child_spend_amount,
             "immature": Decimal("0.00000000"),
         })
+        assert_equal(attacker.getbalance(0, False, chain_id),
+                     Decimal("0.00000000"))
         pending_change = wallet.listunspent(
             0, 9999999, [], True, {}, chain_id)
         assert_equal(len(pending_change), 1)
@@ -1651,6 +1662,14 @@ class ChainRegistryTest(BitcoinTestFramework):
             "untrusted_pending": Decimal("0.00000000"),
             "immature": Decimal("0.00000000"),
         })
+        assert_equal(wallet.getbalance(0, False, chain_id),
+                     deposit_amount - child_spend_amount - child_fee)
+        assert_equal(wallet.getbalance(1, False, chain_id),
+                     deposit_amount - child_spend_amount - child_fee)
+        assert_equal(wallet.getbalance(2, False, chain_id),
+                     Decimal("0.00000000"))
+        assert_equal(attacker.getbalance(1, False, chain_id),
+                     child_spend_amount)
         confirmed_wallet_tx = wallet.gettransaction(
             signed_child["txid"], False, chain_id)
         assert_equal(confirmed_wallet_tx["amount"], -child_spend_amount)
@@ -1679,6 +1698,9 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_raises_rpc_error(
             -1, "child chain is not loaded",
             wallet.listtransactions, "*", 10, 0, chain_id)
+        assert_raises_rpc_error(
+            -1, "child chain is not loaded",
+            wallet.getbalance, 0, False, chain_id)
         assert_equal(node.loadchildchain(chain_id)["height"], 2)
         assert_equal(wallet.listtransactions("*", 10, 0, chain_id),
                      confirmed_history)
