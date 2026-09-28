@@ -15,8 +15,10 @@
 #include <consensus/params.h>
 #include <kernel/coinstats.h>
 #include <node/child_chain_db.h>
+#include <node/child_mempool.h>
 
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <map>
@@ -67,6 +69,7 @@ struct ReferenceChildRuntimeResult {
     std::vector<uint256> disconnected_child_blocks;
     std::vector<uint256> pruned_child_candidates;
     std::vector<uint256> pruned_local_proposals;
+    std::vector<Txid> removed_mempool_transactions;
     bool bmm_anchor_already_known{false};
     bool local_proposal_found{false};
     bool local_proposal_activated{false};
@@ -78,6 +81,41 @@ struct ReferenceChildRuntimeResult {
     bool loaded_existing{false};
 
     bool IsValid() const { return error == ReferenceChildRuntimeError::NONE; }
+};
+
+enum class ReferenceChildMempoolAcceptError : uint8_t {
+    NONE,
+    NOT_INITIALIZED,
+    FAILED_RUNTIME,
+    INVALID_TIME,
+    NULL_TRANSACTION,
+    COINBASE_NOT_ALLOWED,
+    IMPORT_NOT_ALLOWED,
+    BUILD_FAILED,
+    CONTEXT_REJECTED,
+    POOL_REJECTED,
+};
+
+struct ReferenceChildMempoolAcceptResult {
+    ReferenceChildMempoolAcceptError error{
+        ReferenceChildMempoolAcceptError::NONE};
+    ChildMempoolError pool_error{ChildMempoolError::NONE};
+    chainregistry::ReferenceChildBlockBuildResult build;
+    chainregistry::ReferenceChildBlockResult validation;
+    Txid txid;
+    CAmount fee{0};
+    bool already_known{false};
+
+    bool IsValid() const
+    {
+        return error == ReferenceChildMempoolAcceptError::NONE;
+    }
+};
+
+struct ReferenceChildMempoolView {
+    std::vector<ChildMempoolEntry> entries;
+    size_t total_bytes{0};
+    CAmount total_fees{0};
 };
 
 struct ReferenceChildBlockView {
@@ -129,6 +167,7 @@ private:
     std::unique_ptr<CBlockIndex> m_genesis;
     std::map<uint256, std::unique_ptr<CBlockIndex>> m_child_index;
     CBlockIndex* m_tip{nullptr};
+    ChildMempool m_mempool;
     bool m_initialized{false};
     bool m_failed{false};
 
@@ -162,6 +201,12 @@ private:
         int64_t current_time,
         bool sync,
         ReferenceChildRuntimeResult& result);
+    ReferenceChildMempoolAcceptResult AcceptMempoolTransaction(
+        CTransactionRef transaction,
+        int64_t current_time,
+        int64_t entry_time);
+    void RevalidateMempool(int64_t current_time,
+                           ReferenceChildRuntimeResult& result);
 
 public:
     ReferenceChildRuntime(
@@ -219,6 +264,10 @@ public:
     chainregistry::ReferenceChildBlockResult ValidateTipBlock(
         const CBlock& block,
         int64_t current_time) const;
+    ReferenceChildMempoolAcceptResult SubmitTransaction(
+        CTransactionRef transaction,
+        int64_t current_time);
+    ReferenceChildMempoolView GetMempool() const;
     ReferenceChildRuntimeResult DisconnectTip(bool sync = false);
 
     bool IsInitialized() const { return m_initialized; }

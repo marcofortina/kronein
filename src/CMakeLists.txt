@@ -233,6 +233,7 @@ add_library(bitcoin_node STATIC EXCLUDE_FROM_ALL
   node/child_chain_catalog_db.cpp
   node/child_chain.cpp
   node/child_chain_db.cpp
+  node/child_mempool.cpp
   node/child_network_manager.cpp
   node/child_chain_notifications.cpp
   node/chainregistry.cpp

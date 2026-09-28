@@ -4,6 +4,7 @@
 
 #include <node/child_chain.h>
 
+#include <consensus/consensus.h>
 #include <coins.h>
 #include <primitives/block.h>
 #include <util/log.h>
@@ -365,6 +366,7 @@ bool ReferenceChildRuntime::ActivateSelectedHead(
         pruned_candidates.end());
     result.selected_child_head = m_tip->GetBlockHash();
     result.reorganization_required = false;
+    RevalidateMempool(current_time, result);
     return true;
 }
 
@@ -618,6 +620,7 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::CommitMainChainUpdate(
     int64_t current_time,
     bool sync)
 {
+    bool activated_selected_head{false};
     chainregistry::DepositImportState candidate_imports{m_imports};
     result.reconcile = candidate_imports.Reconcile(*candidate_headers);
     CCoinsViewCache candidate_coins{m_db.get(), /*deterministic=*/true};
@@ -735,23 +738,28 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::CommitMainChainUpdate(
         result.selected_child_head = selected.head;
         result.reorganization_required =
             selected.head != m_tip->GetBlockHash();
-        if (result.reorganization_required &&
-            !ActivateSelectedHead(
-                selected,
-                *candidates,
-                current_time,
-                *m_main_headers,
-                sync,
-                result)) {
-            if (result.error == ReferenceChildRuntimeError::NONE) {
-                result.error =
-                    ReferenceChildRuntimeError::CHILD_REORGANIZATION_FAILED;
+        if (result.reorganization_required) {
+            if (!ActivateSelectedHead(
+                    selected,
+                    *candidates,
+                    current_time,
+                    *m_main_headers,
+                    sync,
+                    result)) {
+                if (result.error == ReferenceChildRuntimeError::NONE) {
+                    result.error =
+                        ReferenceChildRuntimeError::CHILD_REORGANIZATION_FAILED;
+                }
+                return result;
             }
-            return result;
+            activated_selected_head = true;
         }
     }
     if (!PruneInvalidLocalProposalsImpl(current_time, sync, result)) {
         return result;
+    }
+    if (!disconnected_blocks.empty() && !activated_selected_head) {
+        RevalidateMempool(current_time, result);
     }
     return result;
 }
@@ -1058,6 +1066,7 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
     }
     result.pruned_child_candidates = std::move(pruned_candidates);
     result.selected_child_head = m_tip->GetBlockHash();
+    RevalidateMempool(current_time, result);
     if (!PruneInvalidLocalProposalsImpl(current_time, sync, result)) {
         return result;
     }
@@ -1085,6 +1094,123 @@ ReferenceChildRuntime::ValidateTipBlock(
         *m_main_headers,
         candidate_coins,
         candidate_imports);
+}
+
+ReferenceChildMempoolAcceptResult
+ReferenceChildRuntime::AcceptMempoolTransaction(
+    CTransactionRef transaction,
+    int64_t current_time,
+    int64_t entry_time)
+{
+    ReferenceChildMempoolAcceptResult result;
+    if (!transaction) {
+        result.error = ReferenceChildMempoolAcceptError::NULL_TRANSACTION;
+        return result;
+    }
+    result.txid = transaction->GetHash();
+    for (const auto& entry : m_mempool.Entries()) {
+        if (entry.transaction->GetHash() != result.txid) continue;
+        result.fee = entry.fee;
+        result.already_known = true;
+        return result;
+    }
+    if (transaction->IsCoinBase()) {
+        result.error = ReferenceChildMempoolAcceptError::COINBASE_NOT_ALLOWED;
+        return result;
+    }
+    if (chainregistry::IsReferenceChildImport(*transaction)) {
+        result.error = ReferenceChildMempoolAcceptError::IMPORT_NOT_ALLOWED;
+        return result;
+    }
+    if (current_time < 0 || entry_time < 0) {
+        result.error = ReferenceChildMempoolAcceptError::INVALID_TIME;
+        return result;
+    }
+
+    const int64_t block_time{std::max({
+        current_time,
+        m_tip->GetBlockTime(),
+        m_tip->GetMedianTimePast() + 1})};
+    if (block_time < 0 ||
+        block_time > std::numeric_limits<uint32_t>::max()) {
+        result.error = ReferenceChildMempoolAcceptError::INVALID_TIME;
+        return result;
+    }
+
+    std::vector<CTransactionRef> transactions;
+    transactions.reserve(m_mempool.Size() + 1);
+    for (const auto& entry : m_mempool.Entries()) {
+        transactions.push_back(entry.transaction);
+    }
+    transactions.push_back(transaction);
+    result.build = chainregistry::BuildReferenceChildBlock(
+        *m_tip,
+        static_cast<uint32_t>(block_time),
+        m_definition,
+        std::move(transactions));
+    if (!result.build.IsValid()) {
+        result.error = ReferenceChildMempoolAcceptError::BUILD_FAILED;
+        return result;
+    }
+    result.validation = ValidateTipBlock(*result.build.block, current_time);
+    if (!result.validation.IsValid() ||
+        result.validation.total_fees < m_mempool.TotalFees()) {
+        result.error = ReferenceChildMempoolAcceptError::CONTEXT_REJECTED;
+        return result;
+    }
+    result.fee = result.validation.total_fees - m_mempool.TotalFees();
+    const auto added{m_mempool.Add(
+        std::move(transaction), result.fee, entry_time)};
+    result.pool_error = added.error;
+    if (!added.IsValid()) {
+        result.error = ReferenceChildMempoolAcceptError::POOL_REJECTED;
+    }
+    return result;
+}
+
+void ReferenceChildRuntime::RevalidateMempool(
+    int64_t current_time,
+    ReferenceChildRuntimeResult& result)
+{
+    const auto previous{m_mempool.Entries()};
+    m_mempool.Clear();
+    for (const auto& entry : previous) {
+        const auto accepted{AcceptMempoolTransaction(
+            entry.transaction,
+            std::max(current_time, entry.entry_time),
+            entry.entry_time)};
+        if (!accepted.IsValid()) {
+            result.removed_mempool_transactions.push_back(
+                entry.transaction->GetHash());
+        }
+    }
+}
+
+ReferenceChildMempoolAcceptResult ReferenceChildRuntime::SubmitTransaction(
+    CTransactionRef transaction,
+    int64_t current_time)
+{
+    if (!m_initialized) {
+        ReferenceChildMempoolAcceptResult result;
+        result.error = ReferenceChildMempoolAcceptError::NOT_INITIALIZED;
+        return result;
+    }
+    if (m_failed) {
+        ReferenceChildMempoolAcceptResult result;
+        result.error = ReferenceChildMempoolAcceptError::FAILED_RUNTIME;
+        return result;
+    }
+    return AcceptMempoolTransaction(
+        std::move(transaction), current_time, current_time);
+}
+
+ReferenceChildMempoolView ReferenceChildRuntime::GetMempool() const
+{
+    return {
+        .entries = m_mempool.Entries(),
+        .total_bytes = m_mempool.TotalBytes(),
+        .total_fees = m_mempool.TotalFees(),
+    };
 }
 
 bool ReferenceChildRuntime::PruneInvalidLocalProposalsImpl(
@@ -1290,6 +1416,8 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::DisconnectTip(bool sync)
     }
     m_tip = m_tip->pprev;
     m_child_index.erase(block_hash);
+    RevalidateMempool(
+        std::max<int64_t>(block.nTime, m_tip->GetBlockTime()), result);
     return result;
 }
 

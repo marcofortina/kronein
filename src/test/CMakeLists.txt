@@ -43,6 +43,7 @@ add_executable(test_bitcoin
   child_block_download_tests.cpp
   child_block_tests.cpp
   child_chain_tests.cpp
+  child_mempool_tests.cpp
   child_fork_choice_tests.cpp
   child_import_tests.cpp
   child_net_tests.cpp
