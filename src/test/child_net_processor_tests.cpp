@@ -211,6 +211,9 @@ BOOST_AUTO_TEST_CASE(requires_full_child_handshake)
     const auto connected{processor.Connected(7)};
     BOOST_REQUIRE(connected.IsValid());
     BOOST_REQUIRE_EQUAL(connected.outbound.size(), 1U);
+    BOOST_CHECK(
+        connected.outbound.front().command ==
+        node::ChildNetCommand::HELLO);
     BOOST_REQUIRE(std::holds_alternative<chainregistry::ChildNetHello>(
         connected.outbound.front().message));
     const auto& local_hello{std::get<chainregistry::ChildNetHello>(
@@ -297,6 +300,9 @@ BOOST_AUTO_TEST_CASE(downloads_parent_before_connecting_deferred_child)
     BOOST_REQUIRE(announced.IsValid());
     BOOST_REQUIRE_EQUAL(announced.outbound.size(), 1U);
     BOOST_CHECK(
+        announced.outbound.front().command ==
+        node::ChildNetCommand::GET_BLOCKS);
+    BOOST_CHECK(
         OutboundHashes(announced.outbound.front()).block_hashes ==
         std::vector<uint256>{child.GetHash()});
 
@@ -311,6 +317,9 @@ BOOST_AUTO_TEST_CASE(downloads_parent_before_connecting_deferred_child)
     BOOST_CHECK(deferred.deferred_blocks.front() == child.GetHash());
     BOOST_CHECK_EQUAL(processor.DeferredCount(), 1U);
     BOOST_REQUIRE_EQUAL(deferred.outbound.size(), 1U);
+    BOOST_CHECK(
+        deferred.outbound.front().command ==
+        node::ChildNetCommand::GET_BLOCKS);
     BOOST_CHECK(
         OutboundHashes(deferred.outbound.front()).block_hashes ==
         std::vector<uint256>{parent.GetHash()});
@@ -344,6 +353,7 @@ BOOST_AUTO_TEST_CASE(downloads_parent_before_connecting_deferred_child)
     size_t announcements_to_second_peer{0};
     for (const auto& outbound : connected.outbound) {
         if (outbound.peer == 2 &&
+            outbound.command == node::ChildNetCommand::INVENTORY &&
             std::holds_alternative<chainregistry::ChildBlockHashes>(
                 outbound.message)) {
             ++announcements_to_second_peer;

@@ -31,8 +31,16 @@ using ChildNetMessage = std::variant<
     chainregistry::ChildBlockHashes,
     chainregistry::ChildBlockData>;
 
+enum class ChildNetCommand : uint8_t {
+    HELLO,
+    INVENTORY,
+    GET_BLOCKS,
+    BLOCK,
+};
+
 struct ChildNetOutbound {
     ChildPeerId peer{0};
+    ChildNetCommand command{ChildNetCommand::HELLO};
     ChildNetMessage message;
 };
 

@@ -97,8 +97,9 @@ void ChildNetProcessor::SchedulePeer(
     const auto hashes{m_downloads.Schedule(peer, now)};
     if (hashes.empty()) return;
     result.outbound.push_back({
-        peer,
-        chainregistry::ChildBlockHashes{
+        .peer = peer,
+        .command = ChildNetCommand::GET_BLOCKS,
+        .message = chainregistry::ChildBlockHashes{
             .chain_id = m_definition.chain_id,
             .block_hashes = hashes,
         },
@@ -113,8 +114,9 @@ void ChildNetProcessor::AnnounceAccepted(
     for (const auto& [peer, state] : m_peers) {
         if (!state.handshaken || (source && peer == *source)) continue;
         result.outbound.push_back({
-            peer,
-            chainregistry::ChildBlockHashes{
+            .peer = peer,
+            .command = ChildNetCommand::INVENTORY,
+            .message = chainregistry::ChildBlockHashes{
                 .chain_id = m_definition.chain_id,
                 .block_hashes = {block_hash},
             },
@@ -135,8 +137,9 @@ ChildNetProcessorResult ChildNetProcessor::Connected(ChildPeerId peer)
     m_peers.emplace(peer, PeerState{});
     ChildNetProcessorResult result;
     result.outbound.push_back({
-        peer,
-        chainregistry::ChildNetHello{
+        .peer = peer,
+        .command = ChildNetCommand::HELLO,
+        .message = chainregistry::ChildNetHello{
             .chain_id = m_definition.chain_id,
             .genesis_hash = m_definition.genesis_hash,
         },
@@ -174,8 +177,9 @@ ChildNetProcessorResult ChildNetProcessor::ReceiveHello(
     const auto tip{m_manager.GetTipBlockView(m_definition.chain_id)};
     if (tip.IsValid() && tip.block.block) {
         result.outbound.push_back({
-            peer,
-            chainregistry::ChildBlockHashes{
+            .peer = peer,
+            .command = ChildNetCommand::INVENTORY,
+            .message = chainregistry::ChildBlockHashes{
                 .chain_id = m_definition.chain_id,
                 .block_hashes = {tip.block.block_hash},
             },
@@ -258,8 +262,9 @@ ChildNetProcessorResult ChildNetProcessor::ReceiveGetBlocks(
         }
         response_bytes += block_size;
         result.outbound.push_back({
-            peer,
-            chainregistry::ChildBlockData{
+            .peer = peer,
+            .command = ChildNetCommand::BLOCK,
+            .message = chainregistry::ChildBlockData{
                 .chain_id = m_definition.chain_id,
                 .block = *view.block.block,
             },
