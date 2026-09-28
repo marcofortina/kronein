@@ -551,6 +551,20 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(node.getchildnetworkinfo(chain_id)["connections"], 1)
         assert_equal(peer_node.getchildnetworkinfo(chain_id)["connections"], 1)
 
+        self.log.info("Partition and reconnect the authenticated child-network peer")
+        partitioned = peer_node.setchildnetworkactive(chain_id, False)
+        assert_equal(partitioned["network_active"], False)
+        self.wait_until(
+            lambda: node.getchildnetworkinfo(chain_id)["connections"] == 0)
+        self.wait_until(
+            lambda: peer_node.getchildnetworkinfo(chain_id)["connections"] == 0)
+        healed = peer_node.setchildnetworkactive(chain_id, True)
+        assert_equal(healed["network_active"], True)
+        self.wait_until(
+            lambda: node.getchildnetworkinfo(chain_id)["handshaken_peers"] == 1)
+        self.wait_until(
+            lambda: peer_node.getchildnetworkinfo(chain_id)["handshaken_peers"] == 1)
+
         self.log.info("Restart only the child listener and roll back failed binds")
         occupied_endpoint = f"127.0.0.1:{p2p_port(0)}"
         assert_raises_rpc_error(

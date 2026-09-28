@@ -140,6 +140,13 @@ BOOST_AUTO_TEST_CASE(owns_an_isolated_network_per_loaded_child)
     BOOST_CHECK(fs::exists(
         chains.DataPath(definition.chain_id) / "network" / "peers.dat"));
 
+    BOOST_REQUIRE(networks.SetNetworkActive(
+        definition.chain_id, true).IsValid());
+    BOOST_CHECK(networks.GetStats(definition.chain_id).network_active);
+    BOOST_REQUIRE(networks.SetNetworkActive(
+        definition.chain_id, false).IsValid());
+    BOOST_CHECK(!networks.GetStats(definition.chain_id).network_active);
+
     BOOST_CHECK(
         networks.Start(definition.chain_id).error ==
         node::ChildNetworkError::ALREADY_RUNNING);

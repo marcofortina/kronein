@@ -710,15 +710,39 @@ ChildNetworkResult ChildNetworkManager::SetNetworkActive(
     if (entry == m_networks.end()) {
         return NetworkError(ChildNetworkError::NOT_RUNNING);
     }
-    ChildNetworkConfig config{entry->second->config};
-    config.network_active = active;
+    ChildNetworkConfig previous_config{entry->second->config};
+    if (previous_config.network_active == active) return {};
+
+    ChildNetworkConfig updated_config{previous_config};
+    updated_config.network_active = active;
+    if (active) {
+        std::unique_ptr<Network> previous_network{std::move(entry->second)};
+        m_networks.erase(entry);
+        previous_network->connman.Interrupt();
+        previous_network->connman.Stop();
+        previous_network->started = false;
+
+        const auto updated{StartLocked(
+            chain_id, std::move(updated_config))};
+        if (updated.IsValid()) return {};
+
+        const auto restored{StartLocked(
+            chain_id, std::move(previous_config))};
+        if (!restored.IsValid()) {
+            return NetworkError(
+                ChildNetworkError::START_FAILED,
+                "failed to restore the inactive child network");
+        }
+        return updated;
+    }
+
     const auto saved{WriteNetworkConfig(
         entry->second->network_path /
             fs::PathFromString(CHILD_NETWORK_CONFIG_FILENAME),
-        config)};
+        updated_config)};
     if (!saved.IsValid()) return saved;
-    entry->second->config = std::move(config);
-    entry->second->connman.SetNetworkActive(active);
+    entry->second->config = std::move(updated_config);
+    entry->second->connman.SetNetworkActive(false);
     return {};
 }
 
