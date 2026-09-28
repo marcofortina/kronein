@@ -10,6 +10,7 @@
 #include <primitives/chainregistry.h>
 #include <primitives/transaction.h>
 
+#include <string>
 #include <vector>
 
 namespace wallet {
@@ -19,6 +20,7 @@ class CWallet;
 struct ChildWalletSendResult {
     CTransactionRef transaction;
     CAmount fee{0};
+    std::string psbt;
 };
 
 struct ChildWalletPayment {

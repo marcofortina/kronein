@@ -95,6 +95,45 @@ static Txid SubmitChildWalletTransaction(
                        "unhandled child transaction submission result");
 }
 
+std::set<int> InterpretSubtractFeeFromOutputInstructions(
+    const UniValue& sffo_instructions,
+    const std::vector<std::string>& destinations);
+
+static std::vector<ChildWalletPayment> ParseChildSendPayments(
+    const UniValue& outputs_arg,
+    const UniValue& subtract_fee_arg)
+{
+    const UniValue outputs{NormalizeOutputs(outputs_arg)};
+    const std::vector<std::string> recipients{outputs.getKeys()};
+    const std::set<int> subtract_fee{
+        InterpretSubtractFeeFromOutputInstructions(
+            subtract_fee_arg, recipients)};
+    std::set<WitnessV1Taproot> seen;
+    std::vector<ChildWalletPayment> payments;
+    payments.reserve(recipients.size());
+    for (size_t index{0}; index < recipients.size(); ++index) {
+        const std::string& recipient_text{recipients[index]};
+        if (recipient_text == "data") {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "child send does not support data outputs");
+        }
+        const WitnessV1Taproot recipient{ParseChildRecipient(
+            UniValue{UniValue::VSTR, recipient_text})};
+        if (!seen.insert(recipient).second) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                strprintf("duplicated child recipient %s", recipient_text));
+        }
+        payments.push_back({
+            .recipient = recipient,
+            .amount = AmountFromValue(outputs[recipient_text]),
+            .subtract_fee = subtract_fee.contains(index),
+        });
+    }
+    return payments;
+}
+
 static uint32_t ParseRegistryUint32(const UniValue& value, std::string_view name)
 {
     const int64_t parsed{value.getInt<int64_t>()};
@@ -1516,6 +1555,8 @@ RPCHelpMan send()
                 },
                 FundTxDoc()),
                 RPCArgOptions{.oneline_description="options"}},
+            {"child_fee", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "Exact absolute child-chain fee in KNE. Required with chain_id and invalid without it."},
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain."},
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "",
@@ -1536,7 +1577,9 @@ RPCHelpMan send()
         "Send 0.3 KNE with a fee rate of 25 " + CURRENCY_ATOM + "/vB using named arguments\n"
         + HelpExampleCli("-named send", "outputs='{\"" + EXAMPLE_ADDRESS[0] + "\": 0.3}' fee_rate=25\n") +
         "Create a transaction that should confirm the next block, with a specific input, and return result without adding to wallet or broadcasting to the network\n"
-        + HelpExampleCli("send", "'{\"" + EXAMPLE_ADDRESS[0] + "\": 0.1}' 1 economical null '{\"add_to_wallet\": false, \"inputs\": [{\"txid\":\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\", \"vout\":1}]}'")
+        + HelpExampleCli("send", "'{\"" + EXAMPLE_ADDRESS[0] + "\": 0.1}' 1 economical null '{\"add_to_wallet\": false, \"inputs\": [{\"txid\":\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\", \"vout\":1}]}'") +
+        "\nSend a child transaction with an explicit absolute fee\n"
+        + HelpExampleCli("-named send", "outputs='[{\"2222222222222222222222222222222222222222222222222222222222222222\":0.1}]' child_fee=0.00001 chain_id=\"1111111111111111111111111111111111111111111111111111111111111111\"")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
@@ -1544,6 +1587,84 @@ RPCHelpMan send()
             if (!pwallet) return UniValue::VNULL;
 
             UniValue options{request.params[4].isNull() ? UniValue::VOBJ : request.params[4]};
+            const auto chain_arg{self.MaybeArg<UniValue>("chain_id")};
+            const auto child_fee_arg{self.MaybeArg<UniValue>("child_fee")};
+            if (chain_arg) {
+                if (!child_fee_arg) {
+                    throw JSONRPCError(
+                        RPC_INVALID_PARAMETER,
+                        "child_fee is required when chain_id is specified");
+                }
+                if (!request.params[1].isNull() ||
+                    (!request.params[2].isNull() &&
+                     request.params[2].get_str() != "unset") ||
+                    !request.params[3].isNull()) {
+                    throw JSONRPCError(
+                        RPC_INVALID_PARAMETER,
+                        "child transactions require child_fee and do not use conf_target, estimate_mode, or fee_rate");
+                }
+                const std::set<std::string> supported_options{
+                    "add_to_wallet",
+                    "lock_unspents",
+                    "minconf",
+                    "psbt",
+                    "subtract_fee_from_outputs",
+                };
+                for (const std::string& option : options.getKeys()) {
+                    if (!supported_options.contains(option)) {
+                        throw JSONRPCError(
+                            RPC_INVALID_PARAMETER,
+                            strprintf("child send does not support option %s",
+                                      option));
+                    }
+                }
+                const chainregistry::ChainId chain_id{
+                    ParseChildChainId(*chain_arg)};
+                const CAmount child_fee{AmountFromValue(*child_fee_arg)};
+                const int minconf{options.exists("minconf")
+                                      ? options["minconf"].getInt<int>()
+                                      : 0};
+                auto sent{CreateSignedChildPayments(
+                    *pwallet,
+                    chain_id,
+                    ParseChildSendPayments(
+                        request.params[0],
+                        options["subtract_fee_from_outputs"]),
+                    child_fee,
+                    minconf)};
+                const bool lock_unspents{
+                    options.exists("lock_unspents") &&
+                    options["lock_unspents"].get_bool()};
+                if (lock_unspents) {
+                    LOCK(pwallet->cs_wallet);
+                    for (const CTxIn& input : sent.transaction->vin) {
+                        pwallet->LockChildCoin(
+                            chain_id, input.prevout, /*persist=*/false);
+                    }
+                }
+                const bool psbt{
+                    options.exists("psbt") && options["psbt"].get_bool()};
+                const bool add_to_wallet{
+                    !options.exists("add_to_wallet") ||
+                    options["add_to_wallet"].get_bool()};
+                const Txid txid{sent.transaction->GetHash()};
+                UniValue result{UniValue::VOBJ};
+                result.pushKV("complete", true);
+                result.pushKV("txid", txid.GetHex());
+                if (add_to_wallet && !psbt) {
+                    SubmitChildWalletTransaction(
+                        *pwallet, chain_id, sent);
+                } else {
+                    result.pushKV("hex", EncodeHexTx(*sent.transaction));
+                    result.pushKV("psbt", sent.psbt);
+                }
+                return result;
+            }
+            if (child_fee_arg) {
+                throw JSONRPCError(
+                    RPC_INVALID_PARAMETER,
+                    "child_fee is only valid when chain_id is specified");
+            }
             InterpretFeeEstimationInstructions(/*conf_target=*/request.params[1], /*estimate_mode=*/request.params[2], /*fee_rate=*/request.params[3], options);
             bool rbf{options.exists("replaceable") ? options["replaceable"].get_bool() : pwallet->m_signal_rbf};
             UniValue outputs(UniValue::VOBJ);

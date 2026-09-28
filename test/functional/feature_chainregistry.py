@@ -1948,6 +1948,35 @@ class ChainRegistryTest(BitcoinTestFramework):
             child_many_a, 0, False, chain_id), Decimal("0.00999500"))
         assert_equal(attacker.getreceivedbyaddress(
             child_many_b, 0, False, chain_id), Decimal("0.01499500"))
+
+        child_send_amount = Decimal("0.00500000")
+        child_send_fee = Decimal("0.00001000")
+        child_send = wallet.send(
+            outputs=[{child_many_a: child_send_amount}],
+            options={"subtract_fee_from_outputs": [0]},
+            child_fee=child_send_fee,
+            chain_id=chain_id)
+        assert_equal(child_send["complete"], True)
+        assert_equal(set(node.getrawmempool(False, False, chain_id)), {
+            generic_send["txid"], child_many_send["txid"], child_send["txid"],
+        })
+        child_send_tx = wallet.gettransaction(
+            child_send["txid"], False, chain_id)
+        assert_equal(child_send_tx["amount"], Decimal("-0.00499000"))
+        assert_equal(child_send_tx["fee"], -child_send_fee)
+        assert_equal(attacker.getreceivedbyaddress(
+            child_many_a, 0, False, chain_id), Decimal("0.01498500"))
+
+        child_psbt = attacker.send(
+            outputs=[{child_many_b: Decimal("0.00200000")}],
+            options={"add_to_wallet": False, "psbt": True},
+            child_fee=child_send_fee,
+            chain_id=chain_id)
+        assert_equal(child_psbt["complete"], True)
+        assert "hex" in child_psbt
+        assert "psbt" in child_psbt
+        assert child_psbt["txid"] not in node.getrawmempool(
+            False, False, chain_id)
         child_wallet_identities = wallet.listchildrecipients(chain_id)
 
         successor_address = wallet.getnewaddress()

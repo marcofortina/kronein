@@ -618,9 +618,9 @@ ChildWalletSendResult CreateSignedChildPayments(
         throw JSONRPCError(RPC_INVALID_PARAMETER,
                            "child_fee must be non-negative and in range");
     }
-    const size_t subtract_count{std::count_if(
+    const size_t subtract_count{static_cast<size_t>(std::count_if(
         payments.begin(), payments.end(),
-        [](const auto& payment) { return payment.subtract_fee; })};
+        [](const auto& payment) { return payment.subtract_fee; }))};
     std::vector<std::pair<WitnessV1Taproot, CAmount>> outputs;
     outputs.reserve(payments.size());
     bool first_subtract{true};
@@ -666,6 +666,7 @@ ChildWalletSendResult CreateSignedChildPayments(
     return {
         .transaction = MakeTransactionRef(std::move(*processed.transaction)),
         .fee = processed.fee,
+        .psbt = EncodePSBT(processed.psbt),
     };
 }
 
