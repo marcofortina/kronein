@@ -138,6 +138,37 @@ struct ChainManagerImportBlockBuildResult {
     }
 };
 
+enum class ChainManagerTransactionBlockBuildError : uint8_t {
+    NONE,
+    NULL_CHAIN_ID,
+    UNKNOWN_CHAIN,
+    CHAIN_NOT_LOADED,
+    EMPTY_TRANSACTIONS,
+    TOO_MANY_TRANSACTIONS,
+    PROPOSAL_PENDING,
+    PROPOSAL_QUEUE_UNAVAILABLE,
+    TIME_OUT_OF_RANGE,
+    BUILD_FAILED,
+    CONTEXT_REJECTED,
+    PROPOSAL_PERSIST_FAILED,
+};
+
+struct ChainManagerTransactionBlockBuildResult {
+    ChainManagerTransactionBlockBuildError error{
+        ChainManagerTransactionBlockBuildError::NONE};
+    chainregistry::ReferenceChildBlockBuildResult build;
+    chainregistry::ReferenceChildBlockResult validation;
+    std::vector<uint256> pruned_local_proposals;
+    uint32_t block_height{0};
+    uint32_t block_time{0};
+
+    bool IsValid() const
+    {
+        return error == ChainManagerTransactionBlockBuildError::NONE &&
+               build.IsValid() && validation.IsValid();
+    }
+};
+
 struct ChainManagerEntry {
     chainregistry::ChainId chain_id;
     chainregistry::ManifestHash manifest_hash;
@@ -485,6 +516,14 @@ public:
     ChainManagerImportBlockBuildResult BuildImportBlock(
         const chainregistry::ChainId& chain_id,
         std::span<const chainregistry::DepositProof> proofs,
+        int64_t current_time,
+        bool sync = false,
+        bool require_empty_proposal_queue = false);
+    /** Build, contextually validate, and persist an active-tip transaction block. */
+    ChainManagerTransactionBlockBuildResult BuildTransactionBlock(
+        const chainregistry::ChainId& chain_id,
+        std::span<const CTransactionRef> transactions,
+        const std::optional<CScript>& fee_recipient_script,
         int64_t current_time,
         bool sync = false,
         bool require_empty_proposal_queue = false);

@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
+#include <addresstype.h>
 #include <chainregistry/child_template.h>
 #include <consensus/bmm.h>
 #include <consensus/chainregistry.h>
@@ -14,6 +15,7 @@
 #include <primitives/chainregistry.h>
 #include <primitives/deposit.h>
 #include <primitives/transaction.h>
+#include <pubkey.h>
 #include <rpc/server.h>
 #include <rpc/server_util.h>
 #include <rpc/util.h>
@@ -180,6 +182,64 @@ std::vector<chainregistry::DepositProof> ParseDepositProofs(
         proofs.push_back(ParseDepositProof(value));
     }
     return proofs;
+}
+
+std::vector<CTransactionRef> ParseChildTransactions(const UniValue& value)
+{
+    const auto& values{value.getValues()};
+    if (values.empty()) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "transactions must contain at least one transaction");
+    }
+
+    size_t encoded_size{0};
+    std::vector<CTransactionRef> transactions;
+    transactions.reserve(values.size());
+    for (size_t index{0}; index < values.size(); ++index) {
+        const std::string& encoded{values[index].get_str()};
+        if (encoded.empty() || !IsHex(encoded)) {
+            throw JSONRPCError(
+                RPC_DESERIALIZATION_ERROR,
+                strprintf("transaction %u is not valid hexadecimal", index));
+        }
+        const size_t transaction_size{encoded.size() / 2};
+        if (transaction_size > MAX_BLOCK_SERIALIZED_SIZE - encoded_size) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                strprintf("transactions exceed the combined maximum size of %u bytes",
+                          MAX_BLOCK_SERIALIZED_SIZE));
+        }
+        encoded_size += transaction_size;
+
+        CMutableTransaction transaction;
+        if (!DecodeHexTx(transaction, encoded)) {
+            throw JSONRPCError(
+                RPC_DESERIALIZATION_ERROR,
+                strprintf("transaction %u decode failed", index));
+        }
+        transactions.push_back(MakeTransactionRef(std::move(transaction)));
+    }
+    return transactions;
+}
+
+std::pair<std::optional<CScript>, std::optional<std::string>>
+ParseChildFeeRecipient(const UniValue* value)
+{
+    if (!value || value->isNull()) return {};
+    const std::vector<unsigned char> recipient{
+        ParseHexV(*value, "fee_recipient")};
+    if (!chainregistry::IsValidReferenceChildRecipient(
+            chainregistry::REFERENCE_CHILD_P2TR_RECIPIENT,
+            recipient)) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "fee_recipient must be a valid 32-byte reference-child P2TR output key");
+    }
+    return {
+        GetScriptForDestination(WitnessV1Taproot{XOnlyPubKey{recipient}}),
+        HexStr(recipient),
+    };
 }
 
 std::string_view AuthenticatedDepositErrorName(
@@ -2706,6 +2766,149 @@ RPCHelpMan createchildimportblock()
     };
 }
 
+RPCHelpMan createchildblock()
+{
+    return RPCHelpMan{
+        "createchildblock",
+        "Build, contextually validate, and durably store a block of finalized transactions extending the active tip of one loaded child chain. Transactions are validated against the child UTXO set and signature domain. An optional P2TR fee recipient claims the block's transaction fees; otherwise the fees remain unclaimed. The block still requires a main-chain BMM anchor before activation.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null child-chain identifier"},
+            {"transactions", RPCArg::Type::ARR, RPCArg::Optional::NO, "One or more finalized serialized child transactions including witness data", {
+                {"transaction", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Serialized child transaction"},
+            }},
+            {"fee_recipient", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Optional valid 32-byte reference-child P2TR output key receiving all transaction fees in the zero-subsidy coinbase"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Validated and stored child block proposal", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Child-chain identifier"},
+            {RPCResult::Type::STR_HEX, "block", "Serialized child block including witness data"},
+            {RPCResult::Type::STR_HEX, "blockhash", "Child block hash"},
+            {RPCResult::Type::STR_HEX, "previousblockhash", "Active child parent hash"},
+            {RPCResult::Type::STR_HEX, "merkleroot", "Child block Merkle root"},
+            {RPCResult::Type::NUM, "height", "Proposed child height"},
+            {RPCResult::Type::NUM_TIME, "time", "Child block timestamp"},
+            {RPCResult::Type::NUM, "size", "Serialized block size including witness"},
+            {RPCResult::Type::NUM, "weight", "Child block weight"},
+            {RPCResult::Type::NUM, "fees", "Total transaction fees"},
+            {RPCResult::Type::NUM, "claimed_fees", "Fees assigned to the optional coinbase output, or zero"},
+            {RPCResult::Type::STR_HEX, "fee_recipient", /*optional=*/true, "P2TR output key receiving claimed fees"},
+            {RPCResult::Type::ARR, "transactions", "Transaction ids in block order, excluding coinbase", {
+                {RPCResult::Type::STR_HEX, "", "Transaction id"},
+            }},
+            {RPCResult::Type::STR_HEX, "bmm_anchor_script", "Canonical main-chain BMM commitment script"},
+            {RPCResult::Type::BOOL, "requires_bmm_anchor", "Always true"},
+            {RPCResult::Type::BOOL, "proposal_stored", "Always true after durable persistence"},
+            {RPCResult::Type::BOOL, "contextually_valid", "Always true when the RPC succeeds"},
+            {RPCResult::Type::ARR, "pruned_proposals", "Older local proposals removed because they no longer extend the active state", {
+                {RPCResult::Type::STR_HEX, "", "Pruned local proposal hash"},
+            }},
+        }},
+        RPCExamples{
+            HelpExampleCli("createchildblock", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" '[\"02000000...\"]'")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const auto chain_id{ParseChainId(self.Arg<UniValue>("chain_id"))};
+    const auto transactions{ParseChildTransactions(
+        self.Arg<UniValue>("transactions"))};
+    const auto [fee_recipient_script, fee_recipient]{
+        ParseChildFeeRecipient(self.MaybeArg<UniValue>("fee_recipient"))};
+    const auto built{EnsureAnyChildChainman(request.context)
+                         .BuildTransactionBlock(
+                             chain_id,
+                             transactions,
+                             fee_recipient_script,
+                             Now<NodeSeconds>().time_since_epoch().count(),
+                             /*sync=*/true)};
+    switch (built.error) {
+    case node::ChainManagerTransactionBlockBuildError::NONE:
+        break;
+    case node::ChainManagerTransactionBlockBuildError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must not be null");
+    case node::ChainManagerTransactionBlockBuildError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not configured locally");
+    case node::ChainManagerTransactionBlockBuildError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "child chain is not loaded");
+    case node::ChainManagerTransactionBlockBuildError::EMPTY_TRANSACTIONS:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "transactions must not be empty");
+    case node::ChainManagerTransactionBlockBuildError::TOO_MANY_TRANSACTIONS:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "too many child transactions");
+    case node::ChainManagerTransactionBlockBuildError::PROPOSAL_PENDING:
+        throw JSONRPCError(
+            RPC_VERIFY_ERROR,
+            "a local child proposal already extends the active tip");
+    case node::ChainManagerTransactionBlockBuildError::PROPOSAL_QUEUE_UNAVAILABLE:
+        throw JSONRPCError(RPC_DATABASE_ERROR,
+                           "local child proposal state is unavailable");
+    case node::ChainManagerTransactionBlockBuildError::TIME_OUT_OF_RANGE:
+        throw JSONRPCError(RPC_MISC_ERROR,
+                           "candidate child block time is out of range");
+    case node::ChainManagerTransactionBlockBuildError::BUILD_FAILED:
+        throw JSONRPCError(
+            RPC_VERIFY_REJECTED,
+            strprintf("failed to build canonical child block (error %u, transaction %s)",
+                      static_cast<unsigned>(built.build.error),
+                      built.build.failed_transaction
+                          ? util::ToString(*built.build.failed_transaction)
+                          : "none"));
+    case node::ChainManagerTransactionBlockBuildError::CONTEXT_REJECTED:
+        throw JSONRPCError(
+            RPC_VERIFY_REJECTED,
+            strprintf("candidate child block failed contextual validation (error %u, block transaction %s)",
+                      static_cast<unsigned>(built.validation.error),
+                      built.validation.failed_transaction
+                          ? util::ToString(*built.validation.failed_transaction)
+                          : "none"));
+    case node::ChainManagerTransactionBlockBuildError::PROPOSAL_PERSIST_FAILED:
+        throw JSONRPCError(
+            RPC_DATABASE_ERROR,
+            "validated child block could not be persisted as a local proposal");
+    }
+
+    Assume(built.build.block);
+    const CBlock& block{*built.build.block};
+    DataStream encoded;
+    encoded << TX_WITH_WITNESS(block);
+    UniValue transaction_ids{UniValue::VARR};
+    for (size_t index{1}; index < block.vtx.size(); ++index) {
+        transaction_ids.push_back(block.vtx[index]->GetHash().GetHex());
+    }
+    const CAmount claimed_fees{block.vtx.front()->GetValueOut()};
+    const CScript anchor_script{chainregistry::BuildBmmAnchorScript({
+        .chain_id = chain_id,
+        .child_block_hash = block.GetHash(),
+    })};
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", chain_id.GetHex());
+    result.pushKV("block", HexStr(encoded));
+    result.pushKV("blockhash", block.GetHash().GetHex());
+    result.pushKV("previousblockhash", block.hashPrevBlock.GetHex());
+    result.pushKV("merkleroot", block.hashMerkleRoot.GetHex());
+    result.pushKV("height", built.block_height);
+    result.pushKV("time", block.GetBlockTime());
+    result.pushKV("size", GetSerializeSize(TX_WITH_WITNESS(block)));
+    result.pushKV("weight", GetBlockWeight(block));
+    result.pushKV("fees", ValueFromAmount(built.validation.total_fees));
+    result.pushKV("claimed_fees", ValueFromAmount(claimed_fees));
+    if (fee_recipient) result.pushKV("fee_recipient", *fee_recipient);
+    result.pushKV("transactions", std::move(transaction_ids));
+    result.pushKV("bmm_anchor_script", HexStr(anchor_script));
+    result.pushKV("requires_bmm_anchor", true);
+    result.pushKV("proposal_stored", true);
+    result.pushKV("contextually_valid", true);
+    UniValue pruned_proposals{UniValue::VARR};
+    for (const auto& hash : built.pruned_local_proposals) {
+        pruned_proposals.push_back(hash.GetHex());
+    }
+    result.pushKV("pruned_proposals", std::move(pruned_proposals));
+    return result;
+},
+    };
+}
+
 RPCHelpMan storechildproposal()
 {
     return RPCHelpMan{
@@ -3017,6 +3220,7 @@ void RegisterChainRegistryRPCCommands(CRPCTable& table)
         {"blockchain", &getchildproposal},
         {"rawtransactions", &createchildimporttransaction},
         {"mining", &createchildimportblock},
+        {"mining", &createchildblock},
         {"mining", &storechildproposal},
         {"mining", &submitchildanchor},
         {"mining", &submitchildblock},

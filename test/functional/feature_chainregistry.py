@@ -1048,6 +1048,78 @@ class ChainRegistryTest(BitcoinTestFramework):
             -25, "deposit is already imported",
             node.createchildimporttransaction, chain_id, deposit_proof["proof"])
 
+        self.log.info("Build, anchor, and activate the finalized child spend")
+        assert_raises_rpc_error(
+            -8, "transactions must contain at least one transaction",
+            node.createchildblock, chain_id, [])
+        assert "hex" in main_domain_psbt
+        assert_raises_rpc_error(
+            -26, "contextual validation",
+            node.createchildblock, chain_id, [main_domain_psbt["hex"]])
+        assert_raises_rpc_error(
+            -8, "valid 32-byte reference-child P2TR output key",
+            node.createchildblock, chain_id, [signed_child["hex"]], "01")
+
+        child_fee_recipient = wallet.getnewchildrecipient(
+            chain_id, "child-fees")
+        child_wallet_identities = wallet.listchildrecipients(chain_id)
+        assert_equal(child_wallet_identities["recipient_count"], 3)
+        assert child_fee_recipient in child_wallet_identities["recipients"]
+        spend_block = node.createchildblock(
+            chain_id,
+            [signed_child["hex"]],
+            child_fee_recipient["recipient"])
+        assert_equal(spend_block["chain_id"], chain_id)
+        assert_equal(spend_block["previousblockhash"], child_block["blockhash"])
+        assert_equal(spend_block["height"], 2)
+        assert_equal(spend_block["transactions"], [signed_child["txid"]])
+        assert_equal(spend_block["fees"], child_fee)
+        assert_equal(spend_block["claimed_fees"], child_fee)
+        assert_equal(spend_block["fee_recipient"],
+                     child_fee_recipient["recipient"])
+        assert_equal(spend_block["proposal_stored"], True)
+        assert_equal(spend_block["contextually_valid"], True)
+        assert_equal(node.listchildproposals(chain_id)["proposal_count"], 1)
+
+        spend_anchor_psbt = wallet.walletcreatechildanchorpsbt(
+            chain_id, spend_block["blockhash"], {"fee_rate": 1})
+        submitted_spend_anchor = wallet.walletsubmitchildanchorpsbt(
+            spend_anchor_psbt["psbt"],
+            chain_id,
+            spend_block["blockhash"],
+            Decimal("1.00000000"))
+        assert_equal(submitted_spend_anchor["child_block_hash"],
+                     spend_block["blockhash"])
+        spend_anchor_block = self.generatetoaddress(
+            node, 1, wallet.getnewaddress())[0]
+        node.syncwithvalidationinterfacequeue()
+        mature_deposit_tip = spend_anchor_block
+
+        spend_chain_info = node.getblockchaininfo(chain_id)
+        assert_equal(spend_chain_info["blocks"], 2)
+        assert_equal(spend_chain_info["bestblockhash"],
+                     spend_block["blockhash"])
+        assert_equal(node.listchildproposals(chain_id)["proposal_count"], 0)
+        spend_bmm_status = node.getchildbmmstatus(chain_id)
+        assert_equal(spend_bmm_status["health"], "anchored")
+        assert_equal(spend_bmm_status["child_height"], 2)
+        assert_equal(spend_bmm_status["canonical_anchor_count"], 2)
+        assert_equal(spend_bmm_status["tip_anchor_main_block_hash"],
+                     spend_anchor_block)
+
+        child_balance_after_spend = wallet.getbalances(chain_id)
+        assert_equal(child_balance_after_spend["mine"], {
+            "trusted": deposit_amount - child_spend_amount - child_fee,
+            "untrusted_pending": Decimal("0.00000000"),
+            "immature": child_fee,
+        })
+        child_destination_balance = attacker.getbalances(chain_id)
+        assert_equal(child_destination_balance["mine"], {
+            "trusted": child_spend_amount,
+            "untrusted_pending": Decimal("0.00000000"),
+            "immature": Decimal("0.00000000"),
+        })
+
         successor_address = wallet.getnewaddress()
         update_psbt = wallet.walletcreatechainregistrypsbt("update", {
             "chain_id": chain_id,

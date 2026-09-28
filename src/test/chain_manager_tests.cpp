@@ -102,6 +102,29 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
     BOOST_CHECK(!manager.IsLoaded(first.chain_id));
     BOOST_CHECK(!manager.IsLoaded(second.chain_id));
 
+    const std::vector<CTransactionRef> no_transactions;
+    BOOST_CHECK(
+        manager.BuildTransactionBlock(
+            chainregistry::ChainId{},
+            no_transactions,
+            std::nullopt,
+            Params().GenesisBlock().nTime).error ==
+        node::ChainManagerTransactionBlockBuildError::NULL_CHAIN_ID);
+    BOOST_CHECK(
+        manager.BuildTransactionBlock(
+            Definition(99).chain_id,
+            no_transactions,
+            std::nullopt,
+            Params().GenesisBlock().nTime).error ==
+        node::ChainManagerTransactionBlockBuildError::UNKNOWN_CHAIN);
+    BOOST_CHECK(
+        manager.BuildTransactionBlock(
+            first.chain_id,
+            no_transactions,
+            std::nullopt,
+            Params().GenesisBlock().nTime).error ==
+        node::ChainManagerTransactionBlockBuildError::CHAIN_NOT_LOADED);
+
     const auto loaded{manager.LoadChain(
         first.chain_id,
         Params().GenesisBlock().nTime,
@@ -113,6 +136,13 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
     BOOST_CHECK_EQUAL(manager.LoadedCount(), 1U);
     BOOST_REQUIRE(manager.Get(first.chain_id));
     BOOST_CHECK(!manager.Get(second.chain_id));
+    BOOST_CHECK(
+        manager.BuildTransactionBlock(
+            first.chain_id,
+            no_transactions,
+            std::nullopt,
+            Params().GenesisBlock().nTime).error ==
+        node::ChainManagerTransactionBlockBuildError::EMPTY_TRANSACTIONS);
     BOOST_CHECK(manager.DataPath(first.chain_id) ==
                 root / fs::PathFromString(first.chain_id.GetHex()));
 

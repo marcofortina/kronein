@@ -4,6 +4,7 @@
 
 #include <node/chain_manager.h>
 
+#include <consensus/consensus.h>
 #include <dbwrapper.h>
 
 #include <algorithm>
@@ -67,6 +68,114 @@ std::pair<uint64_t, uint64_t> LocalProposalUsage(
         bytes += proposal.serialized_size;
     }
     return {proposals->size(), bytes};
+}
+
+enum class ProposalBuildError : uint8_t {
+    NONE,
+    PROPOSAL_PENDING,
+    PROPOSAL_QUEUE_UNAVAILABLE,
+    TIME_OUT_OF_RANGE,
+    BUILD_FAILED,
+    CONTEXT_REJECTED,
+    PROPOSAL_PERSIST_FAILED,
+};
+
+struct ProposalBuildResult {
+    ProposalBuildError error{ProposalBuildError::NONE};
+    chainregistry::ReferenceChildBlockBuildResult build;
+    chainregistry::ReferenceChildBlockResult validation;
+    std::vector<uint256> pruned_local_proposals;
+    uint32_t block_height{0};
+    uint32_t block_time{0};
+};
+
+ProposalBuildResult BuildAndStoreProposal(
+    ReferenceChildRuntime& runtime,
+    std::span<const CTransactionRef> transactions,
+    const std::optional<CScript>& fee_recipient_script,
+    int64_t current_time,
+    bool sync,
+    bool require_empty_proposal_queue)
+{
+    ProposalBuildResult result;
+    const auto pruned{runtime.PruneInvalidLocalProposals(current_time, sync)};
+    if (!pruned.IsValid()) {
+        result.error = ProposalBuildError::PROPOSAL_QUEUE_UNAVAILABLE;
+        return result;
+    }
+    result.pruned_local_proposals = pruned.pruned_local_proposals;
+    if (require_empty_proposal_queue) {
+        const auto proposals{runtime.GetLocalProposals()};
+        if (!proposals) {
+            result.error = ProposalBuildError::PROPOSAL_QUEUE_UNAVAILABLE;
+            return result;
+        }
+        if (!proposals->empty()) {
+            result.error = ProposalBuildError::PROPOSAL_PENDING;
+            return result;
+        }
+    }
+
+    const CBlockIndex* parent{runtime.Tip()};
+    Assume(parent);
+    const int64_t block_time{std::max({
+        current_time,
+        parent->GetBlockTime(),
+        parent->GetMedianTimePast() + 1})};
+    if (current_time < 0 || block_time < 0 ||
+        block_time > std::numeric_limits<uint32_t>::max()) {
+        result.error = ProposalBuildError::TIME_OUT_OF_RANGE;
+        return result;
+    }
+    result.block_time = static_cast<uint32_t>(block_time);
+    result.block_height = static_cast<uint32_t>(parent->nHeight + 1);
+
+    const auto build_block{[&](std::optional<CTxOut> fee_output) {
+        return chainregistry::BuildReferenceChildBlock(
+            *parent,
+            result.block_time,
+            runtime.Definition(),
+            {transactions.begin(), transactions.end()},
+            std::move(fee_output));
+    }};
+    result.build = build_block(std::nullopt);
+    if (!result.build.IsValid()) {
+        result.error = ProposalBuildError::BUILD_FAILED;
+        return result;
+    }
+    result.validation = runtime.ValidateTipBlock(
+        *result.build.block, current_time);
+    if (!result.validation.IsValid()) {
+        result.error = ProposalBuildError::CONTEXT_REJECTED;
+        return result;
+    }
+
+    if (fee_recipient_script && result.validation.total_fees > 0) {
+        result.build = build_block(CTxOut{
+            result.validation.total_fees, *fee_recipient_script});
+        if (!result.build.IsValid()) {
+            result.error = ProposalBuildError::BUILD_FAILED;
+            return result;
+        }
+        result.validation = runtime.ValidateTipBlock(
+            *result.build.block, current_time);
+        if (!result.validation.IsValid()) {
+            result.error = ProposalBuildError::CONTEXT_REJECTED;
+            return result;
+        }
+    }
+
+    const auto stored{runtime.StoreLocalProposal(
+        *result.build.block, current_time, sync)};
+    if (!stored.IsValid()) {
+        result.error = ProposalBuildError::PROPOSAL_PERSIST_FAILED;
+        return result;
+    }
+    result.pruned_local_proposals.insert(
+        result.pruned_local_proposals.end(),
+        stored.pruned_local_proposals.begin(),
+        stored.pruned_local_proposals.end());
+    return result;
 }
 
 } // namespace
@@ -502,35 +611,6 @@ ChainManagerImportBlockBuildResult ChainManager::BuildImportBlock(
         result.error = ChainManagerImportBlockBuildError::TOO_MANY_PROOFS;
         return result;
     }
-    const auto pruned{runtime->second->PruneInvalidLocalProposals(
-        current_time, sync)};
-    if (!pruned.IsValid()) {
-        result.error =
-            ChainManagerImportBlockBuildError::PROPOSAL_QUEUE_UNAVAILABLE;
-        return result;
-    }
-    result.pruned_local_proposals = pruned.pruned_local_proposals;
-    if (require_empty_proposal_queue) {
-        const auto proposals{runtime->second->GetLocalProposals()};
-        if (!proposals || !proposals->empty()) {
-            result.error = ChainManagerImportBlockBuildError::PROPOSAL_PENDING;
-            return result;
-        }
-    }
-
-    const CBlockIndex* parent{runtime->second->Tip()};
-    Assume(parent);
-    const int64_t block_time{std::max({
-        current_time,
-        parent->GetBlockTime(),
-        parent->GetMedianTimePast() + 1})};
-    if (current_time < 0 || block_time < 0 ||
-        block_time > std::numeric_limits<uint32_t>::max()) {
-        result.error = ChainManagerImportBlockBuildError::TIME_OUT_OF_RANGE;
-        return result;
-    }
-    result.block_time = static_cast<uint32_t>(block_time);
-
     std::set<chainregistry::DepositId> deposit_ids;
     std::vector<CTransactionRef> transactions;
     result.imports.reserve(proofs.size());
@@ -559,33 +639,122 @@ ChainManagerImportBlockBuildResult ChainManager::BuildImportBlock(
         result.imports.push_back(std::move(imported));
     }
 
-    result.build = chainregistry::BuildReferenceChildBlock(
-        *parent,
-        result.block_time,
-        runtime->second->Definition(),
-        std::move(transactions));
-    if (!result.build.IsValid()) {
-        result.error = ChainManagerImportBlockBuildError::BUILD_FAILED;
-        return result;
-    }
-    result.block_height = static_cast<uint32_t>(parent->nHeight + 1);
-    result.validation = runtime->second->ValidateTipBlock(
-        *result.build.block, current_time);
-    if (!result.validation.IsValid()) {
+    auto proposal{BuildAndStoreProposal(
+        *runtime->second,
+        transactions,
+        /*fee_recipient_script=*/std::nullopt,
+        current_time,
+        sync,
+        require_empty_proposal_queue)};
+    result.build = std::move(proposal.build);
+    result.validation = std::move(proposal.validation);
+    result.pruned_local_proposals =
+        std::move(proposal.pruned_local_proposals);
+    result.block_height = proposal.block_height;
+    result.block_time = proposal.block_time;
+    switch (proposal.error) {
+    case ProposalBuildError::NONE:
+        break;
+    case ProposalBuildError::PROPOSAL_PENDING:
+        result.error = ChainManagerImportBlockBuildError::PROPOSAL_PENDING;
+        break;
+    case ProposalBuildError::PROPOSAL_QUEUE_UNAVAILABLE:
         result.error =
-            ChainManagerImportBlockBuildError::CONTEXT_REJECTED;
-        return result;
-    }
-    const auto stored{runtime->second->StoreLocalProposal(
-        *result.build.block, current_time, sync)};
-    if (!stored.IsValid()) {
+            ChainManagerImportBlockBuildError::PROPOSAL_QUEUE_UNAVAILABLE;
+        break;
+    case ProposalBuildError::TIME_OUT_OF_RANGE:
+        result.error = ChainManagerImportBlockBuildError::TIME_OUT_OF_RANGE;
+        break;
+    case ProposalBuildError::BUILD_FAILED:
+        result.error = ChainManagerImportBlockBuildError::BUILD_FAILED;
+        break;
+    case ProposalBuildError::CONTEXT_REJECTED:
+        result.error = ChainManagerImportBlockBuildError::CONTEXT_REJECTED;
+        break;
+    case ProposalBuildError::PROPOSAL_PERSIST_FAILED:
         result.error =
             ChainManagerImportBlockBuildError::PROPOSAL_PERSIST_FAILED;
-    } else {
-        result.pruned_local_proposals.insert(
-            result.pruned_local_proposals.end(),
-            stored.pruned_local_proposals.begin(),
-            stored.pruned_local_proposals.end());
+        break;
+    }
+    return result;
+}
+
+ChainManagerTransactionBlockBuildResult ChainManager::BuildTransactionBlock(
+    const chainregistry::ChainId& chain_id,
+    std::span<const CTransactionRef> transactions,
+    const std::optional<CScript>& fee_recipient_script,
+    int64_t current_time,
+    bool sync,
+    bool require_empty_proposal_queue)
+{
+    LOCK(m_mutex);
+    ChainManagerTransactionBlockBuildResult result;
+    if (chain_id.IsNull()) {
+        result.error = ChainManagerTransactionBlockBuildError::NULL_CHAIN_ID;
+        return result;
+    }
+    if (!m_definitions.contains(chain_id)) {
+        result.error = ChainManagerTransactionBlockBuildError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto runtime{m_loaded.find(chain_id)};
+    if (runtime == m_loaded.end()) {
+        result.error =
+            ChainManagerTransactionBlockBuildError::CHAIN_NOT_LOADED;
+        return result;
+    }
+    if (transactions.empty()) {
+        result.error =
+            ChainManagerTransactionBlockBuildError::EMPTY_TRANSACTIONS;
+        return result;
+    }
+    if (transactions.size() >=
+        runtime->second->Definition().parameters.max_block_weight /
+            WITNESS_SCALE_FACTOR) {
+        result.error =
+            ChainManagerTransactionBlockBuildError::TOO_MANY_TRANSACTIONS;
+        return result;
+    }
+
+    auto proposal{BuildAndStoreProposal(
+        *runtime->second,
+        transactions,
+        fee_recipient_script,
+        current_time,
+        sync,
+        require_empty_proposal_queue)};
+    result.build = std::move(proposal.build);
+    result.validation = std::move(proposal.validation);
+    result.pruned_local_proposals =
+        std::move(proposal.pruned_local_proposals);
+    result.block_height = proposal.block_height;
+    result.block_time = proposal.block_time;
+    switch (proposal.error) {
+    case ProposalBuildError::NONE:
+        break;
+    case ProposalBuildError::PROPOSAL_PENDING:
+        result.error =
+            ChainManagerTransactionBlockBuildError::PROPOSAL_PENDING;
+        break;
+    case ProposalBuildError::PROPOSAL_QUEUE_UNAVAILABLE:
+        result.error =
+            ChainManagerTransactionBlockBuildError::PROPOSAL_QUEUE_UNAVAILABLE;
+        break;
+    case ProposalBuildError::TIME_OUT_OF_RANGE:
+        result.error =
+            ChainManagerTransactionBlockBuildError::TIME_OUT_OF_RANGE;
+        break;
+    case ProposalBuildError::BUILD_FAILED:
+        result.error = ChainManagerTransactionBlockBuildError::BUILD_FAILED;
+        break;
+    case ProposalBuildError::CONTEXT_REJECTED:
+        result.error =
+            ChainManagerTransactionBlockBuildError::CONTEXT_REJECTED;
+        break;
+    case ProposalBuildError::PROPOSAL_PERSIST_FAILED:
+        result.error =
+            ChainManagerTransactionBlockBuildError::PROPOSAL_PERSIST_FAILED;
+        break;
     }
     return result;
 }
