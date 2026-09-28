@@ -7,6 +7,7 @@
 #include <blockfilter.h>
 #include <chain.h>
 #include <chainparams.h>
+#include <coins.h>
 #include <common/args.h>
 #include <consensus/merkle.h>
 #include <consensus/validation.h>
@@ -29,6 +30,7 @@
 #include <netaddress.h>
 #include <netbase.h>
 #include <node/blockstorage.h>
+#include <node/chain_manager.h>
 #include <node/coin.h>
 #include <node/context.h>
 #include <node/interface_ui.h>
@@ -63,6 +65,7 @@
 #include <bitcoin-build-config.h> // IWYU pragma: keep
 
 #include <any>
+#include <atomic>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -75,6 +78,9 @@ using interfaces::BlockTemplate;
 using interfaces::BlockTip;
 using interfaces::Chain;
 using interfaces::ChainRegistrySnapshot;
+using interfaces::ChildWalletCoin;
+using interfaces::ChildWalletScan;
+using interfaces::ChildWalletScanError;
 using interfaces::FoundBlock;
 using interfaces::Handler;
 using interfaces::MakeSignalHandler;
@@ -581,6 +587,59 @@ public:
             }
         }
         return snapshot;
+    }
+    ChildWalletScan scanChildWalletUTXOs(
+        const chainregistry::ChainId& chain_id,
+        const std::set<CScript>& scripts) override
+    {
+        ChildWalletScan result;
+        if (!m_node.child_chainman) {
+            result.error = ChildWalletScanError::UNKNOWN_CHAIN;
+            return result;
+        }
+        std::atomic<int> progress{0};
+        const std::atomic<bool> should_abort{false};
+        auto scan{m_node.child_chainman->ScanUTXOSet(
+            chain_id,
+            scripts,
+            progress,
+            should_abort,
+            m_node.rpc_interruption_point)};
+        switch (scan.error) {
+        case ChainManagerUTXOStatsViewError::NONE:
+            break;
+        case ChainManagerUTXOStatsViewError::NULL_CHAIN_ID:
+            result.error = ChildWalletScanError::NULL_CHAIN_ID;
+            return result;
+        case ChainManagerUTXOStatsViewError::UNKNOWN_CHAIN:
+            result.error = ChildWalletScanError::UNKNOWN_CHAIN;
+            return result;
+        case ChainManagerUTXOStatsViewError::CHAIN_NOT_LOADED:
+            result.error = ChildWalletScanError::CHAIN_NOT_LOADED;
+            return result;
+        case ChainManagerUTXOStatsViewError::DATA_UNAVAILABLE:
+            result.error = ChildWalletScanError::DATA_UNAVAILABLE;
+            return result;
+        }
+        if (!scan.completed) {
+            result.error = ChildWalletScanError::DATA_UNAVAILABLE;
+            return result;
+        }
+        result.completed = true;
+        result.scanned = scan.scanned;
+        result.height = scan.entry.height;
+        result.best_block = scan.entry.tip;
+        result.coins.reserve(scan.matches.size());
+        for (auto& [outpoint, coin] : scan.matches) {
+            const bool coinbase{coin.IsCoinBase()};
+            result.coins.push_back(ChildWalletCoin{
+                .outpoint = outpoint,
+                .output = std::move(coin.out),
+                .height = coin.nHeight,
+                .coinbase = coinbase,
+            });
+        }
+        return result;
     }
     uint256 getBlockHash(int height) override
     {

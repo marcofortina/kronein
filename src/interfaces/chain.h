@@ -20,6 +20,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -63,6 +64,34 @@ struct ChainRegistrySnapshot {
     uint256 registry_root;
     uint32_t height{0};
     std::optional<chainregistry::ChainRecord> record;
+};
+
+enum class ChildWalletScanError : uint8_t {
+    NONE,
+    NULL_CHAIN_ID,
+    UNKNOWN_CHAIN,
+    CHAIN_NOT_LOADED,
+    DATA_UNAVAILABLE,
+};
+
+/** One confirmed child UTXO matching a script explicitly supplied by a wallet. */
+struct ChildWalletCoin {
+    COutPoint outpoint;
+    CTxOut output;
+    uint32_t height{0};
+    bool coinbase{false};
+};
+
+/** Lock-consistent scan of a loaded child's UTXO set at one exact tip. */
+struct ChildWalletScan {
+    ChildWalletScanError error{ChildWalletScanError::NONE};
+    bool completed{false};
+    int64_t scanned{0};
+    uint32_t height{0};
+    uint256 best_block;
+    std::vector<ChildWalletCoin> coins;
+
+    bool IsValid() const { return error == ChildWalletScanError::NONE; }
 };
 
 //! Helper for findBlock to selectively return pieces of block data. If block is
@@ -147,6 +176,11 @@ public:
     //! exact child-chain record requested by the caller.
     virtual ChainRegistrySnapshot getChainRegistrySnapshot(
         std::optional<chainregistry::ChainId> chain_id = std::nullopt) = 0;
+
+    //! Scan one loaded child's confirmed UTXO set for wallet-supplied scripts.
+    virtual ChildWalletScan scanChildWalletUTXOs(
+        const chainregistry::ChainId& chain_id,
+        const std::set<CScript>& scripts) = 0;
 
     //! Get block hash. Height must be valid or this function will abort.
     virtual uint256 getBlockHash(int height) = 0;

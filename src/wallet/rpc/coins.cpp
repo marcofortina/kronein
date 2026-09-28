@@ -4,7 +4,9 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <core_io.h>
+#include <consensus/consensus.h>
 #include <hash.h>
+#include <interfaces/chain.h>
 #include <key_io.h>
 #include <rpc/util.h>
 #include <script/script.h>
@@ -19,6 +21,97 @@
 
 
 namespace wallet {
+namespace {
+
+chainregistry::ChainId ParseChildChainId(const UniValue& value)
+{
+    const auto chain_id{chainregistry::ChainId::FromHex(value.get_str())};
+    if (!chain_id || chain_id->IsNull()) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "chain_id must be exactly 32 non-null bytes encoded as hexadecimal");
+    }
+    return *chain_id;
+}
+
+interfaces::ChildWalletScan ScanChildWallet(
+    const CWallet& wallet,
+    const chainregistry::ChainId& chain_id)
+{
+    std::set<CScript> scripts;
+    {
+        LOCK(wallet.cs_wallet);
+        for (const auto& [destination, _] :
+             wallet.ListChildRecipients(chain_id)) {
+            const CScript script{GetScriptForDestination(destination)};
+            if (wallet.IsMine(script)) scripts.insert(script);
+        }
+    }
+
+    auto scan{wallet.chain().scanChildWalletUTXOs(chain_id, scripts)};
+    switch (scan.error) {
+    case interfaces::ChildWalletScanError::NONE:
+        return scan;
+    case interfaces::ChildWalletScanError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "chain_id must not be null");
+    case interfaces::ChildWalletScanError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not configured locally");
+    case interfaces::ChildWalletScanError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_MISC_ERROR, "child chain is not loaded");
+    case interfaces::ChildWalletScanError::DATA_UNAVAILABLE:
+        throw JSONRPCError(RPC_INTERNAL_ERROR,
+                           "child chain UTXO data is unavailable");
+    }
+    throw JSONRPCError(RPC_INTERNAL_ERROR,
+                       "unhandled child wallet scan error");
+}
+
+UniValue GetChildBalances(
+    const CWallet& wallet,
+    const chainregistry::ChainId& chain_id)
+{
+    const interfaces::ChildWalletScan scan{
+        ScanChildWallet(wallet, chain_id)};
+    CAmount trusted{0};
+    CAmount immature{0};
+    for (const interfaces::ChildWalletCoin& coin : scan.coins) {
+        if (coin.height > scan.height || !MoneyRange(coin.output.nValue)) {
+            throw JSONRPCError(RPC_INTERNAL_ERROR,
+                               "child wallet UTXO data is inconsistent");
+        }
+        const uint64_t confirmations{
+            uint64_t{scan.height} - coin.height + 1};
+        CAmount& balance{
+            coin.coinbase && confirmations < COINBASE_MATURITY
+                ? immature
+                : trusted};
+        if (!MoneyRange(balance + coin.output.nValue)) {
+            throw JSONRPCError(RPC_INTERNAL_ERROR,
+                               "child wallet balance is out of range");
+        }
+        balance += coin.output.nValue;
+    }
+
+    UniValue mine{UniValue::VOBJ};
+    mine.pushKV("trusted", ValueFromAmount(trusted));
+    mine.pushKV("untrusted_pending", ValueFromAmount(0));
+    mine.pushKV("immature", ValueFromAmount(immature));
+
+    UniValue last_processed{UniValue::VOBJ};
+    last_processed.pushKV("hash", scan.best_block.GetHex());
+    last_processed.pushKV("height", scan.height);
+
+    UniValue balances{UniValue::VOBJ};
+    balances.pushKV("mine", std::move(mine));
+    balances.pushKV("lastprocessedblock", std::move(last_processed));
+    balances.pushKV("chain_id", chain_id.GetHex());
+    return balances;
+}
+
+} // namespace
+
 static CAmount GetReceived(const CWallet& wallet, const UniValue& params, bool by_label) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet)
 {
     std::vector<CTxDestination> addresses;
@@ -397,8 +490,11 @@ RPCHelpMan getbalances()
 {
     return RPCHelpMan{
         "getbalances",
-        "Returns an object with all balances in " + CURRENCY_UNIT + ".\n",
-        {},
+        "Returns an object with all balances in " + CURRENCY_UNIT + ".\n"
+        "When chain_id is omitted, balances are from the main-chain wallet as before. When an exact child chain is provided, the loaded child UTXO set is scanned for wallet recipients explicitly bound to that chain; child mempool balances are not yet available.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
+        },
         RPCResult{
             RPCResult::Type::OBJ, "", "",
             {
@@ -410,16 +506,22 @@ RPCHelpMan getbalances()
                     {RPCResult::Type::STR_AMOUNT, "used", /*optional=*/true, "(only present if avoid_reuse is set) balance from coins sent to addresses that were previously spent from (potentially privacy violating)"},
                 }},
                 RESULT_LAST_PROCESSED_BLOCK,
+                {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Selected child-chain identifier; omitted for the main chain"},
             }
             },
         RPCExamples{
             HelpExampleCli("getbalances", "") +
+            HelpExampleCli("getbalances", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"") +
             HelpExampleRpc("getbalances", "")},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     const std::shared_ptr<const CWallet> rpc_wallet = GetWalletForJSONRPCRequest(request);
     if (!rpc_wallet) return UniValue::VNULL;
     const CWallet& wallet = *rpc_wallet;
+
+    if (const auto chain_arg{self.MaybeArg<UniValue>("chain_id")}) {
+        return GetChildBalances(wallet, ParseChildChainId(*chain_arg));
+    }
 
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
