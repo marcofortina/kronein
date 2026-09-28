@@ -299,6 +299,14 @@ ChildNetworkResult ChildNetworkManager::Start(
     const chainregistry::ChainId& chain_id,
     std::optional<ChildNetworkConfig> config)
 {
+    LOCK(m_mutex);
+    return StartLocked(chain_id, std::move(config));
+}
+
+ChildNetworkResult ChildNetworkManager::StartLocked(
+    const chainregistry::ChainId& chain_id,
+    std::optional<ChildNetworkConfig> config)
+{
     if (chain_id.IsNull()) {
         return NetworkError(ChildNetworkError::NULL_CHAIN_ID);
     }
@@ -310,7 +318,6 @@ ChildNetworkResult ChildNetworkManager::Start(
         return NetworkError(ChildNetworkError::CHAIN_NOT_LOADED);
     }
 
-    LOCK(m_mutex);
     if (m_networks.contains(chain_id)) {
         return NetworkError(ChildNetworkError::ALREADY_RUNNING);
     }
@@ -535,6 +542,50 @@ ChildNetworkResult ChildNetworkManager::SetNetworkActive(
     entry->second->config = std::move(config);
     entry->second->connman.SetNetworkActive(active);
     return {};
+}
+
+ChildNetworkResult ChildNetworkManager::SetBindEndpoints(
+    const chainregistry::ChainId& chain_id,
+    std::vector<std::string> endpoints)
+{
+    if (chain_id.IsNull()) {
+        return NetworkError(ChildNetworkError::NULL_CHAIN_ID);
+    }
+    const auto parsed{ParseBindEndpoints(endpoints)};
+    if (!parsed.result.IsValid()) return parsed.result;
+    if (!m_chain_manager.Definition(chain_id)) {
+        return NetworkError(ChildNetworkError::UNKNOWN_CHAIN);
+    }
+    if (!m_chain_manager.IsLoaded(chain_id)) {
+        return NetworkError(ChildNetworkError::CHAIN_NOT_LOADED);
+    }
+
+    LOCK(m_mutex);
+    const auto entry{m_networks.find(chain_id)};
+    if (entry == m_networks.end()) {
+        return NetworkError(ChildNetworkError::NOT_RUNNING);
+    }
+    ChildNetworkConfig previous_config{entry->second->config};
+    if (previous_config.bind == endpoints) return {};
+
+    std::unique_ptr<Network> previous_network{std::move(entry->second)};
+    m_networks.erase(entry);
+    previous_network->connman.Interrupt();
+    previous_network->connman.Stop();
+    previous_network->started = false;
+
+    ChildNetworkConfig updated_config{previous_config};
+    updated_config.bind = std::move(endpoints);
+    const auto updated{StartLocked(chain_id, std::move(updated_config))};
+    if (updated.IsValid()) return {};
+
+    const auto restored{StartLocked(chain_id, std::move(previous_config))};
+    if (!restored.IsValid()) {
+        return NetworkError(
+            ChildNetworkError::START_FAILED,
+            "failed to restore the previous child network configuration");
+    }
+    return updated;
 }
 
 void ChildNetworkManager::Interrupt()

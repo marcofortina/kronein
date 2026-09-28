@@ -11,6 +11,7 @@ from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
     child_port,
+    p2p_port,
 )
 
 
@@ -318,6 +319,38 @@ class ChainRegistryTest(BitcoinTestFramework):
             lambda: peer_node.getchildnetworkinfo(chain_id)["handshaken_peers"] == 1)
         assert_equal(node.getchildnetworkinfo(chain_id)["connections"], 1)
         assert_equal(peer_node.getchildnetworkinfo(chain_id)["connections"], 1)
+
+        self.log.info("Restart only the child listener and roll back failed binds")
+        occupied_endpoint = f"127.0.0.1:{p2p_port(0)}"
+        assert_raises_rpc_error(
+            -1, "failed to start isolated child network",
+            node.setchildnetworkbinds, chain_id, [occupied_endpoint])
+        assert_equal(
+            node.getchildnetworkinfo(chain_id)["binds"], [child_endpoint])
+        assert_equal(
+            peer_node.unloadchildchain(chain_id)["network_running"], False)
+        peer_node.loadchildchain(
+            chain_id, {"connect": [child_endpoint]})
+        self.wait_until(
+            lambda: node.getchildnetworkinfo(chain_id)["handshaken_peers"] == 1)
+        self.wait_until(
+            lambda: peer_node.getchildnetworkinfo(chain_id)["handshaken_peers"] == 1)
+        disabled_listener = node.setchildnetworkbinds(chain_id, [])
+        assert_equal(disabled_listener["network_running"], True)
+        assert_equal(disabled_listener["binds"], [])
+        self.wait_until(
+            lambda: node.getchildnetworkinfo(chain_id)["connections"] == 0)
+        restored_listener = node.setchildnetworkbinds(
+            chain_id, [child_endpoint])
+        assert_equal(restored_listener["binds"], [child_endpoint])
+        assert_equal(
+            peer_node.unloadchildchain(chain_id)["network_running"], False)
+        peer_node.loadchildchain(
+            chain_id, {"connect": [child_endpoint]})
+        self.wait_until(
+            lambda: node.getchildnetworkinfo(chain_id)["handshaken_peers"] == 1)
+        self.wait_until(
+            lambda: peer_node.getchildnetworkinfo(chain_id)["handshaken_peers"] == 1)
         assert_equal(peer_node.unloadchildchain(chain_id)["network_running"], False)
         main_height = node.getblockcount()
         main_tip = node.getbestblockhash()

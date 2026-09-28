@@ -91,6 +91,11 @@ private:
     std::map<chainregistry::ChainId, std::unique_ptr<Network>> m_networks
         GUARDED_BY(m_mutex);
 
+    ChildNetworkResult StartLocked(
+        const chainregistry::ChainId& chain_id,
+        std::optional<ChildNetworkConfig> config)
+        EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
+
 public:
     ChildNetworkManager(ChainManager& chain_manager,
                         const CChainParams& chain_params,
@@ -104,6 +109,9 @@ public:
                                const std::string& endpoint);
     ChildNetworkResult RemoveNode(const chainregistry::ChainId& chain_id,
                                   const std::string& endpoint);
+    ChildNetworkResult SetBindEndpoints(
+        const chainregistry::ChainId& chain_id,
+        std::vector<std::string> endpoints);
     ChildNetworkResult SetNetworkActive(
         const chainregistry::ChainId& chain_id,
         bool active);

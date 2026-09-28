@@ -546,8 +546,12 @@ void EnsureRegistryMatchesDefinition(
             strprintf("invalid child network configuration: %s",
                       result.detail));
     case node::ChildNetworkError::START_FAILED:
-        throw JSONRPCError(RPC_MISC_ERROR,
-                           "failed to start isolated child network");
+        throw JSONRPCError(
+            RPC_MISC_ERROR,
+            result.detail.empty()
+                ? "failed to start isolated child network"
+                : strprintf("failed to start isolated child network: %s",
+                            result.detail));
     case node::ChildNetworkError::NODE_ALREADY_ADDED:
         throw JSONRPCError(
             RPC_INVALID_PARAMETER,
@@ -1546,6 +1550,56 @@ RPCHelpMan setchildnetworkactive()
     };
 }
 
+RPCHelpMan setchildnetworkbinds()
+{
+    return RPCHelpMan{
+        "setchildnetworkbinds",
+        "Replace the persistent listen endpoints for one running child network. "
+        "Only the isolated child P2P stack is restarted. If a new bind fails, the previous configuration is restored.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null child-chain identifier"},
+            {"binds", RPCArg::Type::ARR, RPCArg::Optional::NO, "Numeric listen endpoints with explicit non-zero ports; an empty array disables inbound child connections", {
+                {"", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Numeric address and port"},
+            }},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Updated child network state", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Full child-chain identifier"},
+            {RPCResult::Type::BOOL, "network_running", "Whether the isolated connection manager is running"},
+            {RPCResult::Type::BOOL, "network_active", "Whether new child-network connections are enabled"},
+            {RPCResult::Type::NUM, "connections", "Current connection count"},
+            {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
+            {RPCResult::Type::ARR, "added_nodes", "Persistent explicit endpoints", {
+                {RPCResult::Type::STR, "", "Host and explicit port"},
+            }},
+            {RPCResult::Type::ARR, "binds", "Persistent numeric listen endpoints", {
+                {RPCResult::Type::STR, "", "Numeric address and explicit port"},
+            }},
+        }},
+        RPCExamples{
+            HelpExampleCli("setchildnetworkbinds", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" '[\"127.0.0.1:29844\"]'")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const auto chain_id{ParseChainId(self.Arg<UniValue>("chain_id"))};
+    std::vector<std::string> endpoints;
+    const UniValue bind_values{
+        self.Arg<UniValue>("binds")};
+    for (const UniValue& endpoint : bind_values.getValues()) {
+        endpoints.push_back(endpoint.get_str());
+    }
+    node::ChildNetworkManager& networks{
+        EnsureAnyChildNetworkman(request.context)};
+    const auto updated{
+        networks.SetBindEndpoints(chain_id, std::move(endpoints))};
+    if (!updated.IsValid()) ThrowChildNetworkError(updated);
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", chain_id.GetHex());
+    PushChildNetworkStats(result, networks.GetStats(chain_id));
+    return result;
+}
+    };
+}
+
 RPCHelpMan submitchildanchor()
 {
     return RPCHelpMan{
@@ -1800,6 +1854,7 @@ void RegisterChainRegistryRPCCommands(CRPCTable& table)
         {"network", &addchildnode},
         {"network", &removechildnode},
         {"network", &setchildnetworkactive},
+        {"network", &setchildnetworkbinds},
         {"blockchain", &getchildpendingblocks},
         {"mining", &submitchildanchor},
         {"mining", &submitchildblock},
