@@ -311,6 +311,59 @@ BOOST_AUTO_TEST_CASE(persists_bounded_local_proposals)
     }
 }
 
+BOOST_AUTO_TEST_CASE(bounds_local_proposal_count)
+{
+    const auto& params{Params().GetConsensus()};
+    const CBlock& genesis{Params().GenesisBlock()};
+    chainregistry::MainHeaderChain headers{params};
+    BOOST_REQUIRE(headers.Initialize(genesis).IsValid());
+    chainregistry::DepositImportState imports{CHILD_CHAIN, 2};
+    node::ChildChainDB db{{
+                              .path = m_args.GetDataDirBase() /
+                                  "child_chain_proposal_limits",
+                              .cache_bytes = 1 << 20,
+                              .wipe_data = true,
+                              .obfuscate = true,
+                          },
+                          CHILD_CHAIN,
+                          params.hashGenesisBlock,
+                          2,
+                          CHILD_GENESIS};
+    BOOST_REQUIRE(db.WriteInitialState(headers, imports, /*sync=*/true));
+
+    std::vector<CBlock> proposals;
+    proposals.reserve(node::MAX_CHILD_LOCAL_PROPOSALS + 1);
+    for (uint32_t height{1};
+         height <= node::MAX_CHILD_LOCAL_PROPOSALS + 1;
+         ++height) {
+        proposals.push_back(MakeChildBlock(CHILD_GENESIS, height));
+    }
+    for (size_t index{0}; index < node::MAX_CHILD_LOCAL_PROPOSALS; ++index) {
+        BOOST_REQUIRE(db.WriteLocalProposal(
+            proposals[index], static_cast<int64_t>(index), /*sync=*/true));
+    }
+
+    const auto full{db.ReadLocalProposals()};
+    BOOST_REQUIRE(full.has_value());
+    BOOST_REQUIRE_EQUAL(full->size(), node::MAX_CHILD_LOCAL_PROPOSALS);
+    BOOST_CHECK(db.WriteLocalProposal(proposals.front(), 999, /*sync=*/true));
+    BOOST_CHECK(!db.WriteLocalProposal(
+        proposals.back(), node::MAX_CHILD_LOCAL_PROPOSALS, /*sync=*/true));
+    const auto unchanged{db.ReadLocalProposals()};
+    BOOST_REQUIRE(unchanged.has_value());
+    BOOST_CHECK_EQUAL(unchanged->size(), node::MAX_CHILD_LOCAL_PROPOSALS);
+
+    BOOST_REQUIRE(db.EraseLocalProposal(
+        proposals.front().GetHash(), /*sync=*/true));
+    BOOST_REQUIRE(db.WriteLocalProposal(
+        proposals.back(), node::MAX_CHILD_LOCAL_PROPOSALS, /*sync=*/true));
+    const auto refilled{db.ReadLocalProposals()};
+    BOOST_REQUIRE(refilled.has_value());
+    BOOST_CHECK_EQUAL(refilled->size(), node::MAX_CHILD_LOCAL_PROPOSALS);
+    BOOST_CHECK(!db.ReadLocalProposal(proposals.front().GetHash()).has_value());
+    BOOST_CHECK(db.ReadLocalProposal(proposals.back().GetHash()).has_value());
+}
+
 BOOST_AUTO_TEST_CASE(bounds_pending_bmm_anchor_queue)
 {
     const auto& params{Params().GetConsensus()};
