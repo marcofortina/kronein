@@ -210,6 +210,32 @@ static node::ChainManagerTipsView GetLoadedChildChainTipsView(
                        "unhandled child chain tips view error");
 }
 
+static node::ChainManagerUTXOStatsView GetLoadedChildUTXOStatsView(
+    const std::any& context,
+    std::string_view chain_id,
+    kernel::CoinStatsHashType hash_type,
+    const std::function<void()>& interruption_point)
+{
+    const auto view{EnsureAnyChildChainman(context).GetUTXOStatsView(
+        ParseChainId(chain_id), hash_type, interruption_point)};
+    switch (view.error) {
+    case node::ChainManagerUTXOStatsViewError::NONE:
+        return view;
+    case node::ChainManagerUTXOStatsViewError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must not be null");
+    case node::ChainManagerUTXOStatsViewError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not configured locally");
+    case node::ChainManagerUTXOStatsViewError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_MISC_ERROR, "child chain is not loaded");
+    case node::ChainManagerUTXOStatsViewError::DATA_UNAVAILABLE:
+        throw JSONRPCError(RPC_INTERNAL_ERROR,
+                           "child chain UTXO data is unavailable");
+    }
+    throw JSONRPCError(RPC_INTERNAL_ERROR,
+                       "unhandled child UTXO statistics view error");
+}
+
 struct PreparedUTXOSnapshot {
     std::unique_ptr<CCoinsViewCursor> cursor;
     CCoinsStats stats;
@@ -1367,15 +1393,17 @@ static RPCHelpMan gettxoutsetinfo()
     return RPCHelpMan{
         "gettxoutsetinfo",
         "Returns statistics about the unspent transaction output set.\n"
-                "Note this call may take some time if you are not using coinstatsindex.\n",
+                "Note this call may take some time if you are not using coinstatsindex.\n"
+                "When chain_id is omitted, this operates on the main chain. Child-chain statistics are calculated from the current locally loaded tip.\n",
                 {
                     {"hash_type", RPCArg::Type::STR, RPCArg::Default{"muhash"}, "Which UTXO set hash should be calculated. Options: 'muhash', 'none'."},
-                    {"hash_or_height", RPCArg::Type::NUM, RPCArg::DefaultHint{"the current best block"}, "The block hash or height of the target height (only available with coinstatsindex).",
+                    {"hash_or_height", RPCArg::Type::NUM, RPCArg::DefaultHint{"the current best block"}, "The block hash or height of the target height (historical values require main-chain coinstatsindex; a child target must equal its current tip).",
                      RPCArgOptions{
                          .skip_type_check = true,
                          .type_str = {"", "string or numeric"},
                      }},
-                    {"use_index", RPCArg::Type::BOOL, RPCArg::Default{true}, "Use coinstatsindex, if available."},
+                    {"use_index", RPCArg::Type::BOOL, RPCArg::Default{true}, "Use main-chain coinstatsindex, if available. Child-chain requests always calculate the current snapshot."},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
@@ -1388,6 +1416,7 @@ static RPCHelpMan gettxoutsetinfo()
                         {RPCResult::Type::NUM, "transactions", /*optional=*/true, "The number of transactions with unspent outputs (not available when coinstatsindex is used)"},
                         {RPCResult::Type::NUM, "disk_size", /*optional=*/true, "The estimated size of the chainstate on disk (not available when coinstatsindex is used)"},
                         {RPCResult::Type::STR_AMOUNT, "total_amount", "The total amount of coins in the UTXO set"},
+                        {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Child-chain identifier; present only for child results"},
                         {RPCResult::Type::STR_AMOUNT, "total_unspendable_amount", /*optional=*/true, "The total amount of coins permanently excluded from the UTXO set (only available if coinstatsindex is used)"},
                         {RPCResult::Type::OBJ, "block_info", /*optional=*/true, "Info on amounts in the block at this block height (only available if coinstatsindex is used)",
                         {
@@ -1423,6 +1452,37 @@ static RPCHelpMan gettxoutsetinfo()
     bool index_requested = request.params[2].isNull() || request.params[2].get_bool();
 
     NodeContext& node = EnsureAnyNodeContext(request.context);
+    if (const auto chain_id{self.MaybeArg<std::string_view>("chain_id")}) {
+        const auto view{GetLoadedChildUTXOStatsView(
+            request.context, *chain_id, hash_type,
+            node.rpc_interruption_point)};
+        const CCoinsStats& stats{view.stats};
+        if (!request.params[1].isNull()) {
+            const bool matches_tip{request.params[1].isNum()
+                    ? request.params[1].getInt<int>() == stats.nHeight
+                    : ParseHashV(request.params[1], "hash_or_height") ==
+                          stats.hashBlock};
+            if (!matches_tip) {
+                throw JSONRPCError(
+                    RPC_INVALID_PARAMETER,
+                    "Child UTXO statistics are available only for the current tip");
+            }
+        }
+        ret.pushKV("height", stats.nHeight);
+        ret.pushKV("bestblock", stats.hashBlock.GetHex());
+        ret.pushKV("txouts", stats.nTransactionOutputs);
+        ret.pushKV("bogosize", stats.nBogoSize);
+        if (hash_type == CoinStatsHashType::MUHASH) {
+            ret.pushKV("muhash", stats.muhash.GetHex());
+        }
+        CHECK_NONFATAL(stats.total_amount.has_value());
+        ret.pushKV("total_amount", ValueFromAmount(*stats.total_amount));
+        ret.pushKV("transactions", stats.nTransactions);
+        ret.pushKV("disk_size", stats.nDiskSize);
+        ret.pushKV("chain_id", view.entry.chain_id.GetHex());
+        return ret;
+    }
+
     ChainstateManager& chainman = EnsureChainman(node);
     Chainstate& active_chainstate = chainman.ActiveChainstate();
     active_chainstate.ForceFlushStateToDisk(/*wipe_cache=*/false);

@@ -287,6 +287,20 @@ BOOST_AUTO_TEST_CASE(blockchain_rpc_routes_explicit_child_chain)
                       definition.genesis_hash.GetHex());
     BOOST_CHECK_EQUAL(child_tips[0].find_value("status").get_str(), "active");
     BOOST_CHECK(!child_tips[0].find_value("bmm_eligible").get_bool());
+    const auto child_utxo_stats{CallRPC(
+        "gettxoutsetinfo muhash null true " + chain_id)};
+    BOOST_CHECK_EQUAL(
+        child_utxo_stats.find_value("chain_id").get_str(), chain_id);
+    BOOST_CHECK_EQUAL(
+        child_utxo_stats.find_value("bestblock").get_str(),
+        definition.genesis_hash.GetHex());
+    BOOST_CHECK_EQUAL(
+        child_utxo_stats.find_value("height").getInt<int>(), 0);
+    BOOST_CHECK_EQUAL(
+        child_utxo_stats.find_value("txouts").getInt<int>(), 0);
+    BOOST_CHECK_EQUAL(
+        child_utxo_stats.find_value("transactions").getInt<int>(), 0);
+    BOOST_CHECK(!child_utxo_stats.find_value("muhash").get_str().empty());
     const auto child_header{CallRPC(
         "getblockheader " + definition.genesis_hash.GetHex() +
         " true " + chain_id)};
@@ -546,6 +560,35 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
     BOOST_CHECK_EQUAL(child_stats.find_value("subsidy").getInt<int64_t>(), 0);
     BOOST_CHECK_EQUAL(child_stats.find_value("totalfee").getInt<int64_t>(), 0);
     BOOST_CHECK_EQUAL(child_stats.find_value("txs").getInt<int>(), 1);
+    const auto child_utxo_stats{CallRPC(
+        "gettxoutsetinfo muhash null true " + chain_id)};
+    BOOST_CHECK_EQUAL(
+        child_utxo_stats.find_value("chain_id").get_str(), chain_id);
+    BOOST_CHECK_EQUAL(
+        child_utxo_stats.find_value("bestblock").get_str(),
+        child_block.GetHash().GetHex());
+    BOOST_CHECK_EQUAL(
+        child_utxo_stats.find_value("height").getInt<int>(), 1);
+    BOOST_CHECK_EQUAL(
+        child_utxo_stats.find_value("txouts").getInt<int>(), 1);
+    BOOST_CHECK_EQUAL(
+        child_utxo_stats.find_value("transactions").getInt<int>(), 1);
+    BOOST_CHECK_EQUAL(
+        child_utxo_stats.find_value("total_amount").getValStr(),
+        "0.00000000");
+    const auto selected_child_utxo_stats{CallRPC(
+        "gettxoutsetinfo none 1 false " + chain_id)};
+    BOOST_CHECK_EQUAL(
+        selected_child_utxo_stats.find_value("bestblock").get_str(),
+        child_block.GetHash().GetHex());
+    BOOST_CHECK(selected_child_utxo_stats.find_value("muhash").isNull());
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("gettxoutsetinfo none 0 true " + chain_id),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find(
+                       "only for the current tip") != std::string_view::npos;
+        });
     const auto selected_child_stats{CallRPC(
         "getblockstats 1 [\"height\",\"subsidy\"] " + chain_id)};
     BOOST_CHECK_EQUAL(selected_child_stats.find_value("chain_id").get_str(),
