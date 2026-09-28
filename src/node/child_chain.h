@@ -12,9 +12,11 @@
 #include <chainregistry/deposit_import.h>
 #include <chainregistry/mainchain_lightclient.h>
 #include <consensus/params.h>
+#include <kernel/coinstats.h>
 #include <node/child_chain_db.h>
 
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
@@ -187,6 +189,9 @@ public:
         const uint256& block_hash) const;
     std::optional<std::vector<ReferenceChildChainTipView>> GetChainTips() const;
     std::optional<Coin> GetCoin(const COutPoint& outpoint) const;
+    std::optional<kernel::CCoinsStats> GetUTXOStats(
+        kernel::CoinStatsHashType hash_type,
+        const std::function<void()>& interruption_point = {}) const;
     bool ReadBlock(const uint256& block_hash, CBlock& block) const;
 };
 

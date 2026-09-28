@@ -75,6 +75,15 @@ void ApplyCoinHash(MuHash3072& muhash, const COutPoint& outpoint, const Coin& co
 void RemoveCoinHash(MuHash3072& muhash, const COutPoint& outpoint, const Coin& coin);
 
 std::optional<CCoinsStats> ComputeUTXOStats(CoinStatsHashType hash_type, CCoinsView* view, node::BlockManager& blockman, const std::function<void()>& interruption_point = {});
+
+/** Calculate UTXO statistics for a view whose tip height is managed outside
+ * the main-chain BlockManager. The cursor's best-block hash and the supplied
+ * height must describe the same immutable view. */
+std::optional<CCoinsStats> ComputeUTXOStatsAtHeight(
+    CoinStatsHashType hash_type,
+    CCoinsView* view,
+    int block_height,
+    const std::function<void()>& interruption_point = {});
 } // namespace kernel
 
 #endif // BITCOIN_KERNEL_COINSTATS_H

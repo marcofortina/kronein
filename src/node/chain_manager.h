@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
@@ -149,6 +150,26 @@ struct ChainManagerTipsView {
     bool IsValid() const { return error == ChainManagerTipsViewError::NONE; }
 };
 
+enum class ChainManagerUTXOStatsViewError : uint8_t {
+    NONE,
+    NULL_CHAIN_ID,
+    UNKNOWN_CHAIN,
+    CHAIN_NOT_LOADED,
+    DATA_UNAVAILABLE,
+};
+
+struct ChainManagerUTXOStatsView {
+    ChainManagerUTXOStatsViewError error{
+        ChainManagerUTXOStatsViewError::NONE};
+    ChainManagerEntry entry;
+    kernel::CCoinsStats stats;
+
+    bool IsValid() const
+    {
+        return error == ChainManagerUTXOStatsViewError::NONE;
+    }
+};
+
 /**
  * Opt-in owner for isolated child runtimes.
  *
@@ -246,6 +267,10 @@ public:
         const COutPoint& outpoint) const;
     ChainManagerTipsView GetChainTipsView(
         const chainregistry::ChainId& chain_id) const;
+    ChainManagerUTXOStatsView GetUTXOStatsView(
+        const chainregistry::ChainId& chain_id,
+        kernel::CoinStatsHashType hash_type,
+        const std::function<void()>& interruption_point = {}) const;
     std::vector<ChainManagerEntry> List() const;
     size_t RegisteredCount() const;
     size_t LoadedCount() const;

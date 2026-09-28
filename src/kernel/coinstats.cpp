@@ -140,6 +140,31 @@ static bool ComputeUTXOStats(CCoinsView* view, CCoinsStats& stats, T hash_obj, c
     return true;
 }
 
+static std::optional<CCoinsStats> ComputeUTXOStatsWithCursor(
+    CoinStatsHashType hash_type,
+    CCoinsView* view,
+    CCoinsStats stats,
+    const std::function<void()>& interruption_point,
+    std::unique_ptr<CCoinsViewCursor> pcursor)
+{
+    if (!pcursor) return std::nullopt;
+
+    const bool success = [&]() -> bool {
+        switch (hash_type) {
+        case CoinStatsHashType::MUHASH: {
+            MuHash3072 muhash;
+            return ComputeUTXOStats(view, stats, muhash, interruption_point, std::move(pcursor));
+        }
+        case CoinStatsHashType::NONE:
+            return ComputeUTXOStats(view, stats, nullptr, interruption_point, std::move(pcursor));
+        }
+        assert(false);
+    }();
+
+    if (!success) return std::nullopt;
+    return stats;
+}
+
 std::optional<CCoinsStats> ComputeUTXOStats(CoinStatsHashType hash_type, CCoinsView* view, node::BlockManager& blockman, const std::function<void()>& interruption_point)
 {
     std::unique_ptr<CCoinsViewCursor> pcursor;
@@ -150,24 +175,22 @@ std::optional<CCoinsStats> ComputeUTXOStats(CoinStatsHashType hash_type, CCoinsV
         pindex = blockman.LookupBlockIndex(pcursor->GetBestBlock());
     }
     CCoinsStats stats{Assert(pindex)->nHeight, pindex->GetBlockHash()};
+    return ComputeUTXOStatsWithCursor(
+        hash_type, view, std::move(stats), interruption_point, std::move(pcursor));
+}
 
-    bool success = [&]() -> bool {
-        switch (hash_type) {
-        case(CoinStatsHashType::MUHASH): {
-            MuHash3072 muhash;
-            return ComputeUTXOStats(view, stats, muhash, interruption_point, std::move(pcursor));
-        }
-        case(CoinStatsHashType::NONE): {
-            return ComputeUTXOStats(view, stats, nullptr, interruption_point, std::move(pcursor));
-        }
-        } // no default case, so the compiler can warn about missing cases
-        assert(false);
-    }();
-
-    if (!success) {
-        return std::nullopt;
-    }
-    return stats;
+std::optional<CCoinsStats> ComputeUTXOStatsAtHeight(
+    CoinStatsHashType hash_type,
+    CCoinsView* view,
+    int block_height,
+    const std::function<void()>& interruption_point)
+{
+    if (block_height < 0) return std::nullopt;
+    auto cursor{view->Cursor()};
+    if (!cursor || cursor->GetBestBlock().IsNull()) return std::nullopt;
+    CCoinsStats stats{block_height, cursor->GetBestBlock()};
+    return ComputeUTXOStatsWithCursor(
+        hash_type, view, std::move(stats), interruption_point, std::move(cursor));
 }
 
 static void FinalizeHash(MuHash3072& muhash, CCoinsStats& stats)

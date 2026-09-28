@@ -1128,6 +1128,26 @@ ReferenceChildRuntime::GetChainTips() const
     return result;
 }
 
+std::optional<kernel::CCoinsStats> ReferenceChildRuntime::GetUTXOStats(
+    kernel::CoinStatsHashType hash_type,
+    const std::function<void()>& interruption_point) const
+{
+    if (!Usable() || !m_tip || !m_db ||
+        m_tip->GetBlockHash() != m_state.child_tip ||
+        m_tip->nHeight != static_cast<int>(m_state.child_height)) {
+        return std::nullopt;
+    }
+    auto stats{kernel::ComputeUTXOStatsAtHeight(
+        hash_type, m_db.get(), m_tip->nHeight, interruption_point)};
+    if (!stats || stats->hashBlock != m_state.child_tip ||
+        stats->nHeight != m_tip->nHeight ||
+        stats->coins_count != m_state.coin_count ||
+        stats->nTransactionOutputs != m_state.coin_count) {
+        return std::nullopt;
+    }
+    return stats;
+}
+
 bool ReferenceChildRuntime::ReadBlock(const uint256& block_hash,
                                       CBlock& block) const
 {

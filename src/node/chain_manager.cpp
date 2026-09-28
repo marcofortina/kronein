@@ -611,6 +611,41 @@ ChainManagerTipsView ChainManager::GetChainTipsView(
     return result;
 }
 
+ChainManagerUTXOStatsView ChainManager::GetUTXOStatsView(
+    const chainregistry::ChainId& chain_id,
+    kernel::CoinStatsHashType hash_type,
+    const std::function<void()>& interruption_point) const
+{
+    LOCK(m_mutex);
+    ChainManagerUTXOStatsView result;
+    if (chain_id.IsNull()) {
+        result.error = ChainManagerUTXOStatsViewError::NULL_CHAIN_ID;
+        return result;
+    }
+    if (!m_definitions.contains(chain_id)) {
+        result.error = ChainManagerUTXOStatsViewError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto loaded{m_loaded.find(chain_id)};
+    if (loaded == m_loaded.end()) {
+        result.error = ChainManagerUTXOStatsViewError::CHAIN_NOT_LOADED;
+        return result;
+    }
+    const CBlockIndex* tip{loaded->second->Tip()};
+    Assume(tip);
+    const auto tip_view{GetBlockViewLocked(chain_id, tip->GetBlockHash())};
+    Assume(tip_view.IsValid());
+    result.entry = tip_view.entry;
+    const auto stats{
+        loaded->second->GetUTXOStats(hash_type, interruption_point)};
+    if (!stats) {
+        result.error = ChainManagerUTXOStatsViewError::DATA_UNAVAILABLE;
+        return result;
+    }
+    result.stats = *stats;
+    return result;
+}
+
 std::vector<ChainManagerEntry> ChainManager::List() const
 {
     LOCK(m_mutex);
