@@ -33,6 +33,7 @@ private Q_SLOTS:
     void addManifest();
     void addPeer();
     void removePeer();
+    void configureBinds();
     void toggleNetwork();
 
 private:
@@ -57,6 +58,7 @@ private:
         NETWORK_RUNNING_ROLE,
         NETWORK_ACTIVE_ROLE,
         ADDED_NODES_ROLE,
+        BINDS_ROLE,
     };
 
     QString selectedChainId() const;
@@ -75,6 +77,7 @@ private:
     QPushButton* m_forget_button{nullptr};
     QPushButton* m_add_peer_button{nullptr};
     QPushButton* m_remove_peer_button{nullptr};
+    QPushButton* m_binds_button{nullptr};
     QPushButton* m_network_button{nullptr};
 };
 

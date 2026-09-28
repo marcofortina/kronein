@@ -126,9 +126,11 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     m_unload_button = actions->addButton(tr("Unload"), QDialogButtonBox::ActionRole);
     m_add_peer_button = actions->addButton(tr("Add Peer…"), QDialogButtonBox::ActionRole);
     m_remove_peer_button = actions->addButton(tr("Remove Peer…"), QDialogButtonBox::ActionRole);
+    m_binds_button = actions->addButton(tr("Listening…"), QDialogButtonBox::ActionRole);
     m_network_button = actions->addButton(tr("Pause Network"), QDialogButtonBox::ActionRole);
     m_add_peer_button->setObjectName(QStringLiteral("childChainAddPeerButton"));
     m_remove_peer_button->setObjectName(QStringLiteral("childChainRemovePeerButton"));
+    m_binds_button->setObjectName(QStringLiteral("childChainBindsButton"));
     m_network_button->setObjectName(QStringLiteral("childChainNetworkButton"));
     m_forget_button = actions->addButton(tr("Forget…"), QDialogButtonBox::DestructiveRole);
     actions->addButton(QDialogButtonBox::Close);
@@ -146,6 +148,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     connect(m_unload_button, &QPushButton::clicked, this, &ChildChainDialog::unloadSelected);
     connect(m_add_peer_button, &QPushButton::clicked, this, &ChildChainDialog::addPeer);
     connect(m_remove_peer_button, &QPushButton::clicked, this, &ChildChainDialog::removePeer);
+    connect(m_binds_button, &QPushButton::clicked, this, &ChildChainDialog::configureBinds);
     connect(m_network_button, &QPushButton::clicked, this, &ChildChainDialog::toggleNetwork);
     connect(m_forget_button, &QPushButton::clicked, this, &ChildChainDialog::forgetSelected);
     connect(actions, &QDialogButtonBox::rejected, this, &QDialog::close);
@@ -183,6 +186,7 @@ void ChildChainDialog::refresh()
             const QString connections{NumberField(chain, "connections")};
             const QString handshaken{NumberField(chain, "handshaken_peers")};
             const QStringList added_nodes{StringArrayField(chain, "added_nodes")};
+            const QStringList binds{StringArrayField(chain, "binds")};
             const QString state{StringField(chain, "state")};
             const QString template_name{QStringLiteral("%1/%2")
                 .arg(NumberField(chain, "template_id"), NumberField(chain, "template_version"))};
@@ -218,15 +222,20 @@ void ChildChainDialog::refresh()
             status_item->setData(NETWORK_RUNNING_ROLE, network_running);
             status_item->setData(NETWORK_ACTIVE_ROLE, network_active);
             status_item->setData(ADDED_NODES_ROLE, added_nodes);
+            status_item->setData(BINDS_ROLE, binds);
             m_table->setItem(row, STATUS, status_item);
             m_table->setItem(row, CHAIN_ID, new QTableWidgetItem{chain_id});
             m_table->setItem(row, CHILD_HEIGHT, new QTableWidgetItem{NumberField(chain, "child_height")});
             m_table->setItem(row, MAIN_HEIGHT, new QTableWidgetItem{NumberField(chain, "main_height")});
             auto* network_item = new QTableWidgetItem{network_state};
+            const QString outbound_tooltip{added_nodes.isEmpty()
+                ? tr("No explicit child peers configured")
+                : tr("Explicit child peers:\n%1").arg(added_nodes.join(QLatin1Char('\n')))};
+            const QString inbound_tooltip{binds.isEmpty()
+                ? tr("Inbound child connections disabled")
+                : tr("Child listen endpoints:\n%1").arg(binds.join(QLatin1Char('\n')))};
             network_item->setToolTip(
-                added_nodes.isEmpty()
-                    ? tr("No explicit child peers configured")
-                    : tr("Explicit child peers:\n%1").arg(added_nodes.join(QLatin1Char('\n'))));
+                outbound_tooltip + QStringLiteral("\n\n") + inbound_tooltip);
             m_table->setItem(row, NETWORK, network_item);
             auto* dag_item = new QTableWidgetItem{dag_usage};
             m_table->setItem(row, FORK_DAG, dag_item);
@@ -297,6 +306,7 @@ void ChildChainDialog::updateSelection()
         m_add_button->setEnabled(false);
         m_add_peer_button->setEnabled(false);
         m_remove_peer_button->setEnabled(false);
+        m_binds_button->setEnabled(false);
         m_network_button->setEnabled(false);
         m_network_button->setText(tr("Pause Network"));
         m_selection_summary->setText(tr("Select a child chain to manage its local runtime."));
@@ -311,22 +321,25 @@ void ChildChainDialog::updateSelection()
     const bool network_running{item->data(NETWORK_RUNNING_ROLE).toBool()};
     const bool network_active{item->data(NETWORK_ACTIVE_ROLE).toBool()};
     const QStringList added_nodes{item->data(ADDED_NODES_ROLE).toStringList()};
+    const QStringList binds{item->data(BINDS_ROLE).toStringList()};
     m_load_button->setEnabled(configured && !loaded && state == QStringLiteral("configured"));
     m_unload_button->setEnabled(loaded);
     m_forget_button->setEnabled(configured && !loaded);
     m_add_button->setEnabled(registry_found && !configured && state == QStringLiteral("available"));
     m_add_peer_button->setEnabled(loaded && network_running);
     m_remove_peer_button->setEnabled(loaded && network_running && !added_nodes.isEmpty());
+    m_binds_button->setEnabled(loaded && network_running);
     m_network_button->setEnabled(loaded && network_running);
     m_network_button->setText(network_active ? tr("Pause Network") : tr("Resume Network"));
     m_selection_summary->setText(
-        tr("Chain ID: %1\nState: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6")
+        tr("Chain ID: %1\nState: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7")
             .arg(chain_id,
                  StateLabel(state),
                  registry_found ? tr("present") : tr("not present"),
                  configured ? tr("present") : tr("not present"),
                  !network_running ? tr("stopped") : network_active ? tr("active") : tr("paused"),
-                 QString::number(added_nodes.size())));
+                 QString::number(added_nodes.size()),
+                 QString::number(binds.size())));
 }
 
 void ChildChainDialog::addManifest()
@@ -450,6 +463,35 @@ void ChildChainDialog::removePeer()
     params.push_back(chain_id.toStdString());
     params.push_back(endpoint.toStdString());
     runCommand("removechildnode", std::move(params));
+}
+
+void ChildChainDialog::configureBinds()
+{
+    const int row{m_table->currentRow()};
+    const QTableWidgetItem* item{row >= 0 ? m_table->item(row, STATUS) : nullptr};
+    if (!item) return;
+    const QString chain_id{item->data(CHAIN_ID_ROLE).toString()};
+    if (chain_id.isEmpty()) return;
+
+    bool accepted{false};
+    const QString text{QInputDialog::getMultiLineText(
+        this,
+        tr("Child Listen Endpoints"),
+        tr("Enter one numeric endpoint per line with an explicit port.\n"
+           "Leave the field empty to disable inbound connections for this child chain."),
+        item->data(BINDS_ROLE).toStringList().join(QLatin1Char('\n')),
+        &accepted)};
+    if (!accepted) return;
+
+    UniValue binds{UniValue::VARR};
+    for (const QString& line : text.split(QLatin1Char('\n'), Qt::SkipEmptyParts)) {
+        const QString endpoint{line.trimmed()};
+        if (!endpoint.isEmpty()) binds.push_back(endpoint.toStdString());
+    }
+    UniValue params{UniValue::VARR};
+    params.push_back(chain_id.toStdString());
+    params.push_back(std::move(binds));
+    runCommand("setchildnetworkbinds", std::move(params));
 }
 
 void ChildChainDialog::toggleNetwork()

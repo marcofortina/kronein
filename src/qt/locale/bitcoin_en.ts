@@ -1008,12 +1008,12 @@
     </message>
     <message>
         <location line="+16"/>
-        <location line="+184"/>
+        <location line="+194"/>
         <source>Select a child chain to manage its local runtime.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-179"/>
+        <location line="-189"/>
         <source>Refresh</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1044,18 +1044,23 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+172"/>
-        <location line="+20"/>
+        <source>Listening…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <location line="+181"/>
+        <location line="+22"/>
         <source>Pause Network</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-188"/>
+        <location line="-198"/>
         <source>Forget…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+56"/>
+        <location line="+58"/>
         <source>Failed</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1101,7 +1106,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+2"/>
+        <source>Inbound child connections disabled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Child listen endpoints:
+%1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+15"/>
         <source>Side candidates: %1/%2 records, %3/%4 bytes
 Candidate BMM anchors: %5/%6 records, %7/%8 bytes
 Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
@@ -1127,14 +1143,14 @@ Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+46"/>
+        <location line="+49"/>
         <source>Resume Network</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Chain ID: %1
-State: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6</source>
+State: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1165,7 +1181,7 @@ State: %2 • registry: %3 • local configuration: %4 • network: %5 • expli
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+12"/>
+        <location line="+13"/>
         <source>Add Child Manifest</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1218,7 +1234,18 @@ The complete manifest will be validated against child chain %1 on the active mai
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+37"/>
+        <location line="+23"/>
+        <source>Child Listen Endpoints</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Enter one numeric endpoint per line with an explicit port.
+Leave the field empty to disable inbound connections for this child chain.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+42"/>
         <source>Unload Child Chain</source>
         <translation type="unfinished"></translation>
     </message>

@@ -104,12 +104,15 @@ void AppTests::guiTests(BitcoinGUI* window)
     QCOMPARE(child_chain_table->columnCount(), 8);
     QPushButton* add_peer_button = child_chains->findChild<QPushButton*>("childChainAddPeerButton");
     QPushButton* remove_peer_button = child_chains->findChild<QPushButton*>("childChainRemovePeerButton");
+    QPushButton* binds_button = child_chains->findChild<QPushButton*>("childChainBindsButton");
     QPushButton* network_button = child_chains->findChild<QPushButton*>("childChainNetworkButton");
     QVERIFY(add_peer_button);
     QVERIFY(remove_peer_button);
+    QVERIFY(binds_button);
     QVERIFY(network_button);
     QVERIFY(!add_peer_button->isEnabled());
     QVERIFY(!remove_peer_button->isEnabled());
+    QVERIFY(!binds_button->isEnabled());
     QVERIFY(!network_button->isEnabled());
     child_chains->close();
 
