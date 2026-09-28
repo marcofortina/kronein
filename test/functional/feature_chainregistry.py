@@ -1093,7 +1093,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert child_fee_recipient in child_wallet_identities["recipients"]
         spend_block = node.createchildblock(
             chain_id,
-            [signed_child["hex"]],
+            None,
             child_fee_recipient["recipient"])
         assert_equal(spend_block["chain_id"], chain_id)
         assert_equal(spend_block["previousblockhash"], child_block["blockhash"])

@@ -2770,10 +2770,10 @@ RPCHelpMan createchildblock()
 {
     return RPCHelpMan{
         "createchildblock",
-        "Build, contextually validate, and durably store a block of finalized transactions extending the active tip of one loaded child chain. Transactions are validated against the child UTXO set and signature domain. An optional P2TR fee recipient claims the block's transaction fees; otherwise the fees remain unclaimed. The block still requires a main-chain BMM anchor before activation.\n",
+        "Build, contextually validate, and durably store a block of finalized transactions extending the active tip of one loaded child chain. Omit transactions to select the current child mempool in admission order. Explicit transactions are validated against the child UTXO set and signature domain. An optional P2TR fee recipient claims the block's transaction fees; otherwise the fees remain unclaimed. The block still requires a main-chain BMM anchor before activation.\n",
         {
             {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null child-chain identifier"},
-            {"transactions", RPCArg::Type::ARR, RPCArg::Optional::NO, "One or more finalized serialized child transactions including witness data", {
+            {"transactions", RPCArg::Type::ARR, RPCArg::Optional::OMITTED, "One or more finalized serialized child transactions including witness data; omit to use the child mempool", {
                 {"transaction", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Serialized child transaction"},
             }},
             {"fee_recipient", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Optional valid 32-byte reference-child P2TR output key receiving all transaction fees in the zero-subsidy coinbase"},
@@ -2808,17 +2808,39 @@ RPCHelpMan createchildblock()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     const auto chain_id{ParseChainId(self.Arg<UniValue>("chain_id"))};
-    const auto transactions{ParseChildTransactions(
-        self.Arg<UniValue>("transactions"))};
+    node::ChainManager& manager{EnsureAnyChildChainman(request.context)};
+    std::vector<CTransactionRef> transactions;
+    if (request.params[1].isNull()) {
+        const auto mempool{manager.GetMempool(chain_id)};
+        switch (mempool.error) {
+        case node::ChainManagerMempoolViewError::NONE:
+            break;
+        case node::ChainManagerMempoolViewError::NULL_CHAIN_ID:
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER, "chain_id must not be null");
+        case node::ChainManagerMempoolViewError::UNKNOWN_CHAIN:
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "child chain is not configured locally");
+        case node::ChainManagerMempoolViewError::CHAIN_NOT_LOADED:
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER, "child chain is not loaded");
+        }
+        transactions.reserve(mempool.runtime.entries.size());
+        for (const auto& entry : mempool.runtime.entries) {
+            transactions.push_back(entry.transaction);
+        }
+    } else {
+        transactions = ParseChildTransactions(request.params[1]);
+    }
     const auto [fee_recipient_script, fee_recipient]{
         ParseChildFeeRecipient(self.MaybeArg<UniValue>("fee_recipient"))};
-    const auto built{EnsureAnyChildChainman(request.context)
-                         .BuildTransactionBlock(
-                             chain_id,
-                             transactions,
-                             fee_recipient_script,
-                             Now<NodeSeconds>().time_since_epoch().count(),
-                             /*sync=*/true)};
+    const auto built{manager.BuildTransactionBlock(
+        chain_id,
+        transactions,
+        fee_recipient_script,
+        Now<NodeSeconds>().time_since_epoch().count(),
+        /*sync=*/true)};
     switch (built.error) {
     case node::ChainManagerTransactionBlockBuildError::NONE:
         break;
