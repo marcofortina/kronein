@@ -927,7 +927,7 @@
 <context>
     <name>ChildChainDialog</name>
     <message>
-        <location filename="../childchaindialog.cpp" line="+92"/>
+        <location filename="../childchaindialog.cpp" line="+96"/>
         <source>Available</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1008,12 +1008,12 @@
     </message>
     <message>
         <location line="+16"/>
-        <location line="+257"/>
+        <location line="+261"/>
         <source>Select a child chain to manage its local runtime.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-252"/>
+        <location line="-256"/>
         <source>Refresh</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1054,18 +1054,18 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+243"/>
-        <location line="+42"/>
+        <location line="+247"/>
+        <location line="+43"/>
         <source>Pause Network</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-271"/>
+        <location line="-274"/>
         <source>Forget…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+70"/>
+        <location line="+71"/>
         <source>Failed</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1100,18 +1100,23 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+185"/>
+        <location line="+187"/>
         <source>Chain ID: %1
 State: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7 • discovery: %8 (%9 bootstrap, %10 known) • rate-limited block requests: %11</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-157"/>
+        <location line="-159"/>
         <source>No explicit child peers configured</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-128"/>
+        <location line="-131"/>
+        <source>Register…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Migrate…</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1126,7 +1131,7 @@ State: %2 • registry: %3 • local configuration: %4 • network: %5 • expli
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+127"/>
+        <location line="+129"/>
         <source>Explicit child peers:
 %1</source>
         <translation type="unfinished"></translation>
@@ -1211,7 +1216,7 @@ Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+75"/>
+        <location line="+77"/>
         <source>Resume Network</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1253,9 +1258,9 @@ Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+42"/>
+        <location line="+43"/>
         <location line="+4"/>
-        <location line="+16"/>
+        <location line="+17"/>
         <source>Create registry operation</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1265,7 +1270,12 @@ Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+8"/>
+        <source>Confirm Child Registration</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Confirm Permanent Retirement</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1276,6 +1286,16 @@ Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
     </message>
     <message>
         <location line="+2"/>
+        <source>Register child chain %1?
+
+Registration permanently burns %2 KNE.
+Main-chain fee: %3 KNE
+
+The burn is not refundable, even if the child chain is never operated.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+5"/>
         <source>Permanently retire child chain %1?
 
 New deposits and anchors will stop after confirmation on the main chain. Protocol v1 has no operation that reactivates a retired chain.
@@ -1292,7 +1312,7 @@ Main-chain fee: %2 KNE</source>
     </message>
     <message>
         <location line="+8"/>
-        <location line="+16"/>
+        <location line="+17"/>
         <location line="+4"/>
         <location line="+19"/>
         <source>Submit registry operation</source>
@@ -1305,11 +1325,16 @@ Main-chain fee: %2 KNE</source>
     </message>
     <message>
         <location line="+6"/>
+        <source>Registration Submitted</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Retirement Submitted</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="+1"/>
         <source>Update Submitted</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1322,7 +1347,113 @@ Child chain: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+15"/>
+        <location line="+23"/>
+        <location line="+4"/>
+        <location line="+6"/>
+        <source>List registration anchors</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The wallet returned an invalid unspent-output list.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Register Reference Child Chain</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Registration consumes the selected confirmed wallet output and permanently burns the protocol registration amount.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+19"/>
+        <source>%1:%2 — %3 KNE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>No Registration Anchor</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The selected wallet has no safe, spendable output with at least one confirmation.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>32-byte external metadata commitment in hexadecimal</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+12"/>
+        <source>Registration anchor:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Metadata hash:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Maximum block weight:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Deposit maturity:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Review Registration</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Enter exactly 32 non-zero bytes (64 hexadecimal characters).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <location line="+26"/>
+        <location line="+4"/>
+        <location line="+11"/>
+        <location line="+6"/>
+        <location line="+10"/>
+        <location line="+21"/>
+        <source>Create child registration</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-36"/>
+        <location line="+6"/>
+        <source>The node returned an invalid reference-child definition.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>The node returned an incomplete reference-child specification.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+17"/>
+        <source>Save this canonical manifest. After the registration confirms, use Add Manifest… to configure the child locally.
+
+%1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>The selected wallet changed while preparing the registration.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+20"/>
         <source>Update Child Metadata</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1332,7 +1463,8 @@ Child chain: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="-105"/>
+        <location line="+115"/>
         <source>Invalid Metadata Hash</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1455,8 +1587,9 @@ There is no child-to-main withdrawal path.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-278"/>
-        <location line="+233"/>
+        <location line="-476"/>
+        <location line="+161"/>
+        <location line="+270"/>
         <source>The selected wallet is no longer available.</source>
         <translation type="unfinished"></translation>
     </message>

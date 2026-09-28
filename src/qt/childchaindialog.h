@@ -50,6 +50,7 @@ private Q_SLOTS:
     void configureDiscovery();
     void toggleNetwork();
 #ifdef ENABLE_WALLET
+    void registerChildChain();
     void migrateSelected();
     void updateSelected();
     void retireSelected();
@@ -94,7 +95,8 @@ private:
     std::string walletUri() const;
     void submitRegistryOperation(const char* operation,
                                  const QString& chain_id,
-                                 UniValue parameters);
+                                 UniValue parameters,
+                                 const QString& result_details = {});
 #endif
 
     interfaces::Node& m_node;
@@ -113,6 +115,7 @@ private:
     QPushButton* m_network_button{nullptr};
 #ifdef ENABLE_WALLET
     QPointer<WalletModel> m_wallet_model;
+    QPushButton* m_register_button{nullptr};
     QPushButton* m_migrate_button{nullptr};
     QPushButton* m_update_button{nullptr};
     QPushButton* m_retire_button{nullptr};
