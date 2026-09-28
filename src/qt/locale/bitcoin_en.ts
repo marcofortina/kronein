@@ -968,12 +968,12 @@
     </message>
     <message>
         <location line="+11"/>
-        <location line="+1391"/>
+        <location line="+1458"/>
         <source>Status</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1390"/>
+        <location line="-1457"/>
         <source>Chain ID</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1009,12 +1009,12 @@
     </message>
     <message>
         <location line="+16"/>
-        <location line="+277"/>
+        <location line="+283"/>
         <source>Select a child chain to manage its local runtime.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-272"/>
+        <location line="-278"/>
         <source>Refresh</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1055,25 +1055,25 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+263"/>
-        <location line="+45"/>
+        <location line="+269"/>
+        <location line="+46"/>
         <source>Pause Network</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-288"/>
+        <location line="-291"/>
         <source>Forget…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-88"/>
-        <location line="+161"/>
+        <location line="-92"/>
+        <location line="+166"/>
         <source>Failed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-162"/>
-        <location line="+162"/>
+        <location line="-167"/>
+        <location line="+167"/>
         <source>Safe halt</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1098,18 +1098,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+196"/>
+        <location line="+198"/>
         <source>Chain ID: %1
 State: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7 • discovery: %8 (%9 bootstrap, %10 known) • rate-limited block requests: %11</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-168"/>
+        <location line="-170"/>
         <source>No explicit child peers configured</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-203"/>
+        <location line="-208"/>
         <source>Confirmed</source>
         <translation type="unfinished">Confirmed</translation>
     </message>
@@ -1144,7 +1144,7 @@ State: %2 • registry: %3 • local configuration: %4 • network: %5 • expli
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+2"/>
         <source>Deposits…</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1164,7 +1164,7 @@ State: %2 • registry: %3 • local configuration: %4 • network: %5 • expli
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+136"/>
+        <location line="+140"/>
         <source>Explicit child peers:
 %1</source>
         <translation type="unfinished"></translation>
@@ -1242,7 +1242,7 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+81"/>
+        <location line="+83"/>
         <source>Resume Network</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1343,7 +1343,7 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-665"/>
+        <location line="-672"/>
         <source>Idle</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1368,7 +1368,17 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+399"/>
+        <location line="+74"/>
+        <source>Balance…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Scan the loaded child UTXO set for recipients owned by the selected wallet.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+324"/>
         <source>View operational status</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1842,7 +1852,7 @@ Child chain: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location line="+61"/>
+        <location line="+121"/>
         <source>Showing %1 of %n irreversible deposit(s) created by the selected wallet.</source>
         <translation type="unfinished">
             <numerusform></numerusform>
@@ -1878,9 +1888,9 @@ Child chain: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1069"/>
+        <location line="-1129"/>
         <location line="+137"/>
-        <location line="+985"/>
+        <location line="+1045"/>
         <source>Child chain:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1961,14 +1971,14 @@ There is no child-to-main withdrawal path.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-802"/>
+        <location line="-862"/>
         <location line="+162"/>
-        <location line="+595"/>
+        <location line="+655"/>
         <source>The selected wallet is no longer available.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1644"/>
+        <location line="-1706"/>
         <source>%1 proposals • %2 pending • %3/%4 candidates • %5/%6 anchors</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1981,7 +1991,7 @@ Pending BMM anchors: %13/%14 records, %15/%16 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+158"/>
+        <location line="+160"/>
         <source>Activate a stored confirmed proposal</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2055,7 +2065,38 @@ The validated proposal is already stored durably by this node and will remain av
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+450"/>
+        <location line="+447"/>
+        <location line="+4"/>
+        <location line="+21"/>
+        <source>Read child balance</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The wallet returned an invalid child-balance snapshot.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Child Wallet Balance</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Child chain: %1
+
+Confirmed spendable: %2
+Unconfirmed: %3
+Immature: %4
+
+Processed child tip: height %5
+%6
+
+These amounts belong only to this child ledger and are not included in the main-chain wallet balance.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+30"/>
         <location line="+4"/>
         <location line="+10"/>
         <location line="+55"/>

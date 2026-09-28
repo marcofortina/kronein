@@ -183,11 +183,15 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     m_bmm_button = actions->addButton(tr("BMM…"), QDialogButtonBox::ActionRole);
 #ifdef ENABLE_WALLET
     m_register_button = actions->addButton(tr("Register…"), QDialogButtonBox::ActionRole);
+    m_balance_button = actions->addButton(tr("Balance…"), QDialogButtonBox::ActionRole);
     m_deposits_button = actions->addButton(tr("Deposits…"), QDialogButtonBox::ActionRole);
     m_migrate_button = actions->addButton(tr("Migrate…"), QDialogButtonBox::ActionRole);
     m_update_button = actions->addButton(tr("Update Metadata…"), QDialogButtonBox::ActionRole);
     m_retire_button = actions->addButton(tr("Retire…"), QDialogButtonBox::DestructiveRole);
     m_register_button->setObjectName(QStringLiteral("childChainRegisterButton"));
+    m_balance_button->setObjectName(QStringLiteral("childChainBalanceButton"));
+    m_balance_button->setToolTip(
+        tr("Scan the loaded child UTXO set for recipients owned by the selected wallet."));
     m_deposits_button->setObjectName(QStringLiteral("childChainDepositsButton"));
     m_migrate_button->setObjectName(QStringLiteral("childChainMigrateButton"));
     m_update_button->setObjectName(QStringLiteral("childChainUpdateButton"));
@@ -221,6 +225,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     connect(m_bmm_button, &QPushButton::clicked, this, &ChildChainDialog::manageBmm);
 #ifdef ENABLE_WALLET
     connect(m_register_button, &QPushButton::clicked, this, &ChildChainDialog::registerChildChain);
+    connect(m_balance_button, &QPushButton::clicked, this, &ChildChainDialog::showBalance);
     connect(m_deposits_button, &QPushButton::clicked, this, &ChildChainDialog::showDeposits);
     connect(m_migrate_button, &QPushButton::clicked, this, &ChildChainDialog::migrateSelected);
     connect(m_update_button, &QPushButton::clicked, this, &ChildChainDialog::updateSelected);
@@ -437,6 +442,7 @@ void ChildChainDialog::updateSelection()
         m_bmm_button->setEnabled(false);
 #ifdef ENABLE_WALLET
         m_register_button->setEnabled(m_wallet_model);
+        m_balance_button->setEnabled(false);
         m_deposits_button->setEnabled(false);
         m_migrate_button->setEnabled(false);
         m_update_button->setEnabled(false);
@@ -476,6 +482,7 @@ void ChildChainDialog::updateSelection()
     m_bmm_button->setEnabled(loaded && supported);
 #ifdef ENABLE_WALLET
     m_register_button->setEnabled(m_wallet_model);
+    m_balance_button->setEnabled(m_wallet_model && loaded && supported);
     m_deposits_button->setEnabled(m_wallet_model);
     const bool active_registry_record{
         m_wallet_model && registry_found &&
@@ -1480,6 +1487,66 @@ void ChildChainDialog::retireSelected()
     UniValue parameters{UniValue::VOBJ};
     parameters.pushKV("chain_id", chain_id.toStdString());
     submitRegistryOperation("retire", chain_id, std::move(parameters));
+}
+
+void ChildChainDialog::showBalance()
+{
+    const QString chain_id{selectedChainId()};
+    if (chain_id.isEmpty() || !m_wallet_model) return;
+
+    UniValue params{UniValue::VARR};
+    params.push_back(chain_id.toStdString());
+    UniValue result;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        result = m_node.executeRpc("getbalances", params, walletUri());
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Read child balance"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Read child balance"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+
+    const UniValue& mine{result.find_value("mine")};
+    const UniValue& trusted{mine.find_value("trusted")};
+    const UniValue& pending{mine.find_value("untrusted_pending")};
+    const UniValue& immature{mine.find_value("immature")};
+    const UniValue& last_processed{result.find_value("lastprocessedblock")};
+    const QString tip_hash{StringField(last_processed, "hash")};
+    if (!result.isObject() ||
+        StringField(result, "chain_id").compare(
+            chain_id, Qt::CaseInsensitive) != 0 ||
+        !mine.isObject() || !trusted.isNum() || !pending.isNum() ||
+        !immature.isNum() || !last_processed.isObject() ||
+        !last_processed.find_value("height").isNum() ||
+        !QRegularExpression{QStringLiteral("^[0-9A-Fa-f]{64}$")}
+             .match(tip_hash)
+             .hasMatch()) {
+        showRpcError(tr("Read child balance"),
+                     tr("The wallet returned an invalid child-balance snapshot."));
+        return;
+    }
+
+    QMessageBox::information(
+        this,
+        tr("Child Wallet Balance"),
+        tr("Child chain: %1\n\n"
+           "Confirmed spendable: %2\n"
+           "Unconfirmed: %3\n"
+           "Immature: %4\n\n"
+           "Processed child tip: height %5\n%6\n\n"
+           "These amounts belong only to this child ledger and are not included in the main-chain wallet balance.")
+            .arg(chain_id,
+                 QString::fromStdString(trusted.getValStr()),
+                 QString::fromStdString(pending.getValStr()),
+                 QString::fromStdString(immature.getValStr()),
+                 NumberField(last_processed, "height"),
+                 tip_hash));
 }
 
 void ChildChainDialog::showDeposits()
