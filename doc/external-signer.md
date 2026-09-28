@@ -159,6 +159,38 @@ If <descriptor> contains an xpub, the command MUST fail if it does not match the
 
 The command MAY validate that the descriptor path is appropriate for the selected chain.
 
+#### Child-chain descriptors
+
+For a child chain, Kronein Core replaces `--account` with the exact child
+identity and its complete D-039 account path:
+
+```
+$ <cmd> --fingerprint=<fingerprint> --chain=<network> getdescriptors \
+    --chain-id=<64 hex characters> --account-path=m/<D-039 account path>
+```
+
+The signer MUST return exactly one ranged native Taproot descriptor in each of
+`receive` and `internal`. Their key origin MUST use the requested signer
+fingerprint and account path, followed respectively by `/0/*` and `/1/*`.
+Kronein Core rejects a descriptor whose fingerprint, path, role, script type,
+or range does not match.
+
+When signing a child PSBT, Kronein Core also supplies the following global
+arguments before the `signtx` command:
+
+```
+--child-chain-id=<chain_id>
+--child-genesis-hash=<genesis_hash>
+--child-template-id=<template_id>
+--child-template-version=<template_version>
+```
+
+These values are copied from the mandatory child PSBT identity and allow the
+device to display and enforce the exact signature domain. A child-capable
+signer MUST reject an incomplete or unsupported child context. Kronein Core
+independently verifies the returned identity, unsigned transaction, input
+UTXOs, and every child-domain signature.
+
 ## How Kronein Core uses the Signer API
 
 The `enumeratesigners` RPC simply calls `<cmd> enumerate`.

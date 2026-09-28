@@ -8,6 +8,7 @@
 #include <common/run_command.h>
 #include <core_io.h>
 #include <psbt.h>
+#include <util/bip32.h>
 #include <util/strencodings.h>
 #include <util/subprocess.h>
 
@@ -74,7 +75,23 @@ UniValue ExternalSigner::GetDescriptors(const int account)
     return RunCommandParseJSON(Cat(m_command, Cat(Cat({"--fingerprint", m_fingerprint}, NetworkArg()), {"getdescriptors", "--account", strprintf("%d", account)})), "");
 }
 
-bool ExternalSigner::SignTransaction(PartiallySignedTransaction& psbtx, std::string& error)
+UniValue ExternalSigner::GetChildDescriptors(
+    const chainregistry::ChainId& chain_id,
+    const std::vector<uint32_t>& account_path)
+{
+    return RunCommandParseJSON(
+        Cat(m_command,
+            Cat(Cat({"--fingerprint", m_fingerprint}, NetworkArg()),
+                {"getdescriptors",
+                 "--chain-id", chain_id.GetHex(),
+                 "--account-path", WriteHDKeypath(account_path)})),
+        "");
+}
+
+bool ExternalSigner::SignTransaction(
+    PartiallySignedTransaction& psbtx,
+    std::string& error,
+    const chainregistry::ChildPSBTIdentity* child_identity)
 {
     // Serialize the PSBT
     DataStream ssTx{};
@@ -94,7 +111,18 @@ bool ExternalSigner::SignTransaction(PartiallySignedTransaction& psbtx, std::str
         return false;
     }
 
-    const std::vector<std::string> command = Cat(m_command, Cat({"--stdin", "--fingerprint", m_fingerprint}, NetworkArg()));
+    std::vector<std::string> signer_args{
+        "--stdin", "--fingerprint", m_fingerprint};
+    signer_args = Cat(std::move(signer_args), NetworkArg());
+    if (child_identity) {
+        signer_args = Cat(
+            std::move(signer_args),
+            {"--child-chain-id", child_identity->chain_id.GetHex(),
+             "--child-genesis-hash", child_identity->genesis_hash.GetHex(),
+             "--child-template-id", strprintf("%u", child_identity->template_id),
+             "--child-template-version", strprintf("%u", child_identity->template_version)});
+    }
+    const std::vector<std::string> command = Cat(m_command, signer_args);
     const std::string stdinStr = "signtx " + EncodeBase64(ssTx.str());
 
     const UniValue signer_result = RunCommandParseJSON(command, stdinStr);

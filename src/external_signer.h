@@ -6,6 +6,7 @@
 #ifndef BITCOIN_EXTERNAL_SIGNER_H
 #define BITCOIN_EXTERNAL_SIGNER_H
 
+#include <chainregistry/child_psbt.h>
 #include <common/system.h>
 #include <univalue.h>
 
@@ -58,10 +59,19 @@ public:
     //! @returns see doc/external-signer.md
     UniValue GetDescriptors(int account);
 
+    //! Get the two descriptors for one exact child-chain account.
+    //! Calls `<command> ... getdescriptors --chain-id <id> --account-path <path>`.
+    UniValue GetChildDescriptors(
+        const chainregistry::ChainId& chain_id,
+        const std::vector<uint32_t>& account_path);
+
     //! Sign PartiallySignedTransaction on the device.
     //! Calls `<command> signtransaction` and passes the PSBT via stdin.
     //! @param[in,out] psbt  PartiallySignedTransaction to be signed
-    bool SignTransaction(PartiallySignedTransaction& psbt, std::string& error);
+    bool SignTransaction(
+        PartiallySignedTransaction& psbt,
+        std::string& error,
+        const chainregistry::ChildPSBTIdentity* child_identity = nullptr);
 };
 
 #endif // BITCOIN_EXTERNAL_SIGNER_H
