@@ -494,6 +494,48 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
 
     const std::string coinbase_txid{
         child_block.vtx.front()->GetHash().GetHex()};
+    BOOST_CHECK_EQUAL(
+        CallRPC("getrawtransaction " + coinbase_txid + " 0 " +
+                child_block.GetHash().GetHex() + " " + chain_id).get_str(),
+        EncodeHexTx(*child_block.vtx.front()));
+    const auto child_transaction{CallRPC(
+        "getrawtransaction " + coinbase_txid + " 2 " +
+        child_block.GetHash().GetHex() + " " + chain_id)};
+    BOOST_CHECK_EQUAL(
+        child_transaction.find_value("chain_id").get_str(), chain_id);
+    BOOST_CHECK_EQUAL(
+        child_transaction.find_value("blockhash").get_str(),
+        child_block.GetHash().GetHex());
+    BOOST_CHECK(child_transaction.find_value("in_active_chain").get_bool());
+    BOOST_CHECK_EQUAL(
+        child_transaction.find_value("confirmations").getInt<int>(), 1);
+    BOOST_CHECK_EQUAL(
+        child_transaction.find_value("txid").get_str(), coinbase_txid);
+    BOOST_CHECK(child_transaction.find_value("bmm_eligible").get_bool());
+    JSONRPCRequest missing_block_request;
+    missing_block_request.context = &m_node;
+    missing_block_request.strMethod = "getrawtransaction";
+    missing_block_request.params = UniValue{UniValue::VOBJ};
+    missing_block_request.params.pushKV("txid", coinbase_txid);
+    missing_block_request.params.pushKV("verbosity", 1);
+    missing_block_request.params.pushKV("chain_id", chain_id);
+    BOOST_CHECK_EXCEPTION(
+        tableRPC.execute(missing_block_request),
+        UniValue,
+        [](const UniValue& error) {
+            const UniValue& message{error.find_value("message")};
+            return message.isStr() &&
+                std::string_view{message.get_str()}.find(
+                    "blockhash is required") != std::string_view::npos;
+        });
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("getrawtransaction " + std::string(64, 'f') + " 1 " +
+                child_block.GetHash().GetHex() + " " + chain_id),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find(
+                       "provided child block") != std::string_view::npos;
+        });
     const auto child_coin{CallRPC(
         "gettxout " + coinbase_txid + " 0 true " + chain_id)};
     BOOST_CHECK_EQUAL(child_coin.find_value("chain_id").get_str(), chain_id);

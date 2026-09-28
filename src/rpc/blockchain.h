@@ -1,4 +1,5 @@
 // Copyright (c) 2017-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -16,6 +17,7 @@
 #include <any>
 #include <cstdint>
 #include <optional>
+#include <string_view>
 #include <vector>
 
 class CBlock;
@@ -25,10 +27,17 @@ class Chainstate;
 class UniValue;
 namespace node {
 class BlockManager;
+struct ChainManagerBlockView;
 struct NodeContext;
 } // namespace node
 
 static constexpr int NUM_GETBLOCKSTATS_PERCENTILES = 5;
+
+/** Resolve and atomically snapshot one block from a loaded child runtime. */
+node::ChainManagerBlockView GetLoadedChildBlockView(
+    const std::any& context,
+    std::string_view chain_id,
+    const uint256& block_hash);
 
 /**
  * Get the difficulty of the net wrt to the given block index.

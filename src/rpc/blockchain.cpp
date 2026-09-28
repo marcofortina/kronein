@@ -114,7 +114,7 @@ static node::ChainManagerView GetLoadedChildChainView(
                        "unhandled child chain view error");
 }
 
-static node::ChainManagerBlockView GetLoadedChildBlockView(
+node::ChainManagerBlockView GetLoadedChildBlockView(
     const std::any& context,
     std::string_view chain_id,
     const uint256& block_hash)

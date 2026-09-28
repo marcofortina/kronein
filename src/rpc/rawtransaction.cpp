@@ -13,6 +13,7 @@
 #include <index/txindex.h>
 #include <key_io.h>
 #include <node/blockstorage.h>
+#include <node/chain_manager.h>
 #include <node/coin.h>
 #include <node/context.h>
 #include <node/psbt.h>
@@ -182,6 +183,74 @@ PartiallySignedTransaction ProcessPSBT(const std::string& psbt_string, const std
     return psbtx;
 }
 
+static UniValue GetChildRawTransaction(
+    const std::any& context,
+    std::string_view chain_id,
+    const Txid& txid,
+    int verbosity,
+    const UniValue& block_hash_arg)
+{
+    if (block_hash_arg.isNull()) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "blockhash is required for child-chain transaction queries because child txindex and mempool lookup are not available");
+    }
+    const uint256 block_hash{ParseHashV(block_hash_arg, "blockhash")};
+    const node::ChainManagerBlockView view{
+        GetLoadedChildBlockView(context, chain_id, block_hash)};
+    if (view.block.virtual_genesis || !view.block.block) {
+        throw JSONRPCError(
+            RPC_INVALID_ADDRESS_OR_KEY,
+            "The virtual child genesis does not contain ordinary transactions");
+    }
+
+    const CBlock& block{*view.block.block};
+    const auto transaction{std::find_if(
+        block.vtx.begin(), block.vtx.end(), [&](const CTransactionRef& candidate) {
+            return candidate->GetHash() == txid;
+        })};
+    if (transaction == block.vtx.end()) {
+        throw JSONRPCError(
+            RPC_INVALID_ADDRESS_OR_KEY,
+            "No such transaction found in the provided child block");
+    }
+    if (verbosity <= 0) return EncodeHexTx(**transaction);
+
+    const size_t transaction_index{
+        static_cast<size_t>(std::distance(block.vtx.begin(), transaction))};
+    const CTxUndo* tx_undo{nullptr};
+    if (verbosity >= 2 && transaction_index > 0 && view.block.undo) {
+        const CTxUndo& candidate{
+            view.block.undo->coins.vtxundo.at(transaction_index - 1)};
+        if (candidate.vprevout.size() == (*transaction)->vin.size()) {
+            tx_undo = &candidate;
+        }
+    }
+
+    UniValue result{UniValue::VOBJ};
+    TxToUniv(
+        **transaction,
+        /*block_hash=*/uint256{},
+        result,
+        /*include_hex=*/true,
+        tx_undo,
+        verbosity >= 2 ? TxVerbosity::SHOW_DETAILS_AND_PREVOUT
+                       : TxVerbosity::SHOW_DETAILS);
+    result.pushKV("chain_id", view.entry.chain_id.GetHex());
+    result.pushKV("in_active_chain", view.block.active);
+    result.pushKV("blockhash", view.block.block_hash.GetHex());
+    result.pushKV("confirmations", view.block.active ? view.block.confirmations : 0);
+    if (view.block.active) {
+        result.pushKV("time", view.block.time);
+        result.pushKV("blocktime", view.block.time);
+    }
+    result.pushKV("bmm_eligible", view.block.fork_score.eligible);
+    result.pushKV(
+        "bmm_cumulative_work",
+        view.block.fork_score.cumulative_anchor_work.GetHex());
+    return result;
+}
+
 static RPCHelpMan getrawtransaction()
 {
     return RPCHelpMan{
@@ -195,11 +264,13 @@ static RPCHelpMan getrawtransaction()
 
                 "If verbosity is 0 or omitted, returns the serialized transaction as a hex-encoded string.\n"
                 "If verbosity is 1, returns a JSON Object with information about the transaction.\n"
-                "If verbosity is 2, returns a JSON Object with information about the transaction, including fee and prevout information.",
+                "If verbosity is 2, returns a JSON Object with information about the transaction, including fee and prevout information.\n"
+                "For a child chain, chain_id and blockhash are both required because child txindex and mempool lookup are not available. Omit chain_id for the main chain.",
                 {
                     {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The transaction id"},
                     {"verbosity", RPCArg::Type::NUM, RPCArg::Default{0}, "0 for hex-encoded data, 1 for a JSON object, and 2 for JSON object with fee and prevout"},
                     {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "The block in which to look for the transaction"},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 {
                     RPCResult{"if verbosity is not set or set to 0",
@@ -210,10 +281,13 @@ static RPCHelpMan getrawtransaction()
                          Cat<std::vector<RPCResult>>(
                          {
                              {RPCResult::Type::BOOL, "in_active_chain", /*optional=*/true, "Whether specified block is in the active chain or not (only present with explicit \"blockhash\" argument)"},
+                             {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Child-chain identifier; present only for child results"},
                              {RPCResult::Type::STR_HEX, "blockhash", /*optional=*/true, "the block hash"},
                              {RPCResult::Type::NUM, "confirmations", /*optional=*/true, "The confirmations"},
                              {RPCResult::Type::NUM_TIME, "blocktime", /*optional=*/true, "The block time expressed in " + UNIX_EPOCH_TIME},
                              {RPCResult::Type::NUM, "time", /*optional=*/true, "Same as \"blocktime\""},
+                             {RPCResult::Type::BOOL, "bmm_eligible", /*optional=*/true, "Whether the child block currently has an eligible BMM path"},
+                             {RPCResult::Type::STR_HEX, "bmm_cumulative_work", /*optional=*/true, "Cumulative active main-chain work anchoring this child branch"},
                              {RPCResult::Type::STR_HEX, "hex", "The serialized, hex-encoded data for 'txid'"},
                          },
                          DecodeTxDoc(/*txid_field_doc=*/"The transaction id (same as provided)", /*wallet=*/false)),
@@ -246,21 +320,25 @@ static RPCHelpMan getrawtransaction()
             + HelpExampleCli("getrawtransaction", "\"mytxid\" 0 \"myblockhash\"")
             + HelpExampleCli("getrawtransaction", "\"mytxid\" 1 \"myblockhash\"")
             + HelpExampleCli("getrawtransaction", "\"mytxid\" 2 \"myblockhash\"")
+            + HelpExampleCli("getrawtransaction", "\"mytxid\" 1 \"mychildblockhash\" \"chain_id\"")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
+    auto txid{Txid::FromUint256(ParseHashV(request.params[0], "parameter 1"))};
+    const int verbosity{ParseVerbosity(request.params[1], /*default_verbosity=*/0)};
+    if (const auto chain_id{self.MaybeArg<std::string_view>("chain_id")}) {
+        return GetChildRawTransaction(
+            request.context, *chain_id, txid, verbosity, request.params[2]);
+    }
+
     const NodeContext& node = EnsureAnyNodeContext(request.context);
     ChainstateManager& chainman = EnsureChainman(node);
-
-    auto txid{Txid::FromUint256(ParseHashV(request.params[0], "parameter 1"))};
     const CBlockIndex* blockindex = nullptr;
 
     if (txid.ToUint256() == chainman.GetParams().GenesisBlock().hashMerkleRoot) {
         // Special exception for the genesis block coinbase transaction
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "The genesis block coinbase is not considered an ordinary transaction and cannot be retrieved");
     }
-
-    int verbosity{ParseVerbosity(request.params[1], /*default_verbosity=*/0)};
 
     if (!request.params[2].isNull()) {
         LOCK(cs_main);
