@@ -5,6 +5,7 @@
 
 #include <core_io.h>
 #include <key_io.h>
+#include <primitives/deposit.h>
 #include <primitives/transaction_identifier.h>
 #include <rpc/util.h>
 #include <rpc/rawtransaction_util.h>
@@ -13,6 +14,9 @@
 #include <wallet/receive.h>
 #include <wallet/rpc/util.h>
 #include <wallet/wallet.h>
+
+#include <algorithm>
+#include <optional>
 
 using interfaces::FoundBlock;
 
@@ -396,6 +400,138 @@ static std::vector<RPCResult> TransactionDescriptionString()
                {RPCResult::Type::STR, "desc", "The descriptor string."},
            }},
            };
+}
+
+RPCHelpMan listwalletchaindeposits()
+{
+    return RPCHelpMan{
+        "listwalletchaindeposits",
+        "List one-way child-chain deposits created by this wallet. Results are ordered newest first.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Only deposits targeting this exact non-null child-chain identifier"},
+            {"count", RPCArg::Type::NUM, RPCArg::Default{100}, "Maximum entries to return (1-1000)"},
+            {"skip", RPCArg::Type::NUM, RPCArg::Default{0}, "Number of newest matching entries to skip"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Wallet child-deposit view", {
+            {RPCResult::Type::NUM, "total", "Total matching wallet deposits before pagination"},
+            {RPCResult::Type::NUM, "returned", "Number of returned entries"},
+            {RPCResult::Type::ARR, "deposits", "Wallet deposits", {
+                {RPCResult::Type::OBJ, "", "One irreversible main-chain deposit", {
+                    {RPCResult::Type::STR_HEX, "deposit_id", "Network-bound deposit identifier"},
+                    {RPCResult::Type::STR_HEX, "txid", "Funding transaction identifier"},
+                    {RPCResult::Type::NUM, "vout", "Funding output index"},
+                    {RPCResult::Type::STR_HEX, "chain_id", "Destination child-chain identifier"},
+                    {RPCResult::Type::NUM, "recipient_type", "Child-template recipient namespace"},
+                    {RPCResult::Type::STR_HEX, "recipient", "Canonical child recipient bytes"},
+                    {RPCResult::Type::STR_AMOUNT, "amount", "Amount irreversibly destroyed on the main chain"},
+                    {RPCResult::Type::STR, "status", "confirmed, mempool, inactive, abandoned, or conflicted"},
+                    {RPCResult::Type::NUM, "confirmations", "Active-main-chain confirmations; negative when conflicted"},
+                    {RPCResult::Type::BOOL, "in_mempool", "Whether the transaction is currently in the main mempool"},
+                    {RPCResult::Type::BOOL, "abandoned", "Whether the wallet marked the transaction abandoned"},
+                    {RPCResult::Type::NUM_TIME, "time", "Wallet transaction time"},
+                    {RPCResult::Type::STR_HEX, "blockhash", /*optional=*/true, "Containing active-main-chain block"},
+                    {RPCResult::Type::NUM, "blockheight", /*optional=*/true, "Containing active-main-chain height"},
+                }},
+            }},
+        }},
+        RPCExamples{
+            HelpExampleCli("listwalletchaindeposits", "")
+            + HelpExampleCli("listwalletchaindeposits", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const std::shared_ptr<const CWallet> wallet_ptr{GetWalletForJSONRPCRequest(request)};
+    if (!wallet_ptr) return UniValue::VNULL;
+    const CWallet& wallet{*wallet_ptr};
+    wallet.BlockUntilSyncedToCurrentChain();
+
+    std::optional<chainregistry::ChainId> chain_filter;
+    if (const auto chain_arg{self.MaybeArg<std::string_view>("chain_id")}) {
+        chain_filter = chainregistry::ChainId::FromHex(*chain_arg);
+        if (!chain_filter || chain_filter->IsNull()) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "chain_id must be exactly 32 non-null bytes encoded as hexadecimal");
+        }
+    }
+    const int count{self.Arg<int>("count")};
+    const int skip{self.Arg<int>("skip")};
+    if (count < 1 || count > 1000) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "count must be between 1 and 1000");
+    }
+    if (skip < 0) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "skip must be non-negative");
+    }
+
+    const auto registry_snapshot{wallet.chain().getChainRegistrySnapshot()};
+    struct ListedDeposit {
+        int64_t time;
+        std::string txid;
+        uint32_t vout;
+        UniValue value;
+    };
+    std::vector<ListedDeposit> listed;
+    {
+        LOCK(wallet.cs_wallet);
+        for (const auto& [txid, wallet_tx] : wallet.mapWallet) {
+            const auto funds{chainregistry::ExtractTransactionFunds(*wallet_tx.tx)};
+            if (!funds.IsValid()) continue;
+
+            const int confirmations{wallet.GetTxDepthInMainChain(wallet_tx)};
+            const bool in_mempool{wallet_tx.InMempool()};
+            const bool abandoned{wallet_tx.isAbandoned()};
+            const char* status{confirmations > 0 ? "confirmed"
+                               : confirmations < 0 ? "conflicted"
+                               : abandoned ? "abandoned"
+                               : in_mempool ? "mempool"
+                               : "inactive"};
+            for (const auto& fund : funds.funds) {
+                if (chain_filter && fund.fund.chain_id != *chain_filter) continue;
+                const COutPoint outpoint{txid, fund.output_index};
+                UniValue entry{UniValue::VOBJ};
+                entry.pushKV("deposit_id", chainregistry::DeriveDepositId(
+                    registry_snapshot.main_genesis_hash, outpoint).GetHex());
+                entry.pushKV("txid", txid.GetHex());
+                entry.pushKV("vout", fund.output_index);
+                entry.pushKV("chain_id", fund.fund.chain_id.GetHex());
+                entry.pushKV("recipient_type", fund.fund.recipient_type);
+                entry.pushKV("recipient", HexStr(fund.fund.recipient));
+                entry.pushKV("amount", ValueFromAmount(fund.amount));
+                entry.pushKV("status", status);
+                entry.pushKV("confirmations", confirmations);
+                entry.pushKV("in_mempool", in_mempool);
+                entry.pushKV("abandoned", abandoned);
+                entry.pushKV("time", wallet_tx.GetTxTime());
+                if (const auto* confirmed{wallet_tx.state<TxStateConfirmed>()}) {
+                    entry.pushKV("blockhash", confirmed->confirmed_block_hash.GetHex());
+                    entry.pushKV("blockheight", confirmed->confirmed_block_height);
+                }
+                listed.push_back(ListedDeposit{
+                    wallet_tx.GetTxTime(), txid.GetHex(), fund.output_index,
+                    std::move(entry)});
+            }
+        }
+    }
+
+    std::sort(listed.begin(), listed.end(), [](const auto& left, const auto& right) {
+        if (left.time != right.time) return left.time > right.time;
+        if (left.txid != right.txid) return left.txid < right.txid;
+        return left.vout < right.vout;
+    });
+    const size_t begin{std::min<size_t>(skip, listed.size())};
+    const size_t end{std::min(listed.size(), begin + static_cast<size_t>(count))};
+    UniValue deposits{UniValue::VARR};
+    for (size_t index{begin}; index < end; ++index) {
+        deposits.push_back(std::move(listed[index].value));
+    }
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("total", listed.size());
+    result.pushKV("returned", end - begin);
+    result.pushKV("deposits", std::move(deposits));
+    return result;
+},
+    };
 }
 
 RPCHelpMan listtransactions()

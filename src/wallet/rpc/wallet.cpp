@@ -706,6 +706,7 @@ RPCHelpMan signrawtransactionwithwallet();
 RPCHelpMan listreceivedbyaddress();
 RPCHelpMan listreceivedbylabel();
 RPCHelpMan listtransactions();
+RPCHelpMan listwalletchaindeposits();
 RPCHelpMan listsinceblock();
 RPCHelpMan gettransaction();
 RPCHelpMan abandontransaction();
@@ -746,6 +747,7 @@ std::span<const CRPCCommand> GetWalletRPCCommands()
         {"wallet", &listreceivedbylabel},
         {"wallet", &listsinceblock},
         {"wallet", &listtransactions},
+        {"wallet", &listwalletchaindeposits},
         {"wallet", &listunspent},
         {"wallet", &listwalletdir},
         {"wallet", &listwallets},

@@ -532,8 +532,38 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(submitted_deposit["recipient"], child_recipient)
         assert_equal(submitted_deposit["amount"], deposit_amount)
         assert_equal(submitted_deposit["irreversible"], True)
+        wallet_deposits = wallet.listwalletchaindeposits(chain_id)
+        assert_equal(wallet_deposits["total"], 1)
+        assert_equal(wallet_deposits["returned"], 1)
+        assert_equal(wallet_deposits["deposits"][0]["deposit_id"], submitted_deposit["deposit_id"])
+        assert_equal(wallet_deposits["deposits"][0]["txid"], submitted_deposit["txid"])
+        assert_equal(wallet_deposits["deposits"][0]["vout"], submitted_deposit["vout"])
+        assert_equal(wallet_deposits["deposits"][0]["chain_id"], chain_id)
+        assert_equal(wallet_deposits["deposits"][0]["status"], "mempool")
+        assert_equal(wallet_deposits["deposits"][0]["confirmations"], 0)
+        assert_equal(wallet_deposits["deposits"][0]["in_mempool"], True)
+        assert_equal(wallet_deposits["deposits"][0]["amount"], deposit_amount)
         deposit_txid = submitted_deposit["txid"]
         deposit_block = self.generatetoaddress(node, 1, wallet.getnewaddress())[0]
+        confirmed_wallet_deposit = wallet.listwalletchaindeposits(
+            chain_id)["deposits"][0]
+        assert_equal(confirmed_wallet_deposit["status"], "confirmed")
+        assert_equal(confirmed_wallet_deposit["confirmations"], 1)
+        assert_equal(confirmed_wallet_deposit["in_mempool"], False)
+        assert_equal(confirmed_wallet_deposit["blockhash"], deposit_block)
+        all_wallet_deposits = wallet.listwalletchaindeposits()
+        assert_equal(all_wallet_deposits["total"], 1)
+        assert_equal(all_wallet_deposits["returned"], 1)
+        assert_equal(wallet.listwalletchaindeposits(chain_id, 1, 1)["returned"], 0)
+        assert_raises_rpc_error(
+            -8, "chain_id must be exactly 32 non-null bytes",
+            wallet.listwalletchaindeposits, "00" * 32)
+        assert_raises_rpc_error(
+            -8, "count must be between 1 and 1000",
+            wallet.listwalletchaindeposits, None, 0)
+        assert_raises_rpc_error(
+            -8, "skip must be non-negative",
+            wallet.listwalletchaindeposits, None, 100, -1)
 
         deposit_status = node.getdepositstatus(deposit_txid, 0)
         assert_equal(deposit_status["found"], True)
