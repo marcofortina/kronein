@@ -507,7 +507,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         main_height = node.getblockcount()
         main_tip = node.getbestblockhash()
         assert_equal(node.getblockcount(chain_id), 0)
-        assert_equal(node.getdifficulty(chain_id), Decimal("0"))
+        assert_equal(node.getdifficulty(chain_id), Decimal(0))
         assert_equal(node.getbestblockhash(chain_id=chain_id), reference_child["genesis_hash"])
         assert_equal(node.getblockhash(0, chain_id), reference_child["genesis_hash"])
         child_tx_stats = node.getchaintxstats(
@@ -1315,8 +1315,8 @@ class ChainRegistryTest(BitcoinTestFramework):
 
         confirmed_history = wallet.listtransactions("*", 10, 0, chain_id)
         assert_equal(
-            [entry for entry in confirmed_history
-             if entry["txid"] == signed_child["txid"]][0]["confirmations"],
+            next(entry for entry in confirmed_history
+                 if entry["txid"] == signed_child["txid"])["confirmations"],
             1)
         assert_equal(node.unloadchildchain(chain_id)["loaded"], False)
         assert_raises_rpc_error(
