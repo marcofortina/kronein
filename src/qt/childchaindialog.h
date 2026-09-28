@@ -49,6 +49,7 @@ private Q_SLOTS:
     void configureBinds();
     void configureDiscovery();
     void toggleNetwork();
+    void manageBmm();
 #ifdef ENABLE_WALLET
     void registerChildChain();
     void showDeposits();
@@ -92,8 +93,10 @@ private:
     bool runCommand(const char* command, UniValue params);
     bool runLifecycleCommand(const char* command, const QString& chain_id);
     void showRpcError(const QString& operation, const QString& message);
+    void activateBmmProposal(const QString& chain_id);
 #ifdef ENABLE_WALLET
     std::string walletUri() const;
+    void createBmmProposal(const QString& chain_id);
     void submitRegistryOperation(const char* operation,
                                  const QString& chain_id,
                                  UniValue parameters,
@@ -114,6 +117,7 @@ private:
     QPushButton* m_binds_button{nullptr};
     QPushButton* m_discovery_button{nullptr};
     QPushButton* m_network_button{nullptr};
+    QPushButton* m_bmm_button{nullptr};
 #ifdef ENABLE_WALLET
     QPointer<WalletModel> m_wallet_model;
     QPushButton* m_register_button{nullptr};

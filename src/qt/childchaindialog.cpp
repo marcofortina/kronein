@@ -29,9 +29,9 @@
 #include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QPushButton>
-#ifdef ENABLE_WALLET
 #include <QRegularExpression>
 #include <QRegularExpressionValidator>
+#ifdef ENABLE_WALLET
 #include <QSaveFile>
 #include <QSpinBox>
 #include <QUrl>
@@ -169,6 +169,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     m_binds_button = actions->addButton(tr("Listening…"), QDialogButtonBox::ActionRole);
     m_discovery_button = actions->addButton(tr("Discovery…"), QDialogButtonBox::ActionRole);
     m_network_button = actions->addButton(tr("Pause Network"), QDialogButtonBox::ActionRole);
+    m_bmm_button = actions->addButton(tr("BMM…"), QDialogButtonBox::ActionRole);
 #ifdef ENABLE_WALLET
     m_register_button = actions->addButton(tr("Register…"), QDialogButtonBox::ActionRole);
     m_deposits_button = actions->addButton(tr("Deposits…"), QDialogButtonBox::ActionRole);
@@ -186,6 +187,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     m_binds_button->setObjectName(QStringLiteral("childChainBindsButton"));
     m_discovery_button->setObjectName(QStringLiteral("childChainDiscoveryButton"));
     m_network_button->setObjectName(QStringLiteral("childChainNetworkButton"));
+    m_bmm_button->setObjectName(QStringLiteral("childChainBmmButton"));
     m_forget_button = actions->addButton(tr("Forget…"), QDialogButtonBox::DestructiveRole);
     actions->addButton(QDialogButtonBox::Close);
 
@@ -205,6 +207,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     connect(m_binds_button, &QPushButton::clicked, this, &ChildChainDialog::configureBinds);
     connect(m_discovery_button, &QPushButton::clicked, this, &ChildChainDialog::configureDiscovery);
     connect(m_network_button, &QPushButton::clicked, this, &ChildChainDialog::toggleNetwork);
+    connect(m_bmm_button, &QPushButton::clicked, this, &ChildChainDialog::manageBmm);
 #ifdef ENABLE_WALLET
     connect(m_register_button, &QPushButton::clicked, this, &ChildChainDialog::registerChildChain);
     connect(m_deposits_button, &QPushButton::clicked, this, &ChildChainDialog::showDeposits);
@@ -412,6 +415,7 @@ void ChildChainDialog::updateSelection()
         m_binds_button->setEnabled(false);
         m_discovery_button->setEnabled(false);
         m_network_button->setEnabled(false);
+        m_bmm_button->setEnabled(false);
 #ifdef ENABLE_WALLET
         m_register_button->setEnabled(m_wallet_model);
         m_deposits_button->setEnabled(false);
@@ -450,6 +454,7 @@ void ChildChainDialog::updateSelection()
     m_binds_button->setEnabled(loaded && network_running);
     m_discovery_button->setEnabled(loaded && network_running);
     m_network_button->setEnabled(loaded && network_running);
+    m_bmm_button->setEnabled(loaded && supported);
 #ifdef ENABLE_WALLET
     m_register_button->setEnabled(m_wallet_model);
     m_deposits_button->setEnabled(m_wallet_model);
@@ -479,6 +484,175 @@ void ChildChainDialog::updateSelection()
                  rate_limited));
 }
 
+void ChildChainDialog::manageBmm()
+{
+    const QString chain_id{selectedChainId()};
+    if (chain_id.isEmpty()) return;
+
+    QStringList actions;
+#ifdef ENABLE_WALLET
+    if (m_wallet_model) actions.push_back(tr("Build and anchor an import block"));
+#endif
+    actions.push_back(tr("Activate a confirmed proposal"));
+    bool accepted{false};
+    const QString action{QInputDialog::getItem(
+        this,
+        tr("Child BMM Workflow"),
+        tr("Select an operation for child chain %1:").arg(chain_id),
+        actions,
+        0,
+        false,
+        &accepted)};
+    if (!accepted || action.isEmpty()) return;
+
+#ifdef ENABLE_WALLET
+    if (m_wallet_model && action == actions.front()) {
+        createBmmProposal(chain_id);
+        return;
+    }
+#endif
+    activateBmmProposal(chain_id);
+}
+
+void ChildChainDialog::activateBmmProposal(const QString& chain_id)
+{
+    QDialog dialog{this};
+    dialog.setWindowTitle(tr("Activate Confirmed Child Proposal"));
+    dialog.setMinimumSize(850, 520);
+    auto* layout = new QVBoxLayout{&dialog};
+    auto* explanation = new QLabel{
+        tr("Paste the proposal JSON saved when the security bid was broadcast, then enter the active main-chain block containing that anchor. The node will reconstruct and verify the KBPR proof before validating the child block."),
+        &dialog};
+    explanation->setWordWrap(true);
+    layout->addWidget(explanation);
+    auto* form = new QFormLayout;
+    auto* chain = new QLineEdit{chain_id, &dialog};
+    chain->setReadOnly(true);
+    auto* main_block_hash = new QLineEdit{&dialog};
+    main_block_hash->setValidator(new QRegularExpressionValidator{
+        QRegularExpression{QStringLiteral("[0-9A-Fa-f]{64}")},
+        main_block_hash});
+    main_block_hash->setPlaceholderText(
+        tr("32-byte active main-chain block hash"));
+    form->addRow(tr("Child chain:"), chain);
+    form->addRow(tr("Main anchor block:"), main_block_hash);
+    layout->addLayout(form);
+    auto* proposal_text = new QPlainTextEdit{&dialog};
+    proposal_text->setPlaceholderText(
+        tr("Paste the Kronein child proposal JSON here"));
+    layout->addWidget(proposal_text, 1);
+    auto* buttons = new QDialogButtonBox{
+        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog};
+    buttons->button(QDialogButtonBox::Ok)->setText(tr("Verify and Activate"));
+    connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    layout->addWidget(buttons);
+    if (dialog.exec() != QDialog::Accepted) return;
+    if (!main_block_hash->hasAcceptableInput()) {
+        QMessageBox::warning(
+            this,
+            tr("Invalid Main Block Hash"),
+            tr("Enter exactly 32 bytes (64 hexadecimal characters) for the main-chain anchor block."));
+        return;
+    }
+
+    UniValue proposal;
+    if (!proposal.read(proposal_text->toPlainText().toStdString()) ||
+        !proposal.isObject()) {
+        QMessageBox::warning(
+            this,
+            tr("Invalid Child Proposal"),
+            tr("The supplied text is not a valid proposal JSON object."));
+        return;
+    }
+    const QString proposal_chain{StringField(proposal, "chain_id")};
+    const QString child_block{StringField(proposal, "block")};
+    const QString child_block_hash{StringField(proposal, "blockhash")};
+    const UniValue& version{proposal.find_value("version")};
+    const QRegularExpression hex_bytes{
+        QStringLiteral("^(?:[0-9A-Fa-f]{2})+$")};
+    const QRegularExpression hash_hex{QStringLiteral("^[0-9A-Fa-f]{64}$")};
+    if (!version.isNum() || version.getInt<int>() != 1 ||
+        proposal_chain.compare(chain_id, Qt::CaseInsensitive) != 0 ||
+        !hex_bytes.match(child_block).hasMatch() ||
+        !hash_hex.match(child_block_hash).hasMatch()) {
+        showRpcError(
+            tr("Activate child proposal"),
+            tr("The proposal is malformed or belongs to a different child chain."));
+        return;
+    }
+
+    UniValue proof_params{UniValue::VARR};
+    proof_params.push_back(chain_id.toStdString());
+    proof_params.push_back(main_block_hash->text().trimmed().toStdString());
+    UniValue proof;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        proof = m_node.executeRpc("getbmmanchorproof", proof_params, "");
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Verify BMM anchor"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Verify BMM anchor"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+
+    const QString proof_hex{StringField(proof, "proof")};
+    if (StringField(proof, "chain_id").compare(
+            chain_id, Qt::CaseInsensitive) != 0 ||
+        StringField(proof, "child_block_hash").compare(
+            child_block_hash, Qt::CaseInsensitive) != 0 ||
+        StringField(proof, "main_block_hash").compare(
+            main_block_hash->text().trimmed(), Qt::CaseInsensitive) != 0 ||
+        !hex_bytes.match(proof_hex).hasMatch()) {
+        showRpcError(
+            tr("Verify BMM anchor"),
+            tr("The verified main-chain anchor does not commit to this proposal."));
+        return;
+    }
+
+    UniValue submit_params{UniValue::VARR};
+    submit_params.push_back(chain_id.toStdString());
+    submit_params.push_back(child_block.toStdString());
+    submit_params.push_back(proof_hex.toStdString());
+    UniValue submitted;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        submitted = m_node.executeRpc("submitchildblock", submit_params, "");
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Activate child proposal"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Activate child proposal"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+
+    if (!BoolField(submitted, "accepted") ||
+        StringField(submitted, "chain_id").compare(
+            chain_id, Qt::CaseInsensitive) != 0 ||
+        StringField(submitted, "blockhash").compare(
+            child_block_hash, Qt::CaseInsensitive) != 0) {
+        showRpcError(
+            tr("Activate child proposal"),
+            tr("The node returned an invalid child activation result."));
+        return;
+    }
+    QMessageBox::information(
+        this,
+        tr("Child Block Activated"),
+        tr("Child block %1 was validated and submitted.\n\nActive child tip: %2")
+            .arg(child_block_hash, StringField(submitted, "bestblockhash")));
+    refresh();
+}
+
 #ifdef ENABLE_WALLET
 void ChildChainDialog::setWalletModel(WalletModel* wallet_model)
 {
@@ -494,6 +668,272 @@ std::string ChildChainDialog::walletUri() const
     return "/wallet/" +
         std::string{encoded_name.constData(),
                     static_cast<size_t>(encoded_name.size())};
+}
+
+void ChildChainDialog::createBmmProposal(const QString& chain_id)
+{
+    if (!m_wallet_model) return;
+    const QPointer<WalletModel> wallet_model{m_wallet_model};
+    const std::string wallet_uri{walletUri()};
+
+    QDialog input_dialog{this};
+    input_dialog.setWindowTitle(tr("Build and Anchor Child Import Block"));
+    input_dialog.setMinimumSize(850, 520);
+    auto* layout = new QVBoxLayout{&input_dialog};
+    auto* explanation = new QLabel{
+        tr("Paste one mature KDPR deposit proof per line. The node will authenticate every proof, build and contextually validate a child block, then create a main-chain KBMM security-bid transaction."),
+        &input_dialog};
+    explanation->setWordWrap(true);
+    layout->addWidget(explanation);
+    auto* form = new QFormLayout;
+    auto* chain = new QLineEdit{chain_id, &input_dialog};
+    chain->setReadOnly(true);
+    auto* fee_rate = new QSpinBox{&input_dialog};
+    fee_rate->setRange(1, 100000);
+    fee_rate->setValue(1);
+    fee_rate->setSuffix(tr(" sat/vB"));
+    fee_rate->setToolTip(
+        tr("The resulting main-chain transaction fee is the recurring BMM security bid."));
+    form->addRow(tr("Child chain:"), chain);
+    form->addRow(tr("Main-chain fee rate:"), fee_rate);
+    layout->addLayout(form);
+    auto* proofs_text = new QPlainTextEdit{&input_dialog};
+    proofs_text->setPlaceholderText(
+        tr("One canonical KDPR proof in hexadecimal per line"));
+    layout->addWidget(proofs_text, 1);
+    auto* buttons = new QDialogButtonBox{
+        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &input_dialog};
+    buttons->button(QDialogButtonBox::Ok)->setText(tr("Build and Review"));
+    connect(buttons, &QDialogButtonBox::accepted,
+            &input_dialog, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected,
+            &input_dialog, &QDialog::reject);
+    layout->addWidget(buttons);
+    if (input_dialog.exec() != QDialog::Accepted) return;
+
+    UniValue proofs{UniValue::VARR};
+    const QRegularExpression proof_hex{
+        QStringLiteral("^(?:[0-9A-Fa-f]{2})+$")};
+    for (const QString& line :
+         proofs_text->toPlainText().split(
+             QRegularExpression{QStringLiteral("\\s+")},
+             Qt::SkipEmptyParts)) {
+        const QString proof{line.trimmed()};
+        if (!proof_hex.match(proof).hasMatch()) {
+            QMessageBox::warning(
+                this,
+                tr("Invalid Deposit Proof"),
+                tr("Every KDPR proof must contain complete hexadecimal bytes."));
+            return;
+        }
+        proofs.push_back(proof.toStdString());
+    }
+    if (proofs.empty()) {
+        QMessageBox::warning(
+            this,
+            tr("Missing Deposit Proof"),
+            tr("Provide at least one mature KDPR deposit proof."));
+        return;
+    }
+
+    UniValue block_params{UniValue::VARR};
+    block_params.push_back(chain_id.toStdString());
+    block_params.push_back(std::move(proofs));
+    UniValue child_block;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        child_block = m_node.executeRpc(
+            "createchildimportblock", block_params, "");
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Build child import block"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Build child import block"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+
+    const QString block_hash{StringField(child_block, "blockhash")};
+    const QString block_hex{StringField(child_block, "block")};
+    const QString anchor_script{StringField(child_block, "bmm_anchor_script")};
+    const UniValue& deposits{child_block.find_value("deposits")};
+    if (StringField(child_block, "chain_id").compare(
+            chain_id, Qt::CaseInsensitive) != 0 ||
+        !QRegularExpression{QStringLiteral("^[0-9A-Fa-f]{64}$")}
+             .match(block_hash).hasMatch() ||
+        !proof_hex.match(block_hex).hasMatch() ||
+        !proof_hex.match(anchor_script).hasMatch() ||
+        !deposits.isArray() || deposits.empty() ||
+        !BoolField(child_block, "requires_bmm_anchor") ||
+        !BoolField(child_block, "contextually_valid")) {
+        showRpcError(
+            tr("Build child import block"),
+            tr("The node returned an invalid child block proposal."));
+        return;
+    }
+
+    UniValue options{UniValue::VOBJ};
+    options.pushKV("fee_rate", fee_rate->value());
+    UniValue anchor_params{UniValue::VARR};
+    anchor_params.push_back(chain_id.toStdString());
+    anchor_params.push_back(block_hash.toStdString());
+    anchor_params.push_back(std::move(options));
+    UniValue anchor;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        anchor = m_node.executeRpc(
+            "walletcreatechildanchorpsbt", anchor_params, wallet_uri);
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Create BMM security bid"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Create BMM security bid"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+
+    const UniValue& psbt{anchor.find_value("psbt")};
+    const UniValue& security_bid{anchor.find_value("security_bid")};
+    if (!psbt.isStr() || !security_bid.isNum() ||
+        StringField(anchor, "chain_id").compare(
+            chain_id, Qt::CaseInsensitive) != 0 ||
+        StringField(anchor, "child_block_hash").compare(
+            block_hash, Qt::CaseInsensitive) != 0 ||
+        StringField(anchor, "anchor_script").compare(
+            anchor_script, Qt::CaseInsensitive) != 0) {
+        showRpcError(
+            tr("Create BMM security bid"),
+            tr("The wallet returned an invalid or mismatched BMM proposal."));
+        return;
+    }
+
+    QMessageBox confirmation{
+        QMessageBox::Warning,
+        tr("Confirm BMM Security Bid"),
+        tr("Broadcast a main-chain transaction anchoring child block %1?\n\nImported deposits: %2\nChild block size: %3 bytes\nSecurity bid (main-chain fee): %4 KNE\n\nSave the proposal returned after broadcast. It is required to submit the child block after the anchor confirms.")
+            .arg(block_hash,
+                 QString::number(deposits.size()),
+                 NumberField(child_block, "size"),
+                 QString::fromStdString(security_bid.getValStr())),
+        QMessageBox::Yes | QMessageBox::Cancel,
+        this};
+    confirmation.setDefaultButton(QMessageBox::Cancel);
+    if (confirmation.exec() != QMessageBox::Yes) return;
+    if (!wallet_model || m_wallet_model != wallet_model) {
+        showRpcError(
+            tr("Submit BMM security bid"),
+            tr("The selected wallet changed while preparing the proposal."));
+        return;
+    }
+    WalletModel::UnlockContext unlock_context{wallet_model->requestUnlock()};
+    if (!unlock_context.isValid()) return;
+
+    UniValue submit_params{UniValue::VARR};
+    submit_params.push_back(psbt.get_str());
+    submit_params.push_back(chain_id.toStdString());
+    submit_params.push_back(block_hash.toStdString());
+    submit_params.push_back(security_bid);
+    UniValue submitted;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        submitted = m_node.executeRpc(
+            "walletsubmitchildanchorpsbt", submit_params, wallet_uri);
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Submit BMM security bid"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Submit BMM security bid"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+
+    const QString anchor_txid{StringField(submitted, "txid")};
+    if (!QRegularExpression{QStringLiteral("^[0-9A-Fa-f]{64}$")}
+             .match(anchor_txid).hasMatch() ||
+        StringField(submitted, "chain_id").compare(
+            chain_id, Qt::CaseInsensitive) != 0 ||
+        StringField(submitted, "child_block_hash").compare(
+            block_hash, Qt::CaseInsensitive) != 0 ||
+        !submitted.find_value("security_bid").isNum() ||
+        submitted.find_value("security_bid").getValStr() !=
+            security_bid.getValStr()) {
+        showRpcError(
+            tr("Submit BMM security bid"),
+            tr("The wallet returned an invalid BMM submission result."));
+        return;
+    }
+
+    UniValue proposal{UniValue::VOBJ};
+    proposal.pushKV("version", 1);
+    proposal.pushKV("chain_id", chain_id.toStdString());
+    proposal.pushKV("blockhash", block_hash.toStdString());
+    proposal.pushKV("block", block_hex.toStdString());
+    proposal.pushKV("anchor_txid", anchor_txid.toStdString());
+    proposal.pushKV("security_bid", security_bid);
+    const QString proposal_json{QString::fromStdString(proposal.write(2))};
+
+    QDialog result_dialog{this};
+    result_dialog.setWindowTitle(tr("Child Proposal Broadcast"));
+    result_dialog.setMinimumSize(900, 560);
+    auto* result_layout = new QVBoxLayout{&result_dialog};
+    auto* result_summary = new QLabel{
+        tr("The BMM security bid was broadcast as %1. Save this proposal now. After the transaction confirms, choose BMM… → Activate a confirmed proposal and enter the containing main-chain block hash.")
+            .arg(anchor_txid),
+        &result_dialog};
+    result_summary->setWordWrap(true);
+    result_layout->addWidget(result_summary);
+    auto* result_text = new QPlainTextEdit{proposal_json, &result_dialog};
+    result_text->setReadOnly(true);
+    result_text->setLineWrapMode(QPlainTextEdit::NoWrap);
+    result_layout->addWidget(result_text, 1);
+    auto* result_buttons = new QDialogButtonBox{&result_dialog};
+    auto* copy_button = result_buttons->addButton(
+        tr("Copy Proposal"), QDialogButtonBox::ActionRole);
+    auto* save_button = result_buttons->addButton(
+        tr("Save Proposal…"), QDialogButtonBox::ActionRole);
+    result_buttons->addButton(QDialogButtonBox::Close);
+    result_layout->addWidget(result_buttons);
+    connect(copy_button, &QPushButton::clicked, &result_dialog,
+            [proposal_json] { GUIUtil::setClipboard(proposal_json); });
+    connect(save_button, &QPushButton::clicked, &result_dialog,
+            [&, proposal_json, block_hash] {
+        const QString filename{GUIUtil::getSaveFileName(
+            &result_dialog,
+            tr("Save Child Proposal"),
+            block_hash + QStringLiteral(".kproposal"),
+            tr("Kronein Child Proposal") +
+                QStringLiteral(" (*.kproposal)"),
+            nullptr)};
+        if (filename.isEmpty()) return;
+        QSaveFile file{filename};
+        const QByteArray bytes{proposal_json.toUtf8()};
+        if (!file.open(QIODevice::WriteOnly) ||
+            file.write(bytes) != bytes.size() || !file.commit()) {
+            QMessageBox::critical(
+                &result_dialog,
+                tr("Save Proposal Failed"),
+                tr("Could not save the proposal to %1: %2")
+                    .arg(filename, file.errorString()));
+            return;
+        }
+        QMessageBox::information(
+            &result_dialog,
+            tr("Proposal Saved"),
+            tr("The child proposal was saved to %1.").arg(filename));
+    });
+    connect(result_buttons, &QDialogButtonBox::rejected,
+            &result_dialog, &QDialog::reject);
+    result_dialog.exec();
+    refresh();
 }
 
 void ChildChainDialog::submitRegistryOperation(const char* operation,
