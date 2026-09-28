@@ -24,6 +24,8 @@
 #include <wallet/coincontrol.h>
 #include <wallet/feebumper.h>
 #include <wallet/fees.h>
+#include <wallet/rpc/child.h>
+#include <wallet/rpc/child_util.h>
 #include <wallet/rpc/util.h>
 #include <wallet/spend.h>
 #include <wallet/wallet.h>
@@ -451,6 +453,8 @@ RPCHelpMan sendtoaddress()
                                          "dirty if they have previously been used in a transaction. If true, this also activates avoidpartialspends, grouping outputs by their addresses."},
                     {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
                     {"verbose", RPCArg::Type::BOOL, RPCArg::Default{false}, "If true, return extra information about the transaction."},
+                    {"child_fee", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "Exact absolute child-chain fee in KNE. Required with chain_id and invalid without it."},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain."},
                 },
                 {
                     RPCResult{"if verbose is not set or set to false",
@@ -476,6 +480,8 @@ RPCHelpMan sendtoaddress()
                     "\nSend 0.5 KNE with a fee rate of 25 " + CURRENCY_ATOM + "/vB using named arguments\n"
                     + HelpExampleCli("-named sendtoaddress", "address=\"" + EXAMPLE_ADDRESS[0] + "\" amount=0.5 fee_rate=25")
                     + HelpExampleCli("-named sendtoaddress", "address=\"" + EXAMPLE_ADDRESS[0] + "\" amount=0.5 fee_rate=25 subtractfeefromamount=false replaceable=true avoid_reuse=true comment=\"2 pizzas\" comment_to=\"jeremy\" verbose=true")
+                    + "\nSend to a child-chain recipient with an explicit absolute fee\n"
+                    + HelpExampleCli("-named sendtoaddress", "address=\"2222222222222222222222222222222222222222222222222222222222222222\" amount=0.5 child_fee=0.00001 chain_id=\"1111111111111111111111111111111111111111111111111111111111111111\"")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -485,6 +491,88 @@ RPCHelpMan sendtoaddress()
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
     pwallet->BlockUntilSyncedToCurrentChain();
+
+    const auto chain_arg{self.MaybeArg<UniValue>("chain_id")};
+    const auto child_fee_arg{self.MaybeArg<UniValue>("child_fee")};
+    if (chain_arg) {
+        if (!child_fee_arg) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "child_fee is required when chain_id is specified");
+        }
+        if ((!request.params[2].isNull() &&
+             !request.params[2].get_str().empty()) ||
+            (!request.params[3].isNull() &&
+             !request.params[3].get_str().empty())) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "child transactions do not yet support wallet comments");
+        }
+        if (!request.params[5].isNull() ||
+            !request.params[6].isNull() ||
+            (!request.params[7].isNull() &&
+             request.params[7].get_str() != "unset") ||
+            !request.params[9].isNull()) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "child transactions require child_fee and do not use replaceable, conf_target, estimate_mode, or fee_rate");
+        }
+        const auto chain_id{ParseChildChainId(*chain_arg)};
+        const auto recipient{ParseChildRecipient(request.params[0])};
+        const CAmount amount{AmountFromValue(request.params[1])};
+        const CAmount child_fee{AmountFromValue(*child_fee_arg)};
+        const bool subtract_fee{
+            !request.params[4].isNull() && request.params[4].get_bool()};
+        const bool verbose{
+            !request.params[10].isNull() && request.params[10].get_bool()};
+        auto sent{CreateSignedChildPayment(
+            *pwallet,
+            chain_id,
+            recipient,
+            amount,
+            child_fee,
+            subtract_fee)};
+        const auto submitted{pwallet->chain().submitChildTransaction(
+            chain_id, sent.transaction, sent.fee)};
+        switch (submitted.error) {
+        case interfaces::ChildTransactionSubmitError::NONE:
+            break;
+        case interfaces::ChildTransactionSubmitError::NULL_CHAIN_ID:
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               "chain_id must not be null");
+        case interfaces::ChildTransactionSubmitError::UNKNOWN_CHAIN:
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               "Unknown child chain");
+        case interfaces::ChildTransactionSubmitError::CHAIN_NOT_LOADED:
+            throw JSONRPCError(RPC_MISC_ERROR,
+                               "Child chain is not loaded");
+        case interfaces::ChildTransactionSubmitError::MAX_FEE_EXCEEDED:
+            throw JSONRPCTransactionError(TransactionError::MAX_FEE_EXCEEDED);
+        case interfaces::ChildTransactionSubmitError::SAFE_HALT:
+            throw JSONRPCError(RPC_VERIFY_REJECTED,
+                               "child chain is in SAFE_HALT");
+        case interfaces::ChildTransactionSubmitError::UNAVAILABLE:
+            throw JSONRPCError(RPC_INTERNAL_ERROR,
+                               "child-chain manager is unavailable");
+        case interfaces::ChildTransactionSubmitError::REJECTED:
+            throw JSONRPCError(
+                RPC_VERIFY_REJECTED,
+                strprintf("Child transaction rejected (runtime error %u, pool error %u)",
+                          submitted.runtime_error,
+                          submitted.pool_error));
+        }
+        const Txid txid{sent.transaction->GetHash()};
+        if (!verbose) return txid.GetHex();
+        UniValue result{UniValue::VOBJ};
+        result.pushKV("txid", txid.GetHex());
+        result.pushKV("fee_reason", "Child explicit fee");
+        return result;
+    }
+    if (child_fee_arg) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "child_fee is only valid when chain_id is specified");
+    }
 
     LOCK(pwallet->cs_wallet);
 

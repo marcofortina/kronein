@@ -122,6 +122,25 @@ struct ChildWalletHistoryPage {
     bool IsValid() const { return error == ChildWalletScanError::NONE; }
 };
 
+enum class ChildTransactionSubmitError : uint8_t {
+    NONE,
+    UNAVAILABLE,
+    NULL_CHAIN_ID,
+    UNKNOWN_CHAIN,
+    CHAIN_NOT_LOADED,
+    MAX_FEE_EXCEEDED,
+    SAFE_HALT,
+    REJECTED,
+};
+
+struct ChildTransactionSubmitResult {
+    ChildTransactionSubmitError error{ChildTransactionSubmitError::NONE};
+    uint32_t runtime_error{0};
+    uint32_t pool_error{0};
+
+    bool IsValid() const { return error == ChildTransactionSubmitError::NONE; }
+};
+
 enum class ChildBlockDataError : uint8_t {
     NONE,
     NULL_CHAIN_ID,
@@ -265,6 +284,10 @@ public:
         const std::set<CScript>& scripts,
         std::optional<int> start_height = std::nullopt,
         bool include_mempool = true) = 0;
+    virtual ChildTransactionSubmitResult submitChildTransaction(
+        const chainregistry::ChainId& chain_id,
+        const CTransactionRef& transaction,
+        std::optional<CAmount> max_fee = std::nullopt) = 0;
     virtual ChildBlockData getChildBlockData(
         const chainregistry::ChainId& chain_id,
         const uint256& block_hash) = 0;

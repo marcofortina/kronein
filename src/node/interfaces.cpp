@@ -31,6 +31,7 @@
 #include <netbase.h>
 #include <node/blockstorage.h>
 #include <node/chain_manager.h>
+#include <node/child_network_manager.h>
 #include <node/coin.h>
 #include <node/context.h>
 #include <node/interface_ui.h>
@@ -59,6 +60,7 @@
 #include <util/result.h>
 #include <util/signalinterrupt.h>
 #include <util/string.h>
+#include <util/time.h>
 #include <util/translation.h>
 #include <validation.h>
 #include <validationinterface.h>
@@ -84,6 +86,8 @@ using interfaces::ChildBlockDataError;
 using interfaces::ChildBmmProposal;
 using interfaces::ChildBmmState;
 using interfaces::ChildBmmStateError;
+using interfaces::ChildTransactionSubmitError;
+using interfaces::ChildTransactionSubmitResult;
 using interfaces::ChildWalletCoin;
 using interfaces::ChildWalletScan;
 using interfaces::ChildWalletScanError;
@@ -745,6 +749,52 @@ public:
                 .mempool = transaction.mempool,
                 .entry_time = transaction.entry_time,
             });
+        }
+        return result;
+    }
+    ChildTransactionSubmitResult submitChildTransaction(
+        const chainregistry::ChainId& chain_id,
+        const CTransactionRef& transaction,
+        std::optional<CAmount> max_fee) override
+    {
+        ChildTransactionSubmitResult result;
+        if (!m_node.child_chainman) {
+            result.error = ChildTransactionSubmitError::UNAVAILABLE;
+            return result;
+        }
+        const auto accepted{m_node.child_chainman->SubmitTransaction(
+            chain_id,
+            transaction,
+            TicksSinceEpoch<std::chrono::seconds>(NodeClock::now()),
+            max_fee)};
+        switch (accepted.error) {
+        case ChainManagerMempoolAcceptError::NONE:
+            if (m_node.child_networkman) {
+                m_node.child_networkman->RelayTransaction(chain_id, transaction);
+            }
+            return result;
+        case ChainManagerMempoolAcceptError::NULL_CHAIN_ID:
+            result.error = ChildTransactionSubmitError::NULL_CHAIN_ID;
+            return result;
+        case ChainManagerMempoolAcceptError::UNKNOWN_CHAIN:
+            result.error = ChildTransactionSubmitError::UNKNOWN_CHAIN;
+            return result;
+        case ChainManagerMempoolAcceptError::CHAIN_NOT_LOADED:
+            result.error = ChildTransactionSubmitError::CHAIN_NOT_LOADED;
+            return result;
+        case ChainManagerMempoolAcceptError::RUNTIME_REJECTED:
+            break;
+        }
+        result.runtime_error = static_cast<uint32_t>(accepted.runtime.error);
+        result.pool_error = static_cast<uint32_t>(accepted.runtime.pool_error);
+        if (accepted.runtime.error ==
+            ReferenceChildMempoolAcceptError::MAX_FEE_EXCEEDED) {
+            result.error = ChildTransactionSubmitError::MAX_FEE_EXCEEDED;
+        } else if (accepted.runtime.error ==
+                   ReferenceChildMempoolAcceptError::SAFE_HALT) {
+            result.error = ChildTransactionSubmitError::SAFE_HALT;
+        } else {
+            result.error = ChildTransactionSubmitError::REJECTED;
         }
         return result;
     }

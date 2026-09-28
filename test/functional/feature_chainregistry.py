@@ -1889,6 +1889,40 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(wallet.listtransactions("*", 10, 0, chain_id),
                      confirmed_history)
 
+        self.log.info("Route sendtoaddress through the child wallet domain")
+        generic_recipient = child_recipient
+        generic_amount = Decimal("0.02000000")
+        generic_fee = Decimal("0.00001000")
+        assert_raises_rpc_error(
+            -8, "child_fee is required",
+            attacker.sendtoaddress,
+            address=generic_recipient,
+            amount=generic_amount,
+            chain_id=chain_id)
+        assert_raises_rpc_error(
+            -8, "child_fee is only valid",
+            attacker.sendtoaddress,
+            address=attacker.getnewaddress(),
+            amount=generic_amount,
+            child_fee=generic_fee)
+        generic_send = attacker.sendtoaddress(
+            address=generic_recipient,
+            amount=generic_amount,
+            verbose=True,
+            child_fee=generic_fee,
+            chain_id=chain_id)
+        assert_equal(generic_send["fee_reason"], "Child explicit fee")
+        assert_equal(node.getrawmempool(False, False, chain_id),
+                     [generic_send["txid"]])
+        generic_tx = attacker.gettransaction(
+            generic_send["txid"], False, chain_id)
+        assert_equal(generic_tx["amount"], -generic_amount)
+        assert_equal(generic_tx["fee"], -generic_fee)
+        assert_equal(generic_tx["confirmations"], 0)
+        assert_equal(wallet.getreceivedbyaddress(
+            generic_recipient, 0, False, chain_id),
+            deposit_amount + generic_amount)
+
         successor_address = wallet.getnewaddress()
         update_psbt = wallet.walletcreatechainregistrypsbt("update", {
             "chain_id": chain_id,
