@@ -1008,6 +1008,36 @@ class ChainRegistryTest(BitcoinTestFramework):
             child_recipient, 2, False, chain_id), Decimal("0.00000000"))
         assert_equal(wallet.getreceivedbylabel(
             "child-receive", 1, False, chain_id), deposit_amount)
+        assert_equal(wallet.listreceivedbyaddress(
+            1, False, "", False, chain_id), [{
+                "chain_id": chain_id,
+                "recipient_type": 1,
+                "recipient": child_recipient,
+                "amount": deposit_amount,
+                "confirmations": 1,
+                "label": "child-receive",
+                "txids": [child_import["txid"]],
+            }])
+        assert_equal(wallet.listreceivedbyaddress(
+            2, False, "", False, chain_id), [])
+        empty_child_received = wallet.listreceivedbyaddress(
+            2, True, child_recipient, False, chain_id)
+        assert_equal(empty_child_received, [{
+            "chain_id": chain_id,
+            "recipient_type": 1,
+            "recipient": child_recipient,
+            "amount": Decimal("0.00000000"),
+            "confirmations": 0,
+            "label": "child-receive",
+            "txids": [],
+        }])
+        assert_equal(wallet.listreceivedbylabel(
+            1, False, False, chain_id), [{
+                "chain_id": chain_id,
+                "amount": deposit_amount,
+                "confirmations": 1,
+                "label": "child-receive",
+            }])
         assert_raises_rpc_error(
             -8, "chain_id must be exactly 32 non-null bytes",
             wallet.getreceivedbyaddress,

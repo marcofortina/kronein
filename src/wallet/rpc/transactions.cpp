@@ -73,6 +73,128 @@ struct tallyitem
     tallyitem() = default;
 };
 
+struct ChildReceivingEntry {
+    CScript script;
+    WitnessV1Taproot recipient;
+    std::string label;
+};
+
+static std::vector<ChildReceivingEntry> GetChildReceivingEntries(
+    const CWallet& wallet,
+    const chainregistry::ChainId& chain_id,
+    const std::optional<WitnessV1Taproot>& filter)
+{
+    std::vector<ChildReceivingEntry> entries;
+    LOCK(wallet.cs_wallet);
+    for (const auto& [destination, label] :
+         wallet.ListChildRecipients(chain_id)) {
+        const auto* recipient{
+            std::get_if<WitnessV1Taproot>(&destination)};
+        if (!recipient) {
+            throw JSONRPCError(
+                RPC_WALLET_ERROR,
+                "wallet contains an invalid child recipient context");
+        }
+        const auto* address_book{wallet.FindAddressBookEntry(
+            destination, /*allow_change=*/true)};
+        if (!address_book) {
+            throw JSONRPCError(
+                RPC_WALLET_ERROR,
+                "wallet child recipient is missing its address-book record");
+        }
+        if (address_book->IsChange() || !wallet.IsMine(destination) ||
+            (filter && *filter != *recipient)) {
+            continue;
+        }
+        entries.push_back(ChildReceivingEntry{
+            .script = GetScriptForDestination(destination),
+            .recipient = *recipient,
+            .label = label,
+        });
+    }
+    return entries;
+}
+
+static UniValue ListChildReceived(
+    const CWallet& wallet,
+    const chainregistry::ChainId& chain_id,
+    const UniValue& params,
+    bool by_label,
+    bool include_immature_coinbase)
+{
+    const int min_depth{params[0].isNull()
+        ? 1 : params[0].getInt<int>()};
+    const bool include_empty{
+        !params[1].isNull() && params[1].get_bool()};
+    std::optional<WitnessV1Taproot> filter;
+    if (!by_label && !params[2].isNull() &&
+        !params[2].get_str().empty()) {
+        filter = ParseChildRecipient(params[2]);
+    }
+    const auto entries{
+        GetChildReceivingEntries(wallet, chain_id, filter)};
+    std::set<CScript> scripts;
+    for (const auto& entry : entries) scripts.insert(entry.script);
+    const auto tallies{TallyChildReceived(
+        wallet, chain_id, scripts, min_depth,
+        include_immature_coinbase)};
+
+    UniValue result{UniValue::VARR};
+    std::map<std::string, ChildReceivedTally> label_tallies;
+    for (const auto& entry : entries) {
+        const auto found{tallies.find(entry.script)};
+        if (found == tallies.end() && !include_empty) continue;
+        const ChildReceivedTally empty;
+        const ChildReceivedTally& tally{
+            found == tallies.end() ? empty : found->second};
+        if (by_label) {
+            auto& label_tally{label_tallies[entry.label]};
+            if (!MoneyRange(label_tally.amount + tally.amount)) {
+                throw JSONRPCError(
+                    RPC_INTERNAL_ERROR,
+                    "child received amount is out of range");
+            }
+            label_tally.amount += tally.amount;
+            label_tally.confirmations = std::min(
+                label_tally.confirmations, tally.confirmations);
+            continue;
+        }
+
+        UniValue object{UniValue::VOBJ};
+        object.pushKV("chain_id", chain_id.GetHex());
+        object.pushKV("recipient_type",
+                      chainregistry::REFERENCE_CHILD_P2TR_RECIPIENT);
+        object.pushKV("recipient", HexStr(entry.recipient));
+        object.pushKV("amount", ValueFromAmount(tally.amount));
+        object.pushKV(
+            "confirmations",
+            tally.confirmations == std::numeric_limits<int>::max()
+                ? 0 : tally.confirmations);
+        object.pushKV("label", entry.label);
+        UniValue txids{UniValue::VARR};
+        for (const Txid& txid : tally.txids) {
+            txids.push_back(txid.GetHex());
+        }
+        object.pushKV("txids", std::move(txids));
+        result.push_back(std::move(object));
+    }
+
+    if (by_label) {
+        for (const auto& [label, tally] : label_tallies) {
+            UniValue object{UniValue::VOBJ};
+            object.pushKV("chain_id", chain_id.GetHex());
+            object.pushKV("amount", ValueFromAmount(tally.amount));
+            object.pushKV(
+                "confirmations",
+                tally.confirmations == std::numeric_limits<int>::max()
+                    ? 0 : tally.confirmations);
+            object.pushKV("label", label);
+            result.push_back(std::move(object));
+        }
+    }
+    return result;
+}
+
 static UniValue ListReceived(const CWallet& wallet, const UniValue& params, const bool by_label, const bool include_immature_coinbase) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet)
 {
     // Minimum confirmations
@@ -192,19 +314,23 @@ RPCHelpMan listreceivedbyaddress()
 {
     return RPCHelpMan{
         "listreceivedbyaddress",
-        "List balances by receiving address.\n",
+        "List balances by receiving address. When chain_id is present, list wallet-owned non-change recipients of that child.\n",
                 {
                     {"minconf", RPCArg::Type::NUM, RPCArg::Default{1}, "The minimum number of confirmations before payments are included."},
                     {"include_empty", RPCArg::Type::BOOL, RPCArg::Default{false}, "Whether to include addresses that haven't received any payments."},
                     {"address_filter", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "If present and non-empty, only return information on this address."},
                     {"include_immature_coinbase", RPCArg::Type::BOOL, RPCArg::Default{false}, "Include immature coinbase transactions."},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 RPCResult{
                     RPCResult::Type::ARR, "", "",
                     {
                         {RPCResult::Type::OBJ, "", "",
                         {
-                            {RPCResult::Type::STR, "address", "The receiving address"},
+                            {RPCResult::Type::STR, "address", /*optional=*/true, "The main-chain receiving address; omitted for child results"},
+                            {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Selected child-chain identifier; omitted for main-chain results"},
+                            {RPCResult::Type::NUM, "recipient_type", /*optional=*/true, "Reference child recipient namespace; present for child results"},
+                            {RPCResult::Type::STR_HEX, "recipient", /*optional=*/true, "32-byte child recipient; present for child results"},
                             {RPCResult::Type::STR_AMOUNT, "amount", "The total amount in " + CURRENCY_UNIT + " received by the address"},
                             {RPCResult::Type::NUM, "confirmations", "The number of confirmations of the most recent transaction included"},
                             {RPCResult::Type::STR, "label", "The label of the receiving address. The default label is \"\""},
@@ -233,6 +359,12 @@ RPCHelpMan listreceivedbyaddress()
 
     const bool include_immature_coinbase{request.params[3].isNull() ? false : request.params[3].get_bool()};
 
+    if (const auto chain_arg{self.MaybeArg<UniValue>("chain_id")}) {
+        return ListChildReceived(
+            *pwallet, ParseChildChainId(*chain_arg), request.params,
+            /*by_label=*/false, include_immature_coinbase);
+    }
+
     LOCK(pwallet->cs_wallet);
 
     return ListReceived(*pwallet, request.params, false, include_immature_coinbase);
@@ -244,11 +376,12 @@ RPCHelpMan listreceivedbylabel()
 {
     return RPCHelpMan{
         "listreceivedbylabel",
-        "List received transactions by label.\n",
+        "List received transactions by label. When chain_id is present, group wallet-owned non-change recipients of that child.\n",
                 {
                     {"minconf", RPCArg::Type::NUM, RPCArg::Default{1}, "The minimum number of confirmations before payments are included."},
                     {"include_empty", RPCArg::Type::BOOL, RPCArg::Default{false}, "Whether to include labels that haven't received any payments."},
                     {"include_immature_coinbase", RPCArg::Type::BOOL, RPCArg::Default{false}, "Include immature coinbase transactions."},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 RPCResult{
                     RPCResult::Type::ARR, "", "",
@@ -258,6 +391,7 @@ RPCHelpMan listreceivedbylabel()
                             {RPCResult::Type::STR_AMOUNT, "amount", "The total amount received by addresses with this label"},
                             {RPCResult::Type::NUM, "confirmations", "The number of confirmations of the most recent transaction included"},
                             {RPCResult::Type::STR, "label", "The label of the receiving address. The default label is \"\""},
+                            {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Selected child-chain identifier; omitted for main-chain results"},
                         }},
                     }
                 },
@@ -276,6 +410,12 @@ RPCHelpMan listreceivedbylabel()
     pwallet->BlockUntilSyncedToCurrentChain();
 
     const bool include_immature_coinbase{request.params[2].isNull() ? false : request.params[2].get_bool()};
+
+    if (const auto chain_arg{self.MaybeArg<UniValue>("chain_id")}) {
+        return ListChildReceived(
+            *pwallet, ParseChildChainId(*chain_arg), request.params,
+            /*by_label=*/true, include_immature_coinbase);
+    }
 
     LOCK(pwallet->cs_wallet);
 
