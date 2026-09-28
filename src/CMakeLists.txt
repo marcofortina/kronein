@@ -100,6 +100,7 @@ add_library(bitcoin_common STATIC EXCLUDE_FROM_ALL
   chainregistry/child_block.cpp
   chainregistry/child_fork_choice.cpp
   chainregistry/child_import.cpp
+  chainregistry/child_net.cpp
   chainregistry/child_sighash.cpp
   chainregistry/child_template.cpp
   chainregistry/deposit_import.cpp
