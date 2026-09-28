@@ -6,6 +6,7 @@
 
 #include <dbwrapper.h>
 
+#include <limits>
 #include <utility>
 
 namespace node {
@@ -797,6 +798,84 @@ ChainManagerUTXOStatsView ChainManager::GetUTXOStatsView(
         return result;
     }
     result.stats = *stats;
+    return result;
+}
+
+ChainManagerUTXOScanView ChainManager::ScanUTXOSet(
+    const chainregistry::ChainId& chain_id,
+    const std::set<CScript>& needles,
+    std::atomic<int>& progress,
+    const std::atomic<bool>& should_abort,
+    const std::function<void()>& interruption_point) const
+{
+    LOCK(m_mutex);
+    ChainManagerUTXOScanView result;
+    if (chain_id.IsNull()) {
+        result.error = ChainManagerUTXOStatsViewError::NULL_CHAIN_ID;
+        return result;
+    }
+    if (!m_definitions.contains(chain_id)) {
+        result.error = ChainManagerUTXOStatsViewError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto loaded{m_loaded.find(chain_id)};
+    if (loaded == m_loaded.end()) {
+        result.error = ChainManagerUTXOStatsViewError::CHAIN_NOT_LOADED;
+        return result;
+    }
+
+    const CBlockIndex* tip{loaded->second->Tip()};
+    Assume(tip);
+    const auto tip_view{GetBlockViewLocked(chain_id, tip->GetBlockHash())};
+    Assume(tip_view.IsValid());
+    result.entry = tip_view.entry;
+    auto cursor{loaded->second->GetUTXOCursor()};
+    if (!cursor || cursor->GetBestBlock() != result.entry.tip) {
+        result.error = ChainManagerUTXOStatsViewError::DATA_UNAVAILABLE;
+        return result;
+    }
+
+    progress = 0;
+    while (cursor->Valid()) {
+        COutPoint outpoint;
+        Coin coin;
+        if (!cursor->GetKey(outpoint) || !cursor->GetValue(coin) ||
+            result.scanned == std::numeric_limits<int64_t>::max()) {
+            result.error = ChainManagerUTXOStatsViewError::DATA_UNAVAILABLE;
+            return result;
+        }
+        ++result.scanned;
+        if (result.scanned % 8192 == 0) {
+            if (interruption_point) interruption_point();
+            if (should_abort) break;
+        }
+        if (result.scanned % 256 == 0) {
+            const uint32_t high{
+                std::to_integer<uint32_t>(outpoint.hash.begin()[0]) * 0x100U +
+                std::to_integer<uint32_t>(outpoint.hash.begin()[1])};
+            progress = static_cast<int>(high * 100.0 / 65536.0 + 0.5);
+        }
+        if (needles.contains(coin.out.scriptPubKey)) {
+            result.matches.emplace(outpoint, coin);
+        }
+        cursor->Next();
+    }
+    result.completed = !cursor->Valid();
+    if (result.completed) progress = 100;
+
+    for (const auto& [_, coin] : result.matches) {
+        if (coin.nHeight > result.entry.height) {
+            result.error = ChainManagerUTXOStatsViewError::DATA_UNAVAILABLE;
+            return result;
+        }
+        if (result.block_hashes.contains(coin.nHeight)) continue;
+        const auto block_hash{loaded->second->GetBlockHash(coin.nHeight)};
+        if (!block_hash) {
+            result.error = ChainManagerUTXOStatsViewError::DATA_UNAVAILABLE;
+            return result;
+        }
+        result.block_hashes.emplace(coin.nHeight, *block_hash);
+    }
     return result;
 }
 

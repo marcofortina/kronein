@@ -399,6 +399,14 @@ BOOST_AUTO_TEST_CASE(blockchain_rpc_routes_explicit_child_chain)
                    std::string_view::npos;
         });
     BOOST_CHECK_EXCEPTION(
+        CallRPC("scantxoutset start [] " + chain_id),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find("not loaded") !=
+                   std::string_view::npos;
+        });
+    BOOST_CHECK(CallRPC("scantxoutset status").isNull());
+    BOOST_CHECK_EXCEPTION(
         CallRPC("getbestblockhash " + std::string(64, '0')),
         std::runtime_error,
         [](const std::runtime_error& error) {
@@ -816,6 +824,37 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
         HexStr(CScript{} << OP_1 << std::vector<unsigned char>(32, 1)));
     BOOST_CHECK(CallRPC(
         "gettxout " + coinbase_txid + " 2 true " + chain_id).isNull());
+
+    const std::string child_script{
+        HexStr(CScript{} << OP_1 << std::vector<unsigned char>(32, 1))};
+    const auto child_scan{CallRPC(
+        "scantxoutset start [\"raw(" + child_script + ")\"] " +
+        chain_id)};
+    BOOST_CHECK(child_scan.find_value("success").get_bool());
+    BOOST_CHECK_EQUAL(child_scan.find_value("chain_id").get_str(), chain_id);
+    BOOST_CHECK_EQUAL(child_scan.find_value("txouts").getInt<int>(), 1);
+    BOOST_CHECK_EQUAL(child_scan.find_value("height").getInt<int>(), 1);
+    BOOST_CHECK_EQUAL(
+        child_scan.find_value("bestblock").get_str(),
+        child_block.GetHash().GetHex());
+    BOOST_CHECK_EQUAL(child_scan.find_value("total_amount").getValStr(),
+                      "0.00000000");
+    const UniValue& child_unspents{child_scan.find_value("unspents")};
+    BOOST_REQUIRE_EQUAL(child_unspents.size(), 1U);
+    BOOST_CHECK_EQUAL(child_unspents[0].find_value("txid").get_str(),
+                      coinbase_txid);
+    BOOST_CHECK_EQUAL(child_unspents[0].find_value("vout").getInt<int>(), 0);
+    BOOST_CHECK_EQUAL(
+        child_unspents[0].find_value("scriptPubKey").get_str(), child_script);
+    BOOST_CHECK_EQUAL(
+        child_unspents[0].find_value("blockhash").get_str(),
+        child_block.GetHash().GetHex());
+    BOOST_CHECK_EQUAL(
+        child_unspents[0].find_value("confirmations").getInt<int>(), 1);
+    BOOST_CHECK(CallRPC(
+        "scantxoutset status null " + chain_id).isNull());
+    BOOST_CHECK(!CallRPC(
+        "scantxoutset abort null " + chain_id).get_bool());
 }
 
 BOOST_AUTO_TEST_CASE(rpc_namedparams)

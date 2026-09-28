@@ -11,9 +11,11 @@
 #include <node/child_chain_catalog_db.h>
 #include <node/child_chain.h>
 #include <primitives/block.h>
+#include <script/script.h>
 #include <sync.h>
 #include <util/fs.h>
 
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <cstddef>
@@ -22,6 +24,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <set>
 #include <span>
 #include <utility>
 #include <vector>
@@ -222,6 +225,21 @@ struct ChainManagerUTXOStatsView {
     }
 };
 
+struct ChainManagerUTXOScanView {
+    ChainManagerUTXOStatsViewError error{
+        ChainManagerUTXOStatsViewError::NONE};
+    ChainManagerEntry entry;
+    bool completed{false};
+    int64_t scanned{0};
+    std::map<COutPoint, Coin> matches;
+    std::map<int, uint256> block_hashes;
+
+    bool IsValid() const
+    {
+        return error == ChainManagerUTXOStatsViewError::NONE;
+    }
+};
+
 /**
  * Opt-in owner for isolated child runtimes.
  *
@@ -340,6 +358,12 @@ public:
     ChainManagerUTXOStatsView GetUTXOStatsView(
         const chainregistry::ChainId& chain_id,
         kernel::CoinStatsHashType hash_type,
+        const std::function<void()>& interruption_point = {}) const;
+    ChainManagerUTXOScanView ScanUTXOSet(
+        const chainregistry::ChainId& chain_id,
+        const std::set<CScript>& needles,
+        std::atomic<int>& progress,
+        const std::atomic<bool>& should_abort,
         const std::function<void()>& interruption_point = {}) const;
     ChainManagerVerifyResult VerifyChain(
         const chainregistry::ChainId& chain_id,

@@ -1082,6 +1082,18 @@ std::optional<Coin> ReferenceChildRuntime::GetCoin(
     return m_db->GetCoin(outpoint);
 }
 
+std::unique_ptr<CCoinsViewCursor> ReferenceChildRuntime::GetUTXOCursor() const
+{
+    if (!Usable() || !m_tip || !m_db ||
+        m_tip->GetBlockHash() != m_state.child_tip ||
+        m_tip->nHeight != static_cast<int>(m_state.child_height)) {
+        return {};
+    }
+    auto cursor{m_db->Cursor()};
+    if (!cursor || cursor->GetBestBlock() != m_state.child_tip) return {};
+    return cursor;
+}
+
 std::optional<uint256> ReferenceChildRuntime::GetBlockHash(int height) const
 {
     if (!Usable() || !m_tip || height < 0 || height > m_tip->nHeight) {

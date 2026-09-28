@@ -198,6 +198,8 @@ public:
         const uint256& block_hash) const;
     std::optional<std::vector<ReferenceChildChainTipView>> GetChainTips() const;
     std::optional<Coin> GetCoin(const COutPoint& outpoint) const;
+    /** Return a cursor bound to the current, atomically committed UTXO tip. */
+    std::unique_ptr<CCoinsViewCursor> GetUTXOCursor() const;
     std::optional<kernel::CCoinsStats> GetUTXOStats(
         kernel::CoinStatsHashType hash_type,
         const std::function<void()>& interruption_point = {}) const;

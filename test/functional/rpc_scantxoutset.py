@@ -145,7 +145,7 @@ class ScantxoutsetTest(BitcoinTestFramework):
         assert_equal(unspent["blockhash"], node.getblockhash(info["height"]))
         assert_equal(unspent["confirmations"], 3)
 
-        assert_raises_rpc_error(-1, 'scantxoutset "action" ( [scanobjects,...] )', node.scantxoutset)
+        assert_raises_rpc_error(-1, 'scantxoutset "action" ( [scanobjects,...] "chain_id" )', node.scantxoutset)
         assert_raises_rpc_error(-1, "scanobjects argument is required for the start action", node.scantxoutset, "start")
         assert_raises_rpc_error(-8, "Invalid action 'invalid_command'", node.scantxoutset, "invalid_command")
 

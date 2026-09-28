@@ -264,6 +264,34 @@ static node::ChainManagerUTXOStatsView GetLoadedChildUTXOStatsView(
                        "unhandled child UTXO statistics view error");
 }
 
+static node::ChainManagerUTXOScanView ScanLoadedChildUTXOSet(
+    const std::any& context,
+    const chainregistry::ChainId& chain_id,
+    const std::set<CScript>& needles,
+    std::atomic<int>& progress,
+    const std::atomic<bool>& should_abort,
+    const std::function<void()>& interruption_point)
+{
+    auto view{EnsureAnyChildChainman(context).ScanUTXOSet(
+        chain_id, needles, progress, should_abort, interruption_point)};
+    switch (view.error) {
+    case node::ChainManagerUTXOStatsViewError::NONE:
+        return view;
+    case node::ChainManagerUTXOStatsViewError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must not be null");
+    case node::ChainManagerUTXOStatsViewError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not configured locally");
+    case node::ChainManagerUTXOStatsViewError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_MISC_ERROR, "child chain is not loaded");
+    case node::ChainManagerUTXOStatsViewError::DATA_UNAVAILABLE:
+        throw JSONRPCError(RPC_INTERNAL_ERROR,
+                           "child chain UTXO data is unavailable");
+    }
+    throw JSONRPCError(RPC_INTERNAL_ERROR,
+                       "unhandled child UTXO scan view error");
+}
+
 static node::ChainManagerVerifyResult VerifyLoadedChildChain(
     const std::any& context,
     std::string_view chain_id,
@@ -2815,28 +2843,56 @@ bool FindScriptPubKey(std::atomic<int>& scan_progress, const std::atomic<bool>& 
 
 /** RAII object to prevent concurrency issue when scanning the txout set */
 static std::atomic<int> g_scan_progress;
-static std::atomic<bool> g_scan_in_progress;
 static std::atomic<bool> g_should_abort_scan;
+static Mutex g_scan_mutex;
+static bool g_scan_in_progress GUARDED_BY(g_scan_mutex){false};
+static std::optional<chainregistry::ChainId> g_scan_child_chain
+    GUARDED_BY(g_scan_mutex);
+
+static bool ScanInProgressFor(
+    const std::optional<chainregistry::ChainId>& child_chain)
+{
+    LOCK(g_scan_mutex);
+    return g_scan_in_progress && g_scan_child_chain == child_chain;
+}
+
+static bool AbortScanFor(
+    const std::optional<chainregistry::ChainId>& child_chain)
+{
+    LOCK(g_scan_mutex);
+    if (!g_scan_in_progress || g_scan_child_chain != child_chain) return false;
+    g_should_abort_scan = true;
+    return true;
+}
+
 class CoinsViewScanReserver
 {
 private:
+    const std::optional<chainregistry::ChainId> m_child_chain;
     bool m_could_reserve{false};
 public:
-    explicit CoinsViewScanReserver() = default;
+    explicit CoinsViewScanReserver(
+        std::optional<chainregistry::ChainId> child_chain)
+        : m_child_chain{std::move(child_chain)}
+    {
+    }
 
     bool reserve() {
+        LOCK(g_scan_mutex);
         CHECK_NONFATAL(!m_could_reserve);
-        if (g_scan_in_progress.exchange(true)) {
-            return false;
-        }
+        if (g_scan_in_progress) return false;
         CHECK_NONFATAL(g_scan_progress == 0);
+        g_scan_in_progress = true;
+        g_scan_child_chain = m_child_chain;
         m_could_reserve = true;
         return true;
     }
 
     ~CoinsViewScanReserver() {
         if (m_could_reserve) {
+            LOCK(g_scan_mutex);
             g_scan_in_progress = false;
+            g_scan_child_chain.reset();
             g_scan_progress = 0;
         }
     }
@@ -2876,7 +2932,10 @@ static const auto scan_result_status_none = RPCResult{
 };
 static const auto scan_result_status_some = RPCResult{
     "when action=='status' and a scan is currently in progress", RPCResult::Type::OBJ, "", "",
-    {{RPCResult::Type::NUM, "progress", "Approximate percent complete"},}
+    {
+        {RPCResult::Type::NUM, "progress", "Approximate percent complete"},
+        {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Selected child-chain identifier; omitted for the main chain"},
+    }
 };
 
 
@@ -2897,10 +2956,13 @@ static RPCHelpMan scantxoutset()
         "or more path elements separated by \"/\", and optionally ending in \"/*\" (unhardened), or \"/*'\" or \"/*h\" (hardened) to specify all\n"
         "unhardened or hardened child keys.\n"
         "In the latter case, a range needs to be specified by below if different from 1000.\n"
-        "For more information on output descriptors, see the documentation in the doc/descriptors.md file.\n",
+        "For more information on output descriptors, see the documentation in the doc/descriptors.md file.\n"
+        "Omit chain_id to scan the main chain, or provide a loaded child-chain identifier\n"
+        "to scan that child's isolated UTXO set. Scan status and abort are chain-scoped.\n",
         {
             scan_action_arg_desc,
             scan_objects_arg_desc,
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
         },
         {
             RPCResult{"when action=='start'; only returns after scan completes", RPCResult::Type::OBJ, "", "", {
@@ -2908,6 +2970,7 @@ static RPCHelpMan scantxoutset()
                 {RPCResult::Type::NUM, "txouts", "The number of unspent transaction outputs scanned"},
                 {RPCResult::Type::NUM, "height", "The block height at which the scan was done"},
                 {RPCResult::Type::STR_HEX, "bestblock", "The hash of the block at the tip of the chain"},
+                {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Selected child-chain identifier; omitted for the main chain"},
                 {RPCResult::Type::ARR, "unspents", "",
                 {
                     {RPCResult::Type::OBJ, "", "",
@@ -2931,6 +2994,7 @@ static RPCHelpMan scantxoutset()
         },
         RPCExamples{
             HelpExampleCli("scantxoutset", "start \'[\"" + EXAMPLE_DESCRIPTOR_RAW + "\"]\'") +
+            HelpExampleCli("scantxoutset", "start \'[\"" + EXAMPLE_DESCRIPTOR_RAW + "\"]\' chain_id") +
             HelpExampleCli("scantxoutset", "status") +
             HelpExampleCli("scantxoutset", "abort") +
             HelpExampleRpc("scantxoutset", "\"start\", [\"" + EXAMPLE_DESCRIPTOR_RAW + "\"]") +
@@ -2941,25 +3005,19 @@ static RPCHelpMan scantxoutset()
 {
     UniValue result(UniValue::VOBJ);
     const auto action{self.Arg<std::string_view>("action")};
+    std::optional<chainregistry::ChainId> child_chain;
+    if (const auto chain_id{self.MaybeArg<std::string_view>("chain_id")}) {
+        child_chain = ParseChainId(*chain_id);
+    }
     if (action == "status") {
-        CoinsViewScanReserver reserver;
-        if (reserver.reserve()) {
-            // no scan in progress
-            return UniValue::VNULL;
-        }
+        if (!ScanInProgressFor(child_chain)) return UniValue::VNULL;
         result.pushKV("progress", g_scan_progress.load());
+        if (child_chain) result.pushKV("chain_id", child_chain->GetHex());
         return result;
     } else if (action == "abort") {
-        CoinsViewScanReserver reserver;
-        if (reserver.reserve()) {
-            // reserve was possible which means no scan was running
-            return false;
-        }
-        // set the abort flag
-        g_should_abort_scan = true;
-        return true;
+        return AbortScanFor(child_chain);
     } else if (action == "start") {
-        CoinsViewScanReserver reserver;
+        CoinsViewScanReserver reserver{child_chain};
         if (!reserver.reserve()) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Scan already in progress, use action \"abort\" or \"status\"");
         }
@@ -2988,33 +3046,70 @@ static RPCHelpMan scantxoutset()
 
         // Scan the unspent transaction output set for inputs
         UniValue unspents(UniValue::VARR);
-        std::vector<CTxOut> input_txos;
         std::map<COutPoint, Coin> coins;
+        std::map<int, uint256> block_hashes;
         g_should_abort_scan = false;
         int64_t count = 0;
-        std::unique_ptr<CCoinsViewCursor> pcursor;
-        const CBlockIndex* tip;
+        int tip_height{0};
+        uint256 tip_hash;
+        bool scan_completed{false};
         NodeContext& node = EnsureAnyNodeContext(request.context);
-        {
+        if (child_chain) {
+            auto child_scan{ScanLoadedChildUTXOSet(
+                request.context,
+                *child_chain,
+                needles,
+                g_scan_progress,
+                g_should_abort_scan,
+                node.rpc_interruption_point)};
+            scan_completed = child_scan.completed;
+            count = child_scan.scanned;
+            tip_height = child_scan.entry.height;
+            tip_hash = child_scan.entry.tip;
+            coins = std::move(child_scan.matches);
+            block_hashes = std::move(child_scan.block_hashes);
+        } else {
+            std::unique_ptr<CCoinsViewCursor> pcursor;
+            const CBlockIndex* tip;
             ChainstateManager& chainman = EnsureChainman(node);
-            LOCK(cs_main);
-            Chainstate& active_chainstate = chainman.ActiveChainstate();
-            active_chainstate.ForceFlushStateToDisk(/*wipe_cache=*/false);
-            pcursor = CHECK_NONFATAL(active_chainstate.CoinsDB().Cursor());
-            tip = CHECK_NONFATAL(active_chainstate.m_chain.Tip());
+            {
+                LOCK(cs_main);
+                Chainstate& active_chainstate = chainman.ActiveChainstate();
+                active_chainstate.ForceFlushStateToDisk(/*wipe_cache=*/false);
+                pcursor = CHECK_NONFATAL(active_chainstate.CoinsDB().Cursor());
+                tip = CHECK_NONFATAL(active_chainstate.m_chain.Tip());
+            }
+            scan_completed = FindScriptPubKey(
+                g_scan_progress,
+                g_should_abort_scan,
+                count,
+                pcursor.get(),
+                needles,
+                coins,
+                node.rpc_interruption_point);
+            tip_height = tip->nHeight;
+            tip_hash = tip->GetBlockHash();
+            for (const auto& [_, coin] : coins) {
+                const CBlockIndex* coin_block{tip->GetAncestor(coin.nHeight)};
+                if (!coin_block) {
+                    throw JSONRPCError(
+                        RPC_INTERNAL_ERROR,
+                        "UTXO scan returned a coin outside the selected chain");
+                }
+                block_hashes.emplace(
+                    coin.nHeight, coin_block->GetBlockHash());
+            }
         }
-        bool res = FindScriptPubKey(g_scan_progress, g_should_abort_scan, count, pcursor.get(), needles, coins, node.rpc_interruption_point);
-        result.pushKV("success", res);
+        result.pushKV("success", scan_completed);
         result.pushKV("txouts", count);
-        result.pushKV("height", tip->nHeight);
-        result.pushKV("bestblock", tip->GetBlockHash().GetHex());
+        result.pushKV("height", tip_height);
+        result.pushKV("bestblock", tip_hash.GetHex());
+        if (child_chain) result.pushKV("chain_id", child_chain->GetHex());
 
         for (const auto& it : coins) {
             const COutPoint& outpoint = it.first;
             const Coin& coin = it.second;
             const CTxOut& txo = coin.out;
-            const CBlockIndex& coinb_block{*CHECK_NONFATAL(tip->GetAncestor(coin.nHeight))};
-            input_txos.push_back(txo);
             total_in += txo.nValue;
 
             UniValue unspent(UniValue::VOBJ);
@@ -3025,8 +3120,8 @@ static RPCHelpMan scantxoutset()
             unspent.pushKV("amount", ValueFromAmount(txo.nValue));
             unspent.pushKV("coinbase", coin.IsCoinBase());
             unspent.pushKV("height", coin.nHeight);
-            unspent.pushKV("blockhash", coinb_block.GetBlockHash().GetHex());
-            unspent.pushKV("confirmations", tip->nHeight - coin.nHeight + 1);
+            unspent.pushKV("blockhash", block_hashes.at(coin.nHeight).GetHex());
+            unspent.pushKV("confirmations", tip_height - coin.nHeight + 1);
 
             unspents.push_back(std::move(unspent));
         }
