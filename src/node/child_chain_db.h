@@ -273,7 +273,8 @@ public:
         const CBlock& block,
         const chainregistry::ReferenceChildBlockUndo& undo,
         const chainregistry::BmmAnchorProof& anchor_proof,
-        bool sync = false);
+        bool sync = false,
+        std::vector<uint256>* pruned_candidates = nullptr);
     bool WriteCandidateBmmAnchor(
         const chainregistry::MainHeaderChain& main_headers,
         const chainregistry::BmmAnchorProof& anchor_proof,

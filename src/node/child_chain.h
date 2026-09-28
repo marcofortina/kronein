@@ -59,6 +59,7 @@ struct ReferenceChildRuntimeResult {
     chainregistry::DepositReconcileResult reconcile;
     chainregistry::ReferenceChildBlockResult child_block;
     std::vector<uint256> disconnected_child_blocks;
+    std::vector<uint256> pruned_child_candidates;
     bool bmm_anchor_already_known{false};
     bool candidate_stored{false};
     bool reorganization_required{false};

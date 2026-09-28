@@ -837,17 +837,28 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
         return result;
     }
     if (parent != m_tip) {
+        std::vector<uint256> pruned_candidates;
         if (!m_db->WriteValidatedChildCandidate(
                 *m_main_headers,
                 block,
                 *result.child_block.undo,
                 anchor_proof,
-                sync)) {
+                sync,
+                &pruned_candidates)) {
             m_child_index.erase(slot);
             result.error =
                 ReferenceChildRuntimeError::CHILD_BLOCK_PERSIST_FAILED;
             return result;
         }
+        for (const uint256& hash : pruned_candidates) {
+            if (hash == m_tip->GetBlockHash() ||
+                m_child_index.erase(hash) != 1) {
+                m_failed = true;
+                result.error = ReferenceChildRuntimeError::FAILED_RUNTIME;
+                return result;
+            }
+        }
+        result.pruned_child_candidates = std::move(pruned_candidates);
         if (!m_db->ReadState(m_state)) {
             m_failed = true;
             result.error = ReferenceChildRuntimeError::FAILED_RUNTIME;
