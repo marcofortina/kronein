@@ -5,7 +5,9 @@
 """Test the verified child-chain registry read RPCs."""
 
 from decimal import Decimal
+from io import BytesIO
 
+from test_framework.messages import CBlock
 from test_framework.psbt import PSBT, PSBT_OUT_SCRIPT
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
@@ -621,6 +623,47 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(len(decoded_import["vin"][0]["txinwitness"]), 1)
         assert_equal(len(decoded_import["vout"]), 1)
         assert_equal(decoded_import["vout"][0]["value"], deposit_amount)
+
+        assert_raises_rpc_error(
+            -8, "deposit_proofs must contain at least one proof",
+            node.createchildimportblock, chain_id, [])
+        assert_raises_rpc_error(
+            -8, "deposit proof 1 duplicates an earlier deposit",
+            node.createchildimportblock,
+            chain_id,
+            [deposit_proof["proof"], deposit_proof["proof"]])
+        child_block = node.createchildimportblock(
+            chain_id, [deposit_proof["proof"]])
+        assert_equal(child_block["chain_id"], chain_id)
+        assert_equal(child_block["previousblockhash"], reference_child["genesis_hash"])
+        assert_equal(child_block["height"], 1)
+        assert_equal(child_block["requires_bmm_anchor"], True)
+        assert_equal(child_block["contextually_valid"], True)
+        assert_equal(child_block["transactions"], [child_import["txid"]])
+        assert_equal(child_block["deposits"], [{
+            "deposit_id": submitted_deposit["deposit_id"],
+            "amount": deposit_amount,
+            "recipient_type": 1,
+            "recipient": child_recipient,
+            "confirmations": 144,
+        }])
+        assert child_block["bmm_anchor_script"].startswith("6a454b424d4d01")
+        assert_equal(len(child_block["bmm_anchor_script"]), 142)
+        assert_equal(child_block["size"], len(child_block["block"]) // 2)
+        decoded_child_block = CBlock()
+        decoded_child_block.deserialize(
+            BytesIO(bytes.fromhex(child_block["block"])))
+        assert_equal(decoded_child_block.serialize().hex(), child_block["block"])
+        assert_equal(decoded_child_block.hash_hex, child_block["blockhash"])
+        assert_equal(decoded_child_block.nBits, 0)
+        assert_equal(decoded_child_block.nNonce, 0)
+        assert_equal(len(decoded_child_block.vtx), 2)
+        assert_equal(decoded_child_block.vtx[1].txid_hex, child_import["txid"])
+        assert_equal(decoded_child_block.calc_merkle_root(),
+                     decoded_child_block.hashMerkleRoot)
+        assert_raises_rpc_error(
+            -26, "no authenticated pending BMM anchor commits to this child block",
+            node.submitchildblock, chain_id, child_block["block"])
 
         successor_address = wallet.getnewaddress()
         update_psbt = wallet.walletcreatechainregistrypsbt("update", {

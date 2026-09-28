@@ -187,6 +187,10 @@ public:
         const CBlock& block,
         int64_t current_time,
         bool sync = false);
+    /** Contextually validate a block extending the active tip without persistence. */
+    chainregistry::ReferenceChildBlockResult ValidateTipBlock(
+        const CBlock& block,
+        int64_t current_time) const;
     ReferenceChildRuntimeResult DisconnectTip(bool sync = false);
 
     bool IsInitialized() const { return m_initialized; }

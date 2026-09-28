@@ -23,6 +23,40 @@ ChainManagerResult ManagerError(ChainManagerError error)
     return result;
 }
 
+ChainManagerImportBuildResult BuildAuthenticatedImport(
+    const ReferenceChildRuntime& runtime,
+    const chainregistry::DepositProof& proof)
+{
+    ChainManagerImportBuildResult result;
+    if (runtime.Imports().IsSafeHalted()) {
+        result.error = ChainManagerImportBuildError::SAFE_HALT;
+        return result;
+    }
+
+    const auto& definition{runtime.Definition()};
+    result.minimum_confirmations = definition.parameters.deposit_maturity;
+    const auto* main_headers{runtime.MainHeaders()};
+    Assume(main_headers);
+    result.authenticated = main_headers->AuthenticateDeposit(
+        proof, definition.chain_id, definition.parameters.deposit_maturity);
+    if (!result.authenticated.IsValid()) {
+        result.error = ChainManagerImportBuildError::PROOF_REJECTED;
+        return result;
+    }
+    if (runtime.Imports().Find(
+            result.authenticated.proof.deposit_id)) {
+        result.error = ChainManagerImportBuildError::ALREADY_IMPORTED;
+        return result;
+    }
+    result.import = chainregistry::BuildReferenceChildImportTransaction(
+        proof, definition);
+    if (!result.import.IsValid() || !result.import.deposit_id ||
+        *result.import.deposit_id != result.authenticated.proof.deposit_id) {
+        result.error = ChainManagerImportBuildError::BUILD_FAILED;
+    }
+    return result;
+}
+
 } // namespace
 
 ChainManager::ChainManager(Consensus::Params main_params,
@@ -325,31 +359,94 @@ ChainManagerImportBuildResult ChainManager::BuildImportTransaction(
         result.error = ChainManagerImportBuildError::CHAIN_NOT_LOADED;
         return result;
     }
-    if (runtime->second->Imports().IsSafeHalted()) {
-        result.error = ChainManagerImportBuildError::SAFE_HALT;
+    return BuildAuthenticatedImport(*runtime->second, proof);
+}
+
+ChainManagerImportBlockBuildResult ChainManager::BuildImportBlock(
+    const chainregistry::ChainId& chain_id,
+    std::span<const chainregistry::DepositProof> proofs,
+    int64_t current_time) const
+{
+    LOCK(m_mutex);
+    ChainManagerImportBlockBuildResult result;
+    if (chain_id.IsNull()) {
+        result.error = ChainManagerImportBlockBuildError::NULL_CHAIN_ID;
+        return result;
+    }
+    if (!m_definitions.contains(chain_id)) {
+        result.error = ChainManagerImportBlockBuildError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto runtime{m_loaded.find(chain_id)};
+    if (runtime == m_loaded.end()) {
+        result.error = ChainManagerImportBlockBuildError::CHAIN_NOT_LOADED;
+        return result;
+    }
+    if (proofs.empty()) {
+        result.error = ChainManagerImportBlockBuildError::EMPTY_PROOFS;
+        return result;
+    }
+    if (proofs.size() > MAX_CHILD_IMPORTS_PER_BLOCK) {
+        result.error = ChainManagerImportBlockBuildError::TOO_MANY_PROOFS;
         return result;
     }
 
-    const auto& definition{runtime->second->Definition()};
-    result.minimum_confirmations = definition.parameters.deposit_maturity;
-    const auto* main_headers{runtime->second->MainHeaders()};
-    Assume(main_headers);
-    result.authenticated = main_headers->AuthenticateDeposit(
-        proof, chain_id, definition.parameters.deposit_maturity);
-    if (!result.authenticated.IsValid()) {
-        result.error = ChainManagerImportBuildError::PROOF_REJECTED;
+    const CBlockIndex* parent{runtime->second->Tip()};
+    Assume(parent);
+    const int64_t block_time{std::max({
+        current_time,
+        parent->GetBlockTime(),
+        parent->GetMedianTimePast() + 1})};
+    if (current_time < 0 || block_time < 0 ||
+        block_time > std::numeric_limits<uint32_t>::max()) {
+        result.error = ChainManagerImportBlockBuildError::TIME_OUT_OF_RANGE;
         return result;
     }
-    if (runtime->second->Imports().Find(
-            result.authenticated.proof.deposit_id)) {
-        result.error = ChainManagerImportBuildError::ALREADY_IMPORTED;
+    result.block_time = static_cast<uint32_t>(block_time);
+
+    std::set<chainregistry::DepositId> deposit_ids;
+    std::vector<CTransactionRef> transactions;
+    result.imports.reserve(proofs.size());
+    transactions.reserve(proofs.size());
+    for (size_t index{0}; index < proofs.size(); ++index) {
+        auto imported{BuildAuthenticatedImport(
+            *runtime->second, proofs[index])};
+        if (!imported.IsValid()) {
+            result.error =
+                ChainManagerImportBlockBuildError::IMPORT_REJECTED;
+            result.failed_proof = index;
+            result.imports.push_back(std::move(imported));
+            return result;
+        }
+        Assume(imported.import.deposit_id);
+        Assume(imported.import.transaction);
+        if (!deposit_ids.insert(*imported.import.deposit_id).second) {
+            result.error =
+                ChainManagerImportBlockBuildError::DUPLICATE_DEPOSIT;
+            result.failed_proof = index;
+            result.imports.push_back(std::move(imported));
+            return result;
+        }
+        transactions.push_back(MakeTransactionRef(
+            CMutableTransaction{*imported.import.transaction}));
+        result.imports.push_back(std::move(imported));
+    }
+
+    result.build = chainregistry::BuildReferenceChildBlock(
+        *parent,
+        result.block_time,
+        runtime->second->Definition(),
+        std::move(transactions));
+    if (!result.build.IsValid()) {
+        result.error = ChainManagerImportBlockBuildError::BUILD_FAILED;
         return result;
     }
-    result.import = chainregistry::BuildReferenceChildImportTransaction(
-        proof, definition);
-    if (!result.import.IsValid() || !result.import.deposit_id ||
-        *result.import.deposit_id != result.authenticated.proof.deposit_id) {
-        result.error = ChainManagerImportBuildError::BUILD_FAILED;
+    result.block_height = static_cast<uint32_t>(parent->nHeight + 1);
+    result.validation = runtime->second->ValidateTipBlock(
+        *result.build.block, current_time);
+    if (!result.validation.IsValid()) {
+        result.error =
+            ChainManagerImportBlockBuildError::CONTEXT_REJECTED;
     }
     return result;
 }

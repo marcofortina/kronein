@@ -33,6 +33,7 @@ namespace node {
 
 static constexpr size_t DEFAULT_CHILD_CHAIN_DB_CACHE{8 << 20};
 inline constexpr size_t MAX_LOADED_CHILD_CHAINS{8};
+inline constexpr size_t MAX_CHILD_IMPORTS_PER_BLOCK{1'000};
 
 enum class ChainManagerError : uint8_t {
     NONE,
@@ -99,6 +100,37 @@ struct ChainManagerImportBuildResult {
     {
         return error == ChainManagerImportBuildError::NONE &&
                authenticated.IsValid() && import.IsValid();
+    }
+};
+
+enum class ChainManagerImportBlockBuildError : uint8_t {
+    NONE,
+    NULL_CHAIN_ID,
+    UNKNOWN_CHAIN,
+    CHAIN_NOT_LOADED,
+    EMPTY_PROOFS,
+    TOO_MANY_PROOFS,
+    TIME_OUT_OF_RANGE,
+    IMPORT_REJECTED,
+    DUPLICATE_DEPOSIT,
+    BUILD_FAILED,
+    CONTEXT_REJECTED,
+};
+
+struct ChainManagerImportBlockBuildResult {
+    ChainManagerImportBlockBuildError error{
+        ChainManagerImportBlockBuildError::NONE};
+    std::optional<size_t> failed_proof;
+    std::vector<ChainManagerImportBuildResult> imports;
+    chainregistry::ReferenceChildBlockBuildResult build;
+    chainregistry::ReferenceChildBlockResult validation;
+    uint32_t block_height{0};
+    uint32_t block_time{0};
+
+    bool IsValid() const
+    {
+        return error == ChainManagerImportBlockBuildError::NONE &&
+               build.IsValid() && validation.IsValid();
     }
 };
 
@@ -385,6 +417,11 @@ public:
     ChainManagerImportBuildResult BuildImportTransaction(
         const chainregistry::ChainId& chain_id,
         const chainregistry::DepositProof& proof) const;
+    /** Build and contextually validate an import-only active-tip block. */
+    ChainManagerImportBlockBuildResult BuildImportBlock(
+        const chainregistry::ChainId& chain_id,
+        std::span<const chainregistry::DepositProof> proofs,
+        int64_t current_time) const;
     /** Feed a header already connected by the local main chainstate. */
     ChainManagerMainUpdate AddMainHeader(
         const CBlockHeader& header,

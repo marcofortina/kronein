@@ -1019,6 +1019,29 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
     return result;
 }
 
+chainregistry::ReferenceChildBlockResult
+ReferenceChildRuntime::ValidateTipBlock(
+    const CBlock& block,
+    int64_t current_time) const
+{
+    if (!Usable() || !m_db || !m_tip || !m_main_headers) {
+        chainregistry::ReferenceChildBlockResult result;
+        result.error =
+            chainregistry::ReferenceChildBlockError::INVALID_RUNTIME_CONTEXT;
+        return result;
+    }
+    CCoinsViewCache candidate_coins{m_db.get(), /*deterministic=*/true};
+    chainregistry::DepositImportState candidate_imports{m_imports};
+    return chainregistry::ConnectReferenceChildBlock(
+        block,
+        *m_tip,
+        current_time,
+        m_definition,
+        *m_main_headers,
+        candidate_coins,
+        candidate_imports);
+}
+
 ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectStagedBlock(
     const CBlock& block,
     int64_t current_time,
