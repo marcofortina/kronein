@@ -281,7 +281,8 @@ public:
     bool WriteCandidateBmmAnchor(
         const chainregistry::MainHeaderChain& main_headers,
         const chainregistry::BmmAnchorProof& anchor_proof,
-        bool sync = false);
+        bool sync = false,
+        std::vector<uint256>* pruned_candidates = nullptr);
     bool WriteConnectedChildBlock(const chainregistry::MainHeaderChain& main_headers,
                                   const chainregistry::DepositImportState& imports,
                                   const CBlock& block,

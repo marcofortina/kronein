@@ -508,6 +508,7 @@ struct CandidatePruningChange {
     uint64_t removed_anchor_bytes{0};
     std::vector<CandidateAnchorKey> added_anchor_keys;
     std::vector<CandidateAnchorKey> removed_anchor_keys;
+    std::optional<chainregistry::ChildForkAnchor> added_fork_anchor;
 };
 
 std::optional<CandidatePruningPlan> PlanCandidatePruning(
@@ -635,6 +636,10 @@ std::optional<CandidatePruningPlan> PlanCandidatePruning(
         candidate->second.candidate_anchor_bytes =
             candidate->second.candidate_anchor_bytes -
             change.removed_anchor_bytes + change.added_anchor_bytes;
+        if (change.added_fork_anchor) {
+            candidate->second.candidate.anchors.push_back(
+                *change.added_fork_anchor);
+        }
 
         auto& keys{plan.anchor_keys[change.block_hash]};
         for (const CandidateAnchorKey& key : change.removed_anchor_keys) {
@@ -1878,6 +1883,7 @@ bool ChildChainDB::WriteMainChainUpdate(
                 .added_anchor_bytes = entry.candidate_anchor.serialized_size,
                 .added_anchor_keys = {entry.candidate_anchor_key},
                 .removed_anchor_keys = {},
+                .added_fork_anchor = std::nullopt,
             });
         }
         pruning = PlanCandidatePruning(
@@ -2201,7 +2207,8 @@ bool ChildChainDB::WriteValidatedChildCandidate(
 bool ChildChainDB::WriteCandidateBmmAnchor(
     const chainregistry::MainHeaderChain& main_headers,
     const chainregistry::BmmAnchorProof& anchor_proof,
-    bool sync)
+    bool sync,
+    std::vector<uint256>* pruned_candidates)
 {
     const auto authenticated{main_headers.AuthenticateBmmAnchor(
         anchor_proof, m_child_chain, /*minimum_confirmations=*/1)};
@@ -2245,14 +2252,7 @@ bool ChildChainDB::WriteCandidateBmmAnchor(
         return primary->child_block_hash == child_block_hash &&
                BmmProofHash(primary->proof) == BmmProofHash(anchor_proof);
     }
-    if (m_db.Exists(key) ||
-        state.candidate_anchor_count ==
-            MAX_CHILD_CANDIDATE_BMM_ANCHORS ||
-        serialized_size >
-            MAX_CHILD_CANDIDATE_BMM_BYTES -
-                state.candidate_anchor_bytes) {
-        return false;
-    }
+    if (m_db.Exists(key)) return false;
 
     const PendingAnchorKey pending_key{
         DB_PENDING_BMM_ANCHOR, main_block_hash};
@@ -2271,17 +2271,66 @@ bool ChildChainDB::WriteCandidateBmmAnchor(
         return false;
     }
 
-    ++state.candidate_anchor_count;
-    state.candidate_anchor_bytes += serialized_size;
+    const auto current_candidates{ReadForkCandidates(main_headers)};
+    const auto side_candidate{ReadSideCandidate(child_block_hash)};
+    const CBlockIndex* anchor_entry{main_headers.Find(main_block_hash)};
+    if (!current_candidates || !anchor_entry) return false;
+    const arith_uint256 anchor_work{GetBlockProof(*anchor_entry)};
+    if (anchor_work == 0) return false;
+    const CandidatePruningChange change{
+        .block_hash = child_block_hash,
+        .prunable = side_candidate.has_value(),
+        .side_candidate_bytes = side_candidate
+            ? side_candidate->serialized_size
+            : 0,
+        .added_anchor_count = 1,
+        .added_anchor_bytes = serialized_size,
+        .added_anchor_keys = {key},
+        .removed_anchor_keys = {},
+        .added_fork_anchor = chainregistry::ChildForkAnchor{
+            .main_block_hash = main_block_hash,
+            .main_height = anchor_proof.block_height,
+            .work = anchor_work,
+        },
+    };
+    const auto pruning{PlanCandidatePruning(
+        m_db,
+        state,
+        *current_candidates,
+        m_child_genesis_hash,
+        std::nullopt,
+        std::span<const CandidatePruningChange>{&change, 1})};
+    if (!pruning || std::find(
+            pruning->selection.pruned.begin(),
+            pruning->selection.pruned.end(),
+            child_block_hash) != pruning->selection.pruned.end()) {
+        return false;
+    }
+    state.side_candidate_count = pruning->selection.side_candidate_count;
+    state.side_candidate_bytes = pruning->selection.side_candidate_bytes;
+    state.candidate_anchor_count =
+        pruning->selection.candidate_anchor_count;
+    state.candidate_anchor_bytes = pruning->selection.candidate_anchor_bytes;
     if (erase_pending) {
         --state.pending_anchor_count;
         state.pending_anchor_bytes -= serialized_size;
     }
     CDBBatch batch{m_db};
+    for (const uint256& hash : pruning->selection.pruned) {
+        batch.Erase(CandidateKey{DB_SIDE_CANDIDATE, hash});
+        const auto anchor_keys{pruning->anchor_keys.find(hash)};
+        if (anchor_keys == pruning->anchor_keys.end()) return false;
+        for (const CandidateAnchorKey& anchor_key : anchor_keys->second) {
+            batch.Erase(anchor_key);
+        }
+    }
     batch.Write(key, record);
     if (erase_pending) batch.Erase(pending_key);
     batch.Write(DB_STATE, state);
     m_db.WriteBatch(batch, sync);
+    if (pruned_candidates) {
+        *pruned_candidates = pruning->selection.pruned;
+    }
     return true;
 }
 
@@ -2863,6 +2912,7 @@ bool ChildChainDB::WriteChildReorganization(
             .added_anchor_bytes = entry.candidate_anchor.serialized_size,
             .added_anchor_keys = {entry.candidate_anchor_key},
             .removed_anchor_keys = {},
+            .added_fork_anchor = std::nullopt,
         });
     }
     for (const auto& entry : promoted) {
@@ -2874,6 +2924,7 @@ bool ChildChainDB::WriteChildReorganization(
             .removed_anchor_bytes = entry.candidate_anchor.serialized_size,
             .added_anchor_keys = {},
             .removed_anchor_keys = {entry.candidate_anchor_key},
+            .added_fork_anchor = std::nullopt,
         });
     }
     const auto current_candidates{ReadForkCandidates(main_headers)};

@@ -743,9 +743,13 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::StageBmmAnchor(
         m_db->ReadCandidateBmmAnchor(main_block_hash).has_value() ||
         (primary_anchor &&
          primary_anchor->proof.block_header.GetHash() == main_block_hash)};
+    std::vector<uint256> pruned_candidates;
     const bool persisted{child_block_known
         ? m_db->WriteCandidateBmmAnchor(
-              *m_main_headers, anchor_proof, sync)
+              *m_main_headers,
+              anchor_proof,
+              sync,
+              &pruned_candidates)
         : m_db->WritePendingBmmAnchor(
               *m_main_headers, anchor_proof, sync)};
     if (!persisted) {
@@ -757,6 +761,15 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::StageBmmAnchor(
         result.error = ReferenceChildRuntimeError::FAILED_RUNTIME;
         return result;
     }
+    for (const uint256& hash : pruned_candidates) {
+        if (hash == m_tip->GetBlockHash() ||
+            m_child_index.erase(hash) != 1) {
+            m_failed = true;
+            result.error = ReferenceChildRuntimeError::FAILED_RUNTIME;
+            return result;
+        }
+    }
+    result.pruned_child_candidates = std::move(pruned_candidates);
     result.bmm_anchor_already_known = already_known;
     if (child_block_known) {
         const auto candidates{m_db->ReadForkCandidates(*m_main_headers)};
