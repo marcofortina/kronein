@@ -23,6 +23,7 @@ add_executable(fuzz
   blockfilter.cpp
   buffered_file.cpp
   chain.cpp
+  chainregistry.cpp
   checkqueue.cpp
   cluster_linearize.cpp
   coins_view.cpp
