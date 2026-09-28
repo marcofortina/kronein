@@ -640,6 +640,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(child_block["previousblockhash"], reference_child["genesis_hash"])
         assert_equal(child_block["height"], 1)
         assert_equal(child_block["requires_bmm_anchor"], True)
+        assert_equal(child_block["proposal_stored"], True)
         assert_equal(child_block["contextually_valid"], True)
         assert_equal(child_block["transactions"], [child_import["txid"]])
         assert_equal(child_block["deposits"], [{
@@ -663,9 +664,36 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(decoded_child_block.vtx[1].txid_hex, child_import["txid"])
         assert_equal(decoded_child_block.calc_merkle_root(),
                      decoded_child_block.hashMerkleRoot)
+        proposals = node.listchildproposals(chain_id)
+        assert_equal(proposals["proposal_count"], 1)
+        assert_equal(proposals["proposal_bytes"], child_block["size"])
+        assert_equal(proposals["proposals"], [{
+            "blockhash": child_block["blockhash"],
+            "previousblockhash": reference_child["genesis_hash"],
+            "created_time": proposals["proposals"][0]["created_time"],
+            "size": child_block["size"],
+            "anchor_available": False,
+            "anchor_count": 0,
+        }])
+        stored_proposal = node.getchildproposal(
+            chain_id, child_block["blockhash"])
+        assert_equal(stored_proposal["block"], child_block["block"])
+        assert_equal(stored_proposal["size"], child_block["size"])
+        removed_proposal = node.removechildproposal(
+            chain_id, child_block["blockhash"])
+        assert_equal(removed_proposal["removed"], True)
+        assert_equal(node.listchildproposals(chain_id)["proposal_count"], 0)
+        assert_raises_rpc_error(
+            -5, "local child proposal was not found",
+            node.getchildproposal, chain_id, child_block["blockhash"])
+        stored_again = node.storechildproposal(chain_id, child_block["block"])
+        assert_equal(stored_again["stored"], True)
+        assert_equal(stored_again["blockhash"], child_block["blockhash"])
+        assert_equal(node.storechildproposal(
+            chain_id, child_block["block"])["stored"], True)
         assert_raises_rpc_error(
             -26, "no authenticated pending BMM anchor commits to this child block",
-            node.submitchildblock, chain_id, child_block["block"])
+            node.submitchildproposal, chain_id, child_block["blockhash"])
 
         self.log.info("Fund and publish the recurring main-chain BMM security bid")
         anchor_psbt = wallet.walletcreatechildanchorpsbt(
@@ -731,13 +759,19 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(pending_blocks["block_count"], 1)
         assert_equal(pending_blocks["anchor_count"], 1)
         assert_equal(pending_blocks["blocks"][0]["blockhash"], child_block["blockhash"])
+        anchored_proposals = node.listchildproposals(chain_id)
+        assert_equal(anchored_proposals["proposal_count"], 1)
+        assert_equal(anchored_proposals["proposals"][0]["anchor_available"], True)
+        assert_equal(anchored_proposals["proposals"][0]["anchor_count"], 1)
 
-        accepted_child = node.submitchildblock(chain_id, child_block["block"])
+        accepted_child = node.submitchildproposal(
+            chain_id, child_block["blockhash"])
         assert_equal(accepted_child["accepted"], True)
         assert_equal(accepted_child["anchor_source"], "staged")
         assert_equal(accepted_child["blockhash"], child_block["blockhash"])
         assert_equal(accepted_child["bestblockhash"], child_block["blockhash"])
         assert_equal(node.getchildpendingblocks(chain_id)["block_count"], 0)
+        assert_equal(node.listchildproposals(chain_id)["proposal_count"], 0)
         active_child_info = node.getblockchaininfo(chain_id)
         assert_equal(active_child_info["blocks"], 1)
         assert_equal(active_child_info["bestblockhash"], child_block["blockhash"])

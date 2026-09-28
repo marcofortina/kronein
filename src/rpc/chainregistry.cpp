@@ -63,6 +63,16 @@ chainregistry::ChainId ParseChainId(const UniValue& value)
     return *chain_id;
 }
 
+uint256 ParseNonNullHash(const UniValue& value, std::string_view name)
+{
+    const uint256 hash{ParseHashV(value, name)};
+    if (hash.IsNull()) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER, strprintf("%s must not be null", name));
+    }
+    return hash;
+}
+
 chainregistry::MetadataHash ParseMetadataHash(const UniValue& value)
 {
     const auto metadata_hash{chainregistry::MetadataHash::FromHex(value.get_str())};
@@ -194,6 +204,11 @@ void PushChildStorageStats(UniValue& object,
     object.pushKV("pending_bmm_anchor_count", entry.pending_anchor_count);
     object.pushKV("pending_bmm_anchor_bytes", entry.pending_anchor_bytes);
     object.pushKV("pending_child_block_count", entry.pending_block_count);
+    object.pushKV("local_proposal_count", entry.local_proposal_count);
+    object.pushKV("local_proposal_bytes", entry.local_proposal_bytes);
+    object.pushKV("local_proposal_limit", node::MAX_CHILD_LOCAL_PROPOSALS);
+    object.pushKV("local_proposal_bytes_limit",
+                  node::MAX_CHILD_LOCAL_PROPOSAL_BYTES);
     object.pushKV("pending_bmm_anchor_limit", node::MAX_CHILD_PENDING_BMM_ANCHORS);
     object.pushKV("pending_bmm_anchor_bytes_limit", node::MAX_CHILD_PENDING_BMM_BYTES);
     object.pushKV("side_candidate_count", entry.side_candidate_count);
@@ -542,6 +557,17 @@ void EnsureRegistryMatchesDefinition(
                       static_cast<unsigned>(result.runtime.error)));
     case node::ChainManagerError::RUNTIME_REJECTED:
         if (result.runtime.error ==
+            node::ReferenceChildRuntimeError::LOCAL_PROPOSAL_NOT_FOUND) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                               "local child proposal was not found");
+        }
+        if (result.runtime.error ==
+            node::ReferenceChildRuntimeError::LOCAL_PROPOSAL_PERSIST_FAILED) {
+            throw JSONRPCError(
+                RPC_DATABASE_ERROR,
+                "failed to persist local child proposal; storage limits may have been reached");
+        }
+        if (result.runtime.error ==
             node::ReferenceChildRuntimeError::BMM_ANCHOR_UNAVAILABLE) {
             throw JSONRPCError(
                 RPC_VERIFY_REJECTED,
@@ -651,6 +677,30 @@ void EnsureRegistryMatchesDefinition(
         break;
     }
     throw JSONRPCError(RPC_INTERNAL_ERROR, "unknown child network error");
+}
+
+[[noreturn]] void ThrowProposalsViewError(
+    node::ChainManagerProposalsViewError error)
+{
+    switch (error) {
+    case node::ChainManagerProposalsViewError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must not be null");
+    case node::ChainManagerProposalsViewError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not configured locally");
+    case node::ChainManagerProposalsViewError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "child chain is not loaded");
+    case node::ChainManagerProposalsViewError::PROPOSAL_NOT_FOUND:
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                           "local child proposal was not found");
+    case node::ChainManagerProposalsViewError::DATA_UNAVAILABLE:
+        throw JSONRPCError(RPC_DATABASE_ERROR,
+                           "local child proposals are unavailable");
+    case node::ChainManagerProposalsViewError::NONE:
+        break;
+    }
+    throw JSONRPCError(RPC_INTERNAL_ERROR,
+                       "unknown child proposal view error");
 }
 
 node::ChildNetworkConfig ParseChildNetworkConfig(const UniValue& options)
@@ -1206,6 +1256,10 @@ RPCHelpMan listchildchainruntimes()
                     {RPCResult::Type::NUM, "pending_bmm_anchor_count", /*optional=*/true, "Authenticated BMM anchors waiting for child block data"},
                     {RPCResult::Type::NUM, "pending_bmm_anchor_bytes", /*optional=*/true, "Serialized bytes used by pending BMM anchors"},
                     {RPCResult::Type::NUM, "pending_child_block_count", /*optional=*/true, "Distinct child blocks requested by pending authenticated anchors"},
+                    {RPCResult::Type::NUM, "local_proposal_count", /*optional=*/true, "Validated local block proposals awaiting BMM submission"},
+                    {RPCResult::Type::NUM, "local_proposal_bytes", /*optional=*/true, "Serialized bytes used by local block proposals"},
+                    {RPCResult::Type::NUM, "local_proposal_limit", /*optional=*/true, "Maximum local block proposals"},
+                    {RPCResult::Type::NUM, "local_proposal_bytes_limit", /*optional=*/true, "Maximum serialized bytes for local block proposals"},
                     {RPCResult::Type::NUM, "pending_bmm_anchor_limit", /*optional=*/true, "Maximum pending BMM anchor records"},
                     {RPCResult::Type::NUM, "pending_bmm_anchor_bytes_limit", /*optional=*/true, "Maximum serialized bytes for pending BMM anchors"},
                     {RPCResult::Type::NUM, "side_candidate_count", /*optional=*/true, "Validated non-canonical candidates retained in the fork DAG"},
@@ -2170,6 +2224,7 @@ RPCHelpMan createchildimportblock()
             }},
             {RPCResult::Type::STR_HEX, "bmm_anchor_script", "Zero-valued main-chain output script committing to this child block"},
             {RPCResult::Type::BOOL, "requires_bmm_anchor", "Always true; this call does not submit or anchor the block"},
+            {RPCResult::Type::BOOL, "proposal_stored", "Always true after the validated block is durably queued locally"},
             {RPCResult::Type::BOOL, "contextually_valid", "Always true when the RPC succeeds"},
         }},
         RPCExamples{
@@ -2183,7 +2238,8 @@ RPCHelpMan createchildimportblock()
     const auto built{EnsureAnyChildChainman(request.context).BuildImportBlock(
         chain_id,
         proofs,
-        Now<NodeSeconds>().time_since_epoch().count())};
+        Now<NodeSeconds>().time_since_epoch().count(),
+        /*sync=*/true)};
     switch (built.error) {
     case node::ChainManagerImportBlockBuildError::NONE:
         break;
@@ -2237,6 +2293,10 @@ RPCHelpMan createchildimportblock()
                       built.validation.failed_transaction
                           ? util::ToString(*built.validation.failed_transaction)
                           : "none"));
+    case node::ChainManagerImportBlockBuildError::PROPOSAL_PERSIST_FAILED:
+        throw JSONRPCError(
+            RPC_DATABASE_ERROR,
+            "validated child block could not be persisted as a local proposal");
     }
 
     Assume(built.build.block);
@@ -2280,7 +2340,245 @@ RPCHelpMan createchildimportblock()
     result.pushKV("deposits", std::move(deposits));
     result.pushKV("bmm_anchor_script", HexStr(anchor_script));
     result.pushKV("requires_bmm_anchor", true);
+    result.pushKV("proposal_stored", true);
     result.pushKV("contextually_valid", true);
+    return result;
+},
+    };
+}
+
+RPCHelpMan storechildproposal()
+{
+    return RPCHelpMan{
+        "storechildproposal",
+        "Contextually validate and durably store a child block extending the active tip while it waits for a BMM anchor. Re-storing the identical block is idempotent.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null child-chain identifier"},
+            {"block", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Serialized child block including witness data"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Persisted local proposal", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Child-chain identifier"},
+            {RPCResult::Type::STR_HEX, "blockhash", "Stored child block hash"},
+            {RPCResult::Type::NUM, "size", "Serialized block size including witness"},
+            {RPCResult::Type::BOOL, "stored", "True after durable persistence"},
+        }},
+        RPCExamples{
+            HelpExampleCli("storechildproposal", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" \"blockhex\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const auto chain_id{ParseChainId(self.Arg<UniValue>("chain_id"))};
+    const CBlock block{ParseChildBlock(self.Arg<UniValue>("block"))};
+    const auto stored{EnsureAnyChildChainman(request.context).StoreProposal(
+        chain_id,
+        block,
+        Now<NodeSeconds>().time_since_epoch().count(),
+        /*sync=*/true)};
+    if (!stored.IsValid()) ThrowChainManagerError(stored);
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", chain_id.GetHex());
+    result.pushKV("blockhash", block.GetHash().GetHex());
+    result.pushKV("size", GetSerializeSize(TX_WITH_WITNESS(block)));
+    result.pushKV("stored", true);
+    return result;
+},
+    };
+}
+
+RPCHelpMan listchildproposals()
+{
+    return RPCHelpMan{
+        "listchildproposals",
+        "List durable local block proposals for one loaded child chain and whether an authenticated BMM anchor is already staged for each proposal.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null child-chain identifier"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Local child proposal queue", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Child-chain identifier"},
+            {RPCResult::Type::NUM, "proposal_count", "Number of stored local proposals"},
+            {RPCResult::Type::NUM, "proposal_limit", "Maximum stored proposals per child"},
+            {RPCResult::Type::NUM, "proposal_bytes", "Serialized child block bytes retained"},
+            {RPCResult::Type::NUM, "proposal_bytes_limit", "Maximum serialized proposal bytes per child"},
+            {RPCResult::Type::ARR, "proposals", "Stored proposals in creation order", {
+                {RPCResult::Type::OBJ, "", "One local proposal", {
+                    {RPCResult::Type::STR_HEX, "blockhash", "Child block hash"},
+                    {RPCResult::Type::STR_HEX, "previousblockhash", "Proposed parent block"},
+                    {RPCResult::Type::NUM_TIME, "created_time", "Local proposal creation time"},
+                    {RPCResult::Type::NUM, "size", "Serialized block size including witness"},
+                    {RPCResult::Type::BOOL, "anchor_available", "Whether at least one authenticated pending anchor is staged"},
+                    {RPCResult::Type::NUM, "anchor_count", "Authenticated pending anchors for this block"},
+                }},
+            }},
+        }},
+        RPCExamples{
+            HelpExampleCli("listchildproposals", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const auto chain_id{ParseChainId(self.Arg<UniValue>("chain_id"))};
+    node::ChainManager& manager{EnsureAnyChildChainman(request.context)};
+    const auto view{manager.GetProposalsView(chain_id)};
+    if (!view.IsValid()) ThrowProposalsViewError(view.error);
+    const auto pending{manager.GetPendingBlocksView(chain_id)};
+    if (!pending.IsValid()) {
+        throw JSONRPCError(RPC_DATABASE_ERROR,
+                           "pending BMM anchor state is unavailable");
+    }
+    std::map<uint256, uint64_t> anchor_counts;
+    for (const auto& block : pending.blocks) {
+        anchor_counts.emplace(block.block_hash, block.anchor_count);
+    }
+
+    uint64_t bytes{0};
+    UniValue proposals{UniValue::VARR};
+    for (const auto& proposal : view.proposals) {
+        bytes += proposal.serialized_size;
+        const uint64_t anchor_count{anchor_counts[proposal.block.GetHash()]};
+        UniValue object{UniValue::VOBJ};
+        object.pushKV("blockhash", proposal.block.GetHash().GetHex());
+        object.pushKV("previousblockhash", proposal.block.hashPrevBlock.GetHex());
+        object.pushKV("created_time", proposal.created_time);
+        object.pushKV("size", proposal.serialized_size);
+        object.pushKV("anchor_available", anchor_count != 0);
+        object.pushKV("anchor_count", anchor_count);
+        proposals.push_back(std::move(object));
+    }
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", chain_id.GetHex());
+    result.pushKV("proposal_count", view.proposals.size());
+    result.pushKV("proposal_limit", node::MAX_CHILD_LOCAL_PROPOSALS);
+    result.pushKV("proposal_bytes", bytes);
+    result.pushKV("proposal_bytes_limit", node::MAX_CHILD_LOCAL_PROPOSAL_BYTES);
+    result.pushKV("proposals", std::move(proposals));
+    return result;
+},
+    };
+}
+
+RPCHelpMan getchildproposal()
+{
+    return RPCHelpMan{
+        "getchildproposal",
+        "Return one durable local child block proposal.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null child-chain identifier"},
+            {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Non-null child block hash"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Stored child proposal", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Child-chain identifier"},
+            {RPCResult::Type::STR_HEX, "blockhash", "Child block hash"},
+            {RPCResult::Type::STR_HEX, "previousblockhash", "Proposed parent block"},
+            {RPCResult::Type::STR_HEX, "block", "Serialized child block including witness"},
+            {RPCResult::Type::NUM_TIME, "created_time", "Local proposal creation time"},
+            {RPCResult::Type::NUM, "size", "Serialized block size including witness"},
+        }},
+        RPCExamples{
+            HelpExampleCli("getchildproposal", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" \"blockhash\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const auto chain_id{ParseChainId(self.Arg<UniValue>("chain_id"))};
+    const uint256 block_hash{ParseNonNullHash(
+        self.Arg<UniValue>("blockhash"), "blockhash")};
+    const auto view{EnsureAnyChildChainman(request.context).GetProposalsView(
+        chain_id, block_hash)};
+    if (!view.IsValid()) ThrowProposalsViewError(view.error);
+    Assume(view.proposals.size() == 1);
+    const auto& proposal{view.proposals.front()};
+    DataStream encoded;
+    encoded << TX_WITH_WITNESS(proposal.block);
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", chain_id.GetHex());
+    result.pushKV("blockhash", proposal.block.GetHash().GetHex());
+    result.pushKV("previousblockhash", proposal.block.hashPrevBlock.GetHex());
+    result.pushKV("block", HexStr(encoded));
+    result.pushKV("created_time", proposal.created_time);
+    result.pushKV("size", proposal.serialized_size);
+    return result;
+},
+    };
+}
+
+RPCHelpMan removechildproposal()
+{
+    return RPCHelpMan{
+        "removechildproposal",
+        "Remove one unsubmitted local child proposal. Consensus child blocks and candidates are never affected.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null child-chain identifier"},
+            {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Non-null child block hash"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Removal result", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Child-chain identifier"},
+            {RPCResult::Type::STR_HEX, "blockhash", "Removed child block hash"},
+            {RPCResult::Type::BOOL, "removed", "True after durable removal"},
+        }},
+        RPCExamples{
+            HelpExampleCli("removechildproposal", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" \"blockhash\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const auto chain_id{ParseChainId(self.Arg<UniValue>("chain_id"))};
+    const uint256 block_hash{ParseNonNullHash(
+        self.Arg<UniValue>("blockhash"), "blockhash")};
+    const auto removed{EnsureAnyChildChainman(request.context).RemoveProposal(
+        chain_id, block_hash, /*sync=*/true)};
+    if (!removed.IsValid()) ThrowChainManagerError(removed);
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", chain_id.GetHex());
+    result.pushKV("blockhash", block_hash.GetHex());
+    result.pushKV("removed", true);
+    return result;
+},
+    };
+}
+
+RPCHelpMan submitchildproposal()
+{
+    return RPCHelpMan{
+        "submitchildproposal",
+        "Validate and submit one stored local child proposal. If bmm_proof is omitted, the newest staged authenticated anchor for the exact block is used. A successful submission removes the proposal atomically.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null child-chain identifier"},
+            {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Stored non-null child block hash"},
+            {"bmm_proof", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Canonical serialized BMM anchor proof; omit after submitchildanchor"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Stored proposal submission result", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Child-chain identifier"},
+            {RPCResult::Type::STR_HEX, "blockhash", "Submitted child block hash"},
+            {RPCResult::Type::BOOL, "accepted", "True after validation and durable persistence"},
+            {RPCResult::Type::STR, "anchor_source", "supplied or staged"},
+            {RPCResult::Type::STR_HEX, "selected_head", "Fork-choice result"},
+            {RPCResult::Type::STR_HEX, "bestblockhash", "Active child tip after processing"},
+        }},
+        RPCExamples{
+            HelpExampleCli("submitchildproposal", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" \"blockhash\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const auto chain_id{ParseChainId(self.Arg<UniValue>("chain_id"))};
+    const uint256 block_hash{ParseNonNullHash(
+        self.Arg<UniValue>("blockhash"), "blockhash")};
+    const UniValue* proof_arg{self.MaybeArg<UniValue>("bmm_proof")};
+    const std::optional<chainregistry::BmmAnchorProof> proof{
+        proof_arg ? std::optional{ParseBmmProof(*proof_arg)} : std::nullopt};
+    node::ChainManager& manager{EnsureAnyChildChainman(request.context)};
+    const auto submitted{manager.SubmitProposal(
+        chain_id,
+        block_hash,
+        proof,
+        Now<NodeSeconds>().time_since_epoch().count(),
+        /*sync=*/true)};
+    if (!submitted.IsValid()) ThrowChainManagerError(submitted);
+    const auto view{manager.GetChainView(chain_id)};
+    Assume(view.IsValid());
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", chain_id.GetHex());
+    result.pushKV("blockhash", block_hash.GetHex());
+    result.pushKV("accepted", true);
+    result.pushKV("anchor_source", proof ? "supplied" : "staged");
+    result.pushKV("selected_head", submitted.runtime.selected_child_head.GetHex());
+    result.pushKV("bestblockhash", view.entry.tip.GetHex());
     return result;
 },
     };
@@ -2339,10 +2637,15 @@ void RegisterChainRegistryRPCCommands(CRPCTable& table)
         {"network", &setchildnetworkbinds},
         {"network", &setchildnetworkdiscovery},
         {"blockchain", &getchildpendingblocks},
+        {"blockchain", &listchildproposals},
+        {"blockchain", &getchildproposal},
         {"rawtransactions", &createchildimporttransaction},
         {"mining", &createchildimportblock},
+        {"mining", &storechildproposal},
         {"mining", &submitchildanchor},
         {"mining", &submitchildblock},
+        {"mining", &submitchildproposal},
+        {"mining", &removechildproposal},
         {"control", &forgetchildchain},
     };
     for (const auto& command : commands) table.appendCommand(&command);
