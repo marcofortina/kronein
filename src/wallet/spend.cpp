@@ -46,7 +46,7 @@ TRACEPOINT_SEMAPHORE(coin_selection, aps_create_tx_internal);
 namespace wallet {
 static constexpr size_t OUTPUT_GROUP_MAX_ENTRIES{100};
 
-static std::optional<uint32_t> GetChainRegistryControlOutput(const CTransaction& tx)
+std::optional<uint32_t> GetChainRegistryControlOutput(const CTransaction& tx)
 {
     // A zero minimum is intentional here. The wallet is identifying the
     // structural role of an output, while consensus separately enforces the

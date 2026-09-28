@@ -153,6 +153,15 @@ static COutPoint ParseRegistryOutPoint(const UniValue& value, std::string_view n
     return outpoint;
 }
 
+static bool IsWalletChainRegistryControl(const CWallet& wallet,
+                                         const COutPoint& outpoint)
+    EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet)
+{
+    const CWalletTx* wallet_tx{wallet.GetWalletTx(outpoint.hash)};
+    return wallet_tx &&
+           GetChainRegistryControlOutput(*wallet_tx->tx) == outpoint.n;
+}
+
 static chainregistry::ChainSpec ParseRegistryChainSpec(const UniValue& value)
 {
     const UniValue& object{value.get_obj()};
@@ -2337,6 +2346,13 @@ RPCHelpMan walletcreatechainregistrypsbt()
                            strprintf("wallet does not control authority outpoint %s:%u",
                                      authority_outpoint.hash.GetHex(), authority_outpoint.n));
     }
+    if (operation_name == "register" &&
+        WITH_LOCK(wallet.cs_wallet,
+                  return IsWalletChainRegistryControl(wallet, authority_outpoint))) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "registration_anchor is reserved as a child-chain registry control output");
+    }
 
     const CScript operation_script{chainregistry::BuildOperationScript(operation)};
     std::vector<CRecipient> recipients;
@@ -2480,11 +2496,13 @@ RPCHelpMan walletsubmitchainregistrypsbt()
     std::string operation_name;
     chainregistry::ChainId chain_id;
     std::optional<uint32_t> successor_control_output;
+    std::optional<COutPoint> registration_anchor;
     std::visit([&](const auto& payload) {
         using Payload = std::decay_t<decltype(payload)>;
         if constexpr (std::is_same_v<Payload, chainregistry::RegisterChain>) {
             operation_name = "register";
             successor_control_output = payload.control_output;
+            registration_anchor = tx_template.vin[payload.anchor_input].prevout;
             chain_id = chainregistry::DeriveChainId(
                 initial_snapshot.main_genesis_hash,
                 tx_template.vin[payload.anchor_input].prevout,
@@ -2500,6 +2518,12 @@ RPCHelpMan walletsubmitchainregistrypsbt()
     }, extracted.operation->operation);
 
     if (operation_name == "register") {
+        if (WITH_LOCK(wallet.cs_wallet,
+                      return IsWalletChainRegistryControl(wallet, *registration_anchor))) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "registration_anchor is reserved as a child-chain registry control output");
+        }
         const interfaces::ChainRegistrySnapshot snapshot{
             wallet.chain().getChainRegistrySnapshot(chain_id)};
         if (snapshot.record) {

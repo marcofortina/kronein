@@ -270,6 +270,25 @@ class ChainRegistryTest(BitcoinTestFramework):
             [{wallet.getnewaddress(): Decimal("0.00001000")}],
             0,
             {"add_inputs": False, "fee_rate": 1})
+        control_reference = node.createreferencechildmanifest(
+            control_outpoint, "23" * 32)
+        assert_raises_rpc_error(
+            -8, "registration_anchor is reserved as a child-chain registry control output",
+            wallet.walletcreatechainregistrypsbt,
+            "register",
+            {
+                "registration_anchor": control_outpoint,
+                "spec": {
+                    "template_id": control_reference["manifest"]["spec"]["template_id"],
+                    "template_version": control_reference["manifest"]["spec"]["template_version"],
+                    "consensus_parameters": control_reference["manifest"]["spec"]["consensus_parameters"],
+                    "anchoring_policy": control_reference["manifest"]["spec"]["anchoring_policy"],
+                },
+                "child_genesis_hash": control_reference["genesis_hash"],
+                "metadata_hash": "23" * 32,
+                "control_address": wallet.getnewaddress(),
+            },
+            {"fee_rate": 1})
         funding_probe = wallet.walletcreatefundchainpsbt(
             chain_id, 1, child_recipient, Decimal("0.01000000"), {"fee_rate": 1})
         decoded_probe = node.decodepsbt(funding_probe["psbt"])["tx"]
