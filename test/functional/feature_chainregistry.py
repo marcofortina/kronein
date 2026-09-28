@@ -1380,6 +1380,14 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(child_mempool_entry["fees"]["base"], child_fee)
         assert_equal(child_mempool_entry["ancestorcount"], 1)
         assert_equal(child_mempool_entry["descendantcount"], 1)
+        assert_equal(node.getmempoolancestors(
+            signed_child["txid"], False, chain_id), [])
+        assert_equal(node.getmempoolancestors(
+            signed_child["txid"], True, chain_id), {})
+        assert_equal(node.getmempooldescendants(
+            signed_child["txid"], False, chain_id), [])
+        assert_equal(node.getmempooldescendants(
+            signed_child["txid"], True, chain_id), {})
         assert_equal(
             node.getrawmempool(True, False, chain_id)
                 [signed_child["txid"]]["wtxid"],
@@ -1558,6 +1566,14 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_raises_rpc_error(
             -5, "Transaction not in child mempool",
             node.getmempoolentry, signed_child["txid"], chain_id)
+        assert_raises_rpc_error(
+            -5, "Transaction not in child mempool",
+            node.getmempoolancestors,
+            signed_child["txid"], False, chain_id)
+        assert_raises_rpc_error(
+            -5, "Transaction not in child mempool",
+            node.getmempooldescendants,
+            signed_child["txid"], False, chain_id)
         spend_bmm_status = node.getchildbmmstatus(chain_id)
         assert_equal(spend_bmm_status["health"], "anchored")
         assert_equal(spend_bmm_status["child_height"], 2)

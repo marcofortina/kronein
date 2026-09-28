@@ -794,6 +794,36 @@ UniValue ChildMempoolToJSON(
     return result;
 }
 
+UniValue ChildMempoolRelationsToJSON(
+    const node::ReferenceChildMempoolView& view,
+    const Txid& txid,
+    bool ancestors,
+    bool verbose)
+{
+    const ChildMempoolGraph graph{BuildChildMempoolGraph(view)};
+    if (!graph.entries.contains(txid)) {
+        throw JSONRPCError(
+            RPC_INVALID_ADDRESS_OR_KEY,
+            "Transaction not in child mempool");
+    }
+    auto related{ChildMempoolClosure(
+        txid, ancestors ? graph.parents : graph.children)};
+    related.erase(txid);
+
+    UniValue result{verbose ? UniValue::VOBJ : UniValue::VARR};
+    for (const Txid& related_txid : related) {
+        if (!verbose) {
+            result.push_back(related_txid.ToString());
+            continue;
+        }
+        UniValue info{UniValue::VOBJ};
+        ChildMempoolEntryToJSON(
+            graph, *graph.entries.at(related_txid), info);
+        result.pushKVEnd(related_txid.ToString(), std::move(info));
+    }
+    return result;
+}
+
 } // namespace
 
 UniValue MempoolToJSON(const CTxMemPool& pool, bool verbose, bool include_mempool_sequence)
@@ -947,6 +977,8 @@ static RPCHelpMan getmempoolancestors()
         {
             {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The transaction id (must be in mempool)"},
             {"verbose", RPCArg::Type::BOOL, RPCArg::Default{false}, "True for a json object, false for array of transaction ids"},
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED,
+             "Non-null child-chain identifier. Omit to use the main chain."},
         },
         {
             RPCResult{"for verbose = false",
@@ -969,6 +1001,16 @@ static RPCHelpMan getmempoolancestors()
         fVerbose = request.params[1].get_bool();
 
     auto txid{Txid::FromUint256(ParseHashV(request.params[0], "txid"))};
+
+    const auto child_chain{
+        OptionalChildChainId(request.params[2])};
+    if (child_chain) {
+        return ChildMempoolRelationsToJSON(
+            GetChildMempool(request, *child_chain),
+            txid,
+            /*ancestors=*/true,
+            fVerbose);
+    }
 
     const CTxMemPool& mempool = EnsureAnyMemPool(request.context);
     LOCK(mempool.cs);
@@ -1008,6 +1050,8 @@ static RPCHelpMan getmempooldescendants()
         {
             {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The transaction id (must be in mempool)"},
             {"verbose", RPCArg::Type::BOOL, RPCArg::Default{false}, "True for a json object, false for array of transaction ids"},
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED,
+             "Non-null child-chain identifier. Omit to use the main chain."},
         },
         {
             RPCResult{"for verbose = false",
@@ -1030,6 +1074,16 @@ static RPCHelpMan getmempooldescendants()
         fVerbose = request.params[1].get_bool();
 
     auto txid{Txid::FromUint256(ParseHashV(request.params[0], "txid"))};
+
+    const auto child_chain{
+        OptionalChildChainId(request.params[2])};
+    if (child_chain) {
+        return ChildMempoolRelationsToJSON(
+            GetChildMempool(request, *child_chain),
+            txid,
+            /*ancestors=*/false,
+            fVerbose);
+    }
 
     const CTxMemPool& mempool = EnsureAnyMemPool(request.context);
     LOCK(mempool.cs);
