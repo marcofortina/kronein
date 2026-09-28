@@ -962,18 +962,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+33"/>
+        <location line="+42"/>
         <source>Child Chains</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+11"/>
-        <location line="+1458"/>
+        <location line="+1895"/>
         <source>Status</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1457"/>
+        <location line="-1894"/>
         <source>Chain ID</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1009,12 +1009,12 @@
     </message>
     <message>
         <location line="+16"/>
-        <location line="+283"/>
+        <location line="+301"/>
         <source>Select a child chain to manage its local runtime.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-278"/>
+        <location line="-296"/>
         <source>Refresh</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1055,25 +1055,25 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+269"/>
-        <location line="+46"/>
+        <location line="+287"/>
+        <location line="+49"/>
         <source>Pause Network</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-291"/>
+        <location line="-300"/>
         <source>Forget…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-92"/>
-        <location line="+166"/>
+        <location line="-113"/>
+        <location line="+190"/>
         <source>Failed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-167"/>
-        <location line="+167"/>
+        <location line="-191"/>
+        <location line="+191"/>
         <source>Safe halt</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1098,18 +1098,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+198"/>
+        <location line="+204"/>
         <source>Chain ID: %1
 State: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7 • discovery: %8 (%9 bootstrap, %10 known) • rate-limited block requests: %11</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-170"/>
+        <location line="-176"/>
         <source>No explicit child peers configured</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-208"/>
+        <location line="-232"/>
         <source>Confirmed</source>
         <translation type="unfinished">Confirmed</translation>
     </message>
@@ -1134,7 +1134,7 @@ State: %2 • registry: %3 • local configuration: %4 • network: %5 • expli
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+58"/>
+        <location line="+67"/>
         <source>BMM…</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1144,7 +1144,7 @@ State: %2 • registry: %3 • local configuration: %4 • network: %5 • expli
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="+5"/>
         <source>Deposits…</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1164,7 +1164,7 @@ State: %2 • registry: %3 • local configuration: %4 • network: %5 • expli
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+140"/>
+        <location line="+152"/>
         <source>Explicit child peers:
 %1</source>
         <translation type="unfinished"></translation>
@@ -1242,7 +1242,7 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+83"/>
+        <location line="+89"/>
         <source>Resume Network</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1343,7 +1343,7 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-672"/>
+        <location line="-702"/>
         <source>Idle</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1368,8 +1368,43 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+74"/>
+        <location line="+19"/>
+        <source>Sent</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Received</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Mined</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Immature</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+61"/>
         <source>Balance…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Receive…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Send…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Activity…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1378,7 +1413,22 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+324"/>
+        <location line="+3"/>
+        <source>Create a wallet-owned receiving key bound to the selected child chain.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Create, sign, and broadcast a transaction on the selected child chain.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Show confirmed and pending wallet activity on the loaded child chain.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+333"/>
         <source>View operational status</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1852,7 +1902,7 @@ Child chain: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location line="+121"/>
+        <location line="+537"/>
         <source>Showing %1 of %n irreversible deposit(s) created by the selected wallet.</source>
         <translation type="unfinished">
             <numerusform></numerusform>
@@ -1888,24 +1938,28 @@ Child chain: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1129"/>
+        <location line="-1545"/>
         <location line="+137"/>
-        <location line="+1045"/>
+        <location line="+809"/>
+        <location line="+652"/>
         <source>Child chain:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-706"/>
+        <location line="+707"/>
         <source>Recipient type:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-652"/>
+        <location line="+653"/>
         <source>Recipient bytes:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-652"/>
+        <location line="+653"/>
         <source>Amount:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1915,17 +1969,20 @@ Child chain: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="-643"/>
+        <location line="+651"/>
         <source>Invalid Recipient</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-650"/>
+        <location line="+651"/>
         <source>Enter exactly 32 bytes (64 hexadecimal characters) for the child P2TR output key.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="-646"/>
+        <location line="+650"/>
         <source>Invalid Amount</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1971,14 +2028,14 @@ There is no child-to-main withdrawal path.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-862"/>
+        <location line="-1278"/>
         <location line="+162"/>
-        <location line="+655"/>
+        <location line="+1071"/>
         <source>The selected wallet is no longer available.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1706"/>
+        <location line="-2128"/>
         <source>%1 proposals • %2 pending • %3/%4 candidates • %5/%6 anchors</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1991,7 +2048,7 @@ Pending BMM anchors: %13/%14 records, %15/%16 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+160"/>
+        <location line="+166"/>
         <source>Activate a stored confirmed proposal</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2096,7 +2153,7 @@ These amounts belong only to this child ledger and are not included in the main-
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+30"/>
+        <location line="+446"/>
         <location line="+4"/>
         <location line="+10"/>
         <location line="+55"/>
@@ -2114,12 +2171,14 @@ These amounts belong only to this child ledger and are not included in the main-
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+17"/>
+        <location line="-102"/>
+        <location line="+119"/>
         <source>Amount</source>
         <translation type="unfinished">Amount</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-118"/>
+        <location line="+119"/>
         <source>Confirmations</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2134,7 +2193,8 @@ These amounts belong only to this child ledger and are not included in the main-
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-119"/>
+        <location line="+120"/>
         <source>Child recipient</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2243,19 +2303,242 @@ These amounts belong only to this child ledger and are not included in the main-
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+14"/>
+        <location line="-710"/>
+        <location line="+4"/>
+        <location line="+19"/>
+        <location line="+701"/>
         <location line="+4"/>
         <location line="+14"/>
         <source>Create child recipient</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-756"/>
+        <source>Create Child Recipient</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Label (optional):</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+38"/>
+        <location line="+719"/>
         <source>The wallet returned an invalid child recipient.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+141"/>
+        <location line="-714"/>
+        <source>Child Recipient — %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>This recipient belongs only to the selected child chain. It is not a main-chain address.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+13"/>
+        <source>Chain ID:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Recipient:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Output script:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Label:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Copy Recipient</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+18"/>
+        <source>Send KNE on Child Chain</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>This transaction is confined to the selected child ledger. Child funds cannot be withdrawn back to the main chain.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>32-byte child P2TR output key in hexadecimal</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Paste the raw recipient returned for this exact child chain, not a main-chain address.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Absolute fee paid on the child chain. Child chains do not use the main-chain fee estimator.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Absolute fee:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Review Transaction</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+16"/>
+        <source>Enter a positive child transaction amount.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Invalid Fee</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Enter a non-negative absolute child transaction fee.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+21"/>
+        <location line="+4"/>
+        <location line="+21"/>
+        <source>Create child transaction</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The wallet returned an invalid child transaction proposal.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Confirm Child Transaction</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Send %1 KNE on child chain %2?
+
+Recipient: %3
+Absolute child fee: %4 KNE
+Change: %5 KNE
+Inputs: %6
+Child tip: height %7
+%8
+
+This transaction cannot move funds back to the main chain.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+14"/>
+        <location line="+17"/>
+        <location line="+4"/>
+        <location line="+21"/>
+        <source>Sign child transaction</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-41"/>
+        <source>The selected wallet changed while preparing the transaction.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+42"/>
+        <source>The wallet did not return a complete, valid child transaction.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+15"/>
+        <location line="+4"/>
+        <location line="+9"/>
+        <source>Broadcast child transaction</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The node returned an unexpected child transaction identifier.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Child Transaction Submitted</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The child transaction was accepted and relayed.
+
+Transaction: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+20"/>
+        <location line="+4"/>
+        <location line="+7"/>
+        <location line="+61"/>
+        <source>List child activity</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-60"/>
+        <source>The wallet returned an invalid child-activity list.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Child Activity — %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message numerus="yes">
+        <location line="+4"/>
+        <source>Showing the %n most recent child wallet activity entry or entries.</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>Time</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Category</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Label</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Transaction ID</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+36"/>
+        <source>The wallet returned a malformed child-activity entry.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+515"/>
         <source>The wallet returned an invalid migration result.</source>
         <translation type="unfinished"></translation>
     </message>
