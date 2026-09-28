@@ -9,6 +9,7 @@
 #include <hash.h>
 #include <interfaces/chain.h>
 #include <node/chain_manager.h>
+#include <node/child_network_manager.h>
 #include <node/context.h>
 #include <pow.h>
 #include <primitives/bmm.h>
@@ -177,6 +178,8 @@ public:
             m_args.GetDataDirNet() / "chains",
             node::DEFAULT_CHILD_CHAIN_DB_CACHE);
         BOOST_REQUIRE(m_node.child_chainman->IsCatalogReady());
+        m_node.child_networkman = std::make_unique<node::ChildNetworkManager>(
+            *m_node.child_chainman, Params(), *m_node.scheduler);
     }
 
     UniValue TransformParams(const UniValue& params, std::vector<std::pair<std::string, bool>> arg_names) const;
@@ -1046,6 +1049,23 @@ BOOST_AUTO_TEST_CASE(rpc_convert_values_generatetoaddress)
     BOOST_CHECK_EQUAL(result[0].getInt<int>(), 1);
     BOOST_CHECK_EQUAL(result[1].get_str(), "mhMbmE2tE9xzJYCV9aNC8jKWN31vtGrguU");
     BOOST_CHECK_EQUAL(result[2].getInt<int>(), 9);
+}
+
+BOOST_AUTO_TEST_CASE(rpc_convert_values_loadchildchain)
+{
+    const std::string chain_id(64, '1');
+    const UniValue result{RPCConvertValues(
+        "loadchildchain",
+        {chain_id,
+         R"({"connect":["127.0.0.1:19843"],"network_active":false})"})};
+    BOOST_REQUIRE_EQUAL(result.size(), 2U);
+    BOOST_CHECK_EQUAL(result[0].get_str(), chain_id);
+    BOOST_REQUIRE(result[1].isObject());
+    BOOST_CHECK(!result[1].find_value("network_active").get_bool());
+    BOOST_REQUIRE_EQUAL(result[1].find_value("connect").size(), 1U);
+    BOOST_CHECK_EQUAL(
+        result[1].find_value("connect")[0].get_str(),
+        "127.0.0.1:19843");
 }
 
 BOOST_AUTO_TEST_CASE(rpc_getblockstats_calculate_percentiles_by_weight)

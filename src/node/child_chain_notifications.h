@@ -12,6 +12,8 @@ class ChainstateManager;
 namespace node {
 
 class ChainManager;
+class ChildNetworkManager;
+struct ChainManagerRuntimeEvent;
 
 /**
  * Feeds active main-chain progress into loaded child runtimes.
@@ -25,7 +27,9 @@ class ChildChainNotifications final : public CValidationInterface
 {
 private:
     ChainManager& m_manager;
+    ChildNetworkManager& m_networks;
     ChainstateManager& m_chainman;
+    void HandleUnloaded(const ChainManagerRuntimeEvent& event);
     void Synchronize();
 
 protected:
@@ -40,6 +44,7 @@ protected:
 
 public:
     ChildChainNotifications(ChainManager& manager,
+                            ChildNetworkManager& networks,
                             ChainstateManager& chainman);
     ~ChildChainNotifications();
 };

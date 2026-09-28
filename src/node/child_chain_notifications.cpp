@@ -7,6 +7,7 @@
 #include <kernel/types.h>
 #include <logging.h>
 #include <node/chain_manager.h>
+#include <node/child_network_manager.h>
 #include <util/check.h>
 #include <util/time.h>
 #include <validation.h>
@@ -45,12 +46,28 @@ void LogUnloaded(const ChainManagerRuntimeEvent& event)
 
 ChildChainNotifications::ChildChainNotifications(
     ChainManager& manager,
+    ChildNetworkManager& networks,
     ChainstateManager& chainman)
-    : m_manager{manager}, m_chainman{chainman}
+    : m_manager{manager}, m_networks{networks}, m_chainman{chainman}
 {
 }
 
 ChildChainNotifications::~ChildChainNotifications() = default;
+
+void ChildChainNotifications::HandleUnloaded(
+    const ChainManagerRuntimeEvent& event)
+{
+    if (m_networks.IsRunning(event.chain_id)) {
+        const auto stopped{m_networks.Stop(event.chain_id)};
+        if (!stopped.IsValid()) {
+            LogWarning(
+                "Failed to stop child network %s after runtime unload (network error %u)\n",
+                event.chain_id.GetHex(),
+                static_cast<unsigned>(stopped.error));
+        }
+    }
+    LogUnloaded(event);
+}
 
 void ChildChainNotifications::BlockConnected(
     const kernel::ChainstateRole& role,
@@ -62,7 +79,7 @@ void ChildChainNotifications::BlockConnected(
         static_cast<const CBlockHeader&>(*block),
         Now<NodeSeconds>().time_since_epoch().count(),
         /*sync=*/false)};
-    for (const auto& event : update.unloaded) LogUnloaded(event);
+    for (const auto& event : update.unloaded) HandleUnloaded(event);
 }
 
 void ChildChainNotifications::UpdatedBlockTip(
@@ -106,9 +123,9 @@ void ChildChainNotifications::Synchronize()
         active_tip,
         Now<NodeSeconds>().time_since_epoch().count(),
         /*sync=*/false)};
-    for (const auto& event : main_update.unloaded) LogUnloaded(event);
+    for (const auto& event : main_update.unloaded) HandleUnloaded(event);
     const auto registry_update{m_manager.ReconcileRegistry(records)};
-    for (const auto& event : registry_update.unloaded) LogUnloaded(event);
+    for (const auto& event : registry_update.unloaded) HandleUnloaded(event);
 }
 
 } // namespace node

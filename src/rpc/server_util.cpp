@@ -8,6 +8,7 @@
 #include <common/args.h>
 #include <net_processing.h>
 #include <node/chain_manager.h>
+#include <node/child_network_manager.h>
 #include <node/context.h>
 #include <node/miner.h>
 #include <policy/fees/block_policy_estimator.h>
@@ -96,6 +97,19 @@ node::ChainManager& EnsureChildChainman(const NodeContext& node)
 node::ChainManager& EnsureAnyChildChainman(const std::any& context)
 {
     return EnsureChildChainman(EnsureAnyNodeContext(context));
+}
+
+node::ChildNetworkManager& EnsureChildNetworkman(const NodeContext& node)
+{
+    if (!node.child_networkman) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Child network manager not found");
+    }
+    return *node.child_networkman;
+}
+
+node::ChildNetworkManager& EnsureAnyChildNetworkman(const std::any& context)
+{
+    return EnsureChildNetworkman(EnsureAnyNodeContext(context));
 }
 
 CBlockPolicyEstimator& EnsureFeeEstimator(const NodeContext& node)

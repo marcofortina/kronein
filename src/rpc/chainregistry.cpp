@@ -7,6 +7,7 @@
 #include <consensus/chainregistry.h>
 #include <consensus/consensus.h>
 #include <node/chain_manager.h>
+#include <node/child_network_manager.h>
 #include <primitives/chainregistry.h>
 #include <primitives/deposit.h>
 #include <primitives/transaction.h>
@@ -487,6 +488,84 @@ void EnsureRegistryMatchesDefinition(
     throw JSONRPCError(RPC_INTERNAL_ERROR, "unknown child chain manager error");
 }
 
+[[noreturn]] void ThrowChildNetworkError(
+    const node::ChildNetworkResult& result)
+{
+    switch (result.error) {
+    case node::ChildNetworkError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must not be null");
+    case node::ChildNetworkError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not configured locally");
+    case node::ChildNetworkError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_MISC_ERROR, "child chain is not loaded");
+    case node::ChildNetworkError::ALREADY_RUNNING:
+        throw JSONRPCError(RPC_MISC_ERROR, "child network is already running");
+    case node::ChildNetworkError::NOT_RUNNING:
+        throw JSONRPCError(RPC_MISC_ERROR, "child network is not running");
+    case node::ChildNetworkError::TOO_MANY_ENDPOINTS:
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("at most %u child connect endpoints are allowed",
+                      node::MAX_CHILD_CONNECT_NODES));
+    case node::ChildNetworkError::INVALID_ENDPOINT:
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("child endpoint must include an explicit non-zero port: %s",
+                      result.detail));
+    case node::ChildNetworkError::DATA_DIRECTORY_ERROR:
+        throw JSONRPCError(
+            RPC_DATABASE_ERROR,
+            strprintf("failed to create child network directory: %s",
+                      result.detail));
+    case node::ChildNetworkError::PEER_STORE_ERROR:
+        throw JSONRPCError(RPC_DATABASE_ERROR, result.detail);
+    case node::ChildNetworkError::START_FAILED:
+        throw JSONRPCError(RPC_MISC_ERROR,
+                           "failed to start isolated child network");
+    case node::ChildNetworkError::NODE_ALREADY_ADDED:
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("child endpoint is already configured: %s", result.detail));
+    case node::ChildNetworkError::NODE_NOT_ADDED:
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("child endpoint is not configured: %s", result.detail));
+    case node::ChildNetworkError::NONE:
+        break;
+    }
+    throw JSONRPCError(RPC_INTERNAL_ERROR, "unknown child network error");
+}
+
+node::ChildNetworkConfig ParseChildNetworkConfig(const UniValue& options)
+{
+    node::ChildNetworkConfig config;
+    if (options.isNull()) return config;
+    const UniValue& connect{options.find_value("connect")};
+    if (!connect.isNull()) {
+        for (const UniValue& endpoint : connect.getValues()) {
+            config.connect.push_back(endpoint.get_str());
+        }
+    }
+    const UniValue& active{options.find_value("network_active")};
+    if (!active.isNull()) config.network_active = active.get_bool();
+    return config;
+}
+
+void PushChildNetworkStats(UniValue& object,
+                           const node::ChildNetworkStats& stats)
+{
+    object.pushKV("network_running", stats.running);
+    object.pushKV("network_active", stats.network_active);
+    object.pushKV("connections", stats.connections);
+    object.pushKV("handshaken_peers", stats.handshaken);
+    UniValue added_nodes{UniValue::VARR};
+    for (const auto& endpoint : stats.added_nodes) {
+        added_nodes.push_back(endpoint);
+    }
+    object.pushKV("added_nodes", std::move(added_nodes));
+}
+
 RPCHelpMan derivechildchainid()
 {
     return RPCHelpMan{
@@ -963,6 +1042,7 @@ RPCHelpMan listchildchainruntimes()
                     {RPCResult::Type::NUM, "bmm_anchor_count", /*optional=*/true, "Canonical child blocks with persisted BMM anchors"},
                     {RPCResult::Type::NUM, "pending_bmm_anchor_count", /*optional=*/true, "Authenticated BMM anchors waiting for child block data"},
                     {RPCResult::Type::NUM, "pending_bmm_anchor_bytes", /*optional=*/true, "Serialized bytes used by pending BMM anchors"},
+                    {RPCResult::Type::NUM, "pending_child_block_count", /*optional=*/true, "Distinct child blocks requested by pending authenticated anchors"},
                     {RPCResult::Type::NUM, "pending_bmm_anchor_limit", /*optional=*/true, "Maximum pending BMM anchor records"},
                     {RPCResult::Type::NUM, "pending_bmm_anchor_bytes_limit", /*optional=*/true, "Maximum serialized bytes for pending BMM anchors"},
                     {RPCResult::Type::NUM, "side_candidate_count", /*optional=*/true, "Validated non-canonical candidates retained in the fork DAG"},
@@ -974,6 +1054,13 @@ RPCHelpMan listchildchainruntimes()
                     {RPCResult::Type::NUM, "candidate_bmm_anchor_limit", /*optional=*/true, "Maximum BMM anchors retained for non-canonical candidates"},
                     {RPCResult::Type::NUM, "candidate_bmm_anchor_bytes_limit", /*optional=*/true, "Maximum serialized bytes for non-canonical candidate anchors"},
                     {RPCResult::Type::STR, "data_path", /*optional=*/true, "Local chain directory"},
+                    {RPCResult::Type::BOOL, "network_running", "Whether the isolated child network stack is running"},
+                    {RPCResult::Type::BOOL, "network_active", "Whether new child-network connections are enabled"},
+                    {RPCResult::Type::NUM, "connections", "Current child-network connection count"},
+                    {RPCResult::Type::NUM, "handshaken_peers", "Authenticated peers serving this exact child chain"},
+                    {RPCResult::Type::ARR, "added_nodes", "Explicit child endpoints", {
+                        {RPCResult::Type::STR, "", "Host and explicit port"},
+                    }},
                 }},
             }},
         }},
@@ -985,6 +1072,8 @@ RPCHelpMan listchildchainruntimes()
 {
     ChainstateManager& chainman{EnsureAnyChainman(request.context)};
     node::ChainManager& manager{EnsureAnyChildChainman(request.context)};
+    node::ChildNetworkManager& networks{
+        EnsureAnyChildNetworkman(request.context)};
     const auto registry{GetMainRegistrySnapshot(chainman)};
     const auto local_entries{manager.List()};
     std::map<chainregistry::ChainId, node::ChainManagerEntry> local;
@@ -1042,6 +1131,7 @@ RPCHelpMan listchildchainruntimes()
             }
             local.erase(configured);
         }
+        PushChildNetworkStats(chain, networks.GetStats(chain_id));
         chains.push_back(std::move(chain));
     }
     for (const auto& [chain_id, entry] : local) {
@@ -1066,6 +1156,7 @@ RPCHelpMan listchildchainruntimes()
             chain.pushKV("main_bestblockhash", entry.main_tip.GetHex());
             PushChildStorageStats(chain, entry);
         }
+        PushChildNetworkStats(chain, networks.GetStats(chain_id));
         chains.push_back(std::move(chain));
     }
 
@@ -1086,6 +1177,12 @@ RPCHelpMan loadchildchain()
         "Load one locally configured active child chain. This is always opt-in; catalog entries are not automatically loaded after restart.\n",
         {
             {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null child-chain identifier"},
+            {"network", RPCArg::Type::OBJ_NAMED_PARAMS, RPCArg::Optional::OMITTED, "Isolated child-network startup options (used only when the network is not already running)", {
+                {"connect", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "Explicit outbound endpoints; each must include a non-zero port", {
+                    {"", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Host and port"},
+                }},
+                {"network_active", RPCArg::Type::BOOL, RPCArg::Default{true}, "Whether child peer connections are enabled"},
+            }},
         },
         RPCResult{RPCResult::Type::OBJ, "", "Loaded child runtime", {
             {RPCResult::Type::STR_HEX, "chain_id", "Full child-chain identifier"},
@@ -1096,6 +1193,14 @@ RPCHelpMan loadchildchain()
             {RPCResult::Type::BOOL, "safe_halt", "Whether irreversible reorg protection is active"},
             {RPCResult::Type::NUM, "main_height", "Current main-header light-client height"},
             {RPCResult::Type::STR_HEX, "main_bestblockhash", "Current main-header light-client tip"},
+            {RPCResult::Type::BOOL, "network_running", "Whether the isolated child network is running"},
+            {RPCResult::Type::BOOL, "network_already_running", "Whether the network was running before this call"},
+            {RPCResult::Type::BOOL, "network_active", "Whether new child-network connections are enabled"},
+            {RPCResult::Type::NUM, "connections", "Current child-network connection count"},
+            {RPCResult::Type::NUM, "handshaken_peers", "Authenticated peers serving this exact child chain"},
+            {RPCResult::Type::ARR, "added_nodes", "Explicit child endpoints", {
+                {RPCResult::Type::STR, "", "Host and explicit port"},
+            }},
         }},
         RPCExamples{
             HelpExampleCli("loadchildchain", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"")
@@ -1103,8 +1208,14 @@ RPCHelpMan loadchildchain()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     const auto chain_id{ParseChainId(self.Arg<UniValue>("chain_id"))};
+    const UniValue* network_options{
+        self.MaybeArg<UniValue>("network")};
+    const auto network_config{
+        ParseChildNetworkConfig(network_options ? *network_options : UniValue{})};
     ChainstateManager& chainman{EnsureAnyChainman(request.context)};
     node::ChainManager& manager{EnsureAnyChildChainman(request.context)};
+    node::ChildNetworkManager& networks{
+        EnsureAnyChildNetworkman(request.context)};
     const auto definition{manager.Definition(chain_id)};
     if (!definition) {
         throw JSONRPCError(RPC_INVALID_PARAMETER,
@@ -1144,6 +1255,14 @@ RPCHelpMan loadchildchain()
         if (!loaded.already_loaded) manager.UnloadChain(chain_id);
         throw;
     }
+    const bool network_already_running{networks.IsRunning(chain_id)};
+    if (!network_already_running) {
+        const auto started{networks.Start(chain_id, network_config)};
+        if (!started.IsValid()) {
+            if (!loaded.already_loaded) manager.UnloadChain(chain_id);
+            ThrowChildNetworkError(started);
+        }
+    }
     const auto entries{manager.List()};
     const auto entry{std::find_if(entries.begin(), entries.end(), [&](const auto& candidate) {
         return candidate.chain_id == chain_id;
@@ -1158,6 +1277,8 @@ RPCHelpMan loadchildchain()
     result.pushKV("safe_halt", entry->safe_halt);
     result.pushKV("main_height", entry->main_height);
     result.pushKV("main_bestblockhash", entry->main_tip.GetHex());
+    result.pushKV("network_already_running", network_already_running);
+    PushChildNetworkStats(result, networks.GetStats(chain_id));
     return result;
 }
     };
@@ -1174,6 +1295,7 @@ RPCHelpMan unloadchildchain()
         RPCResult{RPCResult::Type::OBJ, "", "Unload result", {
             {RPCResult::Type::STR_HEX, "chain_id", "Full child-chain identifier"},
             {RPCResult::Type::BOOL, "loaded", "False after a successful unload"},
+            {RPCResult::Type::BOOL, "network_running", "False after a successful unload"},
         }},
         RPCExamples{
             HelpExampleCli("unloadchildchain", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"")
@@ -1181,12 +1303,19 @@ RPCHelpMan unloadchildchain()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     const auto chain_id{ParseChainId(self.Arg<UniValue>("chain_id"))};
+    node::ChildNetworkManager& networks{
+        EnsureAnyChildNetworkman(request.context)};
+    if (networks.IsRunning(chain_id)) {
+        const auto stopped{networks.Stop(chain_id)};
+        if (!stopped.IsValid()) ThrowChildNetworkError(stopped);
+    }
     const auto unloaded{
         EnsureAnyChildChainman(request.context).UnloadChain(chain_id)};
     if (!unloaded.IsValid()) ThrowChainManagerError(unloaded);
     UniValue result{UniValue::VOBJ};
     result.pushKV("chain_id", chain_id.GetHex());
     result.pushKV("loaded", false);
+    result.pushKV("network_running", false);
     return result;
 }
     };

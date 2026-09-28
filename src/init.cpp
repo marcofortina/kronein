@@ -50,6 +50,7 @@
 #include <node/caches.h>
 #include <node/chain_manager.h>
 #include <node/child_chain_notifications.h>
+#include <node/child_network_manager.h>
 #include <node/chainstate.h>
 #include <node/chainstatemanager_args.h>
 #include <node/context.h>
@@ -281,6 +282,7 @@ void Interrupt(NodeContext& node)
     InterruptMapPort();
     if (node.connman)
         node.connman->Interrupt();
+    if (node.child_networkman) node.child_networkman->Interrupt();
     for (auto* index : node.indexes) {
         index->Interrupt();
     }
@@ -319,6 +321,7 @@ void Shutdown(NodeContext& node)
     // using the other before destroying them.
     if (node.peerman && node.validation_signals) node.validation_signals->UnregisterValidationInterface(node.peerman.get());
     if (node.connman) node.connman->Stop();
+    if (node.child_networkman) node.child_networkman->StopAll();
 
     StopTorControl();
 
@@ -407,6 +410,7 @@ void Shutdown(NodeContext& node)
     node.mempool.reset();
     node.fee_estimator.reset();
     node.child_chain_notifications.reset();
+    node.child_networkman.reset();
     node.child_chainman.reset();
     node.chainman.reset();
     node.validation_signals.reset();
@@ -1258,6 +1262,7 @@ static ChainstateLoadResult InitAndLoadChainstate(
     node.notifications->setChainstateLoaded(false); // Drop state, such as a cached tip block
     node.mempool.reset();
     assert(!node.child_chain_notifications);
+    node.child_networkman.reset();
     node.child_chainman.reset();
     node.chainman.reset(); // Drop state, such as an initialized m_block_tree_db
 
@@ -1854,10 +1859,15 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
             "Failed to load child chain catalog (error %d)",
             static_cast<int>(node.child_chainman->CatalogError()))));
     }
+    assert(!node.child_networkman);
+    node.child_networkman = std::make_unique<node::ChildNetworkManager>(
+        *node.child_chainman,
+        Params(),
+        *Assert(node.scheduler));
     assert(!node.child_chain_notifications);
     node.child_chain_notifications =
         std::make_unique<node::ChildChainNotifications>(
-            *node.child_chainman, chainman);
+            *node.child_chainman, *node.child_networkman, chainman);
     validation_signals.RegisterValidationInterface(
         node.child_chain_notifications.get());
 

@@ -256,6 +256,12 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(node.addchildchain(
             registration_anchor,
             reference_child["manifest"])["already_configured"], True)
+        assert_raises_rpc_error(
+            -8, "explicit non-zero port",
+            node.loadchildchain, chain_id, {"connect": ["127.0.0.1"]})
+        failed_runtime = node.listchildchainruntimes()["chains"][0]
+        assert_equal(failed_runtime["loaded"], False)
+        assert_equal(failed_runtime["network_running"], False)
         loaded = node.loadchildchain(chain_id)
         assert_equal(loaded["loaded"], True)
         assert_equal(loaded["already_loaded"], False)
@@ -263,6 +269,12 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(loaded["bestblockhash"], reference_child["genesis_hash"])
         assert_equal(loaded["main_height"], node.getblockcount())
         assert_equal(loaded["main_bestblockhash"], node.getbestblockhash())
+        assert_equal(loaded["network_running"], True)
+        assert_equal(loaded["network_already_running"], False)
+        assert_equal(loaded["network_active"], True)
+        assert_equal(loaded["connections"], 0)
+        assert_equal(loaded["handshaken_peers"], 0)
+        assert_equal(loaded["added_nodes"], [])
         main_height = node.getblockcount()
         main_tip = node.getbestblockhash()
         assert_equal(node.getblockcount(chain_id), 0)
@@ -272,9 +284,15 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(node.getbestblockhash(), main_tip)
         assert_raises_rpc_error(-8, "Block height out of range",
                                 node.getblockhash, 1, chain_id)
-        assert_equal(node.loadchildchain(chain_id)["already_loaded"], True)
-        assert_equal(node.listchildchainruntimes()["chains"][0]["state"], "loaded")
-        assert_equal(node.unloadchildchain(chain_id)["loaded"], False)
+        loaded_again = node.loadchildchain(chain_id)
+        assert_equal(loaded_again["already_loaded"], True)
+        assert_equal(loaded_again["network_already_running"], True)
+        loaded_runtime = node.listchildchainruntimes()["chains"][0]
+        assert_equal(loaded_runtime["state"], "loaded")
+        assert_equal(loaded_runtime["network_running"], True)
+        unloaded = node.unloadchildchain(chain_id)
+        assert_equal(unloaded["loaded"], False)
+        assert_equal(unloaded["network_running"], False)
         assert_raises_rpc_error(-1, "child chain is not loaded",
                                 node.getblockcount, chain_id)
         forgotten = node.forgetchildchain(chain_id)
@@ -418,6 +436,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(retired_runtime["state"], "retired")
         assert_equal(retired_runtime["configured"], True)
         assert_equal(retired_runtime["loaded"], False)
+        assert_equal(retired_runtime["network_running"], False)
         assert_raises_rpc_error(-8, "retired on the active main chain",
                                 node.loadchildchain, chain_id)
         retired_info = node.getchainregistryinfo()

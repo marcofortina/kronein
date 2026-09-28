@@ -42,6 +42,7 @@ class SignalInterrupt;
 namespace node {
 class ChainManager;
 class ChildChainNotifications;
+class ChildNetworkManager;
 class KernelNotifications;
 class Warnings;
 
@@ -74,6 +75,8 @@ struct NodeContext {
     std::unique_ptr<ChainstateManager> chainman;
     //! Opt-in owner for all locally configured child-chain runtimes.
     std::unique_ptr<ChainManager> child_chainman;
+    //! Physically isolated P2P stacks for loaded child-chain runtimes.
+    std::unique_ptr<ChildNetworkManager> child_networkman;
     //! Active-main notifications feeding loaded child runtimes.
     std::unique_ptr<ChildChainNotifications> child_chain_notifications;
     std::unique_ptr<BanMan> banman;
