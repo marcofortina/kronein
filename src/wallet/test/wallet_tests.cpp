@@ -366,6 +366,48 @@ BOOST_FIXTURE_TEST_CASE(LoadReceiveRequests, TestingSetup)
     });
 }
 
+BOOST_FIXTURE_TEST_CASE(LoadChildRecipientContexts, TestingSetup)
+{
+    CKey key_a;
+    key_a.MakeNewKey(true);
+    CKey key_b;
+    key_b.MakeNewKey(true);
+    const CTxDestination dest_a{WitnessV1Taproot{XOnlyPubKey{key_a.GetPubKey()}}};
+    const CTxDestination dest_b{WitnessV1Taproot{XOnlyPubKey{key_b.GetPubKey()}}};
+    constexpr chainregistry::ChainId chain_a{
+        "0101010101010101010101010101010101010101010101010101010101010101"};
+    constexpr chainregistry::ChainId chain_b{
+        "0202020202020202020202020202020202020202020202020202020202020202"};
+
+    TestLoadWallet("child-recipient-contexts", [=](std::shared_ptr<CWallet> wallet) EXCLUSIVE_LOCKS_REQUIRED(wallet->cs_wallet) {
+        BOOST_CHECK(wallet->SetAddressBook(dest_a, "child-a", AddressPurpose::RECEIVE));
+        BOOST_CHECK(wallet->SetAddressBook(dest_b, "child-b", AddressPurpose::RECEIVE));
+        WalletBatch batch{wallet->GetDatabase()};
+        BOOST_CHECK(wallet->SetAddressChildChain(batch, dest_a, chain_a));
+        BOOST_CHECK(wallet->SetAddressChildChain(batch, dest_a, chain_a));
+        BOOST_CHECK(wallet->SetAddressChildChain(batch, dest_b, chain_b));
+        BOOST_CHECK(!wallet->SetAddressChildChain(batch, dest_b, {}));
+    });
+    TestLoadWallet("child-recipient-contexts", [=](std::shared_ptr<CWallet> wallet) EXCLUSIVE_LOCKS_REQUIRED(wallet->cs_wallet) {
+        const auto recipients_a{wallet->ListChildRecipients(chain_a)};
+        BOOST_REQUIRE_EQUAL(recipients_a.size(), 1);
+        BOOST_CHECK(recipients_a.front().first == dest_a);
+        BOOST_CHECK_EQUAL(recipients_a.front().second, "child-a");
+        const auto recipients_b{wallet->ListChildRecipients(chain_b)};
+        BOOST_REQUIRE_EQUAL(recipients_b.size(), 1);
+        BOOST_CHECK(recipients_b.front().first == dest_b);
+        BOOST_CHECK_EQUAL(recipients_b.front().second, "child-b");
+        BOOST_CHECK(wallet->ListChildRecipients({}).empty());
+
+        WalletBatch batch{wallet->GetDatabase()};
+        BOOST_CHECK(batch.EraseAddressData(dest_b));
+    });
+    TestLoadWallet("child-recipient-contexts", [=](std::shared_ptr<CWallet> wallet) EXCLUSIVE_LOCKS_REQUIRED(wallet->cs_wallet) {
+        BOOST_CHECK_EQUAL(wallet->ListChildRecipients(chain_a).size(), 1);
+        BOOST_CHECK(wallet->ListChildRecipients(chain_b).empty());
+    });
+}
+
 class ListCoinsTestingSetup : public TestChain100Setup
 {
 public:

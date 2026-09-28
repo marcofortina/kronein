@@ -253,7 +253,6 @@ class ChainRegistryTest(BitcoinTestFramework):
         self.sync_blocks()
 
         chain_id = registration_psbt["chain_id"]
-        child_recipient = "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
         registered = node.getchildchain(chain_id, True)
         assert_equal(registered["found"], True)
         assert_equal(registered["chain"]["status"], "active")
@@ -264,6 +263,25 @@ class ChainRegistryTest(BitcoinTestFramework):
         })
         assert "inclusion_proof" in registered
         registered_info = node.getchainregistryinfo()
+
+        self.log.info("Derive and persist a wallet-owned child receiving identity")
+        assert_raises_rpc_error(
+            -8, "chain_id must be exactly 32 non-null bytes",
+            wallet.getnewchildrecipient, "00" * 32)
+        assert_raises_rpc_error(
+            -8, "chain_id is not registered",
+            wallet.getnewchildrecipient, "01" * 32)
+        child_identity = wallet.getnewchildrecipient(chain_id, "child-receive")
+        child_recipient = child_identity["recipient"]
+        assert_equal(child_identity["chain_id"], chain_id)
+        assert_equal(child_identity["recipient_type"], 1)
+        assert_equal(len(child_recipient), 64)
+        assert_equal(child_identity["scriptPubKey"], "5120" + child_recipient)
+        assert_equal(child_identity["label"], "child-receive")
+        listed_identities = wallet.listchildrecipients(chain_id)
+        assert_equal(listed_identities["chain_id"], chain_id)
+        assert_equal(listed_identities["recipient_count"], 1)
+        assert_equal(listed_identities["recipients"], [child_identity])
 
         self.log.info("Reserve registry control outputs from ordinary wallet spending")
         control_outpoint = {"txid": registration_txid, "vout": 1}
@@ -1003,6 +1021,9 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(node.getbestblockhash(), pre_registration["bestblockhash"])
         assert_equal(node.getchainregistryinfo()["root"], pre_registration["root"])
         assert_equal(node.getchildchain(chain_id)["found"], False)
+        orphaned_identities = wallet.listchildrecipients(chain_id)
+        assert_equal(orphaned_identities["recipient_count"], 1)
+        assert_equal(orphaned_identities["recipients"][0], child_identity)
 
         self.log.info("Reload rolled-back state, reconnect the branch, and reload it again")
         self.restart_node(0)
@@ -1026,9 +1047,17 @@ class ChainRegistryTest(BitcoinTestFramework):
 
         self.restart_node(0)
         node = self.nodes[0]
+        node.loadwallet("registry")
+        wallet = node.get_wallet_rpc("registry")
         assert_equal(node.getbestblockhash(), retirement_block)
         assert_equal(node.getchainregistryinfo()["root"], retired_info["root"])
         assert_equal(node.getchildchain(chain_id)["chain"]["status"], "retired")
+        persisted_identities = wallet.listchildrecipients(chain_id)
+        assert_equal(persisted_identities["recipient_count"], 1)
+        assert_equal(persisted_identities["recipients"][0], child_identity)
+        assert_raises_rpc_error(
+            -8, "child chain is retired",
+            wallet.getnewchildrecipient, chain_id)
 
         self.log.info("Rebuild the registry through chainstate and full reindex")
         registry_args = [

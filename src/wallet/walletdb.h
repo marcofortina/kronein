@@ -7,6 +7,7 @@
 #define BITCOIN_WALLET_WALLETDB_H
 
 #include <key.h>
+#include <primitives/chainregistry.h>
 #include <primitives/transaction_identifier.h>
 #include <script/sign.h>
 #include <wallet/db.h>
@@ -142,6 +143,7 @@ public:
     bool WriteAddressPreviouslySpent(const CTxDestination& dest, bool previously_spent);
     bool WriteAddressReceiveRequest(const CTxDestination& dest, const std::string& id, const std::string& receive_request);
     bool EraseAddressReceiveRequest(const CTxDestination& dest, const std::string& id);
+    bool WriteAddressChildChain(const CTxDestination& dest, const chainregistry::ChainId& chain_id);
     bool EraseAddressData(const CTxDestination& dest);
 
     bool WriteActiveScriptPubKeyMan(const uint256& id, bool internal);

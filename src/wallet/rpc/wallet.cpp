@@ -653,6 +653,8 @@ RPCHelpMan gethdkeys()
 // addresses
 RPCHelpMan getaddressinfo();
 RPCHelpMan getnewaddress();
+RPCHelpMan getnewchildrecipient();
+RPCHelpMan listchildrecipients();
 RPCHelpMan getrawchangeaddress();
 RPCHelpMan setlabel();
 RPCHelpMan listaddressgroupings();
@@ -732,6 +734,7 @@ std::span<const CRPCCommand> GetWalletRPCCommands()
         {"wallet", &getbalance},
         {"wallet", &gethdkeys},
         {"wallet", &getnewaddress},
+        {"wallet", &getnewchildrecipient},
         {"wallet", &getrawchangeaddress},
         {"wallet", &getreceivedbyaddress},
         {"wallet", &getreceivedbylabel},
@@ -742,6 +745,7 @@ std::span<const CRPCCommand> GetWalletRPCCommands()
         {"wallet", &importprunedfunds},
         {"wallet", &keypoolrefill},
         {"wallet", &listaddressgroupings},
+        {"wallet", &listchildrecipients},
         {"wallet", &listdescriptors},
         {"wallet", &listlabels},
         {"wallet", &listlockunspent},

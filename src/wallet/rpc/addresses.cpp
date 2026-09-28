@@ -5,6 +5,8 @@
 
 #include <bitcoin-build-config.h> // IWYU pragma: keep
 
+#include <chainregistry/child_template.h>
+#include <consensus/chainregistry.h>
 #include <core_io.h>
 #include <key_io.h>
 #include <rpc/util.h>
@@ -15,10 +17,72 @@
 #include <wallet/receive.h>
 #include <wallet/rpc/util.h>
 #include <wallet/wallet.h>
+#include <wallet/walletdb.h>
 
 #include <univalue.h>
 
+#include <variant>
+
 namespace wallet {
+namespace {
+
+chainregistry::ChainId ParseChildChainId(const UniValue& value)
+{
+    const auto chain_id{chainregistry::ChainId::FromHex(value.get_str())};
+    if (!chain_id || chain_id->IsNull()) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "chain_id must be exactly 32 non-null bytes encoded as hexadecimal");
+    }
+    return *chain_id;
+}
+
+void EnsureActiveReferenceChild(
+    CWallet& wallet,
+    const chainregistry::ChainId& chain_id)
+{
+    auto snapshot{wallet.chain().getChainRegistrySnapshot(chain_id)};
+    if (!snapshot.enabled || !snapshot.active_for_next_block) {
+        throw JSONRPCError(
+            RPC_MISC_ERROR,
+            "child-chain registry is not active for the next block");
+    }
+    if (!snapshot.record) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "chain_id is not registered");
+    }
+    if (snapshot.record->status != chainregistry::ChainStatus::ACTIVE) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "child chain is retired");
+    }
+    if (snapshot.record->template_id !=
+            chainregistry::REFERENCE_CHILD_TEMPLATE_ID ||
+        snapshot.record->template_version !=
+            chainregistry::REFERENCE_CHILD_TEMPLATE_VERSION) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "wallet does not support recipients for this child template");
+    }
+}
+
+UniValue ChildRecipientToJSON(
+    const chainregistry::ChainId& chain_id,
+    const WitnessV1Taproot& recipient,
+    const std::string& label)
+{
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", chain_id.GetHex());
+    result.pushKV(
+        "recipient_type",
+        chainregistry::REFERENCE_CHILD_P2TR_RECIPIENT);
+    result.pushKV("recipient", HexStr(recipient));
+    result.pushKV(
+        "scriptPubKey", HexStr(GetScriptForDestination(recipient)));
+    result.pushKV("label", label);
+    return result;
+}
+
+} // namespace
+
 RPCHelpMan getnewaddress()
 {
     return RPCHelpMan{
@@ -56,6 +120,116 @@ RPCHelpMan getnewaddress()
     }
 
     return EncodeDestination(*op_dest);
+},
+    };
+}
+
+RPCHelpMan getnewchildrecipient()
+{
+    return RPCHelpMan{
+        "getnewchildrecipient",
+        "Derive and persist a new wallet-owned P2TR receiving key for one exact child chain. The result is the canonical recipient tuple used by FUND_CHAIN; it is not a main-chain address and must always be used together with the returned chain_id.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Exact non-null registered child-chain identifier"},
+            {"label", RPCArg::Type::STR, RPCArg::Default{""}, "Wallet label associated with the receiving key"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Wallet-owned child recipient", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Exact child-chain identifier"},
+            {RPCResult::Type::NUM, "recipient_type", "Reference-template P2TR recipient namespace; always 1"},
+            {RPCResult::Type::STR_HEX, "recipient", "32-byte Taproot output key"},
+            {RPCResult::Type::STR_HEX, "scriptPubKey", "Canonical P2TR output script credited by IMPORT"},
+            {RPCResult::Type::STR, "label", "Persisted wallet label"},
+        }},
+        RPCExamples{
+            HelpExampleCli("getnewchildrecipient", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" \"savings\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const std::shared_ptr<CWallet> wallet{GetWalletForJSONRPCRequest(request)};
+    if (!wallet) return UniValue::VNULL;
+    wallet->BlockUntilSyncedToCurrentChain();
+
+    const auto chain_id{ParseChildChainId(self.Arg<UniValue>("chain_id"))};
+    EnsureActiveReferenceChild(*wallet, chain_id);
+    const std::string label{LabelFromValue(self.Arg<UniValue>("label"))};
+
+    LOCK(wallet->cs_wallet);
+    if (!wallet->CanGetAddresses()) {
+        throw JSONRPCError(
+            RPC_WALLET_ERROR,
+            "Error: This wallet has no available keys");
+    }
+    const auto destination{wallet->GetNewDestination(label)};
+    if (!destination) {
+        throw JSONRPCError(
+            RPC_WALLET_KEYPOOL_RAN_OUT,
+            util::ErrorString(destination).original);
+    }
+    const auto* recipient{std::get_if<WitnessV1Taproot>(&*destination)};
+    if (!recipient) {
+        throw JSONRPCError(
+            RPC_WALLET_ERROR,
+            "wallet did not derive a Taproot child recipient");
+    }
+    WalletBatch batch{wallet->GetDatabase()};
+    if (!wallet->SetAddressChildChain(batch, *destination, chain_id)) {
+        throw JSONRPCError(
+            RPC_WALLET_ERROR,
+            "wallet could not persist the child recipient context");
+    }
+    return ChildRecipientToJSON(chain_id, *recipient, label);
+},
+    };
+}
+
+RPCHelpMan listchildrecipients()
+{
+    return RPCHelpMan{
+        "listchildrecipients",
+        "List wallet-owned receiving keys explicitly associated with one child-chain identifier. Local records remain queryable for recovery even if the chain is retired or no longer present in the active registry.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Exact non-null registered child-chain identifier"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Persisted child recipients", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Exact child-chain identifier"},
+            {RPCResult::Type::NUM, "recipient_count", "Number of wallet-owned recipients for this chain"},
+            {RPCResult::Type::ARR, "recipients", "Wallet-owned recipients", {
+                {RPCResult::Type::OBJ, "", "One receiving key", {
+                    {RPCResult::Type::STR_HEX, "chain_id", "Exact child-chain identifier"},
+                    {RPCResult::Type::NUM, "recipient_type", "Reference-template P2TR recipient namespace; always 1"},
+                    {RPCResult::Type::STR_HEX, "recipient", "32-byte Taproot output key"},
+                    {RPCResult::Type::STR_HEX, "scriptPubKey", "Canonical P2TR output script"},
+                    {RPCResult::Type::STR, "label", "Wallet label"},
+                }},
+            }},
+        }},
+        RPCExamples{
+            HelpExampleCli("listchildrecipients", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const std::shared_ptr<CWallet> wallet{GetWalletForJSONRPCRequest(request)};
+    if (!wallet) return UniValue::VNULL;
+    const auto chain_id{ParseChildChainId(self.Arg<UniValue>("chain_id"))};
+
+    UniValue recipients{UniValue::VARR};
+    LOCK(wallet->cs_wallet);
+    for (const auto& [destination, label] :
+         wallet->ListChildRecipients(chain_id)) {
+        const auto* recipient{std::get_if<WitnessV1Taproot>(&destination)};
+        if (!recipient) {
+            throw JSONRPCError(
+                RPC_WALLET_ERROR,
+                "wallet contains an invalid child recipient context");
+        }
+        recipients.push_back(
+            ChildRecipientToJSON(chain_id, *recipient, label));
+    }
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", chain_id.GetHex());
+    result.pushKV("recipient_count", recipients.size());
+    result.pushKV("recipients", std::move(recipients));
+    return result;
 },
     };
 }

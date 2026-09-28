@@ -15,6 +15,7 @@
 #include <logging.h>
 #include <node/types.h>
 #include <policy/feerate.h>
+#include <primitives/chainregistry.h>
 #include <primitives/transaction.h>
 #include <primitives/transaction_identifier.h>
 #include <script/interpreter.h>
@@ -247,6 +248,9 @@ struct CAddressBookData
      * containing BIP21 URI information including message and amount.
      */
     std::map<std::string, std::string> receive_requests{};
+
+    /** Child chains for which this owned destination is a receiving key. */
+    std::set<chainregistry::ChainId> child_chains{};
 
     /** Accessor methods. */
     bool IsChange() const { return !label.has_value(); }
@@ -762,6 +766,9 @@ public:
     std::vector<std::string> GetAddressReceiveRequests() const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool SetAddressReceiveRequest(WalletBatch& batch, const CTxDestination& dest, const std::string& id, const std::string& value) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool EraseAddressReceiveRequest(WalletBatch& batch, const CTxDestination& dest, const std::string& id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    void LoadAddressChildChain(const CTxDestination& dest, const chainregistry::ChainId& chain_id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool SetAddressChildChain(WalletBatch& batch, const CTxDestination& dest, const chainregistry::ChainId& chain_id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    std::vector<std::pair<CTxDestination, std::string>> ListChildRecipients(const chainregistry::ChainId& chain_id) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     unsigned int GetKeyPoolSize() const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 

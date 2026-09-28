@@ -544,6 +544,14 @@ static DBErrors LoadAddressBookRecords(CWallet* pwallet, DatabaseBatch& batch) E
             // Load "rr##" keys where ## is a decimal number, and strValue
             // is a serialized RecentRequestEntry object.
             pwallet->LoadAddressReceiveRequest(dest, strKey.substr(2), strValue);
+        } else if (strKey.starts_with("child:")) {
+            const auto chain_id{chainregistry::ChainId::FromHex(
+                strKey.substr(std::string{"child:"}.size()))};
+            if (strValue != "1" || !chain_id || chain_id->IsNull()) {
+                err = strprintf("Error: Invalid child-chain recipient data for address '%s'.", strAddress);
+                return DBErrors::CORRUPT;
+            }
+            pwallet->LoadAddressChildChain(dest, *chain_id);
         } else {
             err = strprintf("Error: Unknown destination data key '%s' for address '%s'.", strKey, strAddress);
             return DBErrors::CORRUPT;
@@ -760,6 +768,18 @@ bool WalletBatch::WriteAddressReceiveRequest(const CTxDestination& dest, const s
 bool WalletBatch::EraseAddressReceiveRequest(const CTxDestination& dest, const std::string& id)
 {
     return EraseIC(std::make_pair(DBKeys::DESTDATA, std::make_pair(EncodeDestination(dest), "rr" + id)));
+}
+
+bool WalletBatch::WriteAddressChildChain(
+    const CTxDestination& dest,
+    const chainregistry::ChainId& chain_id)
+{
+    return WriteIC(
+        std::make_pair(
+            DBKeys::DESTDATA,
+            std::make_pair(
+                EncodeDestination(dest), "child:" + chain_id.GetHex())),
+        std::string{"1"});
 }
 
 bool WalletBatch::EraseAddressData(const CTxDestination& dest)

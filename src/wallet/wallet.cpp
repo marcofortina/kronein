@@ -2594,6 +2594,40 @@ bool CWallet::EraseAddressReceiveRequest(WalletBatch& batch, const CTxDestinatio
     return true;
 }
 
+void CWallet::LoadAddressChildChain(
+    const CTxDestination& dest,
+    const chainregistry::ChainId& chain_id)
+{
+    m_address_book[dest].child_chains.insert(chain_id);
+}
+
+bool CWallet::SetAddressChildChain(
+    WalletBatch& batch,
+    const CTxDestination& dest,
+    const chainregistry::ChainId& chain_id)
+{
+    if (!IsValidDestination(dest) || chain_id.IsNull()) return false;
+    auto& child_chains{m_address_book[dest].child_chains};
+    if (child_chains.contains(chain_id)) return true;
+    if (!batch.WriteAddressChildChain(dest, chain_id)) return false;
+    child_chains.insert(chain_id);
+    return true;
+}
+
+std::vector<std::pair<CTxDestination, std::string>>
+CWallet::ListChildRecipients(
+    const chainregistry::ChainId& chain_id) const
+{
+    std::vector<std::pair<CTxDestination, std::string>> recipients;
+    if (chain_id.IsNull()) return recipients;
+    for (const auto& [destination, data] : m_address_book) {
+        if (data.child_chains.contains(chain_id)) {
+            recipients.emplace_back(destination, data.GetLabel());
+        }
+    }
+    return recipients;
+}
+
 static util::Result<fs::path> GetWalletPath(const std::string& name)
 {
     // Wallets use a directory containing the SQLite database.
