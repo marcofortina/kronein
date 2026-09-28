@@ -10,6 +10,7 @@
 #include <primitives/chainregistry.h>
 #include <primitives/transaction.h>
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -29,12 +30,24 @@ struct ChildWalletPayment {
     bool subtract_fee{false};
 };
 
+struct ChildWalletSweepRecipient {
+    WitnessV1Taproot recipient;
+    std::optional<CAmount> amount;
+};
+
 ChildWalletSendResult CreateSignedChildPayments(
     CWallet& wallet,
     const chainregistry::ChainId& chain_id,
     const std::vector<ChildWalletPayment>& payments,
     CAmount fee,
     int minconf = 1);
+
+ChildWalletSendResult CreateSignedChildSweep(
+    CWallet& wallet,
+    const chainregistry::ChainId& chain_id,
+    const std::vector<ChildWalletSweepRecipient>& recipients,
+    CAmount fee,
+    int minconf = 0);
 
 ChildWalletSendResult CreateSignedChildPayment(
     CWallet& wallet,

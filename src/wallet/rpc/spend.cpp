@@ -134,6 +134,73 @@ static std::vector<ChildWalletPayment> ParseChildSendPayments(
     return payments;
 }
 
+static std::vector<ChildWalletSweepRecipient> ParseChildSweepRecipients(
+    const UniValue& recipients_arg)
+{
+    std::set<WitnessV1Taproot> seen;
+    std::vector<ChildWalletSweepRecipient> recipients;
+    for (const UniValue& value : recipients_arg.getValues()) {
+        std::string recipient_text;
+        std::optional<CAmount> amount;
+        if (value.isStr()) {
+            recipient_text = value.get_str();
+        } else {
+            const UniValue& object{value.get_obj()};
+            const std::vector<std::string> keys{object.getKeys()};
+            if (keys.size() != 1) {
+                throw JSONRPCError(
+                    RPC_INVALID_PARAMETER,
+                    "child sendall recipient objects must contain exactly one key");
+            }
+            recipient_text = keys.front();
+            amount = AmountFromValue(object[recipient_text]);
+        }
+        const WitnessV1Taproot recipient{ParseChildRecipient(
+            UniValue{UniValue::VSTR, recipient_text})};
+        if (!seen.insert(recipient).second) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                strprintf("duplicated child recipient %s", recipient_text));
+        }
+        recipients.push_back({recipient, amount});
+    }
+    return recipients;
+}
+
+static UniValue FinishChildWalletTransaction(
+    CWallet& wallet,
+    const chainregistry::ChainId& chain_id,
+    const ChildWalletSendResult& sent,
+    const UniValue& options)
+{
+    const bool lock_unspents{
+        options.exists("lock_unspents") &&
+        options["lock_unspents"].get_bool()};
+    if (lock_unspents) {
+        LOCK(wallet.cs_wallet);
+        for (const CTxIn& input : sent.transaction->vin) {
+            wallet.LockChildCoin(
+                chain_id, input.prevout, /*persist=*/false);
+        }
+    }
+    const bool psbt{
+        options.exists("psbt") && options["psbt"].get_bool()};
+    const bool add_to_wallet{
+        !options.exists("add_to_wallet") ||
+        options["add_to_wallet"].get_bool()};
+    const Txid txid{sent.transaction->GetHash()};
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("complete", true);
+    result.pushKV("txid", txid.GetHex());
+    if (add_to_wallet && !psbt) {
+        SubmitChildWalletTransaction(wallet, chain_id, sent);
+    } else {
+        result.pushKV("hex", EncodeHexTx(*sent.transaction));
+        result.pushKV("psbt", sent.psbt);
+    }
+    return result;
+}
+
 static uint32_t ParseRegistryUint32(const UniValue& value, std::string_view name)
 {
     const int64_t parsed{value.getInt<int64_t>()};
@@ -1632,33 +1699,8 @@ RPCHelpMan send()
                         options["subtract_fee_from_outputs"]),
                     child_fee,
                     minconf)};
-                const bool lock_unspents{
-                    options.exists("lock_unspents") &&
-                    options["lock_unspents"].get_bool()};
-                if (lock_unspents) {
-                    LOCK(pwallet->cs_wallet);
-                    for (const CTxIn& input : sent.transaction->vin) {
-                        pwallet->LockChildCoin(
-                            chain_id, input.prevout, /*persist=*/false);
-                    }
-                }
-                const bool psbt{
-                    options.exists("psbt") && options["psbt"].get_bool()};
-                const bool add_to_wallet{
-                    !options.exists("add_to_wallet") ||
-                    options["add_to_wallet"].get_bool()};
-                const Txid txid{sent.transaction->GetHash()};
-                UniValue result{UniValue::VOBJ};
-                result.pushKV("complete", true);
-                result.pushKV("txid", txid.GetHex());
-                if (add_to_wallet && !psbt) {
-                    SubmitChildWalletTransaction(
-                        *pwallet, chain_id, sent);
-                } else {
-                    result.pushKV("hex", EncodeHexTx(*sent.transaction));
-                    result.pushKV("psbt", sent.psbt);
-                }
-                return result;
+                return FinishChildWalletTransaction(
+                    *pwallet, chain_id, sent, options);
             }
             if (child_fee_arg) {
                 throw JSONRPCError(
@@ -1745,6 +1787,8 @@ RPCHelpMan sendall()
                 ),
                 RPCArgOptions{.oneline_description="options"}
             },
+            {"child_fee", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "Exact absolute child-chain fee in KNE. Required with chain_id and invalid without it."},
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain."},
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "",
@@ -1765,7 +1809,9 @@ RPCHelpMan sendall()
         "Leave dust UTXOs in wallet, spend only UTXOs with positive effective value with a fee rate of 10 " + CURRENCY_ATOM + "/vB using the options argument\n"
         + HelpExampleCli("sendall", "'[\"" + EXAMPLE_ADDRESS[0] + "\"]' null \"unset\" null '{\"fee_rate\": 10, \"send_max\": true}'\n") +
         "Spend all UTXOs with a fee rate of 1.3 " + CURRENCY_ATOM + "/vB using named arguments and sending a 0.25 " + CURRENCY_UNIT + " to another recipient\n"
-        + HelpExampleCli("-named sendall", "recipients='[{\"" + EXAMPLE_ADDRESS[1] + "\": 0.25}, \""+ EXAMPLE_ADDRESS[0] + "\"]' fee_rate=1.3\n")
+        + HelpExampleCli("-named sendall", "recipients='[{\"" + EXAMPLE_ADDRESS[1] + "\": 0.25}, \""+ EXAMPLE_ADDRESS[0] + "\"]' fee_rate=1.3\n") +
+        "Sweep a child wallet with an explicit absolute fee\n"
+        + HelpExampleCli("-named sendall", "recipients='[\"2222222222222222222222222222222222222222222222222222222222222222\"]' child_fee=0.00001 chain_id=\"1111111111111111111111111111111111111111111111111111111111111111\"")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
@@ -1776,6 +1822,56 @@ RPCHelpMan sendall()
             pwallet->BlockUntilSyncedToCurrentChain();
 
             UniValue options{request.params[4].isNull() ? UniValue::VOBJ : request.params[4]};
+            const auto chain_arg{self.MaybeArg<UniValue>("chain_id")};
+            const auto child_fee_arg{self.MaybeArg<UniValue>("child_fee")};
+            if (chain_arg) {
+                if (!child_fee_arg) {
+                    throw JSONRPCError(
+                        RPC_INVALID_PARAMETER,
+                        "child_fee is required when chain_id is specified");
+                }
+                if (!request.params[1].isNull() ||
+                    (!request.params[2].isNull() &&
+                     request.params[2].get_str() != "unset") ||
+                    !request.params[3].isNull()) {
+                    throw JSONRPCError(
+                        RPC_INVALID_PARAMETER,
+                        "child transactions require child_fee and do not use conf_target, estimate_mode, or fee_rate");
+                }
+                const std::set<std::string> supported_options{
+                    "add_to_wallet",
+                    "lock_unspents",
+                    "minconf",
+                    "psbt",
+                };
+                for (const std::string& option : options.getKeys()) {
+                    if (!supported_options.contains(option)) {
+                        throw JSONRPCError(
+                            RPC_INVALID_PARAMETER,
+                            strprintf("child sendall does not support option %s",
+                                      option));
+                    }
+                }
+                const chainregistry::ChainId chain_id{
+                    ParseChildChainId(*chain_arg)};
+                const CAmount child_fee{AmountFromValue(*child_fee_arg)};
+                const int minconf{options.exists("minconf")
+                                      ? options["minconf"].getInt<int>()
+                                      : 0};
+                auto sent{CreateSignedChildSweep(
+                    *pwallet,
+                    chain_id,
+                    ParseChildSweepRecipients(request.params[0]),
+                    child_fee,
+                    minconf)};
+                return FinishChildWalletTransaction(
+                    *pwallet, chain_id, sent, options);
+            }
+            if (child_fee_arg) {
+                throw JSONRPCError(
+                    RPC_INVALID_PARAMETER,
+                    "child_fee is only valid when chain_id is specified");
+            }
             InterpretFeeEstimationInstructions(/*conf_target=*/request.params[1], /*estimate_mode=*/request.params[2], /*fee_rate=*/request.params[3], options);
             std::set<std::string> addresses_without_amount;
             UniValue recipient_key_value_pairs(UniValue::VARR);

@@ -1977,6 +1977,31 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert "psbt" in child_psbt
         assert child_psbt["txid"] not in node.getrawmempool(
             False, False, chain_id)
+
+        child_sweep_inputs = sum(
+            (utxo["amount"] for utxo in attacker.listunspent(
+                0, 9999999, [], False, {}, chain_id)),
+            Decimal("0"))
+        child_sweep_fixed = Decimal("0.00100000")
+        child_sweep = attacker.sendall(
+            recipients=[
+                {generic_recipient: child_sweep_fixed},
+                child_fee_recipient["recipient"],
+            ],
+            child_fee=child_send_fee,
+            chain_id=chain_id)
+        assert_equal(child_sweep["complete"], True)
+        assert_equal(attacker.listunspent(
+            0, 9999999, [], False, {}, chain_id), [])
+        child_sweep_tx = attacker.gettransaction(
+            child_sweep["txid"], False, chain_id)
+        assert_equal(
+            child_sweep_tx["amount"],
+            -(child_sweep_inputs - child_send_fee))
+        assert_equal(child_sweep_tx["fee"], -child_send_fee)
+        assert_equal(wallet.getreceivedbyaddress(
+            generic_recipient, 0, False, chain_id),
+            deposit_amount + generic_amount + child_sweep_fixed)
         child_wallet_identities = wallet.listchildrecipients(chain_id)
 
         successor_address = wallet.getnewaddress()

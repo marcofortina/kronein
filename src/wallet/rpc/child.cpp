@@ -229,7 +229,8 @@ FundedChildPSBT FundChildPSBT(
     const std::vector<std::pair<WitnessV1Taproot, CAmount>>& outputs,
     CAmount requested_fee,
     int minconf,
-    bool bip32_derivs)
+    bool bip32_derivs,
+    const std::optional<std::set<COutPoint>>& input_filter = std::nullopt)
 {
     if (requested_fee < 0) {
         throw JSONRPCError(RPC_INVALID_PARAMETER,
@@ -277,7 +278,9 @@ FundedChildPSBT FundChildPSBT(
                                "child wallet UTXO amount is invalid");
         }
         if (Confirmations(scan, coin) < static_cast<uint64_t>(minconf) ||
-            !IsMature(scan, coin) || locked.contains(coin.outpoint)) {
+            !IsMature(scan, coin) || !coin.trusted ||
+            locked.contains(coin.outpoint) ||
+            (input_filter && !input_filter->contains(coin.outpoint))) {
             continue;
         }
         candidates.push_back(&coin);
@@ -606,6 +609,29 @@ ProcessedChildPSBT ProcessChildPSBT(
 
 } // namespace
 
+static ChildWalletSendResult SignFundedChildPSBT(
+    CWallet& wallet,
+    FundedChildPSBT funded)
+{
+    auto processed{ProcessChildPSBT(
+        wallet,
+        std::move(funded.psbt),
+        funded.fee,
+        /*sign=*/true,
+        SIGHASH_DEFAULT,
+        /*bip32_derivs=*/true,
+        /*finalize=*/true)};
+    if (!processed.complete || !processed.transaction) {
+        throw JSONRPCError(RPC_WALLET_ERROR,
+                           "wallet could not completely sign the child transaction");
+    }
+    return {
+        .transaction = MakeTransactionRef(std::move(*processed.transaction)),
+        .fee = processed.fee,
+        .psbt = EncodePSBT(processed.psbt),
+    };
+}
+
 ChildWalletSendResult CreateSignedChildPayments(
     CWallet& wallet,
     const chainregistry::ChainId& chain_id,
@@ -651,23 +677,111 @@ ChildWalletSendResult CreateSignedChildPayments(
         fee,
         minconf,
         /*bip32_derivs=*/true)};
-    auto processed{ProcessChildPSBT(
-        wallet,
-        std::move(funded.psbt),
-        fee,
-        /*sign=*/true,
-        SIGHASH_DEFAULT,
-        /*bip32_derivs=*/true,
-        /*finalize=*/true)};
-    if (!processed.complete || !processed.transaction) {
-        throw JSONRPCError(RPC_WALLET_ERROR,
-                           "wallet could not completely sign the child transaction");
+    return SignFundedChildPSBT(wallet, std::move(funded));
+}
+
+ChildWalletSendResult CreateSignedChildSweep(
+    CWallet& wallet,
+    const chainregistry::ChainId& chain_id,
+    const std::vector<ChildWalletSweepRecipient>& recipients,
+    CAmount fee,
+    int minconf)
+{
+    wallet.BlockUntilSyncedToCurrentChain();
+    if (fee < 0 || !MoneyRange(fee)) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child_fee must be non-negative and in range");
     }
-    return {
-        .transaction = MakeTransactionRef(std::move(*processed.transaction)),
-        .fee = processed.fee,
-        .psbt = EncodePSBT(processed.psbt),
-    };
+    if (minconf < 0) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "minconf must not be negative");
+    }
+    if (recipients.empty()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "recipients must not be empty");
+    }
+
+    const interfaces::ChildWalletScan scan{
+        ScanSupportedChildWallet(wallet, chain_id)};
+    std::vector<COutPoint> locked_outputs;
+    {
+        LOCK(wallet.cs_wallet);
+        wallet.ListLockedChildCoins(chain_id, locked_outputs);
+    }
+    const std::set<COutPoint> locked{
+        locked_outputs.begin(), locked_outputs.end()};
+    std::set<COutPoint> selected;
+    CAmount available{0};
+    for (const auto& coin : scan.coins) {
+        if (!MoneyRange(coin.output.nValue) || coin.output.nValue <= 0) {
+            throw JSONRPCError(RPC_INTERNAL_ERROR,
+                               "child wallet UTXO amount is invalid");
+        }
+        if (Confirmations(scan, coin) < static_cast<uint64_t>(minconf) ||
+            !IsMature(scan, coin) || !coin.trusted ||
+            locked.contains(coin.outpoint)) {
+            continue;
+        }
+        if (!selected.insert(coin.outpoint).second) {
+            throw JSONRPCError(RPC_INTERNAL_ERROR,
+                               "child wallet UTXO data is inconsistent");
+        }
+        AddAmount(available, coin.output.nValue, "selected input");
+    }
+    if (available <= fee) {
+        throw JSONRPCError(
+            RPC_WALLET_INSUFFICIENT_FUNDS,
+            "child wallet has no spendable value after the explicit fee");
+    }
+
+    CAmount fixed_total{0};
+    size_t open_count{0};
+    for (const auto& recipient : recipients) {
+        if (!recipient.amount) {
+            ++open_count;
+            continue;
+        }
+        if (*recipient.amount <= 0) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               "specified child output amount must be positive");
+        }
+        AddAmount(fixed_total, *recipient.amount, "specified output");
+    }
+    if (open_count == 0) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "sendall requires at least one child recipient without an amount");
+    }
+    const CAmount distributable{available - fee};
+    if (fixed_total >= distributable) {
+        throw JSONRPCError(
+            RPC_WALLET_INSUFFICIENT_FUNDS,
+            "specified child outputs leave no spendable remainder");
+    }
+    const CAmount remainder{distributable - fixed_total};
+    const CAmount divisor{static_cast<CAmount>(open_count)};
+    const CAmount share{remainder / divisor};
+    const CAmount excess{remainder % divisor};
+    std::vector<std::pair<WitnessV1Taproot, CAmount>> outputs;
+    outputs.reserve(recipients.size());
+    bool first_open{true};
+    for (const auto& recipient : recipients) {
+        CAmount amount{recipient.amount.value_or(share)};
+        if (!recipient.amount && first_open) {
+            amount += excess;
+            first_open = false;
+        }
+        outputs.emplace_back(recipient.recipient, amount);
+    }
+    auto funded{FundChildPSBT(
+        wallet,
+        chain_id,
+        outputs,
+        fee,
+        minconf,
+        /*bip32_derivs=*/true,
+        selected)};
+    return SignFundedChildPSBT(wallet, std::move(funded));
 }
 
 ChildWalletSendResult CreateSignedChildPayment(
