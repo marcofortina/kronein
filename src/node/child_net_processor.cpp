@@ -124,6 +124,24 @@ void ChildNetProcessor::AnnounceAccepted(
     }
 }
 
+void ChildNetProcessor::AnnounceTransaction(
+    std::optional<ChildPeerId> source,
+    const CTransaction& transaction,
+    ChildNetProcessorResult& result) const
+{
+    for (const auto& [peer, state] : m_peers) {
+        if (!state.handshaken || (source && peer == *source)) continue;
+        result.outbound.push_back({
+            .peer = peer,
+            .command = ChildNetCommand::TRANSACTION,
+            .message = chainregistry::ChildTransactionData{
+                .chain_id = m_definition.chain_id,
+                .transaction = CMutableTransaction{transaction},
+            },
+        });
+    }
+}
+
 ChildNetProcessorResult ChildNetProcessor::Connected(
     ChildPeerId peer,
     uint64_t local_nonce)
@@ -423,6 +441,78 @@ ChildNetProcessorResult ChildNetProcessor::ReceiveBlock(
     RefreshPending(result);
     RetryDeferred(current_time, sync, result);
     RefreshPending(result);
+    return result;
+}
+
+ChildNetProcessorResult ChildNetProcessor::ReceiveTransaction(
+    ChildPeerId peer,
+    const chainregistry::ChildTransactionData& data,
+    ChildRequestTime now,
+    int64_t current_time)
+{
+    ChildNetProcessorResult result;
+    if (!RequireHandshake(peer, result)) return result;
+    PeerState& state{m_peers.at(peer)};
+    if (!state.transaction_refill_time) {
+        state.transaction_refill_time = now;
+    } else if (now > *state.transaction_refill_time) {
+        const auto intervals{
+            (now - *state.transaction_refill_time) /
+            CHILD_TRANSACTION_REFILL_INTERVAL};
+        if (intervals > 0) {
+            const uint64_t refill{std::min<uint64_t>(
+                MAX_CHILD_TRANSACTION_BURST,
+                static_cast<uint64_t>(intervals))};
+            state.transaction_tokens = std::min(
+                MAX_CHILD_TRANSACTION_BURST,
+                state.transaction_tokens + refill);
+            if (state.transaction_tokens ==
+                MAX_CHILD_TRANSACTION_BURST) {
+                state.transaction_refill_time = now;
+            } else {
+                *state.transaction_refill_time +=
+                    CHILD_TRANSACTION_REFILL_INTERVAL * refill;
+            }
+        }
+    }
+    if (state.transaction_tokens == 0) {
+        result.error = ChildNetProcessorError::TRANSACTION_RATE_LIMITED;
+        result.disconnect = true;
+        return result;
+    }
+    --state.transaction_tokens;
+    result.validation_error = chainregistry::ValidateChildTransactionData(
+        data, m_definition.chain_id);
+    if (result.validation_error !=
+        chainregistry::ChildNetValidationError::NONE) {
+        result.error = ChildNetProcessorError::INVALID_MESSAGE;
+        result.disconnect = true;
+        return result;
+    }
+
+    const CTransactionRef transaction{
+        MakeTransactionRef(CMutableTransaction{data.transaction})};
+    result.transaction_submission = m_manager.SubmitTransaction(
+        m_definition.chain_id, transaction, current_time);
+    if (!result.transaction_submission.IsValid()) {
+        result.error = ChildNetProcessorError::TRANSACTION_REJECTED;
+        return result;
+    }
+    if (result.transaction_submission.runtime.already_known) return result;
+
+    result.accepted_transactions.push_back(transaction->GetHash());
+    AnnounceTransaction(std::optional{peer}, *transaction, result);
+    return result;
+}
+
+ChildNetProcessorResult ChildNetProcessor::RelayTransaction(
+    const CTransactionRef& transaction) const
+{
+    if (!transaction) {
+        return ProcessorError(ChildNetProcessorError::INVALID_MESSAGE);
+    }
+    ChildNetProcessorResult result;
+    AnnounceTransaction(std::nullopt, *transaction, result);
     return result;
 }
 

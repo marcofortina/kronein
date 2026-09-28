@@ -17,6 +17,7 @@
 #include <net_processing.h>
 #include <netbase.h>
 #include <node/chain_manager.h>
+#include <node/child_network_manager.h>
 #include <node/mempool_persist_args.h>
 #include <node/types.h>
 #include <primitives/transaction.h>
@@ -199,6 +200,8 @@ static RPCHelpMan sendrawtransaction()
                 if (!accepted.IsValid()) {
                     ThrowChildMempoolSubmissionError(accepted);
                 }
+                EnsureAnyChildNetworkman(request.context)
+                    .RelayTransaction(*child_chain, tx);
                 return tx->GetHash().GetHex();
             }
 

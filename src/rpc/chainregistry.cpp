@@ -668,6 +668,9 @@ void EnsureRegistryMatchesDefinition(
         throw JSONRPCError(RPC_MISC_ERROR, "child network is already running");
     case node::ChildNetworkError::NOT_RUNNING:
         throw JSONRPCError(RPC_MISC_ERROR, "child network is not running");
+    case node::ChildNetworkError::NULL_TRANSACTION:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child transaction must not be null");
     case node::ChildNetworkError::TOO_MANY_ENDPOINTS:
         throw JSONRPCError(
             RPC_INVALID_PARAMETER,

@@ -52,6 +52,8 @@ std::string ChildMessageType(ChildNetCommand command)
         return std::string{chainregistry::ChildNetMsgType::GET_BLOCKS};
     case ChildNetCommand::BLOCK:
         return std::string{chainregistry::ChildNetMsgType::BLOCK};
+    case ChildNetCommand::TRANSACTION:
+        return std::string{chainregistry::ChildNetMsgType::TRANSACTION};
     }
     return {};
 }
@@ -329,6 +331,18 @@ ChildNetProcessorResult ChildNetEvents::ProcessMessage(
         }
         return result;
     }
+    if (message.m_type == chainregistry::ChildNetMsgType::TRANSACTION) {
+        chainregistry::ChildTransactionData transaction;
+        message.m_recv >> transaction;
+        if (!message.m_recv.empty()) {
+            ChildNetProcessorResult result;
+            result.error = ChildNetProcessorError::INVALID_MESSAGE;
+            result.disconnect = true;
+            return result;
+        }
+        return m_processor.ReceiveTransaction(
+            peer, transaction, RequestTimeNow(), ValidationTimeNow());
+    }
 
     ChildNetProcessorResult result;
     result.error = ChildNetProcessorError::INVALID_MESSAGE;
@@ -376,6 +390,24 @@ bool ChildNetEvents::SendMessages(CNode& node)
     }
     ApplyResult(node, std::move(result));
     return false;
+}
+
+size_t ChildNetEvents::RelayTransaction(
+    const CTransactionRef& transaction)
+{
+    LOCK(m_mutex);
+    auto result{m_processor.RelayTransaction(transaction)};
+    size_t relayed{0};
+    for (auto& outbound : result.outbound) {
+        const bool found{m_connman.ForNode(
+            outbound.peer,
+            [&](CNode* target) {
+                PushOutbound(*target, std::move(outbound));
+                return true;
+            })};
+        if (found) ++relayed;
+    }
+    return relayed;
 }
 
 size_t ChildNetEvents::PeerCount() const

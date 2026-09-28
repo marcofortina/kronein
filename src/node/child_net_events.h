@@ -15,6 +15,8 @@
 #include <cstdint>
 #include <map>
 
+class CTransaction;
+
 namespace node {
 
 class ChildBandwidthLimiter;
@@ -77,6 +79,8 @@ public:
         EXCLUSIVE_LOCKS_REQUIRED(g_msgproc_mutex);
     bool SendMessages(CNode& node) override
         EXCLUSIVE_LOCKS_REQUIRED(g_msgproc_mutex);
+
+    size_t RelayTransaction(const CTransactionRef& transaction);
 
     size_t PeerCount() const;
     size_t HandshakenPeerCount() const;

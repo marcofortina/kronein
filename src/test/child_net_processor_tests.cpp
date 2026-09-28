@@ -338,6 +338,115 @@ BOOST_AUTO_TEST_CASE(rate_limits_block_hash_requests_per_peer)
     BOOST_CHECK(refilled.IsValid());
 }
 
+BOOST_AUTO_TEST_CASE(relays_only_handshaken_chain_bound_transactions)
+{
+    const auto definition{Definition()};
+    node::ChainManager manager{
+        Params().GetConsensus(),
+        Params().GenesisBlock(),
+        m_args.GetDataDirBase() / "child_net_transactions",
+        1 << 20};
+    BOOST_REQUIRE(manager.RegisterChain(definition).IsValid());
+    BOOST_REQUIRE(manager.LoadChain(
+        definition.chain_id,
+        Params().GenesisBlock().nTime,
+        /*wipe_data=*/true,
+        /*sync=*/true).IsValid());
+
+    node::ChildNetProcessor processor{manager, definition};
+    const chainregistry::ChildNetHello hello{
+        .chain_id = definition.chain_id,
+        .genesis_hash = definition.genesis_hash,
+    };
+    BOOST_REQUIRE(processor.Connected(1, 123).IsValid());
+    BOOST_REQUIRE(processor.Connected(2, 456).IsValid());
+    BOOST_REQUIRE(processor.Connected(3, 789).IsValid());
+    BOOST_REQUIRE(processor.ReceiveHello(1, hello).IsValid());
+    BOOST_REQUIRE(processor.ReceiveHello(2, hello).IsValid());
+
+    CMutableTransaction missing_input;
+    missing_input.vin.emplace_back(
+        COutPoint{Txid::FromUint256(uint256{1}), 0});
+    missing_input.vout.emplace_back(1, CScript{} << OP_TRUE);
+    const CTransactionRef transaction{
+        MakeTransactionRef(missing_input)};
+    const auto relayed{processor.RelayTransaction(transaction)};
+    BOOST_REQUIRE(relayed.IsValid());
+    BOOST_REQUIRE_EQUAL(relayed.outbound.size(), 2U);
+    for (const auto& outbound : relayed.outbound) {
+        BOOST_CHECK(
+            outbound.command == node::ChildNetCommand::TRANSACTION);
+        BOOST_CHECK(outbound.peer == 1 || outbound.peer == 2);
+        BOOST_REQUIRE(std::holds_alternative<
+            chainregistry::ChildTransactionData>(outbound.message));
+        const auto& payload{std::get<chainregistry::ChildTransactionData>(
+            outbound.message)};
+        BOOST_CHECK(payload.chain_id == definition.chain_id);
+        BOOST_CHECK(payload.transaction.GetHash() == transaction->GetHash());
+    }
+
+    auto wrong_chain{chainregistry::ChildTransactionData{
+        .chain_id = Definition().chain_id,
+        .transaction = missing_input,
+    }};
+    wrong_chain.chain_id = chainregistry::ChainId{
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
+    const auto malformed{processor.ReceiveTransaction(
+        1, wrong_chain, 1s, Params().GenesisBlock().nTime)};
+    BOOST_CHECK(
+        malformed.validation_error ==
+        chainregistry::ChildNetValidationError::WRONG_CHAIN);
+    BOOST_CHECK(malformed.disconnect);
+
+    const auto rejected{processor.ReceiveTransaction(
+        1,
+        {.chain_id = definition.chain_id,
+         .transaction = missing_input},
+        1s,
+        Params().GenesisBlock().nTime)};
+    BOOST_CHECK(
+        rejected.error ==
+        node::ChildNetProcessorError::TRANSACTION_REJECTED);
+    BOOST_CHECK(!rejected.disconnect);
+    BOOST_CHECK(
+        rejected.transaction_submission.runtime.error ==
+        node::ReferenceChildMempoolAcceptError::CONTEXT_REJECTED);
+    BOOST_CHECK(manager.GetMempool(definition.chain_id).runtime.entries.empty());
+
+    for (uint64_t count{2}; count < node::MAX_CHILD_TRANSACTION_BURST;
+         ++count) {
+        const auto invalid{processor.ReceiveTransaction(
+            1,
+            {.chain_id = definition.chain_id,
+             .transaction = missing_input},
+            1s,
+            Params().GenesisBlock().nTime)};
+        BOOST_CHECK(
+            invalid.error ==
+            node::ChildNetProcessorError::TRANSACTION_REJECTED);
+    }
+    const auto limited{processor.ReceiveTransaction(
+        1,
+        {.chain_id = definition.chain_id,
+         .transaction = missing_input},
+        1s,
+        Params().GenesisBlock().nTime)};
+    BOOST_CHECK(
+        limited.error ==
+        node::ChildNetProcessorError::TRANSACTION_RATE_LIMITED);
+    BOOST_CHECK(limited.disconnect);
+    const auto refilled{processor.ReceiveTransaction(
+        1,
+        {.chain_id = definition.chain_id,
+         .transaction = missing_input},
+        1s + node::CHILD_TRANSACTION_REFILL_INTERVAL,
+        Params().GenesisBlock().nTime)};
+    BOOST_CHECK(
+        refilled.error ==
+        node::ChildNetProcessorError::TRANSACTION_REJECTED);
+    BOOST_CHECK(!refilled.disconnect);
+}
+
 BOOST_AUTO_TEST_CASE(downloads_parent_before_connecting_deferred_child)
 {
     const auto definition{Definition()};

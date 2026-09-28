@@ -28,17 +28,22 @@ inline constexpr size_t MAX_CHILD_BLOCK_RESPONSE_BYTES{16 << 20};
 inline constexpr uint64_t MAX_CHILD_GETBLOCKS_BURST_HASHES{64};
 inline constexpr ChildRequestTime CHILD_GETBLOCKS_REFILL_INTERVAL{
     std::chrono::milliseconds{250}};
+inline constexpr uint64_t MAX_CHILD_TRANSACTION_BURST{32};
+inline constexpr ChildRequestTime CHILD_TRANSACTION_REFILL_INTERVAL{
+    std::chrono::seconds{1}};
 
 using ChildNetMessage = std::variant<
     chainregistry::ChildNetHello,
     chainregistry::ChildBlockHashes,
-    chainregistry::ChildBlockData>;
+    chainregistry::ChildBlockData,
+    chainregistry::ChildTransactionData>;
 
 enum class ChildNetCommand : uint8_t {
     HELLO,
     INVENTORY,
     GET_BLOCKS,
     BLOCK,
+    TRANSACTION,
 };
 
 struct ChildNetOutbound {
@@ -60,6 +65,8 @@ enum class ChildNetProcessorError : uint8_t {
     REQUEST_RATE_LIMITED,
     DEFERRED_CACHE_FULL,
     BLOCK_REJECTED,
+    TRANSACTION_REJECTED,
+    TRANSACTION_RATE_LIMITED,
 };
 
 struct ChildNetProcessorResult {
@@ -68,12 +75,14 @@ struct ChildNetProcessorResult {
         chainregistry::ChildNetValidationError::NONE};
     ChildBlockDownloadError download_error{ChildBlockDownloadError::NONE};
     ChainManagerResult submission;
+    ChainManagerMempoolAcceptResult transaction_submission;
     std::vector<ChildNetOutbound> outbound;
     std::vector<ChildBlockRequest> expired_requests;
     std::vector<uint256> accepted_blocks;
     std::vector<uint256> deferred_blocks;
     std::vector<uint256> rejected_blocks;
     std::vector<uint256> expired_deferred_blocks;
+    std::vector<Txid> accepted_transactions;
     std::vector<ChildPeerId> disconnect_peers;
     bool disconnect{false};
 
@@ -94,6 +103,8 @@ private:
         bool handshaken{false};
         uint64_t block_request_tokens{MAX_CHILD_GETBLOCKS_BURST_HASHES};
         std::optional<ChildRequestTime> block_request_refill_time;
+        uint64_t transaction_tokens{MAX_CHILD_TRANSACTION_BURST};
+        std::optional<ChildRequestTime> transaction_refill_time;
     };
 
     struct DeferredBlock {
@@ -119,6 +130,9 @@ private:
     void AnnounceAccepted(std::optional<ChildPeerId> source,
                           const uint256& block_hash,
                           ChildNetProcessorResult& result) const;
+    void AnnounceTransaction(std::optional<ChildPeerId> source,
+                             const CTransaction& transaction,
+                             ChildNetProcessorResult& result) const;
     void RetryDeferred(int64_t current_time,
                        bool sync,
                        ChildNetProcessorResult& result);
@@ -151,6 +165,13 @@ public:
         ChildRequestTime now,
         int64_t current_time,
         bool sync = false);
+    ChildNetProcessorResult ReceiveTransaction(
+        ChildPeerId peer,
+        const chainregistry::ChildTransactionData& data,
+        ChildRequestTime now,
+        int64_t current_time);
+    ChildNetProcessorResult RelayTransaction(
+        const CTransactionRef& transaction) const;
     ChildNetProcessorResult Poll(
         ChildRequestTime now,
         int64_t current_time,

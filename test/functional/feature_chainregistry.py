@@ -997,12 +997,15 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(peer_catch_up["historical_proposal_activation_failures"], 0)
         assert_equal(peer_catch_up["historical_anchor_stage_failures"], 0)
         assert_equal(peer_node.listchildproposals(chain_id)["proposal_count"], 0)
+        self.wait_until(
+            lambda: node.getchildnetworkinfo(chain_id)["handshaken_peers"] == 1)
+        self.wait_until(
+            lambda: peer_node.getchildnetworkinfo(chain_id)["handshaken_peers"] == 1)
         peer_bmm_status = peer_node.getchildbmmstatus(chain_id)
         assert_equal(peer_bmm_status["health"], "anchored")
         assert_equal(peer_bmm_status["bestblockhash"], child_block["blockhash"])
         assert_equal(peer_bmm_status["tip_anchor_main_block_hash"], anchor_block)
         assert_equal(peer_bmm_status["proposal_count"], 0)
-        assert_equal(peer_node.unloadchildchain(chain_id)["loaded"], False)
 
         self.log.info("Export the authenticated BMM proof and verify idempotent manual submission")
         registry_with_anchor = node.getchainregistryinfo()
@@ -1064,6 +1067,10 @@ class ChainRegistryTest(BitcoinTestFramework):
             node.sendrawtransaction(
                 signed_child["hex"], 0, 0, chain_id),
             signed_child["txid"])
+        self.wait_until(
+            lambda: peer_node.getrawmempool(False, False, chain_id) ==
+                    [signed_child["txid"]])
+        assert_equal(peer_node.unloadchildchain(chain_id)["loaded"], False)
         assert_equal(
             node.sendrawtransaction(
                 signed_child["hex"], 0, 0, chain_id),

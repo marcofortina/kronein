@@ -6,6 +6,7 @@
 #define KRONEIN_NODE_CHILD_NETWORK_MANAGER_H
 
 #include <primitives/chainregistry.h>
+#include <primitives/transaction.h>
 #include <sync.h>
 
 #include <chrono>
@@ -79,6 +80,7 @@ enum class ChildNetworkError : uint8_t {
     CHAIN_NOT_LOADED,
     ALREADY_RUNNING,
     NOT_RUNNING,
+    NULL_TRANSACTION,
     TOO_MANY_ENDPOINTS,
     INVALID_ENDPOINT,
     TOO_MANY_BIND_ENDPOINTS,
@@ -98,6 +100,7 @@ enum class ChildNetworkError : uint8_t {
 struct ChildNetworkResult {
     ChildNetworkError error{ChildNetworkError::NONE};
     std::string detail;
+    size_t relayed_peers{0};
 
     bool IsValid() const { return error == ChildNetworkError::NONE; }
 };
@@ -167,6 +170,9 @@ public:
     ChildNetworkResult SetNetworkActive(
         const chainregistry::ChainId& chain_id,
         bool active);
+    ChildNetworkResult RelayTransaction(
+        const chainregistry::ChainId& chain_id,
+        const CTransactionRef& transaction);
     void Interrupt();
     void StopAll();
 

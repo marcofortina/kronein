@@ -588,6 +588,27 @@ ChildNetworkResult ChildNetworkManager::Stop(
     return {};
 }
 
+ChildNetworkResult ChildNetworkManager::RelayTransaction(
+    const chainregistry::ChainId& chain_id,
+    const CTransactionRef& transaction)
+{
+    if (chain_id.IsNull()) {
+        return NetworkError(ChildNetworkError::NULL_CHAIN_ID);
+    }
+    if (!transaction) {
+        return NetworkError(ChildNetworkError::NULL_TRANSACTION);
+    }
+    LOCK(m_mutex);
+    const auto network{m_networks.find(chain_id)};
+    if (network == m_networks.end()) {
+        return NetworkError(ChildNetworkError::NOT_RUNNING);
+    }
+    ChildNetworkResult result;
+    result.relayed_peers =
+        network->second->events->RelayTransaction(transaction);
+    return result;
+}
+
 ChildNetworkResult ChildNetworkManager::AddNode(
     const chainregistry::ChainId& chain_id,
     const std::string& endpoint)
