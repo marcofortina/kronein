@@ -974,4 +974,74 @@ BOOST_AUTO_TEST_CASE(main_headers_are_validated_and_persisted)
     }
 }
 
+BOOST_AUTO_TEST_CASE(durable_local_proposal_activates_with_anchor)
+{
+    const auto definition{Definition()};
+    const auto& params{Params().GetConsensus()};
+    const CBlock& main_genesis{Params().GenesisBlock()};
+    const fs::path path{
+        m_args.GetDataDirBase() / "reference_child_local_activation"};
+    CBlock child_block;
+
+    {
+        node::ReferenceChildRuntime runtime{params, definition};
+        BOOST_REQUIRE(runtime.Initialize(
+            ChildDBParams(path, /*wipe=*/true),
+            main_genesis,
+            main_genesis.nTime,
+            /*sync=*/true).IsValid());
+        BOOST_REQUIRE(runtime.Tip());
+        child_block = ChildBlock(*runtime.Tip());
+        const auto stored{runtime.StoreLocalProposal(
+            child_block, child_block.nTime, /*sync=*/true)};
+        BOOST_REQUIRE_MESSAGE(stored.IsValid(), static_cast<int>(stored.error));
+        const auto proposals{runtime.GetLocalProposals()};
+        BOOST_REQUIRE(proposals);
+        BOOST_REQUIRE_EQUAL(proposals->size(), 1U);
+        BOOST_CHECK(proposals->front().block.GetHash() == child_block.GetHash());
+    }
+
+    {
+        node::ReferenceChildRuntime runtime{params, definition};
+        BOOST_REQUIRE(runtime.Initialize(
+            ChildDBParams(path, /*wipe=*/false),
+            main_genesis,
+            child_block.nTime,
+            /*sync=*/true).IsValid());
+        const auto proposals{runtime.GetLocalProposals()};
+        BOOST_REQUIRE(proposals);
+        BOOST_REQUIRE_EQUAL(proposals->size(), 1U);
+
+        const CBlockIndex* main_parent{runtime.MainHeaders()->Tip()};
+        BOOST_REQUIRE(main_parent);
+        CBlock main_anchor;
+        const auto anchor_proof{MakeBmmProof(
+            main_anchor,
+            *main_parent,
+            params,
+            definition,
+            child_block.GetHash())};
+        BOOST_REQUIRE(runtime.AddMainHeader(
+            main_anchor, main_anchor.nTime, /*sync=*/true).IsValid());
+
+        const auto activated{runtime.StageBmmAnchor(
+            anchor_proof, child_block.nTime, /*sync=*/true)};
+        BOOST_REQUIRE_MESSAGE(
+            activated.IsValid(), static_cast<int>(activated.error));
+        BOOST_CHECK(activated.local_proposal_found);
+        BOOST_CHECK(activated.local_proposal_activated);
+        BOOST_CHECK(
+            activated.local_proposal_activation_error ==
+            node::ReferenceChildRuntimeError::NONE);
+        BOOST_CHECK(activated.selected_child_head == child_block.GetHash());
+        BOOST_REQUIRE(runtime.Tip());
+        BOOST_CHECK(runtime.Tip()->GetBlockHash() == child_block.GetHash());
+        BOOST_CHECK_EQUAL(runtime.State().child_height, 1U);
+        BOOST_CHECK_EQUAL(runtime.State().pending_anchor_count, 0U);
+        const auto consumed{runtime.GetLocalProposals()};
+        BOOST_REQUIRE(consumed);
+        BOOST_CHECK(consumed->empty());
+    }
+}
+
 BOOST_AUTO_TEST_SUITE_END()

@@ -67,6 +67,10 @@ struct ReferenceChildRuntimeResult {
     std::vector<uint256> disconnected_child_blocks;
     std::vector<uint256> pruned_child_candidates;
     bool bmm_anchor_already_known{false};
+    bool local_proposal_found{false};
+    bool local_proposal_activated{false};
+    ReferenceChildRuntimeError local_proposal_activation_error{
+        ReferenceChildRuntimeError::NONE};
     bool candidate_stored{false};
     bool reorganization_required{false};
     uint256 selected_child_head;

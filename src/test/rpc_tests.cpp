@@ -550,6 +550,9 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
         "submitchildanchor " + chain_id + " " + valid_proof_hex)};
     BOOST_CHECK_EQUAL(staged.find_value("child_block_hash").get_str(),
                       child_block.GetHash().GetHex());
+    BOOST_CHECK(!staged.find_value("local_proposal_found").get_bool());
+    BOOST_CHECK(!staged.find_value("local_proposal_activated").get_bool());
+    BOOST_CHECK(staged.find_value("local_proposal_activation_error").isNull());
     const auto awaiting_data{
         CallRPC("getchildpendingblocks " + chain_id)};
     BOOST_CHECK_EQUAL(

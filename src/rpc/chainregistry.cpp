@@ -1900,7 +1900,7 @@ RPCHelpMan submitchildanchor()
 {
     return RPCHelpMan{
         "submitchildanchor",
-        "Authenticate and persist one BMM anchor proof for a loaded child chain. If the referenced child block is already known, the additional main-chain work may immediately select and activate its branch.\n",
+        "Authenticate and persist one BMM anchor proof for a loaded child chain. If the referenced block is a stored local proposal, it is validated and admitted automatically. If it is already in the candidate DAG, the additional main-chain work may immediately select and activate its branch.\n",
         {
             {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null child-chain identifier"},
             {"bmm_proof", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Canonical serialized BMM anchor proof"},
@@ -1909,6 +1909,10 @@ RPCHelpMan submitchildanchor()
             {RPCResult::Type::STR_HEX, "chain_id", "Child-chain identifier"},
             {RPCResult::Type::STR_HEX, "child_block_hash", "Child block committed by the proof"},
             {RPCResult::Type::BOOL, "already_known", "Whether this exact main-chain anchor was already stored"},
+            {RPCResult::Type::BOOL, "local_proposal_found", "Whether a durable local proposal matched the committed block"},
+            {RPCResult::Type::BOOL, "local_proposal_activated", "Whether the matching local proposal was admitted automatically"},
+            {RPCResult::Type::NUM, "local_proposal_activation_error", /*optional=*/true, "Runtime error code when opportunistic proposal activation failed; the authenticated anchor remains stored"},
+            {RPCResult::Type::NUM, "local_proposal_block_error", /*optional=*/true, "Child block validation error code when opportunistic proposal activation failed"},
             {RPCResult::Type::STR_HEX, "selected_head", /*optional=*/true, "Fork-choice result when the referenced child block is known"},
             {RPCResult::Type::STR_HEX, "bestblockhash", "Active child-chain tip after processing"},
             {RPCResult::Type::ARR, "disconnected", "Child blocks disconnected by an immediate reorganization", {
@@ -1948,6 +1952,18 @@ RPCHelpMan submitchildanchor()
     result.pushKV("chain_id", chain_id.GetHex());
     result.pushKV("child_block_hash", submitted.runtime.bmm_anchor.proof.anchor->child_block_hash.GetHex());
     result.pushKV("already_known", submitted.runtime.bmm_anchor_already_known);
+    result.pushKV("local_proposal_found", submitted.runtime.local_proposal_found);
+    result.pushKV("local_proposal_activated", submitted.runtime.local_proposal_activated);
+    if (submitted.runtime.local_proposal_activation_error !=
+        node::ReferenceChildRuntimeError::NONE) {
+        result.pushKV(
+            "local_proposal_activation_error",
+            static_cast<unsigned>(
+                submitted.runtime.local_proposal_activation_error));
+        result.pushKV(
+            "local_proposal_block_error",
+            static_cast<unsigned>(submitted.runtime.child_block.error));
+    }
     if (!submitted.runtime.selected_child_head.IsNull()) {
         result.pushKV("selected_head", submitted.runtime.selected_child_head.GetHex());
     }

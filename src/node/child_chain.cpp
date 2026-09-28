@@ -803,6 +803,26 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::StageBmmAnchor(
     }
     result.pruned_child_candidates = std::move(pruned_candidates);
     result.bmm_anchor_already_known = already_known;
+    if (!child_block_known) {
+        const auto local_proposal{
+            m_db->ReadLocalProposal(child_block_hash)};
+        if (local_proposal) {
+            auto activated{ConnectStagedBlock(
+                local_proposal->block, current_time, sync)};
+            activated.bmm_anchor = result.bmm_anchor;
+            activated.bmm_anchor_already_known = already_known;
+            activated.local_proposal_found = true;
+            activated.local_proposal_activated = activated.IsValid();
+            activated.local_proposal_activation_error = activated.error;
+            if (activated.IsValid() || m_failed) {
+                return activated;
+            }
+            result.local_proposal_found = true;
+            result.local_proposal_activation_error = activated.error;
+            result.child_block = std::move(activated.child_block);
+            result.selected_child_head = m_tip->GetBlockHash();
+        }
+    }
     if (child_block_known) {
         const auto candidates{m_db->ReadForkCandidates(*m_main_headers)};
         if (!candidates) {
