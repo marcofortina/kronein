@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <set>
 #include <vector>
 
 namespace node {
@@ -51,6 +52,7 @@ class ChildMempool
 {
 private:
     std::vector<ChildMempoolEntry> m_entries;
+    std::set<Txid> m_txids;
     size_t m_total_bytes{0};
     CAmount m_total_fees{0};
     uint64_t m_sequence{0};

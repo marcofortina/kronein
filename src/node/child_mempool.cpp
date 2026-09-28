@@ -6,17 +6,13 @@
 
 #include <consensus/consensus.h>
 
-#include <algorithm>
 #include <utility>
 
 namespace node {
 
 bool ChildMempool::Contains(const Txid& txid) const
 {
-    return std::any_of(
-        m_entries.begin(), m_entries.end(), [&](const auto& entry) {
-            return entry.transaction->GetHash() == txid;
-        });
+    return m_txids.contains(txid);
 }
 
 ChildMempoolAddResult ChildMempool::Add(CTransactionRef transaction,
@@ -29,7 +25,8 @@ ChildMempoolAddResult ChildMempool::Add(CTransactionRef transaction,
         result.error = ChildMempoolError::NULL_TRANSACTION;
         return result;
     }
-    if (Contains(transaction->GetHash())) {
+    const Txid txid{transaction->GetHash()};
+    if (Contains(txid)) {
         result.error = ChildMempoolError::DUPLICATE_TRANSACTION;
         return result;
     }
@@ -58,6 +55,7 @@ ChildMempoolAddResult ChildMempool::Add(CTransactionRef transaction,
         .entry_height = entry_height,
         .serialized_size = result.serialized_size,
     });
+    m_txids.insert(txid);
     return result;
 }
 
@@ -70,6 +68,7 @@ std::vector<Txid> ChildMempool::Clear()
     }
     if (!m_entries.empty()) ++m_sequence;
     m_entries.clear();
+    m_txids.clear();
     m_total_bytes = 0;
     m_total_fees = 0;
     return removed;
