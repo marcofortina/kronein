@@ -853,16 +853,25 @@ static RPCHelpMan getdifficulty()
 {
     return RPCHelpMan{
         "getdifficulty",
-        "Returns the proof-of-work difficulty as a multiple of the minimum difficulty.\n",
-                {},
+        "Returns the proof-of-work difficulty as a multiple of the minimum difficulty.\n"
+        "Omit chain_id for the main chain. BMM child chains have no independent proof-of-work target and return 0.\n",
+                {
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
+                },
                 RPCResult{
-                    RPCResult::Type::NUM, "", "the proof-of-work difficulty as a multiple of the minimum difficulty."},
+                    RPCResult::Type::NUM, "", "the proof-of-work difficulty as a multiple of the minimum difficulty, or zero for a BMM child chain."},
                 RPCExamples{
                     HelpExampleCli("getdifficulty", "")
+            + HelpExampleCli("getdifficulty", "\"chain_id\"")
             + HelpExampleRpc("getdifficulty", "")
+            + HelpExampleRpc("getdifficulty", "\"chain_id\"")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
+    if (const auto chain_id{self.MaybeArg<std::string_view>("chain_id")}) {
+        GetLoadedChildTipBlockView(request.context, *chain_id);
+        return 0.0;
+    }
     ChainstateManager& chainman = EnsureAnyChainman(request.context);
     LOCK(cs_main);
     return GetDifficulty(*CHECK_NONFATAL(chainman.ActiveChain().Tip()));
@@ -2148,10 +2157,12 @@ static RPCHelpMan getchaintxstats()
 {
     return RPCHelpMan{
         "getchaintxstats",
-        "Compute statistics about the total number and rate of transactions in the chain.\n",
+        "Compute statistics about the total number and rate of transactions in the chain.\n"
+        "Omit chain_id for the main chain. Child-chain statistics cover the active local child branch.\n",
                 {
                     {"nblocks", RPCArg::Type::NUM, RPCArg::DefaultHint{"one month"}, "Size of the window in number of blocks"},
                     {"blockhash", RPCArg::Type::STR_HEX, RPCArg::DefaultHint{"chain tip"}, "The hash of the block that ends the window."},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
@@ -2170,16 +2181,79 @@ static RPCHelpMan getchaintxstats()
                         {RPCResult::Type::NUM, "txrate", /*optional=*/true,
                          "The average rate of transactions per second in the window. "
                          "Only returned if \"window_interval\" is > 0 and if window_tx_count exists."},
+                        {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Child-chain identifier; present only for child results"},
                     }},
                 RPCExamples{
                     HelpExampleCli("getchaintxstats", "")
+            + HelpExampleCli("getchaintxstats", "0 \"blockhash\" \"chain_id\"")
             + HelpExampleRpc("getchaintxstats", "2016")
+            + HelpExampleRpc("getchaintxstats", "0, null, \"chain_id\"")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     ChainstateManager& chainman = EnsureAnyChainman(request.context);
-    const CBlockIndex* pindex;
     int blockcount = 30 * 24 * 60 * 60 / chainman.GetParams().GetConsensus().nPowTargetSpacing; // By default: 1 month
+
+    if (const auto chain_id{self.MaybeArg<std::string_view>("chain_id")}) {
+        const auto final_view{request.params[1].isNull()
+            ? GetLoadedChildTipBlockView(request.context, *chain_id)
+            : GetLoadedChildBlockView(
+                  request.context,
+                  *chain_id,
+                  ParseHashV(request.params[1], "blockhash"))};
+        if (!final_view.block.active) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "Block is not in active child chain");
+        }
+        if (request.params[0].isNull()) {
+            blockcount = std::max(
+                0,
+                std::min(blockcount, final_view.block.height - 1));
+        } else {
+            blockcount = request.params[0].getInt<int>();
+            if (blockcount < 0 ||
+                (blockcount > 0 && blockcount >= final_view.block.height)) {
+                throw JSONRPCError(
+                    RPC_INVALID_PARAMETER,
+                    "Invalid block count: should be between 0 and the block's height - 1");
+            }
+        }
+
+        const auto past_chain_view{GetLoadedChildChainView(
+            request.context,
+            *chain_id,
+            final_view.block.height - blockcount)};
+        Assume(past_chain_view.block_hash);
+        const auto past_view{GetLoadedChildBlockView(
+            request.context, *chain_id, *past_chain_view.block_hash)};
+        const int64_t time_diff{
+            final_view.block.median_time - past_view.block.median_time};
+
+        UniValue result{UniValue::VOBJ};
+        result.pushKV("time", final_view.block.time);
+        result.pushKV("txcount", final_view.block.chain_tx_count);
+        result.pushKV(
+            "window_final_block_hash",
+            final_view.block.block_hash.GetHex());
+        result.pushKV("window_final_block_height", final_view.block.height);
+        result.pushKV("window_block_count", blockcount);
+        result.pushKV("chain_id", final_view.entry.chain_id.GetHex());
+        if (blockcount > 0) {
+            result.pushKV("window_interval", time_diff);
+            const uint64_t window_tx_count{
+                final_view.block.chain_tx_count -
+                past_view.block.chain_tx_count};
+            result.pushKV("window_tx_count", window_tx_count);
+            if (time_diff > 0) {
+                result.pushKV(
+                    "txrate", double(window_tx_count) / time_diff);
+            }
+        }
+        return result;
+    }
+
+    const CBlockIndex* pindex;
 
     if (request.params[1].isNull()) {
         LOCK(cs_main);

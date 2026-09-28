@@ -403,8 +403,16 @@ class ChainRegistryTest(BitcoinTestFramework):
         main_height = node.getblockcount()
         main_tip = node.getbestblockhash()
         assert_equal(node.getblockcount(chain_id), 0)
+        assert_equal(node.getdifficulty(chain_id), Decimal("0"))
         assert_equal(node.getbestblockhash(chain_id=chain_id), reference_child["genesis_hash"])
         assert_equal(node.getblockhash(0, chain_id), reference_child["genesis_hash"])
+        child_tx_stats = node.getchaintxstats(
+            0, reference_child["genesis_hash"], chain_id)
+        assert_equal(child_tx_stats["chain_id"], chain_id)
+        assert_equal(child_tx_stats["window_final_block_hash"], reference_child["genesis_hash"])
+        assert_equal(child_tx_stats["window_final_block_height"], 0)
+        assert_equal(child_tx_stats["window_block_count"], 0)
+        assert_equal(child_tx_stats["txcount"], 0)
         assert_equal(node.getblockcount(), main_height)
         assert_equal(node.getbestblockhash(), main_tip)
         assert_raises_rpc_error(-8, "Block height out of range",

@@ -79,6 +79,7 @@ struct ReferenceChildBlockView {
     int confirmations{-1};
     uint32_t time{0};
     int64_t median_time{0};
+    uint64_t chain_tx_count{0};
     bool active{false};
     bool virtual_genesis{false};
     std::optional<uint256> next_block_hash;

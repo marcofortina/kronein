@@ -337,6 +337,7 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
         BOOST_CHECK(!child_view->virtual_genesis);
         BOOST_CHECK_EQUAL(child_view->height, 1);
         BOOST_CHECK_EQUAL(child_view->confirmations, 1);
+        BOOST_CHECK_EQUAL(child_view->chain_tx_count, block.vtx.size());
         BOOST_CHECK(child_view->fork_score.eligible);
         BOOST_CHECK(child_view->fork_score.cumulative_anchor_work > 0);
         const auto genesis_view{
@@ -346,6 +347,7 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
         BOOST_CHECK(!genesis_view->block);
         BOOST_CHECK(genesis_view->active);
         BOOST_CHECK_EQUAL(genesis_view->confirmations, 2);
+        BOOST_CHECK_EQUAL(genesis_view->chain_tx_count, 0U);
         BOOST_REQUIRE(genesis_view->next_block_hash);
         BOOST_CHECK(*genesis_view->next_block_hash == child_hash);
         BOOST_CHECK(!runtime.GetBlockView(uint256{42}));
@@ -416,6 +418,9 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
         BOOST_REQUIRE(runtime.Tip());
         BOOST_CHECK(runtime.Tip()->GetBlockHash() == child_hash);
         BOOST_CHECK_EQUAL(runtime.Tip()->nHeight, 1);
+        const auto restored_view{runtime.GetBlockView(child_hash)};
+        BOOST_REQUIRE(restored_view);
+        BOOST_CHECK_EQUAL(restored_view->chain_tx_count, 1U);
         BOOST_CHECK(runtime.VerifyDatabase(main_genesis.nTime + 2));
 
         const auto disconnected{runtime.DisconnectTip(/*sync=*/true)};

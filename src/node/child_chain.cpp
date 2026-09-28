@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <exception>
+#include <limits>
 #include <set>
 #include <utility>
 #include <vector>
@@ -53,6 +54,7 @@ bool ReferenceChildRuntime::RebuildChildIndex(uint32_t genesis_time)
     m_genesis->phashBlock = &m_definition.genesis_hash;
     m_genesis->nHeight = 0;
     m_genesis->nTimeMax = genesis_time;
+    m_genesis->m_chain_tx_count = 0;
 
     m_child_index.clear();
     const auto candidates{m_db->ReadForkCandidates(*m_main_headers)};
@@ -96,6 +98,11 @@ bool ReferenceChildRuntime::RebuildChildIndex(uint32_t genesis_time)
         index->nHeight = parent->nHeight + 1;
         index->nTimeMax = std::max(parent->nTimeMax, index->nTime);
         index->nTx = block.vtx.size();
+        if (parent->m_chain_tx_count >
+            std::numeric_limits<uint64_t>::max() - index->nTx) {
+            return nullptr;
+        }
+        index->m_chain_tx_count = parent->m_chain_tx_count + index->nTx;
         index->BuildSkip();
         auto [stored, inserted]{
             m_child_index.emplace(hash, std::move(index))};
@@ -851,6 +858,13 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
     slot->second->nHeight = parent->nHeight + 1;
     slot->second->nTimeMax = std::max(parent->nTimeMax, slot->second->nTime);
     slot->second->nTx = block.vtx.size();
+    if (parent->m_chain_tx_count >
+        std::numeric_limits<uint64_t>::max() - slot->second->nTx) {
+        m_child_index.erase(slot);
+        return RuntimeError(ReferenceChildRuntimeError::CHILD_BLOCK_REJECTED);
+    }
+    slot->second->m_chain_tx_count =
+        parent->m_chain_tx_count + slot->second->nTx;
     slot->second->BuildSkip();
 
     CCoinsViewCache candidate_coins{m_db.get(), /*deterministic=*/true};
@@ -1101,6 +1115,7 @@ std::optional<ReferenceChildBlockView> ReferenceChildRuntime::GetBlockView(
         .confirmations = -1,
         .time = index->nTime,
         .median_time = index->GetMedianTimePast(),
+        .chain_tx_count = index->m_chain_tx_count,
         .active = false,
         .virtual_genesis = virtual_genesis,
         .next_block_hash = std::nullopt,

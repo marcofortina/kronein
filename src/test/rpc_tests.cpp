@@ -273,6 +273,7 @@ BOOST_AUTO_TEST_CASE(blockchain_rpc_routes_explicit_child_chain)
     BOOST_REQUIRE(!main_tips.empty());
     BOOST_CHECK(main_tips[0].find_value("chain_id").isNull());
     BOOST_CHECK_EQUAL(CallRPC("getblockcount " + chain_id).getInt<int>(), 0);
+    BOOST_CHECK_EQUAL(CallRPC("getdifficulty " + chain_id).get_real(), 0.0);
     BOOST_CHECK_EQUAL(CallRPC("getbestblockhash " + chain_id).get_str(),
                       definition.genesis_hash.GetHex());
     BOOST_CHECK_EQUAL(CallRPC("getblockhash 0 " + chain_id).get_str(),
@@ -651,6 +652,19 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
     BOOST_CHECK_EQUAL(child_stats.find_value("subsidy").getInt<int64_t>(), 0);
     BOOST_CHECK_EQUAL(child_stats.find_value("totalfee").getInt<int64_t>(), 0);
     BOOST_CHECK_EQUAL(child_stats.find_value("txs").getInt<int>(), 1);
+    const auto child_tx_stats{CallRPC(
+        "getchaintxstats 0 " + child_block.GetHash().GetHex() + " " +
+        chain_id)};
+    BOOST_CHECK_EQUAL(child_tx_stats.find_value("chain_id").get_str(), chain_id);
+    BOOST_CHECK_EQUAL(
+        child_tx_stats.find_value("window_final_block_hash").get_str(),
+        child_block.GetHash().GetHex());
+    BOOST_CHECK_EQUAL(
+        child_tx_stats.find_value("window_final_block_height").getInt<int>(),
+        1);
+    BOOST_CHECK_EQUAL(child_tx_stats.find_value("txcount").getInt<int>(), 1);
+    BOOST_CHECK_EQUAL(
+        child_tx_stats.find_value("window_block_count").getInt<int>(), 0);
     const auto child_utxo_stats{CallRPC(
         "gettxoutsetinfo muhash null true " + chain_id)};
     BOOST_CHECK_EQUAL(
