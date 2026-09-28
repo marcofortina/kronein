@@ -1008,12 +1008,12 @@
     </message>
     <message>
         <location line="+16"/>
-        <location line="+248"/>
+        <location line="+257"/>
         <source>Select a child chain to manage its local runtime.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-243"/>
+        <location line="-252"/>
         <source>Refresh</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1054,18 +1054,18 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+234"/>
-        <location line="+38"/>
+        <location line="+243"/>
+        <location line="+42"/>
         <source>Pause Network</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-262"/>
+        <location line="-271"/>
         <source>Forget…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+68"/>
+        <location line="+70"/>
         <source>Failed</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1100,23 +1100,33 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+178"/>
+        <location line="+185"/>
         <source>Chain ID: %1
 State: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7 • discovery: %8 (%9 bootstrap, %10 known) • rate-limited block requests: %11</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-151"/>
+        <location line="-157"/>
         <source>No explicit child peers configured</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-121"/>
+        <location line="-128"/>
         <source>Migrate…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+122"/>
+        <location line="+1"/>
+        <source>Update Metadata…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Retire…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+127"/>
         <source>Explicit child peers:
 %1</source>
         <translation type="unfinished"></translation>
@@ -1201,7 +1211,7 @@ Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+69"/>
+        <location line="+75"/>
         <source>Resume Network</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1243,7 +1253,108 @@ Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+31"/>
+        <location line="+42"/>
+        <location line="+4"/>
+        <location line="+16"/>
+        <source>Create registry operation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The wallet returned an invalid registry proposal.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Confirm Permanent Retirement</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Confirm Metadata Update</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Permanently retire child chain %1?
+
+New deposits and anchors will stop after confirmation on the main chain. Protocol v1 has no operation that reactivates a retired chain.
+
+Main-chain fee: %2 KNE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Update the metadata commitment and rotate the control output for child chain %1?
+
+Main-chain fee: %2 KNE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <location line="+16"/>
+        <location line="+4"/>
+        <location line="+19"/>
+        <source>Submit registry operation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The wallet returned an invalid registry result.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Retirement Submitted</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Update Submitted</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The registry operation was broadcast.
+
+Transaction: %1
+Child chain: %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+15"/>
+        <source>Update Child Metadata</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>New metadata hash (32-byte hexadecimal commitment):</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>Invalid Metadata Hash</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Enter exactly 32 bytes (64 hexadecimal characters).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <location line="+4"/>
+        <location line="+6"/>
+        <source>Create successor control</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The wallet returned an invalid control address.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+28"/>
         <source>Migrate KNE to Child Chain</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1344,7 +1455,8 @@ There is no child-to-main withdrawal path.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-45"/>
+        <location line="-278"/>
+        <location line="+233"/>
         <source>The selected wallet is no longer available.</source>
         <translation type="unfinished"></translation>
     </message>

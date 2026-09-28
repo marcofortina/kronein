@@ -51,6 +51,8 @@ private Q_SLOTS:
     void toggleNetwork();
 #ifdef ENABLE_WALLET
     void migrateSelected();
+    void updateSelected();
+    void retireSelected();
 #endif
 
 private:
@@ -81,6 +83,7 @@ private:
         KNOWN_ADDRESSES_ROLE,
         RATE_LIMITED_REQUESTS_ROLE,
         SUPPORTED_ROLE,
+        METADATA_HASH_ROLE,
     };
 
     QString selectedChainId() const;
@@ -89,6 +92,9 @@ private:
     void showRpcError(const QString& operation, const QString& message);
 #ifdef ENABLE_WALLET
     std::string walletUri() const;
+    void submitRegistryOperation(const char* operation,
+                                 const QString& chain_id,
+                                 UniValue parameters);
 #endif
 
     interfaces::Node& m_node;
@@ -108,6 +114,8 @@ private:
 #ifdef ENABLE_WALLET
     QPointer<WalletModel> m_wallet_model;
     QPushButton* m_migrate_button{nullptr};
+    QPushButton* m_update_button{nullptr};
+    QPushButton* m_retire_button{nullptr};
 #endif
 };
 

@@ -154,7 +154,11 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     m_network_button = actions->addButton(tr("Pause Network"), QDialogButtonBox::ActionRole);
 #ifdef ENABLE_WALLET
     m_migrate_button = actions->addButton(tr("Migrate…"), QDialogButtonBox::ActionRole);
+    m_update_button = actions->addButton(tr("Update Metadata…"), QDialogButtonBox::ActionRole);
+    m_retire_button = actions->addButton(tr("Retire…"), QDialogButtonBox::DestructiveRole);
     m_migrate_button->setObjectName(QStringLiteral("childChainMigrateButton"));
+    m_update_button->setObjectName(QStringLiteral("childChainUpdateButton"));
+    m_retire_button->setObjectName(QStringLiteral("childChainRetireButton"));
 #endif
     m_add_peer_button->setObjectName(QStringLiteral("childChainAddPeerButton"));
     m_remove_peer_button->setObjectName(QStringLiteral("childChainRemovePeerButton"));
@@ -182,6 +186,8 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     connect(m_network_button, &QPushButton::clicked, this, &ChildChainDialog::toggleNetwork);
 #ifdef ENABLE_WALLET
     connect(m_migrate_button, &QPushButton::clicked, this, &ChildChainDialog::migrateSelected);
+    connect(m_update_button, &QPushButton::clicked, this, &ChildChainDialog::updateSelected);
+    connect(m_retire_button, &QPushButton::clicked, this, &ChildChainDialog::retireSelected);
 #endif
     connect(m_forget_button, &QPushButton::clicked, this, &ChildChainDialog::forgetSelected);
     connect(actions, &QDialogButtonBox::rejected, this, &QDialog::close);
@@ -268,6 +274,7 @@ void ChildChainDialog::refresh()
             status_item->setData(
                 RATE_LIMITED_REQUESTS_ROLE, rate_limited);
             status_item->setData(SUPPORTED_ROLE, BoolField(chain, "supported"));
+            status_item->setData(METADATA_HASH_ROLE, StringField(chain, "metadata_hash"));
             m_table->setItem(row, STATUS, status_item);
             m_table->setItem(row, CHAIN_ID, new QTableWidgetItem{chain_id});
             m_table->setItem(row, CHILD_HEIGHT, new QTableWidgetItem{NumberField(chain, "child_height")});
@@ -384,6 +391,8 @@ void ChildChainDialog::updateSelection()
         m_network_button->setEnabled(false);
 #ifdef ENABLE_WALLET
         m_migrate_button->setEnabled(false);
+        m_update_button->setEnabled(false);
+        m_retire_button->setEnabled(false);
 #endif
         m_network_button->setText(tr("Pause Network"));
         m_selection_summary->setText(tr("Select a child chain to manage its local runtime."));
@@ -417,11 +426,15 @@ void ChildChainDialog::updateSelection()
     m_discovery_button->setEnabled(loaded && network_running);
     m_network_button->setEnabled(loaded && network_running);
 #ifdef ENABLE_WALLET
-    m_migrate_button->setEnabled(
-        m_wallet_model && registry_found && supported &&
+    const bool active_registry_record{
+        m_wallet_model && registry_found &&
         (state == QStringLiteral("available") ||
          state == QStringLiteral("configured") ||
-         state == QStringLiteral("loaded")));
+         state == QStringLiteral("loaded"))};
+    m_migrate_button->setEnabled(
+        active_registry_record && supported);
+    m_update_button->setEnabled(active_registry_record);
+    m_retire_button->setEnabled(active_registry_record);
 #endif
     m_network_button->setText(network_active ? tr("Pause Network") : tr("Resume Network"));
     m_selection_summary->setText(
@@ -454,6 +467,182 @@ std::string ChildChainDialog::walletUri() const
     return "/wallet/" +
         std::string{encoded_name.constData(),
                     static_cast<size_t>(encoded_name.size())};
+}
+
+void ChildChainDialog::submitRegistryOperation(const char* operation,
+                                               const QString& chain_id,
+                                               UniValue parameters)
+{
+    if (!m_wallet_model) return;
+    const QPointer<WalletModel> wallet_model{m_wallet_model};
+    const std::string wallet_uri{walletUri()};
+
+    UniValue create_params{UniValue::VARR};
+    create_params.push_back(operation);
+    create_params.push_back(std::move(parameters));
+
+    UniValue created;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        created = m_node.executeRpc(
+            "walletcreatechainregistrypsbt", create_params, wallet_uri);
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Create registry operation"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Create registry operation"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+
+    const QString operation_name{QString::fromLatin1(operation)};
+    const UniValue& created_operation{created.find_value("operation")};
+    const UniValue& created_chain{created.find_value("chain_id")};
+    const UniValue& psbt{created.find_value("psbt")};
+    const UniValue& fee{created.find_value("fee")};
+    if (!created_operation.isStr() ||
+        QString::fromStdString(created_operation.get_str()) != operation_name ||
+        !created_chain.isStr() ||
+        QString::fromStdString(created_chain.get_str()) != chain_id ||
+        !psbt.isStr() || !fee.isNum()) {
+        showRpcError(tr("Create registry operation"),
+                     tr("The wallet returned an invalid registry proposal."));
+        return;
+    }
+
+    const bool retiring{operation_name == QStringLiteral("retire")};
+    QMessageBox confirmation{
+        QMessageBox::Warning,
+        retiring ? tr("Confirm Permanent Retirement")
+                 : tr("Confirm Metadata Update"),
+        retiring
+            ? tr("Permanently retire child chain %1?\n\nNew deposits and anchors will stop after confirmation on the main chain. Protocol v1 has no operation that reactivates a retired chain.\n\nMain-chain fee: %2 KNE")
+                  .arg(chain_id, QString::fromStdString(fee.getValStr()))
+            : tr("Update the metadata commitment and rotate the control output for child chain %1?\n\nMain-chain fee: %2 KNE")
+                  .arg(chain_id, QString::fromStdString(fee.getValStr())),
+        QMessageBox::Yes | QMessageBox::Cancel,
+        this};
+    confirmation.setDefaultButton(QMessageBox::Cancel);
+    if (confirmation.exec() != QMessageBox::Yes) return;
+
+    if (!wallet_model) {
+        showRpcError(tr("Submit registry operation"),
+                     tr("The selected wallet is no longer available."));
+        return;
+    }
+    WalletModel::UnlockContext unlock_context{wallet_model->requestUnlock()};
+    if (!unlock_context.isValid()) return;
+
+    UniValue submit_params{UniValue::VARR};
+    submit_params.push_back(psbt.get_str());
+    UniValue submitted;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        submitted = m_node.executeRpc(
+            "walletsubmitchainregistrypsbt", submit_params, wallet_uri);
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Submit registry operation"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Submit registry operation"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+
+    const UniValue& submitted_operation{submitted.find_value("operation")};
+    const UniValue& submitted_chain{submitted.find_value("chain_id")};
+    const UniValue& txid{submitted.find_value("txid")};
+    const UniValue& submitted_fee{submitted.find_value("fee")};
+    const UniValue& registration_burn{submitted.find_value("registration_burn")};
+    if (!submitted_operation.isStr() ||
+        QString::fromStdString(submitted_operation.get_str()) != operation_name ||
+        !submitted_chain.isStr() ||
+        QString::fromStdString(submitted_chain.get_str()) != chain_id ||
+        !txid.isStr() || !submitted_fee.isNum() ||
+        submitted_fee.getValStr() != fee.getValStr() ||
+        !registration_burn.isNum() ||
+        registration_burn.getValStr() != ValueFromAmount(0).getValStr()) {
+        showRpcError(tr("Submit registry operation"),
+                     tr("The wallet returned an invalid registry result."));
+        return;
+    }
+
+    QMessageBox::information(
+        this,
+        retiring ? tr("Retirement Submitted") : tr("Update Submitted"),
+        tr("The registry operation was broadcast.\n\nTransaction: %1\nChild chain: %2")
+            .arg(QString::fromStdString(txid.get_str()), chain_id));
+    refresh();
+}
+
+void ChildChainDialog::updateSelected()
+{
+    const int row{m_table->currentRow()};
+    const QTableWidgetItem* item{row >= 0 ? m_table->item(row, STATUS) : nullptr};
+    const QString chain_id{selectedChainId()};
+    if (!item || chain_id.isEmpty() || !m_wallet_model) return;
+
+    bool accepted{false};
+    const QString metadata_hash{QInputDialog::getText(
+        this,
+        tr("Update Child Metadata"),
+        tr("New metadata hash (32-byte hexadecimal commitment):"),
+        QLineEdit::Normal,
+        item->data(METADATA_HASH_ROLE).toString(),
+        &accepted).trimmed()};
+    if (!accepted) return;
+    if (!QRegularExpression{QStringLiteral("^[0-9A-Fa-f]{64}$")}
+             .match(metadata_hash)
+             .hasMatch()) {
+        QMessageBox::warning(
+            this,
+            tr("Invalid Metadata Hash"),
+            tr("Enter exactly 32 bytes (64 hexadecimal characters)."));
+        return;
+    }
+
+    UniValue address;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        address = m_node.executeRpc(
+            "getnewaddress", UniValue{UniValue::VARR}, walletUri());
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Create successor control"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Create successor control"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+    if (!address.isStr()) {
+        showRpcError(tr("Create successor control"),
+                     tr("The wallet returned an invalid control address."));
+        return;
+    }
+
+    UniValue parameters{UniValue::VOBJ};
+    parameters.pushKV("chain_id", chain_id.toStdString());
+    parameters.pushKV("metadata_hash", metadata_hash.toStdString());
+    parameters.pushKV("control_address", address.get_str());
+    submitRegistryOperation("update", chain_id, std::move(parameters));
+}
+
+void ChildChainDialog::retireSelected()
+{
+    const QString chain_id{selectedChainId()};
+    if (chain_id.isEmpty() || !m_wallet_model) return;
+    UniValue parameters{UniValue::VOBJ};
+    parameters.pushKV("chain_id", chain_id.toStdString());
+    submitRegistryOperation("retire", chain_id, std::move(parameters));
 }
 
 void ChildChainDialog::migrateSelected()
