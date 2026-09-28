@@ -1093,6 +1093,36 @@ ChainManagerBlockView ChainManager::GetBlockView(
     return GetBlockViewLocked(chain_id, block_hash);
 }
 
+ChainManagerBlockView ChainManager::GetBlockViewByHeight(
+    const chainregistry::ChainId& chain_id,
+    int height) const
+{
+    LOCK(m_mutex);
+    if (chain_id.IsNull()) {
+        ChainManagerBlockView result;
+        result.error = ChainManagerBlockViewError::NULL_CHAIN_ID;
+        return result;
+    }
+    if (!m_definitions.contains(chain_id)) {
+        ChainManagerBlockView result;
+        result.error = ChainManagerBlockViewError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto loaded{m_loaded.find(chain_id)};
+    if (loaded == m_loaded.end()) {
+        ChainManagerBlockView result;
+        result.error = ChainManagerBlockViewError::CHAIN_NOT_LOADED;
+        return result;
+    }
+    const auto block_hash{loaded->second->GetBlockHash(height)};
+    if (!block_hash) {
+        ChainManagerBlockView result;
+        result.error = ChainManagerBlockViewError::HEIGHT_OUT_OF_RANGE;
+        return result;
+    }
+    return GetBlockViewLocked(chain_id, *block_hash);
+}
+
 ChainManagerBlockView ChainManager::GetTipBlockView(
     const chainregistry::ChainId& chain_id) const
 {

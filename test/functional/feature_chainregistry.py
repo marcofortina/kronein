@@ -366,6 +366,9 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_raises_rpc_error(
             -8, "child chain is not configured locally",
             wallet.getbalance, 0, False, chain_id)
+        assert_raises_rpc_error(
+            -8, "child chain is not configured locally",
+            wallet.listsinceblock, "", 1, True, False, None, chain_id)
 
         self.log.info("Reserve registry control outputs from ordinary wallet spending")
         control_outpoint = {"txid": registration_txid, "vout": 1}
@@ -1570,6 +1573,17 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(pending_attacker_tx["decoded"]["txid"],
                      signed_child["txid"])
 
+        pending_since_block = wallet.listsinceblock(
+            child_block["blockhash"], 1, True, False, None, chain_id)
+        assert_equal(pending_since_block["chain_id"], chain_id)
+        assert_equal(pending_since_block["lastblock"],
+                     child_block["blockhash"])
+        assert_equal(pending_since_block["removed"], [])
+        assert_equal(
+            [entry["txid"] for entry in
+             pending_since_block["transactions"]],
+            [signed_child["txid"]])
+
         child_fee_recipient = wallet.getnewchildrecipient(
             chain_id, "child-fees")
         child_wallet_identities = wallet.listchildrecipients(chain_id)
@@ -1670,6 +1684,27 @@ class ChainRegistryTest(BitcoinTestFramework):
                      Decimal("0.00000000"))
         assert_equal(attacker.getbalance(1, False, chain_id),
                      child_spend_amount)
+        confirmed_since_import = wallet.listsinceblock(
+            child_block["blockhash"], 2, True, False, None, chain_id)
+        assert_equal(confirmed_since_import["chain_id"], chain_id)
+        assert_equal(confirmed_since_import["lastblock"],
+                     child_block["blockhash"])
+        assert_equal(confirmed_since_import["removed"], [])
+        assert signed_child["txid"] in {
+            entry["txid"]
+            for entry in confirmed_since_import["transactions"]
+        }
+        assert_equal(wallet.listsinceblock(
+            spend_block["blockhash"], 1, False, False, None,
+            chain_id), {
+                "transactions": [],
+                "lastblock": spend_block["blockhash"],
+                "chain_id": chain_id,
+            })
+        assert_raises_rpc_error(
+            -5, "Child block not found",
+            wallet.listsinceblock, "42" * 32, 1, True, False, None,
+            chain_id)
         confirmed_wallet_tx = wallet.gettransaction(
             signed_child["txid"], False, chain_id)
         assert_equal(confirmed_wallet_tx["amount"], -child_spend_amount)
@@ -1701,6 +1736,9 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_raises_rpc_error(
             -1, "child chain is not loaded",
             wallet.getbalance, 0, False, chain_id)
+        assert_raises_rpc_error(
+            -1, "child chain is not loaded",
+            wallet.listsinceblock, "", 1, True, False, None, chain_id)
         assert_equal(node.loadchildchain(chain_id)["height"], 2)
         assert_equal(wallet.listtransactions("*", 10, 0, chain_id),
                      confirmed_history)

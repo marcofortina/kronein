@@ -79,6 +79,8 @@ using interfaces::BlockTemplate;
 using interfaces::BlockTip;
 using interfaces::Chain;
 using interfaces::ChainRegistrySnapshot;
+using interfaces::ChildBlockData;
+using interfaces::ChildBlockDataError;
 using interfaces::ChildBmmProposal;
 using interfaces::ChildBmmState;
 using interfaces::ChildBmmStateError;
@@ -552,6 +554,46 @@ public:
     const CRPCCommand* m_wrapped_command;
 };
 
+ChildBlockData MakeChildBlockData(ChainManagerBlockView view)
+{
+    ChildBlockData result;
+    switch (view.error) {
+    case ChainManagerBlockViewError::NONE:
+        break;
+    case ChainManagerBlockViewError::NULL_CHAIN_ID:
+        result.error = ChildBlockDataError::NULL_CHAIN_ID;
+        return result;
+    case ChainManagerBlockViewError::UNKNOWN_CHAIN:
+        result.error = ChildBlockDataError::UNKNOWN_CHAIN;
+        return result;
+    case ChainManagerBlockViewError::CHAIN_NOT_LOADED:
+        result.error = ChildBlockDataError::CHAIN_NOT_LOADED;
+        return result;
+    case ChainManagerBlockViewError::BLOCK_NOT_FOUND:
+        result.error = ChildBlockDataError::BLOCK_NOT_FOUND;
+        return result;
+    case ChainManagerBlockViewError::HEIGHT_OUT_OF_RANGE:
+        result.error = ChildBlockDataError::HEIGHT_OUT_OF_RANGE;
+        return result;
+    }
+    result.best_height = view.entry.height;
+    result.best_block = view.entry.tip;
+    result.block_hash = view.block.block_hash;
+    result.height = view.block.height;
+    result.active = view.block.active;
+    result.virtual_genesis = view.block.virtual_genesis;
+    if (!result.virtual_genesis) {
+        if (!view.block.block || !view.block.undo) {
+            result.error = ChildBlockDataError::DATA_UNAVAILABLE;
+            return result;
+        }
+        result.block = std::make_shared<const CBlock>(*view.block.block);
+        result.undo =
+            std::make_shared<const CBlockUndo>(view.block.undo->coins);
+    }
+    return result;
+}
+
 class ChainImpl : public Chain
 {
 public:
@@ -705,6 +747,30 @@ public:
             });
         }
         return result;
+    }
+    ChildBlockData getChildBlockData(
+        const chainregistry::ChainId& chain_id,
+        const uint256& block_hash) override
+    {
+        if (!m_node.child_chainman) {
+            ChildBlockData result;
+            result.error = ChildBlockDataError::UNKNOWN_CHAIN;
+            return result;
+        }
+        return MakeChildBlockData(
+            m_node.child_chainman->GetBlockView(chain_id, block_hash));
+    }
+    ChildBlockData getChildBlockDataByHeight(
+        const chainregistry::ChainId& chain_id,
+        int height) override
+    {
+        if (!m_node.child_chainman) {
+            ChildBlockData result;
+            result.error = ChildBlockDataError::UNKNOWN_CHAIN;
+            return result;
+        }
+        return MakeChildBlockData(
+            m_node.child_chainman->GetBlockViewByHeight(chain_id, height));
     }
     ChildBmmState getChildBmmState(
         const chainregistry::ChainId& chain_id) override

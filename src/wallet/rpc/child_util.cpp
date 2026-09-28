@@ -111,4 +111,50 @@ interfaces::ChildWalletHistoryPage ScanChildWalletHistory(
         include_mempool);
 }
 
+static interfaces::ChildBlockData CheckedChildBlockData(
+    interfaces::ChildBlockData result)
+{
+    switch (result.error) {
+    case interfaces::ChildBlockDataError::NONE:
+        return result;
+    case interfaces::ChildBlockDataError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "chain_id must not be null");
+    case interfaces::ChildBlockDataError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not configured locally");
+    case interfaces::ChildBlockDataError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_MISC_ERROR, "child chain is not loaded");
+    case interfaces::ChildBlockDataError::BLOCK_NOT_FOUND:
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                           "Child block not found");
+    case interfaces::ChildBlockDataError::HEIGHT_OUT_OF_RANGE:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "Child block height out of range");
+    case interfaces::ChildBlockDataError::DATA_UNAVAILABLE:
+        throw JSONRPCError(RPC_INTERNAL_ERROR,
+                           "child block data is unavailable");
+    }
+    throw JSONRPCError(RPC_INTERNAL_ERROR,
+                       "unhandled child block data error");
+}
+
+interfaces::ChildBlockData GetChildBlockData(
+    const CWallet& wallet,
+    const chainregistry::ChainId& chain_id,
+    const uint256& block_hash)
+{
+    return CheckedChildBlockData(
+        wallet.chain().getChildBlockData(chain_id, block_hash));
+}
+
+interfaces::ChildBlockData GetChildBlockDataByHeight(
+    const CWallet& wallet,
+    const chainregistry::ChainId& chain_id,
+    int height)
+{
+    return CheckedChildBlockData(
+        wallet.chain().getChildBlockDataByHeight(chain_id, height));
+}
+
 } // namespace wallet

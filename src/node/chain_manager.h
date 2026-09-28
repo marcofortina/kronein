@@ -265,6 +265,7 @@ enum class ChainManagerBlockViewError : uint8_t {
     UNKNOWN_CHAIN,
     CHAIN_NOT_LOADED,
     BLOCK_NOT_FOUND,
+    HEIGHT_OUT_OF_RANGE,
 };
 
 struct ChainManagerBlockView {
@@ -648,6 +649,9 @@ public:
     ChainManagerBlockView GetBlockView(
         const chainregistry::ChainId& chain_id,
         const uint256& block_hash) const;
+    ChainManagerBlockView GetBlockViewByHeight(
+        const chainregistry::ChainId& chain_id,
+        int height) const;
     ChainManagerBlockView GetTipBlockView(
         const chainregistry::ChainId& chain_id) const;
     ChainManagerActiveBlocksView GetActiveBlockViews(

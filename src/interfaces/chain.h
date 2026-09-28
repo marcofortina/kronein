@@ -122,6 +122,31 @@ struct ChildWalletHistoryPage {
     bool IsValid() const { return error == ChildWalletScanError::NONE; }
 };
 
+enum class ChildBlockDataError : uint8_t {
+    NONE,
+    NULL_CHAIN_ID,
+    UNKNOWN_CHAIN,
+    CHAIN_NOT_LOADED,
+    BLOCK_NOT_FOUND,
+    HEIGHT_OUT_OF_RANGE,
+    DATA_UNAVAILABLE,
+};
+
+/** One child block and its undo, bound to an exact active-tip snapshot. */
+struct ChildBlockData {
+    ChildBlockDataError error{ChildBlockDataError::NONE};
+    uint32_t best_height{0};
+    uint256 best_block;
+    uint256 block_hash;
+    int height{0};
+    bool active{false};
+    bool virtual_genesis{false};
+    std::shared_ptr<const CBlock> block;
+    std::shared_ptr<const CBlockUndo> undo;
+
+    bool IsValid() const { return error == ChildBlockDataError::NONE; }
+};
+
 enum class ChildBmmStateError : uint8_t {
     NONE,
     NULL_CHAIN_ID,
@@ -240,6 +265,12 @@ public:
         const std::set<CScript>& scripts,
         std::optional<int> start_height = std::nullopt,
         bool include_mempool = true) = 0;
+    virtual ChildBlockData getChildBlockData(
+        const chainregistry::ChainId& chain_id,
+        const uint256& block_hash) = 0;
+    virtual ChildBlockData getChildBlockDataByHeight(
+        const chainregistry::ChainId& chain_id,
+        int height) = 0;
 
     //! Return one loaded child's active tip and durable BMM proposals.
     virtual ChildBmmState getChildBmmState(

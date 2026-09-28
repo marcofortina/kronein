@@ -165,6 +165,9 @@ node::ChainManagerBlockView GetLoadedChildBlockView(
     case node::ChainManagerBlockViewError::BLOCK_NOT_FOUND:
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
                            "Child block not found");
+    case node::ChainManagerBlockViewError::HEIGHT_OUT_OF_RANGE:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "Child block height out of range");
     }
     throw JSONRPCError(RPC_INTERNAL_ERROR,
                        "unhandled child block view error");
@@ -189,6 +192,9 @@ static node::ChainManagerBlockView GetLoadedChildTipBlockView(
     case node::ChainManagerBlockViewError::BLOCK_NOT_FOUND:
         throw JSONRPCError(RPC_INTERNAL_ERROR,
                            "loaded child chain tip is unavailable");
+    case node::ChainManagerBlockViewError::HEIGHT_OUT_OF_RANGE:
+        throw JSONRPCError(RPC_INTERNAL_ERROR,
+                           "loaded child chain tip height is unavailable");
     }
     throw JSONRPCError(RPC_INTERNAL_ERROR,
                        "unhandled child tip view error");

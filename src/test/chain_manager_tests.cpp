@@ -333,6 +333,14 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
     BOOST_CHECK(genesis_block_view.block.active);
     BOOST_CHECK_EQUAL(genesis_block_view.block.height, 0);
     BOOST_CHECK_EQUAL(genesis_block_view.block.confirmations, 1);
+    const auto genesis_block_by_height{
+        manager.GetBlockViewByHeight(first.chain_id, 0)};
+    BOOST_REQUIRE(genesis_block_by_height.IsValid());
+    BOOST_CHECK(genesis_block_by_height.block.block_hash ==
+                first.genesis_hash);
+    BOOST_CHECK(
+        manager.GetBlockViewByHeight(first.chain_id, 1).error ==
+        node::ChainManagerBlockViewError::HEIGHT_OUT_OF_RANGE);
     const auto tip_block_view{manager.GetTipBlockView(first.chain_id)};
     BOOST_REQUIRE(tip_block_view.IsValid());
     BOOST_CHECK(tip_block_view.block.block_hash == first.genesis_hash);
@@ -395,6 +403,14 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
         node::ChainManagerCoinViewError::CHAIN_NOT_LOADED);
     BOOST_CHECK(manager.GetTipBlockView(second.chain_id).error ==
                 node::ChainManagerBlockViewError::CHAIN_NOT_LOADED);
+    BOOST_CHECK(manager.GetBlockViewByHeight(second.chain_id, 0).error ==
+                node::ChainManagerBlockViewError::CHAIN_NOT_LOADED);
+    BOOST_CHECK(
+        manager.GetBlockViewByHeight(chainregistry::ChainId{}, 0).error ==
+        node::ChainManagerBlockViewError::NULL_CHAIN_ID);
+    BOOST_CHECK(
+        manager.GetBlockViewByHeight(Definition(100).chain_id, 0).error ==
+        node::ChainManagerBlockViewError::UNKNOWN_CHAIN);
     BOOST_CHECK(manager.GetActiveBlockViews(second.chain_id, {}).error ==
                 node::ChainManagerActiveBlocksViewError::CHAIN_NOT_LOADED);
     BOOST_CHECK(

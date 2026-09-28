@@ -8,10 +8,12 @@
 #include <consensus/consensus.h>
 #include <key_io.h>
 #include <primitives/deposit.h>
+#include <primitives/block.h>
 #include <primitives/transaction_identifier.h>
 #include <rpc/util.h>
 #include <rpc/rawtransaction_util.h>
 #include <rpc/blockchain.h>
+#include <undo.h>
 #include <util/vector.h>
 #include <wallet/receive.h>
 #include <wallet/rpc/child_util.h>
@@ -409,7 +411,8 @@ static void ListChildTransactions(
     const ChildRecipientMap& recipients,
     Vec& result,
     const std::optional<std::string>& filter_label,
-    bool verbose)
+    bool verbose,
+    bool include_change = false)
 {
     const ChildTransactionAmounts amounts{
         GetChildTransactionAmounts(wallet_tx, recipients)};
@@ -419,7 +422,7 @@ static void ListChildTransactions(
         const auto owned{recipients.find(output.scriptPubKey)};
         const bool change{amounts.from_wallet && owned != recipients.end() &&
                           owned->second.change};
-        if (change) continue;
+        if (change && !include_change) continue;
 
         if (amounts.from_wallet && !filter_label) {
             UniValue entry{UniValue::VOBJ};
@@ -450,7 +453,9 @@ static void ListChildTransactions(
         if (wallet_tx.transaction->IsCoinBase()) {
             entry.pushKV(
                 "category",
-                wallet_tx.confirmations < COINBASE_MATURITY
+                wallet_tx.confirmations < 1
+                    ? "orphan"
+                    : wallet_tx.confirmations < COINBASE_MATURITY
                     ? "immature"
                     : "generate");
         } else {
@@ -476,6 +481,121 @@ static void PushChildLastProcessedBlock(
     block.pushKV("hash", page.best_block.GetHex());
     block.pushKV("height", page.height);
     entry.pushKV("lastprocessedblock", std::move(block));
+}
+
+static UniValue ListChildTransactionsSinceBlock(
+    const CWallet& wallet,
+    const chainregistry::ChainId& chain_id,
+    const std::optional<uint256>& block_hash,
+    int target_confirmations,
+    bool include_removed,
+    bool include_change,
+    const std::optional<std::string>& filter_label)
+{
+    const ChildRecipientMap recipients{
+        GetChildRecipientMap(wallet, chain_id)};
+    const auto genesis{GetChildBlockDataByHeight(wallet, chain_id, 0)};
+    const uint256 best_block{genesis.best_block};
+    const uint32_t best_height{genesis.best_height};
+    const auto check_tip{[&](const interfaces::ChildBlockData& block) {
+        if (block.best_block != best_block ||
+            block.best_height != best_height) {
+            throw JSONRPCError(
+                RPC_MISC_ERROR,
+                "child chain changed while wallet history was scanned; retry");
+        }
+    }};
+
+    int since_height{-1};
+    UniValue removed{UniValue::VARR};
+    if (block_hash) {
+        auto cursor{GetChildBlockData(wallet, chain_id, *block_hash)};
+        check_tip(cursor);
+        while (!cursor.active) {
+            if (cursor.virtual_genesis || !cursor.block || !cursor.undo) {
+                throw JSONRPCError(RPC_INTERNAL_ERROR,
+                                   "detached child block data is unavailable");
+            }
+            const CBlock& block{*cursor.block};
+            const CBlockUndo& undo{*cursor.undo};
+            if (undo.vtxundo.size() + 1 != block.vtx.size()) {
+                throw JSONRPCError(RPC_INTERNAL_ERROR,
+                                   "detached child block undo is inconsistent");
+            }
+            if (include_removed) {
+                for (size_t index{0}; index < block.vtx.size(); ++index) {
+                    interfaces::ChildWalletTransaction wallet_tx{
+                        .transaction = block.vtx[index],
+                        .spent_outputs = {},
+                        .block_hash = cursor.block_hash,
+                        .height = static_cast<uint32_t>(cursor.height),
+                        .block_index = static_cast<uint32_t>(index),
+                        .block_time = block.nTime,
+                        .confirmations = -std::max(
+                            1,
+                            static_cast<int>(best_height) - cursor.height + 1),
+                        .mempool = false,
+                        .entry_time = 0,
+                    };
+                    if (index > 0) {
+                        for (const Coin& coin :
+                             undo.vtxundo[index - 1].vprevout) {
+                            wallet_tx.spent_outputs.push_back(coin.out);
+                        }
+                    }
+                    ListChildTransactions(
+                        wallet_tx, chain_id, recipients, removed,
+                        filter_label, /*verbose=*/true, include_change);
+                }
+            }
+            cursor = GetChildBlockData(
+                wallet, chain_id, block.hashPrevBlock);
+            check_tip(cursor);
+        }
+        since_height = cursor.height;
+    }
+
+    UniValue transactions{UniValue::VARR};
+    if (!recipients.empty()) {
+        std::optional<int> start_height{static_cast<int>(best_height)};
+        bool include_mempool{true};
+        while (true) {
+            const auto page{ScanChildWalletHistory(
+                wallet, chain_id, start_height, include_mempool)};
+            if (page.best_block != best_block || page.height != best_height) {
+                throw JSONRPCError(
+                    RPC_MISC_ERROR,
+                    "child chain changed while wallet history was scanned; retry");
+            }
+            for (const auto& wallet_tx : page.transactions) {
+                if (!wallet_tx.mempool &&
+                    static_cast<int>(wallet_tx.height) <= since_height) {
+                    continue;
+                }
+                ListChildTransactions(
+                    wallet_tx, chain_id, recipients, transactions,
+                    filter_label, /*verbose=*/true, include_change);
+            }
+            if (!page.next_height || *page.next_height <= since_height) {
+                break;
+            }
+            start_height = page.next_height;
+            include_mempool = false;
+        }
+    }
+
+    const int last_height{static_cast<int>(best_height) + 1 -
+        std::min(target_confirmations, static_cast<int>(best_height) + 1)};
+    const auto last_block{
+        GetChildBlockDataByHeight(wallet, chain_id, last_height)};
+    check_tip(last_block);
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("transactions", std::move(transactions));
+    if (include_removed) result.pushKV("removed", std::move(removed));
+    result.pushKV("lastblock", last_block.block_hash.GetHex());
+    result.pushKV("chain_id", chain_id.GetHex());
+    return result;
 }
 
 /**
@@ -893,15 +1013,17 @@ RPCHelpMan listsinceblock()
     return RPCHelpMan{
         "listsinceblock",
         "Get all transactions in blocks since block [blockhash], or all transactions if omitted.\n"
-                "If \"blockhash\" is no longer a part of the main chain, transactions from the fork point onward are included.\n"
-                "Additionally, if include_removed is set, transactions affecting the wallet which were removed are returned in the \"removed\" array.\n",
+                "If \"blockhash\" is no longer part of the selected active chain, transactions from the fork point onward are included.\n"
+                "Additionally, if include_removed is set, transactions affecting the wallet which were removed are returned in the \"removed\" array.\n"
+                "When chain_id is omitted, the main-chain wallet is queried as before.\n",
                 {
                     {"blockhash", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "If set, the block hash to list transactions since, otherwise list all transactions."},
-                    {"target_confirmations", RPCArg::Type::NUM, RPCArg::Default{1}, "Return the nth block hash from the main chain. e.g. 1 would mean the best block hash. Note: this is not used as a filter, but only affects [lastblock] in the return value"},
+                    {"target_confirmations", RPCArg::Type::NUM, RPCArg::Default{1}, "Return the nth block hash from the selected chain. e.g. 1 would mean the best block hash. Note: this is not used as a filter, but only affects [lastblock] in the return value"},
                     {"include_removed", RPCArg::Type::BOOL, RPCArg::Default{true}, "Show transactions that were removed due to a reorg in the \"removed\" array\n"
                                                                        "(not guaranteed to work on pruned nodes)"},
                     {"include_change", RPCArg::Type::BOOL, RPCArg::Default{false}, "Also add entries for change outputs.\n"},
                     {"label", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Return only incoming transactions paying to addresses with the specified label.\n"},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
@@ -932,7 +1054,8 @@ RPCHelpMan listsinceblock()
                         {RPCResult::Type::ARR, "removed", /*optional=*/true, "<structure is the same as \"transactions\" above, only present if include_removed=true>\n"
                             "Note: transactions that were re-added in the active chain will appear as-is in this array, and may thus have a positive confirmation count."
                         , {{RPCResult::Type::ELISION, "", ""},}},
-                        {RPCResult::Type::STR_HEX, "lastblock", "The hash of the block (target_confirmations-1) from the best block on the main chain, or the genesis hash if the referenced block does not exist yet. This is typically used to feed back into listsinceblock the next time you call it. So you would generally use a target_confirmations of say 6, so you will be continually re-notified of transactions until they've reached 6 confirmations plus any new ones"},
+                        {RPCResult::Type::STR_HEX, "lastblock", "The hash of the block (target_confirmations-1) from the best block on the selected chain, or the genesis hash if the referenced block does not exist yet. This is typically used to feed back into listsinceblock the next time you call it. So you would generally use a target_confirmations of say 6, so you will be continually re-notified of transactions until they've reached 6 confirmations plus any new ones"},
+                        {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Selected child-chain identifier; omitted for the main chain"},
                     }
                 },
                 RPCExamples{
@@ -949,22 +1072,7 @@ RPCHelpMan listsinceblock()
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
     wallet.BlockUntilSyncedToCurrentChain();
-
-    LOCK(wallet.cs_wallet);
-
-    std::optional<int> height;    // Height of the specified block or the common ancestor, if the block provided was in a deactivated chain.
-    std::optional<int> altheight; // Height of the specified block, even if it's in a deactivated chain.
     int target_confirms = 1;
-
-    uint256 blockId;
-    if (!request.params[0].isNull() && !request.params[0].get_str().empty()) {
-        blockId = ParseHashV(request.params[0], "blockhash");
-        height = int{};
-        altheight = int{};
-        if (!wallet.chain().findCommonAncestor(blockId, wallet.GetLastBlockHash(), /*ancestor_out=*/FoundBlock().height(*height), /*block1_out=*/FoundBlock().height(*altheight))) {
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
-        }
-    }
 
     if (!request.params[1].isNull()) {
         target_confirms = request.params[1].getInt<int>();
@@ -980,6 +1088,31 @@ RPCHelpMan listsinceblock()
     // Only set it if 'label' was provided.
     std::optional<std::string> filter_label;
     if (!request.params[4].isNull()) filter_label.emplace(LabelFromValue(request.params[4]));
+
+    std::optional<uint256> requested_block;
+    if (!request.params[0].isNull() && !request.params[0].get_str().empty()) {
+        requested_block = ParseHashV(request.params[0], "blockhash");
+    }
+
+    if (const auto chain_arg{self.MaybeArg<UniValue>("chain_id")}) {
+        return ListChildTransactionsSinceBlock(
+            wallet, ParseChildChainId(*chain_arg), requested_block,
+            target_confirms, include_removed, include_change, filter_label);
+    }
+
+    LOCK(wallet.cs_wallet);
+
+    std::optional<int> height;    // Height of the specified block or the common ancestor, if the block provided was in a deactivated chain.
+    std::optional<int> altheight; // Height of the specified block, even if it's in a deactivated chain.
+    uint256 blockId;
+    if (requested_block) {
+        blockId = *requested_block;
+        height = int{};
+        altheight = int{};
+        if (!wallet.chain().findCommonAncestor(blockId, wallet.GetLastBlockHash(), /*ancestor_out=*/FoundBlock().height(*height), /*block1_out=*/FoundBlock().height(*altheight))) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
+        }
+    }
 
     int depth = height ? wallet.GetLastBlockHeight() + 1 - *height : -1;
 
