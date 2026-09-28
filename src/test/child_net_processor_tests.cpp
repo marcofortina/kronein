@@ -154,7 +154,8 @@ chainregistry::BmmAnchorProof MakeBmmProof(
 
 void StageBlock(node::ChainManager& manager,
                 const chainregistry::ReferenceChildDefinition& definition,
-                const CBlock& child_block)
+                const CBlock& child_block,
+                bool sync = true)
 {
     const auto* runtime{manager.Get(definition.chain_id)};
     BOOST_REQUIRE(runtime);
@@ -168,13 +169,13 @@ void StageBlock(node::ChainManager& manager,
         definition,
         child_block.GetHash())};
     const auto update{manager.AddMainHeader(
-        main_block, main_block.nTime, /*sync=*/true)};
+        main_block, main_block.nTime, sync)};
     BOOST_REQUIRE(update.unloaded.empty());
     BOOST_REQUIRE(manager.StageBmmAnchor(
         definition.chain_id,
         proof,
         child_block.nTime,
-        /*sync=*/true).IsValid());
+        sync).IsValid());
 }
 
 const chainregistry::ChildBlockHashes& OutboundHashes(
@@ -549,6 +550,102 @@ BOOST_AUTO_TEST_CASE(downloads_parent_before_connecting_deferred_child)
         }
     }
     BOOST_CHECK_EQUAL(announcements_to_second_peer, 2U);
+}
+
+BOOST_AUTO_TEST_CASE(bounds_and_expires_deferred_blocks)
+{
+    const auto definition{Definition()};
+    node::ChainManager manager{
+        Params().GetConsensus(),
+        Params().GenesisBlock(),
+        m_args.GetDataDirBase() / "child_net_deferred_limits",
+        1 << 20};
+    BOOST_REQUIRE(manager.RegisterChain(definition).IsValid());
+    BOOST_REQUIRE(manager.LoadChain(
+        definition.chain_id,
+        Params().GenesisBlock().nTime,
+        /*wipe_data=*/true,
+        /*sync=*/true).IsValid());
+
+    std::vector<CBlock> blocks;
+    blocks.reserve(node::MAX_DEFERRED_CHILD_BLOCKS + 1);
+    const uint32_t genesis_time{Params().GenesisBlock().nTime};
+    for (size_t index{0};
+         index <= node::MAX_DEFERRED_CHILD_BLOCKS;
+         ++index) {
+        blocks.push_back(ChildBlock(
+            uint256{static_cast<uint8_t>(index + 1)},
+            static_cast<int>(index + 1),
+            genesis_time + static_cast<uint32_t>(index + 1)));
+        StageBlock(manager, definition, blocks.back(), /*sync=*/false);
+    }
+
+    node::ChildNetProcessor processor{manager, definition};
+    BOOST_REQUIRE(processor.Connected(1, 123).IsValid());
+    BOOST_REQUIRE(processor.ReceiveHello(1, {
+        .chain_id = definition.chain_id,
+        .genesis_hash = definition.genesis_hash,
+    }).IsValid());
+
+    const node::ChildRequestTime now{1s};
+    for (size_t index{0}; index < node::MAX_DEFERRED_CHILD_BLOCKS; ++index) {
+        const auto announced{processor.ReceiveInventory(
+            1,
+            {.chain_id = definition.chain_id,
+             .block_hashes = {blocks[index].GetHash()}},
+            now)};
+        BOOST_REQUIRE(announced.IsValid());
+        const auto deferred{processor.ReceiveBlock(
+            1,
+            {.chain_id = definition.chain_id, .block = blocks[index]},
+            now,
+            blocks[index].nTime)};
+        BOOST_REQUIRE(deferred.IsValid());
+        BOOST_REQUIRE_EQUAL(deferred.deferred_blocks.size(), 1U);
+    }
+    BOOST_CHECK_EQUAL(
+        processor.DeferredCount(), node::MAX_DEFERRED_CHILD_BLOCKS);
+    const size_t full_bytes{processor.DeferredBytes()};
+
+    const CBlock& overflow{blocks.back()};
+    BOOST_REQUIRE(processor.ReceiveInventory(
+        1,
+        {.chain_id = definition.chain_id,
+         .block_hashes = {overflow.GetHash()}},
+        now).IsValid());
+    const auto limited{processor.ReceiveBlock(
+        1,
+        {.chain_id = definition.chain_id, .block = overflow},
+        now,
+        overflow.nTime)};
+    BOOST_CHECK(
+        limited.error == node::ChildNetProcessorError::DEFERRED_CACHE_FULL);
+    BOOST_CHECK(limited.deferred_blocks.empty());
+    BOOST_CHECK_EQUAL(
+        processor.DeferredCount(), node::MAX_DEFERRED_CHILD_BLOCKS);
+    BOOST_CHECK_EQUAL(processor.DeferredBytes(), full_bytes);
+
+    const auto expired{processor.Poll(
+        now + node::DEFERRED_CHILD_BLOCK_TIMEOUT,
+        overflow.nTime)};
+    BOOST_REQUIRE_EQUAL(
+        expired.expired_deferred_blocks.size(),
+        node::MAX_DEFERRED_CHILD_BLOCKS);
+    BOOST_CHECK_EQUAL(processor.DeferredCount(), 0U);
+    BOOST_CHECK_EQUAL(processor.DeferredBytes(), 0U);
+
+    BOOST_REQUIRE(processor.ReceiveInventory(
+        1,
+        {.chain_id = definition.chain_id,
+         .block_hashes = {overflow.GetHash()}},
+        now + node::DEFERRED_CHILD_BLOCK_TIMEOUT).IsValid());
+    const auto recovered{processor.ReceiveBlock(
+        1,
+        {.chain_id = definition.chain_id, .block = overflow},
+        now + node::DEFERRED_CHILD_BLOCK_TIMEOUT,
+        overflow.nTime)};
+    BOOST_REQUIRE(recovered.IsValid());
+    BOOST_CHECK_EQUAL(processor.DeferredCount(), 1U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
