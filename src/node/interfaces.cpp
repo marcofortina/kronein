@@ -627,6 +627,9 @@ public:
         }
         result.completed = true;
         result.scanned = scan.scanned;
+        result.template_id = scan.entry.template_id;
+        result.template_version = scan.entry.template_version;
+        result.genesis_hash = scan.entry.genesis_hash;
         result.height = scan.entry.height;
         result.best_block = scan.entry.tip;
         result.coins.reserve(scan.matches.size());

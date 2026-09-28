@@ -87,6 +87,9 @@ struct ChildWalletScan {
     ChildWalletScanError error{ChildWalletScanError::NONE};
     bool completed{false};
     int64_t scanned{0};
+    uint32_t template_id{0};
+    uint32_t template_version{0};
+    uint256 genesis_hash;
     uint32_t height{0};
     uint256 best_block;
     std::vector<ChildWalletCoin> coins;
