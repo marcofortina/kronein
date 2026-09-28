@@ -30,6 +30,7 @@
 #include <util/string.h>
 #include <util/time.h>
 #include <util/ui_change_type.h>
+#include <wallet/child_autobid.h>
 #include <wallet/crypter.h>
 #include <wallet/db.h>
 #include <wallet/scriptpubkeyman.h>
@@ -415,6 +416,10 @@ private:
     /** Domain-separated descriptor manager for each child chain and role. */
     std::map<std::pair<chainregistry::ChainId, bool>, uint256>
         m_child_spk_managers GUARDED_BY(cs_wallet);
+
+    /** Explicit opt-in automatic BMM spending policy by child chain. */
+    std::map<chainregistry::ChainId, ChildAutoBidPolicy>
+        m_child_autobid_policies GUARDED_BY(cs_wallet);
 
     util::Result<std::reference_wrapper<DescriptorScriptPubKeyMan>>
     GetOrCreateChildScriptPubKeyMan(
@@ -805,6 +810,10 @@ public:
     void LoadAddressChildChain(const CTxDestination& dest, const chainregistry::ChainId& chain_id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool LoadChildScriptPubKeyMan(const chainregistry::ChainId& chain_id, bool internal, const uint256& id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool SetChildScriptPubKeyMan(const chainregistry::ChainId& chain_id, bool internal, const uint256& id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool LoadChildAutoBidPolicy(const chainregistry::ChainId& chain_id, const ChildAutoBidPolicy& policy) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool SetChildAutoBidPolicy(const chainregistry::ChainId& chain_id, const ChildAutoBidPolicy& policy);
+    bool EraseChildAutoBidPolicy(const chainregistry::ChainId& chain_id);
+    std::optional<ChildAutoBidPolicy> GetChildAutoBidPolicy(const chainregistry::ChainId& chain_id) const;
     bool SetAddressChildChain(WalletBatch& batch, const CTxDestination& dest, const chainregistry::ChainId& chain_id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     std::vector<std::pair<CTxDestination, std::string>> ListChildRecipients(const chainregistry::ChainId& chain_id) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 

@@ -2994,6 +2994,48 @@ bool CWallet::SetChildScriptPubKeyMan(
     return true;
 }
 
+bool CWallet::LoadChildAutoBidPolicy(
+    const chainregistry::ChainId& chain_id,
+    const ChildAutoBidPolicy& policy)
+{
+    AssertLockHeld(cs_wallet);
+    if (chain_id.IsNull() || !IsValidChildAutoBidPolicy(policy)) return false;
+    return m_child_autobid_policies.emplace(chain_id, policy).second;
+}
+
+bool CWallet::SetChildAutoBidPolicy(
+    const chainregistry::ChainId& chain_id,
+    const ChildAutoBidPolicy& policy)
+{
+    LOCK(cs_wallet);
+    if (chain_id.IsNull() || !IsValidChildAutoBidPolicy(policy)) return false;
+    WalletBatch batch{GetDatabase()};
+    if (!batch.WriteChildAutoBidPolicy(chain_id, policy)) return false;
+    m_child_autobid_policies.insert_or_assign(chain_id, policy);
+    return true;
+}
+
+bool CWallet::EraseChildAutoBidPolicy(
+    const chainregistry::ChainId& chain_id)
+{
+    LOCK(cs_wallet);
+    if (chain_id.IsNull()) return false;
+    if (!m_child_autobid_policies.contains(chain_id)) return true;
+    WalletBatch batch{GetDatabase()};
+    if (!batch.EraseChildAutoBidPolicy(chain_id)) return false;
+    m_child_autobid_policies.erase(chain_id);
+    return true;
+}
+
+std::optional<ChildAutoBidPolicy> CWallet::GetChildAutoBidPolicy(
+    const chainregistry::ChainId& chain_id) const
+{
+    LOCK(cs_wallet);
+    const auto policy{m_child_autobid_policies.find(chain_id)};
+    if (policy == m_child_autobid_policies.end()) return std::nullopt;
+    return policy->second;
+}
+
 bool CWallet::SetAddressChildChain(
     WalletBatch& batch,
     const CTxDestination& dest,

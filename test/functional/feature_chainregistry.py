@@ -281,6 +281,56 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert "inclusion_proof" in registered
         registered_info = node.getchainregistryinfo()
 
+        self.log.info("Persist explicit wallet limits for automatic BMM bids")
+        disabled_autobid = {"chain_id": chain_id, "enabled": False}
+        assert_equal(wallet.getchildanchorautobid(chain_id), disabled_autobid)
+        assert_raises_rpc_error(
+            -8, "chain_id is not registered",
+            wallet.setchildanchorautobid,
+            "01" * 32, True,
+            Decimal("0.00002000"), Decimal("0.00100000"),
+            Decimal("0.01000000"), 600)
+        assert_raises_rpc_error(
+            -8, "are required when enabling",
+            wallet.setchildanchorautobid, chain_id, True)
+        assert_raises_rpc_error(
+            -8, "interval from 60 to 86400",
+            wallet.setchildanchorautobid,
+            chain_id, True,
+            Decimal("0.00002000"), Decimal("0.00100000"),
+            Decimal("0.01000000"), 59)
+        assert_raises_rpc_error(
+            -8, "daily budget at least equal to the bid cap",
+            wallet.setchildanchorautobid,
+            chain_id, True,
+            Decimal("0.00002000"), Decimal("0.00100000"),
+            Decimal("0.00050000"), 600)
+        enabled_autobid = {
+            "chain_id": chain_id,
+            "enabled": True,
+            "version": 1,
+            "fee_rate": Decimal("0.00002000"),
+            "max_security_bid": Decimal("0.00100000"),
+            "daily_budget": Decimal("0.01000000"),
+            "min_interval": 600,
+        }
+        assert_equal(wallet.setchildanchorautobid(
+            chain_id, True,
+            enabled_autobid["fee_rate"],
+            enabled_autobid["max_security_bid"],
+            enabled_autobid["daily_budget"],
+            enabled_autobid["min_interval"]), enabled_autobid)
+        node.unloadwallet("registry")
+        node.loadwallet("registry")
+        wallet = node.get_wallet_rpc("registry")
+        assert_equal(wallet.getchildanchorautobid(chain_id), enabled_autobid)
+        assert_raises_rpc_error(
+            -8, "must be omitted when disabling",
+            wallet.setchildanchorautobid,
+            chain_id, False, Decimal("0.00002000"))
+        assert_equal(wallet.setchildanchorautobid(chain_id, False), disabled_autobid)
+        assert_equal(wallet.getchildanchorautobid(chain_id), disabled_autobid)
+
         self.log.info("Derive and persist a wallet-owned child receiving identity")
         assert "chain_id" not in wallet.getbalances()
         assert all("chain_id" not in coin for coin in wallet.listunspent())

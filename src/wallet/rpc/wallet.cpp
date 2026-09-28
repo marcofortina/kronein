@@ -686,6 +686,8 @@ RPCHelpMan listunspent();
 // child
 RPCHelpMan walletcreatechildpsbt();
 RPCHelpMan walletprocesschildpsbt();
+RPCHelpMan getchildanchorautobid();
+RPCHelpMan setchildanchorautobid();
 
 // encryption
 RPCHelpMan walletpassphrase();
@@ -737,6 +739,7 @@ std::span<const CRPCCommand> GetWalletRPCCommands()
         {"wallet", &getaddressesbylabel},
         {"wallet", &getaddressinfo},
         {"wallet", &getbalance},
+        {"wallet", &getchildanchorautobid},
         {"wallet", &gethdkeys},
         {"wallet", &getnewaddress},
         {"wallet", &getnewchildrecipient},
@@ -770,6 +773,7 @@ std::span<const CRPCCommand> GetWalletRPCCommands()
         {"wallet", &send},
         {"wallet", &sendmany},
         {"wallet", &sendtoaddress},
+        {"wallet", &setchildanchorautobid},
         {"wallet", &setlabel},
         {"wallet", &setwalletflag},
         {"wallet", &signrawtransactionwithwallet},

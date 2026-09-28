@@ -698,4 +698,142 @@ RPCHelpMan walletprocesschildpsbt()
     };
 }
 
+static UniValue ChildAutoBidPolicyToJSON(
+    const chainregistry::ChainId& chain_id,
+    const std::optional<ChildAutoBidPolicy>& policy)
+{
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", chain_id.GetHex());
+    result.pushKV("enabled", policy.has_value());
+    if (policy) {
+        result.pushKV("version", policy->version);
+        result.pushKV("fee_rate", ValueFromAmount(policy->fee_rate_per_kvb));
+        result.pushKV("max_security_bid", ValueFromAmount(policy->max_bid));
+        result.pushKV("daily_budget", ValueFromAmount(policy->daily_budget));
+        result.pushKV("min_interval", policy->min_interval);
+    }
+    return result;
+}
+
+RPCHelpMan getchildanchorautobid()
+{
+    return RPCHelpMan{
+        "getchildanchorautobid",
+        "Return this wallet's explicit automatic BMM security-bid policy for one child chain. Absence means disabled.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Exact non-null child-chain identifier"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Automatic bid policy", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Child-chain identifier"},
+            {RPCResult::Type::BOOL, "enabled", "Whether automatic wallet spending is explicitly enabled"},
+            {RPCResult::Type::NUM, "version", /*optional=*/true, "Policy format version"},
+            {RPCResult::Type::STR_AMOUNT, "fee_rate", /*optional=*/true, "Configured main-chain fee rate in KNE/kvB"},
+            {RPCResult::Type::STR_AMOUNT, "max_security_bid", /*optional=*/true, "Maximum fee for one anchor transaction"},
+            {RPCResult::Type::STR_AMOUNT, "daily_budget", /*optional=*/true, "Maximum aggregate anchor fees in a rolling 24-hour window"},
+            {RPCResult::Type::NUM_TIME, "min_interval", /*optional=*/true, "Minimum seconds between automatic anchor transactions"},
+        }},
+        RPCExamples{
+            HelpExampleCli("getchildanchorautobid", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const std::shared_ptr<CWallet> wallet{
+        GetWalletForJSONRPCRequest(request)};
+    if (!wallet) return UniValue::VNULL;
+    const auto chain_id{ParseChildChainId(self.Arg<UniValue>("chain_id"))};
+    return ChildAutoBidPolicyToJSON(
+        chain_id, wallet->GetChildAutoBidPolicy(chain_id));
+},
+    };
+}
+
+RPCHelpMan setchildanchorautobid()
+{
+    return RPCHelpMan{
+        "setchildanchorautobid",
+        "Enable or disable automatic publication of BMM security bids by this wallet for one exact child chain.\n"
+        "The policy is disabled by default. Enabling requires all monetary limits and persists them in the wallet. No funds are spent by this configuration call.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Exact non-null child-chain identifier"},
+            {"enabled", RPCArg::Type::BOOL, RPCArg::Optional::NO, "True to store an opt-in policy; false to erase it"},
+            {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "Required when enabling: main-chain fee rate in KNE/kvB"},
+            {"max_security_bid", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "Required when enabling: maximum fee for one anchor transaction"},
+            {"daily_budget", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "Required when enabling: rolling 24-hour aggregate fee limit"},
+            {"min_interval", RPCArg::Type::NUM, RPCArg::Default{600}, "Minimum seconds between automatic anchor transactions (60-86400)"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Stored automatic bid policy", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Child-chain identifier"},
+            {RPCResult::Type::BOOL, "enabled", "Whether automatic wallet spending is explicitly enabled"},
+            {RPCResult::Type::NUM, "version", /*optional=*/true, "Policy format version"},
+            {RPCResult::Type::STR_AMOUNT, "fee_rate", /*optional=*/true, "Configured main-chain fee rate in KNE/kvB"},
+            {RPCResult::Type::STR_AMOUNT, "max_security_bid", /*optional=*/true, "Maximum fee for one anchor transaction"},
+            {RPCResult::Type::STR_AMOUNT, "daily_budget", /*optional=*/true, "Rolling 24-hour aggregate fee limit"},
+            {RPCResult::Type::NUM_TIME, "min_interval", /*optional=*/true, "Minimum seconds between automatic anchor transactions"},
+        }},
+        RPCExamples{
+            HelpExampleCli("setchildanchorautobid", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" true 0.00002 0.001 0.01 600") +
+            HelpExampleCli("setchildanchorautobid", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" false")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const std::shared_ptr<CWallet> wallet{
+        GetWalletForJSONRPCRequest(request)};
+    if (!wallet) return UniValue::VNULL;
+    const auto chain_id{ParseChildChainId(self.Arg<UniValue>("chain_id"))};
+    const bool enabled{self.Arg<bool>("enabled")};
+    if (!enabled) {
+        if (!request.params[2].isNull() || !request.params[3].isNull() ||
+            !request.params[4].isNull()) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "fee_rate, max_security_bid, and daily_budget must be omitted when disabling automatic bids");
+        }
+        if (!wallet->EraseChildAutoBidPolicy(chain_id)) {
+            throw JSONRPCError(RPC_WALLET_ERROR,
+                               "could not erase automatic BMM bid policy");
+        }
+        return ChildAutoBidPolicyToJSON(chain_id, std::nullopt);
+    }
+
+    if (request.params[2].isNull() || request.params[3].isNull() ||
+        request.params[4].isNull()) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "fee_rate, max_security_bid, and daily_budget are required when enabling automatic bids");
+    }
+    const auto snapshot{wallet->chain().getChainRegistrySnapshot(chain_id)};
+    if (!snapshot.record) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "chain_id is not registered");
+    }
+    if (snapshot.record->status != chainregistry::ChainStatus::ACTIVE) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is retired");
+    }
+    const int min_interval{self.Arg<int>("min_interval")};
+    ChildAutoBidPolicy policy{
+        .fee_rate_per_kvb = AmountFromValue(request.params[2]),
+        .max_bid = AmountFromValue(request.params[3]),
+        .daily_budget = AmountFromValue(request.params[4]),
+        .min_interval = min_interval < 0 ? 0 : static_cast<uint32_t>(min_interval),
+    };
+    if (!IsValidChildAutoBidPolicy(policy)) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "automatic bid policy requires a positive fee rate and bid, a daily budget at least equal to the bid cap, and an interval from 60 to 86400 seconds");
+    }
+    if (policy.max_bid > wallet->m_default_max_tx_fee) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "max_security_bid exceeds the wallet maximum transaction fee");
+    }
+    if (!wallet->SetChildAutoBidPolicy(chain_id, policy)) {
+        throw JSONRPCError(RPC_WALLET_ERROR,
+                           "could not persist automatic BMM bid policy");
+    }
+    return ChildAutoBidPolicyToJSON(chain_id, policy);
+},
+    };
+}
+
 } // namespace wallet

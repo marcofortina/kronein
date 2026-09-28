@@ -31,6 +31,7 @@ namespace DBKeys {
 const std::string ACTIVEEXTERNALSPK{"activeexternalspk"};
 const std::string ACTIVEINTERNALSPK{"activeinternalspk"};
 const std::string BESTBLOCK{"bestblock"};
+const std::string CHILDAUTOBID{"childautobid"};
 const std::string CHILDSPK{"childspk"};
 const std::string DESTDATA{"destdata"};
 const std::string FLAGS{"flags"};
@@ -495,6 +496,27 @@ static DBErrors LoadChildScriptPubKeyMans(CWallet* pwallet, DatabaseBatch& batch
     return result.m_result;
 }
 
+static DBErrors LoadChildAutoBidPolicies(CWallet* pwallet, DatabaseBatch& batch) EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet)
+{
+    AssertLockHeld(pwallet->cs_wallet);
+
+    LoadResult result = LoadRecords(pwallet, batch, DBKeys::CHILDAUTOBID,
+        [] (CWallet* pwallet, DataStream& key, DataStream& value, std::string& err) {
+        chainregistry::ChainId chain_id;
+        ChildAutoBidPolicy policy;
+        key >> chain_id;
+        value >> policy;
+        if (!pwallet->LoadChildAutoBidPolicy(chain_id, policy)) {
+            err = strprintf(
+                "Error: Invalid automatic BMM bid policy for chain '%s'.",
+                chain_id.GetHex());
+            return DBErrors::CORRUPT;
+        }
+        return DBErrors::LOAD_OK;
+    });
+    return result.m_result;
+}
+
 static DBErrors LoadAddressBookRecords(CWallet* pwallet, DatabaseBatch& batch) EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet)
 {
     AssertLockHeld(pwallet->cs_wallet);
@@ -720,6 +742,7 @@ DBErrors WalletBatch::LoadWallet(CWallet* pwallet)
 
         // Load child-chain descriptor roles after their descriptor records.
         result = std::max(LoadChildScriptPubKeyMans(pwallet, *m_batch), result);
+        result = std::max(LoadChildAutoBidPolicies(pwallet, *m_batch), result);
 
         // Load address book
         result = std::max(LoadAddressBookRecords(pwallet, *m_batch), result);
@@ -818,6 +841,19 @@ bool WalletBatch::WriteChildScriptPubKeyMan(
         std::make_pair(DBKeys::CHILDSPK,
                        std::make_pair(chain_id, internal)),
         id);
+}
+
+bool WalletBatch::WriteChildAutoBidPolicy(
+    const chainregistry::ChainId& chain_id,
+    const ChildAutoBidPolicy& policy)
+{
+    return WriteIC(std::make_pair(DBKeys::CHILDAUTOBID, chain_id), policy);
+}
+
+bool WalletBatch::EraseChildAutoBidPolicy(
+    const chainregistry::ChainId& chain_id)
+{
+    return EraseIC(std::make_pair(DBKeys::CHILDAUTOBID, chain_id));
 }
 
 bool WalletBatch::EraseAddressData(const CTxDestination& dest)

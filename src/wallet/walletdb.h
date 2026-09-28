@@ -26,6 +26,7 @@ namespace wallet {
 class CMasterKey;
 class CWallet;
 class CWalletTx;
+struct ChildAutoBidPolicy;
 struct WalletContext;
 
 // Logs information about the database, including available engines, features, and other capabilities
@@ -56,6 +57,7 @@ namespace DBKeys {
 extern const std::string ACTIVEEXTERNALSPK;
 extern const std::string ACTIVEINTERNALSPK;
 extern const std::string BESTBLOCK;
+extern const std::string CHILDAUTOBID;
 extern const std::string CHILDSPK;
 extern const std::string DESTDATA;
 extern const std::string FLAGS;
@@ -146,6 +148,8 @@ public:
     bool EraseAddressReceiveRequest(const CTxDestination& dest, const std::string& id);
     bool WriteAddressChildChain(const CTxDestination& dest, const chainregistry::ChainId& chain_id);
     bool WriteChildScriptPubKeyMan(const chainregistry::ChainId& chain_id, bool internal, const uint256& id);
+    bool WriteChildAutoBidPolicy(const chainregistry::ChainId& chain_id, const ChildAutoBidPolicy& policy);
+    bool EraseChildAutoBidPolicy(const chainregistry::ChainId& chain_id);
     bool EraseAddressData(const CTxDestination& dest);
 
     bool WriteActiveScriptPubKeyMan(const uint256& id, bool internal);
