@@ -15,6 +15,7 @@
 #include <util/bip32.h>
 #include <util/translation.h>
 #include <wallet/receive.h>
+#include <wallet/rpc/child_util.h>
 #include <wallet/rpc/util.h>
 #include <wallet/wallet.h>
 #include <wallet/walletdb.h>
@@ -25,17 +26,6 @@
 
 namespace wallet {
 namespace {
-
-chainregistry::ChainId ParseChildChainId(const UniValue& value)
-{
-    const auto chain_id{chainregistry::ChainId::FromHex(value.get_str())};
-    if (!chain_id || chain_id->IsNull()) {
-        throw JSONRPCError(
-            RPC_INVALID_PARAMETER,
-            "chain_id must be exactly 32 non-null bytes encoded as hexadecimal");
-    }
-    return *chain_id;
-}
 
 void EnsureActiveReferenceChild(
     CWallet& wallet,
