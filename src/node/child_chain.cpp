@@ -838,7 +838,8 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
         }
     }
     if (!parent) {
-        return RuntimeError(ReferenceChildRuntimeError::CHILD_BLOCK_REJECTED);
+        return RuntimeError(
+            ReferenceChildRuntimeError::CHILD_PARENT_UNAVAILABLE);
     }
     auto [slot, inserted]{m_child_index.try_emplace(block_hash)};
     if (!inserted) {

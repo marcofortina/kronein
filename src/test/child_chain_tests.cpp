@@ -377,7 +377,31 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
             static_cast<int>(rejected.child_block.error));
         BOOST_CHECK(runtime.Tip()->GetBlockHash() == child_hash);
         BOOST_CHECK_EQUAL(runtime.State().child_height, 1U);
-        BOOST_CHECK(runtime.VerifyDatabase(invalid_main_anchor.nTime));
+
+        CBlock missing_parent_block{ChildBlock(*runtime.Tip())};
+        missing_parent_block.hashPrevBlock = uint256{42};
+        main_parent = runtime.MainHeaders()->Tip();
+        BOOST_REQUIRE(main_parent);
+        CBlock missing_parent_main_anchor;
+        const auto missing_parent_proof{MakeBmmProof(
+            missing_parent_main_anchor,
+            *main_parent,
+            params,
+            definition,
+            missing_parent_block.GetHash())};
+        BOOST_REQUIRE(runtime.AddMainHeader(
+            missing_parent_main_anchor,
+            missing_parent_main_anchor.nTime,
+            /*sync=*/true).IsValid());
+        const auto missing_parent{runtime.ConnectBlock(
+            missing_parent_block,
+            missing_parent_proof,
+            missing_parent_block.nTime,
+            /*sync=*/true)};
+        BOOST_CHECK(
+            missing_parent.error ==
+            node::ReferenceChildRuntimeError::CHILD_PARENT_UNAVAILABLE);
+        BOOST_CHECK(runtime.VerifyDatabase(missing_parent_main_anchor.nTime));
     }
 
     {
