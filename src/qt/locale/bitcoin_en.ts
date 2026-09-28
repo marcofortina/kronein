@@ -927,7 +927,7 @@
 <context>
     <name>ChildChainDialog</name>
     <message>
-        <location filename="../childchaindialog.cpp" line="+97"/>
+        <location filename="../childchaindialog.cpp" line="+98"/>
         <source>Available</source>
         <translation type="unfinished"></translation>
     </message>
@@ -968,12 +968,12 @@
     </message>
     <message>
         <location line="+11"/>
-        <location line="+2241"/>
+        <location line="+2292"/>
         <source>Status</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-2240"/>
+        <location line="-2291"/>
         <source>Chain ID</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1294,7 +1294,7 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+162"/>
+        <location line="+213"/>
         <source>Activate Confirmed Child Proposal</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1338,7 +1338,7 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-743"/>
+        <location line="-794"/>
         <source>Idle</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1517,12 +1517,13 @@ WARNING: SAFE_HALT is active after an irreversible-main-state safety violation. 
     <message>
         <location line="+42"/>
         <location line="+4"/>
-        <location line="+11"/>
+        <location line="+18"/>
+        <location line="+117"/>
         <source>Child BMM status</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-116"/>
         <source>The node returned an invalid BMM status snapshot.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1552,7 +1553,37 @@ Competing DAG: %13 blocks / %14 anchors</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+15"/>
+        <location line="+16"/>
+        <source>CRITICAL: this child chain is permanently halted because an imported deposit left the authenticated main chain. Spending, migration, and BMM actions remain disabled.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Safe-halt evidence:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Reason: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Observed main tip: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Affected deposits:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>none reported</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+5"/>
         <source>Pending child block data:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1577,7 +1608,22 @@ Competing DAG: %13 blocks / %14 anchors</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+139"/>
+        <location line="+8"/>
+        <source>Copy Evidence Report</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Copy Status Report</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>The diagnostic report was copied to the clipboard.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+134"/>
         <source>The verified main-chain anchor does not commit to this proposal.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2269,7 +2315,7 @@ There is no child-to-main withdrawal path.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-2469"/>
+        <location line="-2520"/>
         <source>%1 proposals • %2 pending • %3/%4 candidates • %5/%6 anchors</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2287,7 +2333,7 @@ Pending BMM anchors: %13/%14 records, %15/%16 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+146"/>
+        <location line="+197"/>
         <location line="+4"/>
         <location line="+9"/>
         <location line="+41"/>
@@ -2733,12 +2779,12 @@ Transaction: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1850"/>
+        <location line="-1901"/>
         <source>(limit reached)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+242"/>
+        <location line="+281"/>
         <source>%1 — %2 anchor(s), main heights %3–%4</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2748,7 +2794,7 @@ Transaction: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+490"/>
+        <location line="+502"/>
         <source>sat/vB</source>
         <translation type="unfinished"></translation>
     </message>
