@@ -112,6 +112,22 @@ ChildNetValidationError ValidateChildBlockData(
     return ChildNetValidationError::NONE;
 }
 
+ChildNetValidationError ValidateChildTransactionData(
+    const ChildTransactionData& message,
+    const ChainId& expected_chain_id)
+{
+    if (const auto error{ValidateVersionAndChain(
+            message.version, message.chain_id, expected_chain_id)};
+        error != ChildNetValidationError::NONE) {
+        return error;
+    }
+    if (GetSerializeSize(TX_WITH_WITNESS(message.transaction)) >
+        MAX_BLOCK_SERIALIZED_SIZE) {
+        return ChildNetValidationError::TRANSACTION_TOO_LARGE;
+    }
+    return ChildNetValidationError::NONE;
+}
+
 ChildNetValidationError ValidateChildAddressRequest(
     const ChildAddressRequest& message,
     const ChainId& expected_chain_id)

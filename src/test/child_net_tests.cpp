@@ -57,6 +57,8 @@ BOOST_AUTO_TEST_CASE(derives_isolated_message_start)
     BOOST_CHECK_LE(chainregistry::ChildNetMsgType::GET_BLOCKS.size(), 12U);
     BOOST_CHECK_LE(chainregistry::ChildNetMsgType::BLOCK.size(), 12U);
     BOOST_CHECK_LE(
+        chainregistry::ChildNetMsgType::TRANSACTION.size(), 12U);
+    BOOST_CHECK_LE(
         chainregistry::ChildNetMsgType::GET_ADDRESSES.size(), 12U);
     BOOST_CHECK_LE(
         chainregistry::ChildNetMsgType::ADDRESSES.size(), 12U);
@@ -176,6 +178,34 @@ BOOST_AUTO_TEST_CASE(binds_block_data_to_request_and_chain)
     BOOST_CHECK_EQUAL(decoded.version, data.version);
     BOOST_CHECK(decoded.chain_id == data.chain_id);
     BOOST_CHECK(decoded.block.GetHash() == block.GetHash());
+}
+
+BOOST_AUTO_TEST_CASE(serializes_and_binds_transaction_data_to_chain)
+{
+    CMutableTransaction transaction;
+    transaction.vin.emplace_back(
+        COutPoint{Txid::FromUint256(uint256{1}), 0});
+    transaction.vout.emplace_back(1, CScript{} << OP_TRUE);
+    const Txid txid{transaction.GetHash()};
+    chainregistry::ChildTransactionData data{
+        .chain_id = CHAIN_ID,
+        .transaction = transaction,
+    };
+    BOOST_CHECK(
+        chainregistry::ValidateChildTransactionData(data, CHAIN_ID) ==
+        chainregistry::ChildNetValidationError::NONE);
+    BOOST_CHECK(
+        chainregistry::ValidateChildTransactionData(data, OTHER_CHAIN_ID) ==
+        chainregistry::ChildNetValidationError::WRONG_CHAIN);
+
+    DataStream encoded;
+    encoded << data;
+    chainregistry::ChildTransactionData decoded;
+    encoded >> decoded;
+    BOOST_CHECK(encoded.empty());
+    BOOST_CHECK_EQUAL(decoded.version, data.version);
+    BOOST_CHECK(decoded.chain_id == data.chain_id);
+    BOOST_CHECK(decoded.transaction.GetHash() == txid);
 }
 
 BOOST_AUTO_TEST_CASE(bounds_and_validates_address_relay)

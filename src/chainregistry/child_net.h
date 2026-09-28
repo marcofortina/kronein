@@ -19,7 +19,7 @@
 
 namespace chainregistry {
 
-inline constexpr uint16_t CHILD_P2P_PROTOCOL_VERSION{3};
+inline constexpr uint16_t CHILD_P2P_PROTOCOL_VERSION{4};
 inline constexpr uint64_t MAX_CHILD_BLOCK_REQUEST_HASHES{16};
 inline constexpr uint64_t MAX_CHILD_RELAY_ADDRESSES{32};
 inline constexpr std::string_view CHILD_MESSAGE_START_TAG{
@@ -30,6 +30,7 @@ inline constexpr std::string_view HELLO{"chhello"};
 inline constexpr std::string_view INVENTORY{"chinv"};
 inline constexpr std::string_view GET_BLOCKS{"getchblock"};
 inline constexpr std::string_view BLOCK{"chblock"};
+inline constexpr std::string_view TRANSACTION{"chtx"};
 inline constexpr std::string_view GET_ADDRESSES{"getchaddr"};
 inline constexpr std::string_view ADDRESSES{"chaddr"};
 } // namespace ChildNetMsgType
@@ -89,6 +90,20 @@ struct ChildBlockData {
     SERIALIZE_METHODS(ChildBlockData, obj)
     {
         READWRITE(obj.version, obj.chain_id, TX_WITH_WITNESS(obj.block));
+    }
+};
+
+struct ChildTransactionData {
+    uint16_t version{CHILD_P2P_PROTOCOL_VERSION};
+    ChainId chain_id;
+    CMutableTransaction transaction;
+
+    SERIALIZE_METHODS(ChildTransactionData, obj)
+    {
+        READWRITE(
+            obj.version,
+            obj.chain_id,
+            TX_WITH_WITNESS(obj.transaction));
     }
 };
 
@@ -158,6 +173,7 @@ enum class ChildNetValidationError : uint8_t {
     DUPLICATE_BLOCK_HASH,
     BLOCK_TOO_LARGE,
     UNEXPECTED_BLOCK_HASH,
+    TRANSACTION_TOO_LARGE,
     TOO_MANY_ADDRESSES,
     INVALID_ADDRESS,
     DUPLICATE_ADDRESS,
@@ -176,6 +192,10 @@ ChildNetValidationError ValidateChildBlockData(
     const ChildBlockData& message,
     const ChainId& expected_chain_id,
     const uint256& requested_block_hash);
+
+ChildNetValidationError ValidateChildTransactionData(
+    const ChildTransactionData& message,
+    const ChainId& expected_chain_id);
 
 ChildNetValidationError ValidateChildAddressRequest(
     const ChildAddressRequest& message,
