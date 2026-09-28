@@ -264,6 +264,14 @@ BOOST_AUTO_TEST_CASE(requires_full_child_handshake)
     BOOST_REQUIRE(accepted.IsValid());
     BOOST_CHECK_EQUAL(processor.HandshakenPeerCount(), 1U);
 
+    const auto repeated{processor.ReceiveHello(7, wrong)};
+    BOOST_CHECK(
+        repeated.error ==
+        node::ChildNetProcessorError::HANDSHAKE_ALREADY_COMPLETED);
+    BOOST_CHECK(repeated.disconnect);
+    BOOST_CHECK(repeated.outbound.empty());
+    BOOST_CHECK_EQUAL(processor.HandshakenPeerCount(), 1U);
+
     const auto unanchored{processor.ReceiveInventory(
         7,
         {.chain_id = definition.chain_id,

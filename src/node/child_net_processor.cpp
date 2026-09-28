@@ -185,6 +185,11 @@ ChildNetProcessorResult ChildNetProcessor::ReceiveHello(
             ChildNetProcessorError::UNKNOWN_PEER,
             /*disconnect=*/true);
     }
+    if (peer_it->second.handshaken) {
+        return ProcessorError(
+            ChildNetProcessorError::HANDSHAKE_ALREADY_COMPLETED,
+            /*disconnect=*/true);
+    }
     result.validation_error = chainregistry::ValidateChildNetHello(
         hello, m_definition.chain_id, m_definition.genesis_hash);
     if (result.validation_error !=

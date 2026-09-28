@@ -55,6 +55,7 @@ struct ChildNetOutbound {
 enum class ChildNetProcessorError : uint8_t {
     NONE,
     PEER_ALREADY_CONNECTED,
+    HANDSHAKE_ALREADY_COMPLETED,
     UNKNOWN_PEER,
     HANDSHAKE_REQUIRED,
     INVALID_MESSAGE,
