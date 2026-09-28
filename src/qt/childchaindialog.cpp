@@ -324,6 +324,10 @@ void ChildChainDialog::refresh()
                       .arg(known_addresses, max_known_addresses)};
             const QString rate_limited{
                 NumberField(chain, "rate_limited_block_requests")};
+            const QString max_inbound_per_netgroup{
+                NumberField(chain, "max_inbound_per_netgroup")};
+            const QString inbound_netgroup_rejections{
+                NumberField(chain, "inbound_netgroup_rejections")};
             const QStringList added_nodes{StringArrayField(chain, "added_nodes")};
             const QStringList binds{StringArrayField(chain, "binds")};
             const bool discovery{BoolField(chain, "discovery_enabled")};
@@ -401,6 +405,10 @@ void ChildChainDialog::refresh()
                 QStringLiteral("\n\n") +
                 tr("Known isolated peer-store addresses: %1")
                     .arg(known_address_usage) +
+                QStringLiteral("\n") +
+                tr("Inbound peers per netgroup: %1 maximum • %2 rejected")
+                    .arg(max_inbound_per_netgroup,
+                         inbound_netgroup_rejections) +
                 QStringLiteral("\n") +
                 tr("Rate-limited block requests: %1").arg(rate_limited));
             m_table->setItem(row, NETWORK, network_item);

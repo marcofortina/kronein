@@ -968,12 +968,12 @@
     </message>
     <message>
         <location line="+11"/>
-        <location line="+2292"/>
+        <location line="+2307"/>
         <source>Status</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-2291"/>
+        <location line="-2306"/>
         <source>Chain ID</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1009,12 +1009,12 @@
     </message>
     <message>
         <location line="+16"/>
-        <location line="+309"/>
+        <location line="+324"/>
         <source>Select a child chain to manage its local runtime.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-304"/>
+        <location line="-319"/>
         <source>Refresh</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1055,25 +1055,25 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+295"/>
+        <location line="+310"/>
         <location line="+56"/>
         <source>Pause Network</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-311"/>
+        <location line="-326"/>
         <source>Forget…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="-135"/>
-        <location line="+213"/>
+        <location line="+223"/>
         <source>Failed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-214"/>
-        <location line="+214"/>
+        <location line="-224"/>
+        <location line="+224"/>
         <source>Safe halt</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1098,18 +1098,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+214"/>
+        <location line="+219"/>
         <source>Chain ID: %1
 State: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7 • discovery: %8 (%9 bootstrap, %10 known) • rate-limited block requests: %11</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-184"/>
+        <location line="-188"/>
         <source>No explicit child peers configured</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-257"/>
+        <location line="-268"/>
         <source>Confirmed</source>
         <translation type="unfinished">Confirmed</translation>
     </message>
@@ -1164,7 +1164,7 @@ State: %2 • registry: %3 • local configuration: %4 • network: %5 • expli
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+158"/>
+        <location line="+169"/>
         <source>Explicit child peers:
 %1</source>
         <translation type="unfinished"></translation>
@@ -1203,12 +1203,17 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+7"/>
         <source>Rate-limited block requests: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+35"/>
+        <location line="-4"/>
+        <source>Inbound peers per netgroup: %1 maximum • %2 rejected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+39"/>
         <source>Pending block data: %1 distinct blocks</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1338,7 +1343,7 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-794"/>
+        <location line="-809"/>
         <source>Idle</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1498,7 +1503,7 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+337"/>
+        <location line="+352"/>
         <source>
 WARNING: This child runtime has failed. Spending, migration, and BMM actions are disabled; inspect diagnostics and unload it safely.</source>
         <translation type="unfinished"></translation>
@@ -2315,12 +2320,12 @@ There is no child-to-main withdrawal path.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-2520"/>
+        <location line="-2525"/>
         <source>%1 proposals • %2 pending • %3/%4 candidates • %5/%6 anchors</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+73"/>
+        <location line="+78"/>
         <source>Local proposals: %1/%2 records, %3/%4 bytes
 Side candidates: %5/%6 records, %7/%8 bytes
 Candidate BMM anchors: %9/%10 records, %11/%12 bytes
