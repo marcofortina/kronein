@@ -344,6 +344,8 @@ void ChildChainDialog::refresh()
                 RATE_LIMITED_REQUESTS_ROLE, rate_limited);
             status_item->setData(SUPPORTED_ROLE, BoolField(chain, "supported"));
             status_item->setData(METADATA_HASH_ROLE, StringField(chain, "metadata_hash"));
+            status_item->setData(FAILED_ROLE, failed);
+            status_item->setData(SAFE_HALT_ROLE, safe_halt);
             m_table->setItem(row, STATUS, status_item);
             m_table->setItem(row, CHAIN_ID, new QTableWidgetItem{chain_id});
             m_table->setItem(row, CHILD_HEIGHT, new QTableWidgetItem{NumberField(chain, "child_height")});
@@ -497,6 +499,9 @@ void ChildChainDialog::updateSelection()
     const QString known_addresses{
         item->data(KNOWN_ADDRESSES_ROLE).toString()};
     const bool supported{item->data(SUPPORTED_ROLE).toBool()};
+    const bool failed{item->data(FAILED_ROLE).toBool()};
+    const bool safe_halt{item->data(SAFE_HALT_ROLE).toBool()};
+    const bool operational{!failed && !safe_halt};
     m_load_button->setEnabled(configured && !loaded && state == QStringLiteral("configured"));
     m_unload_button->setEnabled(loaded);
     m_forget_button->setEnabled(configured && !loaded);
@@ -506,12 +511,14 @@ void ChildChainDialog::updateSelection()
     m_binds_button->setEnabled(loaded && network_running);
     m_discovery_button->setEnabled(loaded && network_running);
     m_network_button->setEnabled(loaded && network_running);
-    m_bmm_button->setEnabled(loaded && supported);
+    m_bmm_button->setEnabled(loaded && supported && operational);
 #ifdef ENABLE_WALLET
     m_register_button->setEnabled(m_wallet_model);
     m_balance_button->setEnabled(m_wallet_model && loaded && supported);
-    m_receive_button->setEnabled(m_wallet_model && loaded && supported);
-    m_send_button->setEnabled(m_wallet_model && loaded && supported);
+    m_receive_button->setEnabled(
+        m_wallet_model && loaded && supported && operational);
+    m_send_button->setEnabled(
+        m_wallet_model && loaded && supported && operational);
     m_activity_button->setEnabled(m_wallet_model && loaded && supported);
     m_deposits_button->setEnabled(m_wallet_model);
     const bool active_registry_record{
@@ -520,12 +527,12 @@ void ChildChainDialog::updateSelection()
          state == QStringLiteral("configured") ||
          state == QStringLiteral("loaded"))};
     m_migrate_button->setEnabled(
-        active_registry_record && supported);
+        active_registry_record && supported && operational);
     m_update_button->setEnabled(active_registry_record);
     m_retire_button->setEnabled(active_registry_record);
 #endif
     m_network_button->setText(network_active ? tr("Pause Network") : tr("Resume Network"));
-    m_selection_summary->setText(
+    QString selection_text{
         tr("Chain ID: %1\nState: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7 • discovery: %8 (%9 bootstrap, %10 known) • rate-limited block requests: %11")
             .arg(chain_id,
                  StateLabel(state),
@@ -537,7 +544,13 @@ void ChildChainDialog::updateSelection()
                  discovery ? tr("enabled") : tr("disabled"),
                  QString::number(bootstrap_nodes.size()),
                  known_addresses,
-                 rate_limited));
+                 rate_limited)};
+    if (failed) {
+        selection_text += tr("\nWARNING: This child runtime has failed. Spending, migration, and BMM actions are disabled; inspect diagnostics and unload it safely.");
+    } else if (safe_halt) {
+        selection_text += tr("\nWARNING: SAFE_HALT is active after an irreversible-main-state safety violation. Spending, migration, and BMM actions are disabled.");
+    }
+    m_selection_summary->setText(selection_text);
 }
 
 void ChildChainDialog::manageBmm()

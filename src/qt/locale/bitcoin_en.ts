@@ -968,12 +968,12 @@
     </message>
     <message>
         <location line="+11"/>
-        <location line="+1958"/>
+        <location line="+1971"/>
         <source>Status</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1957"/>
+        <location line="-1970"/>
         <source>Chain ID</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1009,12 +1009,12 @@
     </message>
     <message>
         <location line="+16"/>
-        <location line="+301"/>
+        <location line="+303"/>
         <source>Select a child chain to manage its local runtime.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-296"/>
+        <location line="-298"/>
         <source>Refresh</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1055,13 +1055,13 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+287"/>
-        <location line="+49"/>
+        <location line="+289"/>
+        <location line="+54"/>
         <source>Pause Network</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-300"/>
+        <location line="-307"/>
         <source>Forget…</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1098,18 +1098,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+204"/>
+        <location line="+211"/>
         <source>Chain ID: %1
 State: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7 • discovery: %8 (%9 bootstrap, %10 known) • rate-limited block requests: %11</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-176"/>
+        <location line="-181"/>
         <source>No explicit child peers configured</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-232"/>
+        <location line="-234"/>
         <source>Confirmed</source>
         <translation type="unfinished">Confirmed</translation>
     </message>
@@ -1164,7 +1164,7 @@ State: %2 • registry: %3 • local configuration: %4 • network: %5 • expli
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+152"/>
+        <location line="+154"/>
         <source>Explicit child peers:
 %1</source>
         <translation type="unfinished"></translation>
@@ -1242,7 +1242,7 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+89"/>
+        <location line="+94"/>
         <source>Resume Network</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1284,7 +1284,7 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+12"/>
+        <location line="+18"/>
         <source>Build and anchor an import block</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1343,7 +1343,7 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-702"/>
+        <location line="-715"/>
         <source>Idle</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1428,7 +1428,19 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+333"/>
+        <location line="+334"/>
+        <source>
+WARNING: This child runtime has failed. Spending, migration, and BMM actions are disabled; inspect diagnostics and unload it safely.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>
+WARNING: SAFE_HALT is active after an irreversible-main-state safety violation. Spending, migration, and BMM actions are disabled.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+10"/>
         <source>View operational status</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2034,12 +2046,12 @@ There is no child-to-main withdrawal path.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-2191"/>
+        <location line="-2204"/>
         <source>%1 proposals • %2 pending • %3/%4 candidates • %5/%6 anchors</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+71"/>
+        <location line="+73"/>
         <source>Local proposals: %1/%2 records, %3/%4 bytes
 Side candidates: %5/%6 records, %7/%8 bytes
 Candidate BMM anchors: %9/%10 records, %11/%12 bytes
@@ -2047,7 +2059,7 @@ Pending BMM anchors: %13/%14 records, %15/%16 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+166"/>
+        <location line="+177"/>
         <source>Activate a stored confirmed proposal</source>
         <translation type="unfinished"></translation>
     </message>

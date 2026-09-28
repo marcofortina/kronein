@@ -91,6 +91,8 @@ private:
         RATE_LIMITED_REQUESTS_ROLE,
         SUPPORTED_ROLE,
         METADATA_HASH_ROLE,
+        FAILED_ROLE,
+        SAFE_HALT_ROLE,
     };
 
     QString selectedChainId() const;
