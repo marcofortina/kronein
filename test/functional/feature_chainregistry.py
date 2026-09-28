@@ -1008,6 +1008,48 @@ class ChainRegistryTest(BitcoinTestFramework):
             1, 9999999, [], True,
             {"maximumAmount": Decimal("0.24999999")}, chain_id), [])
 
+        self.log.info("Keep child coin locks isolated and persistent per chain")
+        child_outpoint = {
+            "txid": child_import["txid"],
+            "vout": 0,
+        }
+        assert_equal(wallet.listlockunspent(), [])
+        assert_equal(wallet.listlockunspent(chain_id), [])
+        assert_raises_rpc_error(
+            -8, "chain_id must be exactly 32 non-null bytes",
+            wallet.listlockunspent, "00" * 32)
+        assert wallet.lockunspent(
+            False, [child_outpoint], True, chain_id)
+        assert_equal(wallet.listlockunspent(), [])
+        assert_equal(wallet.listlockunspent(chain_id), [{
+            **child_outpoint,
+            "chain_id": chain_id,
+        }])
+        assert_equal(wallet.listunspent(
+            1, 9999999, [], True, {}, chain_id), [])
+        assert_raises_rpc_error(
+            -6, "insufficient mature child funds",
+            wallet.walletcreatechildpsbt,
+            chain_id,
+            [{"recipient": child_recipient,
+              "amount": Decimal("0.10000000")}],
+            Decimal("0.00001000"))
+        node.unloadwallet("registry")
+        node.loadwallet("registry")
+        wallet = node.get_wallet_rpc("registry")
+        assert_equal(wallet.listlockunspent(chain_id), [{
+            **child_outpoint,
+            "chain_id": chain_id,
+        }])
+        assert wallet.lockunspent(True, [child_outpoint], False, chain_id)
+        assert_equal(wallet.listlockunspent(chain_id), [])
+        node.unloadwallet("registry")
+        node.loadwallet("registry")
+        wallet = node.get_wallet_rpc("registry")
+        assert_equal(wallet.listlockunspent(chain_id), [])
+        assert_equal(len(wallet.listunspent(
+            1, 9999999, [], True, {}, chain_id)), 1)
+
         self.log.info("Create and sign a wallet PSBT in the child signature domain")
         child_destination = attacker.getnewchildrecipient(
             chain_id, "child-destination")

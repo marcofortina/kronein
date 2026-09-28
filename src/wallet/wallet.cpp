@@ -2813,6 +2813,84 @@ void CWallet::ListLockedCoins(std::vector<COutPoint>& vOutpts) const
     }
 }
 
+void CWallet::LoadLockedChildCoin(
+    const chainregistry::ChainId& chain_id,
+    const COutPoint& coin,
+    bool persistent)
+{
+    AssertLockHeld(cs_wallet);
+    Assume(!chain_id.IsNull());
+    m_locked_child_coins.insert_or_assign(
+        std::make_pair(chain_id, coin), persistent);
+}
+
+bool CWallet::LockChildCoin(
+    const chainregistry::ChainId& chain_id,
+    const COutPoint& output,
+    bool persist)
+{
+    AssertLockHeld(cs_wallet);
+    LoadLockedChildCoin(chain_id, output, persist);
+    if (!persist) return true;
+    WalletBatch batch(GetDatabase());
+    return batch.WriteLockedChildUTXO(chain_id, output);
+}
+
+bool CWallet::UnlockChildCoin(
+    const chainregistry::ChainId& chain_id,
+    const COutPoint& output)
+{
+    AssertLockHeld(cs_wallet);
+    const auto key{std::make_pair(chain_id, output)};
+    const auto locked{m_locked_child_coins.find(key)};
+    if (locked == m_locked_child_coins.end()) return true;
+    const bool persisted{locked->second};
+    m_locked_child_coins.erase(locked);
+    if (!persisted) return true;
+    WalletBatch batch(GetDatabase());
+    return batch.EraseLockedChildUTXO(chain_id, output);
+}
+
+bool CWallet::UnlockAllChildCoins(
+    const chainregistry::ChainId& chain_id)
+{
+    AssertLockHeld(cs_wallet);
+    bool success{true};
+    WalletBatch batch(GetDatabase());
+    for (auto it{m_locked_child_coins.begin()};
+         it != m_locked_child_coins.end();) {
+        if (it->first.first != chain_id) {
+            ++it;
+            continue;
+        }
+        if (it->second) {
+            success = batch.EraseLockedChildUTXO(
+                chain_id, it->first.second) && success;
+        }
+        it = m_locked_child_coins.erase(it);
+    }
+    return success;
+}
+
+bool CWallet::IsLockedChildCoin(
+    const chainregistry::ChainId& chain_id,
+    const COutPoint& output) const
+{
+    AssertLockHeld(cs_wallet);
+    return m_locked_child_coins.contains(
+        std::make_pair(chain_id, output));
+}
+
+void CWallet::ListLockedChildCoins(
+    const chainregistry::ChainId& chain_id,
+    std::vector<COutPoint>& outputs) const
+{
+    AssertLockHeld(cs_wallet);
+    for (const auto& [key, _] : m_locked_child_coins) {
+        if (key.first == chain_id) outputs.push_back(key.second);
+    }
+}
+
 /**
  * Compute smart timestamp for a transaction being added to the wallet.
  *

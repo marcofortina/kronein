@@ -521,6 +521,8 @@ public:
      * bool to track whether this locked coin is persisted to disk.
      */
     std::map<COutPoint, bool> m_locked_coins GUARDED_BY(cs_wallet);
+    std::map<std::pair<chainregistry::ChainId, COutPoint>, bool>
+        m_locked_child_coins GUARDED_BY(cs_wallet);
 
     /** Registered interfaces::Chain::Notifications handler. */
     std::unique_ptr<interfaces::Handler> m_chain_notifications_handler;
@@ -578,6 +580,19 @@ public:
     bool UnlockCoin(const COutPoint& output) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool UnlockAllCoins() EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     void ListLockedCoins(std::vector<COutPoint>& vOutpts) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    void LoadLockedChildCoin(const chainregistry::ChainId& chain_id,
+                             const COutPoint& coin,
+                             bool persistent) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool LockChildCoin(const chainregistry::ChainId& chain_id,
+                       const COutPoint& output,
+                       bool persist) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool UnlockChildCoin(const chainregistry::ChainId& chain_id,
+                         const COutPoint& output) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool UnlockAllChildCoins(const chainregistry::ChainId& chain_id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool IsLockedChildCoin(const chainregistry::ChainId& chain_id,
+                           const COutPoint& output) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    void ListLockedChildCoins(const chainregistry::ChainId& chain_id,
+                              std::vector<COutPoint>& outputs) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     /*
      * Rescan abort properties

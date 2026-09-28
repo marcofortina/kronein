@@ -35,6 +35,7 @@ const std::string CHILDAUTOBID{"childautobid"};
 const std::string CHILDSPK{"childspk"};
 const std::string DESTDATA{"destdata"};
 const std::string FLAGS{"flags"};
+const std::string LOCKED_CHILD_UTXO{"lockedchildutxo"};
 const std::string LOCKED_UTXO{"lockedutxo"};
 const std::string MASTER_KEY{"mkey"};
 const std::string NAME{"name"};
@@ -206,6 +207,28 @@ bool WalletBatch::WriteLockedUTXO(const COutPoint& output)
 bool WalletBatch::EraseLockedUTXO(const COutPoint& output)
 {
     return EraseIC(std::make_pair(DBKeys::LOCKED_UTXO, std::make_pair(output.hash, output.n)));
+}
+
+bool WalletBatch::WriteLockedChildUTXO(
+    const chainregistry::ChainId& chain_id,
+    const COutPoint& output)
+{
+    return WriteIC(
+        std::make_pair(
+            DBKeys::LOCKED_CHILD_UTXO,
+            std::make_pair(
+                chain_id, std::make_pair(output.hash, output.n))),
+        uint8_t{'1'});
+}
+
+bool WalletBatch::EraseLockedChildUTXO(
+    const chainregistry::ChainId& chain_id,
+    const COutPoint& output)
+{
+    return EraseIC(std::make_pair(
+        DBKeys::LOCKED_CHILD_UTXO,
+        std::make_pair(
+            chain_id, std::make_pair(output.hash, output.n))));
 }
 
 bool LoadEncryptionKey(CWallet* pwallet, DataStream& ssKey, DataStream& ssValue, std::string& strErr)
@@ -660,6 +683,26 @@ static DBErrors LoadTxRecords(CWallet* pwallet, DatabaseBatch& batch) EXCLUSIVE_
         return DBErrors::LOAD_OK;
     });
     result = std::max(result, locked_utxo_res.m_result);
+
+    LoadResult locked_child_utxo_res = LoadRecords(
+        pwallet, batch, DBKeys::LOCKED_CHILD_UTXO,
+        [] (CWallet* pwallet, DataStream& key, DataStream& value,
+            std::string& err) EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet) {
+        chainregistry::ChainId chain_id;
+        Txid hash;
+        uint32_t n;
+        key >> chain_id;
+        key >> hash;
+        key >> n;
+        if (chain_id.IsNull()) {
+            err = "Error: Invalid null chain id in locked child UTXO record.";
+            return DBErrors::CORRUPT;
+        }
+        pwallet->LoadLockedChildCoin(
+            chain_id, COutPoint(hash, n), /*persistent=*/true);
+        return DBErrors::LOAD_OK;
+    });
+    result = std::max(result, locked_child_utxo_res.m_result);
 
     // Load orderposnext record
     // Note: There should only be one ORDERPOSNEXT record with nothing trailing the type

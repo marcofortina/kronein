@@ -321,6 +321,13 @@ RPCHelpMan walletcreatechildpsbt()
     const interfaces::ChildWalletScan scan{
         ScanSupportedChildWallet(wallet, chain_id)};
     const auto definition{DefinitionFromScan(chain_id, scan)};
+    std::vector<COutPoint> locked_outputs;
+    {
+        LOCK(wallet.cs_wallet);
+        wallet.ListLockedChildCoins(chain_id, locked_outputs);
+    }
+    const std::set<COutPoint> locked{
+        locked_outputs.begin(), locked_outputs.end()};
     std::vector<const interfaces::ChildWalletCoin*> candidates;
     for (const auto& coin : scan.coins) {
         if (!MoneyRange(coin.output.nValue) || coin.output.nValue <= 0) {
@@ -328,7 +335,7 @@ RPCHelpMan walletcreatechildpsbt()
                                "child wallet UTXO amount is invalid");
         }
         if (Confirmations(scan, coin) < static_cast<uint64_t>(minconf) ||
-            !IsMature(scan, coin)) {
+            !IsMature(scan, coin) || locked.contains(coin.outpoint)) {
             continue;
         }
         candidates.push_back(&coin);

@@ -61,6 +61,7 @@ extern const std::string CHILDAUTOBID;
 extern const std::string CHILDSPK;
 extern const std::string DESTDATA;
 extern const std::string FLAGS;
+extern const std::string LOCKED_CHILD_UTXO;
 extern const std::string LOCKED_UTXO;
 extern const std::string MASTER_KEY;
 extern const std::string NAME;
@@ -142,6 +143,10 @@ public:
 
     bool WriteLockedUTXO(const COutPoint& output);
     bool EraseLockedUTXO(const COutPoint& output);
+    bool WriteLockedChildUTXO(const chainregistry::ChainId& chain_id,
+                              const COutPoint& output);
+    bool EraseLockedChildUTXO(const chainregistry::ChainId& chain_id,
+                              const COutPoint& output);
 
     bool WriteAddressPreviouslySpent(const CTxDestination& dest, bool previously_spent);
     bool WriteAddressReceiveRequest(const CTxDestination& dest, const std::string& id, const std::string& receive_request);

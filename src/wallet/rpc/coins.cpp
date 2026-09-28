@@ -151,6 +151,7 @@ UniValue ListChildUnspent(
         if (confirmations < static_cast<uint64_t>(std::max(min_depth, 0)) ||
             (max_depth >= 0 &&
              confirmations > static_cast<uint64_t>(max_depth)) ||
+            wallet.IsLockedChildCoin(chain_id, coin.outpoint) ||
             coin.output.nValue < filter.min_amount ||
             coin.output.nValue > filter.max_amount ||
             (coin.mempool && !coin.trusted && !include_unsafe) ||
@@ -208,6 +209,82 @@ UniValue ListChildUnspent(
         }
     }
     return results;
+}
+
+bool SetChildCoinLocks(
+    CWallet& wallet,
+    const chainregistry::ChainId& chain_id,
+    bool unlock,
+    const UniValue& transactions,
+    bool persistent)
+{
+    if (transactions.isNull()) {
+        if (!unlock) return true;
+        LOCK(wallet.cs_wallet);
+        if (!wallet.UnlockAllChildCoins(chain_id)) {
+            throw JSONRPCError(RPC_WALLET_ERROR,
+                               "Unlocking child coins failed");
+        }
+        return true;
+    }
+
+    const interfaces::ChildWalletScan scan{
+        ScanChildWallet(wallet, chain_id)};
+    std::set<COutPoint> unspent;
+    for (const auto& coin : scan.coins) unspent.insert(coin.outpoint);
+
+    std::vector<COutPoint> outputs;
+    const UniValue& output_params{transactions.get_array()};
+    outputs.reserve(output_params.size());
+    for (const UniValue& value : output_params.getValues()) {
+        const UniValue& object{value.get_obj()};
+        RPCTypeCheckObj(
+            object,
+            {{"txid", UniValueType(UniValue::VSTR)},
+             {"vout", UniValueType(UniValue::VNUM)}});
+        const int output_index{object.find_value("vout").getInt<int>()};
+        if (output_index < 0) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "Invalid parameter, vout cannot be negative");
+        }
+        const COutPoint outpoint{
+            Txid::FromUint256(ParseHashO(object, "txid")),
+            static_cast<uint32_t>(output_index)};
+        if (!unspent.contains(outpoint)) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "Invalid parameter, expected unspent child output");
+        }
+        outputs.push_back(outpoint);
+    }
+
+    LOCK(wallet.cs_wallet);
+    for (const COutPoint& output : outputs) {
+        const bool locked{wallet.IsLockedChildCoin(chain_id, output)};
+        if (unlock && !locked) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "Invalid parameter, expected locked child output");
+        }
+        if (!unlock && locked && !persistent) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "Invalid parameter, child output already locked");
+        }
+    }
+    for (const COutPoint& output : outputs) {
+        const bool success{unlock
+            ? wallet.UnlockChildCoin(chain_id, output)
+            : wallet.LockChildCoin(chain_id, output, persistent)};
+        if (!success) {
+            throw JSONRPCError(
+                RPC_WALLET_ERROR,
+                unlock ? "Unlocking child coin failed"
+                       : "Locking child coin failed");
+        }
+    }
+    return true;
 }
 
 } // namespace
@@ -418,7 +495,8 @@ RPCHelpMan lockunspent()
         "Updates list of temporarily unspendable outputs.\n"
                 "Temporarily lock (unlock=false) or unlock (unlock=true) specified transaction outputs.\n"
                 "If no transaction outputs are specified when unlocking then all current locked transaction outputs are unlocked.\n"
-                "A locked transaction output will not be chosen by automatic coin selection when spending KNE.\n"
+                "A locked transaction output will not be listed as available or chosen by automatic coin selection when spending KNE.\n"
+                "When chain_id is provided, the lock applies only to that child chain and cannot affect the main chain or another child chain.\n"
                 "Manually selected coins are automatically unlocked.\n"
                 "Locks are stored in memory only, unless persistent=true, in which case they will be written to the\n"
                 "wallet database and loaded on node start. Unwritten (persistent=false) locks are always cleared\n"
@@ -437,6 +515,7 @@ RPCHelpMan lockunspent()
                         },
                     },
                     {"persistent", RPCArg::Type::BOOL, RPCArg::Default{false}, "Whether to write/erase this lock in the wallet database, or keep the change in memory only. Ignored for unlocking."},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 RPCResult{
                     RPCResult::Type::BOOL, "", "Whether the command was successful or not"
@@ -464,11 +543,20 @@ RPCHelpMan lockunspent()
     // the user could have gotten from another RPC command prior to now
     pwallet->BlockUntilSyncedToCurrentChain();
 
-    LOCK(pwallet->cs_wallet);
-
     bool fUnlock = request.params[0].get_bool();
 
     const bool persistent{request.params[2].isNull() ? false : request.params[2].get_bool()};
+
+    if (const auto chain_arg{self.MaybeArg<UniValue>("chain_id")}) {
+        return SetChildCoinLocks(
+            *pwallet,
+            ParseChildChainId(*chain_arg),
+            fUnlock,
+            request.params[1],
+            persistent);
+    }
+
+    LOCK(pwallet->cs_wallet);
 
     if (request.params[1].isNull()) {
         if (fUnlock) {
@@ -548,9 +636,11 @@ RPCHelpMan listlockunspent()
 {
     return RPCHelpMan{
         "listlockunspent",
-        "Returns list of temporarily unspendable outputs.\n"
+        "Returns list of temporarily unspendable outputs for the selected chain.\n"
                 "See the lockunspent call to lock and unlock transactions for spending.\n",
-                {},
+                {
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
+                },
                 RPCResult{
                     RPCResult::Type::ARR, "", "",
                     {
@@ -558,6 +648,7 @@ RPCHelpMan listlockunspent()
                         {
                             {RPCResult::Type::STR_HEX, "txid", "The transaction id locked"},
                             {RPCResult::Type::NUM, "vout", "The vout value"},
+                            {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Selected child-chain identifier; omitted for the main chain"},
                         }},
                     }
                 },
@@ -578,10 +669,19 @@ RPCHelpMan listlockunspent()
     const std::shared_ptr<const CWallet> pwallet = GetWalletForJSONRPCRequest(request);
     if (!pwallet) return UniValue::VNULL;
 
+    std::optional<chainregistry::ChainId> child_chain;
+    if (const auto chain_arg{self.MaybeArg<UniValue>("chain_id")}) {
+        child_chain = ParseChildChainId(*chain_arg);
+    }
+
     LOCK(pwallet->cs_wallet);
 
     std::vector<COutPoint> vOutpts;
-    pwallet->ListLockedCoins(vOutpts);
+    if (child_chain) {
+        pwallet->ListLockedChildCoins(*child_chain, vOutpts);
+    } else {
+        pwallet->ListLockedCoins(vOutpts);
+    }
 
     UniValue ret(UniValue::VARR);
 
@@ -590,6 +690,7 @@ RPCHelpMan listlockunspent()
 
         o.pushKV("txid", outpt.hash.GetHex());
         o.pushKV("vout", outpt.n);
+        if (child_chain) o.pushKV("chain_id", child_chain->GetHex());
         ret.push_back(std::move(o));
     }
 
