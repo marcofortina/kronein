@@ -502,6 +502,14 @@ ChainManagerImportBlockBuildResult ChainManager::BuildImportBlock(
         result.error = ChainManagerImportBlockBuildError::TOO_MANY_PROOFS;
         return result;
     }
+    const auto pruned{runtime->second->PruneInvalidLocalProposals(
+        current_time, sync)};
+    if (!pruned.IsValid()) {
+        result.error =
+            ChainManagerImportBlockBuildError::PROPOSAL_QUEUE_UNAVAILABLE;
+        return result;
+    }
+    result.pruned_local_proposals = pruned.pruned_local_proposals;
     if (require_empty_proposal_queue) {
         const auto proposals{runtime->second->GetLocalProposals()};
         if (!proposals || !proposals->empty()) {
@@ -573,6 +581,11 @@ ChainManagerImportBlockBuildResult ChainManager::BuildImportBlock(
     if (!stored.IsValid()) {
         result.error =
             ChainManagerImportBlockBuildError::PROPOSAL_PERSIST_FAILED;
+    } else {
+        result.pruned_local_proposals.insert(
+            result.pruned_local_proposals.end(),
+            stored.pruned_local_proposals.begin(),
+            stored.pruned_local_proposals.end());
     }
     return result;
 }

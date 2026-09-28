@@ -66,6 +66,7 @@ struct ReferenceChildRuntimeResult {
     chainregistry::ReferenceChildBlockResult child_block;
     std::vector<uint256> disconnected_child_blocks;
     std::vector<uint256> pruned_child_candidates;
+    std::vector<uint256> pruned_local_proposals;
     bool bmm_anchor_already_known{false};
     bool local_proposal_found{false};
     bool local_proposal_activated{false};
@@ -157,6 +158,10 @@ private:
         const CBlockHeader* added_header,
         int64_t current_time,
         bool sync);
+    bool PruneInvalidLocalProposalsImpl(
+        int64_t current_time,
+        bool sync,
+        ReferenceChildRuntimeResult& result);
 
 public:
     ReferenceChildRuntime(
@@ -205,6 +210,10 @@ public:
         bool sync = false);
     ReferenceChildRuntimeResult RemoveLocalProposal(
         const uint256& block_hash,
+        bool sync = false);
+    /** Remove proposals that no longer extend the active, authenticated state. */
+    ReferenceChildRuntimeResult PruneInvalidLocalProposals(
+        int64_t current_time,
         bool sync = false);
     /** Contextually validate a block extending the active tip without persistence. */
     chainregistry::ReferenceChildBlockResult ValidateTipBlock(

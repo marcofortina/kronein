@@ -2864,10 +2864,33 @@ bool ChildChainDB::WriteLocalProposal(const CBlock& block,
 bool ChildChainDB::EraseLocalProposal(const uint256& child_block_hash,
                                       bool sync)
 {
-    if (child_block_hash.IsNull()) return false;
-    const LocalProposalKey key{DB_LOCAL_PROPOSAL, child_block_hash};
-    if (!m_db.Exists(key)) return false;
-    m_db.Erase(key, sync);
+    return EraseLocalProposals(
+        std::span<const uint256>{&child_block_hash, 1}, sync);
+}
+
+bool ChildChainDB::EraseLocalProposals(
+    std::span<const uint256> child_block_hashes,
+    bool sync)
+{
+    if (child_block_hashes.empty()) return true;
+
+    std::set<uint256> unique_hashes;
+    CDBBatch batch{m_db};
+    for (const uint256& child_block_hash : child_block_hashes) {
+        if (child_block_hash.IsNull() ||
+            !unique_hashes.insert(child_block_hash).second) {
+            return false;
+        }
+        ChildLocalProposalRecord record;
+        if (!m_db.Read(
+                LocalProposalKey{DB_LOCAL_PROPOSAL, child_block_hash},
+                record) ||
+            !IsValidLocalProposal(record, child_block_hash)) {
+            return false;
+        }
+        batch.Erase(LocalProposalKey{DB_LOCAL_PROPOSAL, child_block_hash});
+    }
+    m_db.WriteBatch(batch, sync);
     return true;
 }
 

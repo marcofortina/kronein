@@ -553,6 +553,8 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
     BOOST_CHECK(!staged.find_value("local_proposal_found").get_bool());
     BOOST_CHECK(!staged.find_value("local_proposal_activated").get_bool());
     BOOST_CHECK(staged.find_value("local_proposal_activation_error").isNull());
+    BOOST_CHECK(staged.find_value("pruned_proposals").isArray());
+    BOOST_CHECK_EQUAL(staged.find_value("pruned_proposals").size(), 0U);
     const auto awaiting_data{
         CallRPC("getchildpendingblocks " + chain_id)};
     BOOST_CHECK_EQUAL(
@@ -590,6 +592,8 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
                       child_block.GetHash().GetHex());
     BOOST_CHECK(submitted.find_value("pruned").isArray());
     BOOST_CHECK_EQUAL(submitted.find_value("pruned").size(), 0U);
+    BOOST_CHECK(submitted.find_value("pruned_proposals").isArray());
+    BOOST_CHECK_EQUAL(submitted.find_value("pruned_proposals").size(), 0U);
     BOOST_REQUIRE(
         height_waiter.wait_for(std::chrono::seconds{5}) ==
         std::future_status::ready);

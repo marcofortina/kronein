@@ -2071,6 +2071,9 @@ RPCHelpMan submitchildanchor()
             {RPCResult::Type::ARR, "pruned", "Losing side-candidate leaves removed to enforce the per-child storage budget", {
                 {RPCResult::Type::STR_HEX, "", "Pruned child candidate hash"},
             }},
+            {RPCResult::Type::ARR, "pruned_proposals", "Local proposals removed because they no longer extend the authenticated active state", {
+                {RPCResult::Type::STR_HEX, "", "Pruned local proposal hash"},
+            }},
         }},
         RPCExamples{
             HelpExampleCli("submitchildanchor", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" \"4b425052...\"")
@@ -2098,6 +2101,10 @@ RPCHelpMan submitchildanchor()
     for (const auto& hash : submitted.runtime.pruned_child_candidates) {
         pruned.push_back(hash.GetHex());
     }
+    UniValue pruned_proposals{UniValue::VARR};
+    for (const auto& hash : submitted.runtime.pruned_local_proposals) {
+        pruned_proposals.push_back(hash.GetHex());
+    }
     UniValue result{UniValue::VOBJ};
     result.pushKV("chain_id", chain_id.GetHex());
     result.pushKV("child_block_hash", submitted.runtime.bmm_anchor.proof.anchor->child_block_hash.GetHex());
@@ -2120,6 +2127,7 @@ RPCHelpMan submitchildanchor()
     result.pushKV("bestblockhash", view.entry.tip.GetHex());
     result.pushKV("disconnected", std::move(disconnected));
     result.pushKV("pruned", std::move(pruned));
+    result.pushKV("pruned_proposals", std::move(pruned_proposals));
     return result;
 }
     };
@@ -2376,6 +2384,9 @@ RPCHelpMan submitchildblock()
             {RPCResult::Type::ARR, "pruned", "Losing side-candidate leaves removed to enforce the per-child storage budget", {
                 {RPCResult::Type::STR_HEX, "", "Pruned child candidate hash"},
             }},
+            {RPCResult::Type::ARR, "pruned_proposals", "Local proposals removed because they no longer extend the authenticated active state", {
+                {RPCResult::Type::STR_HEX, "", "Pruned local proposal hash"},
+            }},
         }},
         RPCExamples{
             HelpExampleCli("submitchildblock", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" \"blockhex\" \"4b425052...\"")
@@ -2412,6 +2423,10 @@ RPCHelpMan submitchildblock()
     for (const auto& hash : submitted.runtime.pruned_child_candidates) {
         pruned.push_back(hash.GetHex());
     }
+    UniValue pruned_proposals{UniValue::VARR};
+    for (const auto& hash : submitted.runtime.pruned_local_proposals) {
+        pruned_proposals.push_back(hash.GetHex());
+    }
     UniValue result{UniValue::VOBJ};
     result.pushKV("chain_id", chain_id.GetHex());
     result.pushKV("blockhash", block.GetHash().GetHex());
@@ -2422,6 +2437,7 @@ RPCHelpMan submitchildblock()
     result.pushKV("bestblockhash", view.entry.tip.GetHex());
     result.pushKV("disconnected", std::move(disconnected));
     result.pushKV("pruned", std::move(pruned));
+    result.pushKV("pruned_proposals", std::move(pruned_proposals));
     return result;
 }
     };
@@ -2553,6 +2569,9 @@ RPCHelpMan createchildimportblock()
             {RPCResult::Type::BOOL, "requires_bmm_anchor", "Always true; this call does not submit or anchor the block"},
             {RPCResult::Type::BOOL, "proposal_stored", "Always true after the validated block is durably queued locally"},
             {RPCResult::Type::BOOL, "contextually_valid", "Always true when the RPC succeeds"},
+            {RPCResult::Type::ARR, "pruned_proposals", "Older local proposals removed because they no longer extend the authenticated active state", {
+                {RPCResult::Type::STR_HEX, "", "Pruned local proposal hash"},
+            }},
         }},
         RPCExamples{
             HelpExampleCli("createchildimportblock", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" '[\"4b445052...\"]'")
@@ -2587,6 +2606,10 @@ RPCHelpMan createchildimportblock()
         throw JSONRPCError(
             RPC_VERIFY_ERROR,
             "a local child proposal already extends the active tip");
+    case node::ChainManagerImportBlockBuildError::PROPOSAL_QUEUE_UNAVAILABLE:
+        throw JSONRPCError(
+            RPC_DATABASE_ERROR,
+            "local child proposal state is unavailable");
     case node::ChainManagerImportBlockBuildError::TIME_OUT_OF_RANGE:
         throw JSONRPCError(RPC_MISC_ERROR,
                            "candidate child block time is out of range");
@@ -2673,6 +2696,11 @@ RPCHelpMan createchildimportblock()
     result.pushKV("requires_bmm_anchor", true);
     result.pushKV("proposal_stored", true);
     result.pushKV("contextually_valid", true);
+    UniValue pruned_proposals{UniValue::VARR};
+    for (const auto& hash : built.pruned_local_proposals) {
+        pruned_proposals.push_back(hash.GetHex());
+    }
+    result.pushKV("pruned_proposals", std::move(pruned_proposals));
     return result;
 },
     };
@@ -2692,6 +2720,9 @@ RPCHelpMan storechildproposal()
             {RPCResult::Type::STR_HEX, "blockhash", "Stored child block hash"},
             {RPCResult::Type::NUM, "size", "Serialized block size including witness"},
             {RPCResult::Type::BOOL, "stored", "True after durable persistence"},
+            {RPCResult::Type::ARR, "pruned_proposals", "Older local proposals removed because they no longer extend the authenticated active state", {
+                {RPCResult::Type::STR_HEX, "", "Pruned local proposal hash"},
+            }},
         }},
         RPCExamples{
             HelpExampleCli("storechildproposal", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" \"blockhex\"")
@@ -2711,6 +2742,11 @@ RPCHelpMan storechildproposal()
     result.pushKV("blockhash", block.GetHash().GetHex());
     result.pushKV("size", GetSerializeSize(TX_WITH_WITNESS(block)));
     result.pushKV("stored", true);
+    UniValue pruned_proposals{UniValue::VARR};
+    for (const auto& hash : stored.runtime.pruned_local_proposals) {
+        pruned_proposals.push_back(hash.GetHex());
+    }
+    result.pushKV("pruned_proposals", std::move(pruned_proposals));
     return result;
 },
     };
@@ -2881,6 +2917,9 @@ RPCHelpMan submitchildproposal()
             {RPCResult::Type::STR, "anchor_source", "supplied or staged"},
             {RPCResult::Type::STR_HEX, "selected_head", "Fork-choice result"},
             {RPCResult::Type::STR_HEX, "bestblockhash", "Active child tip after processing"},
+            {RPCResult::Type::ARR, "pruned_proposals", "Competing local proposals removed because they no longer extend the active tip", {
+                {RPCResult::Type::STR_HEX, "", "Pruned local proposal hash"},
+            }},
         }},
         RPCExamples{
             HelpExampleCli("submitchildproposal", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" \"blockhash\"")
@@ -2910,6 +2949,11 @@ RPCHelpMan submitchildproposal()
     result.pushKV("anchor_source", proof ? "supplied" : "staged");
     result.pushKV("selected_head", submitted.runtime.selected_child_head.GetHex());
     result.pushKV("bestblockhash", view.entry.tip.GetHex());
+    UniValue pruned_proposals{UniValue::VARR};
+    for (const auto& hash : submitted.runtime.pruned_local_proposals) {
+        pruned_proposals.push_back(hash.GetHex());
+    }
+    result.pushKV("pruned_proposals", std::move(pruned_proposals));
     return result;
 },
     };

@@ -681,6 +681,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(child_block["requires_bmm_anchor"], True)
         assert_equal(child_block["proposal_stored"], True)
         assert_equal(child_block["contextually_valid"], True)
+        assert_equal(child_block["pruned_proposals"], [])
         assert_equal(child_block["transactions"], [child_import["txid"]])
         assert_equal(child_block["deposits"], [{
             "deposit_id": submitted_deposit["deposit_id"],
@@ -736,6 +737,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         stored_again = node.storechildproposal(chain_id, child_block["block"])
         assert_equal(stored_again["stored"], True)
         assert_equal(stored_again["blockhash"], child_block["blockhash"])
+        assert_equal(stored_again["pruned_proposals"], [])
         assert_equal(node.storechildproposal(
             chain_id, child_block["block"])["stored"], True)
         assert_raises_rpc_error(
@@ -868,6 +870,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(staged_anchor["local_proposal_activated"], False)
         assert_equal(staged_anchor["selected_head"], child_block["blockhash"])
         assert_equal(staged_anchor["bestblockhash"], child_block["blockhash"])
+        assert_equal(staged_anchor["pruned_proposals"], [])
         pending_blocks = node.getchildpendingblocks(chain_id)
         assert_equal(pending_blocks["block_count"], 0)
         assert_equal(pending_blocks["anchor_count"], 0)

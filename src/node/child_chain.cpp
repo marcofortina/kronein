@@ -484,6 +484,10 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::Initialize(
                 result.disconnected_child_blocks.end(),
                 advanced.disconnected_child_blocks.begin(),
                 advanced.disconnected_child_blocks.end());
+            result.pruned_local_proposals.insert(
+                result.pruned_local_proposals.end(),
+                advanced.pruned_local_proposals.begin(),
+                advanced.pruned_local_proposals.end());
         }
         const uint256 active_tip{validated_active_headers->empty()
             ? m_main_params.hashGenesisBlock
@@ -500,6 +504,13 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::Initialize(
             result.disconnected_child_blocks.end(),
             selected.disconnected_child_blocks.begin(),
             selected.disconnected_child_blocks.end());
+        result.pruned_local_proposals.insert(
+            result.pruned_local_proposals.end(),
+            selected.pruned_local_proposals.begin(),
+            selected.pruned_local_proposals.end());
+    }
+    if (!PruneInvalidLocalProposalsImpl(current_time, sync, result)) {
+        return result;
     }
     return result;
 }
@@ -739,6 +750,9 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::CommitMainChainUpdate(
             return result;
         }
     }
+    if (!PruneInvalidLocalProposalsImpl(current_time, sync, result)) {
+        return result;
+    }
     return result;
 }
 
@@ -853,6 +867,10 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::StageBmmAnchor(
                     ReferenceChildRuntimeError::CHILD_REORGANIZATION_FAILED;
             }
         }
+    }
+    if (result.IsValid() &&
+        !PruneInvalidLocalProposalsImpl(current_time, sync, result)) {
+        return result;
     }
     return result;
 }
@@ -996,6 +1014,10 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
                     ReferenceChildRuntimeError::CHILD_REORGANIZATION_FAILED;
             }
         }
+        if (result.IsValid() &&
+            !PruneInvalidLocalProposalsImpl(current_time, sync, result)) {
+            return result;
+        }
         return result;
     }
     std::vector<uint256> pruned_candidates;
@@ -1036,6 +1058,9 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
     }
     result.pruned_child_candidates = std::move(pruned_candidates);
     result.selected_child_head = m_tip->GetBlockHash();
+    if (!PruneInvalidLocalProposalsImpl(current_time, sync, result)) {
+        return result;
+    }
     return result;
 }
 
@@ -1060,6 +1085,61 @@ ReferenceChildRuntime::ValidateTipBlock(
         *m_main_headers,
         candidate_coins,
         candidate_imports);
+}
+
+bool ReferenceChildRuntime::PruneInvalidLocalProposalsImpl(
+    int64_t current_time,
+    bool sync,
+    ReferenceChildRuntimeResult& result)
+{
+    const auto proposals{m_db->ReadLocalProposals()};
+    if (!proposals) {
+        m_failed = true;
+        result.error = ReferenceChildRuntimeError::FAILED_RUNTIME;
+        return false;
+    }
+
+    std::vector<uint256> invalid;
+    invalid.reserve(proposals->size());
+    for (const ChildLocalProposalRecord& proposal : *proposals) {
+        const int64_t validation_time{
+            std::max(current_time, proposal.created_time)};
+        if (!ValidateTipBlock(proposal.block, validation_time).IsValid()) {
+            invalid.push_back(proposal.block.GetHash());
+        }
+    }
+    if (!m_db->EraseLocalProposals(invalid, sync)) {
+        m_failed = true;
+        result.error =
+            ReferenceChildRuntimeError::LOCAL_PROPOSAL_PERSIST_FAILED;
+        return false;
+    }
+    result.pruned_local_proposals.insert(
+        result.pruned_local_proposals.end(), invalid.begin(), invalid.end());
+    return true;
+}
+
+ReferenceChildRuntimeResult
+ReferenceChildRuntime::PruneInvalidLocalProposals(
+    int64_t current_time,
+    bool sync)
+{
+    if (!m_initialized) {
+        return RuntimeError(ReferenceChildRuntimeError::NOT_INITIALIZED);
+    }
+    if (m_failed) {
+        return RuntimeError(ReferenceChildRuntimeError::FAILED_RUNTIME);
+    }
+    ReferenceChildRuntimeResult result;
+    if (current_time < 0 ||
+        !PruneInvalidLocalProposalsImpl(current_time, sync, result)) {
+        if (result.error == ReferenceChildRuntimeError::NONE) {
+            result.error = ReferenceChildRuntimeError::FAILED_RUNTIME;
+        }
+        return result;
+    }
+    result.selected_child_head = m_tip->GetBlockHash();
+    return result;
 }
 
 ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectStagedBlock(
@@ -1101,6 +1181,9 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::StoreLocalProposal(
     result.child_block = ValidateTipBlock(block, current_time);
     if (!result.child_block.IsValid()) {
         result.error = ReferenceChildRuntimeError::CHILD_BLOCK_REJECTED;
+        return result;
+    }
+    if (!PruneInvalidLocalProposalsImpl(current_time, sync, result)) {
         return result;
     }
     if (!m_db->WriteLocalProposal(block, current_time, sync)) {

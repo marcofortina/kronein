@@ -278,12 +278,23 @@ BOOST_AUTO_TEST_CASE(persists_bounded_local_proposals)
         BOOST_REQUIRE(stored.has_value());
         BOOST_CHECK_EQUAL(stored->created_time, 100);
         BOOST_CHECK(stored->block.GetHash() == first.GetHash());
-        BOOST_REQUIRE(db.EraseLocalProposal(first.GetHash(), /*sync=*/true));
+        const uint256 missing{
+            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
+        const std::vector<uint256> incomplete{first.GetHash(), missing};
+        BOOST_CHECK(!db.EraseLocalProposals(incomplete, /*sync=*/true));
+        const auto retained{db.ReadLocalProposals()};
+        BOOST_REQUIRE(retained.has_value());
+        BOOST_REQUIRE_EQUAL(retained->size(), 2U);
+
+        const std::vector<uint256> duplicate{
+            first.GetHash(), first.GetHash()};
+        BOOST_CHECK(!db.EraseLocalProposals(duplicate, /*sync=*/true));
+        const std::vector<uint256> all{first.GetHash(), second.GetHash()};
+        BOOST_REQUIRE(db.EraseLocalProposals(all, /*sync=*/true));
         BOOST_CHECK(!db.EraseLocalProposal(first.GetHash(), /*sync=*/true));
         const auto proposals{db.ReadLocalProposals()};
         BOOST_REQUIRE(proposals.has_value());
-        BOOST_REQUIRE_EQUAL(proposals->size(), 1U);
-        BOOST_CHECK(proposals->front().block.GetHash() == second.GetHash());
+        BOOST_CHECK(proposals->empty());
     }
 }
 

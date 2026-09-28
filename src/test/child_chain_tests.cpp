@@ -982,6 +982,7 @@ BOOST_AUTO_TEST_CASE(durable_local_proposal_activates_with_anchor)
     const fs::path path{
         m_args.GetDataDirBase() / "reference_child_local_activation"};
     CBlock child_block;
+    CBlock competing_block;
 
     {
         node::ReferenceChildRuntime runtime{params, definition};
@@ -995,9 +996,16 @@ BOOST_AUTO_TEST_CASE(durable_local_proposal_activates_with_anchor)
         const auto stored{runtime.StoreLocalProposal(
             child_block, child_block.nTime, /*sync=*/true)};
         BOOST_REQUIRE_MESSAGE(stored.IsValid(), static_cast<int>(stored.error));
+        competing_block = child_block;
+        ++competing_block.nTime;
+        const auto competing_stored{runtime.StoreLocalProposal(
+            competing_block, competing_block.nTime, /*sync=*/true)};
+        BOOST_REQUIRE_MESSAGE(
+            competing_stored.IsValid(),
+            static_cast<int>(competing_stored.error));
         const auto proposals{runtime.GetLocalProposals()};
         BOOST_REQUIRE(proposals);
-        BOOST_REQUIRE_EQUAL(proposals->size(), 1U);
+        BOOST_REQUIRE_EQUAL(proposals->size(), 2U);
         BOOST_CHECK(proposals->front().block.GetHash() == child_block.GetHash());
     }
 
@@ -1010,7 +1018,7 @@ BOOST_AUTO_TEST_CASE(durable_local_proposal_activates_with_anchor)
             /*sync=*/true).IsValid());
         const auto proposals{runtime.GetLocalProposals()};
         BOOST_REQUIRE(proposals);
-        BOOST_REQUIRE_EQUAL(proposals->size(), 1U);
+        BOOST_REQUIRE_EQUAL(proposals->size(), 2U);
 
         const CBlockIndex* main_parent{runtime.MainHeaders()->Tip()};
         BOOST_REQUIRE(main_parent);
@@ -1034,6 +1042,10 @@ BOOST_AUTO_TEST_CASE(durable_local_proposal_activates_with_anchor)
             activated.local_proposal_activation_error ==
             node::ReferenceChildRuntimeError::NONE);
         BOOST_CHECK(activated.selected_child_head == child_block.GetHash());
+        BOOST_REQUIRE_EQUAL(activated.pruned_local_proposals.size(), 1U);
+        BOOST_CHECK(
+            activated.pruned_local_proposals.front() ==
+            competing_block.GetHash());
         BOOST_REQUIRE(runtime.Tip());
         BOOST_CHECK(runtime.Tip()->GetBlockHash() == child_block.GetHash());
         BOOST_CHECK_EQUAL(runtime.State().child_height, 1U);

@@ -353,6 +353,9 @@ public:
                             bool sync = false);
     bool EraseLocalProposal(const uint256& child_block_hash,
                             bool sync = false);
+    /** Atomically erase a validated, duplicate-free set of local proposals. */
+    bool EraseLocalProposals(std::span<const uint256> child_block_hashes,
+                             bool sync = false);
     bool WriteChildReorganization(
         const chainregistry::MainHeaderChain& main_headers,
         const chainregistry::DepositImportState& imports,

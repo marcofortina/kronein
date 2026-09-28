@@ -111,6 +111,7 @@ enum class ChainManagerImportBlockBuildError : uint8_t {
     EMPTY_PROOFS,
     TOO_MANY_PROOFS,
     PROPOSAL_PENDING,
+    PROPOSAL_QUEUE_UNAVAILABLE,
     TIME_OUT_OF_RANGE,
     IMPORT_REJECTED,
     DUPLICATE_DEPOSIT,
@@ -126,6 +127,7 @@ struct ChainManagerImportBlockBuildResult {
     std::vector<ChainManagerImportBuildResult> imports;
     chainregistry::ReferenceChildBlockBuildResult build;
     chainregistry::ReferenceChildBlockResult validation;
+    std::vector<uint256> pruned_local_proposals;
     uint32_t block_height{0};
     uint32_t block_time{0};
 
