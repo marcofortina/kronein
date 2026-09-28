@@ -1008,12 +1008,12 @@
     </message>
     <message>
         <location line="+16"/>
-        <location line="+194"/>
+        <location line="+197"/>
         <source>Select a child chain to manage its local runtime.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-189"/>
+        <location line="-192"/>
         <source>Refresh</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1049,13 +1049,13 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+181"/>
+        <location line="+184"/>
         <location line="+22"/>
         <source>Pause Network</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-198"/>
+        <location line="-201"/>
         <source>Forget…</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1130,14 +1130,14 @@ Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
     </message>
     <message numerus="yes">
         <location line="+8"/>
-        <source>Main-chain registry at height %1 • root %2 • %n child chain(s)</source>
+        <source>Main-chain registry at height %1 • root %2 • %3/%4 child runtime(s) loaded • %n registered child chain(s)</source>
         <translation type="unfinished">
             <numerusform></numerusform>
             <numerusform></numerusform>
         </translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+9"/>
         <location line="+2"/>
         <source>Refresh child chains</source>
         <translation type="unfinished"></translation>

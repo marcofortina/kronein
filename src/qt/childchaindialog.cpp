@@ -273,8 +273,11 @@ void ChildChainDialog::refresh()
         m_table->setSortingEnabled(true);
 
         m_registry_summary->setText(
-            tr("Main-chain registry at height %1 • root %2 • %n child chain(s)", nullptr, m_table->rowCount())
-                .arg(NumberField(result, "height"), StringField(result, "root")));
+            tr("Main-chain registry at height %1 • root %2 • %3/%4 child runtime(s) loaded • %n registered child chain(s)", nullptr, m_table->rowCount())
+                .arg(NumberField(result, "height"),
+                     StringField(result, "root"),
+                     NumberField(result, "loaded"),
+                     NumberField(result, "max_loaded")));
         if (m_table->rowCount() > 0 && m_table->selectedItems().isEmpty()) {
             m_table->selectRow(0);
         }

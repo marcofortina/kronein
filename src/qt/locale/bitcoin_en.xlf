@@ -862,7 +862,7 @@
       <trans-unit id="_msg196">
         <source xml:space="preserve">Select a child chain to manage its local runtime.</source>
         <context-group purpose="location"><context context-type="linenumber">118</context></context-group>
-        <context-group purpose="location"><context context-type="linenumber">312</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">315</context></context-group>
       </trans-unit>
       <trans-unit id="_msg197">
         <source xml:space="preserve">Refresh</source>
@@ -895,8 +895,8 @@
       <trans-unit id="_msg204">
         <source xml:space="preserve">Pause Network</source>
         <context-group purpose="location"><context context-type="linenumber">130</context></context-group>
-        <context-group purpose="location"><context context-type="linenumber">311</context></context-group>
-        <context-group purpose="location"><context context-type="linenumber">333</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">314</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">336</context></context-group>
       </trans-unit>
       <trans-unit id="_msg205">
         <source xml:space="preserve">Forget…</source>
@@ -961,128 +961,128 @@ Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
       <group restype="x-gettext-plurals">
         <context-group purpose="location"><context context-type="linenumber">276</context></context-group>
         <trans-unit id="_msg219[0]">
-          <source xml:space="preserve">Main-chain registry at height %1 • root %2 • %n child chain(s)</source>
+          <source xml:space="preserve">Main-chain registry at height %1 • root %2 • %3/%4 child runtime(s) loaded • %n registered child chain(s)</source>
         </trans-unit>
         <trans-unit id="_msg219[1]">
-          <source xml:space="preserve">Main-chain registry at height %1 • root %2 • %n child chain(s)</source>
+          <source xml:space="preserve">Main-chain registry at height %1 • root %2 • %3/%4 child runtime(s) loaded • %n registered child chain(s)</source>
         </trans-unit>
       </group>
       <trans-unit id="_msg220">
         <source xml:space="preserve">Refresh child chains</source>
-        <context-group purpose="location"><context context-type="linenumber">282</context></context-group>
-        <context-group purpose="location"><context context-type="linenumber">284</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">285</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">287</context></context-group>
       </trans-unit>
       <trans-unit id="_msg221">
         <source xml:space="preserve">Resume Network</source>
-        <context-group purpose="location"><context context-type="linenumber">333</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">336</context></context-group>
       </trans-unit>
       <trans-unit id="_msg222">
         <source xml:space="preserve">Chain ID: %1
 State: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7</source>
-        <context-group purpose="location"><context context-type="linenumber">335</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">338</context></context-group>
       </trans-unit>
       <trans-unit id="_msg223">
         <source xml:space="preserve">present</source>
-        <context-group purpose="location"><context context-type="linenumber">338</context></context-group>
-        <context-group purpose="location"><context context-type="linenumber">339</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">341</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">342</context></context-group>
       </trans-unit>
       <trans-unit id="_msg224">
         <source xml:space="preserve">not present</source>
-        <context-group purpose="location"><context context-type="linenumber">338</context></context-group>
-        <context-group purpose="location"><context context-type="linenumber">339</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">341</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">342</context></context-group>
       </trans-unit>
       <trans-unit id="_msg225">
         <source xml:space="preserve">stopped</source>
-        <context-group purpose="location"><context context-type="linenumber">340</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">343</context></context-group>
       </trans-unit>
       <trans-unit id="_msg226">
         <source xml:space="preserve">active</source>
-        <context-group purpose="location"><context context-type="linenumber">340</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">343</context></context-group>
       </trans-unit>
       <trans-unit id="_msg227">
         <source xml:space="preserve">paused</source>
-        <context-group purpose="location"><context context-type="linenumber">340</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">343</context></context-group>
       </trans-unit>
       <trans-unit id="_msg228">
         <source xml:space="preserve">Add Child Manifest</source>
-        <context-group purpose="location"><context context-type="linenumber">353</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">356</context></context-group>
       </trans-unit>
       <trans-unit id="_msg229">
         <source xml:space="preserve">Paste a JSON object containing registration_anchor and manifest.
 The complete manifest will be validated against child chain %1 on the active main-chain registry.</source>
-        <context-group purpose="location"><context context-type="linenumber">354</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">357</context></context-group>
       </trans-unit>
       <trans-unit id="_msg230">
         <source xml:space="preserve">Invalid Manifest</source>
-        <context-group purpose="location"><context context-type="linenumber">363</context></context-group>
-        <context-group purpose="location"><context context-type="linenumber">371</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">366</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">374</context></context-group>
       </trans-unit>
       <trans-unit id="_msg231">
         <source xml:space="preserve">The supplied text is not a valid JSON object.</source>
-        <context-group purpose="location"><context context-type="linenumber">363</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">366</context></context-group>
       </trans-unit>
       <trans-unit id="_msg232">
         <source xml:space="preserve">The JSON object must contain registration_anchor and manifest objects.</source>
-        <context-group purpose="location"><context context-type="linenumber">372</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">375</context></context-group>
       </trans-unit>
       <trans-unit id="_msg233">
         <source xml:space="preserve">Add child manifest</source>
-        <context-group purpose="location"><context context-type="linenumber">388</context></context-group>
-        <context-group purpose="location"><context context-type="linenumber">392</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">391</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">395</context></context-group>
       </trans-unit>
       <trans-unit id="_msg234">
         <source xml:space="preserve">Add Child Peer</source>
-        <context-group purpose="location"><context context-type="linenumber">432</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">435</context></context-group>
       </trans-unit>
       <trans-unit id="_msg235">
         <source xml:space="preserve">Enter a child peer endpoint with an explicit port (host:port or [IPv6]:port):</source>
-        <context-group purpose="location"><context context-type="linenumber">433</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">436</context></context-group>
       </trans-unit>
       <trans-unit id="_msg236">
         <source xml:space="preserve">Remove Child Peer</source>
-        <context-group purpose="location"><context context-type="linenumber">455</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">458</context></context-group>
       </trans-unit>
       <trans-unit id="_msg237">
         <source xml:space="preserve">Select the persistent endpoint to disconnect and remove:</source>
-        <context-group purpose="location"><context context-type="linenumber">456</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">459</context></context-group>
       </trans-unit>
       <trans-unit id="_msg238">
         <source xml:space="preserve">Child Listen Endpoints</source>
-        <context-group purpose="location"><context context-type="linenumber">479</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">482</context></context-group>
       </trans-unit>
       <trans-unit id="_msg239">
         <source xml:space="preserve">Enter one numeric endpoint per line with an explicit port.
 Leave the field empty to disable inbound connections for this child chain.</source>
-        <context-group purpose="location"><context context-type="linenumber">480</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">483</context></context-group>
       </trans-unit>
       <trans-unit id="_msg240">
         <source xml:space="preserve">Unload Child Chain</source>
-        <context-group purpose="location"><context context-type="linenumber">522</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">525</context></context-group>
       </trans-unit>
       <trans-unit id="_msg241">
         <source xml:space="preserve">Stop the local runtime for child chain %1?
 
 Its manifest and all chain data will be preserved.</source>
-        <context-group purpose="location"><context context-type="linenumber">523</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">526</context></context-group>
       </trans-unit>
       <trans-unit id="_msg242">
         <source xml:space="preserve">Forget Child Chain</source>
-        <context-group purpose="location"><context context-type="linenumber">538</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">541</context></context-group>
       </trans-unit>
       <trans-unit id="_msg243">
         <source xml:space="preserve">Remove child chain %1 from this node&apos;s local catalog?
 
 Existing chain data will remain on disk. The chain can be reopened later by adding the same manifest again.</source>
-        <context-group purpose="location"><context context-type="linenumber">539</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">542</context></context-group>
       </trans-unit>
       <trans-unit id="_msg244">
         <source xml:space="preserve">Child Chain Error</source>
-        <context-group purpose="location"><context context-type="linenumber">551</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">554</context></context-group>
       </trans-unit>
       <trans-unit id="_msg245">
         <source xml:space="preserve">%1 failed:
 %2</source>
-        <context-group purpose="location"><context context-type="linenumber">551</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">554</context></context-group>
       </trans-unit>
     </group>
   </body></file>
