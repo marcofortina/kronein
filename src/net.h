@@ -937,6 +937,7 @@ public:
         bool m_i2p_accept_incoming{false};
         bool m_capture_messages = false;
         /** Per-instance overrides used by isolated auxiliary networks. */
+        std::optional<int> m_max_inbound;
         std::optional<bool> m_listen;
         std::optional<bool> m_dns_seed;
         std::optional<bool> m_fixed_seeds;
@@ -958,7 +959,10 @@ public:
         m_max_outbound_full_relay = std::min(MAX_OUTBOUND_FULL_RELAY_CONNECTIONS, m_max_automatic_connections);
         m_max_outbound_block_relay = std::min(MAX_BLOCK_RELAY_ONLY_CONNECTIONS, m_max_automatic_connections - m_max_outbound_full_relay);
         m_max_automatic_outbound = m_max_outbound_full_relay + m_max_outbound_block_relay + m_max_feeler;
-        m_max_inbound = std::max(0, m_max_automatic_connections - m_max_automatic_outbound);
+        m_max_inbound = std::max(
+            0,
+            connOptions.m_max_inbound.value_or(
+                m_max_automatic_connections - m_max_automatic_outbound));
         m_use_addrman_outgoing = connOptions.m_use_addrman_outgoing;
         m_client_interface = connOptions.uiInterface;
         m_banman = connOptions.m_banman;
