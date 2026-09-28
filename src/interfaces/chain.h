@@ -99,6 +99,29 @@ struct ChildWalletScan {
     bool IsValid() const { return error == ChildWalletScanError::NONE; }
 };
 
+struct ChildWalletTransaction {
+    CTransactionRef transaction;
+    std::vector<CTxOut> spent_outputs;
+    uint256 block_hash;
+    uint32_t height{0};
+    uint32_t block_index{0};
+    uint32_t block_time{0};
+    int confirmations{0};
+    bool mempool{false};
+    int64_t entry_time{0};
+};
+
+/** One newest-first page reconstructed from a loaded child's active history. */
+struct ChildWalletHistoryPage {
+    ChildWalletScanError error{ChildWalletScanError::NONE};
+    uint32_t height{0};
+    uint256 best_block;
+    std::vector<ChildWalletTransaction> transactions;
+    std::optional<int> next_height;
+
+    bool IsValid() const { return error == ChildWalletScanError::NONE; }
+};
+
 //! Helper for findBlock to selectively return pieces of block data. If block is
 //! found, data will be returned by setting specified output variables. If block
 //! is not found, output variables will keep their previous values.
@@ -186,6 +209,11 @@ public:
     virtual ChildWalletScan scanChildWalletUTXOs(
         const chainregistry::ChainId& chain_id,
         const std::set<CScript>& scripts) = 0;
+    virtual ChildWalletHistoryPage scanChildWalletHistory(
+        const chainregistry::ChainId& chain_id,
+        const std::set<CScript>& scripts,
+        std::optional<int> start_height = std::nullopt,
+        bool include_mempool = true) = 0;
 
     //! Get block hash. Height must be valid or this function will abort.
     virtual uint256 getBlockHash(int height) = 0;

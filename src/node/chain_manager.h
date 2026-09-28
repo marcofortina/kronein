@@ -34,6 +34,7 @@ namespace node {
 static constexpr size_t DEFAULT_CHILD_CHAIN_DB_CACHE{8 << 20};
 inline constexpr size_t MAX_LOADED_CHILD_CHAINS{8};
 inline constexpr size_t MAX_CHILD_IMPORTS_PER_BLOCK{1'000};
+inline constexpr size_t MAX_CHILD_WALLET_HISTORY_BLOCKS_PER_SCAN{256};
 
 enum class ChainManagerError : uint8_t {
     NONE,
@@ -439,6 +440,42 @@ struct ChainManagerUTXOScanView {
     }
 };
 
+enum class ChainManagerWalletHistoryError : uint8_t {
+    NONE,
+    NULL_CHAIN_ID,
+    UNKNOWN_CHAIN,
+    CHAIN_NOT_LOADED,
+    HEIGHT_OUT_OF_RANGE,
+    INVALID_LIMIT,
+    DATA_UNAVAILABLE,
+};
+
+struct ChildWalletTransactionView {
+    CTransactionRef transaction;
+    std::vector<CTxOut> spent_outputs;
+    uint256 block_hash;
+    uint32_t height{0};
+    uint32_t block_index{0};
+    uint32_t block_time{0};
+    int confirmations{0};
+    bool mempool{false};
+    int64_t entry_time{0};
+};
+
+/** Newest-first wallet activity page reconstructed from active child data. */
+struct ChainManagerWalletHistoryView {
+    ChainManagerWalletHistoryError error{
+        ChainManagerWalletHistoryError::NONE};
+    ChainManagerEntry entry;
+    std::vector<ChildWalletTransactionView> transactions;
+    std::optional<int> next_height;
+
+    bool IsValid() const
+    {
+        return error == ChainManagerWalletHistoryError::NONE;
+    }
+};
+
 enum class ChainManagerBlockFilterScanError : uint8_t {
     NONE,
     NULL_CHAIN_ID,
@@ -637,6 +674,12 @@ public:
         const std::atomic<bool>& should_abort,
         const std::function<void()>& interruption_point = {},
         bool include_mempool = false) const;
+    ChainManagerWalletHistoryView ScanWalletHistory(
+        const chainregistry::ChainId& chain_id,
+        const std::set<CScript>& scripts,
+        std::optional<int> start_height = std::nullopt,
+        size_t max_blocks = MAX_CHILD_WALLET_HISTORY_BLOCKS_PER_SCAN,
+        bool include_mempool = true) const;
     ChainManagerBlockFilterScanView ScanBlockFilters(
         const chainregistry::ChainId& chain_id,
         int start_height,

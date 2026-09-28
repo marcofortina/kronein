@@ -133,6 +133,15 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
     BOOST_CHECK(
         manager.GetMempool(first.chain_id).error ==
         node::ChainManagerMempoolViewError::CHAIN_NOT_LOADED);
+    BOOST_CHECK(
+        manager.ScanWalletHistory(chainregistry::ChainId{}, {}).error ==
+        node::ChainManagerWalletHistoryError::NULL_CHAIN_ID);
+    BOOST_CHECK(
+        manager.ScanWalletHistory(Definition(99).chain_id, {}).error ==
+        node::ChainManagerWalletHistoryError::UNKNOWN_CHAIN);
+    BOOST_CHECK(
+        manager.ScanWalletHistory(first.chain_id, {}).error ==
+        node::ChainManagerWalletHistoryError::CHAIN_NOT_LOADED);
 
     const auto loaded{manager.LoadChain(
         first.chain_id,
@@ -150,6 +159,19 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
     BOOST_CHECK(child_mempool.runtime.entries.empty());
     BOOST_CHECK_EQUAL(child_mempool.runtime.total_bytes, 0U);
     BOOST_CHECK_EQUAL(child_mempool.runtime.total_fees, 0);
+    const auto empty_history{
+        manager.ScanWalletHistory(first.chain_id, {})};
+    BOOST_REQUIRE(empty_history.IsValid());
+    BOOST_CHECK(empty_history.transactions.empty());
+    BOOST_CHECK(!empty_history.next_height);
+    BOOST_CHECK_EQUAL(empty_history.entry.height, 0U);
+    BOOST_CHECK(
+        manager.ScanWalletHistory(first.chain_id, {}, 1).error ==
+        node::ChainManagerWalletHistoryError::HEIGHT_OUT_OF_RANGE);
+    BOOST_CHECK(
+        manager.ScanWalletHistory(
+            first.chain_id, {}, std::nullopt, /*max_blocks=*/0).error ==
+        node::ChainManagerWalletHistoryError::INVALID_LIMIT);
 
     CMutableTransaction missing_input;
     missing_input.vin.emplace_back(

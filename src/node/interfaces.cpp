@@ -81,6 +81,7 @@ using interfaces::ChainRegistrySnapshot;
 using interfaces::ChildWalletCoin;
 using interfaces::ChildWalletScan;
 using interfaces::ChildWalletScanError;
+using interfaces::ChildWalletHistoryPage;
 using interfaces::FoundBlock;
 using interfaces::Handler;
 using interfaces::MakeSignalHandler;
@@ -645,6 +646,58 @@ public:
                 .mempool = mempool != scan.mempool_matches.end(),
                 .trusted = mempool == scan.mempool_matches.end() ||
                            mempool->second,
+            });
+        }
+        return result;
+    }
+    ChildWalletHistoryPage scanChildWalletHistory(
+        const chainregistry::ChainId& chain_id,
+        const std::set<CScript>& scripts,
+        std::optional<int> start_height,
+        bool include_mempool) override
+    {
+        ChildWalletHistoryPage result;
+        if (!m_node.child_chainman) {
+            result.error = ChildWalletScanError::UNKNOWN_CHAIN;
+            return result;
+        }
+        auto scan{m_node.child_chainman->ScanWalletHistory(
+            chain_id, scripts, start_height,
+            node::MAX_CHILD_WALLET_HISTORY_BLOCKS_PER_SCAN,
+            include_mempool)};
+        switch (scan.error) {
+        case ChainManagerWalletHistoryError::NONE:
+            break;
+        case ChainManagerWalletHistoryError::NULL_CHAIN_ID:
+            result.error = ChildWalletScanError::NULL_CHAIN_ID;
+            return result;
+        case ChainManagerWalletHistoryError::UNKNOWN_CHAIN:
+            result.error = ChildWalletScanError::UNKNOWN_CHAIN;
+            return result;
+        case ChainManagerWalletHistoryError::CHAIN_NOT_LOADED:
+            result.error = ChildWalletScanError::CHAIN_NOT_LOADED;
+            return result;
+        case ChainManagerWalletHistoryError::HEIGHT_OUT_OF_RANGE:
+        case ChainManagerWalletHistoryError::INVALID_LIMIT:
+        case ChainManagerWalletHistoryError::DATA_UNAVAILABLE:
+            result.error = ChildWalletScanError::DATA_UNAVAILABLE;
+            return result;
+        }
+        result.height = scan.entry.height;
+        result.best_block = scan.entry.tip;
+        result.next_height = scan.next_height;
+        result.transactions.reserve(scan.transactions.size());
+        for (auto& transaction : scan.transactions) {
+            result.transactions.push_back(interfaces::ChildWalletTransaction{
+                .transaction = std::move(transaction.transaction),
+                .spent_outputs = std::move(transaction.spent_outputs),
+                .block_hash = transaction.block_hash,
+                .height = transaction.height,
+                .block_index = transaction.block_index,
+                .block_time = transaction.block_time,
+                .confirmations = transaction.confirmations,
+                .mempool = transaction.mempool,
+                .entry_time = transaction.entry_time,
             });
         }
         return result;

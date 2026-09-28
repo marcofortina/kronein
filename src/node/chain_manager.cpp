@@ -4,6 +4,7 @@
 
 #include <node/chain_manager.h>
 
+#include <chainregistry/child_import.h>
 #include <consensus/consensus.h>
 #include <dbwrapper.h>
 
@@ -1577,6 +1578,161 @@ ChainManagerUTXOScanView ChainManager::ScanUTXOSet(
         }
         result.block_hashes.emplace(coin.nHeight, *block_hash);
     }
+    return result;
+}
+
+ChainManagerWalletHistoryView ChainManager::ScanWalletHistory(
+    const chainregistry::ChainId& chain_id,
+    const std::set<CScript>& scripts,
+    std::optional<int> start_height,
+    size_t max_blocks,
+    bool include_mempool) const
+{
+    LOCK(m_mutex);
+    ChainManagerWalletHistoryView result;
+    if (chain_id.IsNull()) {
+        result.error = ChainManagerWalletHistoryError::NULL_CHAIN_ID;
+        return result;
+    }
+    if (!m_definitions.contains(chain_id)) {
+        result.error = ChainManagerWalletHistoryError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto loaded{m_loaded.find(chain_id)};
+    if (loaded == m_loaded.end()) {
+        result.error = ChainManagerWalletHistoryError::CHAIN_NOT_LOADED;
+        return result;
+    }
+    if (max_blocks == 0 ||
+        max_blocks > MAX_CHILD_WALLET_HISTORY_BLOCKS_PER_SCAN) {
+        result.error = ChainManagerWalletHistoryError::INVALID_LIMIT;
+        return result;
+    }
+
+    const auto& runtime{*loaded->second};
+    const CBlockIndex* tip{runtime.Tip()};
+    Assume(tip);
+    const auto tip_view{GetBlockViewLocked(chain_id, tip->GetBlockHash())};
+    Assume(tip_view.IsValid());
+    result.entry = tip_view.entry;
+
+    const int first_height{start_height.value_or(tip->nHeight)};
+    if (first_height < 0 || first_height > tip->nHeight) {
+        result.error = ChainManagerWalletHistoryError::HEIGHT_OUT_OF_RANGE;
+        return result;
+    }
+
+    if (include_mempool) {
+        const auto mempool{runtime.GetMempool()};
+        std::map<COutPoint, CTxOut> mempool_outputs;
+        for (const auto& entry : mempool.entries) {
+            for (size_t index{0}; index < entry.transaction->vout.size();
+                 ++index) {
+                mempool_outputs.emplace(
+                    COutPoint{entry.transaction->GetHash(),
+                              static_cast<uint32_t>(index)},
+                    entry.transaction->vout[index]);
+            }
+        }
+        for (auto entry{mempool.entries.rbegin()};
+             entry != mempool.entries.rend(); ++entry) {
+            ChildWalletTransactionView transaction{
+                .transaction = entry->transaction,
+                .spent_outputs = {},
+                .block_hash = {},
+                .height = 0,
+                .block_index = 0,
+                .block_time = 0,
+                .confirmations = 0,
+                .mempool = true,
+                .entry_time = entry->entry_time,
+            };
+            transaction.spent_outputs.reserve(entry->transaction->vin.size());
+            bool relevant{false};
+            for (const auto& input : entry->transaction->vin) {
+                std::optional<CTxOut> previous;
+                if (const auto parent{mempool_outputs.find(input.prevout)};
+                    parent != mempool_outputs.end()) {
+                    previous = parent->second;
+                } else if (const auto coin{runtime.GetCoin(input.prevout)}) {
+                    previous = coin->out;
+                }
+                if (!previous) {
+                    result.error =
+                        ChainManagerWalletHistoryError::DATA_UNAVAILABLE;
+                    return result;
+                }
+                relevant |= scripts.contains(previous->scriptPubKey);
+                transaction.spent_outputs.push_back(std::move(*previous));
+            }
+            for (const auto& output : entry->transaction->vout) {
+                relevant |= scripts.contains(output.scriptPubKey);
+            }
+            if (relevant) {
+                result.transactions.push_back(std::move(transaction));
+            }
+        }
+    }
+
+    size_t scanned_blocks{0};
+    for (int height{first_height}; height > 0 && scanned_blocks < max_blocks;
+         --height, ++scanned_blocks) {
+        const auto block_hash{runtime.GetBlockHash(height)};
+        const auto block_view{
+            block_hash ? runtime.GetBlockView(*block_hash) : std::nullopt};
+        if (!block_view || !block_view->active || !block_view->block ||
+            !block_view->undo || block_view->height != height ||
+            block_view->confirmations <= 0) {
+            result.error = ChainManagerWalletHistoryError::DATA_UNAVAILABLE;
+            return result;
+        }
+        const CBlock& block{*block_view->block};
+        const CBlockUndo& undo{block_view->undo->coins};
+        if (undo.vtxundo.size() + 1 != block.vtx.size()) {
+            result.error = ChainManagerWalletHistoryError::DATA_UNAVAILABLE;
+            return result;
+        }
+        for (size_t index{block.vtx.size()}; index-- > 0;) {
+            const CTransactionRef& tx{block.vtx[index]};
+            ChildWalletTransactionView transaction{
+                .transaction = tx,
+                .spent_outputs = {},
+                .block_hash = *block_hash,
+                .height = static_cast<uint32_t>(height),
+                .block_index = static_cast<uint32_t>(index),
+                .block_time = block.nTime,
+                .confirmations = block_view->confirmations,
+                .mempool = false,
+                .entry_time = 0,
+            };
+            bool relevant{false};
+            if (!tx->IsCoinBase()) {
+                const CTxUndo& tx_undo{undo.vtxundo[index - 1]};
+                const bool child_import{
+                    chainregistry::IsReferenceChildImport(*tx)};
+                const size_t expected_spent{
+                    child_import ? 0 : tx->vin.size()};
+                if (tx_undo.vprevout.size() != expected_spent) {
+                    result.error =
+                        ChainManagerWalletHistoryError::DATA_UNAVAILABLE;
+                    return result;
+                }
+                transaction.spent_outputs.reserve(tx_undo.vprevout.size());
+                for (const Coin& coin : tx_undo.vprevout) {
+                    relevant |= scripts.contains(coin.out.scriptPubKey);
+                    transaction.spent_outputs.push_back(coin.out);
+                }
+            }
+            for (const auto& output : tx->vout) {
+                relevant |= scripts.contains(output.scriptPubKey);
+            }
+            if (relevant) {
+                result.transactions.push_back(std::move(transaction));
+            }
+        }
+    }
+    const int next_height{first_height - static_cast<int>(scanned_blocks)};
+    if (next_height > 0) result.next_height = next_height;
     return result;
 }
 
