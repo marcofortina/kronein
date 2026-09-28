@@ -5,6 +5,7 @@
 #include <qt/childchaindialog.h>
 
 #include <interfaces/node.h>
+#include <qt/guiutil.h>
 #include <univalue.h>
 
 #include <QAbstractItemView>
@@ -22,6 +23,7 @@
 #include <QVBoxLayout>
 #include <QVariant>
 
+#include <cstdint>
 #include <exception>
 #include <stdexcept>
 #include <utility>
@@ -38,6 +40,12 @@ QString NumberField(const UniValue& object, const char* name)
 {
     const UniValue& value{object.find_value(name)};
     return value.isNum() ? QString::fromStdString(value.getValStr()) : QStringLiteral("—");
+}
+
+uint64_t UnsignedField(const UniValue& object, const char* name)
+{
+    const UniValue& value{object.find_value(name)};
+    return value.isNum() ? value.getInt<uint64_t>() : 0;
 }
 
 bool BoolField(const UniValue& object, const char* name)
@@ -272,12 +280,25 @@ void ChildChainDialog::refresh()
         }
         m_table->setSortingEnabled(true);
 
+        const uint64_t upload_bytes{
+            UnsignedField(result, "aggregate_upload_bytes_sent")};
+        const uint64_t upload_target{
+            UnsignedField(result, "aggregate_upload_target")};
+        QString upload_summary{
+            upload_target == 0
+                ? tr("%1 (unlimited)").arg(GUIUtil::formatBytes(upload_bytes))
+                : tr("%1 of %2").arg(GUIUtil::formatBytes(upload_bytes),
+                                      GUIUtil::formatBytes(upload_target))};
+        if (BoolField(result, "aggregate_upload_target_reached")) {
+            upload_summary += tr(" (limit reached)");
+        }
         m_registry_summary->setText(
-            tr("Main-chain registry at height %1 • root %2 • %3/%4 child runtime(s) loaded • %n registered child chain(s)", nullptr, m_table->rowCount())
+            tr("Main-chain registry at height %1 • root %2 • %3/%4 child runtime(s) loaded • child block upload %5 • %n registered child chain(s)", nullptr, m_table->rowCount())
                 .arg(NumberField(result, "height"),
                      StringField(result, "root"),
                      NumberField(result, "loaded"),
-                     NumberField(result, "max_loaded")));
+                     NumberField(result, "max_loaded"),
+                     upload_summary));
         if (m_table->rowCount() > 0 && m_table->selectedItems().isEmpty()) {
             m_table->selectRow(0);
         }
