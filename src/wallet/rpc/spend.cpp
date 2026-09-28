@@ -2187,6 +2187,8 @@ RPCHelpMan walletcreatefundedpsbt()
                         FundTxDoc()),
                         RPCArgOptions{.oneline_description="options"}},
                     {"bip32derivs", RPCArg::Type::BOOL, RPCArg::Default{true}, "Include BIP 32 derivation paths for public keys if we know them"},
+                    {"child_fee", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "Exact absolute child-chain fee in KNE. Required with chain_id and invalid without it."},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain."},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
@@ -2213,6 +2215,84 @@ RPCHelpMan walletcreatefundedpsbt()
     wallet.BlockUntilSyncedToCurrentChain();
 
     UniValue options{request.params[3].isNull() ? UniValue::VOBJ : request.params[3]};
+
+    const auto chain_arg{self.MaybeArg<UniValue>("chain_id")};
+    const auto child_fee_arg{self.MaybeArg<UniValue>("child_fee")};
+    if (chain_arg) {
+        if (!child_fee_arg) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "child_fee is required when chain_id is specified");
+        }
+        if (!request.params[0].get_array().empty()) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "child walletcreatefundedpsbt currently requires automatic input selection");
+        }
+        if (!request.params[2].isNull() &&
+            request.params[2].getInt<int64_t>() != 0) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "child walletcreatefundedpsbt requires locktime 0");
+        }
+        const std::set<std::string> supported_options{
+            "add_inputs",
+            "lock_unspents",
+            "minconf",
+            "subtract_fee_from_outputs",
+        };
+        for (const std::string& option : options.getKeys()) {
+            if (!supported_options.contains(option)) {
+                throw JSONRPCError(
+                    RPC_INVALID_PARAMETER,
+                    strprintf(
+                        "child walletcreatefundedpsbt does not support option %s",
+                        option));
+            }
+        }
+        if (options.exists("add_inputs") &&
+            !options["add_inputs"].get_bool()) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "child walletcreatefundedpsbt requires add_inputs=true");
+        }
+        const chainregistry::ChainId chain_id{
+            ParseChildChainId(*chain_arg)};
+        const int minconf{options.exists("minconf")
+                              ? options["minconf"].getInt<int>()
+                              : 0};
+        const bool bip32_derivs{
+            request.params[4].isNull()
+                ? true
+                : request.params[4].get_bool()};
+        auto funded{CreateFundedChildPayments(
+            wallet,
+            chain_id,
+            ParseChildSendPayments(
+                request.params[1],
+                options["subtract_fee_from_outputs"]),
+            AmountFromValue(*child_fee_arg),
+            minconf,
+            bip32_derivs)};
+        if (options.exists("lock_unspents") &&
+            options["lock_unspents"].get_bool()) {
+            LOCK(wallet.cs_wallet);
+            for (const COutPoint& input : funded.inputs) {
+                wallet.LockChildCoin(
+                    chain_id, input, /*persist=*/false);
+            }
+        }
+        UniValue result{UniValue::VOBJ};
+        result.pushKV("psbt", funded.psbt);
+        result.pushKV("fee", ValueFromAmount(funded.fee));
+        result.pushKV("changepos", funded.change_position);
+        return result;
+    }
+    if (child_fee_arg) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "child_fee is only valid when chain_id is specified");
+    }
 
     CCoinControl coin_control;
 

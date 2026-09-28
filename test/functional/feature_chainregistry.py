@@ -1978,6 +1978,19 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert child_psbt["txid"] not in node.getrawmempool(
             False, False, chain_id)
 
+        compatible_funded = wallet.walletcreatefundedpsbt(
+            inputs=[],
+            outputs=[{child_many_b: Decimal("0.00100000")}],
+            options={"minconf": 0},
+            child_fee=child_send_fee,
+            chain_id=chain_id)
+        assert_equal(compatible_funded["fee"], child_send_fee)
+        compatible_processed = wallet.walletprocesschildpsbt(
+            compatible_funded["psbt"], child_send_fee)
+        assert_equal(compatible_processed["complete"], True)
+        assert_equal(node.testmempoolaccept(
+            [compatible_processed["hex"]], 0, chain_id)[0]["allowed"], True)
+
         child_mempool_before_test = node.getrawmempool(
             False, False, chain_id)
         child_fee_rejected = node.testmempoolaccept(

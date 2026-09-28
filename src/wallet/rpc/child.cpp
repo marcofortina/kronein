@@ -632,12 +632,13 @@ static ChildWalletSendResult SignFundedChildPSBT(
     };
 }
 
-ChildWalletSendResult CreateSignedChildPayments(
+static FundedChildPSBT FundChildPayments(
     CWallet& wallet,
     const chainregistry::ChainId& chain_id,
     const std::vector<ChildWalletPayment>& payments,
     CAmount fee,
-    int minconf)
+    int minconf,
+    bool bip32_derivs)
 {
     wallet.BlockUntilSyncedToCurrentChain();
     if (fee < 0 || !MoneyRange(fee)) {
@@ -670,14 +671,59 @@ ChildWalletSendResult CreateSignedChildPayments(
         }
         outputs.emplace_back(payment.recipient, recipient_amount);
     }
-    auto funded{FundChildPSBT(
+    return FundChildPSBT(
         wallet,
         chain_id,
         outputs,
         fee,
         minconf,
-        /*bip32_derivs=*/true)};
-    return SignFundedChildPSBT(wallet, std::move(funded));
+        bip32_derivs);
+}
+
+ChildWalletFundResult CreateFundedChildPayments(
+    CWallet& wallet,
+    const chainregistry::ChainId& chain_id,
+    const std::vector<ChildWalletPayment>& payments,
+    CAmount fee,
+    int minconf,
+    bool bip32_derivs)
+{
+    auto funded{FundChildPayments(
+        wallet, chain_id, payments, fee, minconf, bip32_derivs)};
+    const auto transaction{funded.psbt.GetUnsignedTx()};
+    if (!transaction) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR,
+                           "funded child PSBT has no transaction");
+    }
+    std::vector<COutPoint> inputs;
+    inputs.reserve(transaction->vin.size());
+    for (const CTxIn& input : transaction->vin) {
+        inputs.push_back(input.prevout);
+    }
+    return {
+        .psbt = EncodePSBT(funded.psbt),
+        .fee = funded.fee,
+        .change_position = funded.change_position,
+        .inputs = std::move(inputs),
+    };
+}
+
+ChildWalletSendResult CreateSignedChildPayments(
+    CWallet& wallet,
+    const chainregistry::ChainId& chain_id,
+    const std::vector<ChildWalletPayment>& payments,
+    CAmount fee,
+    int minconf)
+{
+    return SignFundedChildPSBT(
+        wallet,
+        FundChildPayments(
+            wallet,
+            chain_id,
+            payments,
+            fee,
+            minconf,
+            /*bip32_derivs=*/true));
 }
 
 ChildWalletSendResult CreateSignedChildSweep(

@@ -35,6 +35,21 @@ struct ChildWalletSweepRecipient {
     std::optional<CAmount> amount;
 };
 
+struct ChildWalletFundResult {
+    std::string psbt;
+    CAmount fee{0};
+    int change_position{-1};
+    std::vector<COutPoint> inputs;
+};
+
+ChildWalletFundResult CreateFundedChildPayments(
+    CWallet& wallet,
+    const chainregistry::ChainId& chain_id,
+    const std::vector<ChildWalletPayment>& payments,
+    CAmount fee,
+    int minconf = 1,
+    bool bip32_derivs = true);
+
 ChildWalletSendResult CreateSignedChildPayments(
     CWallet& wallet,
     const chainregistry::ChainId& chain_id,
