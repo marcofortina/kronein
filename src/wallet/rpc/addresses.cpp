@@ -22,10 +22,14 @@
 
 #include <univalue.h>
 
+#include <algorithm>
+#include <set>
 #include <variant>
 
 namespace wallet {
 namespace {
+
+constexpr int MAX_CHILD_RECOVERY_KEY_COUNT{10'000};
 
 void EnsureActiveReferenceChild(
     CWallet& wallet,
@@ -207,6 +211,139 @@ RPCHelpMan listchildrecipients()
     result.pushKV("chain_id", chain_id.GetHex());
     result.pushKV("recipient_count", recipients.size());
     result.pushKV("recipients", std::move(recipients));
+    return result;
+},
+    };
+}
+
+RPCHelpMan recoverchildwallet()
+{
+    return RPCHelpMan{
+        "recoverchildwallet",
+        "Scan one bounded page of a loaded child chain for keys derived by this wallet. "
+        "The command persists only keys observed in child transactions and returns a cursor for the previous page. "
+        "Call again with next_height until complete is true. Mempool transactions are included only on the first page.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Exact non-null registered child-chain identifier"},
+            {"key_start", RPCArg::Type::NUM, RPCArg::Default{0}, "First receive/change derivation index in this recovery window"},
+            {"key_count", RPCArg::Type::NUM, RPCArg::Default{1000}, "Number of indices to scan for each receive/change role (1-10000)"},
+            {"start_height", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "Newest child height to scan; omit for the active tip and mempool"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Bounded child recovery page", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Exact child-chain identifier"},
+            {RPCResult::Type::STR_HEX, "best_block", "Child tip held while this page was scanned"},
+            {RPCResult::Type::NUM, "height", "Height of best_block"},
+            {RPCResult::Type::NUM, "scanned_from_height", "Newest scanned child height"},
+            {RPCResult::Type::NUM, "scanned_to_height", "Oldest scanned child height"},
+            {RPCResult::Type::NUM, "key_start", "First derivation index checked"},
+            {RPCResult::Type::NUM, "key_count", "Number of indices checked per role"},
+            {RPCResult::Type::NUM, "next_key_start", "First index of the next non-overlapping key window"},
+            {RPCResult::Type::NUM, "candidate_scripts", "Unique derived scripts checked"},
+            {RPCResult::Type::NUM, "matched_transactions", "Transactions involving a candidate script"},
+            {RPCResult::Type::NUM, "receive_used", "Observed receive scripts"},
+            {RPCResult::Type::NUM, "change_used", "Observed change scripts"},
+            {RPCResult::Type::NUM, "receive_next_index", "Next receive derivation index after recovery"},
+            {RPCResult::Type::NUM, "change_next_index", "Next change derivation index after recovery"},
+            {RPCResult::Type::BOOL, "complete", "Whether the scan reached the beginning of child history"},
+            {RPCResult::Type::NUM, "next_height", /*optional=*/true, "Cursor for the next older page"},
+        }},
+        RPCExamples{
+            HelpExampleCli("recoverchildwallet", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const std::shared_ptr<CWallet> wallet{GetWalletForJSONRPCRequest(request)};
+    if (!wallet) return UniValue::VNULL;
+    wallet->BlockUntilSyncedToCurrentChain();
+
+    const auto chain_id{ParseChildChainId(self.Arg<UniValue>("chain_id"))};
+    EnsureActiveReferenceChild(*wallet, chain_id);
+    const int64_t key_start{self.Arg<int>("key_start")};
+    const int64_t key_count{self.Arg<int>("key_count")};
+    constexpr int64_t MAX_KEY_RANGE_END{2147483647};
+    if (key_start < 0 || key_start >= MAX_KEY_RANGE_END) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "key_start must be between 0 and 2147483646");
+    }
+    if (key_count < 1 || key_count > MAX_CHILD_RECOVERY_KEY_COUNT ||
+        key_count > MAX_KEY_RANGE_END - key_start) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("key_count must be between 1 and %d and fit the unhardened derivation range",
+                      MAX_CHILD_RECOVERY_KEY_COUNT));
+    }
+    std::optional<int> start_height;
+    if (!request.params[3].isNull()) {
+        start_height = request.params[3].getInt<int>();
+    }
+    if (start_height && *start_height < 0) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "start_height must not be negative");
+    }
+
+    const auto derived{wallet->GetChildRecoveryScripts(
+        chain_id,
+        static_cast<uint32_t>(key_start),
+        static_cast<uint32_t>(key_count))};
+    if (!derived) {
+        throw JSONRPCError(RPC_WALLET_ERROR,
+                           util::ErrorString(derived).original);
+    }
+    std::set<CScript> candidates{derived->receive};
+    candidates.insert(derived->change.begin(), derived->change.end());
+    const auto page{ScanChildWalletHistory(
+        *wallet,
+        chain_id,
+        candidates,
+        start_height,
+        /*include_mempool=*/!start_height.has_value())};
+
+    std::set<CScript> receive_used;
+    std::set<CScript> change_used;
+    const auto record_script = [&](const CScript& script) {
+        if (derived->receive.contains(script)) {
+            receive_used.insert(script);
+        } else if (derived->change.contains(script)) {
+            change_used.insert(script);
+        }
+    };
+    for (const auto& transaction : page.transactions) {
+        for (const CTxOut& output : transaction.transaction->vout) {
+            record_script(output.scriptPubKey);
+        }
+        for (const CTxOut& output : transaction.spent_outputs) {
+            record_script(output.scriptPubKey);
+        }
+    }
+    const auto recovered{wallet->ApplyChildRecoveryScripts(
+        chain_id, receive_used, change_used)};
+    if (!recovered) {
+        throw JSONRPCError(RPC_WALLET_ERROR,
+                           util::ErrorString(recovered).original);
+    }
+
+    const int scanned_from{start_height.value_or(
+        static_cast<int>(page.height))};
+    const int scanned_to{page.next_height ? *page.next_height + 1
+                                          : std::min(scanned_from, 1)};
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", chain_id.GetHex());
+    result.pushKV("best_block", page.best_block.GetHex());
+    result.pushKV("height", page.height);
+    result.pushKV("scanned_from_height", scanned_from);
+    result.pushKV("scanned_to_height", scanned_to);
+    result.pushKV("key_start", key_start);
+    result.pushKV("key_count", key_count);
+    result.pushKV("next_key_start", key_start + key_count);
+    result.pushKV("candidate_scripts", candidates.size());
+    result.pushKV("matched_transactions", page.transactions.size());
+    result.pushKV("receive_used", recovered->receive_used);
+    result.pushKV("change_used", recovered->change_used);
+    result.pushKV("receive_next_index", recovered->receive_next_index);
+    result.pushKV("change_next_index", recovered->change_next_index);
+    result.pushKV("complete", !page.next_height.has_value());
+    if (page.next_height) result.pushKV("next_height", *page.next_height);
     return result;
 },
     };

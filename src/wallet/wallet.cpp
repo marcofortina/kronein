@@ -2443,6 +2443,124 @@ util::Result<CTxDestination> CWallet::GetNewChildChangeDestination(
     return destination;
 }
 
+util::Result<ChildRecoveryScripts> CWallet::GetChildRecoveryScripts(
+    const chainregistry::ChainId& chain_id,
+    uint32_t key_start,
+    uint32_t key_count)
+{
+    LOCK(cs_wallet);
+    constexpr uint32_t MAX_RANGE_END{
+        static_cast<uint32_t>(std::numeric_limits<int32_t>::max())};
+    if (key_count == 0 || key_start >= MAX_RANGE_END ||
+        key_count > MAX_RANGE_END - key_start) {
+        return util::Error{_("Child recovery key range is invalid")};
+    }
+    const int32_t key_end{static_cast<int32_t>(key_start + key_count)};
+
+    ChildRecoveryScripts result;
+    for (const bool internal : {false, true}) {
+        auto manager{GetOrCreateChildScriptPubKeyMan(chain_id, internal)};
+        if (!manager) return util::Error{util::ErrorString(manager)};
+        WalletDescriptor descriptor;
+        {
+            LOCK(manager->get().cs_desc_man);
+            descriptor = manager->get().GetWalletDescriptor();
+        }
+        if (descriptor.range_end < key_end &&
+            !manager->get().TopUp(
+                static_cast<unsigned int>(key_end - descriptor.next_index))) {
+            return util::Error{_("Could not derive the child recovery range")};
+        }
+        auto scripts{manager->get().GetScriptPubKeys(
+            static_cast<int32_t>(key_start), key_end)};
+        auto& destination{internal ? result.change : result.receive};
+        destination.insert(scripts.begin(), scripts.end());
+    }
+    return result;
+}
+
+util::Result<ChildRecoveryResult> CWallet::ApplyChildRecoveryScripts(
+    const chainregistry::ChainId& chain_id,
+    const std::set<CScript>& receive_used,
+    const std::set<CScript>& change_used)
+{
+    LOCK(cs_wallet);
+    const auto get_manager = [&](bool internal) {
+        const auto mapping{m_child_spk_managers.find(
+            std::make_pair(chain_id, internal))};
+        if (mapping == m_child_spk_managers.end()) {
+            return static_cast<DescriptorScriptPubKeyMan*>(nullptr);
+        }
+        return dynamic_cast<DescriptorScriptPubKeyMan*>(
+            GetScriptPubKeyMan(mapping->second));
+    };
+    auto* receive_manager{get_manager(/*internal=*/false)};
+    auto* change_manager{get_manager(/*internal=*/true)};
+    if (!receive_manager || !change_manager) {
+        return util::Error{_("Child recovery descriptors are unavailable")};
+    }
+    for (const CScript& script : receive_used) {
+        if (change_used.contains(script)) {
+            return util::Error{_("Child recovery roles contain the same script")};
+        }
+    }
+
+    WalletBatch batch{GetDatabase()};
+    const auto apply = [&](DescriptorScriptPubKeyMan& manager,
+                           const std::set<CScript>& scripts,
+                           bool internal) -> util::Result<void> {
+        for (const CScript& script : scripts) {
+            if (!manager.IsMine(script)) {
+                return util::Error{_("Child recovery script has the wrong descriptor role")};
+            }
+            manager.MarkUnusedAddresses(script);
+            CTxDestination destination;
+            if (!ExtractDestination(script, destination) ||
+                !std::holds_alternative<WitnessV1Taproot>(destination)) {
+                return util::Error{_("Child recovery descriptor produced a non-Taproot destination")};
+            }
+            if (!internal && !m_address_book.contains(destination) &&
+                !SetAddressBookWithDB(batch, destination, "",
+                                      AddressPurpose::RECEIVE)) {
+                return util::Error{_("Could not persist a recovered child recipient")};
+            }
+            if (!SetAddressChildChain(batch, destination, chain_id)) {
+                return util::Error{_("Could not persist a recovered child context")};
+            }
+        }
+        return {};
+    };
+    if (auto applied{apply(*receive_manager, receive_used,
+                           /*internal=*/false)};
+        !applied) {
+        return util::Error{util::ErrorString(applied)};
+    }
+    if (auto applied{apply(*change_manager, change_used,
+                           /*internal=*/true)};
+        !applied) {
+        return util::Error{util::ErrorString(applied)};
+    }
+
+    int32_t receive_next_index;
+    int32_t change_next_index;
+    {
+        LOCK(receive_manager->cs_desc_man);
+        receive_next_index =
+            receive_manager->GetWalletDescriptor().next_index;
+    }
+    {
+        LOCK(change_manager->cs_desc_man);
+        change_next_index =
+            change_manager->GetWalletDescriptor().next_index;
+    }
+    return ChildRecoveryResult{
+        .receive_used = receive_used.size(),
+        .change_used = change_used.size(),
+        .receive_next_index = receive_next_index,
+        .change_next_index = change_next_index,
+    };
+}
+
 void CWallet::MarkDestinationsDirty(const std::set<CTxDestination>& destinations) {
     for (auto& entry : mapWallet) {
         CWalletTx& wtx = entry.second;

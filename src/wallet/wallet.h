@@ -281,6 +281,20 @@ struct CRecipient
     bool fSubtractFeeFromAmount;
 };
 
+struct ChildRecoveryScripts
+{
+    std::set<CScript> receive;
+    std::set<CScript> change;
+};
+
+struct ChildRecoveryResult
+{
+    size_t receive_used{0};
+    size_t change_used{0};
+    int32_t receive_next_index{0};
+    int32_t change_next_index{0};
+};
+
 class WalletRescanReserver; //forward declarations for ScanForWalletTransactions/RescanFromTime
 /**
  * A CWallet maintains a set of transactions and balances, and provides the ability to create new transactions.
@@ -751,6 +765,14 @@ public:
         const std::string& label);
     util::Result<CTxDestination> GetNewChildChangeDestination(
         const chainregistry::ChainId& chain_id);
+    util::Result<ChildRecoveryScripts> GetChildRecoveryScripts(
+        const chainregistry::ChainId& chain_id,
+        uint32_t key_start,
+        uint32_t key_count);
+    util::Result<ChildRecoveryResult> ApplyChildRecoveryScripts(
+        const chainregistry::ChainId& chain_id,
+        const std::set<CScript>& receive_used,
+        const std::set<CScript>& change_used);
 
     bool IsMine(const CTxDestination& dest) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool IsMine(const CScript& script) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);

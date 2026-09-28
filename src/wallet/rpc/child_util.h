@@ -30,6 +30,13 @@ interfaces::ChildWalletScan ScanChildWallet(
 interfaces::ChildWalletHistoryPage ScanChildWalletHistory(
     const CWallet& wallet,
     const chainregistry::ChainId& chain_id,
+    const std::set<CScript>& scripts,
+    std::optional<int> start_height = std::nullopt,
+    bool include_mempool = true);
+
+interfaces::ChildWalletHistoryPage ScanChildWalletHistory(
+    const CWallet& wallet,
+    const chainregistry::ChainId& chain_id,
     std::optional<int> start_height = std::nullopt,
     bool include_mempool = true);
 

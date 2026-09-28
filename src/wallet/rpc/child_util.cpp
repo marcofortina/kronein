@@ -69,12 +69,13 @@ std::set<CScript> ChildWalletScripts(
 interfaces::ChildWalletHistoryPage ScanChildWalletHistory(
     const CWallet& wallet,
     const chainregistry::ChainId& chain_id,
+    const std::set<CScript>& scripts,
     std::optional<int> start_height,
     bool include_mempool)
 {
     auto scan{wallet.chain().scanChildWalletHistory(
         chain_id,
-        ChildWalletScripts(wallet, chain_id),
+        scripts,
         start_height,
         include_mempool)};
     switch (scan.error) {
@@ -94,6 +95,20 @@ interfaces::ChildWalletHistoryPage ScanChildWalletHistory(
     }
     throw JSONRPCError(RPC_INTERNAL_ERROR,
                        "unhandled child wallet history error");
+}
+
+interfaces::ChildWalletHistoryPage ScanChildWalletHistory(
+    const CWallet& wallet,
+    const chainregistry::ChainId& chain_id,
+    std::optional<int> start_height,
+    bool include_mempool)
+{
+    return ScanChildWalletHistory(
+        wallet,
+        chain_id,
+        ChildWalletScripts(wallet, chain_id),
+        start_height,
+        include_mempool);
 }
 
 } // namespace wallet

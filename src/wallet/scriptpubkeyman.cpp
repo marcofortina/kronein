@@ -19,6 +19,7 @@
 #include <wallet/scriptpubkeyman.h>
 #include <wallet/walletdb.h>
 
+#include <algorithm>
 #include <optional>
 
 using common::PSBTError;
@@ -679,6 +680,25 @@ std::unordered_set<CScript, SaltedSipHasher> DescriptorScriptPubKeyMan::GetScrip
 
     for (auto const& [script_pub_key, index] : m_map_script_pub_keys) {
         if (index >= minimum_index) script_pub_keys.insert(script_pub_key);
+    }
+    return script_pub_keys;
+}
+
+std::unordered_set<CScript, SaltedSipHasher>
+DescriptorScriptPubKeyMan::GetScriptPubKeys(
+    int32_t minimum_index,
+    int32_t maximum_index) const
+{
+    LOCK(cs_desc_man);
+    std::unordered_set<CScript, SaltedSipHasher> script_pub_keys;
+    if (minimum_index >= maximum_index) return script_pub_keys;
+    script_pub_keys.reserve(std::min(
+        static_cast<size_t>(maximum_index - minimum_index),
+        m_map_script_pub_keys.size()));
+    for (const auto& [script_pub_key, index] : m_map_script_pub_keys) {
+        if (index >= minimum_index && index < maximum_index) {
+            script_pub_keys.insert(script_pub_key);
+        }
     }
     return script_pub_keys;
 }

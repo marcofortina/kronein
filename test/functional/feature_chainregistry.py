@@ -970,6 +970,34 @@ class ChainRegistryTest(BitcoinTestFramework):
                           "chain_id", "next_index"):
                 assert_equal(restored_descriptor[field],
                              source_descriptor[field])
+        assert_raises_rpc_error(
+            -8, "key_count must be between 1 and 10000",
+            restored_wallet.recoverchildwallet, chain_id, 0, 0)
+        recovery = restored_wallet.recoverchildwallet(chain_id, 0, 5)
+        assert_equal(recovery["chain_id"], chain_id)
+        assert_equal(recovery["best_block"], child_block["blockhash"])
+        assert_equal(recovery["height"], 1)
+        assert_equal(recovery["scanned_from_height"], 1)
+        assert_equal(recovery["scanned_to_height"], 1)
+        assert_equal(recovery["key_start"], 0)
+        assert_equal(recovery["key_count"], 5)
+        assert_equal(recovery["next_key_start"], 5)
+        assert_equal(recovery["candidate_scripts"], 10)
+        assert_equal(recovery["matched_transactions"], 1)
+        assert_equal(recovery["receive_used"], 1)
+        assert_equal(recovery["change_used"], 0)
+        assert_equal(recovery["complete"], True)
+        assert "next_height" not in recovery
+        recovered_recipients = restored_wallet.listchildrecipients(chain_id)
+        assert_equal(recovered_recipients["recipient_count"], 1)
+        assert_equal(recovered_recipients["recipients"][0]["recipient"],
+                     child_identity["recipient"])
+        assert_equal(recovered_recipients["recipients"][0]["label"], "")
+        repeated_recovery = restored_wallet.recoverchildwallet(chain_id, 0, 5)
+        assert_equal(repeated_recovery["receive_used"], 1)
+        assert_equal(repeated_recovery["change_used"], 0)
+        assert_equal(restored_wallet.listchildrecipients(chain_id),
+                     recovered_recipients)
         restored_receive = next(
             descriptor for descriptor in restored_child_descriptors
             if not descriptor["internal"])
@@ -983,6 +1011,13 @@ class ChainRegistryTest(BitcoinTestFramework):
             restored_identity["scriptPubKey"],
             address_to_scriptpubkey(expected_address).hex(),
         )
+        restored_state = restored_wallet.listchildrecipients(chain_id)
+        assert_equal(restored_state["recipient_count"], 2)
+        node.unloadwallet("child_restore")
+        node.loadwallet("child_restore")
+        restored_wallet = node.get_wallet_rpc("child_restore")
+        assert_equal(restored_wallet.listchildrecipients(chain_id),
+                     restored_state)
 
         unsigned_child = wallet.walletprocesschildpsbt(
             child_psbt["psbt"], child_fee, False)

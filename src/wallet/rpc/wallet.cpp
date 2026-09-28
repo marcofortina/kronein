@@ -655,6 +655,7 @@ RPCHelpMan getaddressinfo();
 RPCHelpMan getnewaddress();
 RPCHelpMan getnewchildrecipient();
 RPCHelpMan listchildrecipients();
+RPCHelpMan recoverchildwallet();
 RPCHelpMan getrawchangeaddress();
 RPCHelpMan setlabel();
 RPCHelpMan listaddressgroupings();
@@ -750,6 +751,7 @@ std::span<const CRPCCommand> GetWalletRPCCommands()
         {"wallet", &keypoolrefill},
         {"wallet", &listaddressgroupings},
         {"wallet", &listchildrecipients},
+        {"wallet", &recoverchildwallet},
         {"wallet", &listdescriptors},
         {"wallet", &listlabels},
         {"wallet", &listlockunspent},
