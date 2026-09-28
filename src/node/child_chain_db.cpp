@@ -508,7 +508,7 @@ struct CandidatePruningChange {
     uint64_t removed_anchor_bytes{0};
     std::vector<CandidateAnchorKey> added_anchor_keys;
     std::vector<CandidateAnchorKey> removed_anchor_keys;
-    std::optional<chainregistry::ChildForkAnchor> added_fork_anchor;
+    std::vector<chainregistry::ChildForkAnchor> added_fork_anchors;
 };
 
 std::optional<CandidatePruningPlan> PlanCandidatePruning(
@@ -636,10 +636,10 @@ std::optional<CandidatePruningPlan> PlanCandidatePruning(
         candidate->second.candidate_anchor_bytes =
             candidate->second.candidate_anchor_bytes -
             change.removed_anchor_bytes + change.added_anchor_bytes;
-        if (change.added_fork_anchor) {
-            candidate->second.candidate.anchors.push_back(
-                *change.added_fork_anchor);
-        }
+        candidate->second.candidate.anchors.insert(
+            candidate->second.candidate.anchors.end(),
+            change.added_fork_anchors.begin(),
+            change.added_fork_anchors.end());
 
         auto& keys{plan.anchor_keys[change.block_hash]};
         for (const CandidateAnchorKey& key : change.removed_anchor_keys) {
@@ -1883,7 +1883,7 @@ bool ChildChainDB::WriteMainChainUpdate(
                 .added_anchor_bytes = entry.candidate_anchor.serialized_size,
                 .added_anchor_keys = {entry.candidate_anchor_key},
                 .removed_anchor_keys = {},
-                .added_fork_anchor = std::nullopt,
+                .added_fork_anchors = {},
             });
         }
         pruning = PlanCandidatePruning(
@@ -2287,11 +2287,11 @@ bool ChildChainDB::WriteCandidateBmmAnchor(
         .added_anchor_bytes = serialized_size,
         .added_anchor_keys = {key},
         .removed_anchor_keys = {},
-        .added_fork_anchor = chainregistry::ChildForkAnchor{
+        .added_fork_anchors = {{
             .main_block_hash = main_block_hash,
             .main_height = anchor_proof.block_height,
             .work = anchor_work,
-        },
+        }},
     };
     const auto pruning{PlanCandidatePruning(
         m_db,
@@ -2340,7 +2340,8 @@ bool ChildChainDB::WriteConnectedChildBlock(
     const CBlock& block,
     const chainregistry::ReferenceChildBlockUndo& undo,
     const chainregistry::BmmAnchorProof& anchor_proof,
-    bool sync)
+    bool sync,
+    std::vector<uint256>* pruned_candidates)
 {
     const uint256 child_block_hash{block.GetHash()};
     ChildChainDBState state;
@@ -2392,6 +2393,7 @@ bool ChildChainDB::WriteConnectedChildBlock(
             return false;
         }
     }
+    const ChildChainDBState stored_candidate_state{state};
 
     const auto expected_imports{BlockImportIds(block)};
     if (!expected_imports || *expected_imports != undo.imports.imports) {
@@ -2488,34 +2490,126 @@ bool ChildChainDB::WriteConnectedChildBlock(
         retained_pending_anchors.emplace(key.second, std::move(retained));
     }
     if (pending.size() > state.pending_anchor_count ||
-        removed_pending_bytes > state.pending_anchor_bytes ||
-        retained_pending_anchors.size() >
-            MAX_CHILD_CANDIDATE_BMM_ANCHORS -
-                state.candidate_anchor_count ||
-        retained_anchor_bytes >
-            MAX_CHILD_CANDIDATE_BMM_BYTES -
-                state.candidate_anchor_bytes) {
+        removed_pending_bytes > state.pending_anchor_bytes) {
         return false;
     }
+
+    const auto make_fork_anchor = [&](const uint256& main_block_hash,
+                                      const chainregistry::BmmAnchorProof& proof)
+        -> std::optional<chainregistry::ChildForkAnchor> {
+        const auto status{main_headers.GetStatus(main_block_hash)};
+        const CBlockIndex* entry{main_headers.Find(main_block_hash)};
+        if (!status.known || !status.active || !entry ||
+            status.height != static_cast<int>(proof.block_height)) {
+            return std::nullopt;
+        }
+        const arith_uint256 work{GetBlockProof(*entry)};
+        if (work == 0) return std::nullopt;
+        return chainregistry::ChildForkAnchor{
+            .main_block_hash = main_block_hash,
+            .main_height = proof.block_height,
+            .work = work,
+        };
+    };
+    std::vector<chainregistry::ChildForkAnchor> added_fork_anchors;
+    added_fork_anchors.reserve(retained_pending_anchors.size());
+    for (const auto& [main_block_hash, record] : retained_pending_anchors) {
+        const auto fork_anchor{make_fork_anchor(main_block_hash, record.proof)};
+        if (!fork_anchor) return false;
+        added_fork_anchors.push_back(*fork_anchor);
+    }
+
+    const auto current_candidates{ReadForkCandidates(main_headers)};
+    if (!current_candidates) return false;
+    std::optional<chainregistry::ChildForkPruneCandidate> added_candidate;
+    std::optional<CandidatePruningChange> pruning_change;
+    if (promoting_candidate) {
+        if (!erase_supplied_candidate_anchor) {
+            const auto primary_fork_anchor{
+                make_fork_anchor(supplied_main_block, anchor_proof)};
+            if (!primary_fork_anchor) return false;
+            added_fork_anchors.push_back(*primary_fork_anchor);
+        }
+        CandidatePruningChange change{
+            .block_hash = child_block_hash,
+            .prunable = false,
+            .side_candidate_bytes = 0,
+            .added_anchor_count = retained_pending_anchors.size(),
+            .added_anchor_bytes = retained_anchor_bytes,
+            .removed_anchor_count = erase_supplied_candidate_anchor ? 1U : 0U,
+            .removed_anchor_bytes = erase_supplied_candidate_anchor
+                ? supplied_candidate_anchor.serialized_size
+                : 0U,
+            .added_anchor_keys = {},
+            .removed_anchor_keys = erase_supplied_candidate_anchor
+                ? std::vector<CandidateAnchorKey>{
+                      supplied_candidate_anchor_key}
+                : std::vector<CandidateAnchorKey>{},
+            .added_fork_anchors = added_fork_anchors,
+        };
+        for (const auto& [main_block_hash, record] :
+             retained_pending_anchors) {
+            change.added_anchor_keys.emplace_back(
+                DB_CANDIDATE_BMM_ANCHOR, main_block_hash);
+        }
+        pruning_change = std::move(change);
+    } else {
+        const auto primary_fork_anchor{
+            make_fork_anchor(supplied_main_block, anchor_proof)};
+        if (!primary_fork_anchor) return false;
+        chainregistry::ChildForkPruneCandidate added{
+            .candidate = {
+                .block_hash = child_block_hash,
+                .parent_hash = block.hashPrevBlock,
+                .anchors = {*primary_fork_anchor},
+            },
+            .side_candidate_bytes = 0,
+            .candidate_anchor_count = retained_pending_anchors.size(),
+            .candidate_anchor_bytes = retained_anchor_bytes,
+            .prunable = false,
+        };
+        added.candidate.anchors.insert(
+            added.candidate.anchors.end(),
+            added_fork_anchors.begin(),
+            added_fork_anchors.end());
+        added_candidate = std::move(added);
+    }
+    const std::span<const CandidatePruningChange> pruning_changes{
+        pruning_change ? &*pruning_change : nullptr,
+        pruning_change ? 1U : 0U};
+    const auto pruning{PlanCandidatePruning(
+        m_db,
+        stored_candidate_state,
+        *current_candidates,
+        m_child_genesis_hash,
+        std::move(added_candidate),
+        pruning_changes)};
+    if (!pruning ||
+        pruning->selection.fork_choice.head != child_block_hash) {
+        return false;
+    }
+
     state.pending_anchor_count -= pending.size();
     state.pending_anchor_bytes -= removed_pending_bytes;
-    state.candidate_anchor_count += retained_pending_anchors.size();
-    state.candidate_anchor_bytes += retained_anchor_bytes;
-    if (promoting_candidate) {
-        --state.side_candidate_count;
-        state.side_candidate_bytes -= stored_candidate.serialized_size;
-    }
-    if (erase_supplied_candidate_anchor) {
-        --state.candidate_anchor_count;
-        state.candidate_anchor_bytes -=
-            supplied_candidate_anchor.serialized_size;
-    }
+    state.side_candidate_count = pruning->selection.side_candidate_count;
+    state.side_candidate_bytes = pruning->selection.side_candidate_bytes;
+    state.candidate_anchor_count =
+        pruning->selection.candidate_anchor_count;
+    state.candidate_anchor_bytes = pruning->selection.candidate_anchor_bytes;
     if (transition->count_delta < 0) {
         state.coin_count -= static_cast<uint64_t>(-transition->count_delta);
     } else {
         state.coin_count += static_cast<uint64_t>(transition->count_delta);
     }
     CDBBatch batch{m_db};
+    for (const uint256& hash : pruning->selection.pruned) {
+        batch.Erase(CandidateKey{DB_SIDE_CANDIDATE, hash});
+        const auto anchor_keys{pruning->anchor_keys.find(hash)};
+        if (anchor_keys == pruning->anchor_keys.end()) return false;
+        for (const CandidateAnchorKey& anchor_key : anchor_keys->second) {
+            batch.Erase(anchor_key);
+        }
+    }
     for (const auto& deposit_id : undo.imports.imports) {
         batch.Write(ImportKey{DB_IMPORT, deposit_id}, *imports.Find(deposit_id));
     }
@@ -2542,6 +2636,9 @@ bool ChildChainDB::WriteConnectedChildBlock(
     for (const auto& pending_entry : pending) batch.Erase(pending_entry.first);
     batch.Write(DB_STATE, state);
     m_db.WriteBatch(batch, sync);
+    if (pruned_candidates) {
+        *pruned_candidates = pruning->selection.pruned;
+    }
     return true;
 }
 
@@ -2912,7 +3009,7 @@ bool ChildChainDB::WriteChildReorganization(
             .added_anchor_bytes = entry.candidate_anchor.serialized_size,
             .added_anchor_keys = {entry.candidate_anchor_key},
             .removed_anchor_keys = {},
-            .added_fork_anchor = std::nullopt,
+            .added_fork_anchors = {},
         });
     }
     for (const auto& entry : promoted) {
@@ -2924,7 +3021,7 @@ bool ChildChainDB::WriteChildReorganization(
             .removed_anchor_bytes = entry.candidate_anchor.serialized_size,
             .added_anchor_keys = {},
             .removed_anchor_keys = {entry.candidate_anchor_key},
-            .added_fork_anchor = std::nullopt,
+            .added_fork_anchors = {},
         });
     }
     const auto current_candidates{ReadForkCandidates(main_headers)};

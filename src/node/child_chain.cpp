@@ -938,13 +938,15 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
         }
         return result;
     }
+    std::vector<uint256> pruned_candidates;
     if (!m_db->WriteConnectedChildBlock(
             *m_main_headers,
             candidate_imports,
             block,
             *result.child_block.undo,
             anchor_proof,
-            sync)) {
+            sync,
+            &pruned_candidates)) {
         m_child_index.erase(slot);
         result.error = ReferenceChildRuntimeError::CHILD_BLOCK_PERSIST_FAILED;
         return result;
@@ -964,6 +966,15 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
         return result;
     }
     m_tip = slot->second.get();
+    for (const uint256& hash : pruned_candidates) {
+        if (hash == m_tip->GetBlockHash() ||
+            m_child_index.erase(hash) != 1) {
+            m_failed = true;
+            result.error = ReferenceChildRuntimeError::FAILED_RUNTIME;
+            return result;
+        }
+    }
+    result.pruned_child_candidates = std::move(pruned_candidates);
     result.selected_child_head = m_tip->GetBlockHash();
     return result;
 }
