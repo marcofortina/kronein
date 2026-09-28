@@ -151,7 +151,9 @@ chainregistry::DepositProof DepositProof(
     const CBlockIndex& parent,
     const Consensus::Params& params,
     const chainregistry::ReferenceChildDefinition& definition,
-    const XOnlyPubKey& recipient)
+    const XOnlyPubKey& recipient,
+    CAmount amount = 50'000,
+    uint8_t discriminator = 0x55)
 {
     const auto record{Record(definition)};
     chainregistry::ChainRegistry registry;
@@ -163,12 +165,13 @@ chainregistry::DepositProof DepositProof(
     coinbase.vout.emplace_back(
         0, chainregistry::BuildRegistryCommitment(registry.ComputeRoot()));
 
+    std::array<unsigned char, 32> funding_input;
+    funding_input.fill(discriminator);
     CMutableTransaction funding;
     funding.vin.emplace_back(COutPoint{
-        Txid{"5555555555555555555555555555555555555555555555555555555555555555"},
-        0});
+        Txid::FromUint256(uint256{std::span{funding_input}}), 0});
     funding.vout.emplace_back(
-        50'000,
+        amount,
         chainregistry::BuildFundScript({
             .chain_id = definition.chain_id,
             .recipient_type = chainregistry::REFERENCE_CHILD_P2TR_RECIPIENT,
@@ -547,6 +550,87 @@ BOOST_AUTO_TEST_CASE(imports_mature_deposit_once_and_reverses_supply)
         block, *connected.undo, state.coins, state.imports).IsValid());
     BOOST_CHECK_EQUAL(state.imports.Size(), 0U);
     BOOST_CHECK(!state.coins.HaveCoin(imported_outpoint));
+}
+
+BOOST_AUTO_TEST_CASE(import_batch_conserves_migrated_supply)
+{
+    ChildState state;
+    const auto& params{Params().GetConsensus()};
+    chainregistry::MainHeaderChain main_headers{params};
+    BOOST_REQUIRE(main_headers.Initialize(Params().GenesisBlock()).IsValid());
+    const CKey key{TestKey(5)};
+    const XOnlyPubKey recipient{key.GetPubKey()};
+
+    constexpr size_t deposit_count{8};
+    std::vector<chainregistry::DepositProof> proofs;
+    CAmount burned_total{0};
+    for (size_t index{0}; index < deposit_count; ++index) {
+        const CBlockIndex* parent{main_headers.Tip()};
+        BOOST_REQUIRE(parent);
+        const CAmount amount{10'000 + static_cast<CAmount>(index) * 1'111};
+        CBlock deposit_block;
+        proofs.push_back(DepositProof(
+            deposit_block,
+            *parent,
+            params,
+            state.definition,
+            recipient,
+            amount,
+            static_cast<uint8_t>(index + 1)));
+        BOOST_REQUIRE(main_headers.AddHeader(
+            deposit_block, deposit_block.nTime).IsValid());
+        burned_total += amount;
+    }
+    for (uint32_t confirmation{1};
+         confirmation < state.definition.parameters.deposit_maturity;
+         ++confirmation) {
+        const CBlockIndex* tip{main_headers.Tip()};
+        BOOST_REQUIRE(tip);
+        const CBlockHeader header{MineMainHeader(
+            *tip, params, 100 + confirmation)};
+        BOOST_REQUIRE(main_headers.AddHeader(header, header.nTime).IsValid());
+    }
+
+    std::vector<CTransactionRef> transactions;
+    std::vector<COutPoint> imported_outpoints;
+    transactions.reserve(proofs.size());
+    imported_outpoints.reserve(proofs.size());
+    for (const auto& proof : proofs) {
+        const auto built{chainregistry::BuildReferenceChildImportTransaction(
+            proof, state.definition)};
+        BOOST_REQUIRE(built.IsValid());
+        transactions.push_back(MakeTransactionRef(*built.transaction));
+        imported_outpoints.emplace_back(transactions.back()->GetHash(), 0);
+    }
+
+    const CBlock block{ChildBlock(
+        state.genesis, 0, recipient, transactions)};
+    const auto connected{chainregistry::ConnectReferenceChildBlock(
+        block,
+        state.genesis,
+        block.nTime,
+        state.definition,
+        main_headers,
+        state.coins,
+        state.imports)};
+    BOOST_REQUIRE(connected.IsValid());
+    BOOST_REQUIRE(connected.undo.has_value());
+    BOOST_CHECK_EQUAL(state.imports.Size(), deposit_count);
+
+    CAmount child_total{0};
+    for (const COutPoint& outpoint : imported_outpoints) {
+        BOOST_REQUIRE(state.coins.HaveCoin(outpoint));
+        child_total += state.coins.AccessCoin(outpoint).out.nValue;
+    }
+    BOOST_CHECK_EQUAL(child_total, burned_total);
+    BOOST_CHECK_EQUAL(block.vtx.front()->GetValueOut(), 0);
+
+    BOOST_REQUIRE(chainregistry::DisconnectReferenceChildBlock(
+        block, *connected.undo, state.coins, state.imports).IsValid());
+    BOOST_CHECK_EQUAL(state.imports.Size(), 0U);
+    for (const COutPoint& outpoint : imported_outpoints) {
+        BOOST_CHECK(!state.coins.HaveCoin(outpoint));
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
