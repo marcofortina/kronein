@@ -125,6 +125,15 @@ QString DepositStatusLabel(const QString& status)
     if (status == QStringLiteral("conflicted")) return ChildChainDialog::tr("Conflicted");
     return status;
 }
+
+QString TransactionCategoryLabel(const QString& category)
+{
+    if (category == QStringLiteral("send")) return ChildChainDialog::tr("Sent");
+    if (category == QStringLiteral("receive")) return ChildChainDialog::tr("Received");
+    if (category == QStringLiteral("generate")) return ChildChainDialog::tr("Mined");
+    if (category == QStringLiteral("immature")) return ChildChainDialog::tr("Immature");
+    return {};
+}
 #endif
 
 } // namespace
@@ -184,6 +193,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
 #ifdef ENABLE_WALLET
     m_register_button = actions->addButton(tr("Register…"), QDialogButtonBox::ActionRole);
     m_balance_button = actions->addButton(tr("Balance…"), QDialogButtonBox::ActionRole);
+    m_activity_button = actions->addButton(tr("Activity…"), QDialogButtonBox::ActionRole);
     m_deposits_button = actions->addButton(tr("Deposits…"), QDialogButtonBox::ActionRole);
     m_migrate_button = actions->addButton(tr("Migrate…"), QDialogButtonBox::ActionRole);
     m_update_button = actions->addButton(tr("Update Metadata…"), QDialogButtonBox::ActionRole);
@@ -192,6 +202,9 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     m_balance_button->setObjectName(QStringLiteral("childChainBalanceButton"));
     m_balance_button->setToolTip(
         tr("Scan the loaded child UTXO set for recipients owned by the selected wallet."));
+    m_activity_button->setObjectName(QStringLiteral("childChainActivityButton"));
+    m_activity_button->setToolTip(
+        tr("Show confirmed and pending wallet activity on the loaded child chain."));
     m_deposits_button->setObjectName(QStringLiteral("childChainDepositsButton"));
     m_migrate_button->setObjectName(QStringLiteral("childChainMigrateButton"));
     m_update_button->setObjectName(QStringLiteral("childChainUpdateButton"));
@@ -226,6 +239,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
 #ifdef ENABLE_WALLET
     connect(m_register_button, &QPushButton::clicked, this, &ChildChainDialog::registerChildChain);
     connect(m_balance_button, &QPushButton::clicked, this, &ChildChainDialog::showBalance);
+    connect(m_activity_button, &QPushButton::clicked, this, &ChildChainDialog::showActivity);
     connect(m_deposits_button, &QPushButton::clicked, this, &ChildChainDialog::showDeposits);
     connect(m_migrate_button, &QPushButton::clicked, this, &ChildChainDialog::migrateSelected);
     connect(m_update_button, &QPushButton::clicked, this, &ChildChainDialog::updateSelected);
@@ -443,6 +457,7 @@ void ChildChainDialog::updateSelection()
 #ifdef ENABLE_WALLET
         m_register_button->setEnabled(m_wallet_model);
         m_balance_button->setEnabled(false);
+        m_activity_button->setEnabled(false);
         m_deposits_button->setEnabled(false);
         m_migrate_button->setEnabled(false);
         m_update_button->setEnabled(false);
@@ -483,6 +498,7 @@ void ChildChainDialog::updateSelection()
 #ifdef ENABLE_WALLET
     m_register_button->setEnabled(m_wallet_model);
     m_balance_button->setEnabled(m_wallet_model && loaded && supported);
+    m_activity_button->setEnabled(m_wallet_model && loaded && supported);
     m_deposits_button->setEnabled(m_wallet_model);
     const bool active_registry_record{
         m_wallet_model && registry_found &&
@@ -1547,6 +1563,121 @@ void ChildChainDialog::showBalance()
                  QString::fromStdString(immature.getValStr()),
                  NumberField(last_processed, "height"),
                  tip_hash));
+}
+
+void ChildChainDialog::showActivity()
+{
+    const QString chain_id{selectedChainId()};
+    if (chain_id.isEmpty() || !m_wallet_model) return;
+
+    UniValue params{UniValue::VARR};
+    params.push_back("*");
+    params.push_back(100);
+    params.push_back(0);
+    params.push_back(chain_id.toStdString());
+    UniValue result;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        result = m_node.executeRpc("listtransactions", params, walletUri());
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("List child activity"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("List child activity"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+
+    if (!result.isArray()) {
+        showRpcError(tr("List child activity"),
+                     tr("The wallet returned an invalid child-activity list."));
+        return;
+    }
+
+    QDialog dialog{this};
+    dialog.setWindowTitle(tr("Child Activity — %1").arg(chain_id));
+    dialog.setMinimumSize(1150, 430);
+    auto* layout = new QVBoxLayout{&dialog};
+    auto* summary = new QLabel{
+        tr("Showing the %n most recent child wallet activity entry or entries.",
+           nullptr, static_cast<int>(result.size())),
+        &dialog};
+    summary->setWordWrap(true);
+    layout->addWidget(summary);
+
+    auto* table = new QTableWidget{&dialog};
+    table->setObjectName(QStringLiteral("childActivityTable"));
+    table->setColumnCount(7);
+    table->setHorizontalHeaderLabels({
+        tr("Time"),
+        tr("Category"),
+        tr("Amount"),
+        tr("Confirmations"),
+        tr("Label"),
+        tr("Child recipient"),
+        tr("Transaction ID"),
+    });
+    table->setSelectionBehavior(QAbstractItemView::SelectRows);
+    table->setSelectionMode(QAbstractItemView::SingleSelection);
+    table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    table->setAlternatingRowColors(true);
+    table->verticalHeader()->setVisible(false);
+    table->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(5, QHeaderView::Stretch);
+    table->horizontalHeader()->setSectionResizeMode(6, QHeaderView::Stretch);
+
+    const QRegularExpression hex_256{QStringLiteral("^[0-9A-Fa-f]{64}$")};
+    const auto& entries{result.getValues()};
+    for (auto it = entries.rbegin(); it != entries.rend(); ++it) {
+        const UniValue& entry{*it};
+        const QString entry_chain{StringField(entry, "chain_id")};
+        const QString category{StringField(entry, "category")};
+        const QString category_label{TransactionCategoryLabel(category)};
+        const QString txid{StringField(entry, "txid")};
+        const QString recipient{StringField(entry, "recipient")};
+        const UniValue& amount{entry.find_value("amount")};
+        const UniValue& confirmations{entry.find_value("confirmations")};
+        const UniValue& time{entry.find_value("time")};
+        const UniValue& label{entry.find_value("label")};
+        if (!entry.isObject() ||
+            entry_chain.compare(chain_id, Qt::CaseInsensitive) != 0 ||
+            category_label.isEmpty() || !amount.isNum() ||
+            !confirmations.isNum() || !time.isNum() ||
+            !hex_256.match(txid).hasMatch() ||
+            (!recipient.isEmpty() && !hex_256.match(recipient).hasMatch()) ||
+            (!label.isNull() && !label.isStr())) {
+            showRpcError(tr("List child activity"),
+                         tr("The wallet returned a malformed child-activity entry."));
+            return;
+        }
+
+        const int row{table->rowCount()};
+        table->insertRow(row);
+        table->setItem(row, 0, new QTableWidgetItem{
+            GUIUtil::dateTimeStr(time.getInt<int64_t>())});
+        table->setItem(row, 1, new QTableWidgetItem{category_label});
+        table->setItem(row, 2, new QTableWidgetItem{
+            QString::fromStdString(amount.getValStr()) + QStringLiteral(" KNE")});
+        table->setItem(row, 3, new QTableWidgetItem{
+            QString::fromStdString(confirmations.getValStr())});
+        table->setItem(row, 4, new QTableWidgetItem{
+            label.isStr() ? QString::fromStdString(label.get_str()) : QString{}});
+        table->setItem(row, 5, new QTableWidgetItem{recipient});
+        table->setItem(row, 6, new QTableWidgetItem{txid});
+    }
+    layout->addWidget(table, 1);
+
+    auto* buttons = new QDialogButtonBox{QDialogButtonBox::Close, &dialog};
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    layout->addWidget(buttons);
+    dialog.exec();
 }
 
 void ChildChainDialog::showDeposits()
