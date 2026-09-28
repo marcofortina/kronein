@@ -14,6 +14,7 @@
 #include <util/translation.h>
 #include <wallet/context.h>
 #include <wallet/receive.h>
+#include <wallet/rpc/child_util.h>
 #include <wallet/rpc/util.h>
 #include <wallet/rpc/wallet.h>
 #include <wallet/wallet.h>
@@ -469,6 +470,7 @@ RPCHelpMan simulaterawtransaction()
                     {"rawtx", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, ""},
                 },
             },
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain."},
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "",
@@ -485,6 +487,71 @@ RPCHelpMan simulaterawtransaction()
     const std::shared_ptr<const CWallet> rpc_wallet = GetWalletForJSONRPCRequest(request);
     if (!rpc_wallet) return UniValue::VNULL;
     const CWallet& wallet = *rpc_wallet;
+
+    const auto chain_arg{self.MaybeArg<UniValue>("chain_id")};
+    if (chain_arg) {
+        const chainregistry::ChainId chain_id{
+            ParseChildChainId(*chain_arg)};
+        const std::set<CScript> wallet_scripts{
+            ChildWalletScripts(wallet, chain_id)};
+        const interfaces::ChildWalletScan scan{
+            ScanChildWallet(wallet, chain_id)};
+        std::map<COutPoint, CAmount> available;
+        for (const auto& coin : scan.coins) {
+            if (!available.emplace(coin.outpoint, coin.output.nValue).second) {
+                throw JSONRPCError(
+                    RPC_INTERNAL_ERROR,
+                    "child wallet UTXO data contains a duplicate outpoint");
+            }
+        }
+
+        const auto& txs{request.params[0].get_array()};
+        CAmount changes{0};
+        std::map<COutPoint, CAmount> new_utxos;
+        std::set<COutPoint> spent;
+        for (const UniValue& encoded : txs.getValues()) {
+            CMutableTransaction transaction;
+            if (!DecodeHexTx(transaction, encoded.get_str())) {
+                throw JSONRPCError(
+                    RPC_DESERIALIZATION_ERROR,
+                    "Transaction hex string decoding failure.");
+            }
+            for (const CTxIn& input : transaction.vin) {
+                if (!spent.insert(input.prevout).second) {
+                    throw JSONRPCError(
+                        RPC_INVALID_PARAMETER,
+                        "Transaction(s) are spending the same output more than once");
+                }
+                const auto created{new_utxos.find(input.prevout)};
+                if (created != new_utxos.end()) {
+                    changes -= created->second;
+                    new_utxos.erase(created);
+                    continue;
+                }
+                const auto existing{available.find(input.prevout)};
+                if (existing == available.end()) {
+                    throw JSONRPCError(
+                        RPC_INVALID_PARAMETER,
+                        "One or more child transaction inputs are missing or have been spent already");
+                }
+                changes -= existing->second;
+            }
+            const Txid txid{transaction.GetHash()};
+            for (size_t index{0}; index < transaction.vout.size(); ++index) {
+                const CTxOut& output{transaction.vout[index]};
+                const CAmount value{
+                    wallet_scripts.contains(output.scriptPubKey)
+                        ? output.nValue
+                        : 0};
+                changes += value;
+                new_utxos.emplace(
+                    COutPoint{txid, static_cast<uint32_t>(index)}, value);
+            }
+        }
+        UniValue result{UniValue::VOBJ};
+        result.pushKV("balance_change", ValueFromAmount(changes));
+        return result;
+    }
 
     LOCK(wallet.cs_wallet);
 

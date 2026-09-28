@@ -2061,6 +2061,10 @@ class ChainRegistryTest(BitcoinTestFramework):
             child_max_fee=child_send_fee,
             chain_id=chain_id)
         assert_equal(compatible_raw_signed["complete"], True)
+        assert_equal(
+            wallet.simulaterawtransaction(
+                [compatible_raw_signed["hex"]], chain_id)["balance_change"],
+            -Decimal("0.00091000"))
         compatible_raw_resigned = wallet.signrawtransactionwithwallet(
             compatible_raw_signed["hex"],
             child_max_fee=child_send_fee,
