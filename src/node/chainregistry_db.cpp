@@ -418,6 +418,7 @@ bool ChainRegistryDB::WriteConnectedBlock(const chainregistry::ChainRegistry& re
     if (!m_db.Read(DB_REGISTRY_STATE, previous_state) ||
         previous_state.version != CHAIN_REGISTRY_DB_VERSION ||
         m_db.Exists(UndoKey{DB_REGISTRY_UNDO, block_hash}) ||
+        undo.parent_block != previous_state.best_block ||
         ((previous_state.best_block.IsNull() && previous_state.height == 0)
              ? state.height != 0
              : state.height != previous_state.height + 1) ||
@@ -488,6 +489,7 @@ bool ChainRegistryDB::WriteDisconnectedBlock(const chainregistry::ChainRegistry&
         stored_undo != undo ||
         current_state.version != CHAIN_REGISTRY_DB_VERSION ||
         current_state.best_block != disconnected_block_hash ||
+        undo.parent_block != parent_state.best_block ||
         ((parent_state.best_block.IsNull() && parent_state.height == 0)
              ? current_state.height != 0
              : current_state.height != parent_state.height + 1) ||

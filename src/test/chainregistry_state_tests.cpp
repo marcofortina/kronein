@@ -119,9 +119,18 @@ BOOST_AUTO_TEST_CASE(connect_disconnect_and_reload)
 
     {
         node::ChainRegistryState state{registry_params, genesis_hash};
-        BOOST_REQUIRE(state.Initialize(Params(path), block_two_hash, 2).IsValid());
+        const auto mismatched{state.Initialize(Params(path), block_one_hash, 1)};
+        BOOST_CHECK(mismatched.error ==
+                    node::ChainRegistryStateError::DATABASE_TIP_MISMATCH);
+        BOOST_REQUIRE(state.IsInitialized());
+        BOOST_CHECK(state.State().best_block == block_two_hash);
+        BOOST_CHECK(state.UndoParent(block_two_hash) == block_one_hash);
         const auto wrong_parent{state.DisconnectBlock(block_two_hash, {}, -1)};
         BOOST_CHECK(wrong_parent.error == node::ChainRegistryStateError::NON_SEQUENTIAL_BLOCK);
+        const auto mismatched_parent{
+            state.DisconnectBlock(block_two_hash, genesis_hash, 1)};
+        BOOST_CHECK(mismatched_parent.error ==
+                    node::ChainRegistryStateError::UNDO_FAILED);
         const auto wrong_tip{state.DisconnectBlock(block_one_hash, genesis_hash, 0)};
         BOOST_CHECK(wrong_tip.error == node::ChainRegistryStateError::NON_SEQUENTIAL_BLOCK);
         BOOST_REQUIRE(state.DisconnectBlock(block_two_hash, block_one_hash, 1, /*sync=*/true).IsValid());

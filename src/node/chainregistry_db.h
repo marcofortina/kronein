@@ -18,7 +18,7 @@
 
 namespace node {
 
-inline constexpr uint8_t CHAIN_REGISTRY_DB_VERSION{5};
+inline constexpr uint8_t CHAIN_REGISTRY_DB_VERSION{6};
 inline constexpr uint8_t DEPOSIT_INDEX_ENTRY_VERSION{1};
 inline constexpr uint8_t BMM_ANCHOR_INDEX_ENTRY_VERSION{1};
 
@@ -108,13 +108,14 @@ struct DepositLookupResult {
 };
 
 struct ChainRegistryDBUndo {
+    uint256 parent_block;
     chainregistry::RegistryBlockUndo registry;
     std::vector<chainregistry::DepositId> deposits;
     std::vector<BmmAnchorId> anchors;
 
     SERIALIZE_METHODS(ChainRegistryDBUndo, obj)
     {
-        READWRITE(obj.registry, obj.deposits, obj.anchors);
+        READWRITE(obj.parent_block, obj.registry, obj.deposits, obj.anchors);
     }
 
     friend bool operator==(const ChainRegistryDBUndo&, const ChainRegistryDBUndo&) = default;

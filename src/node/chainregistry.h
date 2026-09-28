@@ -37,6 +37,7 @@ enum class ChainRegistryStateError : uint8_t {
     ANCHOR_INDEX_FAILED,
     UNDO_MISSING,
     UNDO_FAILED,
+    DATABASE_RECONCILIATION_FAILED,
 };
 
 struct ChainRegistryStateResult {
@@ -147,6 +148,8 @@ public:
         uint64_t lookup_limit,
         std::optional<chainregistry::DepositId> start_after = std::nullopt) const;
     std::optional<BmmAnchorIndexEntry> FindAnchor(const BmmAnchorId& anchor_id) const;
+    /** Parent committed by a stored registry undo, used for crash recovery. */
+    std::optional<uint256> UndoParent(const uint256& block_hash) const;
     std::optional<BmmAnchorLookupResult> FindAnchorsForChildBlocks(
         const chainregistry::ChainId& chain_id,
         std::span<const uint256> child_block_hashes,

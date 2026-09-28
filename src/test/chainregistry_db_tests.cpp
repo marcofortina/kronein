@@ -133,11 +133,13 @@ BOOST_AUTO_TEST_CASE(registry_db_connect_load_disconnect)
         .previous = original,
     }}};
     const node::ChainRegistryDBUndo register_db_undo{
+        .parent_block = block_zero,
         .registry = register_undo,
         .deposits = {},
         .anchors = {},
     };
     const node::ChainRegistryDBUndo update_db_undo{
+        .parent_block = block_one,
         .registry = update_undo,
         .deposits = {},
         .anchors = {},
@@ -168,6 +170,10 @@ BOOST_AUTO_TEST_CASE(registry_db_connect_load_disconnect)
         inconsistent.registry_root.SetNull();
         BOOST_CHECK(!db.WriteConnectedBlock(fresh, inconsistent, block_one, register_db_undo));
         BOOST_CHECK(!db.WriteConnectedBlock(fresh, state_one, block_two, register_db_undo));
+        auto wrong_parent{register_db_undo};
+        wrong_parent.parent_block = block_two;
+        BOOST_CHECK(!db.WriteConnectedBlock(
+            fresh, state_one, block_one, wrong_parent));
         BOOST_REQUIRE(db.WriteConnectedBlock(
             fresh, state_one, block_one, register_db_undo, {}, {}, /*sync=*/true));
 
@@ -260,6 +266,7 @@ BOOST_AUTO_TEST_CASE(deposit_index_connect_load_disconnect)
     BOOST_REQUIRE(registry.LoadRecords({record}).IsValid());
     const auto deposit{Deposit(registry, record, block_hash, 100)};
     const node::ChainRegistryDBUndo undo{
+        .parent_block = parent_hash,
         .registry = {},
         .deposits = {deposit.deposit_id},
         .anchors = {},
@@ -282,6 +289,7 @@ BOOST_AUTO_TEST_CASE(deposit_index_connect_load_disconnect)
         invalid.deposit_id = chainregistry::DepositId{
             "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
         const node::ChainRegistryDBUndo invalid_undo{
+            .parent_block = parent_hash,
             .registry = {},
             .deposits = {invalid.deposit_id},
             .anchors = {},
@@ -291,6 +299,7 @@ BOOST_AUTO_TEST_CASE(deposit_index_connect_load_disconnect)
 
         const std::array duplicate{deposit, deposit};
         const node::ChainRegistryDBUndo duplicate_undo{
+            .parent_block = parent_hash,
             .registry = {},
             .deposits = {deposit.deposit_id, deposit.deposit_id},
             .anchors = {},
@@ -389,6 +398,7 @@ BOOST_AUTO_TEST_CASE(deposit_child_lookup_is_bounded)
         /*transaction_index=*/3)};
     const std::array deposits{first, second};
     const node::ChainRegistryDBUndo undo{
+        .parent_block = parent_hash,
         .registry = {},
         .deposits = {first.deposit_id, second.deposit_id},
         .anchors = {},
@@ -459,6 +469,7 @@ BOOST_AUTO_TEST_CASE(bmm_anchor_index_connect_load_disconnect)
     BOOST_REQUIRE(registry.LoadRecords({record}).IsValid());
     const auto anchor{Anchor(registry, record, block_hash, 100)};
     const node::ChainRegistryDBUndo undo{
+        .parent_block = parent_hash,
         .registry = {},
         .deposits = {},
         .anchors = {anchor.id},
@@ -492,6 +503,7 @@ BOOST_AUTO_TEST_CASE(bmm_anchor_index_connect_load_disconnect)
 
         const std::array duplicate{anchor, anchor};
         const node::ChainRegistryDBUndo duplicate_undo{
+            .parent_block = parent_hash,
             .registry = {},
             .deposits = {},
             .anchors = {anchor.id, anchor.id},
@@ -593,16 +605,19 @@ BOOST_AUTO_TEST_CASE(bmm_anchor_child_lookup_is_bounded)
     const auto anchor_three{
         Anchor(registry, record, block_three, 102, other_child_block)};
     const node::ChainRegistryDBUndo undo_one{
+        .parent_block = parent_hash,
         .registry = {},
         .deposits = {},
         .anchors = {anchor_one.id},
     };
     const node::ChainRegistryDBUndo undo_two{
+        .parent_block = block_one,
         .registry = {},
         .deposits = {},
         .anchors = {anchor_two.id},
     };
     const node::ChainRegistryDBUndo undo_three{
+        .parent_block = block_two,
         .registry = {},
         .deposits = {},
         .anchors = {anchor_three.id},

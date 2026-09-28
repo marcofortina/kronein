@@ -2046,7 +2046,7 @@ node::ChainRegistryStateResult Chainstate::InitChainRegistryDB(
         m_chainman.GetConsensus().chain_registry,
         m_chainman.GetConsensus().hashGenesisBlock);
     const CBlockIndex* tip{m_chain.Tip()};
-    return m_chain_registry_state->Initialize(
+    auto result{m_chain_registry_state->Initialize(
         DBParams{
             .path = ChainRegistryStoragePath(),
             .cache_bytes = cache_size_bytes,
@@ -2056,7 +2056,104 @@ node::ChainRegistryStateResult Chainstate::InitChainRegistryDB(
             .options = m_chainman.m_options.coins_db,
         },
         tip ? tip->GetBlockHash() : uint256{},
-        tip ? tip->nHeight : -1);
+        tip ? tip->nHeight : -1)};
+    if (result.error != node::ChainRegistryStateError::DATABASE_TIP_MISMATCH) {
+        return result;
+    }
+
+    const auto reconciliation_error = [] {
+        node::ChainRegistryStateResult failure;
+        failure.error =
+            node::ChainRegistryStateError::DATABASE_RECONCILIATION_FAILED;
+        return failure;
+    };
+    const auto& stored_state{m_chain_registry_state->State()};
+    if (stored_state.height >
+        static_cast<uint32_t>(std::numeric_limits<int>::max())) {
+        return reconciliation_error();
+    }
+    struct DisconnectStep {
+        uint256 block;
+        uint256 parent;
+        int parent_height;
+    };
+    std::vector<DisconnectStep> disconnect;
+    const CBlockIndex* fork{nullptr};
+    uint256 cursor{stored_state.best_block};
+    int cursor_height{static_cast<int>(stored_state.height)};
+    while (!cursor.IsNull()) {
+        const CBlockIndex* index{m_blockman.LookupBlockIndex(cursor)};
+        if (index && m_chain.Contains(index)) {
+            if (index->nHeight != cursor_height) return reconciliation_error();
+            fork = index;
+            break;
+        }
+        const auto parent{m_chain_registry_state->UndoParent(cursor)};
+        if (!parent || cursor_height < 0 ||
+            (cursor_height == 0) != parent->IsNull()) {
+            return reconciliation_error();
+        }
+        const uint256 indexed_parent{
+            index && index->pprev ? index->pprev->GetBlockHash() : uint256{}};
+        if (index &&
+            (index->nHeight != cursor_height || indexed_parent != *parent)) {
+            return reconciliation_error();
+        }
+        disconnect.push_back({cursor, *parent, cursor_height - 1});
+        cursor = *parent;
+        --cursor_height;
+    }
+    if (!stored_state.best_block.IsNull() && !fork && cursor_height != -1) {
+        return reconciliation_error();
+    }
+
+    std::vector<const CBlockIndex*> connect;
+    const int fork_height{fork ? fork->nHeight : -1};
+    for (int height{fork_height + 1}; height <= m_chain.Height(); ++height) {
+        const CBlockIndex* index{m_chain[height]};
+        if (!index) return reconciliation_error();
+        connect.push_back(index);
+    }
+
+    // Read every required block before mutating the registry database. This
+    // keeps a pruned or otherwise unavailable replay path fail-closed.
+    std::vector<CBlock> blocks;
+    blocks.reserve(connect.size());
+    for (const CBlockIndex* index : connect) {
+        CBlock block;
+        if (!m_blockman.ReadBlock(block, *index)) {
+            return reconciliation_error();
+        }
+        blocks.push_back(std::move(block));
+    }
+
+    LogWarning("Reconciling child chain registry database from height %u to %d after an unclean shutdown\n",
+               stored_state.height,
+               tip ? tip->nHeight : -1);
+    size_t remaining{disconnect.size() + connect.size()};
+    for (const auto& step : disconnect) {
+        --remaining;
+        const auto disconnected{m_chain_registry_state->DisconnectBlock(
+            step.block, step.parent, step.parent_height,
+            /*sync=*/remaining == 0)};
+        if (!disconnected.IsValid()) return disconnected;
+    }
+    for (size_t position{0}; position < connect.size(); ++position) {
+        --remaining;
+        const CBlockIndex& index{*connect[position]};
+        const auto connected{m_chain_registry_state->ConnectBlock(
+            blocks[position], index.nHeight, index.GetBlockHash(),
+            /*sync=*/remaining == 0)};
+        if (!connected.IsValid()) return connected;
+    }
+    if (remaining != 0 ||
+        m_chain_registry_state->State().best_block !=
+            (tip ? tip->GetBlockHash() : uint256{}) ||
+        m_chain_registry_state->State().height !=
+            static_cast<uint32_t>(tip ? tip->nHeight : 0)) {
+        return reconciliation_error();
+    }
+    return {};
 }
 
 node::ChainRegistryStateResult Chainstate::InitChainRegistryDBFromSnapshot(

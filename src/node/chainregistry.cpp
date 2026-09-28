@@ -279,13 +279,16 @@ ChainRegistryStateResult ChainRegistryState::Initialize(const DBParams& db_param
         if (!m_db->WriteInitialState(m_registry, loaded_state, /*sync=*/true)) {
             return StateError(ChainRegistryStateError::DATABASE_WRITE_FAILED);
         }
-    } else if (loaded_state.best_block != expected_tip ||
-               (expected_height >= 0 && loaded_state.height != static_cast<uint32_t>(expected_height))) {
-        return StateError(ChainRegistryStateError::DATABASE_TIP_MISMATCH);
     }
-
     m_state = loaded_state;
     m_initialized = true;
+    if (loaded_state.best_block != expected_tip ||
+        (expected_height >= 0 &&
+         loaded_state.height != static_cast<uint32_t>(expected_height))) {
+        // Keep the valid loaded state available so the owning chainstate can
+        // reconcile an auxiliary database left ahead or behind by a crash.
+        return StateError(ChainRegistryStateError::DATABASE_TIP_MISMATCH);
+    }
     return {};
 }
 
@@ -348,6 +351,7 @@ ChainRegistryStateResult ChainRegistryState::ConnectBlock(const CBlock& block,
 
     chainregistry::ChainRegistry candidate{m_registry};
     ChainRegistryDBUndo undo;
+    undo.parent_block = block.hashPrevBlock;
     std::vector<DepositIndexEntry> deposits;
     std::vector<BmmAnchorIndexEntry> anchors;
     chainregistry::RegistryBlockResult block_result;
@@ -497,6 +501,9 @@ ChainRegistryStateResult ChainRegistryState::DisconnectBlock(const uint256& bloc
     if (!m_db->ReadUndo(block_hash, undo)) {
         return StateError(ChainRegistryStateError::UNDO_MISSING);
     }
+    if (undo.parent_block != parent_hash) {
+        return StateError(ChainRegistryStateError::UNDO_FAILED);
+    }
 
     chainregistry::ChainRegistry candidate{m_registry};
     if (!candidate.UndoBlock(undo.registry)) {
@@ -557,6 +564,15 @@ std::optional<BmmAnchorIndexEntry> ChainRegistryState::FindAnchor(
 {
     if (!m_initialized || !m_db) return std::nullopt;
     return m_db->ReadAnchor(anchor_id);
+}
+
+std::optional<uint256> ChainRegistryState::UndoParent(
+    const uint256& block_hash) const
+{
+    if (!m_initialized || !m_db || block_hash.IsNull()) return std::nullopt;
+    ChainRegistryDBUndo undo;
+    if (!m_db->ReadUndo(block_hash, undo)) return std::nullopt;
+    return undo.parent_block;
 }
 
 std::optional<BmmAnchorLookupResult>

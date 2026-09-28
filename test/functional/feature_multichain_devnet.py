@@ -269,9 +269,13 @@ class MultichainDevnetTest(BitcoinTestFramework):
             children[1]["chain_id"])["network_running"], True)
         assert_equal(node.getblockcount(children[1]["chain_id"]), 1)
 
-        self.log.info("Persist SAFE_HALT evidence across restart and explicit reload")
-        self.restart_node(0)
+        self.log.info("Persist SAFE_HALT evidence across an unclean restart")
+        self.nodes[0].kill_process()
+        self.start_node(0)
         node = self.nodes[0]
+        self.connect_nodes(0, 1)
+        self.sync_blocks()
+        node.syncwithvalidationinterfacequeue()
         node.loadwallet("devnet")
         assert_equal(node.getbestblockhash(), competing_tip)
         runtime_by_id = {
