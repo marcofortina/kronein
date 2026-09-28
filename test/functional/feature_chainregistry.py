@@ -1380,6 +1380,16 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(child_mempool_entry["fees"]["base"], child_fee)
         assert_equal(child_mempool_entry["ancestorcount"], 1)
         assert_equal(child_mempool_entry["descendantcount"], 1)
+        child_mempool_info = node.getmempoolinfo(chain_id)
+        assert_equal(child_mempool_info["chain_id"], chain_id)
+        assert_equal(child_mempool_info["loaded"], True)
+        assert_equal(child_mempool_info["size"], 1)
+        assert child_mempool_info["bytes"] > 0
+        assert child_mempool_info["usage"] > 0
+        assert_equal(child_mempool_info["total_fee"], child_fee)
+        assert_equal(child_mempool_info["maxmempool"], 16 * 1024 * 1024)
+        assert_equal(child_mempool_info["limitclustercount"], 10000)
+        assert_equal(child_mempool_info["limitclustersize"], 16 * 1024 * 1024)
         assert_equal(node.getmempoolancestors(
             signed_child["txid"], False, chain_id), [])
         assert_equal(node.getmempoolancestors(
@@ -1563,6 +1573,12 @@ class ChainRegistryTest(BitcoinTestFramework):
                      spend_block["blockhash"])
         assert_equal(node.listchildproposals(chain_id)["proposal_count"], 0)
         assert_equal(node.getrawmempool(False, False, chain_id), [])
+        empty_child_mempool_info = node.getmempoolinfo(chain_id)
+        assert_equal(empty_child_mempool_info["chain_id"], chain_id)
+        assert_equal(empty_child_mempool_info["size"], 0)
+        assert_equal(empty_child_mempool_info["bytes"], 0)
+        assert_equal(empty_child_mempool_info["usage"], 0)
+        assert_equal(empty_child_mempool_info["total_fee"], Decimal("0"))
         assert_raises_rpc_error(
             -5, "Transaction not in child mempool",
             node.getmempoolentry, signed_child["txid"], chain_id)

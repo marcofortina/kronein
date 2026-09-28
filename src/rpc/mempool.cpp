@@ -824,6 +824,34 @@ UniValue ChildMempoolRelationsToJSON(
     return result;
 }
 
+UniValue ChildMempoolInfoToJSON(
+    const node::ReferenceChildMempoolView& view,
+    const chainregistry::ChainId& chain_id)
+{
+    size_t virtual_size{0};
+    for (const auto& entry : view.entries) {
+        virtual_size += GetVirtualTransactionSize(*entry.transaction);
+    }
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("loaded", true);
+    result.pushKV("size", view.entries.size());
+    result.pushKV("bytes", virtual_size);
+    result.pushKV("usage", view.total_bytes);
+    result.pushKV("total_fee", ValueFromAmount(view.total_fees));
+    result.pushKV("maxmempool", node::MAX_CHILD_MEMPOOL_BYTES);
+    result.pushKV("mempoolminfee", ValueFromAmount(0));
+    result.pushKV("minrelaytxfee", ValueFromAmount(0));
+    result.pushKV("incrementalrelayfee", ValueFromAmount(0));
+    result.pushKV("unbroadcastcount", view.entries.size());
+    result.pushKV("maxdatacarriersize", 0);
+    result.pushKV("limitclustercount", node::MAX_CHILD_MEMPOOL_TRANSACTIONS);
+    result.pushKV("limitclustersize", node::MAX_CHILD_MEMPOOL_BYTES);
+    result.pushKV("optimal", false);
+    result.pushKV("chain_id", chain_id.GetHex());
+    return result;
+}
+
 } // namespace
 
 UniValue MempoolToJSON(const CTxMemPool& pool, bool verbose, bool include_mempool_sequence)
@@ -1369,8 +1397,12 @@ UniValue MempoolInfoToJSON(const CTxMemPool& pool)
 static RPCHelpMan getmempoolinfo()
 {
     return RPCHelpMan{"getmempoolinfo",
-        "Returns details on the active state of the TX memory pool.",
-        {},
+        "Returns details on the active state of the TX memory pool.\n"
+        "Omit chain_id to preserve the main-chain behavior.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED,
+             "Non-null child-chain identifier. Omit to use the main chain."},
+        },
         RPCResult{
             RPCResult::Type::OBJ, "", "",
             {
@@ -1388,6 +1420,7 @@ static RPCHelpMan getmempoolinfo()
                 {RPCResult::Type::NUM, "limitclustercount", "Maximum number of transactions that can be in a cluster (configured by -limitclustercount)"},
                 {RPCResult::Type::NUM, "limitclustersize", "Maximum size of a cluster in virtual bytes (configured by -limitclustersize)"},
                 {RPCResult::Type::BOOL, "optimal", "If the mempool is in a known-optimal transaction ordering"},
+                {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Selected child-chain identifier; omitted for main-chain results"},
             }},
         RPCExamples{
             HelpExampleCli("getmempoolinfo", "")
@@ -1395,6 +1428,12 @@ static RPCHelpMan getmempoolinfo()
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
+    const auto child_chain{
+        OptionalChildChainId(request.params[0])};
+    if (child_chain) {
+        return ChildMempoolInfoToJSON(
+            GetChildMempool(request, *child_chain), *child_chain);
+    }
     return MempoolInfoToJSON(EnsureAnyMemPool(request.context));
 },
     };
