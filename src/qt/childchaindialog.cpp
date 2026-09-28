@@ -1583,85 +1583,148 @@ void ChildChainDialog::receiveSelected()
 {
     const QString chain_id{selectedChainId()};
     if (chain_id.isEmpty() || !m_wallet_model) return;
-
-    bool accepted{false};
-    const QString label{QInputDialog::getText(
-        this, tr("Create Child Recipient"), tr("Label (optional):"),
-        QLineEdit::Normal, {}, &accepted)};
-    if (!accepted) return;
-
+    const std::string wallet_uri{walletUri()};
     UniValue params{UniValue::VARR};
     params.push_back(chain_id.toStdString());
-    params.push_back(label.toStdString());
     UniValue result;
     QApplication::setOverrideCursor(Qt::WaitCursor);
     try {
-        result = m_node.executeRpc(
-            "getnewchildrecipient", params, walletUri());
+        result = m_node.executeRpc("listchildrecipients", params, wallet_uri);
     } catch (UniValue& error) {
         QApplication::restoreOverrideCursor();
-        showRpcError(tr("Create child recipient"), RpcErrorMessage(error));
+        showRpcError(tr("List child recipients"), RpcErrorMessage(error));
         return;
     } catch (const std::exception& error) {
         QApplication::restoreOverrideCursor();
-        showRpcError(tr("Create child recipient"),
+        showRpcError(tr("List child recipients"),
                      QString::fromStdString(error.what()));
         return;
     }
     QApplication::restoreOverrideCursor();
 
-    const QString returned_chain{StringField(result, "chain_id")};
-    const QString recipient{StringField(result, "recipient")};
-    const QString script_pub_key{StringField(result, "scriptPubKey")};
-    const QString returned_label{StringField(result, "label")};
-    const UniValue& recipient_type{result.find_value("recipient_type")};
+    const UniValue& recipients{result.find_value("recipients")};
+    const UniValue& recipient_count{result.find_value("recipient_count")};
     if (!result.isObject() ||
-        returned_chain.compare(chain_id, Qt::CaseInsensitive) != 0 ||
-        !recipient_type.isNum() || recipient_type.getInt<int>() != 1 ||
-        !QRegularExpression{QStringLiteral("^[0-9A-Fa-f]{64}$")}
-             .match(recipient).hasMatch() ||
-        !QRegularExpression{QStringLiteral("^5120[0-9A-Fa-f]{64}$")}
-             .match(script_pub_key).hasMatch() ||
-        returned_label != label) {
-        showRpcError(tr("Create child recipient"),
-                     tr("The wallet returned an invalid child recipient."));
+        StringField(result, "chain_id").compare(
+            chain_id, Qt::CaseInsensitive) != 0 ||
+        !recipients.isArray() || !recipient_count.isNum() ||
+        recipient_count.getInt<int>() != static_cast<int>(recipients.size())) {
+        showRpcError(tr("List child recipients"),
+                     tr("The wallet returned an invalid child-recipient list."));
         return;
     }
 
     QDialog dialog{this};
-    dialog.setWindowTitle(tr("Child Recipient — %1").arg(chain_id));
-    dialog.setMinimumWidth(720);
+    dialog.setWindowTitle(tr("Child Recipients — %1").arg(chain_id));
+    dialog.setMinimumSize(950, 390);
     auto* layout = new QVBoxLayout{&dialog};
     auto* warning = new QLabel{
-        tr("This recipient belongs only to the selected child chain. It is not a main-chain address."),
+        tr("These recipients belong only to the selected child chain. They are not main-chain addresses."),
         &dialog};
     warning->setWordWrap(true);
     layout->addWidget(warning);
 
-    auto* form = new QFormLayout;
-    auto add_read_only_field = [&dialog, form](const QString& title,
-                                               const QString& value) {
-        auto* field = new QLineEdit{value, &dialog};
-        field->setReadOnly(true);
-        field->setCursorPosition(0);
-        form->addRow(title, field);
+    auto* table = new QTableWidget{&dialog};
+    table->setObjectName(QStringLiteral("childRecipientTable"));
+    table->setColumnCount(3);
+    table->setHorizontalHeaderLabels({
+        tr("Label"), tr("Recipient"), tr("Output script")});
+    table->setSelectionBehavior(QAbstractItemView::SelectRows);
+    table->setSelectionMode(QAbstractItemView::SingleSelection);
+    table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    table->setAlternatingRowColors(true);
+    table->verticalHeader()->setVisible(false);
+    table->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    table->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+    constexpr int RECIPIENT_ROLE{Qt::UserRole};
+    const auto append_recipient = [table, &chain_id](const UniValue& entry) {
+        const QString recipient{StringField(entry, "recipient")};
+        const QString script_pub_key{StringField(entry, "scriptPubKey")};
+        const UniValue& recipient_type{entry.find_value("recipient_type")};
+        if (!entry.isObject() ||
+            StringField(entry, "chain_id").compare(
+                chain_id, Qt::CaseInsensitive) != 0 ||
+            !recipient_type.isNum() || recipient_type.getInt<int>() != 1 ||
+            !entry.find_value("label").isStr() ||
+            !QRegularExpression{QStringLiteral("^[0-9A-Fa-f]{64}$")}
+                 .match(recipient).hasMatch() ||
+            !QRegularExpression{QStringLiteral("^5120[0-9A-Fa-f]{64}$")}
+                 .match(script_pub_key).hasMatch()) {
+            return false;
+        }
+        const int row{table->rowCount()};
+        table->insertRow(row);
+        auto* label_item = new QTableWidgetItem{
+            StringField(entry, "label")};
+        label_item->setData(RECIPIENT_ROLE, recipient);
+        table->setItem(row, 0, label_item);
+        table->setItem(row, 1, new QTableWidgetItem{recipient});
+        table->setItem(row, 2, new QTableWidgetItem{script_pub_key});
+        return true;
     };
-    add_read_only_field(tr("Chain ID:"), chain_id);
-    add_read_only_field(tr("Recipient type:"), QStringLiteral("1"));
-    add_read_only_field(tr("Recipient:"), recipient);
-    add_read_only_field(tr("Output script:"), script_pub_key);
-    add_read_only_field(tr("Label:"), returned_label);
-    layout->addLayout(form);
+    for (const UniValue& entry : recipients.getValues()) {
+        if (!append_recipient(entry)) {
+            showRpcError(tr("List child recipients"),
+                         tr("The wallet returned a malformed child recipient."));
+            return;
+        }
+    }
+    layout->addWidget(table, 1);
 
     auto* buttons = new QDialogButtonBox{&dialog};
+    auto* new_button = buttons->addButton(
+        tr("New Recipient…"), QDialogButtonBox::ActionRole);
     auto* copy_button = buttons->addButton(
         tr("Copy Recipient"), QDialogButtonBox::ActionRole);
     copy_button->setObjectName(QStringLiteral("childRecipientCopyButton"));
+    copy_button->setEnabled(false);
     buttons->addButton(QDialogButtonBox::Close);
-    connect(copy_button, &QPushButton::clicked, &dialog,
-            [recipient] { GUIUtil::setClipboard(recipient); });
+    connect(table, &QTableWidget::itemSelectionChanged, &dialog,
+            [table, copy_button] {
+        copy_button->setEnabled(table->currentRow() >= 0);
+    });
+    connect(copy_button, &QPushButton::clicked, &dialog, [table] {
+        const QTableWidgetItem* item{table->item(table->currentRow(), 0)};
+        if (item) GUIUtil::setClipboard(item->data(RECIPIENT_ROLE).toString());
+    });
+    connect(new_button, &QPushButton::clicked, &dialog,
+            [this, &dialog, table, append_recipient, chain_id, wallet_uri] {
+        bool accepted{false};
+        const QString label{QInputDialog::getText(
+            &dialog, tr("Create Child Recipient"), tr("Label (optional):"),
+            QLineEdit::Normal, {}, &accepted)};
+        if (!accepted) return;
+        UniValue create_params{UniValue::VARR};
+        create_params.push_back(chain_id.toStdString());
+        create_params.push_back(label.toStdString());
+        UniValue created;
+        QApplication::setOverrideCursor(Qt::WaitCursor);
+        try {
+            created = m_node.executeRpc(
+                "getnewchildrecipient", create_params, wallet_uri);
+        } catch (UniValue& error) {
+            QApplication::restoreOverrideCursor();
+            showRpcError(tr("Create child recipient"), RpcErrorMessage(error));
+            return;
+        } catch (const std::exception& error) {
+            QApplication::restoreOverrideCursor();
+            showRpcError(tr("Create child recipient"),
+                         QString::fromStdString(error.what()));
+            return;
+        }
+        QApplication::restoreOverrideCursor();
+        if (StringField(created, "label") != label ||
+            !append_recipient(created)) {
+            showRpcError(tr("Create child recipient"),
+                         tr("The wallet returned an invalid child recipient."));
+            return;
+        }
+        table->selectRow(table->rowCount() - 1);
+    });
     connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
     layout->addWidget(buttons);
+    if (table->rowCount() > 0) table->selectRow(0);
     dialog.exec();
 }
 

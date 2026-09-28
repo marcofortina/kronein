@@ -968,12 +968,12 @@
     </message>
     <message>
         <location line="+11"/>
-        <location line="+1895"/>
+        <location line="+1958"/>
         <source>Status</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1894"/>
+        <location line="-1957"/>
         <source>Chain ID</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1902,7 +1902,7 @@ Child chain: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location line="+537"/>
+        <location line="+600"/>
         <source>Showing %1 of %n irreversible deposit(s) created by the selected wallet.</source>
         <translation type="unfinished">
             <numerusform></numerusform>
@@ -1938,16 +1938,15 @@ Child chain: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1545"/>
+        <location line="-1608"/>
         <location line="+137"/>
-        <location line="+809"/>
+        <location line="+872"/>
         <location line="+652"/>
         <source>Child chain:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-706"/>
-        <location line="+707"/>
+        <location line="+1"/>
         <source>Recipient type:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2028,14 +2027,14 @@ There is no child-to-main withdrawal path.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1278"/>
+        <location line="-1341"/>
         <location line="+162"/>
-        <location line="+1071"/>
+        <location line="+1134"/>
         <source>The selected wallet is no longer available.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-2128"/>
+        <location line="-2191"/>
         <source>%1 proposals • %2 pending • %3/%4 candidates • %5/%6 anchors</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2153,7 +2152,7 @@ These amounts belong only to this child ledger and are not included in the main-
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+446"/>
+        <location line="+509"/>
         <location line="+4"/>
         <location line="+10"/>
         <location line="+55"/>
@@ -2303,17 +2302,17 @@ These amounts belong only to this child ledger and are not included in the main-
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-710"/>
+        <location line="-668"/>
         <location line="+4"/>
-        <location line="+19"/>
-        <location line="+701"/>
+        <location line="+7"/>
+        <location line="+671"/>
         <location line="+4"/>
         <location line="+14"/>
         <source>Create child recipient</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-756"/>
+        <location line="-713"/>
         <source>Create Child Recipient</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2323,48 +2322,18 @@ These amounts belong only to this child ledger and are not included in the main-
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+38"/>
-        <location line="+719"/>
+        <location line="+25"/>
+        <location line="+689"/>
         <source>The wallet returned an invalid child recipient.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-714"/>
-        <source>Child Recipient — %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+4"/>
-        <source>This recipient belongs only to the selected child chain. It is not a main-chain address.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+13"/>
-        <source>Chain ID:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+2"/>
-        <source>Recipient:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Output script:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Label:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+5"/>
+        <location line="-730"/>
         <source>Copy Recipient</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+18"/>
+        <location line="+60"/>
         <source>Send KNE on Child Chain</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2523,12 +2492,56 @@ Transaction: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="-363"/>
+        <location line="+366"/>
         <source>Label</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="-402"/>
+        <location line="+4"/>
+        <location line="+13"/>
+        <location line="+56"/>
+        <source>List child recipients</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-55"/>
+        <source>The wallet returned an invalid child-recipient list.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Child Recipients — %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>These recipients belong only to the selected child chain. They are not main-chain addresses.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Recipient</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Output script</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+38"/>
+        <source>The wallet returned a malformed child recipient.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>New Recipient…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+322"/>
         <source>Transaction ID</source>
         <translation type="unfinished"></translation>
     </message>
