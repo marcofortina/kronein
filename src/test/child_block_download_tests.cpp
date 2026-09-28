@@ -166,6 +166,34 @@ BOOST_AUTO_TEST_CASE(bounds_and_matches_in_flight_requests)
         node::MAX_CHILD_BLOCKS_IN_FLIGHT_PER_PEER - 1);
 }
 
+BOOST_AUTO_TEST_CASE(schedules_oldest_anchor_priority_first)
+{
+    node::ChildBlockDownloadTracker tracker;
+    const auto hashes{Hashes(1, 17)};
+    BOOST_REQUIRE(
+        tracker.Announce(1, std::span{hashes}.first<16>()) ==
+        node::ChildBlockDownloadError::NONE);
+    BOOST_REQUIRE(
+        tracker.Announce(1, std::span{hashes}.subspan(16)) ==
+        node::ChildBlockDownloadError::NONE);
+    BOOST_REQUIRE(tracker.SetPriority(hashes.back(), 1));
+    for (size_t index{0}; index + 1 < hashes.size(); ++index) {
+        BOOST_REQUIRE(tracker.SetPriority(
+            hashes[index], static_cast<uint32_t>(index + 2)));
+    }
+
+    const auto requests{tracker.Schedule(1, 1s)};
+    BOOST_REQUIRE_EQUAL(
+        requests.size(), node::MAX_CHILD_BLOCKS_IN_FLIGHT_PER_PEER);
+    BOOST_CHECK(requests.front() == hashes.back());
+    BOOST_CHECK(
+        std::find(requests.begin(), requests.end(), hashes[14]) !=
+        requests.end());
+    BOOST_CHECK(
+        std::find(requests.begin(), requests.end(), hashes[15]) ==
+        requests.end());
+}
+
 BOOST_AUTO_TEST_CASE(retries_alternative_source_after_timeout)
 {
     node::ChildBlockDownloadTracker tracker;

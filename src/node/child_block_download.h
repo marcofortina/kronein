@@ -10,6 +10,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <map>
 #include <optional>
 #include <set>
@@ -70,6 +71,7 @@ private:
     struct Candidate {
         std::set<ChildPeerId> sources;
         std::optional<InFlight> in_flight;
+        uint32_t priority{std::numeric_limits<uint32_t>::max()};
     };
 
     std::map<uint256, Candidate> m_candidates;
@@ -85,6 +87,9 @@ public:
     ChildBlockDownloadError Announce(
         ChildPeerId peer,
         std::span<const uint256> block_hashes);
+
+    /** Prefer lower values when selecting otherwise eligible blocks. */
+    bool SetPriority(const uint256& block_hash, uint32_t priority);
 
     /** Expire stalled requests and return them for peer accounting. */
     std::vector<ChildBlockRequest> Expire(ChildRequestTime now);

@@ -117,6 +117,16 @@ ChildBlockDownloadError ChildBlockDownloadTracker::Announce(
     return ChildBlockDownloadError::NONE;
 }
 
+bool ChildBlockDownloadTracker::SetPriority(
+    const uint256& block_hash,
+    uint32_t priority)
+{
+    const auto it{m_candidates.find(block_hash)};
+    if (it == m_candidates.end()) return false;
+    it->second.priority = priority;
+    return true;
+}
+
 std::vector<ChildBlockRequest> ChildBlockDownloadTracker::Expire(
     ChildRequestTime now)
 {
@@ -165,11 +175,19 @@ std::vector<uint256> ChildBlockDownloadTracker::Schedule(
             chainregistry::MAX_CHILD_BLOCK_REQUEST_HASHES)})};
     if (capacity == 0) return result;
 
-    for (auto& [hash, candidate] : m_candidates) {
-        if (result.size() == capacity) break;
-        if (candidate.in_flight || !candidate.sources.contains(peer)) {
-            continue;
+    std::vector<std::pair<uint32_t, uint256>> eligible;
+    eligible.reserve(m_candidates.size());
+    for (const auto& [hash, candidate] : m_candidates) {
+        if (!candidate.in_flight && candidate.sources.contains(peer)) {
+            eligible.emplace_back(candidate.priority, hash);
         }
+    }
+    std::sort(eligible.begin(), eligible.end());
+
+    for (const auto& entry : eligible) {
+        if (result.size() == capacity) break;
+        const uint256& hash{entry.second};
+        auto& candidate{m_candidates.at(hash)};
         candidate.in_flight = InFlight{
             peer,
             now + CHILD_BLOCK_REQUEST_TIMEOUT,
