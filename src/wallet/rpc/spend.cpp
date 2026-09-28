@@ -2194,6 +2194,7 @@ RPCHelpMan walletcreatechainregistrypsbt()
             {RPCResult::Type::NUM, "changepos", "Change output position, or -1"},
             {RPCResult::Type::STR, "operation", "Registry operation type"},
             {RPCResult::Type::STR_HEX, "chain_id", "Affected or derived child-chain identifier"},
+            {RPCResult::Type::STR_AMOUNT, "registration_burn", "Value permanently destroyed by REGISTER, otherwise zero"},
             {RPCResult::Type::OBJ, "authority_outpoint", "UTXO fixed at vin[0]", {
                 {RPCResult::Type::STR_HEX, "txid", "Transaction id"},
                 {RPCResult::Type::NUM, "vout", "Output index"},
@@ -2390,6 +2391,7 @@ RPCHelpMan walletcreatechainregistrypsbt()
     result.pushKV("changepos", tx_result.change_pos ? static_cast<int>(*tx_result.change_pos) : -1);
     result.pushKV("operation", operation_name);
     result.pushKV("chain_id", chain_id.GetHex());
+    result.pushKV("registration_burn", ValueFromAmount(operation_amount));
     result.pushKV("authority_outpoint", std::move(authority));
     result.pushKV("operation_vout", 0);
     if (control_destination) result.pushKV("control_vout", 1);

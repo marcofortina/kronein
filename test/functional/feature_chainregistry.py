@@ -214,6 +214,7 @@ class ChainRegistryTest(BitcoinTestFramework):
             "control_address": control_address,
         }, {"fee_rate": 1})
         assert_equal(registration_psbt["operation"], "register")
+        assert_equal(registration_psbt["registration_burn"], Decimal("1.00000000"))
         assert_equal(registration_psbt["authority_outpoint"], registration_anchor)
         assert_equal(registration_psbt["operation_vout"], 0)
         assert_equal(registration_psbt["control_vout"], 1)
@@ -552,6 +553,7 @@ class ChainRegistryTest(BitcoinTestFramework):
             "txid": registration_txid,
             "vout": 1,
         })
+        assert_equal(update_psbt["registration_burn"], Decimal("0.00000000"))
         redirected_update = PSBT.from_base64(update_psbt["psbt"])
         redirected_update.o[1].map[PSBT_OUT_SCRIPT] = attacker_control_script
         assert_raises_rpc_error(
@@ -598,6 +600,7 @@ class ChainRegistryTest(BitcoinTestFramework):
             "chain_id": chain_id,
         }, {"fee_rate": 1})
         assert "control_vout" not in retirement_psbt
+        assert_equal(retirement_psbt["registration_burn"], Decimal("0.00000000"))
         assert_equal(retirement_psbt["authority_outpoint"], {"txid": update_txid, "vout": 1})
         submitted_retirement = wallet.walletsubmitchainregistrypsbt(retirement_psbt["psbt"])
         assert_equal(submitted_retirement["operation"], "retire")
