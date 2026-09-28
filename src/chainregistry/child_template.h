@@ -26,8 +26,10 @@ inline constexpr uint16_t REFERENCE_CHILD_P2TR_RECIPIENT{1};
 
 inline constexpr uint32_t MIN_CHILD_BLOCK_WEIGHT{400'000};
 inline constexpr uint32_t MAX_CHILD_BLOCK_WEIGHT{4'000'000};
+inline constexpr uint32_t CHILD_BLOCK_WEIGHT_GRANULARITY{4'000};
 inline constexpr uint32_t MIN_DEPOSIT_MATURITY{100};
 inline constexpr uint32_t MAX_DEPOSIT_MATURITY{2'016};
+inline constexpr uint32_t DEFAULT_DEPOSIT_MATURITY{144};
 
 inline constexpr std::string_view CHILD_INITIAL_STATE_TAG{"Kronein/ChildInitialState/v1"};
 inline constexpr std::string_view CHILD_GENESIS_TAG{"Kronein/ChildGenesis/v1"};
@@ -41,7 +43,7 @@ inline constexpr std::string_view CHILD_GENESIS_TAG{"Kronein/ChildGenesis/v1"};
 struct ReferenceChildParameters {
     uint8_t version{REFERENCE_CHILD_PARAMETERS_VERSION};
     uint32_t max_block_weight{MAX_CHILD_BLOCK_WEIGHT};
-    uint32_t deposit_maturity{144};
+    uint32_t deposit_maturity{DEFAULT_DEPOSIT_MATURITY};
 
     SERIALIZE_METHODS(ReferenceChildParameters, obj)
     {

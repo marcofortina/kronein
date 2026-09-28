@@ -45,7 +45,7 @@ ReferenceChildParametersError ValidateReferenceChildParameters(
     }
     if (parameters.max_block_weight < MIN_CHILD_BLOCK_WEIGHT ||
         parameters.max_block_weight > MAX_CHILD_BLOCK_WEIGHT ||
-        parameters.max_block_weight % 4'000 != 0) {
+        parameters.max_block_weight % CHILD_BLOCK_WEIGHT_GRANULARITY != 0) {
         return ReferenceChildParametersError::INVALID_BLOCK_WEIGHT;
     }
     if (parameters.deposit_maturity < MIN_DEPOSIT_MATURITY ||

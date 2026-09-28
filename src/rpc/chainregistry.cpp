@@ -700,7 +700,7 @@ RPCHelpMan createreferencechildmanifest()
             {"registration_anchor", RPCArg::Type::OBJ, RPCArg::Optional::NO, "Pre-existing UTXO that REGISTER will consume", OutPointArgs()},
             {"metadata_hash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Initial external metadata commitment"},
             {"max_block_weight", RPCArg::Type::NUM, RPCArg::Default{chainregistry::MAX_CHILD_BLOCK_WEIGHT}, "Child block weight limit"},
-            {"deposit_maturity", RPCArg::Type::NUM, RPCArg::Default{144}, "Required main-chain confirmations before import"},
+            {"deposit_maturity", RPCArg::Type::NUM, RPCArg::Default{chainregistry::DEFAULT_DEPOSIT_MATURITY}, "Required main-chain confirmations before import"},
         },
         RPCResult{RPCResult::Type::OBJ, "", "Deterministic reference-child definition", {
             {RPCResult::Type::STR_HEX, "main_genesis_hash", "Main-network genesis domain"},
