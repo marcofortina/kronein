@@ -190,6 +190,8 @@ class ChainRegistryTest(BitcoinTestFramework):
         self.log.info("Register, update, and retire a child chain through funded wallet PSBTs")
         node.createwallet("registry")
         wallet = node.get_wallet_rpc("registry")
+        node.createwallet("registry_attacker")
+        attacker = node.get_wallet_rpc("registry_attacker")
         self.generatetoaddress(node, 101, wallet.getnewaddress())
         pre_registration = node.getchainregistryinfo()
 
@@ -216,6 +218,16 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(registration_psbt["operation_vout"], 0)
         assert_equal(registration_psbt["control_vout"], 1)
         assert_equal(registration_psbt["registry_bestblockhash"], node.getbestblockhash())
+
+        attacker_control_address = attacker.getnewaddress()
+        attacker_control_script = bytes.fromhex(
+            attacker.getaddressinfo(attacker_control_address)["scriptPubKey"])
+        redirected_registration = PSBT.from_base64(registration_psbt["psbt"])
+        redirected_registration.o[1].map[PSBT_OUT_SCRIPT] = attacker_control_script
+        assert_raises_rpc_error(
+            -8, "successor control output is not owned by this wallet",
+            wallet.walletsubmitchainregistrypsbt,
+            redirected_registration.to_base64())
 
         assert_raises_rpc_error(-8, "exceeds authorized maximum",
                                 wallet.walletsubmitchainregistrypsbt,
@@ -540,6 +552,12 @@ class ChainRegistryTest(BitcoinTestFramework):
             "txid": registration_txid,
             "vout": 1,
         })
+        redirected_update = PSBT.from_base64(update_psbt["psbt"])
+        redirected_update.o[1].map[PSBT_OUT_SCRIPT] = attacker_control_script
+        assert_raises_rpc_error(
+            -8, "successor control output is not owned by this wallet",
+            wallet.walletsubmitchainregistrypsbt,
+            redirected_update.to_base64())
         submitted_update = wallet.walletsubmitchainregistrypsbt(update_psbt["psbt"])
         assert_equal(submitted_update["operation"], "update")
         assert_equal(submitted_update["registration_burn"], Decimal("0.00000000"))

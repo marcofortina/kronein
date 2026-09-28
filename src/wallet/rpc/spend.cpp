@@ -2406,7 +2406,8 @@ RPCHelpMan walletsubmitchainregistrypsbt()
     return RPCHelpMan{
         "walletsubmitchainregistrypsbt",
         "Validate, sign, finalize, and broadcast a funded child-chain registry PSBT.\n"
-        "Only the canonical KREG output may destroy value. REGISTER burns are capped by max_registration_burn, which defaults to the consensus minimum.\n" +
+        "Only the canonical KREG output may destroy value. REGISTER burns are capped by max_registration_burn, which defaults to the consensus minimum.\n"
+        "Registry authority is revalidated at submit time, and REGISTER/UPDATE successor controls must remain owned by this wallet.\n" +
         HELP_REQUIRING_PASSPHRASE,
         {
             {"psbt", RPCArg::Type::STR, RPCArg::Optional::NO, "Base64-encoded registry PSBT"},
@@ -2476,22 +2477,55 @@ RPCHelpMan walletsubmitchainregistrypsbt()
 
     std::string operation_name;
     chainregistry::ChainId chain_id;
+    std::optional<uint32_t> successor_control_output;
     std::visit([&](const auto& payload) {
         using Payload = std::decay_t<decltype(payload)>;
         if constexpr (std::is_same_v<Payload, chainregistry::RegisterChain>) {
             operation_name = "register";
+            successor_control_output = payload.control_output;
             chain_id = chainregistry::DeriveChainId(
                 initial_snapshot.main_genesis_hash,
                 tx_template.vin[payload.anchor_input].prevout,
                 chainregistry::ComputeChainSpecHash(payload.manifest.spec));
         } else if constexpr (std::is_same_v<Payload, chainregistry::UpdateChain>) {
             operation_name = "update";
+            successor_control_output = payload.control_output;
             chain_id = payload.chain_id;
         } else {
             operation_name = "retire";
             chain_id = payload.chain_id;
         }
     }, extracted.operation->operation);
+
+    if (operation_name == "register") {
+        const interfaces::ChainRegistrySnapshot snapshot{
+            wallet.chain().getChainRegistrySnapshot(chain_id)};
+        if (snapshot.record) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "child chain is already registered");
+        }
+    } else {
+        const interfaces::ChainRegistrySnapshot snapshot{
+            wallet.chain().getChainRegistrySnapshot(chain_id)};
+        if (!snapshot.record) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id is not registered");
+        }
+        if (snapshot.record->status != chainregistry::ChainStatus::ACTIVE) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "child chain is retired");
+        }
+        if (tx_template.vin.empty() ||
+            tx_template.vin[0].prevout != snapshot.record->control_outpoint) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "PSBT vin[0] is not the current child-chain control outpoint");
+        }
+    }
+    if (successor_control_output &&
+        !WITH_LOCK(wallet.cs_wallet,
+                   return wallet.IsMine(tx_template.vout[*successor_control_output]))) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "PSBT successor control output is not owned by this wallet");
+    }
 
     CAmount input_value{0};
     {
