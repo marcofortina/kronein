@@ -359,8 +359,7 @@ RPCHelpMan walletcreatechildpsbt()
     const CAmount change{selected - required};
     int change_position{-1};
     if (change > 0) {
-        LOCK(wallet.cs_wallet);
-        auto destination{wallet.GetNewChangeDestination()};
+        auto destination{wallet.GetNewChildChangeDestination(chain_id)};
         if (!destination) {
             throw JSONRPCError(
                 RPC_WALLET_KEYPOOL_RAN_OUT,
@@ -377,12 +376,6 @@ RPCHelpMan walletcreatechildpsbt()
             throw JSONRPCError(
                 RPC_WALLET_ERROR,
                 "selected child change is below the dust threshold; adjust outputs or fee");
-        }
-        WalletBatch batch{wallet.GetDatabase()};
-        if (!wallet.SetAddressChildChain(batch, *destination, chain_id)) {
-            throw JSONRPCError(
-                RPC_WALLET_ERROR,
-                "wallet could not persist the child change context");
         }
         FastRandomContext random;
         change_position = random.randrange(transaction.vout.size() + 1);

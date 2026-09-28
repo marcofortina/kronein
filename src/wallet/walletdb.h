@@ -56,6 +56,7 @@ namespace DBKeys {
 extern const std::string ACTIVEEXTERNALSPK;
 extern const std::string ACTIVEINTERNALSPK;
 extern const std::string BESTBLOCK;
+extern const std::string CHILDSPK;
 extern const std::string DESTDATA;
 extern const std::string FLAGS;
 extern const std::string LOCKED_UTXO;
@@ -144,6 +145,7 @@ public:
     bool WriteAddressReceiveRequest(const CTxDestination& dest, const std::string& id, const std::string& receive_request);
     bool EraseAddressReceiveRequest(const CTxDestination& dest, const std::string& id);
     bool WriteAddressChildChain(const CTxDestination& dest, const chainregistry::ChainId& chain_id);
+    bool WriteChildScriptPubKeyMan(const chainregistry::ChainId& chain_id, bool internal, const uint256& id);
     bool EraseAddressData(const CTxDestination& dest);
 
     bool WriteActiveScriptPubKeyMan(const uint256& id, bool internal);

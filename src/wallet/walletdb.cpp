@@ -31,6 +31,7 @@ namespace DBKeys {
 const std::string ACTIVEEXTERNALSPK{"activeexternalspk"};
 const std::string ACTIVEINTERNALSPK{"activeinternalspk"};
 const std::string BESTBLOCK{"bestblock"};
+const std::string CHILDSPK{"childspk"};
 const std::string DESTDATA{"destdata"};
 const std::string FLAGS{"flags"};
 const std::string LOCKED_UTXO{"lockedutxo"};
@@ -471,6 +472,29 @@ static DBErrors LoadDescriptorWalletRecords(CWallet* pwallet, DatabaseBatch& bat
     return desc_res.m_result;
 }
 
+static DBErrors LoadChildScriptPubKeyMans(CWallet* pwallet, DatabaseBatch& batch) EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet)
+{
+    AssertLockHeld(pwallet->cs_wallet);
+
+    LoadResult result = LoadRecords(pwallet, batch, DBKeys::CHILDSPK,
+        [] (CWallet* pwallet, DataStream& key, DataStream& value, std::string& err) {
+        chainregistry::ChainId chain_id;
+        bool internal;
+        uint256 id;
+        key >> chain_id;
+        key >> internal;
+        value >> id;
+        if (!pwallet->LoadChildScriptPubKeyMan(chain_id, internal, id)) {
+            err = strprintf(
+                "Error: Invalid child-chain descriptor mapping for chain '%s'.",
+                chain_id.GetHex());
+            return DBErrors::CORRUPT;
+        }
+        return DBErrors::LOAD_OK;
+    });
+    return result.m_result;
+}
+
 static DBErrors LoadAddressBookRecords(CWallet* pwallet, DatabaseBatch& batch) EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet)
 {
     AssertLockHeld(pwallet->cs_wallet);
@@ -694,6 +718,9 @@ DBErrors WalletBatch::LoadWallet(CWallet* pwallet)
         // may reference the unknown descriptor's ID and result in a misleading corruption error.
         if (result == DBErrors::UNKNOWN_DESCRIPTOR) return result;
 
+        // Load child-chain descriptor roles after their descriptor records.
+        result = std::max(LoadChildScriptPubKeyMans(pwallet, *m_batch), result);
+
         // Load address book
         result = std::max(LoadAddressBookRecords(pwallet, *m_batch), result);
 
@@ -780,6 +807,17 @@ bool WalletBatch::WriteAddressChildChain(
             std::make_pair(
                 EncodeDestination(dest), "child:" + chain_id.GetHex())),
         std::string{"1"});
+}
+
+bool WalletBatch::WriteChildScriptPubKeyMan(
+    const chainregistry::ChainId& chain_id,
+    bool internal,
+    const uint256& id)
+{
+    return WriteIC(
+        std::make_pair(DBKeys::CHILDSPK,
+                       std::make_pair(chain_id, internal)),
+        id);
 }
 
 bool WalletBatch::EraseAddressData(const CTxDestination& dest)

@@ -143,13 +143,7 @@ RPCHelpMan getnewchildrecipient()
     EnsureActiveReferenceChild(*wallet, chain_id);
     const std::string label{LabelFromValue(self.Arg<UniValue>("label"))};
 
-    LOCK(wallet->cs_wallet);
-    if (!wallet->CanGetAddresses()) {
-        throw JSONRPCError(
-            RPC_WALLET_ERROR,
-            "Error: This wallet has no available keys");
-    }
-    const auto destination{wallet->GetNewDestination(label)};
+    const auto destination{wallet->GetNewChildDestination(chain_id, label)};
     if (!destination) {
         throw JSONRPCError(
             RPC_WALLET_KEYPOOL_RAN_OUT,
@@ -160,12 +154,6 @@ RPCHelpMan getnewchildrecipient()
         throw JSONRPCError(
             RPC_WALLET_ERROR,
             "wallet did not derive a Taproot child recipient");
-    }
-    WalletBatch batch{wallet->GetDatabase()};
-    if (!wallet->SetAddressChildChain(batch, *destination, chain_id)) {
-        throw JSONRPCError(
-            RPC_WALLET_ERROR,
-            "wallet could not persist the child recipient context");
     }
     return ChildRecipientToJSON(chain_id, *recipient, label);
 },

@@ -18,6 +18,7 @@
 #include <consensus/amount.h>
 #include <consensus/consensus.h>
 #include <consensus/validation.h>
+#include <crypto/hex_base.h>
 #include <external_signer.h>
 #include <interfaces/chain.h>
 #include <interfaces/handler.h>
@@ -50,6 +51,7 @@
 #include <tinyformat.h>
 #include <uint256.h>
 #include <univalue.h>
+#include <util/bip32.h>
 #include <util/check.h>
 #include <util/fs.h>
 #include <util/fs_helpers.h>
@@ -58,6 +60,7 @@
 #include <util/string.h>
 #include <util/time.h>
 #include <util/translation.h>
+#include <wallet/child_derivation.h>
 #include <wallet/coincontrol.h>
 #include <wallet/context.h>
 #include <wallet/crypter.h>
@@ -2307,6 +2310,141 @@ util::Result<CTxDestination> CWallet::GetNewChangeDestination()
     return op_dest;
 }
 
+util::Result<std::reference_wrapper<DescriptorScriptPubKeyMan>>
+CWallet::GetOrCreateChildScriptPubKeyMan(
+    const chainregistry::ChainId& chain_id,
+    bool internal)
+{
+    AssertLockHeld(cs_wallet);
+    if (chain_id.IsNull()) {
+        return util::Error{_("A child-chain identifier cannot be null")};
+    }
+
+    const auto role{std::make_pair(chain_id, internal)};
+    if (const auto it{m_child_spk_managers.find(role)};
+        it != m_child_spk_managers.end()) {
+        auto* manager{dynamic_cast<DescriptorScriptPubKeyMan*>(
+            GetScriptPubKeyMan(it->second))};
+        if (!manager) {
+            return util::Error{_("The child-chain descriptor record is invalid")};
+        }
+        return std::ref(*manager);
+    }
+
+    if (IsWalletFlagSet(WALLET_FLAG_EXTERNAL_SIGNER)) {
+        return util::Error{_("Child-chain key derivation is not yet supported by external signer wallets")};
+    }
+    if (IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS)) {
+        return util::Error{_("Child-chain key derivation requires a wallet with private keys")};
+    }
+    if (IsLocked()) {
+        return util::Error{_("Please enter the wallet passphrase with walletpassphrase first")};
+    }
+
+    const std::set<CExtPubKey> roots{GetActiveHDPubKeys()};
+    if (roots.size() != 1) {
+        return util::Error{_("The wallet must have exactly one active HD root")};
+    }
+    const CExtPubKey& root_xpub{*roots.begin()};
+    const std::optional<CKey> root_key{GetKey(root_xpub.pubkey.GetID())};
+    if (!root_key) {
+        return util::Error{_("The wallet HD root private key is unavailable")};
+    }
+
+    const auto account_path{ChildKeyAccountPath(chain_id)};
+    if (!account_path) {
+        return util::Error{_("The child-chain derivation path is invalid")};
+    }
+    CExtKey account{root_xpub, *root_key};
+    for (const uint32_t component : *account_path) {
+        CExtKey derived;
+        if (!account.Derive(derived, component)) {
+            return util::Error{_("Could not derive the child-chain account key")};
+        }
+        account = derived;
+    }
+
+    const CKeyID root_id{root_xpub.pubkey.GetID()};
+    const std::string fingerprint{HexStr(std::span<const unsigned char>{
+        root_id.begin(), root_id.begin() + 4})};
+    const std::string descriptor_string{strprintf(
+        "tr([%s%s]%s/%u/*)",
+        fingerprint,
+        FormatHDKeypath(*account_path, /*apostrophe=*/true),
+        EncodeExtPubKey(account.Neuter()),
+        internal ? static_cast<uint32_t>(ChildKeyRole::CHANGE)
+                 : static_cast<uint32_t>(ChildKeyRole::RECEIVE))};
+
+    FlatSigningProvider provider;
+    std::string parse_error;
+    auto descriptors{Parse(
+        descriptor_string, provider, parse_error, /*require_checksum=*/false)};
+    if (descriptors.size() != 1) {
+        return util::Error{Untranslated(strprintf(
+            "Could not create the child-chain descriptor: %s", parse_error))};
+    }
+    provider.keys.emplace(account.key.GetPubKey().GetID(), account.key);
+    WalletDescriptor descriptor{
+        std::move(descriptors.front()),
+        static_cast<uint64_t>(Now<NodeSeconds>().time_since_epoch().count()),
+        0, 0, 0};
+    auto manager{AddWalletDescriptor(
+        descriptor, provider, /*label=*/"", internal)};
+    if (!manager) return util::Error{util::ErrorString(manager)};
+
+    const uint256 id{manager->get().GetID()};
+    WalletBatch batch{GetDatabase()};
+    if (!batch.WriteChildScriptPubKeyMan(chain_id, internal, id)) {
+        return util::Error{_("Could not persist the child-chain descriptor role")};
+    }
+    m_child_spk_managers.emplace(role, id);
+    return manager;
+}
+
+util::Result<CTxDestination> CWallet::GetNewChildDestination(
+    const chainregistry::ChainId& chain_id,
+    const std::string& label)
+{
+    LOCK(cs_wallet);
+    auto manager{GetOrCreateChildScriptPubKeyMan(
+        chain_id, /*internal=*/false)};
+    if (!manager) return util::Error{util::ErrorString(manager)};
+
+    auto destination{manager->get().GetNewDestination()};
+    if (!destination) return destination;
+    if (!std::holds_alternative<WitnessV1Taproot>(*destination)) {
+        return util::Error{_("The child-chain descriptor did not derive a Taproot destination")};
+    }
+    if (!SetAddressBook(*destination, label, AddressPurpose::RECEIVE)) {
+        return util::Error{_("Could not persist the child-chain recipient label")};
+    }
+    WalletBatch batch{GetDatabase()};
+    if (!SetAddressChildChain(batch, *destination, chain_id)) {
+        return util::Error{_("Could not persist the child-chain recipient context")};
+    }
+    return destination;
+}
+
+util::Result<CTxDestination> CWallet::GetNewChildChangeDestination(
+    const chainregistry::ChainId& chain_id)
+{
+    LOCK(cs_wallet);
+    auto manager{GetOrCreateChildScriptPubKeyMan(
+        chain_id, /*internal=*/true)};
+    if (!manager) return util::Error{util::ErrorString(manager)};
+
+    auto destination{manager->get().GetNewDestination()};
+    if (!destination) return destination;
+    if (!std::holds_alternative<WitnessV1Taproot>(*destination)) {
+        return util::Error{_("The child-chain descriptor did not derive a Taproot destination")};
+    }
+    WalletBatch batch{GetDatabase()};
+    if (!SetAddressChildChain(batch, *destination, chain_id)) {
+        return util::Error{_("Could not persist the child-chain change context")};
+    }
+    return destination;
+}
+
 void CWallet::MarkDestinationsDirty(const std::set<CTxDestination>& destinations) {
     for (auto& entry : mapWallet) {
         CWalletTx& wtx = entry.second;
@@ -2599,6 +2737,20 @@ void CWallet::LoadAddressChildChain(
     const chainregistry::ChainId& chain_id)
 {
     m_address_book[dest].child_chains.insert(chain_id);
+}
+
+bool CWallet::LoadChildScriptPubKeyMan(
+    const chainregistry::ChainId& chain_id,
+    bool internal,
+    const uint256& id)
+{
+    if (chain_id.IsNull() || id.IsNull() ||
+        !dynamic_cast<DescriptorScriptPubKeyMan*>(GetScriptPubKeyMan(id))) {
+        return false;
+    }
+    const auto [it, inserted]{m_child_spk_managers.emplace(
+        std::make_pair(chain_id, internal), id)};
+    return inserted || it->second == id;
 }
 
 bool CWallet::SetAddressChildChain(

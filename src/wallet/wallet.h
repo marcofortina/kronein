@@ -398,6 +398,15 @@ private:
     // ScriptPubKeyMan::GetID. In many cases it will be the hash of an internal structure
     std::map<uint256, std::unique_ptr<ScriptPubKeyMan>> m_spk_managers;
 
+    /** Domain-separated descriptor manager for each child chain and role. */
+    std::map<std::pair<chainregistry::ChainId, bool>, uint256>
+        m_child_spk_managers GUARDED_BY(cs_wallet);
+
+    util::Result<std::reference_wrapper<DescriptorScriptPubKeyMan>>
+    GetOrCreateChildScriptPubKeyMan(
+        const chainregistry::ChainId& chain_id,
+        bool internal) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+
     // Appends spk managers into the main 'm_spk_managers'.
     // Must be the only method adding data to it.
     void AddScriptPubKeyMan(const uint256& id, std::unique_ptr<ScriptPubKeyMan> spkm_man);
@@ -737,6 +746,11 @@ public:
 
     util::Result<CTxDestination> GetNewDestination(const std::string& label);
     util::Result<CTxDestination> GetNewChangeDestination();
+    util::Result<CTxDestination> GetNewChildDestination(
+        const chainregistry::ChainId& chain_id,
+        const std::string& label);
+    util::Result<CTxDestination> GetNewChildChangeDestination(
+        const chainregistry::ChainId& chain_id);
 
     bool IsMine(const CTxDestination& dest) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool IsMine(const CScript& script) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
@@ -767,6 +781,7 @@ public:
     bool SetAddressReceiveRequest(WalletBatch& batch, const CTxDestination& dest, const std::string& id, const std::string& value) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool EraseAddressReceiveRequest(WalletBatch& batch, const CTxDestination& dest, const std::string& id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     void LoadAddressChildChain(const CTxDestination& dest, const chainregistry::ChainId& chain_id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool LoadChildScriptPubKeyMan(const chainregistry::ChainId& chain_id, bool internal, const uint256& id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool SetAddressChildChain(WalletBatch& batch, const CTxDestination& dest, const chainregistry::ChainId& chain_id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     std::vector<std::pair<CTxDestination, std::string>> ListChildRecipients(const chainregistry::ChainId& chain_id) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 

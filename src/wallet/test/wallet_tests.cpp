@@ -408,6 +408,56 @@ BOOST_FIXTURE_TEST_CASE(LoadChildRecipientContexts, TestingSetup)
     });
 }
 
+BOOST_FIXTURE_TEST_CASE(ChildDescriptorContexts, TestingSetup)
+{
+    constexpr chainregistry::ChainId chain_a{
+        "1111111111111111111111111111111111111111111111111111111111111111"};
+    constexpr chainregistry::ChainId chain_b{
+        "2222222222222222222222222222222222222222222222222222222222222222"};
+    std::optional<CTxDestination> receive_a;
+    std::optional<CTxDestination> receive_b;
+    std::optional<CTxDestination> change_a;
+    std::optional<CTxDestination> main_receive;
+
+    TestLoadWallet("child-descriptor-contexts", [&](std::shared_ptr<CWallet> wallet) EXCLUSIVE_LOCKS_REQUIRED(wallet->cs_wallet) {
+        wallet->SetupDescriptorScriptPubKeyMans();
+        receive_a = *Assert(wallet->GetNewChildDestination(chain_a, "chain-a"));
+        receive_b = *Assert(wallet->GetNewChildDestination(chain_b, "chain-b"));
+        change_a = *Assert(wallet->GetNewChildChangeDestination(chain_a));
+        main_receive = *Assert(wallet->GetNewDestination("main"));
+
+        BOOST_CHECK(*receive_a != *receive_b);
+        BOOST_CHECK(*receive_a != *change_a);
+        BOOST_CHECK(*receive_a != *main_receive);
+        BOOST_CHECK(wallet->IsMine(*receive_a));
+        BOOST_CHECK(wallet->IsMine(*receive_b));
+        BOOST_CHECK(wallet->IsMine(*change_a));
+        BOOST_CHECK_EQUAL(wallet->ListChildRecipients(chain_a).size(), 2);
+        BOOST_CHECK_EQUAL(wallet->ListChildRecipients(chain_b).size(), 1);
+    });
+
+    TestLoadWallet("child-descriptor-contexts", [&](std::shared_ptr<CWallet> wallet) EXCLUSIVE_LOCKS_REQUIRED(wallet->cs_wallet) {
+        BOOST_REQUIRE(receive_a);
+        BOOST_REQUIRE(receive_b);
+        BOOST_REQUIRE(change_a);
+        BOOST_REQUIRE(main_receive);
+        BOOST_CHECK(wallet->IsMine(*receive_a));
+        BOOST_CHECK(wallet->IsMine(*receive_b));
+        BOOST_CHECK(wallet->IsMine(*change_a));
+        BOOST_CHECK(wallet->IsMine(*main_receive));
+
+        const CTxDestination next_receive_a{
+            *Assert(wallet->GetNewChildDestination(chain_a, "chain-a-2"))};
+        const CTxDestination next_change_a{
+            *Assert(wallet->GetNewChildChangeDestination(chain_a))};
+        BOOST_CHECK(next_receive_a != *receive_a);
+        BOOST_CHECK(next_receive_a != *receive_b);
+        BOOST_CHECK(next_receive_a != next_change_a);
+        BOOST_CHECK_EQUAL(wallet->ListChildRecipients(chain_a).size(), 4);
+        BOOST_CHECK_EQUAL(wallet->ListChildRecipients(chain_b).size(), 1);
+    });
+}
+
 class ListCoinsTestingSetup : public TestChain100Setup
 {
 public:
