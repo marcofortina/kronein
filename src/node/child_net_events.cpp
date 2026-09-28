@@ -4,6 +4,7 @@
 
 #include <node/child_net_events.h>
 
+#include <addrman.h>
 #include <chainregistry/child_net.h>
 #include <netmessagemaker.h>
 #include <node/child_network_manager.h>
@@ -49,10 +50,12 @@ std::string ChildMessageType(ChildNetCommand command)
 
 ChildNetEvents::ChildNetEvents(
     CConnman& connman,
+    AddrMan& addrman,
     ChainManager& manager,
     ChildBandwidthLimiter& bandwidth,
     chainregistry::ReferenceChildDefinition definition)
     : m_connman{connman},
+      m_addrman{addrman},
       m_processor{manager, std::move(definition)},
       m_bandwidth{bandwidth}
 {
@@ -127,6 +130,9 @@ void ChildNetEvents::InitializeNode(
 void ChildNetEvents::FinalizeNode(const CNode& node)
 {
     LOCK(m_mutex);
+    if (node.fSuccessfullyConnected && !node.IsInboundConn()) {
+        m_addrman.Connected(node.addr);
+    }
     m_processor.Disconnected(node.GetId());
     m_timeout_strikes.erase(node.GetId());
 }
@@ -158,7 +164,10 @@ ChildNetProcessorResult ChildNetEvents::ProcessMessage(
             return result;
         }
         auto result{m_processor.ReceiveHello(peer, hello)};
-        if (result.IsValid()) node.fSuccessfullyConnected = true;
+        if (result.IsValid()) {
+            node.fSuccessfullyConnected = true;
+            if (!node.IsInboundConn()) m_addrman.Good(node.addr);
+        }
         return result;
     }
     if (message.m_type == chainregistry::ChildNetMsgType::INVENTORY) {

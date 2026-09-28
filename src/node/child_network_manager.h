@@ -27,6 +27,8 @@ class ChainManager;
 
 inline constexpr size_t MAX_CHILD_CONNECT_NODES{8};
 inline constexpr size_t MAX_CHILD_BIND_ENDPOINTS{4};
+inline constexpr size_t MAX_CHILD_BOOTSTRAP_NODES{8};
+inline constexpr int MAX_CHILD_AUTOMATIC_CONNECTIONS{4};
 inline constexpr int MAX_CHILD_INBOUND_CONNECTIONS{8};
 inline constexpr uint64_t DEFAULT_CHILD_UPLOAD_TARGET_BYTES{8ULL << 30};
 inline constexpr std::string_view DEFAULT_CHILD_UPLOAD_TARGET{"8G"};
@@ -65,6 +67,8 @@ public:
 struct ChildNetworkConfig {
     std::vector<std::string> connect;
     std::vector<std::string> bind;
+    std::vector<std::string> bootstrap;
+    bool discovery{false};
     bool network_active{true};
 };
 
@@ -79,6 +83,8 @@ enum class ChildNetworkError : uint8_t {
     INVALID_ENDPOINT,
     TOO_MANY_BIND_ENDPOINTS,
     INVALID_BIND_ENDPOINT,
+    TOO_MANY_BOOTSTRAP_ENDPOINTS,
+    INVALID_BOOTSTRAP_ENDPOINT,
     DATA_DIRECTORY_ERROR,
     PEER_STORE_ERROR,
     CONFIG_READ_ERROR,
@@ -103,8 +109,10 @@ struct ChildNetworkStats {
     size_t connections{0};
     size_t handshaken{0};
     uint64_t rate_limited_requests{0};
+    bool discovery{false};
     std::vector<std::string> added_nodes;
     std::vector<std::string> bind_endpoints;
+    std::vector<std::string> bootstrap_nodes;
 };
 
 struct ChildNetworkInfo {
@@ -151,6 +159,10 @@ public:
     ChildNetworkResult SetBindEndpoints(
         const chainregistry::ChainId& chain_id,
         std::vector<std::string> endpoints);
+    ChildNetworkResult SetDiscovery(
+        const chainregistry::ChainId& chain_id,
+        bool enabled,
+        std::vector<std::string> bootstrap);
     ChildNetworkResult SetNetworkActive(
         const chainregistry::ChainId& chain_id,
         bool active);

@@ -528,6 +528,16 @@ void EnsureRegistryMatchesDefinition(
             RPC_INVALID_PARAMETER,
             strprintf("child bind endpoint must be a numeric address with an explicit non-zero port: %s",
                       result.detail));
+    case node::ChildNetworkError::TOO_MANY_BOOTSTRAP_ENDPOINTS:
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("at most %u child bootstrap endpoints are allowed",
+                      node::MAX_CHILD_BOOTSTRAP_NODES));
+    case node::ChildNetworkError::INVALID_BOOTSTRAP_ENDPOINT:
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("child bootstrap endpoint must be a numeric address with an explicit non-zero port: %s",
+                      result.detail));
     case node::ChildNetworkError::DATA_DIRECTORY_ERROR:
         throw JSONRPCError(
             RPC_DATABASE_ERROR,
@@ -587,6 +597,14 @@ node::ChildNetworkConfig ParseChildNetworkConfig(const UniValue& options)
             config.bind.push_back(endpoint.get_str());
         }
     }
+    const UniValue& bootstrap{options.find_value("bootstrap")};
+    if (!bootstrap.isNull()) {
+        for (const UniValue& endpoint : bootstrap.getValues()) {
+            config.bootstrap.push_back(endpoint.get_str());
+        }
+    }
+    const UniValue& discovery{options.find_value("discovery")};
+    if (!discovery.isNull()) config.discovery = discovery.get_bool();
     const UniValue& active{options.find_value("network_active")};
     if (!active.isNull()) config.network_active = active.get_bool();
     return config;
@@ -601,6 +619,7 @@ void PushChildNetworkStats(UniValue& object,
     object.pushKV("handshaken_peers", stats.handshaken);
     object.pushKV(
         "rate_limited_block_requests", stats.rate_limited_requests);
+    object.pushKV("discovery_enabled", stats.discovery);
     UniValue added_nodes{UniValue::VARR};
     for (const auto& endpoint : stats.added_nodes) {
         added_nodes.push_back(endpoint);
@@ -611,6 +630,11 @@ void PushChildNetworkStats(UniValue& object,
         bind_endpoints.push_back(endpoint);
     }
     object.pushKV("binds", std::move(bind_endpoints));
+    UniValue bootstrap_nodes{UniValue::VARR};
+    for (const auto& endpoint : stats.bootstrap_nodes) {
+        bootstrap_nodes.push_back(endpoint);
+    }
+    object.pushKV("bootstrap_nodes", std::move(bootstrap_nodes));
 }
 
 void PushChildBandwidthStats(UniValue& object,
@@ -1125,6 +1149,10 @@ RPCHelpMan listchildchainruntimes()
                     {RPCResult::Type::NUM, "connections", "Current child-network connection count"},
                     {RPCResult::Type::NUM, "handshaken_peers", "Authenticated peers serving this exact child chain"},
                     {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
+                    {RPCResult::Type::BOOL, "discovery_enabled", "Whether bounded automatic outbound connections from the isolated child peer store are enabled"},
+                    {RPCResult::Type::ARR, "bootstrap_nodes", "Numeric bootstrap endpoints kept in the isolated child peer store", {
+                        {RPCResult::Type::STR, "", "Numeric address and explicit port"},
+                    }},
                     {RPCResult::Type::ARR, "added_nodes", "Explicit child endpoints", {
                         {RPCResult::Type::STR, "", "Host and explicit port"},
                     }},
@@ -1268,6 +1296,10 @@ RPCHelpMan loadchildchain()
                 {"bind", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "Numeric listen endpoints with explicit non-zero ports", {
                     {"", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Numeric address and port"},
                 }},
+                {"bootstrap", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "Numeric bootstrap endpoints inserted only into this child's peer store", {
+                    {"", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Numeric address and explicit port"},
+                }},
+                {"discovery", RPCArg::Type::BOOL, RPCArg::Default{false}, "Allow at most four automatic outbound connections from this child's isolated peer store"},
                 {"network_active", RPCArg::Type::BOOL, RPCArg::Default{true}, "Whether child peer connections are enabled"},
             }},
         },
@@ -1286,6 +1318,10 @@ RPCHelpMan loadchildchain()
             {RPCResult::Type::NUM, "connections", "Current child-network connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Authenticated peers serving this exact child chain"},
             {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
+            {RPCResult::Type::BOOL, "discovery_enabled", "Whether bounded automatic outbound connections from the isolated child peer store are enabled"},
+            {RPCResult::Type::ARR, "bootstrap_nodes", "Numeric bootstrap endpoints kept in the isolated child peer store", {
+                {RPCResult::Type::STR, "", "Numeric address and explicit port"},
+            }},
             {RPCResult::Type::ARR, "added_nodes", "Explicit child endpoints", {
                 {RPCResult::Type::STR, "", "Host and explicit port"},
             }},
@@ -1431,8 +1467,14 @@ RPCHelpMan getchildnetworkinfo()
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
             {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
+            {RPCResult::Type::BOOL, "discovery_enabled", "Whether bounded automatic outbound connections from the isolated child peer store are enabled"},
+            {RPCResult::Type::ARR, "bootstrap_nodes", "Numeric bootstrap endpoints kept in the isolated child peer store", {
+                {RPCResult::Type::STR, "", "Numeric address and explicit port"},
+            }},
             {RPCResult::Type::NUM, "max_added_nodes", "Maximum number of explicit endpoints"},
             {RPCResult::Type::NUM, "max_bind_endpoints", "Maximum number of child listen endpoints"},
+            {RPCResult::Type::NUM, "max_bootstrap_nodes", "Maximum number of child bootstrap endpoints"},
+            {RPCResult::Type::NUM, "max_automatic_connections", "Maximum automatic outbound connections when discovery is enabled"},
             {RPCResult::Type::NUM, "aggregate_upload_target", "Process-wide child block-serving target in bytes per cycle; zero means unlimited"},
             {RPCResult::Type::NUM, "aggregate_upload_bytes_sent", "Serialized child block bytes reserved in the current cycle"},
             {RPCResult::Type::NUM, "aggregate_upload_bytes_left", "Bytes remaining in the aggregate target; zero when unlimited or exhausted"},
@@ -1462,6 +1504,9 @@ RPCHelpMan getchildnetworkinfo()
     PushChildBandwidthStats(result, networks.GetBandwidthStats());
     result.pushKV("max_added_nodes", node::MAX_CHILD_CONNECT_NODES);
     result.pushKV("max_bind_endpoints", node::MAX_CHILD_BIND_ENDPOINTS);
+    result.pushKV("max_bootstrap_nodes", node::MAX_CHILD_BOOTSTRAP_NODES);
+    result.pushKV("max_automatic_connections",
+                  node::MAX_CHILD_AUTOMATIC_CONNECTIONS);
     return result;
 }
     };
@@ -1483,6 +1528,10 @@ RPCHelpMan addchildnode()
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
             {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
+            {RPCResult::Type::BOOL, "discovery_enabled", "Whether bounded automatic outbound connections from the isolated child peer store are enabled"},
+            {RPCResult::Type::ARR, "bootstrap_nodes", "Numeric bootstrap endpoints kept in the isolated child peer store", {
+                {RPCResult::Type::STR, "", "Numeric address and explicit port"},
+            }},
             {RPCResult::Type::ARR, "added_nodes", "Persistent explicit endpoints", {
                 {RPCResult::Type::STR, "", "Host and explicit port"},
             }},
@@ -1525,6 +1574,10 @@ RPCHelpMan removechildnode()
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
             {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
+            {RPCResult::Type::BOOL, "discovery_enabled", "Whether bounded automatic outbound connections from the isolated child peer store are enabled"},
+            {RPCResult::Type::ARR, "bootstrap_nodes", "Numeric bootstrap endpoints kept in the isolated child peer store", {
+                {RPCResult::Type::STR, "", "Numeric address and explicit port"},
+            }},
             {RPCResult::Type::ARR, "added_nodes", "Persistent explicit endpoints", {
                 {RPCResult::Type::STR, "", "Host and explicit port"},
             }},
@@ -1567,6 +1620,10 @@ RPCHelpMan setchildnetworkactive()
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
             {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
+            {RPCResult::Type::BOOL, "discovery_enabled", "Whether bounded automatic outbound connections from the isolated child peer store are enabled"},
+            {RPCResult::Type::ARR, "bootstrap_nodes", "Numeric bootstrap endpoints kept in the isolated child peer store", {
+                {RPCResult::Type::STR, "", "Numeric address and explicit port"},
+            }},
             {RPCResult::Type::ARR, "added_nodes", "Persistent explicit endpoints", {
                 {RPCResult::Type::STR, "", "Host and explicit port"},
             }},
@@ -1612,6 +1669,10 @@ RPCHelpMan setchildnetworkbinds()
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
             {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
+            {RPCResult::Type::BOOL, "discovery_enabled", "Whether bounded automatic outbound connections from the isolated child peer store are enabled"},
+            {RPCResult::Type::ARR, "bootstrap_nodes", "Numeric bootstrap endpoints kept in the isolated child peer store", {
+                {RPCResult::Type::STR, "", "Numeric address and explicit port"},
+            }},
             {RPCResult::Type::ARR, "added_nodes", "Persistent explicit endpoints", {
                 {RPCResult::Type::STR, "", "Host and explicit port"},
             }},
@@ -1635,6 +1696,62 @@ RPCHelpMan setchildnetworkbinds()
         EnsureAnyChildNetworkman(request.context)};
     const auto updated{
         networks.SetBindEndpoints(chain_id, std::move(endpoints))};
+    if (!updated.IsValid()) ThrowChildNetworkError(updated);
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", chain_id.GetHex());
+    PushChildNetworkStats(result, networks.GetStats(chain_id));
+    return result;
+}
+    };
+}
+
+RPCHelpMan setchildnetworkdiscovery()
+{
+    return RPCHelpMan{
+        "setchildnetworkdiscovery",
+        "Replace the numeric bootstrap set and enable or disable bounded automatic outbound connections for one running child network. "
+        "Only that isolated child P2P stack is restarted; the child runtime remains loaded and failures restore the previous network configuration.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null child-chain identifier"},
+            {"enabled", RPCArg::Type::BOOL, RPCArg::Optional::NO, "Whether this child's isolated peer store may create automatic outbound connections"},
+            {"bootstrap_nodes", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "Numeric bootstrap endpoints with explicit non-zero ports", {
+                {"", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Numeric address and port"},
+            }},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Updated child network state", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Full child-chain identifier"},
+            {RPCResult::Type::BOOL, "network_running", "Whether the isolated connection manager is running"},
+            {RPCResult::Type::BOOL, "network_active", "Whether new child-network connections are enabled"},
+            {RPCResult::Type::NUM, "connections", "Current connection count"},
+            {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
+            {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
+            {RPCResult::Type::BOOL, "discovery_enabled", "Whether bounded automatic outbound connections from the isolated child peer store are enabled"},
+            {RPCResult::Type::ARR, "bootstrap_nodes", "Numeric bootstrap endpoints kept in the isolated child peer store", {
+                {RPCResult::Type::STR, "", "Numeric address and explicit port"},
+            }},
+            {RPCResult::Type::ARR, "added_nodes", "Persistent explicit endpoints", {
+                {RPCResult::Type::STR, "", "Host and explicit port"},
+            }},
+            {RPCResult::Type::ARR, "binds", "Persistent numeric listen endpoints", {
+                {RPCResult::Type::STR, "", "Numeric address and explicit port"},
+            }},
+        }},
+        RPCExamples{
+            HelpExampleCli("setchildnetworkdiscovery", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" true '[\"203.0.113.10:29843\"]'")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const auto chain_id{ParseChainId(self.Arg<UniValue>("chain_id"))};
+    std::vector<std::string> bootstrap;
+    const UniValue bootstrap_values{
+        self.Arg<UniValue>("bootstrap_nodes")};
+    for (const UniValue& endpoint : bootstrap_values.getValues()) {
+        bootstrap.push_back(endpoint.get_str());
+    }
+    node::ChildNetworkManager& networks{
+        EnsureAnyChildNetworkman(request.context)};
+    const auto updated{networks.SetDiscovery(
+        chain_id, self.Arg<bool>("enabled"), std::move(bootstrap))};
     if (!updated.IsValid()) ThrowChildNetworkError(updated);
     UniValue result{UniValue::VOBJ};
     result.pushKV("chain_id", chain_id.GetHex());
@@ -1899,6 +2016,7 @@ void RegisterChainRegistryRPCCommands(CRPCTable& table)
         {"network", &removechildnode},
         {"network", &setchildnetworkactive},
         {"network", &setchildnetworkbinds},
+        {"network", &setchildnetworkdiscovery},
         {"blockchain", &getchildpendingblocks},
         {"mining", &submitchildanchor},
         {"mining", &submitchildblock},

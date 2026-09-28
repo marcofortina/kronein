@@ -34,6 +34,7 @@ class ChildNetEvents final : public NetEventsInterface
 {
 private:
     CConnman& m_connman;
+    AddrMan& m_addrman;
     ChildNetProcessor m_processor;
     ChildBandwidthLimiter& m_bandwidth;
     mutable Mutex m_mutex;
@@ -52,6 +53,7 @@ private:
 public:
     ChildNetEvents(
         CConnman& connman,
+        AddrMan& addrman,
         ChainManager& manager,
         ChildBandwidthLimiter& bandwidth,
         chainregistry::ReferenceChildDefinition definition);

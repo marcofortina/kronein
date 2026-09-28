@@ -102,6 +102,8 @@ BOOST_AUTO_TEST_CASE(owns_an_isolated_network_per_loaded_child)
         node::ChildNetworkConfig{
             .connect = {"127.0.0.1"},
             .bind = {},
+            .bootstrap = {},
+            .discovery = false,
             .network_active = false})};
     BOOST_CHECK(
         invalid.error == node::ChildNetworkError::INVALID_ENDPOINT);
@@ -111,6 +113,8 @@ BOOST_AUTO_TEST_CASE(owns_an_isolated_network_per_loaded_child)
         node::ChildNetworkConfig{
             .connect = {},
             .bind = {},
+            .bootstrap = {},
+            .discovery = false,
             .network_active = false}).IsValid());
     BOOST_CHECK(networks.IsRunning(definition.chain_id));
     const auto running{networks.GetStats(definition.chain_id)};
@@ -151,6 +155,8 @@ BOOST_AUTO_TEST_CASE(owns_an_isolated_network_per_loaded_child)
         node::ChildNetworkConfig{
             .connect = {},
             .bind = {},
+            .bootstrap = {},
+            .discovery = false,
             .network_active = false}).IsValid());
     BOOST_REQUIRE(networks.AddNode(
         definition.chain_id, "127.0.0.1:19844").IsValid());
@@ -162,6 +168,35 @@ BOOST_AUTO_TEST_CASE(owns_an_isolated_network_per_loaded_child)
     BOOST_REQUIRE_EQUAL(restored.added_nodes.size(), 1U);
     BOOST_CHECK_EQUAL(restored.added_nodes.front(), "127.0.0.1:19844");
     BOOST_CHECK(restored.bind_endpoints.empty());
+    BOOST_CHECK(!restored.discovery);
+    BOOST_CHECK(restored.bootstrap_nodes.empty());
+
+    BOOST_REQUIRE(networks.SetDiscovery(
+        definition.chain_id,
+        /*enabled=*/true,
+        {"127.0.0.1:19846"}).IsValid());
+    const auto discovery{networks.GetStats(definition.chain_id)};
+    BOOST_CHECK(discovery.discovery);
+    BOOST_REQUIRE_EQUAL(discovery.bootstrap_nodes.size(), 1U);
+    BOOST_CHECK_EQUAL(discovery.bootstrap_nodes.front(), "127.0.0.1:19846");
+    BOOST_CHECK(
+        networks.SetDiscovery(
+            definition.chain_id,
+            /*enabled=*/true,
+            {"seed.example:19846"}).error ==
+        node::ChildNetworkError::INVALID_BOOTSTRAP_ENDPOINT);
+    BOOST_REQUIRE(networks.Stop(definition.chain_id).IsValid());
+
+    BOOST_REQUIRE(networks.Start(definition.chain_id).IsValid());
+    const auto persisted_discovery{networks.GetStats(definition.chain_id)};
+    BOOST_CHECK(persisted_discovery.discovery);
+    BOOST_REQUIRE_EQUAL(persisted_discovery.bootstrap_nodes.size(), 1U);
+    BOOST_CHECK_EQUAL(
+        persisted_discovery.bootstrap_nodes.front(), "127.0.0.1:19846");
+    BOOST_REQUIRE(networks.SetDiscovery(
+        definition.chain_id,
+        /*enabled=*/false,
+        {}).IsValid());
     BOOST_REQUIRE(networks.Stop(definition.chain_id).IsValid());
 
     const fs::path config_path{
@@ -177,6 +212,8 @@ BOOST_AUTO_TEST_CASE(owns_an_isolated_network_per_loaded_child)
         node::ChildNetworkConfig{
             .connect = {},
             .bind = {},
+            .bootstrap = {},
+            .discovery = false,
             .network_active = false}).IsValid());
     BOOST_REQUIRE(networks.Stop(definition.chain_id).IsValid());
 
@@ -185,10 +222,24 @@ BOOST_AUTO_TEST_CASE(owns_an_isolated_network_per_loaded_child)
         node::ChildNetworkConfig{
             .connect = {},
             .bind = {"localhost:19845"},
+            .bootstrap = {},
+            .discovery = false,
             .network_active = false})};
     BOOST_CHECK(
         invalid_bind.error ==
         node::ChildNetworkError::INVALID_BIND_ENDPOINT);
+
+    const auto invalid_bootstrap{networks.Start(
+        definition.chain_id,
+        node::ChildNetworkConfig{
+            .connect = {},
+            .bind = {},
+            .bootstrap = {"seed.example:19846"},
+            .discovery = true,
+            .network_active = false})};
+    BOOST_CHECK(
+        invalid_bootstrap.error ==
+        node::ChildNetworkError::INVALID_BOOTSTRAP_ENDPOINT);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

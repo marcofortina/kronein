@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(adapts_only_the_isolated_child_protocol)
     node::ChildBandwidthLimiter bandwidth{
         node::DEFAULT_CHILD_UPLOAD_TARGET_BYTES};
     node::ChildNetEvents events{
-        connman, manager, bandwidth, definition};
+        connman, addrman, manager, bandwidth, definition};
     connman.SetMsgProc(&events);
 
     CNode peer{
@@ -182,7 +182,7 @@ BOOST_AUTO_TEST_CASE(rejects_child_connections_to_self)
     node::ChildBandwidthLimiter bandwidth{
         node::DEFAULT_CHILD_UPLOAD_TARGET_BYTES};
     node::ChildNetEvents events{
-        connman, manager, bandwidth, definition};
+        connman, addrman, manager, bandwidth, definition};
     connman.SetMsgProc(&events);
 
     constexpr uint64_t SELF_NONCE{77};

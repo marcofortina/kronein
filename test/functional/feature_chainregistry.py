@@ -306,6 +306,8 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(loaded["connections"], 0)
         assert_equal(loaded["handshaken_peers"], 0)
         assert_equal(loaded["rate_limited_block_requests"], 0)
+        assert_equal(loaded["discovery_enabled"], False)
+        assert_equal(loaded["bootstrap_nodes"], [])
         assert_equal(loaded["added_nodes"], [])
         assert_equal(loaded["binds"], [child_endpoint])
         network_info = node.getchildnetworkinfo(chain_id)
@@ -313,12 +315,26 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(network_info["network_running"], True)
         assert_equal(network_info["max_added_nodes"], 8)
         assert_equal(network_info["max_bind_endpoints"], 4)
+        assert_equal(network_info["max_bootstrap_nodes"], 8)
+        assert_equal(network_info["max_automatic_connections"], 4)
         assert_equal(network_info["rate_limited_block_requests"], 0)
         assert_equal(network_info["aggregate_upload_target"], 8 << 30)
         assert_equal(network_info["aggregate_upload_target_reached"], False)
         assert_equal(network_info["binds"], [child_endpoint])
         paused = node.setchildnetworkactive(chain_id, False)
         assert_equal(paused["network_active"], False)
+        assert_raises_rpc_error(
+            -8, "numeric address",
+            node.setchildnetworkdiscovery,
+            chain_id, True, ["seed.example:29843"])
+        discovery = node.setchildnetworkdiscovery(
+            chain_id, True, ["192.0.2.1:29843"])
+        assert_equal(discovery["discovery_enabled"], True)
+        assert_equal(discovery["bootstrap_nodes"], ["192.0.2.1:29843"])
+        discovery_disabled = node.setchildnetworkdiscovery(
+            chain_id, False, [])
+        assert_equal(discovery_disabled["discovery_enabled"], False)
+        assert_equal(discovery_disabled["bootstrap_nodes"], [])
         endpoint = "127.0.0.1:29999"
         added_node = node.addchildnode(chain_id, endpoint)
         assert_equal(added_node["added_nodes"], [endpoint])

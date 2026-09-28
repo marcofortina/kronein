@@ -1088,6 +1088,19 @@ BOOST_AUTO_TEST_CASE(rpc_convert_values_loadchildchain)
     BOOST_CHECK_EQUAL(binds[1][1].get_str(), "[::1]:19844");
 }
 
+BOOST_AUTO_TEST_CASE(rpc_convert_values_setchildnetworkdiscovery)
+{
+    const std::string chain_id(64, '2');
+    const UniValue params{RPCConvertValues(
+        "setchildnetworkdiscovery",
+        {chain_id, "true", "[\"127.0.0.1:19846\"]"})};
+    BOOST_REQUIRE_EQUAL(params.size(), 3U);
+    BOOST_CHECK_EQUAL(params[0].get_str(), chain_id);
+    BOOST_CHECK(params[1].get_bool());
+    BOOST_REQUIRE_EQUAL(params[2].size(), 1U);
+    BOOST_CHECK_EQUAL(params[2][0].get_str(), "127.0.0.1:19846");
+}
+
 BOOST_AUTO_TEST_CASE(rpc_getblockstats_calculate_percentiles_by_weight)
 {
     int64_t total_weight = 200;
