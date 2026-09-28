@@ -168,7 +168,9 @@ ChildNetworkResult ChildNetworkManager::Start(
 
     const fs::path network_path{
         m_chain_manager.DataPath(chain_id) / "network"};
-    if (!TryCreateDirectories(network_path)) {
+    try {
+        TryCreateDirectories(network_path);
+    } catch (const fs::filesystem_error&) {
         return NetworkError(
             ChildNetworkError::DATA_DIRECTORY_ERROR,
             fs::PathToString(network_path));

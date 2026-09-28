@@ -99,6 +99,12 @@ BOOST_AUTO_TEST_CASE(owns_an_isolated_network_per_loaded_child)
     BOOST_CHECK(
         networks.Stop(definition.chain_id).error ==
         node::ChildNetworkError::NOT_RUNNING);
+
+    // The peer-store directory is durable state, not a one-shot startup path.
+    BOOST_REQUIRE(networks.Start(
+        definition.chain_id,
+        {.connect = {}, .network_active = false}).IsValid());
+    BOOST_REQUIRE(networks.Stop(definition.chain_id).IsValid());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
