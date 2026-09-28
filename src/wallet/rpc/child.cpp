@@ -395,6 +395,19 @@ struct ProcessedChildPSBT {
     std::optional<CTransaction> transaction;
 };
 
+ChildWalletProcessResult ToWalletProcessResult(
+    ProcessedChildPSBT processed)
+{
+    return {
+        .psbt = EncodePSBT(processed.psbt),
+        .chain_id = processed.identity.chain_id,
+        .genesis_hash = processed.identity.genesis_hash,
+        .fee = processed.fee,
+        .complete = processed.complete,
+        .transaction = std::move(processed.transaction),
+    };
+}
+
 ProcessedChildPSBT ProcessChildPSBT(
     CWallet& wallet,
     PartiallySignedTransaction psbt,
@@ -402,7 +415,8 @@ ProcessedChildPSBT ProcessChildPSBT(
     bool sign,
     std::optional<int> sighash_type,
     bool bip32_derivs,
-    bool finalize)
+    bool finalize,
+    std::optional<interfaces::ChildWalletScan> supplied_scan = std::nullopt)
 {
     const auto parsed_identity{
         chainregistry::ExtractChildPSBTIdentity(psbt)};
@@ -415,7 +429,9 @@ ProcessedChildPSBT ProcessChildPSBT(
     }
     const auto identity{*parsed_identity.identity};
     const interfaces::ChildWalletScan scan{
-        ScanSupportedChildWallet(wallet, identity.chain_id)};
+        supplied_scan
+            ? std::move(*supplied_scan)
+            : ScanSupportedChildWallet(wallet, identity.chain_id)};
     const auto definition{DefinitionFromScan(identity.chain_id, scan)};
     const auto identity_error{
         chainregistry::VerifyChildPSBTIdentity(psbt, definition)};
@@ -636,22 +652,54 @@ ChildWalletProcessResult ProcessChildWalletPSBT(
                 "child PSBT chain_id does not match the requested chain_id");
         }
     }
-    auto processed{ProcessChildPSBT(
+    return ToWalletProcessResult(ProcessChildPSBT(
         wallet,
         std::move(*decoded),
         maximum_fee,
         sign,
         sighash_type,
         bip32_derivs,
-        finalize)};
-    return {
-        .psbt = EncodePSBT(processed.psbt),
-        .chain_id = processed.identity.chain_id,
-        .genesis_hash = processed.identity.genesis_hash,
-        .fee = processed.fee,
-        .complete = processed.complete,
-        .transaction = std::move(processed.transaction),
+        finalize));
+}
+
+ChildWalletProcessResult ProcessChildWalletTransaction(
+    CWallet& wallet,
+    const CMutableTransaction& transaction,
+    const chainregistry::ChainId& chain_id,
+    CAmount maximum_fee,
+    std::optional<int> sighash_type)
+{
+    interfaces::ChildWalletScan scan{
+        ScanSupportedChildWallet(wallet, chain_id)};
+    PartiallySignedTransaction psbt{transaction};
+    for (size_t index{0}; index < transaction.vin.size(); ++index) {
+        psbt.inputs[index].final_script_witness =
+            transaction.vin[index].scriptWitness;
+    }
+    const chainregistry::ChildPSBTIdentity identity{
+        .chain_id = chain_id,
+        .template_id = scan.template_id,
+        .template_version = scan.template_version,
+        .genesis_hash = scan.genesis_hash,
     };
+    const auto identity_error{
+        chainregistry::AddChildPSBTIdentity(psbt, identity)};
+    if (identity_error != chainregistry::ChildPSBTIdentityError::NONE) {
+        throw JSONRPCError(
+            RPC_INTERNAL_ERROR,
+            strprintf("could not bind child transaction identity: %s",
+                      chainregistry::ChildPSBTIdentityErrorString(
+                          identity_error)));
+    }
+    return ToWalletProcessResult(ProcessChildPSBT(
+        wallet,
+        std::move(psbt),
+        maximum_fee,
+        /*sign=*/true,
+        sighash_type,
+        /*bip32_derivs=*/false,
+        /*finalize=*/true,
+        std::move(scan)));
 }
 
 static ChildWalletSendResult SignFundedChildPSBT(

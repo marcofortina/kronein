@@ -2019,6 +2019,25 @@ class ChainRegistryTest(BitcoinTestFramework):
                 1 if compatible_raw_funded["changepos"] == 0 else 0
             ]["value"],
             Decimal("0.00090000"))
+        assert_raises_rpc_error(
+            -8, "child_max_fee is only valid when chain_id is specified",
+            wallet.signrawtransactionwithwallet,
+            compatible_raw_funded["hex"],
+            child_max_fee=child_send_fee)
+        compatible_raw_signed = wallet.signrawtransactionwithwallet(
+            compatible_raw_funded["hex"],
+            child_max_fee=child_send_fee,
+            chain_id=chain_id)
+        assert_equal(compatible_raw_signed["complete"], True)
+        compatible_raw_resigned = wallet.signrawtransactionwithwallet(
+            compatible_raw_signed["hex"],
+            child_max_fee=child_send_fee,
+            chain_id=chain_id)
+        assert_equal(compatible_raw_resigned["complete"], True)
+        assert_equal(
+            compatible_raw_resigned["hex"], compatible_raw_signed["hex"])
+        assert_equal(node.testmempoolaccept(
+            [compatible_raw_signed["hex"]], 0, chain_id)[0]["allowed"], True)
 
         child_mempool_before_test = node.getrawmempool(
             False, False, chain_id)

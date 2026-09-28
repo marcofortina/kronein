@@ -70,6 +70,13 @@ ChildWalletProcessResult ProcessChildWalletPSBT(
     bool finalize = true,
     std::optional<chainregistry::ChainId> expected_chain_id = std::nullopt);
 
+ChildWalletProcessResult ProcessChildWalletTransaction(
+    CWallet& wallet,
+    const CMutableTransaction& transaction,
+    const chainregistry::ChainId& chain_id,
+    CAmount maximum_fee,
+    std::optional<int> sighash_type = std::nullopt);
+
 ChildWalletSendResult CreateSignedChildPayments(
     CWallet& wallet,
     const chainregistry::ChainId& chain_id,

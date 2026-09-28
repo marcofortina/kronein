@@ -1402,6 +1402,8 @@ RPCHelpMan signrawtransactionwithwallet()
             "       \"ALL|ANYONECANPAY\"\n"
             "       \"NONE|ANYONECANPAY\"\n"
             "       \"SINGLE|ANYONECANPAY\""},
+                    {"child_max_fee", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "Maximum absolute child-chain fee authorized by the caller. Required with chain_id and invalid without it."},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain."},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
@@ -1430,12 +1432,89 @@ RPCHelpMan signrawtransactionwithwallet()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    const std::shared_ptr<const CWallet> pwallet = GetWalletForJSONRPCRequest(request);
+    const std::shared_ptr<CWallet> pwallet = GetWalletForJSONRPCRequest(request);
     if (!pwallet) return UniValue::VNULL;
 
     CMutableTransaction mtx;
     if (!DecodeHexTx(mtx, request.params[0].get_str())) {
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed. Make sure the tx has at least one input.");
+    }
+
+    const auto chain_arg{self.MaybeArg<UniValue>("chain_id")};
+    const auto child_max_fee_arg{
+        self.MaybeArg<UniValue>("child_max_fee")};
+    if (chain_arg) {
+        if (!child_max_fee_arg) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "child_max_fee is required when chain_id is specified");
+        }
+        if (!request.params[1].isNull() &&
+            !request.params[1].get_array().empty()) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "child signrawtransactionwithwallet uses the loaded child UTXO set and does not accept prevtxs");
+        }
+        std::optional<int> sighash_type{
+            ParseSighashString(request.params[2])};
+        if (!sighash_type) sighash_type = SIGHASH_DEFAULT;
+        auto processed{ProcessChildWalletTransaction(
+            *pwallet,
+            mtx,
+            ParseChildChainId(*chain_arg),
+            AmountFromValue(*child_max_fee_arg),
+            sighash_type)};
+
+        CMutableTransaction signed_transaction{mtx};
+        if (processed.transaction) {
+            signed_transaction = CMutableTransaction{*processed.transaction};
+        } else {
+            auto psbt{DecodeBase64PSBT(processed.psbt)};
+            const auto unsigned_transaction{
+                psbt ? psbt->GetUnsignedTx() : std::nullopt};
+            if (!psbt || !unsigned_transaction ||
+                psbt->inputs.size() != signed_transaction.vin.size()) {
+                throw JSONRPCError(
+                    RPC_INTERNAL_ERROR,
+                    "could not extract processed child transaction");
+            }
+            signed_transaction = *unsigned_transaction;
+            for (size_t index{0}; index < psbt->inputs.size(); ++index) {
+                signed_transaction.vin[index].scriptWitness =
+                    psbt->inputs[index].final_script_witness;
+            }
+        }
+
+        UniValue result{UniValue::VOBJ};
+        result.pushKV(
+            "hex", EncodeHexTx(CTransaction{signed_transaction}));
+        result.pushKV("complete", processed.complete);
+        if (!processed.complete) {
+            UniValue errors{UniValue::VARR};
+            for (size_t index{0}; index < signed_transaction.vin.size(); ++index) {
+                if (signed_transaction.vin[index].scriptWitness.IsNull()) {
+                    const CTxIn& input{signed_transaction.vin[index]};
+                    UniValue error{UniValue::VOBJ};
+                    error.pushKV("txid", input.prevout.hash.ToString());
+                    error.pushKV("vout", input.prevout.n);
+                    UniValue witness{UniValue::VARR};
+                    for (const auto& element : input.scriptWitness.stack) {
+                        witness.push_back(HexStr(element));
+                    }
+                    error.pushKV("witness", std::move(witness));
+                    error.pushKV("sequence", input.nSequence);
+                    error.pushKV("error", "Unable to sign child input");
+                    errors.push_back(std::move(error));
+                }
+            }
+            if (!errors.empty()) result.pushKV("errors", std::move(errors));
+        }
+        return result;
+    }
+    if (child_max_fee_arg) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "child_max_fee is only valid when chain_id is specified");
     }
 
     // Sign the transaction
