@@ -32,6 +32,7 @@
 #ifdef ENABLE_WALLET
 #include <QRegularExpression>
 #include <QRegularExpressionValidator>
+#include <QSaveFile>
 #include <QSpinBox>
 #include <QUrl>
 #endif
@@ -103,6 +104,18 @@ QString StateLabel(const QString& state)
     return state;
 }
 
+#ifdef ENABLE_WALLET
+QString DepositStatusLabel(const QString& status)
+{
+    if (status == QStringLiteral("confirmed")) return ChildChainDialog::tr("Confirmed");
+    if (status == QStringLiteral("mempool")) return ChildChainDialog::tr("In mempool");
+    if (status == QStringLiteral("inactive")) return ChildChainDialog::tr("Inactive");
+    if (status == QStringLiteral("abandoned")) return ChildChainDialog::tr("Abandoned");
+    if (status == QStringLiteral("conflicted")) return ChildChainDialog::tr("Conflicted");
+    return status;
+}
+#endif
+
 } // namespace
 
 ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
@@ -158,10 +171,12 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     m_network_button = actions->addButton(tr("Pause Network"), QDialogButtonBox::ActionRole);
 #ifdef ENABLE_WALLET
     m_register_button = actions->addButton(tr("Register…"), QDialogButtonBox::ActionRole);
+    m_deposits_button = actions->addButton(tr("Deposits…"), QDialogButtonBox::ActionRole);
     m_migrate_button = actions->addButton(tr("Migrate…"), QDialogButtonBox::ActionRole);
     m_update_button = actions->addButton(tr("Update Metadata…"), QDialogButtonBox::ActionRole);
     m_retire_button = actions->addButton(tr("Retire…"), QDialogButtonBox::DestructiveRole);
     m_register_button->setObjectName(QStringLiteral("childChainRegisterButton"));
+    m_deposits_button->setObjectName(QStringLiteral("childChainDepositsButton"));
     m_migrate_button->setObjectName(QStringLiteral("childChainMigrateButton"));
     m_update_button->setObjectName(QStringLiteral("childChainUpdateButton"));
     m_retire_button->setObjectName(QStringLiteral("childChainRetireButton"));
@@ -192,6 +207,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     connect(m_network_button, &QPushButton::clicked, this, &ChildChainDialog::toggleNetwork);
 #ifdef ENABLE_WALLET
     connect(m_register_button, &QPushButton::clicked, this, &ChildChainDialog::registerChildChain);
+    connect(m_deposits_button, &QPushButton::clicked, this, &ChildChainDialog::showDeposits);
     connect(m_migrate_button, &QPushButton::clicked, this, &ChildChainDialog::migrateSelected);
     connect(m_update_button, &QPushButton::clicked, this, &ChildChainDialog::updateSelected);
     connect(m_retire_button, &QPushButton::clicked, this, &ChildChainDialog::retireSelected);
@@ -398,6 +414,7 @@ void ChildChainDialog::updateSelection()
         m_network_button->setEnabled(false);
 #ifdef ENABLE_WALLET
         m_register_button->setEnabled(m_wallet_model);
+        m_deposits_button->setEnabled(false);
         m_migrate_button->setEnabled(false);
         m_update_button->setEnabled(false);
         m_retire_button->setEnabled(false);
@@ -435,6 +452,7 @@ void ChildChainDialog::updateSelection()
     m_network_button->setEnabled(loaded && network_running);
 #ifdef ENABLE_WALLET
     m_register_button->setEnabled(m_wallet_model);
+    m_deposits_button->setEnabled(m_wallet_model);
     const bool active_registry_record{
         m_wallet_model && registry_found &&
         (state == QStringLiteral("available") ||
@@ -860,6 +878,283 @@ void ChildChainDialog::retireSelected()
     UniValue parameters{UniValue::VOBJ};
     parameters.pushKV("chain_id", chain_id.toStdString());
     submitRegistryOperation("retire", chain_id, std::move(parameters));
+}
+
+void ChildChainDialog::showDeposits()
+{
+    const QString chain_id{selectedChainId()};
+    if (chain_id.isEmpty() || !m_wallet_model) return;
+
+    UniValue params{UniValue::VARR};
+    params.push_back(chain_id.toStdString());
+    params.push_back(100);
+    params.push_back(0);
+    UniValue result;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        result = m_node.executeRpc(
+            "listwalletchaindeposits", params, walletUri());
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("List child deposits"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("List child deposits"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+
+    const UniValue& deposits{result.find_value("deposits")};
+    if (!result.isObject() || !deposits.isArray() ||
+        !result.find_value("total").isNum() ||
+        !result.find_value("returned").isNum()) {
+        showRpcError(tr("List child deposits"),
+                     tr("The wallet returned an invalid child-deposit list."));
+        return;
+    }
+
+    QDialog dialog{this};
+    dialog.setWindowTitle(tr("Child Deposits — %1").arg(chain_id));
+    dialog.setMinimumSize(1100, 430);
+    auto* layout = new QVBoxLayout{&dialog};
+    const int total{result.find_value("total").getInt<int>()};
+    auto* summary = new QLabel{
+        tr("Showing %1 of %n irreversible deposit(s) created by the selected wallet.",
+           nullptr, total)
+            .arg(NumberField(result, "returned")),
+        &dialog};
+    summary->setWordWrap(true);
+    layout->addWidget(summary);
+
+    auto* table = new QTableWidget{&dialog};
+    table->setObjectName(QStringLiteral("childDepositTable"));
+    table->setColumnCount(6);
+    table->setHorizontalHeaderLabels({
+        tr("Status"),
+        tr("Amount"),
+        tr("Confirmations"),
+        tr("Main-chain outpoint"),
+        tr("Deposit ID"),
+        tr("Child recipient"),
+    });
+    table->setSelectionBehavior(QAbstractItemView::SelectRows);
+    table->setSelectionMode(QAbstractItemView::SingleSelection);
+    table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    table->setAlternatingRowColors(true);
+    table->verticalHeader()->setVisible(false);
+    table->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Stretch);
+    table->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
+    table->horizontalHeader()->setSectionResizeMode(5, QHeaderView::Stretch);
+
+    constexpr int TXID_ROLE{Qt::UserRole};
+    constexpr int VOUT_ROLE{Qt::UserRole + 1};
+    constexpr int DEPOSIT_ID_ROLE{Qt::UserRole + 2};
+    constexpr int PROOF_ELIGIBLE_ROLE{Qt::UserRole + 3};
+    for (const UniValue& deposit : deposits.getValues()) {
+        if (!deposit.isObject()) continue;
+        const QString txid{StringField(deposit, "txid")};
+        const QString deposit_id{StringField(deposit, "deposit_id")};
+        const QString deposit_chain{StringField(deposit, "chain_id")};
+        const UniValue& vout_value{deposit.find_value("vout")};
+        const UniValue& recipient_type{deposit.find_value("recipient_type")};
+        if (txid.isEmpty() || deposit_id.isEmpty() ||
+            deposit_chain.compare(chain_id, Qt::CaseInsensitive) != 0 ||
+            !vout_value.isNum() || !recipient_type.isNum()) {
+            showRpcError(tr("List child deposits"),
+                         tr("The wallet returned a malformed child-deposit entry."));
+            return;
+        }
+
+        const QString status{StringField(deposit, "status")};
+        const int row{table->rowCount()};
+        table->insertRow(row);
+        auto* status_item = new QTableWidgetItem{DepositStatusLabel(status)};
+        status_item->setData(TXID_ROLE, txid);
+        status_item->setData(VOUT_ROLE, vout_value.getInt<int>());
+        status_item->setData(DEPOSIT_ID_ROLE, deposit_id);
+        status_item->setData(
+            PROOF_ELIGIBLE_ROLE, status == QStringLiteral("confirmed"));
+        table->setItem(row, 0, status_item);
+        table->setItem(row, 1, new QTableWidgetItem{NumberField(deposit, "amount") + QStringLiteral(" KNE")});
+        table->setItem(row, 2, new QTableWidgetItem{NumberField(deposit, "confirmations")});
+        table->setItem(row, 3, new QTableWidgetItem{QStringLiteral("%1:%2").arg(txid, NumberField(deposit, "vout"))});
+        table->setItem(row, 4, new QTableWidgetItem{deposit_id});
+        table->setItem(row, 5, new QTableWidgetItem{
+            QStringLiteral("%1:%2")
+                .arg(NumberField(deposit, "recipient_type"),
+                     StringField(deposit, "recipient"))});
+    }
+    layout->addWidget(table, 1);
+
+    auto* buttons = new QDialogButtonBox{&dialog};
+    auto* export_button = buttons->addButton(
+        tr("Inspect / Export Proof…"), QDialogButtonBox::ActionRole);
+    export_button->setObjectName(QStringLiteral("childDepositExportProofButton"));
+    buttons->addButton(QDialogButtonBox::Close);
+    layout->addWidget(buttons);
+
+    const auto update_export_button = [table, export_button] {
+        const QTableWidgetItem* item{table->item(table->currentRow(), 0)};
+        export_button->setEnabled(
+            item && item->data(PROOF_ELIGIBLE_ROLE).toBool());
+    };
+    connect(table, &QTableWidget::itemSelectionChanged,
+            &dialog, update_export_button);
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    connect(export_button, &QPushButton::clicked, &dialog, [&, table] {
+        const QTableWidgetItem* item{table->item(table->currentRow(), 0)};
+        if (!item) return;
+        const QString txid{item->data(TXID_ROLE).toString()};
+        const int vout{item->data(VOUT_ROLE).toInt()};
+        const QString expected_deposit_id{item->data(DEPOSIT_ID_ROLE).toString()};
+
+        UniValue proof_params{UniValue::VARR};
+        proof_params.push_back(txid.toStdString());
+        proof_params.push_back(vout);
+        UniValue status_result;
+        QApplication::setOverrideCursor(Qt::WaitCursor);
+        try {
+            status_result = m_node.executeRpc(
+                "getdepositstatus", proof_params, "");
+        } catch (UniValue& error) {
+            QApplication::restoreOverrideCursor();
+            showRpcError(tr("Inspect deposit proof"), RpcErrorMessage(error));
+            return;
+        } catch (const std::exception& error) {
+            QApplication::restoreOverrideCursor();
+            showRpcError(tr("Inspect deposit proof"),
+                         QString::fromStdString(error.what()));
+            return;
+        }
+        QApplication::restoreOverrideCursor();
+
+        const UniValue& indexed_deposit{status_result.find_value("deposit")};
+        const UniValue& destination{indexed_deposit.find_value("destination")};
+        if (!status_result.isObject() || !BoolField(status_result, "found") ||
+            !indexed_deposit.isObject() || !destination.isObject() ||
+            StringField(status_result, "deposit_id").compare(
+                expected_deposit_id, Qt::CaseInsensitive) != 0 ||
+            StringField(indexed_deposit, "deposit_id").compare(
+                expected_deposit_id, Qt::CaseInsensitive) != 0 ||
+            StringField(destination, "chain_id").compare(
+                chain_id, Qt::CaseInsensitive) != 0) {
+            showRpcError(tr("Inspect deposit proof"),
+                         tr("The active main-chain deposit index does not match the selected wallet deposit."));
+            return;
+        }
+        if (!BoolField(indexed_deposit, "proof_available")) {
+            QMessageBox::warning(
+                &dialog,
+                tr("Deposit Proof Unavailable"),
+                tr("The deposit is indexed, but its containing block data is unavailable. It may have been pruned; export the proof from a node that still stores that block."));
+            return;
+        }
+
+        UniValue proof_result;
+        QApplication::setOverrideCursor(Qt::WaitCursor);
+        try {
+            proof_result = m_node.executeRpc(
+                "getdepositproof", proof_params, "");
+        } catch (UniValue& error) {
+            QApplication::restoreOverrideCursor();
+            showRpcError(tr("Export deposit proof"), RpcErrorMessage(error));
+            return;
+        } catch (const std::exception& error) {
+            QApplication::restoreOverrideCursor();
+            showRpcError(tr("Export deposit proof"),
+                         QString::fromStdString(error.what()));
+            return;
+        }
+        QApplication::restoreOverrideCursor();
+
+        const QString proof_hex{StringField(proof_result, "proof")};
+        const UniValue& proof_deposit{proof_result.find_value("deposit")};
+        const UniValue& proof_destination{proof_deposit.find_value("destination")};
+        if (!proof_result.isObject() || proof_hex.isEmpty() ||
+            !QRegularExpression{QStringLiteral("^(?:[0-9A-Fa-f]{2})+$")}
+                 .match(proof_hex).hasMatch() ||
+            !proof_deposit.isObject() || !proof_destination.isObject() ||
+            !proof_result.find_value("proof_version").isNum() ||
+            !proof_deposit.find_value("confirmations").isNum() ||
+            StringField(proof_deposit, "deposit_id").compare(
+                expected_deposit_id, Qt::CaseInsensitive) != 0 ||
+            StringField(proof_destination, "chain_id").compare(
+                chain_id, Qt::CaseInsensitive) != 0) {
+            showRpcError(tr("Export deposit proof"),
+                         tr("The node returned an invalid or mismatched KDPR proof."));
+            return;
+        }
+        const QByteArray proof_bytes{QByteArray::fromHex(proof_hex.toLatin1())};
+
+        QDialog proof_dialog{&dialog};
+        proof_dialog.setWindowTitle(tr("KDPR Deposit Proof — %1").arg(expected_deposit_id));
+        proof_dialog.setMinimumSize(900, 560);
+        auto* proof_layout = new QVBoxLayout{&proof_dialog};
+        const int confirmations{
+            proof_deposit.find_value("confirmations").getInt<int>()};
+        auto* proof_summary = new QLabel{
+            tr("Canonical KDPR v%1 proof for %2:%3 (%n confirmation(s)).",
+               nullptr, confirmations)
+                .arg(NumberField(proof_result, "proof_version"),
+                     txid,
+                     QString::number(vout)),
+            &proof_dialog};
+        proof_summary->setWordWrap(true);
+        proof_layout->addWidget(proof_summary);
+        auto* proof_text = new QPlainTextEdit{
+            QString::fromStdString(proof_result.write(2)), &proof_dialog};
+        proof_text->setReadOnly(true);
+        proof_text->setLineWrapMode(QPlainTextEdit::NoWrap);
+        proof_layout->addWidget(proof_text, 1);
+        auto* proof_buttons = new QDialogButtonBox{&proof_dialog};
+        auto* copy_button = proof_buttons->addButton(
+            tr("Copy Proof Hex"), QDialogButtonBox::ActionRole);
+        auto* save_button = proof_buttons->addButton(
+            tr("Save Binary Proof…"), QDialogButtonBox::ActionRole);
+        proof_buttons->addButton(QDialogButtonBox::Close);
+        proof_layout->addWidget(proof_buttons);
+        connect(copy_button, &QPushButton::clicked, &proof_dialog,
+                [proof_hex] { GUIUtil::setClipboard(proof_hex); });
+        connect(save_button, &QPushButton::clicked, &proof_dialog,
+                [&, proof_bytes, expected_deposit_id] {
+            const QString filename{GUIUtil::getSaveFileName(
+                &proof_dialog,
+                tr("Save KDPR Deposit Proof"),
+                expected_deposit_id + QStringLiteral(".kdpr"),
+                tr("Kronein Deposit Proof (Binary)") +
+                    QStringLiteral(" (*.kdpr)"),
+                nullptr)};
+            if (filename.isEmpty()) return;
+            QSaveFile file{filename};
+            if (!file.open(QIODevice::WriteOnly) ||
+                file.write(proof_bytes) != proof_bytes.size() ||
+                !file.commit()) {
+                QMessageBox::critical(
+                    &proof_dialog,
+                    tr("Save Proof Failed"),
+                    tr("Could not save the KDPR proof to %1: %2")
+                        .arg(filename, file.errorString()));
+                return;
+            }
+            QMessageBox::information(
+                &proof_dialog,
+                tr("Proof Saved"),
+                tr("The canonical binary KDPR proof was saved to %1.")
+                    .arg(filename));
+        });
+        connect(proof_buttons, &QDialogButtonBox::rejected,
+                &proof_dialog, &QDialog::reject);
+        proof_dialog.exec();
+    });
+
+    if (table->rowCount() > 0) table->selectRow(0);
+    update_export_button();
+    dialog.exec();
 }
 
 void ChildChainDialog::migrateSelected()
