@@ -141,6 +141,29 @@ struct ChainManagerBlockView {
     bool IsValid() const { return error == ChainManagerBlockViewError::NONE; }
 };
 
+enum class ChainManagerActiveBlocksViewError : uint8_t {
+    NONE,
+    NULL_CHAIN_ID,
+    UNKNOWN_CHAIN,
+    CHAIN_NOT_LOADED,
+    BLOCK_NOT_FOUND,
+    BLOCK_NOT_ACTIVE,
+    VIRTUAL_GENESIS,
+    DATA_UNAVAILABLE,
+};
+
+struct ChainManagerActiveBlocksView {
+    ChainManagerActiveBlocksViewError error{
+        ChainManagerActiveBlocksViewError::NONE};
+    ChainManagerEntry entry;
+    std::vector<ReferenceChildBlockView> blocks;
+
+    bool IsValid() const
+    {
+        return error == ChainManagerActiveBlocksViewError::NONE;
+    }
+};
+
 enum class ChainManagerCoinViewError : uint8_t {
     NONE,
     NULL_CHAIN_ID,
@@ -369,6 +392,9 @@ public:
         const uint256& block_hash) const;
     ChainManagerBlockView GetTipBlockView(
         const chainregistry::ChainId& chain_id) const;
+    ChainManagerActiveBlocksView GetActiveBlockViews(
+        const chainregistry::ChainId& chain_id,
+        std::span<const uint256> block_hashes) const;
     ChainManagerCoinView GetCoinView(
         const chainregistry::ChainId& chain_id,
         const COutPoint& outpoint) const;

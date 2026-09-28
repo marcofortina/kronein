@@ -192,6 +192,40 @@ static node::ChainManagerBlockView GetLoadedChildTipBlockView(
                        "unhandled child tip view error");
 }
 
+static node::ChainManagerActiveBlocksView GetLoadedChildActiveBlockViews(
+    const std::any& context,
+    std::string_view chain_id,
+    std::span<const uint256> block_hashes)
+{
+    const auto view{EnsureAnyChildChainman(context).GetActiveBlockViews(
+        ParseChainId(chain_id), block_hashes)};
+    switch (view.error) {
+    case node::ChainManagerActiveBlocksViewError::NONE:
+        return view;
+    case node::ChainManagerActiveBlocksViewError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must not be null");
+    case node::ChainManagerActiveBlocksViewError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not configured locally");
+    case node::ChainManagerActiveBlocksViewError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_MISC_ERROR, "child chain is not loaded");
+    case node::ChainManagerActiveBlocksViewError::BLOCK_NOT_FOUND:
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                           "Child block not found");
+    case node::ChainManagerActiveBlocksViewError::BLOCK_NOT_ACTIVE:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "Child block is not in active chain");
+    case node::ChainManagerActiveBlocksViewError::VIRTUAL_GENESIS:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "virtual child genesis has no serialized block or undo data");
+    case node::ChainManagerActiveBlocksViewError::DATA_UNAVAILABLE:
+        throw JSONRPCError(RPC_INTERNAL_ERROR,
+                           "child block or undo data is unavailable");
+    }
+    throw JSONRPCError(RPC_INTERNAL_ERROR,
+                       "unhandled active child blocks view error");
+}
+
 static node::ChainManagerCoinView GetLoadedChildCoinView(
     const std::any& context,
     std::string_view chain_id,
@@ -3478,6 +3512,7 @@ static RPCHelpMan getdescriptoractivity()
         "getdescriptoractivity",
         "Get spend and receive activity associated with a set of descriptors for a set of blocks. "
         "This command pairs well with the `relevant_blocks` output of `scanblocks()`.\n"
+        "Omit chain_id for the main chain. The reference child runtime currently has no mempool, so child results contain confirmed activity only.\n"
         "This call may take several minutes. If you encounter timeouts, try specifying no RPC timeout (kronein-cli -rpcclienttimeout=0)",
         {
             RPCArg{"blockhashes", RPCArg::Type::ARR, RPCArg::Optional::NO, "The list of blockhashes to examine for activity. Order doesn't matter. Must be along main chain or an error is thrown.\n", {
@@ -3491,6 +3526,7 @@ static RPCHelpMan getdescriptoractivity()
                 RPCArgOptions{.oneline_description="[scanobjects,...]"},
             },
             {"include_mempool", RPCArg::Type::BOOL, RPCArg::Default{true}, "Whether to include unconfirmed activity"},
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "", {
@@ -3517,10 +3553,12 @@ static RPCHelpMan getdescriptoractivity()
                     }},
                     // TODO is the skip_type_check avoidable with a heterogeneous ARR?
                 }, /*skip_type_check=*/true},
+                {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Selected child-chain identifier; omitted for the main chain"},
             },
         },
         RPCExamples{
-            HelpExampleCli("getdescriptoractivity", "'[\"000000000000000000001347062c12fded7c528943c8ce133987e2e2f5a840ee\"]' '[\"addr(kne1pqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqwzw77t)\"]'")
+            HelpExampleCli("getdescriptoractivity", "'[\"000000000000000000001347062c12fded7c528943c8ce133987e2e2f5a840ee\"]' '[\"addr(kne1pqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqwzw77t)\"]'") +
+            HelpExampleCli("getdescriptoractivity", "'[\"childblockhash\"]' '[\"raw(5120...)\"]' false \"chain_id\"")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -3535,13 +3573,20 @@ static RPCHelpMan getdescriptoractivity()
         }
     };
 
-    std::set<const CBlockIndex*, CompareByHeightAscending> blockindexes_sorted;
+    std::vector<uint256> requested_hashes;
+    for (const UniValue& blockhash : request.params[0].get_array().getValues()) {
+        requested_hashes.push_back(ParseHashV(blockhash, "blockhash"));
+    }
 
-    {
+    std::optional<node::ChainManagerActiveBlocksView> child_blocks;
+    std::set<const CBlockIndex*, CompareByHeightAscending> blockindexes_sorted;
+    if (const auto chain_id{self.MaybeArg<std::string_view>("chain_id")}) {
+        child_blocks = GetLoadedChildActiveBlockViews(
+            request.context, *chain_id, requested_hashes);
+    } else {
         // Validate all given blockhashes, and ensure blocks are along a single chain.
         LOCK(::cs_main);
-        for (const UniValue& blockhash : request.params[0].get_array().getValues()) {
-            uint256 bhash = ParseHashV(blockhash, "blockhash");
+        for (const uint256& bhash : requested_hashes) {
             CBlockIndex* pindex = chainman.m_blockman.LookupBlockIndex(bhash);
             if (!pindex) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
@@ -3565,13 +3610,14 @@ static RPCHelpMan getdescriptoractivity()
         }
     }
 
-    const auto AddSpend = [&](
+    using BlockLocation = std::pair<uint256, int>;
+    const auto AddSpend = [&activity](
             const CScript& spk,
             const CAmount val,
             const CTransactionRef& tx,
             int vin,
             const CTxIn& txin,
-            const CBlockIndex* index
+            const std::optional<BlockLocation>& location
             ) {
         UniValue event(UniValue::VOBJ);
         UniValue spkUv(UniValue::VOBJ);
@@ -3579,9 +3625,9 @@ static RPCHelpMan getdescriptoractivity()
 
         event.pushKV("type", "spend");
         event.pushKV("amount", ValueFromAmount(val));
-        if (index) {
-            event.pushKV("blockhash", index->GetBlockHash().ToString());
-            event.pushKV("height", index->nHeight);
+        if (location) {
+            event.pushKV("blockhash", location->first.ToString());
+            event.pushKV("height", location->second);
         }
         event.pushKV("spend_txid", tx->GetHash().ToString());
         event.pushKV("spend_vin", vin);
@@ -3592,16 +3638,16 @@ static RPCHelpMan getdescriptoractivity()
         return event;
     };
 
-    const auto AddReceive = [&](const CTxOut& txout, const CBlockIndex* index, int vout, const CTransactionRef& tx) {
+    const auto AddReceive = [&activity](const CTxOut& txout, const std::optional<BlockLocation>& location, int vout, const CTransactionRef& tx) {
         UniValue event(UniValue::VOBJ);
         UniValue spkUv(UniValue::VOBJ);
         ScriptToUniv(txout.scriptPubKey, /*out=*/spkUv, /*include_hex=*/true, /*include_address=*/true);
 
         event.pushKV("type", "receive");
         event.pushKV("amount", ValueFromAmount(txout.nValue));
-        if (index) {
-            event.pushKV("blockhash", index->GetBlockHash().ToString());
-            event.pushKV("height", index->nHeight);
+        if (location) {
+            event.pushKV("blockhash", location->first.ToString());
+            event.pushKV("height", location->second);
         }
         event.pushKV("txid", tx->GetHash().ToString());
         event.pushKV("vout", vout);
@@ -3609,6 +3655,47 @@ static RPCHelpMan getdescriptoractivity()
 
         return event;
     };
+
+    const auto ScanBlockActivity = [&](const CBlock& block,
+                                       const CBlockUndo& block_undo,
+                                       const BlockLocation& location) {
+        for (size_t i = 0; i < block.vtx.size(); ++i) {
+            const auto& tx = block.vtx.at(i);
+            if (!tx->IsCoinBase()) {
+                const auto& txundo = block_undo.vtxundo.at(i - 1);
+                for (size_t vin_idx = 0; vin_idx < tx->vin.size(); ++vin_idx) {
+                    const auto& coin = txundo.vprevout.at(vin_idx);
+                    const auto& txin = tx->vin.at(vin_idx);
+                    if (scripts_to_watch.contains(coin.out.scriptPubKey)) {
+                        activity.push_back(AddSpend(
+                            coin.out.scriptPubKey, coin.out.nValue, tx,
+                            vin_idx, txin, location));
+                    }
+                }
+            }
+            for (size_t vout_idx = 0; vout_idx < tx->vout.size(); ++vout_idx) {
+                const auto& vout = tx->vout.at(vout_idx);
+                if (scripts_to_watch.contains(vout.scriptPubKey)) {
+                    activity.push_back(
+                        AddReceive(vout, location, vout_idx, tx));
+                }
+            }
+        }
+    };
+
+    if (child_blocks) {
+        for (const auto& child_block : child_blocks->blocks) {
+            Assume(child_block.block);
+            Assume(child_block.undo);
+            ScanBlockActivity(
+                *child_block.block,
+                child_block.undo->coins,
+                {child_block.block_hash, child_block.height});
+        }
+        ret.pushKV("activity", activity);
+        ret.pushKV("chain_id", child_blocks->entry.chain_id.GetHex());
+        return ret;
+    }
 
     BlockManager* blockman;
     Chainstate& active_chainstate = chainman.ActiveChainstate();
@@ -3620,31 +3707,9 @@ static RPCHelpMan getdescriptoractivity()
     for (const CBlockIndex* blockindex : blockindexes_sorted) {
         const CBlock block{GetBlockChecked(chainman.m_blockman, *blockindex)};
         const CBlockUndo block_undo{GetUndoChecked(*blockman, *blockindex)};
-
-        for (size_t i = 0; i < block.vtx.size(); ++i) {
-            const auto& tx = block.vtx.at(i);
-
-            if (!tx->IsCoinBase()) {
-                // skip coinbase; spends can't happen there.
-                const auto& txundo = block_undo.vtxundo.at(i - 1);
-
-                for (size_t vin_idx = 0; vin_idx < tx->vin.size(); ++vin_idx) {
-                    const auto& coin = txundo.vprevout.at(vin_idx);
-                    const auto& txin = tx->vin.at(vin_idx);
-                    if (scripts_to_watch.contains(coin.out.scriptPubKey)) {
-                        activity.push_back(AddSpend(
-                                    coin.out.scriptPubKey, coin.out.nValue, tx, vin_idx, txin, blockindex));
-                    }
-                }
-            }
-
-            for (size_t vout_idx = 0; vout_idx < tx->vout.size(); ++vout_idx) {
-                const auto& vout = tx->vout.at(vout_idx);
-                if (scripts_to_watch.contains(vout.scriptPubKey)) {
-                    activity.push_back(AddReceive(vout, blockindex, vout_idx, tx));
-                }
-            }
-        }
+        ScanBlockActivity(
+            block, block_undo,
+            {blockindex->GetBlockHash(), blockindex->nHeight});
     }
 
     bool search_mempool = true;
@@ -3689,14 +3754,14 @@ static RPCHelpMan getdescriptoractivity()
                 if (scripts_to_watch.contains(scriptPubKey)) {
                     UniValue event(UniValue::VOBJ);
                     activity.push_back(AddSpend(
-                                scriptPubKey, value, tx, vin_idx, txin, nullptr));
+                                scriptPubKey, value, tx, vin_idx, txin, std::nullopt));
                 }
             }
 
             for (size_t vout_idx = 0; vout_idx < tx->vout.size(); ++vout_idx) {
                 const auto& vout = tx->vout.at(vout_idx);
                 if (scripts_to_watch.contains(vout.scriptPubKey)) {
-                    activity.push_back(AddReceive(vout, nullptr, vout_idx, tx));
+                    activity.push_back(AddReceive(vout, std::nullopt, vout_idx, tx));
                 }
             }
         }

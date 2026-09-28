@@ -405,6 +405,13 @@ BOOST_AUTO_TEST_CASE(blockchain_rpc_routes_explicit_child_chain)
             return std::string_view{error.what()}.find("not loaded") !=
                    std::string_view::npos;
         });
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("getdescriptoractivity [] [] false " + chain_id),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find("not loaded") !=
+                   std::string_view::npos;
+        });
     BOOST_CHECK(CallRPC("scantxoutset status").isNull());
     BOOST_CHECK_EXCEPTION(
         CallRPC("getbestblockhash " + std::string(64, '0')),
@@ -688,6 +695,48 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
             return std::string_view{error.what()}.find(
                        "Invalid start_height or stop_height") !=
                    std::string_view::npos;
+        });
+    const auto child_activity{CallRPC(
+        "getdescriptoractivity [\"" + child_block.GetHash().GetHex() +
+        "\"] " + child_scan_object + " true " + chain_id)};
+    BOOST_CHECK_EQUAL(
+        child_activity.find_value("chain_id").get_str(), chain_id);
+    const UniValue& activity{child_activity.find_value("activity")};
+    BOOST_REQUIRE_EQUAL(activity.size(), 1U);
+    BOOST_CHECK_EQUAL(activity[0].find_value("type").get_str(), "receive");
+    BOOST_CHECK_EQUAL(
+        activity[0].find_value("blockhash").get_str(),
+        child_block.GetHash().GetHex());
+    BOOST_CHECK_EQUAL(activity[0].find_value("height").getInt<int>(), 1);
+    BOOST_CHECK_EQUAL(
+        activity[0].find_value("txid").get_str(),
+        child_block.vtx.front()->GetHash().GetHex());
+    BOOST_CHECK_EQUAL(activity[0].find_value("vout").getInt<int>(), 0);
+    BOOST_CHECK_EQUAL(
+        activity[0].find_value("output_spk").find_value("hex").get_str(),
+        HexStr(child_block.vtx.front()->vout.front().scriptPubKey));
+    const auto duplicate_child_activity{CallRPC(
+        "getdescriptoractivity [\"" + child_block.GetHash().GetHex() +
+        "\",\"" + child_block.GetHash().GetHex() + "\"] " +
+        child_scan_object + " false " + chain_id)};
+    BOOST_CHECK_EQUAL(
+        duplicate_child_activity.find_value("activity").size(), 1U);
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("getdescriptoractivity [\"" +
+                definition.genesis_hash.GetHex() + "\"] " +
+                child_scan_object + " false " + chain_id),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find(
+                       "virtual child genesis") != std::string_view::npos;
+        });
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("getdescriptoractivity [\"" + std::string(64, 'f') +
+                "\"] " + child_scan_object + " false " + chain_id),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find(
+                       "Child block not found") != std::string_view::npos;
         });
     const auto child_info{CallRPC("getblockchaininfo " + chain_id)};
     BOOST_CHECK_EQUAL(child_info.find_value("blocks").getInt<int>(), 1);

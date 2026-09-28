@@ -6,7 +6,9 @@
 
 #include <dbwrapper.h>
 
+#include <algorithm>
 #include <limits>
+#include <set>
 #include <utility>
 
 namespace node {
@@ -594,6 +596,56 @@ ChainManagerBlockView ChainManager::GetTipBlockView(
     const CBlockIndex* tip{loaded->second->Tip()};
     Assume(tip);
     return GetBlockViewLocked(chain_id, tip->GetBlockHash());
+}
+
+ChainManagerActiveBlocksView ChainManager::GetActiveBlockViews(
+    const chainregistry::ChainId& chain_id,
+    std::span<const uint256> block_hashes) const
+{
+    LOCK(m_mutex);
+    ChainManagerActiveBlocksView result;
+    if (chain_id.IsNull()) {
+        result.error = ChainManagerActiveBlocksViewError::NULL_CHAIN_ID;
+        return result;
+    }
+    if (!m_definitions.contains(chain_id)) {
+        result.error = ChainManagerActiveBlocksViewError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto loaded{m_loaded.find(chain_id)};
+    if (loaded == m_loaded.end()) {
+        result.error = ChainManagerActiveBlocksViewError::CHAIN_NOT_LOADED;
+        return result;
+    }
+
+    const ChainManagerView chain_view{GetChainViewLocked(chain_id)};
+    Assume(chain_view.IsValid());
+    result.entry = chain_view.entry;
+
+    std::set<uint256> seen;
+    for (const uint256& block_hash : block_hashes) {
+        if (!seen.insert(block_hash).second) continue;
+        const auto block{loaded->second->GetBlockView(block_hash)};
+        if (!block) {
+            result.error = ChainManagerActiveBlocksViewError::BLOCK_NOT_FOUND;
+            return result;
+        }
+        if (block->virtual_genesis) {
+            result.error = ChainManagerActiveBlocksViewError::VIRTUAL_GENESIS;
+            return result;
+        }
+        if (!block->active) {
+            result.error = ChainManagerActiveBlocksViewError::BLOCK_NOT_ACTIVE;
+            return result;
+        }
+        if (!block->block || !block->undo) {
+            result.error = ChainManagerActiveBlocksViewError::DATA_UNAVAILABLE;
+            return result;
+        }
+        result.blocks.push_back(*block);
+    }
+    std::ranges::sort(result.blocks, {}, &ReferenceChildBlockView::height);
+    return result;
 }
 
 ChainManagerBlockView ChainManager::GetBlockViewLocked(

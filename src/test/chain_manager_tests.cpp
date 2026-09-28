@@ -151,6 +151,19 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
     BOOST_REQUIRE(tip_block_view.IsValid());
     BOOST_CHECK(tip_block_view.block.block_hash == first.genesis_hash);
     BOOST_CHECK(tip_block_view.block.virtual_genesis);
+    const auto empty_active_blocks{
+        manager.GetActiveBlockViews(first.chain_id, {})};
+    BOOST_REQUIRE(empty_active_blocks.IsValid());
+    BOOST_CHECK(empty_active_blocks.blocks.empty());
+    BOOST_CHECK(empty_active_blocks.entry.chain_id == first.chain_id);
+    const std::array<uint256, 1> genesis_hashes{first.genesis_hash};
+    BOOST_CHECK(
+        manager.GetActiveBlockViews(first.chain_id, genesis_hashes).error ==
+        node::ChainManagerActiveBlocksViewError::VIRTUAL_GENESIS);
+    const std::array<uint256, 1> unknown_hashes{uint256{42}};
+    BOOST_CHECK(
+        manager.GetActiveBlockViews(first.chain_id, unknown_hashes).error ==
+        node::ChainManagerActiveBlocksViewError::BLOCK_NOT_FOUND);
     const auto chain_tips{manager.GetChainTipsView(first.chain_id)};
     BOOST_REQUIRE(chain_tips.IsValid());
     BOOST_REQUIRE_EQUAL(chain_tips.tips.size(), 1U);
@@ -190,6 +203,11 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
         node::ChainManagerCoinViewError::CHAIN_NOT_LOADED);
     BOOST_CHECK(manager.GetTipBlockView(second.chain_id).error ==
                 node::ChainManagerBlockViewError::CHAIN_NOT_LOADED);
+    BOOST_CHECK(manager.GetActiveBlockViews(second.chain_id, {}).error ==
+                node::ChainManagerActiveBlocksViewError::CHAIN_NOT_LOADED);
+    BOOST_CHECK(
+        manager.GetActiveBlockViews(chainregistry::ChainId{}, {}).error ==
+        node::ChainManagerActiveBlocksViewError::NULL_CHAIN_ID);
     BOOST_CHECK(manager.GetChainTipsView(second.chain_id).error ==
                 node::ChainManagerTipsViewError::CHAIN_NOT_LOADED);
     BOOST_CHECK(manager.GetUTXOStatsView(
