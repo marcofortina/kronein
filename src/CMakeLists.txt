@@ -102,6 +102,7 @@ add_library(bitcoin_common STATIC EXCLUDE_FROM_ALL
   chainregistry/child_import.cpp
   chainregistry/child_net.cpp
   chainregistry/child_psbt.cpp
+  chainregistry/child_psbt_sign.cpp
   chainregistry/child_sign.cpp
   chainregistry/child_sighash.cpp
   chainregistry/child_template.cpp

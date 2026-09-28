@@ -50,6 +50,7 @@ add_executable(test_bitcoin
   child_net_events_tests.cpp
   child_network_manager_tests.cpp
   child_psbt_tests.cpp
+  child_psbt_sign_tests.cpp
   child_sighash_tests.cpp
   child_template_tests.cpp
   child_chain_db_tests.cpp
