@@ -697,8 +697,10 @@ RPCHelpMan sendall();
 RPCHelpMan walletprocesspsbt();
 RPCHelpMan walletcreatefundedpsbt();
 RPCHelpMan walletcreatefundchainpsbt();
+RPCHelpMan walletcreatechildanchorpsbt();
 RPCHelpMan walletcreatechainregistrypsbt();
 RPCHelpMan walletsubmitfundchainpsbt();
+RPCHelpMan walletsubmitchildanchorpsbt();
 RPCHelpMan walletsubmitchainregistrypsbt();
 RPCHelpMan signrawtransactionwithwallet();
 
@@ -764,9 +766,11 @@ std::span<const CRPCCommand> GetWalletRPCCommands()
         {"wallet", &simulaterawtransaction},
         {"wallet", &sendall},
         {"wallet", &unloadwallet},
+        {"wallet", &walletcreatechildanchorpsbt},
         {"wallet", &walletcreatefundchainpsbt},
         {"wallet", &walletcreatechainregistrypsbt},
         {"wallet", &walletcreatefundedpsbt},
+        {"wallet", &walletsubmitchildanchorpsbt},
         {"wallet", &walletsubmitfundchainpsbt},
         {"wallet", &walletsubmitchainregistrypsbt},
 #ifdef ENABLE_EXTERNAL_SIGNER

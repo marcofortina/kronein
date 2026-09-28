@@ -29,6 +29,8 @@ class ChainRegistryTest(BitcoinTestFramework):
             "-chaindepositactivationheight=1",
             "-chaindepositminimumamount=0.01",
             "-chaindepositmaxperblock=8",
+            "-chainbmmactivationheight=1",
+            "-chainbmmmaxanchorsperblock=4",
         ]
         self.extra_args = [registry_args.copy(), registry_args.copy()]
 
@@ -664,6 +666,42 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_raises_rpc_error(
             -26, "no authenticated pending BMM anchor commits to this child block",
             node.submitchildblock, chain_id, child_block["block"])
+
+        self.log.info("Fund and publish the recurring main-chain BMM security bid")
+        anchor_psbt = wallet.walletcreatechildanchorpsbt(
+            chain_id, child_block["blockhash"], {"fee_rate": 1})
+        assert_equal(anchor_psbt["chain_id"], chain_id)
+        assert_equal(anchor_psbt["child_block_hash"], child_block["blockhash"])
+        assert_equal(anchor_psbt["anchor_vout"], 0)
+        assert_equal(anchor_psbt["anchor_script"], child_block["bmm_anchor_script"])
+        assert anchor_psbt["security_bid"] > 0
+        decoded_anchor_psbt = node.decodepsbt(anchor_psbt["psbt"])["tx"]
+        assert_equal(decoded_anchor_psbt["vout"][0]["value"], Decimal("0.00000000"))
+        assert_equal(decoded_anchor_psbt["vout"][0]["scriptPubKey"]["hex"],
+                     child_block["bmm_anchor_script"])
+        assert_raises_rpc_error(
+            -8, "does not match the authorized chain_id and child_block_hash",
+            wallet.walletsubmitchildanchorpsbt,
+            anchor_psbt["psbt"], chain_id, "01" * 32, Decimal("1.00000000"))
+        assert_raises_rpc_error(
+            -8, "exceeds authorized maximum",
+            wallet.walletsubmitchildanchorpsbt,
+            anchor_psbt["psbt"], chain_id, child_block["blockhash"], 0)
+        submitted_anchor = wallet.walletsubmitchildanchorpsbt(
+            anchor_psbt["psbt"],
+            chain_id,
+            child_block["blockhash"],
+            Decimal("1.00000000"))
+        assert_equal(submitted_anchor["chain_id"], chain_id)
+        assert_equal(submitted_anchor["child_block_hash"], child_block["blockhash"])
+        assert_equal(submitted_anchor["vout"], 0)
+        assert_equal(submitted_anchor["security_bid"], anchor_psbt["security_bid"])
+        assert_equal(node.decoderawtransaction(submitted_anchor["hex"])["txid"],
+                     submitted_anchor["txid"])
+        assert_equal(node.getmempoolentry(submitted_anchor["txid"])["fees"]["base"],
+                     submitted_anchor["security_bid"])
+        anchor_block = self.generatetoaddress(node, 1, wallet.getnewaddress())[0]
+        mature_deposit_tip = anchor_block
 
         successor_address = wallet.getnewaddress()
         update_psbt = wallet.walletcreatechainregistrypsbt("update", {

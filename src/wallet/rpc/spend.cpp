@@ -11,6 +11,7 @@
 #include <key_io.h>
 #include <node/types.h>
 #include <policy/policy.h>
+#include <primitives/bmm.h>
 #include <primitives/chainregistry.h>
 #include <primitives/deposit.h>
 #include <rpc/rawtransaction_util.h>
@@ -83,6 +84,16 @@ static chainregistry::MetadataHash ParseRegistryMetadataHash(const UniValue& val
                            "metadata_hash must be exactly 32 non-null bytes encoded as hexadecimal");
     }
     return *metadata_hash;
+}
+
+static uint256 ParseChildBlockHash(const UniValue& value)
+{
+    const uint256 hash{ParseHashV(value, "child_block_hash")};
+    if (hash.IsNull()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child_block_hash must not be null");
+    }
+    return hash;
 }
 
 static chainregistry::FundChain ParseFundDestination(const UniValue& chain_id_arg,
@@ -2164,6 +2175,329 @@ RPCHelpMan walletsubmitfundchainpsbt()
     result.pushKV("irreversible", true);
     return result;
 }
+    };
+}
+
+RPCHelpMan walletcreatechildanchorpsbt()
+{
+    return RPCHelpMan{
+        "walletcreatechildanchorpsbt",
+        "Create and fund an unsigned main-chain PSBT committing to one child block through BMM.\n"
+        "The canonical zero-valued KBMM output is fixed at vout[0]. The transaction fee is the recurring security bid paid to the main-chain miner; this RPC does not sign or broadcast.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Exact non-null child-chain identifier"},
+            {"child_block_hash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Exact non-null child block hash to anchor"},
+            {"options", RPCArg::Type::OBJ_NAMED_PARAMS, RPCArg::Optional::OMITTED, "Funding options; fee_rate controls the BMM security bid. The anchor output cannot be altered by fee subtraction.", FundTxDoc(), RPCArgOptions{.oneline_description="options"}},
+            {"bip32derivs", RPCArg::Type::BOOL, RPCArg::Default{true}, "Include known BIP32 derivation paths"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Funded, unsigned BMM anchor transaction", {
+            {RPCResult::Type::STR, "psbt", "Base64-encoded PSBT"},
+            {RPCResult::Type::STR_AMOUNT, "security_bid", "Transaction fee offered to the main-chain miner in KNE"},
+            {RPCResult::Type::NUM, "changepos", "Change output position, or -1"},
+            {RPCResult::Type::NUM, "anchor_vout", "KBMM output index; always 0"},
+            {RPCResult::Type::STR_HEX, "anchor_script", "Canonical zero-valued KBMM script"},
+            {RPCResult::Type::STR_HEX, "chain_id", "Anchored child-chain identifier"},
+            {RPCResult::Type::STR_HEX, "child_block_hash", "Anchored child block hash"},
+            {RPCResult::Type::STR_HEX, "registry_bestblockhash", "Registry tip against which the PSBT was created"},
+            {RPCResult::Type::NUM, "registry_height", "Registry tip height"},
+            {RPCResult::Type::STR_HEX, "registry_root", "Registry root at that tip"},
+        }},
+        RPCExamples{
+            HelpExampleCli(
+                "walletcreatechildanchorpsbt",
+                "\"1111111111111111111111111111111111111111111111111111111111111111\" \"2222222222222222222222222222222222222222222222222222222222222222\" '{\"fee_rate\":2}'")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const std::shared_ptr<CWallet> wallet_ptr{GetWalletForJSONRPCRequest(request)};
+    if (!wallet_ptr) return UniValue::VNULL;
+    CWallet& wallet{*wallet_ptr};
+    wallet.BlockUntilSyncedToCurrentChain();
+
+    const chainregistry::ChainId chain_id{
+        ParseRegistryChainId(self.Arg<UniValue>("chain_id"))};
+    const uint256 child_block_hash{
+        ParseChildBlockHash(self.Arg<UniValue>("child_block_hash"))};
+    const interfaces::ChainRegistrySnapshot snapshot{
+        wallet.chain().getChainRegistrySnapshot(chain_id)};
+    if (!snapshot.enabled || !snapshot.bmm_enabled) {
+        throw JSONRPCError(RPC_MISC_ERROR,
+                           "child-chain BMM is disabled on this network");
+    }
+    if (!snapshot.active_for_next_block ||
+        !snapshot.bmm_active_for_next_block) {
+        throw JSONRPCError(RPC_MISC_ERROR,
+                           "child-chain BMM is not active for the next block");
+    }
+    if (!snapshot.record) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "chain_id is not registered");
+    }
+    if (snapshot.record->status != chainregistry::ChainStatus::ACTIVE) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "child chain is retired");
+    }
+
+    const chainregistry::BmmAnchor anchor{
+        .chain_id = chain_id,
+        .child_block_hash = child_block_hash,
+    };
+    const CScript anchor_script{chainregistry::BuildBmmAnchorScript(anchor)};
+    std::vector<CRecipient> recipients{
+        CRecipient{CNoDestination{anchor_script}, 0, false}};
+    UniValue options{request.params[2].isNull()
+                         ? UniValue::VOBJ
+                         : request.params[2].get_obj()};
+    for (const std::string_view forbidden : {
+             "change_position", "subtract_fee_from_outputs", "inputs", "input_weights"}) {
+        if (options.exists(std::string{forbidden})) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                strprintf("options.%s cannot override BMM anchor structure",
+                          forbidden));
+        }
+    }
+    options.pushKV("add_inputs", true);
+    options.pushKV("change_position", 1);
+
+    CMutableTransaction raw_tx;
+    CCoinControl coin_control;
+    coin_control.m_allow_other_inputs = true;
+    auto tx_result{FundTransaction(
+        wallet,
+        raw_tx,
+        recipients,
+        options,
+        coin_control,
+        /*override_min_fee=*/true)};
+    if (tx_result.tx->vout.empty() || tx_result.tx->vout[0].nValue != 0 ||
+        tx_result.tx->vout[0].scriptPubKey != anchor_script) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR,
+                           "wallet changed reserved BMM anchor output");
+    }
+
+    PartiallySignedTransaction psbt{CMutableTransaction{*tx_result.tx}};
+    const bool bip32_derivs{self.Arg<bool>("bip32derivs")};
+    bool complete{true};
+    if (const auto error{wallet.FillPSBT(
+            psbt,
+            {.sign = false, .bip32_derivs = bip32_derivs},
+            complete)}) {
+        throw JSONRPCPSBTError(*error);
+    }
+    DataStream stream;
+    stream << psbt;
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("psbt", EncodeBase64(stream.str()));
+    result.pushKV("security_bid", ValueFromAmount(tx_result.fee));
+    result.pushKV("changepos", tx_result.change_pos
+                                   ? static_cast<int>(*tx_result.change_pos)
+                                   : -1);
+    result.pushKV("anchor_vout", 0);
+    result.pushKV("anchor_script", HexStr(anchor_script));
+    result.pushKV("chain_id", chain_id.GetHex());
+    result.pushKV("child_block_hash", child_block_hash.GetHex());
+    result.pushKV("registry_bestblockhash", snapshot.best_block.GetHex());
+    result.pushKV("registry_height", snapshot.height);
+    result.pushKV("registry_root", snapshot.registry_root.GetHex());
+    return result;
+},
+    };
+}
+
+RPCHelpMan walletsubmitchildanchorpsbt()
+{
+    return RPCHelpMan{
+        "walletsubmitchildanchorpsbt",
+        "Validate, sign, finalize, and broadcast one main-chain BMM anchor PSBT.\n"
+        "The caller binds authorization to the exact chain and child block hash and caps the transaction fee used as the security bid.\n" +
+        HELP_REQUIRING_PASSPHRASE,
+        {
+            {"psbt", RPCArg::Type::STR, RPCArg::Optional::NO, "Base64-encoded BMM anchor PSBT"},
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Exact authorized child-chain identifier"},
+            {"child_block_hash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Exact authorized child block hash"},
+            {"max_security_bid", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "Maximum transaction fee authorized as the BMM security bid"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Submitted BMM anchor", {
+            {RPCResult::Type::STR_HEX, "txid", "Main-chain anchor transaction identifier"},
+            {RPCResult::Type::STR_HEX, "hex", "Final main-chain transaction"},
+            {RPCResult::Type::NUM, "vout", "KBMM output index; always 0"},
+            {RPCResult::Type::STR_HEX, "chain_id", "Anchored child-chain identifier"},
+            {RPCResult::Type::STR_HEX, "child_block_hash", "Anchored child block hash"},
+            {RPCResult::Type::STR_AMOUNT, "security_bid", "Transaction fee paid to the including main-chain miner"},
+        }},
+        RPCExamples{
+            HelpExampleCli(
+                "walletsubmitchildanchorpsbt",
+                "\"cHNidP8...\" \"1111111111111111111111111111111111111111111111111111111111111111\" \"2222222222222222222222222222222222222222222222222222222222222222\" 0.01")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const chainregistry::ChainId expected_chain_id{
+        ParseRegistryChainId(self.Arg<UniValue>("chain_id"))};
+    const uint256 expected_child_block_hash{
+        ParseChildBlockHash(self.Arg<UniValue>("child_block_hash"))};
+    const CAmount maximum_bid{
+        AmountFromValue(self.Arg<UniValue>("max_security_bid"))};
+    const std::shared_ptr<CWallet> wallet_ptr{GetWalletForJSONRPCRequest(request)};
+    if (!wallet_ptr) return UniValue::VNULL;
+    CWallet& wallet{*wallet_ptr};
+    wallet.BlockUntilSyncedToCurrentChain();
+
+    const interfaces::ChainRegistrySnapshot snapshot{
+        wallet.chain().getChainRegistrySnapshot(expected_chain_id)};
+    if (!snapshot.enabled || !snapshot.bmm_enabled) {
+        throw JSONRPCError(RPC_MISC_ERROR,
+                           "child-chain BMM is disabled on this network");
+    }
+    if (!snapshot.active_for_next_block ||
+        !snapshot.bmm_active_for_next_block) {
+        throw JSONRPCError(RPC_MISC_ERROR,
+                           "child-chain BMM is not active for the next block");
+    }
+    if (!snapshot.record) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "chain_id is not registered");
+    }
+    if (snapshot.record->status != chainregistry::ChainStatus::ACTIVE) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "child chain is retired");
+    }
+
+    auto decoded{DecodeBase64PSBT(
+        std::string{self.Arg<std::string_view>("psbt")})};
+    if (!decoded) {
+        throw JSONRPCError(
+            RPC_DESERIALIZATION_ERROR,
+            strprintf("PSBT decode failed: %s",
+                      util::ErrorString(decoded).original));
+    }
+    PartiallySignedTransaction psbt{std::move(*decoded)};
+    const auto unsigned_tx{psbt.GetUnsignedTx()};
+    if (!unsigned_tx) {
+        throw JSONRPCError(
+            RPC_DESERIALIZATION_ERROR,
+            "PSBT does not contain a complete unsigned transaction");
+    }
+    const CTransaction tx_template{*unsigned_tx};
+    const auto extracted{
+        chainregistry::ExtractTransactionBmmAnchor(tx_template)};
+    if (!extracted.IsValid() || !extracted.anchor ||
+        extracted.output_index != 0) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "PSBT must contain exactly one valid BMM anchor at vout[0]");
+    }
+    if (extracted.anchor->chain_id != expected_chain_id ||
+        extracted.anchor->child_block_hash != expected_child_block_hash) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "PSBT BMM anchor does not match the authorized chain_id and child_block_hash");
+    }
+    for (size_t index{1}; index < tx_template.vout.size(); ++index) {
+        if (tx_template.vout[index].scriptPubKey.IsUnspendable()) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "PSBT contains an additional unspendable output");
+        }
+    }
+
+    CAmount input_value{0};
+    {
+        LOCK(wallet.cs_wallet);
+        for (const auto& input : tx_template.vin) {
+            const CWalletTx* wallet_tx{
+                wallet.GetWalletTx(input.prevout.hash)};
+            if (!wallet_tx || input.prevout.n >= wallet_tx->tx->vout.size() ||
+                !wallet.IsMine(wallet_tx->tx->vout[input.prevout.n])) {
+                throw JSONRPCError(
+                    RPC_INVALID_PARAMETER,
+                    strprintf("PSBT input %s:%d is not owned by this wallet",
+                              input.prevout.hash.ToString(),
+                              input.prevout.n));
+            }
+            const CAmount value{
+                wallet_tx->tx->vout[input.prevout.n].nValue};
+            if (!MoneyRange(value) ||
+                !MoneyRange(input_value + value)) {
+                throw JSONRPCError(RPC_DESERIALIZATION_ERROR,
+                                   "PSBT input value is out of range");
+            }
+            input_value += value;
+        }
+    }
+    CAmount output_value{0};
+    for (const auto& output : tx_template.vout) {
+        if (!MoneyRange(output.nValue) ||
+            !MoneyRange(output_value + output.nValue)) {
+            throw JSONRPCError(RPC_DESERIALIZATION_ERROR,
+                               "PSBT output value is out of range");
+        }
+        output_value += output.nValue;
+    }
+    const CAmount security_bid{input_value - output_value};
+    if (security_bid < 0) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR,
+                           "PSBT transaction fee is negative");
+    }
+    if (security_bid > maximum_bid) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("security bid %s KNE exceeds authorized maximum %s KNE",
+                      FormatMoney(security_bid),
+                      FormatMoney(maximum_bid)));
+    }
+    if (security_bid > wallet.m_default_max_tx_fee) {
+        throw JSONRPCError(
+            RPC_WALLET_ERROR,
+            TransactionErrorString(
+                TransactionError::MAX_FEE_EXCEEDED).original);
+    }
+
+    EnsureWalletIsUnlocked(wallet);
+    bool complete{false};
+    if (const auto error{wallet.FillPSBT(
+            psbt,
+            {.sign = true, .finalize = true, .bip32_derivs = false},
+            complete)}) {
+        throw JSONRPCPSBTError(*error);
+    }
+    if (!complete) {
+        throw JSONRPCError(
+            RPC_WALLET_ERROR,
+            "wallet could not sign and finalize every BMM anchor input");
+    }
+
+    CMutableTransaction final_tx;
+    if (!FinalizeAndExtractPSBT(psbt, final_tx)) {
+        throw JSONRPCError(
+            RPC_WALLET_ERROR,
+            "failed to extract finalized BMM anchor transaction");
+    }
+    const std::string hex{EncodeHexTx(CTransaction{final_tx})};
+    const CTransactionRef transaction{
+        MakeTransactionRef(std::move(final_tx))};
+    std::string broadcast_error;
+    if (!wallet.chain().broadcastTransaction(
+            transaction,
+            wallet.m_default_max_tx_fee,
+            node::TxBroadcast::MEMPOOL_AND_BROADCAST_TO_ALL,
+            broadcast_error)) {
+        throw JSONRPCError(
+            RPC_VERIFY_REJECTED,
+            strprintf("BMM anchor transaction rejected: %s",
+                      broadcast_error));
+    }
+    wallet.CommitTransaction(transaction, {}, /*orderForm=*/{});
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("txid", transaction->GetHash().GetHex());
+    result.pushKV("hex", hex);
+    result.pushKV("vout", 0);
+    result.pushKV("chain_id", expected_chain_id.GetHex());
+    result.pushKV("child_block_hash", expected_child_block_hash.GetHex());
+    result.pushKV("security_bid", ValueFromAmount(security_bid));
+    return result;
+},
     };
 }
 
