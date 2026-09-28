@@ -10,21 +10,23 @@ from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
+    child_port,
 )
 
 
 class ChainRegistryTest(BitcoinTestFramework):
     def set_test_params(self):
-        self.num_nodes = 1
+        self.num_nodes = 2
         self.setup_clean_chain = True
-        self.extra_args = [[
+        registry_args = [
             "-chainregistryactivationheight=1",
             "-chainregistryminregistrationburn=1",
             "-chainregistrymaxoperations=4",
             "-chaindepositactivationheight=1",
             "-chaindepositminimumamount=0.01",
             "-chaindepositmaxperblock=8",
-        ]]
+        ]
+        self.extra_args = [registry_args.copy(), registry_args.copy()]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -229,6 +231,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         registration_txid = submitted_registration["txid"]
         assert_equal(registration_txid, decoded_registration_tx["txid"])
         registration_block = self.generatetoaddress(node, 1, wallet.getnewaddress())[0]
+        self.sync_blocks()
 
         chain_id = registration_psbt["chain_id"]
         registered = node.getchildchain(chain_id, True)
@@ -262,7 +265,9 @@ class ChainRegistryTest(BitcoinTestFramework):
         failed_runtime = node.listchildchainruntimes()["chains"][0]
         assert_equal(failed_runtime["loaded"], False)
         assert_equal(failed_runtime["network_running"], False)
-        loaded = node.loadchildchain(chain_id)
+        child_endpoint = f"127.0.0.1:{child_port(0)}"
+        loaded = node.loadchildchain(
+            chain_id, {"bind": [child_endpoint]})
         assert_equal(loaded["loaded"], True)
         assert_equal(loaded["already_loaded"], False)
         assert_equal(loaded["height"], 0)
@@ -275,10 +280,13 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(loaded["connections"], 0)
         assert_equal(loaded["handshaken_peers"], 0)
         assert_equal(loaded["added_nodes"], [])
+        assert_equal(loaded["binds"], [child_endpoint])
         network_info = node.getchildnetworkinfo(chain_id)
         assert_equal(network_info["chain_id"], chain_id)
         assert_equal(network_info["network_running"], True)
         assert_equal(network_info["max_added_nodes"], 8)
+        assert_equal(network_info["max_bind_endpoints"], 4)
+        assert_equal(network_info["binds"], [child_endpoint])
         paused = node.setchildnetworkactive(chain_id, False)
         assert_equal(paused["network_active"], False)
         endpoint = "127.0.0.1:29999"
@@ -294,6 +302,23 @@ class ChainRegistryTest(BitcoinTestFramework):
             node.removechildnode, chain_id, endpoint)
         resumed = node.setchildnetworkactive(chain_id, True)
         assert_equal(resumed["network_active"], True)
+
+        self.log.info("Accept and authenticate an isolated child-network peer")
+        peer_node = self.nodes[1]
+        configured_peer = peer_node.addchildchain(
+            registration_anchor, reference_child["manifest"])
+        assert_equal(configured_peer["chain_id"], chain_id)
+        peer_loaded = peer_node.loadchildchain(
+            chain_id, {"connect": [child_endpoint]})
+        assert_equal(peer_loaded["binds"], [])
+        assert_equal(peer_loaded["added_nodes"], [child_endpoint])
+        self.wait_until(
+            lambda: node.getchildnetworkinfo(chain_id)["handshaken_peers"] == 1)
+        self.wait_until(
+            lambda: peer_node.getchildnetworkinfo(chain_id)["handshaken_peers"] == 1)
+        assert_equal(node.getchildnetworkinfo(chain_id)["connections"], 1)
+        assert_equal(peer_node.getchildnetworkinfo(chain_id)["connections"], 1)
+        assert_equal(peer_node.unloadchildchain(chain_id)["network_running"], False)
         main_height = node.getblockcount()
         main_tip = node.getbestblockhash()
         assert_equal(node.getblockcount(chain_id), 0)
@@ -316,6 +341,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(stopped_network["network_running"], False)
         assert_equal(stopped_network["network_active"], True)
         assert_equal(stopped_network["added_nodes"], [])
+        assert_equal(stopped_network["binds"], [child_endpoint])
         assert_raises_rpc_error(-1, "child chain is not loaded",
                                 node.getblockcount, chain_id)
         forgotten = node.forgetchildchain(chain_id)
@@ -330,6 +356,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(reloaded["bestblockhash"], reference_child["genesis_hash"])
         assert_equal(reloaded["main_height"], node.getblockcount())
         assert_equal(reloaded["main_bestblockhash"], node.getbestblockhash())
+        assert_equal(reloaded["binds"], [child_endpoint])
         assert_raises_rpc_error(-8, "chain_id must not be null",
                                 node.loadchildchain, "00" * 32)
 
@@ -552,7 +579,8 @@ class ChainRegistryTest(BitcoinTestFramework):
         node = self.nodes[0]
         node.loadwallet("registry")
         wallet = node.get_wallet_rpc("registry")
-        self.generatetoaddress(node, 500, wallet.getnewaddress())
+        self.generatetoaddress(
+            node, 500, wallet.getnewaddress(), sync_fun=lambda: None)
         prune_target = node.getblockcount() - 288
         assert node.pruneblockchain(prune_target) > 0
         blockchain_info = node.getblockchaininfo()

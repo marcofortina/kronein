@@ -28,7 +28,7 @@
 namespace node {
 namespace {
 
-constexpr uint32_t CHILD_NETWORK_CONFIG_VERSION{1};
+constexpr uint32_t CHILD_NETWORK_CONFIG_VERSION{2};
 constexpr const char* CHILD_NETWORK_CONFIG_FILENAME{"config.json"};
 
 ChildNetworkResult NetworkError(ChildNetworkError error,
@@ -68,6 +68,43 @@ ChildNetworkResult ValidateEndpoints(
     return {};
 }
 
+struct ParsedBindEndpoints {
+    ChildNetworkResult result;
+    std::vector<CService> services;
+};
+
+ParsedBindEndpoints ParseBindEndpoints(
+    const std::vector<std::string>& endpoints)
+{
+    ParsedBindEndpoints parsed;
+    if (endpoints.size() > MAX_CHILD_BIND_ENDPOINTS) {
+        parsed.result = NetworkError(
+            ChildNetworkError::TOO_MANY_BIND_ENDPOINTS);
+        return parsed;
+    }
+    parsed.services.reserve(endpoints.size());
+    for (const std::string& endpoint : endpoints) {
+        if (!IsExplicitEndpoint(endpoint)) {
+            parsed.result = NetworkError(
+                ChildNetworkError::INVALID_BIND_ENDPOINT, endpoint);
+            return parsed;
+        }
+        const auto service{Lookup(
+            endpoint,
+            /*default_port=*/0,
+            /*fAllowLookup=*/false)};
+        if (!service || service->GetPort() == 0 ||
+            std::find(parsed.services.begin(), parsed.services.end(), *service) !=
+                parsed.services.end()) {
+            parsed.result = NetworkError(
+                ChildNetworkError::INVALID_BIND_ENDPOINT, endpoint);
+            return parsed;
+        }
+        parsed.services.push_back(*service);
+    }
+    return parsed;
+}
+
 struct LoadedNetworkConfig {
     ChildNetworkResult result;
     ChildNetworkConfig config;
@@ -89,11 +126,22 @@ LoadedNetworkConfig ReadNetworkConfig(const fs::path& path)
     const auto version{values.find("version")};
     const auto network_active{values.find("network_active")};
     const auto connect{values.find("connect")};
-    if (values.size() != 3 || version == values.end() ||
-        network_active == values.end() || connect == values.end() ||
-        !version->second.isNum() ||
-        version->second.getInt<int64_t>() != CHILD_NETWORK_CONFIG_VERSION ||
+    const auto bind{values.find("bind")};
+    if (version == values.end() || network_active == values.end() ||
+        connect == values.end() || !version->second.isNum() ||
         !network_active->second.isBool() || !connect->second.isArray()) {
+        loaded.result = NetworkError(
+            ChildNetworkError::CONFIG_INVALID,
+            fs::PathToString(path));
+        return loaded;
+    }
+    const int64_t config_version{version->second.getInt<int64_t>()};
+    const bool version_1{config_version == 1 && values.size() == 3 &&
+                         bind == values.end()};
+    const bool version_2{
+        config_version == CHILD_NETWORK_CONFIG_VERSION && values.size() == 4 &&
+        bind != values.end() && bind->second.isArray()};
+    if (!version_1 && !version_2) {
         loaded.result = NetworkError(
             ChildNetworkError::CONFIG_INVALID,
             fs::PathToString(path));
@@ -109,10 +157,28 @@ LoadedNetworkConfig ReadNetworkConfig(const fs::path& path)
         }
         loaded.config.connect.push_back(endpoint.get_str());
     }
+    if (version_2) {
+        for (const UniValue& endpoint : bind->second.getValues()) {
+            if (!endpoint.isStr()) {
+                loaded.result = NetworkError(
+                    ChildNetworkError::CONFIG_INVALID,
+                    fs::PathToString(path));
+                return loaded;
+            }
+            loaded.config.bind.push_back(endpoint.get_str());
+        }
+    }
     loaded.result = ValidateEndpoints(loaded.config.connect);
     if (!loaded.result.IsValid()) {
         loaded.result.error = ChildNetworkError::CONFIG_INVALID;
         loaded.result.detail = fs::PathToString(path);
+        return loaded;
+    }
+    const auto parsed_binds{ParseBindEndpoints(loaded.config.bind)};
+    if (!parsed_binds.result.IsValid()) {
+        loaded.result = NetworkError(
+            ChildNetworkError::CONFIG_INVALID,
+            fs::PathToString(path));
     }
     return loaded;
 }
@@ -125,6 +191,10 @@ ChildNetworkResult WriteNetworkConfig(
     for (const std::string& endpoint : config.connect) {
         connect.push_back(endpoint);
     }
+    UniValue bind{UniValue::VARR};
+    for (const std::string& endpoint : config.bind) {
+        bind.push_back(endpoint);
+    }
     fs::path temporary{path};
     temporary += ".tmp";
     std::vector<std::string> errors;
@@ -132,6 +202,7 @@ ChildNetworkResult WriteNetworkConfig(
         {"version", static_cast<int64_t>(CHILD_NETWORK_CONFIG_VERSION)},
         {"network_active", config.network_active},
         {"connect", std::move(connect)},
+        {"bind", std::move(bind)},
     };
     if (!common::WriteSettings(temporary, values, errors) ||
         !RenameOver(temporary, path)) {
@@ -201,8 +272,10 @@ struct ChildNetworkManager::Network {
             .connections = connman.GetNodeCount(ConnectionDirection::Both),
             .handshaken = events->HandshakenPeerCount(),
             .added_nodes = {},
+            .bind_endpoints = {},
         };
         result.added_nodes = config.connect;
+        result.bind_endpoints = config.bind;
         return result;
     }
 };
@@ -265,6 +338,8 @@ ChildNetworkResult ChildNetworkManager::Start(
         !endpoints.IsValid()) {
         return endpoints;
     }
+    auto parsed_binds{ParseBindEndpoints(effective_config.bind)};
+    if (!parsed_binds.result.IsValid()) return parsed_binds.result;
     const MessageStartChars message_start{
         chainregistry::DeriveChildMessageStart(chain_id)};
     auto netgroup{std::make_unique<NetGroupManager>(
@@ -292,6 +367,9 @@ ChildNetworkResult ChildNetworkManager::Start(
     CConnman::Options options;
     options.m_local_services = NODE_NONE;
     options.m_max_automatic_connections = 0;
+    options.m_max_inbound = effective_config.bind.empty()
+        ? 0
+        : MAX_CHILD_INBOUND_CONNECTIONS;
     options.m_msgproc = network->events.get();
     options.m_banman = &network->banman;
     options.nSendBufferMaxSize = DEFAULT_MAXSENDBUFFER * 1000;
@@ -299,9 +377,11 @@ ChildNetworkResult ChildNetworkManager::Start(
     for (const auto& endpoint : effective_config.connect) {
         options.m_added_nodes.push_back(endpoint);
     }
+    options.vBinds = std::move(parsed_binds.services);
+    options.m_advertise_binds = false;
     options.bind_on_any = false;
     options.m_use_addrman_outgoing = false;
-    options.m_listen = false;
+    options.m_listen = !effective_config.bind.empty();
     options.m_dns_seed = false;
     options.m_fixed_seeds = false;
     options.m_private_broadcast = false;
@@ -524,6 +604,7 @@ ChildNetworkInfo ChildNetworkManager::GetInfo(
     }
     info.stats.network_active = loaded_config.config.network_active;
     info.stats.added_nodes = loaded_config.config.connect;
+    info.stats.bind_endpoints = loaded_config.config.bind;
     return info;
 }
 

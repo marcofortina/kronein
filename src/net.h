@@ -928,6 +928,8 @@ public:
         std::vector<NetWhitebindPermissions> vWhiteBinds;
         std::vector<CService> vBinds;
         std::vector<CService> onion_binds;
+        /** Whether successful non-onion binds may be advertised as local addresses. */
+        bool m_advertise_binds{true};
         /// True if the user did not specify -bind= or -whitebind= and thus
         /// we should bind on `0.0.0.0` (IPv4) and `::` (IPv6).
         bool bind_on_any{false};

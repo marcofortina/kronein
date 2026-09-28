@@ -63,20 +63,25 @@ BOOST_AUTO_TEST_CASE(owns_an_isolated_network_per_loaded_child)
     const auto invalid{networks.Start(
         definition.chain_id,
         node::ChildNetworkConfig{
-            .connect = {"127.0.0.1"}, .network_active = false})};
+            .connect = {"127.0.0.1"},
+            .bind = {},
+            .network_active = false})};
     BOOST_CHECK(
         invalid.error == node::ChildNetworkError::INVALID_ENDPOINT);
 
     BOOST_REQUIRE(networks.Start(
         definition.chain_id,
         node::ChildNetworkConfig{
-            .connect = {}, .network_active = false}).IsValid());
+            .connect = {},
+            .bind = {},
+            .network_active = false}).IsValid());
     BOOST_CHECK(networks.IsRunning(definition.chain_id));
     const auto running{networks.GetStats(definition.chain_id)};
     BOOST_CHECK(running.running);
     BOOST_CHECK(!running.network_active);
     BOOST_CHECK_EQUAL(running.connections, 0U);
     BOOST_CHECK_EQUAL(running.handshaken, 0U);
+    BOOST_CHECK(running.bind_endpoints.empty());
     BOOST_CHECK(fs::exists(
         chains.DataPath(definition.chain_id) / "network" / "peers.dat"));
 
@@ -107,7 +112,9 @@ BOOST_AUTO_TEST_CASE(owns_an_isolated_network_per_loaded_child)
     BOOST_REQUIRE(networks.Start(
         definition.chain_id,
         node::ChildNetworkConfig{
-            .connect = {}, .network_active = false}).IsValid());
+            .connect = {},
+            .bind = {},
+            .network_active = false}).IsValid());
     BOOST_REQUIRE(networks.AddNode(
         definition.chain_id, "127.0.0.1:19844").IsValid());
     BOOST_REQUIRE(networks.Stop(definition.chain_id).IsValid());
@@ -117,6 +124,7 @@ BOOST_AUTO_TEST_CASE(owns_an_isolated_network_per_loaded_child)
     BOOST_CHECK(!restored.network_active);
     BOOST_REQUIRE_EQUAL(restored.added_nodes.size(), 1U);
     BOOST_CHECK_EQUAL(restored.added_nodes.front(), "127.0.0.1:19844");
+    BOOST_CHECK(restored.bind_endpoints.empty());
     BOOST_REQUIRE(networks.Stop(definition.chain_id).IsValid());
 
     const fs::path config_path{
@@ -130,8 +138,20 @@ BOOST_AUTO_TEST_CASE(owns_an_isolated_network_per_loaded_child)
     BOOST_REQUIRE(networks.Start(
         definition.chain_id,
         node::ChildNetworkConfig{
-            .connect = {}, .network_active = false}).IsValid());
+            .connect = {},
+            .bind = {},
+            .network_active = false}).IsValid());
     BOOST_REQUIRE(networks.Stop(definition.chain_id).IsValid());
+
+    const auto invalid_bind{networks.Start(
+        definition.chain_id,
+        node::ChildNetworkConfig{
+            .connect = {},
+            .bind = {"localhost:19845"},
+            .network_active = false})};
+    BOOST_CHECK(
+        invalid_bind.error ==
+        node::ChildNetworkError::INVALID_BIND_ENDPOINT);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

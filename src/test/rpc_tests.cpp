@@ -1058,7 +1058,7 @@ BOOST_AUTO_TEST_CASE(rpc_convert_values_loadchildchain)
     const UniValue result{RPCConvertValues(
         "loadchildchain",
         {chain_id,
-         R"({"connect":["127.0.0.1:19843"],"network_active":false})"})};
+         R"({"connect":["127.0.0.1:19843"],"bind":["127.0.0.1:19844"],"network_active":false})"})};
     BOOST_REQUIRE_EQUAL(result.size(), 2U);
     BOOST_CHECK_EQUAL(result[0].get_str(), chain_id);
     BOOST_REQUIRE(result[1].isObject());
@@ -1067,6 +1067,10 @@ BOOST_AUTO_TEST_CASE(rpc_convert_values_loadchildchain)
     BOOST_CHECK_EQUAL(
         result[1].find_value("connect")[0].get_str(),
         "127.0.0.1:19843");
+    BOOST_REQUIRE_EQUAL(result[1].find_value("bind").size(), 1U);
+    BOOST_CHECK_EQUAL(
+        result[1].find_value("bind")[0].get_str(),
+        "127.0.0.1:19844");
 
     const UniValue active{RPCConvertValues(
         "setchildnetworkactive", {chain_id, "false"})};

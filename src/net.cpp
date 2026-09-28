@@ -3086,8 +3086,12 @@ bool CConnman::Bind(const CService& addr_, unsigned int flags, NetPermissionFlag
 
 bool CConnman::InitBinds(const Options& options)
 {
+    const unsigned int bind_flags{BF_REPORT_ERROR |
+        (options.m_advertise_binds
+            ? 0U
+            : static_cast<unsigned int>(BF_DONT_ADVERTISE))};
     for (const auto& addrBind : options.vBinds) {
-        if (!Bind(addrBind, BF_REPORT_ERROR, NetPermissionFlags::None)) {
+        if (!Bind(addrBind, bind_flags, NetPermissionFlags::None)) {
             return false;
         }
     }

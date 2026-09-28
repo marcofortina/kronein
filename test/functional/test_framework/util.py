@@ -466,9 +466,9 @@ def util_xor(data, key, *, offset):
 
 # The maximum number of nodes a single test can spawn
 MAX_NODES = 12
-# Don't assign p2p, rpc or tor ports lower than this
+# Don't assign p2p, rpc, tor or child-network ports lower than this
 PORT_MIN = int(os.getenv('TEST_RUNNER_PORT_MIN', default=11000))
-# The number of ports to "reserve" for p2p, rpc and tor, each
+# The number of ports to reserve for p2p, RPC, Tor and child networks, each
 PORT_RANGE = 5000
 
 
@@ -513,6 +513,11 @@ def rpc_port(n):
 
 def tor_port(n):
     return p2p_port(n) + PORT_RANGE * 2
+
+
+def child_port(n):
+    """Return a port reserved for an explicit child-chain listener."""
+    return p2p_port(n) + PORT_RANGE * 3
 
 
 def rpc_url(datadir, i, chain, rpchost):

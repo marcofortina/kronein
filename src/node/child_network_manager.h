@@ -24,9 +24,12 @@ namespace node {
 class ChainManager;
 
 inline constexpr size_t MAX_CHILD_CONNECT_NODES{8};
+inline constexpr size_t MAX_CHILD_BIND_ENDPOINTS{4};
+inline constexpr int MAX_CHILD_INBOUND_CONNECTIONS{8};
 
 struct ChildNetworkConfig {
     std::vector<std::string> connect;
+    std::vector<std::string> bind;
     bool network_active{true};
 };
 
@@ -39,6 +42,8 @@ enum class ChildNetworkError : uint8_t {
     NOT_RUNNING,
     TOO_MANY_ENDPOINTS,
     INVALID_ENDPOINT,
+    TOO_MANY_BIND_ENDPOINTS,
+    INVALID_BIND_ENDPOINT,
     DATA_DIRECTORY_ERROR,
     PEER_STORE_ERROR,
     CONFIG_READ_ERROR,
@@ -63,6 +68,7 @@ struct ChildNetworkStats {
     size_t connections{0};
     size_t handshaken{0};
     std::vector<std::string> added_nodes;
+    std::vector<std::string> bind_endpoints;
 };
 
 struct ChildNetworkInfo {

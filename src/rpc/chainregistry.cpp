@@ -513,6 +513,16 @@ void EnsureRegistryMatchesDefinition(
             RPC_INVALID_PARAMETER,
             strprintf("child endpoint must include an explicit non-zero port: %s",
                       result.detail));
+    case node::ChildNetworkError::TOO_MANY_BIND_ENDPOINTS:
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("at most %u child bind endpoints are allowed",
+                      node::MAX_CHILD_BIND_ENDPOINTS));
+    case node::ChildNetworkError::INVALID_BIND_ENDPOINT:
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("child bind endpoint must be a numeric address with an explicit non-zero port: %s",
+                      result.detail));
     case node::ChildNetworkError::DATA_DIRECTORY_ERROR:
         throw JSONRPCError(
             RPC_DATABASE_ERROR,
@@ -562,6 +572,12 @@ node::ChildNetworkConfig ParseChildNetworkConfig(const UniValue& options)
             config.connect.push_back(endpoint.get_str());
         }
     }
+    const UniValue& bind{options.find_value("bind")};
+    if (!bind.isNull()) {
+        for (const UniValue& endpoint : bind.getValues()) {
+            config.bind.push_back(endpoint.get_str());
+        }
+    }
     const UniValue& active{options.find_value("network_active")};
     if (!active.isNull()) config.network_active = active.get_bool();
     return config;
@@ -579,6 +595,11 @@ void PushChildNetworkStats(UniValue& object,
         added_nodes.push_back(endpoint);
     }
     object.pushKV("added_nodes", std::move(added_nodes));
+    UniValue bind_endpoints{UniValue::VARR};
+    for (const auto& endpoint : stats.bind_endpoints) {
+        bind_endpoints.push_back(endpoint);
+    }
+    object.pushKV("binds", std::move(bind_endpoints));
 }
 
 RPCHelpMan derivechildchainid()
@@ -1076,6 +1097,9 @@ RPCHelpMan listchildchainruntimes()
                     {RPCResult::Type::ARR, "added_nodes", "Explicit child endpoints", {
                         {RPCResult::Type::STR, "", "Host and explicit port"},
                     }},
+                    {RPCResult::Type::ARR, "binds", "Numeric child listen endpoints", {
+                        {RPCResult::Type::STR, "", "Numeric address and explicit port"},
+                    }},
                 }},
             }},
         }},
@@ -1207,6 +1231,9 @@ RPCHelpMan loadchildchain()
                 {"connect", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "Explicit outbound endpoints; each must include a non-zero port", {
                     {"", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Host and port"},
                 }},
+                {"bind", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "Numeric listen endpoints with explicit non-zero ports", {
+                    {"", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Numeric address and port"},
+                }},
                 {"network_active", RPCArg::Type::BOOL, RPCArg::Default{true}, "Whether child peer connections are enabled"},
             }},
         },
@@ -1226,6 +1253,9 @@ RPCHelpMan loadchildchain()
             {RPCResult::Type::NUM, "handshaken_peers", "Authenticated peers serving this exact child chain"},
             {RPCResult::Type::ARR, "added_nodes", "Explicit child endpoints", {
                 {RPCResult::Type::STR, "", "Host and explicit port"},
+            }},
+            {RPCResult::Type::ARR, "binds", "Numeric child listen endpoints", {
+                {RPCResult::Type::STR, "", "Numeric address and explicit port"},
             }},
         }},
         RPCExamples{
@@ -1366,8 +1396,12 @@ RPCHelpMan getchildnetworkinfo()
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
             {RPCResult::Type::NUM, "max_added_nodes", "Maximum number of explicit endpoints"},
+            {RPCResult::Type::NUM, "max_bind_endpoints", "Maximum number of child listen endpoints"},
             {RPCResult::Type::ARR, "added_nodes", "Persistent explicit endpoints", {
                 {RPCResult::Type::STR, "", "Host and explicit port"},
+            }},
+            {RPCResult::Type::ARR, "binds", "Persistent numeric listen endpoints", {
+                {RPCResult::Type::STR, "", "Numeric address and explicit port"},
             }},
         }},
         RPCExamples{
@@ -1383,6 +1417,7 @@ RPCHelpMan getchildnetworkinfo()
     result.pushKV("chain_id", chain_id.GetHex());
     PushChildNetworkStats(result, info.stats);
     result.pushKV("max_added_nodes", node::MAX_CHILD_CONNECT_NODES);
+    result.pushKV("max_bind_endpoints", node::MAX_CHILD_BIND_ENDPOINTS);
     return result;
 }
     };
@@ -1405,6 +1440,9 @@ RPCHelpMan addchildnode()
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
             {RPCResult::Type::ARR, "added_nodes", "Persistent explicit endpoints", {
                 {RPCResult::Type::STR, "", "Host and explicit port"},
+            }},
+            {RPCResult::Type::ARR, "binds", "Persistent numeric listen endpoints", {
+                {RPCResult::Type::STR, "", "Numeric address and explicit port"},
             }},
         }},
         RPCExamples{
@@ -1444,6 +1482,9 @@ RPCHelpMan removechildnode()
             {RPCResult::Type::ARR, "added_nodes", "Persistent explicit endpoints", {
                 {RPCResult::Type::STR, "", "Host and explicit port"},
             }},
+            {RPCResult::Type::ARR, "binds", "Persistent numeric listen endpoints", {
+                {RPCResult::Type::STR, "", "Numeric address and explicit port"},
+            }},
         }},
         RPCExamples{
             HelpExampleCli("removechildnode", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" \"127.0.0.1:29843\"")
@@ -1481,6 +1522,9 @@ RPCHelpMan setchildnetworkactive()
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
             {RPCResult::Type::ARR, "added_nodes", "Persistent explicit endpoints", {
                 {RPCResult::Type::STR, "", "Host and explicit port"},
+            }},
+            {RPCResult::Type::ARR, "binds", "Persistent numeric listen endpoints", {
+                {RPCResult::Type::STR, "", "Numeric address and explicit port"},
             }},
         }},
         RPCExamples{
