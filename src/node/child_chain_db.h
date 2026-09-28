@@ -63,6 +63,14 @@ struct ChildPendingBmmAnchorRecord {
     }
 };
 
+/** Aggregated active anchors whose child block data is not stored yet. */
+struct ChildPendingBlockView {
+    uint256 block_hash;
+    uint32_t oldest_anchor_height{0};
+    uint32_t newest_anchor_height{0};
+    uint64_t anchor_count{0};
+};
+
 /** A validated, non-canonical child block retained for deterministic fork choice. */
 struct ChildCandidateRecord {
     uint8_t version{CHILD_CANDIDATE_RECORD_VERSION};
@@ -329,6 +337,8 @@ public:
     std::optional<std::vector<ChildPendingBmmAnchorRecord>>
     ReadPendingBmmAnchorsForChild(
         const uint256& child_block_hash,
+        const chainregistry::MainHeaderChain& main_headers) const;
+    std::optional<std::vector<ChildPendingBlockView>> ReadPendingBlocks(
         const chainregistry::MainHeaderChain& main_headers) const;
     std::optional<ChildCandidateBmmAnchorRecord> ReadCandidateBmmAnchor(
         const uint256& main_block_hash) const;

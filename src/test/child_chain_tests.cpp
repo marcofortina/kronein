@@ -207,6 +207,9 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
         BOOST_REQUIRE(runtime.Tip());
         BOOST_CHECK(runtime.Tip()->GetBlockHash() == definition.genesis_hash);
         BOOST_CHECK_EQUAL(runtime.State().child_height, 0U);
+        const auto initially_pending{runtime.GetPendingBlocks()};
+        BOOST_REQUIRE(initially_pending.has_value());
+        BOOST_CHECK(initially_pending->empty());
 
         const CBlock block{ChildBlock(*runtime.Tip())};
         child_hash = block.GetHash();
@@ -233,6 +236,17 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
         BOOST_CHECK(!staged.bmm_anchor_already_known);
         BOOST_CHECK_EQUAL(runtime.State().pending_anchor_count, 1U);
         BOOST_CHECK_GT(runtime.State().pending_anchor_bytes, 0U);
+        const auto first_pending{runtime.GetPendingBlocks()};
+        BOOST_REQUIRE(first_pending.has_value());
+        BOOST_REQUIRE_EQUAL(first_pending->size(), 1U);
+        BOOST_CHECK(first_pending->front().block_hash == child_hash);
+        BOOST_CHECK_EQUAL(first_pending->front().anchor_count, 1U);
+        BOOST_CHECK_EQUAL(
+            first_pending->front().oldest_anchor_height,
+            anchor_proof.block_height);
+        BOOST_CHECK_EQUAL(
+            first_pending->front().newest_anchor_height,
+            anchor_proof.block_height);
         const auto duplicate_stage{runtime.StageBmmAnchor(
             anchor_proof, block.nTime, /*sync=*/true)};
         BOOST_REQUIRE(duplicate_stage.IsValid());
@@ -255,6 +269,16 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
         BOOST_REQUIRE(runtime.StageBmmAnchor(
             repeated_anchor_proof, block.nTime, /*sync=*/true).IsValid());
         BOOST_CHECK_EQUAL(runtime.State().pending_anchor_count, 2U);
+        const auto repeated_pending{runtime.GetPendingBlocks()};
+        BOOST_REQUIRE(repeated_pending.has_value());
+        BOOST_REQUIRE_EQUAL(repeated_pending->size(), 1U);
+        BOOST_CHECK_EQUAL(repeated_pending->front().anchor_count, 2U);
+        BOOST_CHECK_EQUAL(
+            repeated_pending->front().oldest_anchor_height,
+            anchor_proof.block_height);
+        BOOST_CHECK_EQUAL(
+            repeated_pending->front().newest_anchor_height,
+            repeated_anchor_proof.block_height);
         const auto connected{runtime.ConnectStagedBlock(
             block, block.nTime, /*sync=*/true)};
         BOOST_REQUIRE_MESSAGE(
@@ -269,6 +293,9 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
         BOOST_CHECK(runtime.State().child_tip == child_hash);
         BOOST_CHECK_EQUAL(runtime.State().pending_anchor_count, 0U);
         BOOST_CHECK_EQUAL(runtime.State().pending_anchor_bytes, 0U);
+        const auto no_longer_pending{runtime.GetPendingBlocks()};
+        BOOST_REQUIRE(no_longer_pending.has_value());
+        BOOST_CHECK(no_longer_pending->empty());
         BOOST_CHECK_EQUAL(runtime.State().candidate_anchor_count, 1U);
         const auto duplicate_connected_anchor{runtime.StageBmmAnchor(
             repeated_anchor_proof, block.nTime, /*sync=*/true)};

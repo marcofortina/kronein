@@ -160,10 +160,14 @@ void ChildChainDialog::refresh()
             const QString side_candidate_limit{NumberField(chain, "side_candidate_limit")};
             const QString candidate_anchors{NumberField(chain, "candidate_bmm_anchor_count")};
             const QString candidate_anchor_limit{NumberField(chain, "candidate_bmm_anchor_limit")};
+            const QString pending_blocks{NumberField(chain, "pending_child_block_count")};
             const QString dag_usage{loaded
-                ? tr("%1/%2 candidates • %3/%4 anchors")
-                      .arg(side_candidates, side_candidate_limit,
-                           candidate_anchors, candidate_anchor_limit)
+                ? tr("%1 pending • %2/%3 candidates • %4/%5 anchors")
+                      .arg(pending_blocks,
+                           side_candidates,
+                           side_candidate_limit,
+                           candidate_anchors,
+                           candidate_anchor_limit)
                 : QStringLiteral("—")};
 
             const int row{m_table->rowCount()};
@@ -187,7 +191,7 @@ void ChildChainDialog::refresh()
                 m_table->item(row, column)->setToolTip(chain_id);
             }
             if (loaded) {
-                dag_item->setToolTip(
+                const QString storage_tooltip{
                     tr("Side candidates: %1/%2 records, %3/%4 bytes\n"
                        "Candidate BMM anchors: %5/%6 records, %7/%8 bytes\n"
                        "Pending BMM anchors: %9/%10 records, %11/%12 bytes")
@@ -202,7 +206,11 @@ void ChildChainDialog::refresh()
                              NumberField(chain, "pending_bmm_anchor_count"),
                              NumberField(chain, "pending_bmm_anchor_limit"),
                              NumberField(chain, "pending_bmm_anchor_bytes"),
-                             NumberField(chain, "pending_bmm_anchor_bytes_limit")));
+                             NumberField(chain, "pending_bmm_anchor_bytes_limit"))};
+                dag_item->setToolTip(
+                    storage_tooltip + QStringLiteral("\n") +
+                    tr("Pending block data: %1 distinct blocks")
+                        .arg(pending_blocks));
             }
             if (chain_id == selected) m_table->selectRow(row);
         }

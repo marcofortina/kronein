@@ -120,6 +120,7 @@ void PushChildStorageStats(UniValue& object,
     object.pushKV("bmm_anchor_count", entry.anchor_count);
     object.pushKV("pending_bmm_anchor_count", entry.pending_anchor_count);
     object.pushKV("pending_bmm_anchor_bytes", entry.pending_anchor_bytes);
+    object.pushKV("pending_child_block_count", entry.pending_block_count);
     object.pushKV("pending_bmm_anchor_limit", node::MAX_CHILD_PENDING_BMM_ANCHORS);
     object.pushKV("pending_bmm_anchor_bytes_limit", node::MAX_CHILD_PENDING_BMM_BYTES);
     object.pushKV("side_candidate_count", entry.side_candidate_count);
@@ -1254,6 +1255,72 @@ RPCHelpMan submitchildanchor()
     };
 }
 
+RPCHelpMan getchildpendingblocks()
+{
+    return RPCHelpMan{
+        "getchildpendingblocks",
+        "List child blocks committed by authenticated active-main-chain BMM anchors whose block data has not been received yet. Multiple anchors for the same block are aggregated.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null child-chain identifier"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Pending child block data", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Child-chain identifier"},
+            {RPCResult::Type::NUM, "block_count", "Distinct child blocks awaiting data"},
+            {RPCResult::Type::NUM, "anchor_count", "Authenticated pending anchors represented by this result"},
+            {RPCResult::Type::ARR, "blocks", "Blocks ordered by oldest main-chain anchor height", {
+                {RPCResult::Type::OBJ, "", "Pending block", {
+                    {RPCResult::Type::STR_HEX, "blockhash", "Committed child block hash"},
+                    {RPCResult::Type::NUM, "oldest_anchor_height", "Oldest active main-chain anchor height"},
+                    {RPCResult::Type::NUM, "newest_anchor_height", "Newest active main-chain anchor height"},
+                    {RPCResult::Type::NUM, "anchor_count", "Active anchors committing to this block"},
+                }},
+            }},
+        }},
+        RPCExamples{
+            HelpExampleCli("getchildpendingblocks", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const auto chain_id{ParseChainId(self.Arg<UniValue>("chain_id"))};
+    const auto pending{
+        EnsureAnyChildChainman(request.context).GetPendingBlocksView(chain_id)};
+    switch (pending.error) {
+    case node::ChainManagerPendingBlocksViewError::NONE:
+        break;
+    case node::ChainManagerPendingBlocksViewError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must not be null");
+    case node::ChainManagerPendingBlocksViewError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not configured locally");
+    case node::ChainManagerPendingBlocksViewError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not loaded");
+    case node::ChainManagerPendingBlocksViewError::DATA_UNAVAILABLE:
+        throw JSONRPCError(RPC_DATABASE_ERROR,
+                           "pending child block data is unavailable");
+    }
+
+    uint64_t anchor_count{0};
+    UniValue blocks{UniValue::VARR};
+    for (const auto& block : pending.blocks) {
+        anchor_count += block.anchor_count;
+        UniValue object{UniValue::VOBJ};
+        object.pushKV("blockhash", block.block_hash.GetHex());
+        object.pushKV("oldest_anchor_height", block.oldest_anchor_height);
+        object.pushKV("newest_anchor_height", block.newest_anchor_height);
+        object.pushKV("anchor_count", block.anchor_count);
+        blocks.push_back(std::move(object));
+    }
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", chain_id.GetHex());
+    result.pushKV("block_count", pending.blocks.size());
+    result.pushKV("anchor_count", anchor_count);
+    result.pushKV("blocks", std::move(blocks));
+    return result;
+}
+    };
+}
+
 RPCHelpMan submitchildblock()
 {
     return RPCHelpMan{
@@ -1375,6 +1442,7 @@ void RegisterChainRegistryRPCCommands(CRPCTable& table)
         {"control", &listchildchainruntimes},
         {"control", &loadchildchain},
         {"control", &unloadchildchain},
+        {"blockchain", &getchildpendingblocks},
         {"mining", &submitchildanchor},
         {"mining", &submitchildblock},
         {"control", &forgetchildchain},

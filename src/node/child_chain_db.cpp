@@ -3344,6 +3344,87 @@ ChildChainDB::ReadPendingBmmAnchorsForChild(
     return result;
 }
 
+std::optional<std::vector<ChildPendingBlockView>>
+ChildChainDB::ReadPendingBlocks(
+    const chainregistry::MainHeaderChain& main_headers) const
+{
+    ChildChainDBState state;
+    if (!m_db.Read(DB_STATE, state) ||
+        !ValidConfiguration(state,
+                            m_child_chain,
+                            m_main_genesis_hash,
+                            m_minimum_confirmations,
+                            m_child_genesis_hash) ||
+        main_headers.Params().hashGenesisBlock != m_main_genesis_hash ||
+        !main_headers.IsInitialized() ||
+        main_headers.Tip()->GetBlockHash() != state.main_tip) {
+        return std::nullopt;
+    }
+
+    uint64_t count{0};
+    uint64_t bytes{0};
+    std::map<uint256, ChildPendingBlockView> pending;
+    std::unique_ptr<CDBIterator> cursor{
+        const_cast<CDBWrapper&>(m_db).NewIterator()};
+    cursor->Seek(PendingAnchorKey{DB_PENDING_BMM_ANCHOR, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) return std::nullopt;
+        if (prefix != DB_PENDING_BMM_ANCHOR) break;
+        PendingAnchorKey key;
+        ChildPendingBmmAnchorRecord record;
+        if (!cursor->GetKey(key) || !cursor->GetValue(record) ||
+            key.second != record.proof.block_header.GetHash() ||
+            !IsValidStoredPendingAnchor(
+                record,
+                main_headers,
+                m_child_chain,
+                /*allow_inactive=*/false) ||
+            count == std::numeric_limits<uint64_t>::max() ||
+            record.serialized_size >
+                std::numeric_limits<uint64_t>::max() - bytes) {
+            return std::nullopt;
+        }
+        ++count;
+        bytes += record.serialized_size;
+
+        auto [it, inserted]{pending.try_emplace(
+            record.child_block_hash,
+            ChildPendingBlockView{
+                .block_hash = record.child_block_hash,
+                .oldest_anchor_height = record.proof.block_height,
+                .newest_anchor_height = record.proof.block_height,
+                .anchor_count = 1,
+            })};
+        if (!inserted) {
+            it->second.oldest_anchor_height = std::min(
+                it->second.oldest_anchor_height, record.proof.block_height);
+            it->second.newest_anchor_height = std::max(
+                it->second.newest_anchor_height, record.proof.block_height);
+            ++it->second.anchor_count;
+        }
+        cursor->Next();
+    }
+    if (count != state.pending_anchor_count ||
+        bytes != state.pending_anchor_bytes) {
+        return std::nullopt;
+    }
+
+    std::vector<ChildPendingBlockView> result;
+    result.reserve(pending.size());
+    for (auto& [_, block] : pending) {
+        result.push_back(std::move(block));
+    }
+    std::sort(result.begin(), result.end(), [](const auto& left,
+                                                const auto& right) {
+        if (left.oldest_anchor_height != right.oldest_anchor_height) {
+            return left.oldest_anchor_height < right.oldest_anchor_height;
+        }
+        return left.block_hash < right.block_hash;
+    });
+    return result;
+}
+
 std::optional<ChildCandidateBmmAnchorRecord>
 ChildChainDB::ReadCandidateBmmAnchor(const uint256& main_block_hash) const
 {

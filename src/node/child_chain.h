@@ -202,6 +202,7 @@ public:
     /** Rebuild and fully validate all persisted runtime state without mutation. */
     bool VerifyDatabase(int64_t current_time) const;
     bool ReadBlock(const uint256& block_hash, CBlock& block) const;
+    std::optional<std::vector<ChildPendingBlockView>> GetPendingBlocks() const;
 };
 
 } // namespace node

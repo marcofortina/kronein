@@ -88,6 +88,7 @@ struct ChainManagerEntry {
     uint64_t anchor_count{0};
     uint64_t pending_anchor_count{0};
     uint64_t pending_anchor_bytes{0};
+    uint64_t pending_block_count{0};
     uint64_t side_candidate_count{0};
     uint64_t side_candidate_bytes{0};
     uint64_t candidate_anchor_count{0};
@@ -155,6 +156,25 @@ struct ChainManagerTipsView {
     std::vector<ReferenceChildChainTipView> tips;
 
     bool IsValid() const { return error == ChainManagerTipsViewError::NONE; }
+};
+
+enum class ChainManagerPendingBlocksViewError : uint8_t {
+    NONE,
+    NULL_CHAIN_ID,
+    UNKNOWN_CHAIN,
+    CHAIN_NOT_LOADED,
+    DATA_UNAVAILABLE,
+};
+
+struct ChainManagerPendingBlocksView {
+    ChainManagerPendingBlocksViewError error{
+        ChainManagerPendingBlocksViewError::NONE};
+    std::vector<ChildPendingBlockView> blocks;
+
+    bool IsValid() const
+    {
+        return error == ChainManagerPendingBlocksViewError::NONE;
+    }
 };
 
 enum class ChainManagerUTXOStatsViewError : uint8_t {
@@ -292,6 +312,8 @@ public:
         const chainregistry::ChainId& chain_id,
         const COutPoint& outpoint) const;
     ChainManagerTipsView GetChainTipsView(
+        const chainregistry::ChainId& chain_id) const;
+    ChainManagerPendingBlocksView GetPendingBlocksView(
         const chainregistry::ChainId& chain_id) const;
     ChainManagerUTXOStatsView GetUTXOStatsView(
         const chainregistry::ChainId& chain_id,

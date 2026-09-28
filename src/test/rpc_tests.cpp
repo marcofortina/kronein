@@ -433,9 +433,23 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
         std::runtime_error,
         [](const std::runtime_error& error) {
             return std::string_view{error.what()}.find(
+                   "not configured locally") != std::string_view::npos;
+        });
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("getchildpendingblocks " + unknown_id),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find(
                        "not configured locally") != std::string_view::npos;
         });
     BOOST_REQUIRE(manager.RegisterChain(definition).IsValid());
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("getchildpendingblocks " + chain_id),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find("not loaded") !=
+                   std::string_view::npos;
+        });
     for (const std::string& command : {
              "submitchildanchor " + chain_id + " " + proof_hex,
              "submitchildblock " + chain_id + " " + block_hex + " " + proof_hex}) {
@@ -453,6 +467,15 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
         Params().GenesisBlock().nTime,
         /*wipe_data=*/true,
         /*sync=*/true).IsValid());
+    const auto initially_pending{
+        CallRPC("getchildpendingblocks " + chain_id)};
+    BOOST_CHECK_EQUAL(
+        initially_pending.find_value("chain_id").get_str(), chain_id);
+    BOOST_CHECK_EQUAL(
+        initially_pending.find_value("block_count").getInt<int>(), 0);
+    BOOST_CHECK_EQUAL(
+        initially_pending.find_value("anchor_count").getInt<int>(), 0);
+    BOOST_CHECK(initially_pending.find_value("blocks").isArray());
     BOOST_CHECK_EXCEPTION(
         CallRPC("submitchildblock " + chain_id + " 00 " + proof_hex),
         std::runtime_error,
@@ -495,6 +518,25 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
         "submitchildanchor " + chain_id + " " + valid_proof_hex)};
     BOOST_CHECK_EQUAL(staged.find_value("child_block_hash").get_str(),
                       child_block.GetHash().GetHex());
+    const auto awaiting_data{
+        CallRPC("getchildpendingblocks " + chain_id)};
+    BOOST_CHECK_EQUAL(
+        awaiting_data.find_value("block_count").getInt<int>(), 1);
+    BOOST_CHECK_EQUAL(
+        awaiting_data.find_value("anchor_count").getInt<int>(), 1);
+    const UniValue& pending_blocks{awaiting_data.find_value("blocks")};
+    BOOST_REQUIRE_EQUAL(pending_blocks.size(), 1U);
+    BOOST_CHECK_EQUAL(
+        pending_blocks[0].find_value("blockhash").get_str(),
+        child_block.GetHash().GetHex());
+    BOOST_CHECK_EQUAL(
+        pending_blocks[0].find_value("oldest_anchor_height").getInt<int>(),
+        1);
+    BOOST_CHECK_EQUAL(
+        pending_blocks[0].find_value("newest_anchor_height").getInt<int>(),
+        1);
+    BOOST_CHECK_EQUAL(
+        pending_blocks[0].find_value("anchor_count").getInt<int>(), 1);
     const auto submitted{CallRPC(
         "submitchildblock " + chain_id + " " + child_block_hex)};
     BOOST_CHECK(submitted.find_value("accepted").get_bool());
@@ -506,6 +548,9 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
                       child_block.GetHash().GetHex());
     BOOST_CHECK(submitted.find_value("pruned").isArray());
     BOOST_CHECK_EQUAL(submitted.find_value("pruned").size(), 0U);
+    const auto recovered{CallRPC("getchildpendingblocks " + chain_id)};
+    BOOST_CHECK_EQUAL(recovered.find_value("block_count").getInt<int>(), 0);
+    BOOST_CHECK_EQUAL(recovered.find_value("anchor_count").getInt<int>(), 0);
 
     DataStream child_header_stream;
     child_header_stream << static_cast<const CBlockHeader&>(child_block);

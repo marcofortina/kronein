@@ -288,6 +288,15 @@ BOOST_AUTO_TEST_CASE(serializes_child_submission_through_loaded_runtime)
     const chainregistry::BmmAnchorProof proof;
     const CBlock block;
     BOOST_CHECK(
+        manager.GetPendingBlocksView(null_id).error ==
+        node::ChainManagerPendingBlocksViewError::NULL_CHAIN_ID);
+    BOOST_CHECK(
+        manager.GetPendingBlocksView(unknown.chain_id).error ==
+        node::ChainManagerPendingBlocksViewError::UNKNOWN_CHAIN);
+    BOOST_CHECK(
+        manager.GetPendingBlocksView(definition.chain_id).error ==
+        node::ChainManagerPendingBlocksViewError::CHAIN_NOT_LOADED);
+    BOOST_CHECK(
         manager.StageBmmAnchor(
             null_id, proof, Params().GenesisBlock().nTime).error ==
         node::ChainManagerError::NULL_CHAIN_ID);
@@ -310,6 +319,9 @@ BOOST_AUTO_TEST_CASE(serializes_child_submission_through_loaded_runtime)
         Params().GenesisBlock().nTime,
         /*wipe_data=*/true,
         /*sync=*/true).IsValid());
+    const auto pending{manager.GetPendingBlocksView(definition.chain_id)};
+    BOOST_REQUIRE(pending.IsValid());
+    BOOST_CHECK(pending.blocks.empty());
     const auto rejected_anchor{manager.StageBmmAnchor(
         definition.chain_id,
         proof,

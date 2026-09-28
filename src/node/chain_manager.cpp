@@ -459,6 +459,7 @@ ChainManagerView ChainManager::GetChainView(
     const auto& runtime{*loaded->second};
     const auto* child_tip{runtime.Tip()};
     const auto* main_tip{runtime.MainHeaders()->Tip()};
+    const auto pending_blocks{runtime.GetPendingBlocks()};
     Assume(child_tip);
     Assume(main_tip);
     result.entry = {
@@ -478,6 +479,7 @@ ChainManagerView ChainManager::GetChainView(
         .anchor_count = runtime.State().anchor_count,
         .pending_anchor_count = runtime.State().pending_anchor_count,
         .pending_anchor_bytes = runtime.State().pending_anchor_bytes,
+        .pending_block_count = pending_blocks ? pending_blocks->size() : 0,
         .side_candidate_count = runtime.State().side_candidate_count,
         .side_candidate_bytes = runtime.State().side_candidate_bytes,
         .candidate_anchor_count = runtime.State().candidate_anchor_count,
@@ -553,6 +555,7 @@ ChainManagerBlockView ChainManager::GetBlockViewLocked(
     }
     const auto* child_tip{runtime.Tip()};
     const auto* main_tip{runtime.MainHeaders()->Tip()};
+    const auto pending_blocks{runtime.GetPendingBlocks()};
     Assume(child_tip);
     Assume(main_tip);
     result.entry = {
@@ -572,6 +575,7 @@ ChainManagerBlockView ChainManager::GetBlockViewLocked(
         .anchor_count = runtime.State().anchor_count,
         .pending_anchor_count = runtime.State().pending_anchor_count,
         .pending_anchor_bytes = runtime.State().pending_anchor_bytes,
+        .pending_block_count = pending_blocks ? pending_blocks->size() : 0,
         .side_candidate_count = runtime.State().side_candidate_count,
         .side_candidate_bytes = runtime.State().side_candidate_bytes,
         .candidate_anchor_count = runtime.State().candidate_anchor_count,
@@ -604,6 +608,7 @@ ChainManagerCoinView ChainManager::GetCoinView(
     const auto& runtime{*loaded->second};
     const auto* child_tip{runtime.Tip()};
     const auto* main_tip{runtime.MainHeaders()->Tip()};
+    const auto pending_blocks{runtime.GetPendingBlocks()};
     Assume(child_tip);
     Assume(main_tip);
     result.entry = {
@@ -623,6 +628,7 @@ ChainManagerCoinView ChainManager::GetCoinView(
         .anchor_count = runtime.State().anchor_count,
         .pending_anchor_count = runtime.State().pending_anchor_count,
         .pending_anchor_bytes = runtime.State().pending_anchor_bytes,
+        .pending_block_count = pending_blocks ? pending_blocks->size() : 0,
         .side_candidate_count = runtime.State().side_candidate_count,
         .side_candidate_bytes = runtime.State().side_candidate_bytes,
         .candidate_anchor_count = runtime.State().candidate_anchor_count,
@@ -661,6 +667,33 @@ ChainManagerTipsView ChainManager::GetChainTipsView(
         return result;
     }
     result.tips = *tips;
+    return result;
+}
+
+ChainManagerPendingBlocksView ChainManager::GetPendingBlocksView(
+    const chainregistry::ChainId& chain_id) const
+{
+    LOCK(m_mutex);
+    ChainManagerPendingBlocksView result;
+    if (chain_id.IsNull()) {
+        result.error = ChainManagerPendingBlocksViewError::NULL_CHAIN_ID;
+        return result;
+    }
+    if (!m_definitions.contains(chain_id)) {
+        result.error = ChainManagerPendingBlocksViewError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto loaded{m_loaded.find(chain_id)};
+    if (loaded == m_loaded.end()) {
+        result.error = ChainManagerPendingBlocksViewError::CHAIN_NOT_LOADED;
+        return result;
+    }
+    const auto blocks{loaded->second->GetPendingBlocks()};
+    if (!blocks) {
+        result.error = ChainManagerPendingBlocksViewError::DATA_UNAVAILABLE;
+        return result;
+    }
+    result.blocks = std::move(*blocks);
     return result;
 }
 
@@ -750,6 +783,10 @@ std::vector<ChainManagerEntry> ChainManager::List() const
             entry.anchor_count = loaded->second->State().anchor_count;
             entry.pending_anchor_count = loaded->second->State().pending_anchor_count;
             entry.pending_anchor_bytes = loaded->second->State().pending_anchor_bytes;
+            if (const auto pending_blocks{
+                    loaded->second->GetPendingBlocks()}) {
+                entry.pending_block_count = pending_blocks->size();
+            }
             entry.side_candidate_count = loaded->second->State().side_candidate_count;
             entry.side_candidate_bytes = loaded->second->State().side_candidate_bytes;
             entry.candidate_anchor_count = loaded->second->State().candidate_anchor_count;

@@ -1296,4 +1296,11 @@ bool ReferenceChildRuntime::ReadBlock(const uint256& block_hash,
     return Usable() && m_db && m_db->ReadBlock(block_hash, block);
 }
 
+std::optional<std::vector<ChildPendingBlockView>>
+ReferenceChildRuntime::GetPendingBlocks() const
+{
+    if (!Usable() || !m_db || !m_main_headers) return std::nullopt;
+    return m_db->ReadPendingBlocks(*m_main_headers);
+}
+
 } // namespace node
