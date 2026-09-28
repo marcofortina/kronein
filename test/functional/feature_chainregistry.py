@@ -592,6 +592,36 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert deposit_proof["proof"].startswith("4b44505201")
         assert_equal(node.getchainregistryinfo()["deposit_count"], 1)
 
+        self.log.info("Authenticate a mature deposit and build its canonical child IMPORT")
+        assert_raises_rpc_error(
+            -26, "immature (1/144 confirmations)",
+            node.createchildimporttransaction, chain_id, deposit_proof["proof"])
+        assert_raises_rpc_error(
+            -22, "deposit proof decode failed",
+            node.createchildimporttransaction, chain_id, deposit_proof["proof"][:-2])
+        mature_deposit_tip = self.generatetoaddress(
+            node, 143, wallet.getnewaddress())[-1]
+        child_import = node.createchildimporttransaction(
+            chain_id, deposit_proof["proof"])
+        assert_equal(child_import["chain_id"], chain_id)
+        assert_equal(child_import["deposit_id"], submitted_deposit["deposit_id"])
+        assert_equal(child_import["amount"], deposit_amount)
+        assert_equal(child_import["recipient_type"], 1)
+        assert_equal(child_import["recipient"], child_recipient)
+        assert_equal(child_import["main_block_hash"], deposit_block)
+        assert_equal(child_import["main_block_height"], deposit_proof["deposit"]["blockheight"])
+        assert_equal(child_import["confirmations"], 144)
+        assert_equal(child_import["required_confirmations"], 144)
+        assert_equal(child_import["authenticated"], True)
+        decoded_import = node.decoderawtransaction(child_import["transaction"])
+        assert_equal(decoded_import["txid"], child_import["txid"])
+        assert_equal(decoded_import["hash"], child_import["wtxid"])
+        assert_equal(len(decoded_import["vin"]), 1)
+        assert_equal(decoded_import["vin"][0]["vout"], 0xfffffffe)
+        assert_equal(len(decoded_import["vin"][0]["txinwitness"]), 1)
+        assert_equal(len(decoded_import["vout"]), 1)
+        assert_equal(decoded_import["vout"][0]["value"], deposit_amount)
+
         successor_address = wallet.getnewaddress()
         update_psbt = wallet.walletcreatechainregistrypsbt("update", {
             "chain_id": chain_id,
@@ -636,7 +666,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         disconnected_runtime = node.listchildchainruntimes()["chains"][0]
         assert_equal(disconnected_runtime["loaded"], True)
         assert_equal(disconnected_runtime["main_height"], node.getblockcount())
-        assert_equal(disconnected_runtime["main_bestblockhash"], deposit_block)
+        assert_equal(disconnected_runtime["main_bestblockhash"], mature_deposit_tip)
         node.reconsiderblock(update_block)
         node.syncwithvalidationinterfacequeue()
         assert_equal(node.getbestblockhash(), update_block)
@@ -688,7 +718,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(rolled_back_update["chain"]["control_outpoint"], {"txid": update_txid, "vout": 1})
 
         node.invalidateblock(update_block)
-        assert_equal(node.getbestblockhash(), deposit_block)
+        assert_equal(node.getbestblockhash(), mature_deposit_tip)
         assert_equal(node.getchainregistryinfo()["root"], registered_info["root"])
         rolled_back_registration = node.getchildchain(chain_id)
         assert_equal(rolled_back_registration["chain"]["status"], "active")

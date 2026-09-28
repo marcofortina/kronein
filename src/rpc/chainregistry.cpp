@@ -6,6 +6,7 @@
 #include <consensus/bmm.h>
 #include <consensus/chainregistry.h>
 #include <consensus/consensus.h>
+#include <core_io.h>
 #include <node/chain_manager.h>
 #include <node/child_network_manager.h>
 #include <primitives/chainregistry.h>
@@ -113,6 +114,43 @@ chainregistry::BmmAnchorProof ParseBmmProof(const UniValue& value)
             strprintf("BMM proof decode failed: %s", error.what()));
     }
     return proof;
+}
+
+chainregistry::DepositProof ParseDepositProof(const UniValue& value)
+{
+    const auto bytes{ParseBoundedHex(
+        value, "deposit_proof", MAX_BLOCK_SERIALIZED_SIZE)};
+    chainregistry::DepositProof proof;
+    try {
+        SpanReader reader{bytes};
+        reader >> proof;
+        if (!reader.empty()) {
+            throw std::ios_base::failure(
+                "Trailing data after deposit proof.");
+        }
+    } catch (const std::ios_base::failure& error) {
+        throw JSONRPCError(
+            RPC_DESERIALIZATION_ERROR,
+            strprintf("deposit proof decode failed: %s", error.what()));
+    }
+    return proof;
+}
+
+std::string_view AuthenticatedDepositErrorName(
+    chainregistry::AuthenticatedDepositError error)
+{
+    using enum chainregistry::AuthenticatedDepositError;
+    switch (error) {
+    case NONE: return "none";
+    case INVALID_CONFIRMATION_POLICY: return "invalid-confirmation-policy";
+    case STRUCTURAL_PROOF_INVALID: return "structural-proof-invalid";
+    case HEADER_UNKNOWN: return "header-unknown";
+    case HEADER_HEIGHT_MISMATCH: return "header-height-mismatch";
+    case HEADER_NOT_ACTIVE: return "header-not-active";
+    case INSUFFICIENT_CHAINWORK: return "insufficient-chainwork";
+    case IMMATURE: return "immature";
+    }
+    return "unknown";
 }
 
 void PushChildStorageStats(UniValue& object,
@@ -1974,6 +2012,95 @@ RPCHelpMan submitchildblock()
     };
 }
 
+RPCHelpMan createchildimporttransaction()
+{
+    return RPCHelpMan{
+        "createchildimporttransaction",
+        "Build a canonical child IMPORT transaction from a KDPR proof. The exact child must be loaded; its local main-header light client authenticates the proof, active branch and configured maturity before any transaction is returned. This RPC does not submit a child block.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null destination child-chain identifier"},
+            {"deposit_proof", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Canonical serialized KDPR v1 proof"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Authenticated child IMPORT transaction", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Destination child-chain identifier"},
+            {RPCResult::Type::STR_HEX, "deposit_id", "Network-bound imported deposit identifier"},
+            {RPCResult::Type::STR_HEX, "transaction", "Serialized canonical IMPORT transaction including witness"},
+            {RPCResult::Type::STR_HEX, "txid", "IMPORT transaction identifier"},
+            {RPCResult::Type::STR_HEX, "wtxid", "IMPORT witness transaction identifier"},
+            {RPCResult::Type::STR_AMOUNT, "amount", "Amount credited by the IMPORT"},
+            {RPCResult::Type::NUM, "recipient_type", "Child-template recipient namespace"},
+            {RPCResult::Type::STR_HEX, "recipient", "Canonical child recipient bytes"},
+            {RPCResult::Type::STR_HEX, "main_block_hash", "Authenticated containing main-chain block"},
+            {RPCResult::Type::NUM, "main_block_height", "Authenticated containing main-chain height"},
+            {RPCResult::Type::NUM, "confirmations", "Confirmations observed by the child light client"},
+            {RPCResult::Type::NUM, "required_confirmations", "Deposit maturity configured by the child manifest"},
+            {RPCResult::Type::BOOL, "authenticated", "Always true when the RPC succeeds"},
+        }},
+        RPCExamples{
+            HelpExampleCli("createchildimporttransaction", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" \"4b445052...\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const auto chain_id{ParseChainId(self.Arg<UniValue>("chain_id"))};
+    const auto proof{ParseDepositProof(self.Arg<UniValue>("deposit_proof"))};
+    const auto built{EnsureAnyChildChainman(request.context)
+                         .BuildImportTransaction(chain_id, proof)};
+    switch (built.error) {
+    case node::ChainManagerImportBuildError::NONE:
+        break;
+    case node::ChainManagerImportBuildError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must not be null");
+    case node::ChainManagerImportBuildError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not configured locally");
+    case node::ChainManagerImportBuildError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "child chain is not loaded");
+    case node::ChainManagerImportBuildError::SAFE_HALT:
+        throw JSONRPCError(RPC_VERIFY_REJECTED,
+                           "child chain is in SAFE_HALT");
+    case node::ChainManagerImportBuildError::PROOF_REJECTED:
+        throw JSONRPCError(
+            RPC_VERIFY_REJECTED,
+            strprintf(
+                "deposit proof rejected by child light client: %s (%d/%u confirmations)",
+                AuthenticatedDepositErrorName(built.authenticated.error),
+                built.authenticated.confirmations,
+                built.minimum_confirmations));
+    case node::ChainManagerImportBuildError::ALREADY_IMPORTED:
+        throw JSONRPCError(RPC_VERIFY_ERROR,
+                           "deposit is already imported by this child chain");
+    case node::ChainManagerImportBuildError::BUILD_FAILED:
+        throw JSONRPCError(
+            RPC_VERIFY_REJECTED,
+            strprintf("failed to build canonical child IMPORT (error %u, proof error %u)",
+                      static_cast<unsigned>(built.import.error),
+                      static_cast<unsigned>(built.import.proof_error)));
+    }
+
+    Assume(built.authenticated.proof.fund);
+    Assume(built.import.transaction);
+    Assume(built.import.deposit_id);
+    const auto& fund{*built.authenticated.proof.fund};
+    const CTransaction transaction{*built.import.transaction};
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", chain_id.GetHex());
+    result.pushKV("deposit_id", built.import.deposit_id->GetHex());
+    result.pushKV("transaction", EncodeHexTx(transaction));
+    result.pushKV("txid", transaction.GetHash().GetHex());
+    result.pushKV("wtxid", transaction.GetWitnessHash().GetHex());
+    result.pushKV("amount", ValueFromAmount(fund.amount));
+    result.pushKV("recipient_type", fund.fund.recipient_type);
+    result.pushKV("recipient", HexStr(fund.fund.recipient));
+    result.pushKV("main_block_hash", proof.block_header.GetHash().GetHex());
+    result.pushKV("main_block_height", proof.block_height);
+    result.pushKV("confirmations", built.authenticated.confirmations);
+    result.pushKV("required_confirmations", built.minimum_confirmations);
+    result.pushKV("authenticated", true);
+    return result;
+},
+    };
+}
+
 RPCHelpMan forgetchildchain()
 {
     return RPCHelpMan{
@@ -2027,6 +2154,7 @@ void RegisterChainRegistryRPCCommands(CRPCTable& table)
         {"network", &setchildnetworkbinds},
         {"network", &setchildnetworkdiscovery},
         {"blockchain", &getchildpendingblocks},
+        {"rawtransactions", &createchildimporttransaction},
         {"mining", &submitchildanchor},
         {"mining", &submitchildblock},
         {"control", &forgetchildchain},

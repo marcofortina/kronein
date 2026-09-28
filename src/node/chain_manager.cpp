@@ -306,6 +306,54 @@ ChainManagerResult ChainManager::SubmitBlockData(
     return result;
 }
 
+ChainManagerImportBuildResult ChainManager::BuildImportTransaction(
+    const chainregistry::ChainId& chain_id,
+    const chainregistry::DepositProof& proof) const
+{
+    LOCK(m_mutex);
+    ChainManagerImportBuildResult result;
+    if (chain_id.IsNull()) {
+        result.error = ChainManagerImportBuildError::NULL_CHAIN_ID;
+        return result;
+    }
+    if (!m_definitions.contains(chain_id)) {
+        result.error = ChainManagerImportBuildError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto runtime{m_loaded.find(chain_id)};
+    if (runtime == m_loaded.end()) {
+        result.error = ChainManagerImportBuildError::CHAIN_NOT_LOADED;
+        return result;
+    }
+    if (runtime->second->Imports().IsSafeHalted()) {
+        result.error = ChainManagerImportBuildError::SAFE_HALT;
+        return result;
+    }
+
+    const auto& definition{runtime->second->Definition()};
+    result.minimum_confirmations = definition.parameters.deposit_maturity;
+    const auto* main_headers{runtime->second->MainHeaders()};
+    Assume(main_headers);
+    result.authenticated = main_headers->AuthenticateDeposit(
+        proof, chain_id, definition.parameters.deposit_maturity);
+    if (!result.authenticated.IsValid()) {
+        result.error = ChainManagerImportBuildError::PROOF_REJECTED;
+        return result;
+    }
+    if (runtime->second->Imports().Find(
+            result.authenticated.proof.deposit_id)) {
+        result.error = ChainManagerImportBuildError::ALREADY_IMPORTED;
+        return result;
+    }
+    result.import = chainregistry::BuildReferenceChildImportTransaction(
+        proof, definition);
+    if (!result.import.IsValid() || !result.import.deposit_id ||
+        *result.import.deposit_id != result.authenticated.proof.deposit_id) {
+        result.error = ChainManagerImportBuildError::BUILD_FAILED;
+    }
+    return result;
+}
+
 ChainManagerMainUpdate ChainManager::AddMainHeader(
     const CBlockHeader& header,
     int64_t current_time,

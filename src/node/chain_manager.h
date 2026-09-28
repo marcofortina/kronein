@@ -78,6 +78,30 @@ struct ChainManagerResult {
     bool IsValid() const { return error == ChainManagerError::NONE; }
 };
 
+enum class ChainManagerImportBuildError : uint8_t {
+    NONE,
+    NULL_CHAIN_ID,
+    UNKNOWN_CHAIN,
+    CHAIN_NOT_LOADED,
+    SAFE_HALT,
+    PROOF_REJECTED,
+    ALREADY_IMPORTED,
+    BUILD_FAILED,
+};
+
+struct ChainManagerImportBuildResult {
+    ChainManagerImportBuildError error{ChainManagerImportBuildError::NONE};
+    chainregistry::AuthenticatedDepositResult authenticated;
+    chainregistry::ChildImportBuildResult import;
+    uint32_t minimum_confirmations{0};
+
+    bool IsValid() const
+    {
+        return error == ChainManagerImportBuildError::NONE &&
+               authenticated.IsValid() && import.IsValid();
+    }
+};
+
 struct ChainManagerEntry {
     chainregistry::ChainId chain_id;
     chainregistry::ManifestHash manifest_hash;
@@ -357,6 +381,10 @@ public:
         const CBlock& block,
         int64_t current_time,
         bool sync = false);
+    /** Build an IMPORT only after child-side light-client authentication. */
+    ChainManagerImportBuildResult BuildImportTransaction(
+        const chainregistry::ChainId& chain_id,
+        const chainregistry::DepositProof& proof) const;
     /** Feed a header already connected by the local main chainstate. */
     ChainManagerMainUpdate AddMainHeader(
         const CBlockHeader& header,
