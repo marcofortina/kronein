@@ -59,6 +59,7 @@ private:
         NETWORK_ACTIVE_ROLE,
         ADDED_NODES_ROLE,
         BINDS_ROLE,
+        RATE_LIMITED_REQUESTS_ROLE,
     };
 
     QString selectedChainId() const;

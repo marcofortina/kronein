@@ -193,6 +193,8 @@ void ChildChainDialog::refresh()
             const bool network_active{BoolField(chain, "network_active")};
             const QString connections{NumberField(chain, "connections")};
             const QString handshaken{NumberField(chain, "handshaken_peers")};
+            const QString rate_limited{
+                NumberField(chain, "rate_limited_block_requests")};
             const QStringList added_nodes{StringArrayField(chain, "added_nodes")};
             const QStringList binds{StringArrayField(chain, "binds")};
             const QString state{StringField(chain, "state")};
@@ -231,6 +233,8 @@ void ChildChainDialog::refresh()
             status_item->setData(NETWORK_ACTIVE_ROLE, network_active);
             status_item->setData(ADDED_NODES_ROLE, added_nodes);
             status_item->setData(BINDS_ROLE, binds);
+            status_item->setData(
+                RATE_LIMITED_REQUESTS_ROLE, rate_limited);
             m_table->setItem(row, STATUS, status_item);
             m_table->setItem(row, CHAIN_ID, new QTableWidgetItem{chain_id});
             m_table->setItem(row, CHILD_HEIGHT, new QTableWidgetItem{NumberField(chain, "child_height")});
@@ -243,7 +247,9 @@ void ChildChainDialog::refresh()
                 ? tr("Inbound child connections disabled")
                 : tr("Child listen endpoints:\n%1").arg(binds.join(QLatin1Char('\n')))};
             network_item->setToolTip(
-                outbound_tooltip + QStringLiteral("\n\n") + inbound_tooltip);
+                outbound_tooltip + QStringLiteral("\n\n") + inbound_tooltip +
+                QStringLiteral("\n\n") +
+                tr("Rate-limited block requests: %1").arg(rate_limited));
             m_table->setItem(row, NETWORK, network_item);
             auto* dag_item = new QTableWidgetItem{dag_usage};
             m_table->setItem(row, FORK_DAG, dag_item);
@@ -346,6 +352,8 @@ void ChildChainDialog::updateSelection()
     const bool network_active{item->data(NETWORK_ACTIVE_ROLE).toBool()};
     const QStringList added_nodes{item->data(ADDED_NODES_ROLE).toStringList()};
     const QStringList binds{item->data(BINDS_ROLE).toStringList()};
+    const QString rate_limited{
+        item->data(RATE_LIMITED_REQUESTS_ROLE).toString()};
     m_load_button->setEnabled(configured && !loaded && state == QStringLiteral("configured"));
     m_unload_button->setEnabled(loaded);
     m_forget_button->setEnabled(configured && !loaded);
@@ -356,14 +364,15 @@ void ChildChainDialog::updateSelection()
     m_network_button->setEnabled(loaded && network_running);
     m_network_button->setText(network_active ? tr("Pause Network") : tr("Resume Network"));
     m_selection_summary->setText(
-        tr("Chain ID: %1\nState: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7")
+        tr("Chain ID: %1\nState: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7 • rate-limited block requests: %8")
             .arg(chain_id,
                  StateLabel(state),
                  registry_found ? tr("present") : tr("not present"),
                  configured ? tr("present") : tr("not present"),
                  !network_running ? tr("stopped") : network_active ? tr("active") : tr("paused"),
                  QString::number(added_nodes.size()),
-                 QString::number(binds.size())));
+                 QString::number(binds.size()),
+                 rate_limited));
 }
 
 void ChildChainDialog::addManifest()

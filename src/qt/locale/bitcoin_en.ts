@@ -1008,12 +1008,12 @@
     </message>
     <message>
         <location line="+16"/>
-        <location line="+210"/>
+        <location line="+216"/>
         <source>Select a child chain to manage its local runtime.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-205"/>
+        <location line="-211"/>
         <source>Refresh</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1049,18 +1049,18 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+197"/>
-        <location line="+22"/>
+        <location line="+203"/>
+        <location line="+24"/>
         <source>Pause Network</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-214"/>
+        <location line="-222"/>
         <source>Forget…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+58"/>
+        <location line="+60"/>
         <source>Failed</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1095,7 +1095,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+21"/>
+        <location line="+23"/>
         <source>No explicit child peers configured</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1117,7 +1117,12 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+15"/>
+        <location line="+4"/>
+        <source>Rate-limited block requests: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+13"/>
         <source>Side candidates: %1/%2 records, %3/%4 bytes
 Candidate BMM anchors: %5/%6 records, %7/%8 bytes
 Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
@@ -1158,14 +1163,14 @@ Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+49"/>
+        <location line="+51"/>
         <source>Resume Network</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Chain ID: %1
-State: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7</source>
+State: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7 • rate-limited block requests: %8</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1196,7 +1201,7 @@ State: %2 • registry: %3 • local configuration: %4 • network: %5 • expli
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+14"/>
         <source>Add Child Manifest</source>
         <translation type="unfinished"></translation>
     </message>
