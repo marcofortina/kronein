@@ -86,6 +86,11 @@ std::optional<chainregistry::ChainId> OptionalChildChainId(
         node::ReferenceChildMempoolAcceptError::MAX_FEE_EXCEEDED) {
         throw JSONRPCTransactionError(TransactionError::MAX_FEE_EXCEEDED);
     }
+    if (result.runtime.error ==
+        node::ReferenceChildMempoolAcceptError::SAFE_HALT) {
+        throw JSONRPCError(RPC_VERIFY_REJECTED,
+                           "child chain is in SAFE_HALT");
+    }
     throw JSONRPCError(
         RPC_VERIFY_REJECTED,
         strprintf(

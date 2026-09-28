@@ -79,6 +79,7 @@ enum class ProposalBuildError : uint8_t {
     BUILD_FAILED,
     CONTEXT_REJECTED,
     PROPOSAL_PERSIST_FAILED,
+    SAFE_HALT,
 };
 
 struct ProposalBuildResult {
@@ -99,6 +100,10 @@ ProposalBuildResult BuildAndStoreProposal(
     bool require_empty_proposal_queue)
 {
     ProposalBuildResult result;
+    if (runtime.Imports().IsSafeHalted()) {
+        result.error = ProposalBuildError::SAFE_HALT;
+        return result;
+    }
     const auto pruned{runtime.PruneInvalidLocalProposals(current_time, sync)};
     if (!pruned.IsValid()) {
         result.error = ProposalBuildError::PROPOSAL_QUEUE_UNAVAILABLE;
@@ -676,6 +681,9 @@ ChainManagerImportBlockBuildResult ChainManager::BuildImportBlock(
         result.error =
             ChainManagerImportBlockBuildError::PROPOSAL_PERSIST_FAILED;
         break;
+    case ProposalBuildError::SAFE_HALT:
+        result.error = ChainManagerImportBlockBuildError::SAFE_HALT;
+        break;
     }
     return result;
 }
@@ -755,6 +763,9 @@ ChainManagerTransactionBlockBuildResult ChainManager::BuildTransactionBlock(
     case ProposalBuildError::PROPOSAL_PERSIST_FAILED:
         result.error =
             ChainManagerTransactionBlockBuildError::PROPOSAL_PERSIST_FAILED;
+        break;
+    case ProposalBuildError::SAFE_HALT:
+        result.error = ChainManagerTransactionBlockBuildError::SAFE_HALT;
         break;
     }
     return result;

@@ -645,6 +645,11 @@ void EnsureRegistryMatchesDefinition(
                 RPC_VERIFY_REJECTED,
                 "no authenticated pending BMM anchor commits to this child block");
         }
+        if (result.runtime.error ==
+            node::ReferenceChildRuntimeError::SAFE_HALT) {
+            throw JSONRPCError(RPC_VERIFY_REJECTED,
+                               "child chain is in SAFE_HALT");
+        }
         throw JSONRPCError(
             RPC_VERIFY_REJECTED,
             strprintf("child runtime rejected request (runtime error %u, BMM error %u, block error %u)",
@@ -2741,6 +2746,9 @@ RPCHelpMan createchildimportblock()
         throw JSONRPCError(
             RPC_DATABASE_ERROR,
             "validated child block could not be persisted as a local proposal");
+    case node::ChainManagerImportBlockBuildError::SAFE_HALT:
+        throw JSONRPCError(RPC_VERIFY_REJECTED,
+                           "child chain is in SAFE_HALT");
     }
 
     Assume(built.build.block);
@@ -2917,6 +2925,9 @@ RPCHelpMan createchildblock()
         throw JSONRPCError(
             RPC_DATABASE_ERROR,
             "validated child block could not be persisted as a local proposal");
+    case node::ChainManagerTransactionBlockBuildError::SAFE_HALT:
+        throw JSONRPCError(RPC_VERIFY_REJECTED,
+                           "child chain is in SAFE_HALT");
     }
 
     Assume(built.build.block);

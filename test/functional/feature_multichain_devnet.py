@@ -187,6 +187,28 @@ class MultichainDevnetTest(BitcoinTestFramework):
                 wallet.getbalances(child["chain_id"])["mine"]["trusted"],
                 amount)
 
+        self.log.info("Stage child activity that SAFE_HALT must freeze")
+        halt_recipient = wallet.getnewchildrecipient(
+            children[1]["chain_id"], "safe-halt-probe")
+        halt_fee = Decimal("0.00001000")
+        halt_psbt = wallet.walletcreatechildpsbt(
+            children[1]["chain_id"],
+            [{"recipient": halt_recipient["recipient"],
+              "amount": Decimal("0.01000000")}],
+            halt_fee)
+        halt_signed = wallet.walletprocesschildpsbt(
+            halt_psbt["psbt"], halt_fee)
+        assert_equal(halt_signed["complete"], True)
+        assert_equal(node.sendrawtransaction(
+            halt_signed["hex"], 0, 0, children[1]["chain_id"]),
+            halt_signed["txid"])
+        assert_equal(node.getrawmempool(
+            False, False, children[1]["chain_id"]),
+            [halt_signed["txid"]])
+        halt_proposal = node.createchildblock(
+            children[1]["chain_id"], [halt_signed["hex"]])
+        assert_equal(halt_proposal["proposal_stored"], True)
+
         self.log.info("Pause and unload one child without affecting its peer")
         assert_equal(node.setchildnetworkactive(
             children[0]["chain_id"], False)["network_active"], False)
@@ -222,6 +244,20 @@ class MultichainDevnetTest(BitcoinTestFramework):
                      [deposits[1]["deposit_id"]])
         assert_equal(node.getblockcount(children[0]["chain_id"]), 0)
         assert_equal(node.getblockcount(children[1]["chain_id"]), 1)
+        assert_equal(node.getrawmempool(
+            False, False, children[1]["chain_id"]), [])
+        assert_raises_rpc_error(
+            -26, "child chain is in SAFE_HALT",
+            node.sendrawtransaction,
+            halt_signed["hex"], 0, 0, children[1]["chain_id"])
+        assert_raises_rpc_error(
+            -26, "child chain is in SAFE_HALT",
+            node.createchildblock,
+            children[1]["chain_id"], [halt_signed["hex"]])
+        assert_raises_rpc_error(
+            -26, "child chain is in SAFE_HALT",
+            node.submitchildproposal,
+            children[1]["chain_id"], halt_proposal["blockhash"])
         assert_raises_rpc_error(
             -26, "child chain is in SAFE_HALT",
             node.createchildimporttransaction,
@@ -252,6 +288,21 @@ class MultichainDevnetTest(BitcoinTestFramework):
                      halted_status["safe_halt_observed_main_tip"])
         assert_equal(restored_status["safe_halt_affected_deposits"],
                      halted_status["safe_halt_affected_deposits"])
+        assert_equal(node.getblockcount(children[1]["chain_id"]), 1)
+
+        self.log.info("Ignore new BMM anchors while the child remains halted")
+        wallet = node.get_wallet_rpc("devnet")
+        protected_counts = {
+            key: restored_status[key]
+            for key in ("canonical_anchor_count", "pending_block_count",
+                        "pending_anchor_count", "candidate_anchor_count")
+        }
+        self.anchor_proposal(
+            wallet, children[1]["chain_id"], halt_proposal["blockhash"])
+        after_anchor = node.getchildbmmstatus(children[1]["chain_id"])
+        assert_equal(after_anchor["safe_halt"], True)
+        assert_equal({key: after_anchor[key] for key in protected_counts},
+                     protected_counts)
         assert_equal(node.getblockcount(children[1]["chain_id"]), 1)
 
 

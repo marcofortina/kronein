@@ -119,6 +119,7 @@ enum class ChainManagerImportBlockBuildError : uint8_t {
     BUILD_FAILED,
     CONTEXT_REJECTED,
     PROPOSAL_PERSIST_FAILED,
+    SAFE_HALT,
 };
 
 struct ChainManagerImportBlockBuildResult {
@@ -152,6 +153,7 @@ enum class ChainManagerTransactionBlockBuildError : uint8_t {
     BUILD_FAILED,
     CONTEXT_REJECTED,
     PROPOSAL_PERSIST_FAILED,
+    SAFE_HALT,
 };
 
 struct ChainManagerTransactionBlockBuildResult {

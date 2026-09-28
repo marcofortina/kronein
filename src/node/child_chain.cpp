@@ -713,6 +713,13 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::CommitMainChainUpdate(
     }
     m_tip = candidate_child_tip;
     result.disconnected_child_blocks = std::move(disconnected_hashes);
+    if (m_imports.IsSafeHalted()) {
+        for (const auto& entry : m_mempool.Entries()) {
+            result.removed_mempool_transactions.push_back(
+                entry.transaction->GetHash());
+        }
+        m_mempool.Clear();
+    }
     for (const uint256& hash : pruned_candidates) {
         if (hash == m_tip->GetBlockHash() ||
             m_child_index.erase(hash) != 1) {
@@ -778,6 +785,9 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::StageBmmAnchor(
     }
     if (m_failed) {
         return RuntimeError(ReferenceChildRuntimeError::FAILED_RUNTIME);
+    }
+    if (m_imports.IsSafeHalted()) {
+        return RuntimeError(ReferenceChildRuntimeError::SAFE_HALT);
     }
 
     ReferenceChildRuntimeResult result;
@@ -898,6 +908,9 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
     }
     if (m_failed) {
         return RuntimeError(ReferenceChildRuntimeError::FAILED_RUNTIME);
+    }
+    if (m_imports.IsSafeHalted()) {
+        return RuntimeError(ReferenceChildRuntimeError::SAFE_HALT);
     }
     const uint256 block_hash{block.GetHash()};
     ReferenceChildRuntimeResult result;
@@ -1213,6 +1226,11 @@ ReferenceChildMempoolAcceptResult ReferenceChildRuntime::SubmitTransaction(
         result.error = ReferenceChildMempoolAcceptError::FAILED_RUNTIME;
         return result;
     }
+    if (m_imports.IsSafeHalted()) {
+        ReferenceChildMempoolAcceptResult result;
+        result.error = ReferenceChildMempoolAcceptError::SAFE_HALT;
+        return result;
+    }
     return AcceptMempoolTransaction(
         std::move(transaction),
         current_time,
@@ -1321,6 +1339,9 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::StoreLocalProposal(
     if (m_failed) {
         return RuntimeError(ReferenceChildRuntimeError::FAILED_RUNTIME);
     }
+    if (m_imports.IsSafeHalted()) {
+        return RuntimeError(ReferenceChildRuntimeError::SAFE_HALT);
+    }
     ReferenceChildRuntimeResult result;
     result.child_block = ValidateTipBlock(block, current_time);
     if (!result.child_block.IsValid()) {
@@ -1350,6 +1371,9 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::SubmitLocalProposal(
     }
     if (m_failed) {
         return RuntimeError(ReferenceChildRuntimeError::FAILED_RUNTIME);
+    }
+    if (m_imports.IsSafeHalted()) {
+        return RuntimeError(ReferenceChildRuntimeError::SAFE_HALT);
     }
     const auto proposal{m_db->ReadLocalProposal(block_hash)};
     if (!proposal) {
@@ -1387,6 +1411,9 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::DisconnectTip(bool sync)
     }
     if (m_failed) {
         return RuntimeError(ReferenceChildRuntimeError::FAILED_RUNTIME);
+    }
+    if (m_imports.IsSafeHalted()) {
+        return RuntimeError(ReferenceChildRuntimeError::SAFE_HALT);
     }
     if (!m_tip || m_tip == m_genesis.get()) {
         return RuntimeError(

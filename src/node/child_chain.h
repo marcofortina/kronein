@@ -57,6 +57,7 @@ enum class ReferenceChildRuntimeError : uint8_t {
     CHILD_DISCONNECT_REJECTED,
     CHILD_DISCONNECT_PERSIST_FAILED,
     CACHE_ACKNOWLEDGEMENT_FAILED,
+    SAFE_HALT,
 };
 
 struct ReferenceChildRuntimeResult {
@@ -95,6 +96,7 @@ enum class ReferenceChildMempoolAcceptError : uint8_t {
     CONTEXT_REJECTED,
     MAX_FEE_EXCEEDED,
     POOL_REJECTED,
+    SAFE_HALT,
 };
 
 struct ReferenceChildMempoolAcceptResult {
