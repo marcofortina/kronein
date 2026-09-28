@@ -347,6 +347,24 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(len(child_recipient), 64)
         assert_equal(child_identity["scriptPubKey"], "5120" + child_recipient)
         assert_equal(child_identity["label"], "child-receive")
+        child_address_info = wallet.getaddressinfo(child_recipient, chain_id)
+        assert "address" not in child_address_info
+        assert_equal(child_address_info["chain_id"], chain_id)
+        assert_equal(child_address_info["recipient_type"], 1)
+        assert_equal(child_address_info["recipient"], child_recipient)
+        assert_equal(child_address_info["scriptPubKey"],
+                     child_identity["scriptPubKey"])
+        assert_equal(child_address_info["ismine"], True)
+        assert_equal(child_address_info["solvable"], True)
+        assert_equal(child_address_info["ischange"], False)
+        assert_equal(child_address_info["labels"], ["child-receive"])
+        foreign_child_address_info = attacker.getaddressinfo(
+            child_recipient, chain_id)
+        assert_equal(foreign_child_address_info["chain_id"], chain_id)
+        assert_equal(foreign_child_address_info["ismine"], False)
+        assert_equal(foreign_child_address_info["solvable"], False)
+        assert_equal(foreign_child_address_info["ischange"], False)
+        assert_equal(foreign_child_address_info["labels"], [])
         listed_identities = wallet.listchildrecipients(chain_id)
         assert_equal(listed_identities["chain_id"], chain_id)
         assert_equal(listed_identities["recipient_count"], 1)
@@ -1141,6 +1159,12 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(child_change_identity["label"], "")
         assert_equal(child_change_identity["scriptPubKey"],
                      "5120" + child_change_identity["recipient"])
+        child_change_info = wallet.getaddressinfo(
+            child_change_identity["recipient"], chain_id)
+        assert_equal(child_change_info["ismine"], True)
+        assert_equal(child_change_info["solvable"], True)
+        assert_equal(child_change_info["ischange"], True)
+        assert_equal(child_change_info["labels"], [])
 
         self.log.info("Restore child descriptor contexts in another wallet")
         exported_child_descriptors = [
