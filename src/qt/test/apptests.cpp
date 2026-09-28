@@ -18,6 +18,7 @@
 
 #include <QAction>
 #include <QLineEdit>
+#include <QPushButton>
 #include <QRegularExpression>
 #include <QScopedPointer>
 #include <QSignalSpy>
@@ -100,7 +101,16 @@ void AppTests::guiTests(BitcoinGUI* window)
     QVERIFY(child_chains->isVisible());
     QTableWidget* child_chain_table = child_chains->findChild<QTableWidget*>("childChainTable");
     QVERIFY(child_chain_table);
-    QCOMPARE(child_chain_table->columnCount(), 7);
+    QCOMPARE(child_chain_table->columnCount(), 8);
+    QPushButton* add_peer_button = child_chains->findChild<QPushButton*>("childChainAddPeerButton");
+    QPushButton* remove_peer_button = child_chains->findChild<QPushButton*>("childChainRemovePeerButton");
+    QPushButton* network_button = child_chains->findChild<QPushButton*>("childChainNetworkButton");
+    QVERIFY(add_peer_button);
+    QVERIFY(remove_peer_button);
+    QVERIFY(network_button);
+    QVERIFY(!add_peer_button->isEnabled());
+    QVERIFY(!remove_peer_button->isEnabled());
+    QVERIFY(!network_button->isEnabled());
     child_chains->close();
 
     connect(window, &BitcoinGUI::consoleShown, this, &AppTests::consoleTests);

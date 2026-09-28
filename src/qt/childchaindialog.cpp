@@ -13,14 +13,18 @@
 #include <QHeaderView>
 #include <QInputDialog>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QStringList>
 #include <QTableWidget>
 #include <QTableWidgetItem>
 #include <QVBoxLayout>
+#include <QVariant>
 
 #include <exception>
 #include <stdexcept>
+#include <utility>
 
 namespace {
 
@@ -40,6 +44,17 @@ bool BoolField(const UniValue& object, const char* name)
 {
     const UniValue& value{object.find_value(name)};
     return value.isBool() && value.get_bool();
+}
+
+QStringList StringArrayField(const UniValue& object, const char* name)
+{
+    QStringList result;
+    const UniValue& values{object.find_value(name)};
+    if (!values.isArray()) return result;
+    for (const UniValue& value : values.getValues()) {
+        if (value.isStr()) result.push_back(QString::fromStdString(value.get_str()));
+    }
+    return result;
 }
 
 QString RpcErrorMessage(const UniValue& error)
@@ -67,7 +82,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     : QDialog{parent}, m_node{node}
 {
     setWindowTitle(tr("Child Chains"));
-    setMinimumSize(1100, 480);
+    setMinimumSize(1250, 520);
 
     m_registry_summary = new QLabel{this};
     m_registry_summary->setTextInteractionFlags(Qt::TextSelectableByMouse);
@@ -81,6 +96,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
         tr("Chain ID"),
         tr("Child height"),
         tr("Main height"),
+        tr("Network"),
         tr("Fork DAG"),
         tr("Template"),
         tr("Safety"),
@@ -94,6 +110,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     m_table->horizontalHeader()->setSectionResizeMode(CHAIN_ID, QHeaderView::Stretch);
     m_table->horizontalHeader()->setSectionResizeMode(CHILD_HEIGHT, QHeaderView::ResizeToContents);
     m_table->horizontalHeader()->setSectionResizeMode(MAIN_HEIGHT, QHeaderView::ResizeToContents);
+    m_table->horizontalHeader()->setSectionResizeMode(NETWORK, QHeaderView::ResizeToContents);
     m_table->horizontalHeader()->setSectionResizeMode(FORK_DAG, QHeaderView::ResizeToContents);
     m_table->horizontalHeader()->setSectionResizeMode(TEMPLATE, QHeaderView::ResizeToContents);
     m_table->horizontalHeader()->setSectionResizeMode(SAFETY, QHeaderView::ResizeToContents);
@@ -107,6 +124,12 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     m_add_button = actions->addButton(tr("Add Manifest…"), QDialogButtonBox::ActionRole);
     m_load_button = actions->addButton(tr("Load"), QDialogButtonBox::ActionRole);
     m_unload_button = actions->addButton(tr("Unload"), QDialogButtonBox::ActionRole);
+    m_add_peer_button = actions->addButton(tr("Add Peer…"), QDialogButtonBox::ActionRole);
+    m_remove_peer_button = actions->addButton(tr("Remove Peer…"), QDialogButtonBox::ActionRole);
+    m_network_button = actions->addButton(tr("Pause Network"), QDialogButtonBox::ActionRole);
+    m_add_peer_button->setObjectName(QStringLiteral("childChainAddPeerButton"));
+    m_remove_peer_button->setObjectName(QStringLiteral("childChainRemovePeerButton"));
+    m_network_button->setObjectName(QStringLiteral("childChainNetworkButton"));
     m_forget_button = actions->addButton(tr("Forget…"), QDialogButtonBox::DestructiveRole);
     actions->addButton(QDialogButtonBox::Close);
 
@@ -121,6 +144,9 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     connect(m_add_button, &QPushButton::clicked, this, &ChildChainDialog::addManifest);
     connect(m_load_button, &QPushButton::clicked, this, &ChildChainDialog::loadSelected);
     connect(m_unload_button, &QPushButton::clicked, this, &ChildChainDialog::unloadSelected);
+    connect(m_add_peer_button, &QPushButton::clicked, this, &ChildChainDialog::addPeer);
+    connect(m_remove_peer_button, &QPushButton::clicked, this, &ChildChainDialog::removePeer);
+    connect(m_network_button, &QPushButton::clicked, this, &ChildChainDialog::toggleNetwork);
     connect(m_forget_button, &QPushButton::clicked, this, &ChildChainDialog::forgetSelected);
     connect(actions, &QDialogButtonBox::rejected, this, &QDialog::close);
 
@@ -152,6 +178,11 @@ void ChildChainDialog::refresh()
             const bool registry_found{BoolField(chain, "registry_found")};
             const bool failed{BoolField(chain, "failed")};
             const bool safe_halt{BoolField(chain, "safe_halt")};
+            const bool network_running{BoolField(chain, "network_running")};
+            const bool network_active{BoolField(chain, "network_active")};
+            const QString connections{NumberField(chain, "connections")};
+            const QString handshaken{NumberField(chain, "handshaken_peers")};
+            const QStringList added_nodes{StringArrayField(chain, "added_nodes")};
             const QString state{StringField(chain, "state")};
             const QString template_name{QStringLiteral("%1/%2")
                 .arg(NumberField(chain, "template_id"), NumberField(chain, "template_version"))};
@@ -169,6 +200,12 @@ void ChildChainDialog::refresh()
                            candidate_anchors,
                            candidate_anchor_limit)
                 : QStringLiteral("—")};
+            const QString network_state{!network_running
+                ? tr("Stopped")
+                : !network_active
+                    ? tr("Paused")
+                    : tr("%1 connected • %2 authenticated")
+                          .arg(connections, handshaken)};
 
             const int row{m_table->rowCount()};
             m_table->insertRow(row);
@@ -178,16 +215,26 @@ void ChildChainDialog::refresh()
             status_item->setData(LOADED_ROLE, loaded);
             status_item->setData(REGISTRY_FOUND_ROLE, registry_found);
             status_item->setData(STATE_ROLE, state);
+            status_item->setData(NETWORK_RUNNING_ROLE, network_running);
+            status_item->setData(NETWORK_ACTIVE_ROLE, network_active);
+            status_item->setData(ADDED_NODES_ROLE, added_nodes);
             m_table->setItem(row, STATUS, status_item);
             m_table->setItem(row, CHAIN_ID, new QTableWidgetItem{chain_id});
             m_table->setItem(row, CHILD_HEIGHT, new QTableWidgetItem{NumberField(chain, "child_height")});
             m_table->setItem(row, MAIN_HEIGHT, new QTableWidgetItem{NumberField(chain, "main_height")});
+            auto* network_item = new QTableWidgetItem{network_state};
+            network_item->setToolTip(
+                added_nodes.isEmpty()
+                    ? tr("No explicit child peers configured")
+                    : tr("Explicit child peers:\n%1").arg(added_nodes.join(QLatin1Char('\n'))));
+            m_table->setItem(row, NETWORK, network_item);
             auto* dag_item = new QTableWidgetItem{dag_usage};
             m_table->setItem(row, FORK_DAG, dag_item);
             m_table->setItem(row, TEMPLATE, new QTableWidgetItem{template_name});
             m_table->setItem(row, SAFETY, new QTableWidgetItem{safety});
 
             for (int column = 0; column < COLUMN_COUNT; ++column) {
+                if (column == NETWORK) continue;
                 m_table->item(row, column)->setToolTip(chain_id);
             }
             if (loaded) {
@@ -248,6 +295,10 @@ void ChildChainDialog::updateSelection()
         m_unload_button->setEnabled(false);
         m_forget_button->setEnabled(false);
         m_add_button->setEnabled(false);
+        m_add_peer_button->setEnabled(false);
+        m_remove_peer_button->setEnabled(false);
+        m_network_button->setEnabled(false);
+        m_network_button->setText(tr("Pause Network"));
         m_selection_summary->setText(tr("Select a child chain to manage its local runtime."));
         return;
     }
@@ -257,16 +308,25 @@ void ChildChainDialog::updateSelection()
     const bool loaded{item->data(LOADED_ROLE).toBool()};
     const bool registry_found{item->data(REGISTRY_FOUND_ROLE).toBool()};
     const QString state{item->data(STATE_ROLE).toString()};
+    const bool network_running{item->data(NETWORK_RUNNING_ROLE).toBool()};
+    const bool network_active{item->data(NETWORK_ACTIVE_ROLE).toBool()};
+    const QStringList added_nodes{item->data(ADDED_NODES_ROLE).toStringList()};
     m_load_button->setEnabled(configured && !loaded && state == QStringLiteral("configured"));
     m_unload_button->setEnabled(loaded);
     m_forget_button->setEnabled(configured && !loaded);
     m_add_button->setEnabled(registry_found && !configured && state == QStringLiteral("available"));
+    m_add_peer_button->setEnabled(loaded && network_running);
+    m_remove_peer_button->setEnabled(loaded && network_running && !added_nodes.isEmpty());
+    m_network_button->setEnabled(loaded && network_running);
+    m_network_button->setText(network_active ? tr("Pause Network") : tr("Resume Network"));
     m_selection_summary->setText(
-        tr("Chain ID: %1\nState: %2 • registry: %3 • local configuration: %4")
+        tr("Chain ID: %1\nState: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6")
             .arg(chain_id,
                  StateLabel(state),
                  registry_found ? tr("present") : tr("not present"),
-                 configured ? tr("present") : tr("not present")));
+                 configured ? tr("present") : tr("not present"),
+                 !network_running ? tr("stopped") : network_active ? tr("active") : tr("paused"),
+                 QString::number(added_nodes.size())));
 }
 
 void ChildChainDialog::addManifest()
@@ -327,6 +387,11 @@ bool ChildChainDialog::runLifecycleCommand(const char* command, const QString& c
 {
     UniValue params{UniValue::VARR};
     params.push_back(chain_id.toStdString());
+    return runCommand(command, std::move(params));
+}
+
+bool ChildChainDialog::runCommand(const char* command, UniValue params)
+{
     QApplication::setOverrideCursor(Qt::WaitCursor);
     try {
         m_node.executeRpc(command, params, "");
@@ -342,6 +407,62 @@ bool ChildChainDialog::runLifecycleCommand(const char* command, const QString& c
     QApplication::restoreOverrideCursor();
     refresh();
     return true;
+}
+
+void ChildChainDialog::addPeer()
+{
+    const QString chain_id{selectedChainId()};
+    if (chain_id.isEmpty()) return;
+    bool accepted{false};
+    const QString endpoint{QInputDialog::getText(
+        this,
+        tr("Add Child Peer"),
+        tr("Enter a child peer endpoint with an explicit port (host:port or [IPv6]:port):"),
+        QLineEdit::Normal,
+        {},
+        &accepted).trimmed()};
+    if (!accepted || endpoint.isEmpty()) return;
+    UniValue params{UniValue::VARR};
+    params.push_back(chain_id.toStdString());
+    params.push_back(endpoint.toStdString());
+    runCommand("addchildnode", std::move(params));
+}
+
+void ChildChainDialog::removePeer()
+{
+    const int row{m_table->currentRow()};
+    const QTableWidgetItem* item{row >= 0 ? m_table->item(row, STATUS) : nullptr};
+    if (!item) return;
+    const QString chain_id{item->data(CHAIN_ID_ROLE).toString()};
+    const QStringList endpoints{item->data(ADDED_NODES_ROLE).toStringList()};
+    if (chain_id.isEmpty() || endpoints.isEmpty()) return;
+    bool accepted{false};
+    const QString endpoint{QInputDialog::getItem(
+        this,
+        tr("Remove Child Peer"),
+        tr("Select the persistent endpoint to disconnect and remove:"),
+        endpoints,
+        0,
+        false,
+        &accepted)};
+    if (!accepted || endpoint.isEmpty()) return;
+    UniValue params{UniValue::VARR};
+    params.push_back(chain_id.toStdString());
+    params.push_back(endpoint.toStdString());
+    runCommand("removechildnode", std::move(params));
+}
+
+void ChildChainDialog::toggleNetwork()
+{
+    const int row{m_table->currentRow()};
+    const QTableWidgetItem* item{row >= 0 ? m_table->item(row, STATUS) : nullptr};
+    if (!item) return;
+    const QString chain_id{item->data(CHAIN_ID_ROLE).toString()};
+    if (chain_id.isEmpty()) return;
+    UniValue params{UniValue::VARR};
+    params.push_back(chain_id.toStdString());
+    params.push_back(!item->data(NETWORK_ACTIVE_ROLE).toBool());
+    runCommand("setchildnetworkactive", std::move(params));
 }
 
 void ChildChainDialog::loadSelected()

@@ -10,6 +10,7 @@
 class QLabel;
 class QPushButton;
 class QTableWidget;
+class UniValue;
 
 namespace interfaces {
 class Node;
@@ -30,6 +31,9 @@ private Q_SLOTS:
     void unloadSelected();
     void forgetSelected();
     void addManifest();
+    void addPeer();
+    void removePeer();
+    void toggleNetwork();
 
 private:
     enum Column {
@@ -37,6 +41,7 @@ private:
         CHAIN_ID,
         CHILD_HEIGHT,
         MAIN_HEIGHT,
+        NETWORK,
         FORK_DAG,
         TEMPLATE,
         SAFETY,
@@ -49,9 +54,13 @@ private:
         LOADED_ROLE,
         REGISTRY_FOUND_ROLE,
         STATE_ROLE,
+        NETWORK_RUNNING_ROLE,
+        NETWORK_ACTIVE_ROLE,
+        ADDED_NODES_ROLE,
     };
 
     QString selectedChainId() const;
+    bool runCommand(const char* command, UniValue params);
     bool runLifecycleCommand(const char* command, const QString& chain_id);
     void showRpcError(const QString& operation, const QString& message);
 
@@ -64,6 +73,9 @@ private:
     QPushButton* m_load_button{nullptr};
     QPushButton* m_unload_button{nullptr};
     QPushButton* m_forget_button{nullptr};
+    QPushButton* m_add_peer_button{nullptr};
+    QPushButton* m_remove_peer_button{nullptr};
+    QPushButton* m_network_button{nullptr};
 };
 
 #endif // BITCOIN_QT_CHILDCHAINDIALOG_H

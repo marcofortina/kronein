@@ -927,7 +927,7 @@
 <context>
     <name>ChildChainDialog</name>
     <message>
-        <location filename="../childchaindialog.cpp" line="+54"/>
+        <location filename="../childchaindialog.cpp" line="+69"/>
         <source>Available</source>
         <translation type="unfinished"></translation>
     </message>
@@ -988,6 +988,11 @@
     </message>
     <message>
         <location line="+1"/>
+        <source>Network</source>
+        <translation type="unfinished">Network</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Fork DAG</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1002,13 +1007,13 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+15"/>
-        <location line="+150"/>
+        <location line="+16"/>
+        <location line="+184"/>
         <source>Select a child chain to manage its local runtime.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-145"/>
+        <location line="-179"/>
         <source>Refresh</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1029,11 +1034,28 @@
     </message>
     <message>
         <location line="+1"/>
+        <source>Add Peer…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Remove Peer…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <location line="+172"/>
+        <location line="+20"/>
+        <source>Pause Network</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-188"/>
         <source>Forget…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+48"/>
+        <location line="+56"/>
         <source>Failed</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1053,7 +1075,33 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+30"/>
+        <location line="+8"/>
+        <source>Stopped</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Paused</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>%1 connected • %2 authenticated</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+21"/>
+        <source>No explicit child peers configured</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Explicit child peers:
+%1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+13"/>
         <source>Side candidates: %1/%2 records, %3/%4 bytes
 Candidate BMM anchors: %5/%6 records, %7/%8 bytes
 Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
@@ -1079,9 +1127,14 @@ Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+37"/>
+        <location line="+46"/>
+        <source>Resume Network</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
         <source>Chain ID: %1
-State: %2 • registry: %3 • local configuration: %4</source>
+State: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1097,7 +1150,22 @@ State: %2 • registry: %3 • local configuration: %4</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+11"/>
+        <location line="+1"/>
+        <source>stopped</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>active</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>paused</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+12"/>
         <source>Add Child Manifest</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1131,6 +1199,26 @@ The complete manifest will be validated against child chain %1 on the active mai
     </message>
     <message>
         <location line="+40"/>
+        <source>Add Child Peer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Enter a child peer endpoint with an explicit port (host:port or [IPv6]:port):</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+22"/>
+        <source>Remove Child Peer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Select the persistent endpoint to disconnect and remove:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+37"/>
         <source>Unload Child Chain</source>
         <translation type="unfinished"></translation>
     </message>
