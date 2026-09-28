@@ -104,6 +104,7 @@ struct DepositLookupResult {
     std::vector<DepositIndexEntry> deposits;
     uint64_t lookups{0};
     bool complete{true};
+    std::optional<chainregistry::DepositId> continuation;
 };
 
 struct ChainRegistryDBUndo {
@@ -237,7 +238,8 @@ public:
     std::optional<DepositIndexEntry> ReadDeposit(const chainregistry::DepositId& deposit_id) const;
     std::optional<DepositLookupResult> ReadDepositsForChild(
         const chainregistry::ChainId& chain_id,
-        uint64_t lookup_limit) const;
+        uint64_t lookup_limit,
+        std::optional<chainregistry::DepositId> start_after = std::nullopt) const;
     std::optional<BmmAnchorIndexEntry> ReadAnchor(const BmmAnchorId& anchor_id) const;
     std::optional<BmmAnchorLookupResult> ReadAnchorsForChildBlocks(
         const chainregistry::ChainId& chain_id,

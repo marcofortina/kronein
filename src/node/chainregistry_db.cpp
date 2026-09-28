@@ -565,10 +565,13 @@ std::optional<DepositIndexEntry> ChainRegistryDB::ReadDeposit(
 
 std::optional<DepositLookupResult> ChainRegistryDB::ReadDepositsForChild(
     const chainregistry::ChainId& chain_id,
-    uint64_t lookup_limit) const
+    uint64_t lookup_limit,
+    std::optional<chainregistry::DepositId> start_after) const
 {
     DepositLookupResult result;
-    if (chain_id.IsNull()) return result;
+    if (chain_id.IsNull() || (start_after && start_after->IsNull())) {
+        return result;
+    }
     if (lookup_limit == 0) {
         result.complete = false;
         return result;
@@ -577,7 +580,16 @@ std::optional<DepositLookupResult> ChainRegistryDB::ReadDepositsForChild(
     std::unique_ptr<CDBIterator> cursor{
         const_cast<CDBWrapper&>(m_db).NewIterator()};
     cursor->Seek(DepositByChildKey{
-        DB_DEPOSIT_BY_CHILD, {chain_id, {}}});
+        DB_DEPOSIT_BY_CHILD, {chain_id, start_after.value_or(chainregistry::DepositId{})}});
+    if (start_after && cursor->Valid()) {
+        DepositByChildKey key;
+        if (!cursor->GetKey(key)) return std::nullopt;
+        if (key.first == DB_DEPOSIT_BY_CHILD &&
+            key.second.chain_id == chain_id &&
+            key.second.deposit_id == *start_after) {
+            cursor->Next();
+        }
+    }
     while (cursor->Valid()) {
         uint8_t prefix;
         if (!cursor->GetKey(prefix)) return std::nullopt;
@@ -587,6 +599,7 @@ std::optional<DepositLookupResult> ChainRegistryDB::ReadDepositsForChild(
         if (key.second.chain_id != chain_id) break;
         if (result.lookups == lookup_limit) {
             result.complete = false;
+            result.continuation = result.deposits.back().deposit_id;
             break;
         }
         ++result.lookups;

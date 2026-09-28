@@ -414,6 +414,18 @@ BOOST_AUTO_TEST_CASE(deposit_child_lookup_is_bounded)
     BOOST_CHECK(!bounded->complete);
     BOOST_CHECK_EQUAL(bounded->lookups, 1U);
     BOOST_REQUIRE_EQUAL(bounded->deposits.size(), 1U);
+    BOOST_REQUIRE(bounded->continuation);
+
+    const auto continued{db.ReadDepositsForChild(
+        record.chain_id,
+        /*lookup_limit=*/1,
+        bounded->continuation)};
+    BOOST_REQUIRE(continued);
+    BOOST_CHECK(continued->complete);
+    BOOST_CHECK(!continued->continuation);
+    BOOST_CHECK_EQUAL(continued->lookups, 1U);
+    BOOST_REQUIRE_EQUAL(continued->deposits.size(), 1U);
+    BOOST_CHECK(continued->deposits.front() != bounded->deposits.front());
 
     const auto complete{db.ReadDepositsForChild(
         record.chain_id, /*lookup_limit=*/2)};

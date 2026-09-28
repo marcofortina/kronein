@@ -144,7 +144,8 @@ public:
     std::optional<DepositIndexEntry> FindDeposit(const chainregistry::DepositId& deposit_id) const;
     std::optional<DepositLookupResult> FindDepositsForChild(
         const chainregistry::ChainId& chain_id,
-        uint64_t lookup_limit) const;
+        uint64_t lookup_limit,
+        std::optional<chainregistry::DepositId> start_after = std::nullopt) const;
     std::optional<BmmAnchorIndexEntry> FindAnchor(const BmmAnchorId& anchor_id) const;
     std::optional<BmmAnchorLookupResult> FindAnchorsForChildBlocks(
         const chainregistry::ChainId& chain_id,
