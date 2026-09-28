@@ -3,7 +3,9 @@
 // file COPYING or https://opensource.org/license/mit/.
 
 #include <chainregistry/child_fork_choice.h>
+#include <chainregistry/child_net.h>
 #include <consensus/bmm.h>
+#include <consensus/chainregistry.h>
 #include <consensus/deposit_proof.h>
 #include <primitives/bmm.h>
 #include <primitives/chainregistry.h>
@@ -46,6 +48,13 @@ FUZZ_TARGET(chainregistry_script_parsers)
         assert(roundtrip);
         assert(roundtrip.anchor == anchor.anchor);
     }
+
+    const auto commitment{chainregistry::ParseRegistryCommitment(script)};
+    if (commitment.root) {
+        const auto roundtrip{chainregistry::ParseRegistryCommitment(
+            chainregistry::BuildRegistryCommitment(*commitment.root))};
+        assert(roundtrip.root == commitment.root);
+    }
 }
 
 FUZZ_TARGET(chainregistry_transaction_parsers)
@@ -81,6 +90,68 @@ FUZZ_TARGET(chainregistry_proof_parsers)
             provider)}) {
         (void)chainregistry::ValidateBmmAnchorProofStructure(
             *proof, main_genesis, child_chain);
+    }
+}
+
+FUZZ_TARGET(chainregistry_merkle_proofs)
+{
+    FuzzedDataProvider provider{buffer.data(), buffer.size()};
+    const uint256 expected_root{ConsumeUInt256(provider)};
+    const chainregistry::ChainId target{
+        chainregistry::ChainId::FromUint256(ConsumeUInt256(provider))};
+
+    if (const auto entry{
+            ConsumeDeserializable<chainregistry::RegistryProofEntry>(provider)}) {
+        (void)chainregistry::VerifyRegistryInclusion(
+            entry->record, entry->proof, expected_root);
+    }
+    if (const auto proof{
+            ConsumeDeserializable<chainregistry::RegistryNonInclusionProof>(
+                provider)}) {
+        (void)chainregistry::VerifyRegistryNonInclusion(
+            target, *proof, expected_root);
+    }
+}
+
+FUZZ_TARGET(child_wire_parsers)
+{
+    FuzzedDataProvider provider{buffer.data(), buffer.size()};
+    const chainregistry::ChainId expected_chain{
+        chainregistry::ChainId::FromUint256(ConsumeUInt256(provider))};
+    const uint256 expected_genesis{ConsumeUInt256(provider)};
+    const uint256 requested_block{ConsumeUInt256(provider)};
+
+    if (const auto message{
+            ConsumeDeserializable<chainregistry::ChildNetHello>(provider)}) {
+        (void)chainregistry::ValidateChildNetHello(
+            *message, expected_chain, expected_genesis);
+    }
+    if (const auto message{
+            ConsumeDeserializable<chainregistry::ChildBlockHashes>(provider)}) {
+        (void)chainregistry::ValidateChildBlockHashes(
+            *message, expected_chain);
+    }
+    if (const auto message{
+            ConsumeDeserializable<chainregistry::ChildBlockData>(provider)}) {
+        (void)chainregistry::ValidateChildBlockData(
+            *message, expected_chain, requested_block);
+    }
+    if (const auto message{
+            ConsumeDeserializable<chainregistry::ChildTransactionData>(
+                provider)}) {
+        (void)chainregistry::ValidateChildTransactionData(
+            *message, expected_chain);
+    }
+    if (const auto message{
+            ConsumeDeserializable<chainregistry::ChildAddressRequest>(
+                provider)}) {
+        (void)chainregistry::ValidateChildAddressRequest(
+            *message, expected_chain);
+    }
+    if (const auto message{
+            ConsumeDeserializable<chainregistry::ChildAddresses>(provider)}) {
+        (void)chainregistry::ValidateChildAddresses(
+            *message, expected_chain);
     }
 }
 
