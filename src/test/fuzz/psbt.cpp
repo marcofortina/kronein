@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <chainregistry/child_psbt.h>
 #include <node/psbt.h>
 #include <psbt.h>
 #include <pubkey.h>
@@ -43,6 +44,30 @@ FUZZ_TARGET(psbt)
     std::vector<uint8_t> roundtrip_ser;
     VectorWriter{roundtrip_ser, 0, psbt_roundtrip};
     Assert(psbt_ser == roundtrip_ser);
+
+    const auto child_identity{
+        chainregistry::ExtractChildPSBTIdentity(psbt)};
+    if (child_identity.IsValid()) {
+        const auto roundtrip_identity{
+            chainregistry::ExtractChildPSBTIdentity(psbt_roundtrip)};
+        Assert(roundtrip_identity.IsValid());
+        Assert(roundtrip_identity.identity == child_identity.identity);
+    }
+
+    PartiallySignedTransaction child_psbt{psbt};
+    const chainregistry::ChildPSBTIdentity identity{
+        .chain_id = chainregistry::ChainId::FromUint256(uint256{1}),
+        .template_id = chainregistry::REFERENCE_CHILD_TEMPLATE_ID,
+        .template_version = chainregistry::REFERENCE_CHILD_TEMPLATE_VERSION,
+        .genesis_hash = uint256{2},
+    };
+    if (chainregistry::AddChildPSBTIdentity(child_psbt, identity) ==
+        chainregistry::ChildPSBTIdentityError::NONE) {
+        const auto added{
+            chainregistry::ExtractChildPSBTIdentity(child_psbt)};
+        Assert(added.IsValid());
+        Assert(added.identity == identity);
+    }
 
     const PSBTAnalysis analysis = AnalyzePSBT(psbt);
     (void)PSBTRoleName(analysis.next);
