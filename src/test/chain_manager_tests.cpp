@@ -14,6 +14,7 @@
 
 #include <array>
 #include <thread>
+#include <vector>
 
 namespace {
 
@@ -535,6 +536,44 @@ BOOST_AUTO_TEST_CASE(synchronizes_main_headers_and_reconciles_registry)
     BOOST_CHECK(retired.unloaded.front().reason ==
                 node::ChainManagerUnloadReason::REGISTRY_RETIRED);
     BOOST_CHECK_EQUAL(manager.LoadedCount(), 0U);
+}
+
+BOOST_AUTO_TEST_CASE(bounds_loaded_child_runtimes)
+{
+    const fs::path root{m_args.GetDataDirBase() / "chains_loaded_limit"};
+    node::ChainManager manager{
+        Params().GetConsensus(), Params().GenesisBlock(), root, 1 << 20};
+    std::vector<chainregistry::ReferenceChildDefinition> definitions;
+    definitions.reserve(node::MAX_LOADED_CHILD_CHAINS + 1);
+    for (size_t index{0}; index <= node::MAX_LOADED_CHILD_CHAINS; ++index) {
+        definitions.push_back(Definition(static_cast<uint32_t>(100 + index)));
+        BOOST_REQUIRE(manager.RegisterChain(definitions.back()).IsValid());
+    }
+    for (size_t index{0}; index < node::MAX_LOADED_CHILD_CHAINS; ++index) {
+        BOOST_REQUIRE(manager.LoadChain(
+            definitions[index].chain_id,
+            Params().GenesisBlock().nTime,
+            /*wipe_data=*/true,
+            /*sync=*/true).IsValid());
+    }
+    BOOST_CHECK_EQUAL(
+        manager.LoadedCount(), node::MAX_LOADED_CHILD_CHAINS);
+    BOOST_CHECK(
+        manager.LoadChain(
+            definitions.back().chain_id,
+            Params().GenesisBlock().nTime,
+            /*wipe_data=*/true,
+            /*sync=*/true).error ==
+        node::ChainManagerError::TOO_MANY_LOADED_CHAINS);
+
+    BOOST_REQUIRE(manager.UnloadChain(definitions.front().chain_id).IsValid());
+    BOOST_REQUIRE(manager.LoadChain(
+        definitions.back().chain_id,
+        Params().GenesisBlock().nTime,
+        /*wipe_data=*/true,
+        /*sync=*/true).IsValid());
+    BOOST_CHECK_EQUAL(
+        manager.LoadedCount(), node::MAX_LOADED_CHILD_CHAINS);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

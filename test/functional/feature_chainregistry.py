@@ -265,6 +265,8 @@ class ChainRegistryTest(BitcoinTestFramework):
 
         self.log.info("Configure and exercise the opt-in child runtime lifecycle")
         runtimes = node.listchildchainruntimes()
+        assert_equal(runtimes["loaded"], 0)
+        assert_equal(runtimes["max_loaded"], 8)
         assert_equal(len(runtimes["chains"]), 1)
         assert_equal(runtimes["chains"][0]["chain_id"], chain_id)
         assert_equal(runtimes["chains"][0]["state"], "available")

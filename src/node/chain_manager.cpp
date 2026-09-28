@@ -149,6 +149,9 @@ ChainManagerResult ChainManager::LoadChain(
         result.already_loaded = true;
         return result;
     }
+    if (m_loaded.size() >= MAX_LOADED_CHILD_CHAINS) {
+        return ManagerError(ChainManagerError::TOO_MANY_LOADED_CHAINS);
+    }
 
     auto runtime{std::make_unique<ReferenceChildRuntime>(
         m_main_params, definition->second)};

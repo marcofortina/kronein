@@ -27,6 +27,7 @@
 namespace node {
 
 static constexpr size_t DEFAULT_CHILD_CHAIN_DB_CACHE{8 << 20};
+inline constexpr size_t MAX_LOADED_CHILD_CHAINS{8};
 
 enum class ChainManagerError : uint8_t {
     NONE,
@@ -37,6 +38,7 @@ enum class ChainManagerError : uint8_t {
     UNKNOWN_CHAIN,
     CHAIN_LOADED,
     CHAIN_NOT_LOADED,
+    TOO_MANY_LOADED_CHAINS,
     INITIALIZATION_FAILED,
     RUNTIME_REJECTED,
     CATALOG_UNAVAILABLE,

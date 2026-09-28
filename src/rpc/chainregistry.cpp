@@ -458,6 +458,11 @@ void EnsureRegistryMatchesDefinition(
     case node::ChainManagerError::CHAIN_NOT_LOADED:
         throw JSONRPCError(RPC_INVALID_PARAMETER,
                            "child chain is not loaded");
+    case node::ChainManagerError::TOO_MANY_LOADED_CHAINS:
+        throw JSONRPCError(
+            RPC_MISC_ERROR,
+            strprintf("at most %u child chains may be loaded at once",
+                      node::MAX_LOADED_CHILD_CHAINS));
     case node::ChainManagerError::INITIALIZATION_FAILED:
         throw JSONRPCError(
             RPC_MISC_ERROR,
@@ -1058,6 +1063,8 @@ RPCHelpMan listchildchainruntimes()
             {RPCResult::Type::STR_HEX, "bestblockhash", "Main-chain block committing the registry view"},
             {RPCResult::Type::NUM, "height", "Main-chain registry height"},
             {RPCResult::Type::STR_HEX, "root", "Committed registry root"},
+            {RPCResult::Type::NUM, "loaded", "Number of locally loaded child runtimes"},
+            {RPCResult::Type::NUM, "max_loaded", "Maximum child runtimes this process permits"},
             {RPCResult::Type::ARR, "chains", "Known child chains", {
                 {RPCResult::Type::OBJ, "", "One child-chain view", {
                     {RPCResult::Type::STR_HEX, "chain_id", "Full child-chain identifier"},
@@ -1218,6 +1225,8 @@ RPCHelpMan listchildchainruntimes()
     result.pushKV("bestblockhash", registry.best_block.GetHex());
     result.pushKV("height", registry.height);
     result.pushKV("root", registry.root.GetHex());
+    result.pushKV("loaded", manager.LoadedCount());
+    result.pushKV("max_loaded", node::MAX_LOADED_CHILD_CHAINS);
     result.pushKV("chains", std::move(chains));
     return result;
 }
