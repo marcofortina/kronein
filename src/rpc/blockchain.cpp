@@ -10,6 +10,7 @@
 #include <chain.h>
 #include <chainparams.h>
 #include <chainparamsbase.h>
+#include <chainregistry/child_import.h>
 #include <coins.h>
 #include <common/args.h>
 #include <consensus/amount.h>
@@ -2189,6 +2190,7 @@ static RPCHelpMan getblockstats()
                             {"time", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Selected statistic"},
                         },
                         RPCArgOptions{.oneline_description="stats"}},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 RPCResult{
             RPCResult::Type::OBJ, "", "",
@@ -2231,18 +2233,17 @@ static RPCHelpMan getblockstats()
                 {RPCResult::Type::NUM, "utxo_size_inc", /*optional=*/true, "The increase/decrease in size for the utxo index (not discounting op_return and similar)"},
                 {RPCResult::Type::NUM, "utxo_increase_actual", /*optional=*/true, "The increase/decrease in the number of unspent outputs, not counting unspendables"},
                 {RPCResult::Type::NUM, "utxo_size_inc_actual", /*optional=*/true, "The increase/decrease in size for the utxo index, not counting unspendables"},
+                {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Child-chain identifier; present only for child results"},
             }},
                 RPCExamples{
                     HelpExampleCli("getblockstats", R"('"00000000c937983704a73af28acdec37b049d214adbda81d7e2a3dd146f6ed09"' '["minfeerate","avgfeerate"]')") +
                     HelpExampleCli("getblockstats", R"(1000 '["minfeerate","avgfeerate"]')") +
                     HelpExampleRpc("getblockstats", R"("00000000c937983704a73af28acdec37b049d214adbda81d7e2a3dd146f6ed09", ["minfeerate","avgfeerate"])") +
-                    HelpExampleRpc("getblockstats", R"(1000, ["minfeerate","avgfeerate"])")
+                    HelpExampleRpc("getblockstats", R"(1000, ["minfeerate","avgfeerate"])") +
+                    HelpExampleCli("getblockstats", R"('"childblockhash"' '[]' '"chain_id"')")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    ChainstateManager& chainman = EnsureAnyChainman(request.context);
-    const CBlockIndex& pindex{*CHECK_NONFATAL(ParseHashOrHeight(request.params[0], chainman))};
-
     std::set<std::string> stats;
     if (!request.params[1].isNull()) {
         const UniValue stats_univalue = request.params[1].get_array();
@@ -2252,8 +2253,51 @@ static RPCHelpMan getblockstats()
         }
     }
 
-    const CBlock& block = GetBlockChecked(chainman.m_blockman, pindex);
-    const CBlockUndo& blockUndo = GetUndoChecked(chainman.m_blockman, pindex);
+    CBlock block;
+    CBlockUndo blockUndo;
+    uint256 block_hash;
+    int block_height{0};
+    int64_t block_time{0};
+    int64_t median_time{0};
+    CAmount subsidy{0};
+    std::optional<chainregistry::ChainId> child_chain_id;
+    if (const auto chain_id{self.MaybeArg<std::string_view>("chain_id")}) {
+        child_chain_id = ParseChainId(*chain_id);
+        uint256 requested_hash;
+        if (request.params[0].isNum()) {
+            const auto chain_view{GetLoadedChildChainView(
+                request.context, *chain_id, request.params[0].getInt<int>())};
+            Assume(chain_view.block_hash);
+            requested_hash = *chain_view.block_hash;
+        } else {
+            requested_hash = ParseHashV(request.params[0], "hash_or_height");
+        }
+        const auto view{GetLoadedChildBlockView(
+            request.context, *chain_id, requested_hash)};
+        if (view.block.virtual_genesis || !view.block.block || !view.block.undo) {
+            throw JSONRPCError(
+                RPC_MISC_ERROR,
+                "Block statistics are unavailable for the virtual child genesis");
+        }
+        block = *view.block.block;
+        blockUndo = view.block.undo->coins;
+        block_hash = view.block.block_hash;
+        block_height = view.block.height;
+        block_time = view.block.time;
+        median_time = view.block.median_time;
+    } else {
+        ChainstateManager& chainman{EnsureAnyChainman(request.context)};
+        const CBlockIndex& pindex{
+            *CHECK_NONFATAL(ParseHashOrHeight(request.params[0], chainman))};
+        block = GetBlockChecked(chainman.m_blockman, pindex);
+        blockUndo = GetUndoChecked(chainman.m_blockman, pindex);
+        block_hash = pindex.GetBlockHash();
+        block_height = pindex.nHeight;
+        block_time = pindex.GetBlockTime();
+        median_time = pindex.GetMedianTimePast();
+        subsidy = GetBlockSubsidy(
+            pindex.nHeight, chainman.GetParams().GetConsensus());
+    }
 
     const bool do_all = stats.size() == 0; // Calculate everything if nothing selected (default)
     const bool do_mediantxsize = do_all || stats.contains("mediantxsize");
@@ -2302,7 +2346,7 @@ static RPCHelpMan getblockstats()
                 utxo_size_inc += out_size;
 
                 // The genesis block does not change the UTXO set counts.
-                if (pindex.nHeight == 0) continue;
+                if (block_height == 0) continue;
                 // Skip unspendable outputs since they are not included in the UTXO set
                 if (out.scriptPubKey.IsUnspendable()) continue;
 
@@ -2343,7 +2387,10 @@ static RPCHelpMan getblockstats()
         }
 
         if (loop_inputs) {
-            CAmount tx_total_in = 0;
+            CAmount tx_total_in{child_chain_id &&
+                    chainregistry::IsReferenceChildImport(*tx)
+                ? tx_total_out
+                : 0};
             const auto& txundo = blockUndo.vtxundo.at(i - 1);
             for (const Coin& coin: txundo.vprevout) {
                 const CTxOut& prevoutput = coin.out;
@@ -2385,25 +2432,25 @@ static RPCHelpMan getblockstats()
     ret_all.pushKV("avgfee", (block.vtx.size() > 1) ? totalfee / (block.vtx.size() - 1) : 0);
     ret_all.pushKV("avgfeerate", total_weight ? (totalfee * WITNESS_SCALE_FACTOR) / total_weight : 0); // Unit: sat/vbyte
     ret_all.pushKV("avgtxsize", (block.vtx.size() > 1) ? total_size / (block.vtx.size() - 1) : 0);
-    ret_all.pushKV("blockhash", pindex.GetBlockHash().GetHex());
+    ret_all.pushKV("blockhash", block_hash.GetHex());
     ret_all.pushKV("feerate_percentiles", std::move(feerates_res));
-    ret_all.pushKV("height", pindex.nHeight);
+    ret_all.pushKV("height", block_height);
     ret_all.pushKV("ins", inputs);
     ret_all.pushKV("maxfee", maxfee);
     ret_all.pushKV("maxfeerate", maxfeerate);
     ret_all.pushKV("maxtxsize", maxtxsize);
     ret_all.pushKV("medianfee", CalculateTruncatedMedian(fee_array));
-    ret_all.pushKV("mediantime", pindex.GetMedianTimePast());
+    ret_all.pushKV("mediantime", median_time);
     ret_all.pushKV("mediantxsize", CalculateTruncatedMedian(txsize_array));
     ret_all.pushKV("minfee", (minfee == MAX_MONEY) ? 0 : minfee);
     ret_all.pushKV("minfeerate", (minfeerate == MAX_MONEY) ? 0 : minfeerate);
     ret_all.pushKV("mintxsize", mintxsize == MAX_BLOCK_SERIALIZED_SIZE ? 0 : mintxsize);
     ret_all.pushKV("outs", outputs);
-    ret_all.pushKV("subsidy", GetBlockSubsidy(pindex.nHeight, chainman.GetParams().GetConsensus()));
+    ret_all.pushKV("subsidy", subsidy);
     ret_all.pushKV("swtotal_size", swtotal_size);
     ret_all.pushKV("swtotal_weight", swtotal_weight);
     ret_all.pushKV("swtxs", swtxs);
-    ret_all.pushKV("time", pindex.GetBlockTime());
+    ret_all.pushKV("time", block_time);
     ret_all.pushKV("total_out", total_out);
     ret_all.pushKV("total_size", total_size);
     ret_all.pushKV("total_weight", total_weight);
@@ -2413,6 +2460,9 @@ static RPCHelpMan getblockstats()
     ret_all.pushKV("utxo_size_inc", utxo_size_inc);
     ret_all.pushKV("utxo_increase_actual", utxos - inputs);
     ret_all.pushKV("utxo_size_inc_actual", utxo_size_inc_actual);
+    if (child_chain_id) {
+        ret_all.pushKV("chain_id", child_chain_id->GetHex());
+    }
 
     if (do_all) {
         return ret_all;
@@ -2425,6 +2475,9 @@ static RPCHelpMan getblockstats()
             throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid selected statistic '%s'", stat));
         }
         ret.pushKV(stat, value);
+    }
+    if (child_chain_id) {
+        ret.pushKV("chain_id", child_chain_id->GetHex());
     }
     return ret;
 },

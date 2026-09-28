@@ -536,6 +536,32 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
             return std::string_view{error.what()}.find(
                        "provided child block") != std::string_view::npos;
         });
+    const auto child_stats{CallRPC(
+        "getblockstats " + child_block.GetHash().GetHex() + " [] " +
+        chain_id)};
+    BOOST_CHECK_EQUAL(child_stats.find_value("chain_id").get_str(), chain_id);
+    BOOST_CHECK_EQUAL(child_stats.find_value("blockhash").get_str(),
+                      child_block.GetHash().GetHex());
+    BOOST_CHECK_EQUAL(child_stats.find_value("height").getInt<int>(), 1);
+    BOOST_CHECK_EQUAL(child_stats.find_value("subsidy").getInt<int64_t>(), 0);
+    BOOST_CHECK_EQUAL(child_stats.find_value("totalfee").getInt<int64_t>(), 0);
+    BOOST_CHECK_EQUAL(child_stats.find_value("txs").getInt<int>(), 1);
+    const auto selected_child_stats{CallRPC(
+        "getblockstats 1 [\"height\",\"subsidy\"] " + chain_id)};
+    BOOST_CHECK_EQUAL(selected_child_stats.find_value("chain_id").get_str(),
+                      chain_id);
+    BOOST_CHECK_EQUAL(
+        selected_child_stats.find_value("height").getInt<int>(), 1);
+    BOOST_CHECK_EQUAL(
+        selected_child_stats.find_value("subsidy").getInt<int64_t>(), 0);
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("getblockstats " + definition.genesis_hash.GetHex() +
+                " [] " + chain_id),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find(
+                       "virtual child genesis") != std::string_view::npos;
+        });
     const auto child_coin{CallRPC(
         "gettxout " + coinbase_txid + " 0 true " + chain_id)};
     BOOST_CHECK_EQUAL(child_coin.find_value("chain_id").get_str(), chain_id);
