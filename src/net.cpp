@@ -2784,13 +2784,17 @@ Mutex NetEventsInterface::g_msgproc_mutex;
 
 void CConnman::ThreadMessageHandler()
 {
-    LOCK(NetEventsInterface::g_msgproc_mutex);
-
     while (!flagInterruptMsgProc)
     {
         bool fMoreWork = false;
 
         {
+            // Serialize message callbacks across connection managers without
+            // holding the shared lock while this instance sleeps. Auxiliary
+            // connection managers must be able to enter the handler and
+            // observe their own interrupt flag during independent shutdown.
+            LOCK(NetEventsInterface::g_msgproc_mutex);
+
             // Randomize the order in which we process messages from/to our peers.
             // This prevents attacks in which an attacker exploits having multiple
             // consecutive connections in the m_nodes list.
