@@ -14,6 +14,9 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <string>
+#include <vector>
+
 namespace {
 
 const COutPoint REGISTRATION_ANCHOR{
@@ -35,6 +38,17 @@ chainregistry::ReferenceChildDefinition Definition()
         METADATA_HASH)};
     BOOST_REQUIRE(result.IsValid());
     return *result.definition;
+}
+
+std::vector<std::string> Endpoints(size_t count, uint16_t first_port)
+{
+    std::vector<std::string> endpoints;
+    endpoints.reserve(count);
+    for (size_t index{0}; index < count; ++index) {
+        endpoints.push_back(
+            "127.0.0.1:" + std::to_string(first_port + index));
+    }
+    return endpoints;
 }
 
 } // namespace
@@ -240,6 +254,98 @@ BOOST_AUTO_TEST_CASE(owns_an_isolated_network_per_loaded_child)
     BOOST_CHECK(
         invalid_bootstrap.error ==
         node::ChildNetworkError::INVALID_BOOTSTRAP_ENDPOINT);
+}
+
+BOOST_AUTO_TEST_CASE(bounds_child_network_configuration)
+{
+    const auto definition{Definition()};
+    node::ChainManager chains{
+        Params().GetConsensus(),
+        Params().GenesisBlock(),
+        m_args.GetDataDirBase() / "child_network_limits",
+        1 << 20};
+    BOOST_REQUIRE(chains.RegisterChain(definition).IsValid());
+    BOOST_REQUIRE(chains.LoadChain(
+        definition.chain_id,
+        Params().GenesisBlock().nTime,
+        /*wipe_data=*/true,
+        /*sync=*/true).IsValid());
+
+    CScheduler scheduler;
+    node::ChildNetworkManager networks{chains, Params(), scheduler};
+    BOOST_CHECK(
+        networks.Start(
+            definition.chain_id,
+            node::ChildNetworkConfig{
+                .connect = Endpoints(
+                    node::MAX_CHILD_CONNECT_NODES + 1, 20'000),
+                .bind = {},
+                .bootstrap = {},
+                .discovery = false,
+                .network_active = false})
+            .error == node::ChildNetworkError::TOO_MANY_ENDPOINTS);
+    BOOST_CHECK(
+        networks.Start(
+            definition.chain_id,
+            node::ChildNetworkConfig{
+                .connect = {},
+                .bind = Endpoints(
+                    node::MAX_CHILD_BIND_ENDPOINTS + 1, 21'000),
+                .bootstrap = {},
+                .discovery = false,
+                .network_active = false})
+            .error == node::ChildNetworkError::TOO_MANY_BIND_ENDPOINTS);
+    BOOST_CHECK(
+        networks.Start(
+            definition.chain_id,
+            node::ChildNetworkConfig{
+                .connect = {},
+                .bind = {},
+                .bootstrap = Endpoints(
+                    node::MAX_CHILD_BOOTSTRAP_NODES + 1, 22'000),
+                .discovery = true,
+                .network_active = false})
+            .error ==
+        node::ChildNetworkError::TOO_MANY_BOOTSTRAP_ENDPOINTS);
+    BOOST_CHECK(!networks.IsRunning(definition.chain_id));
+
+    BOOST_REQUIRE(networks.Start(
+        definition.chain_id,
+        node::ChildNetworkConfig{
+            .connect = {},
+            .bind = {},
+            .bootstrap = {},
+            .discovery = false,
+            .network_active = false}).IsValid());
+    const auto connect{Endpoints(node::MAX_CHILD_CONNECT_NODES + 1, 23'000)};
+    for (size_t index{0}; index < node::MAX_CHILD_CONNECT_NODES; ++index) {
+        BOOST_REQUIRE(networks.AddNode(
+            definition.chain_id, connect[index]).IsValid());
+    }
+    BOOST_CHECK(
+        networks.AddNode(definition.chain_id, connect.back()).error ==
+        node::ChildNetworkError::TOO_MANY_ENDPOINTS);
+    BOOST_CHECK_EQUAL(
+        networks.GetStats(definition.chain_id).added_nodes.size(),
+        node::MAX_CHILD_CONNECT_NODES);
+
+    BOOST_CHECK(
+        networks.SetBindEndpoints(
+            definition.chain_id,
+            Endpoints(node::MAX_CHILD_BIND_ENDPOINTS + 1, 24'000))
+            .error == node::ChildNetworkError::TOO_MANY_BIND_ENDPOINTS);
+    BOOST_CHECK(
+        networks.SetDiscovery(
+            definition.chain_id,
+            /*enabled=*/true,
+            Endpoints(node::MAX_CHILD_BOOTSTRAP_NODES + 1, 25'000))
+            .error ==
+        node::ChildNetworkError::TOO_MANY_BOOTSTRAP_ENDPOINTS);
+    const auto stats{networks.GetStats(definition.chain_id)};
+    BOOST_CHECK(stats.running);
+    BOOST_CHECK(stats.bind_endpoints.empty());
+    BOOST_CHECK(!stats.discovery);
+    BOOST_CHECK(stats.bootstrap_nodes.empty());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
