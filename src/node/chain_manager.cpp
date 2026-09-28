@@ -1220,7 +1220,8 @@ ChainManagerBlockView ChainManager::GetBlockViewLocked(
 
 ChainManagerCoinView ChainManager::GetCoinView(
     const chainregistry::ChainId& chain_id,
-    const COutPoint& outpoint) const
+    const COutPoint& outpoint,
+    bool include_mempool) const
 {
     LOCK(m_mutex);
     ChainManagerCoinView result;
@@ -1272,6 +1273,28 @@ ChainManagerCoinView ChainManager::GetCoinView(
         .candidate_anchor_bytes = runtime.State().candidate_anchor_bytes,
     };
     result.coin = runtime.GetCoin(outpoint);
+    if (include_mempool) {
+        const auto mempool{runtime.GetMempool()};
+        for (const auto& entry : mempool.entries) {
+            for (const auto& input : entry.transaction->vin) {
+                if (input.prevout == outpoint) {
+                    result.coin.reset();
+                    result.mempool = false;
+                    return result;
+                }
+            }
+        }
+        for (const auto& entry : mempool.entries) {
+            if (entry.transaction->GetHash() != outpoint.hash) continue;
+            if (outpoint.n >= entry.transaction->vout.size()) return result;
+            result.coin.emplace(
+                entry.transaction->vout[outpoint.n],
+                /*nHeightIn=*/0,
+                /*fCoinBaseIn=*/false);
+            result.mempool = true;
+            return result;
+        }
+    }
     return result;
 }
 

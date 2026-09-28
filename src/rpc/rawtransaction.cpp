@@ -44,7 +44,9 @@
 #include <validation.h>
 #include <validationinterface.h>
 
+#include <algorithm>
 #include <cstdint>
+#include <string_view>
 
 #include <univalue.h>
 
@@ -53,6 +55,38 @@ using node::FindCoins;
 using node::GetTransaction;
 using node::NodeContext;
 using node::PSBTAnalysis;
+
+static chainregistry::ChainId ParseChildChainId(std::string_view value)
+{
+    const auto chain_id{chainregistry::ChainId::FromHex(value)};
+    if (!chain_id || chain_id->IsNull()) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "chain_id must be exactly 32 non-null bytes encoded as hexadecimal");
+    }
+    return *chain_id;
+}
+
+static node::ReferenceChildMempoolView GetLoadedChildMempool(
+    const std::any& context,
+    std::string_view chain_id)
+{
+    const auto view{EnsureAnyChildChainman(context).GetMempool(
+        ParseChildChainId(chain_id))};
+    switch (view.error) {
+    case node::ChainManagerMempoolViewError::NONE:
+        return view.runtime;
+    case node::ChainManagerMempoolViewError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must not be null");
+    case node::ChainManagerMempoolViewError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not configured locally");
+    case node::ChainManagerMempoolViewError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_MISC_ERROR, "child chain is not loaded");
+    }
+    throw JSONRPCError(RPC_INTERNAL_ERROR,
+                       "unhandled child mempool view error");
+}
 
 static void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry,
                      Chainstate& active_chainstate, const CTxUndo* txundo = nullptr,
@@ -191,9 +225,30 @@ static UniValue GetChildRawTransaction(
     const UniValue& block_hash_arg)
 {
     if (block_hash_arg.isNull()) {
-        throw JSONRPCError(
-            RPC_INVALID_PARAMETER,
-            "blockhash is required for child-chain transaction queries because child txindex and mempool lookup are not available");
+        const auto mempool{GetLoadedChildMempool(context, chain_id)};
+        const auto entry{std::find_if(
+            mempool.entries.begin(), mempool.entries.end(),
+            [&](const node::ChildMempoolEntry& candidate) {
+                return candidate.transaction->GetHash() == txid;
+            })};
+        if (entry == mempool.entries.end()) {
+            throw JSONRPCError(
+                RPC_INVALID_ADDRESS_OR_KEY,
+                "No such transaction found in the child mempool; provide blockhash to search a child block");
+        }
+        if (verbosity <= 0) return EncodeHexTx(*entry->transaction);
+
+        UniValue result{UniValue::VOBJ};
+        TxToUniv(
+            *entry->transaction,
+            /*block_hash=*/uint256{},
+            result,
+            /*include_hex=*/true,
+            /*txundo=*/nullptr,
+            verbosity >= 2 ? TxVerbosity::SHOW_DETAILS_AND_PREVOUT
+                           : TxVerbosity::SHOW_DETAILS);
+        result.pushKV("chain_id", ParseChildChainId(chain_id).GetHex());
+        return result;
     }
     const uint256 block_hash{ParseHashV(block_hash_arg, "blockhash")};
     const node::ChainManagerBlockView view{
@@ -265,7 +320,7 @@ static RPCHelpMan getrawtransaction()
                 "If verbosity is 0 or omitted, returns the serialized transaction as a hex-encoded string.\n"
                 "If verbosity is 1, returns a JSON Object with information about the transaction.\n"
                 "If verbosity is 2, returns a JSON Object with information about the transaction, including fee and prevout information.\n"
-                "For a child chain, chain_id and blockhash are both required because child txindex and mempool lookup are not available. Omit chain_id for the main chain.",
+                "For a child chain, omit blockhash to search its mempool or provide blockhash to search that block. Child txindex lookup is not available. Omit chain_id for the main chain.",
                 {
                     {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The transaction id"},
                     {"verbosity", RPCArg::Type::NUM, RPCArg::Default{0}, "0 for hex-encoded data, 1 for a JSON object, and 2 for JSON object with fee and prevout"},
@@ -320,6 +375,7 @@ static RPCHelpMan getrawtransaction()
             + HelpExampleCli("getrawtransaction", "\"mytxid\" 0 \"myblockhash\"")
             + HelpExampleCli("getrawtransaction", "\"mytxid\" 1 \"myblockhash\"")
             + HelpExampleCli("getrawtransaction", "\"mytxid\" 2 \"myblockhash\"")
+            + HelpExampleCli("getrawtransaction", "\"mytxid\" 1 null \"chain_id\"")
             + HelpExampleCli("getrawtransaction", "\"mytxid\" 1 \"mychildblockhash\" \"chain_id\"")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue

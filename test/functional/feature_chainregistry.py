@@ -1092,6 +1092,54 @@ class ChainRegistryTest(BitcoinTestFramework):
             node.getrawmempool(True, False, chain_id)
                 [signed_child["txid"]]["wtxid"],
             decoded_child_spend["hash"])
+        mempool_raw = node.getrawtransaction(
+            signed_child["txid"], 1, None, chain_id)
+        assert_equal(mempool_raw["chain_id"], chain_id)
+        assert_equal(mempool_raw["txid"], signed_child["txid"])
+        assert "blockhash" not in mempool_raw
+
+        assert_equal(
+            node.gettxout(child_import["txid"], 0, True, chain_id), None)
+        assert_equal(
+            node.gettxout(child_import["txid"], 0, False, chain_id)
+                ["confirmations"],
+            1)
+        destination_outpoint = destination_outputs[0]["n"]
+        mempool_destination = node.gettxout(
+            signed_child["txid"], destination_outpoint, True, chain_id)
+        assert_equal(mempool_destination["chain_id"], chain_id)
+        assert_equal(mempool_destination["confirmations"], 0)
+        assert_equal(mempool_destination["value"], child_spend_amount)
+        assert_equal(mempool_destination["coinbase"], False)
+        assert_equal(
+            node.gettxout(
+                signed_child["txid"], destination_outpoint, False,
+                chain_id),
+            None)
+
+        child_mempool_activity = node.getdescriptoractivity(
+            [],
+            ["raw(" + child_unspent[0]["scriptPubKey"] + ")",
+             "raw(" + child_destination["scriptPubKey"] + ")"],
+            True,
+            chain_id)
+        assert_equal(child_mempool_activity["chain_id"], chain_id)
+        assert_equal(
+            [event["type"] for event in child_mempool_activity["activity"]],
+            ["spend", "receive"])
+        assert_equal(
+            child_mempool_activity["activity"][0]["spend_txid"],
+            signed_child["txid"])
+        assert_equal(
+            child_mempool_activity["activity"][1]["txid"],
+            signed_child["txid"])
+        assert_equal(
+            node.getdescriptoractivity(
+                [],
+                ["raw(" + child_unspent[0]["scriptPubKey"] + ")"],
+                False,
+                chain_id)["activity"],
+            [])
 
         child_fee_recipient = wallet.getnewchildrecipient(
             chain_id, "child-fees")

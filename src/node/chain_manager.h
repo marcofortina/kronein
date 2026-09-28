@@ -306,6 +306,7 @@ struct ChainManagerCoinView {
     ChainManagerCoinViewError error{ChainManagerCoinViewError::NONE};
     ChainManagerEntry entry;
     std::optional<Coin> coin;
+    bool mempool{false};
 
     bool IsValid() const { return error == ChainManagerCoinViewError::NONE; }
 };
@@ -613,7 +614,8 @@ public:
         std::span<const uint256> block_hashes) const;
     ChainManagerCoinView GetCoinView(
         const chainregistry::ChainId& chain_id,
-        const COutPoint& outpoint) const;
+        const COutPoint& outpoint,
+        bool include_mempool = false) const;
     ChainManagerTipsView GetChainTipsView(
         const chainregistry::ChainId& chain_id) const;
     ChainManagerPendingBlocksView GetPendingBlocksView(

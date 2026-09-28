@@ -66,6 +66,7 @@
 #include <condition_variable>
 #include <iterator>
 #include <limits>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -230,10 +231,11 @@ static node::ChainManagerActiveBlocksView GetLoadedChildActiveBlockViews(
 static node::ChainManagerCoinView GetLoadedChildCoinView(
     const std::any& context,
     std::string_view chain_id,
-    const COutPoint& outpoint)
+    const COutPoint& outpoint,
+    bool include_mempool = false)
 {
     const auto view{EnsureAnyChildChainman(context).GetCoinView(
-        ParseChainId(chain_id), outpoint)};
+        ParseChainId(chain_id), outpoint, include_mempool)};
     switch (view.error) {
     case node::ChainManagerCoinViewError::NONE:
         return view;
@@ -1803,7 +1805,7 @@ static RPCHelpMan gettxout()
         {
             {"txid", RPCArg::Type::STR, RPCArg::Optional::NO, "The transaction id"},
             {"n", RPCArg::Type::NUM, RPCArg::Optional::NO, "vout number"},
-            {"include_mempool", RPCArg::Type::BOOL, RPCArg::Default{true}, "Whether to include the mempool. Note that an unspent output that is spent in the mempool won't appear. Child-chain runtimes currently expose confirmed UTXOs only."},
+            {"include_mempool", RPCArg::Type::BOOL, RPCArg::Default{true}, "Whether to include the selected chain's mempool. An unspent output that is spent in the mempool won't appear."},
             {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full non-null child-chain identifier"},
         },
         {
@@ -1845,16 +1847,16 @@ static RPCHelpMan gettxout()
     UniValue ret(UniValue::VOBJ);
     if (!request.params[3].isNull()) {
         const auto view{GetLoadedChildCoinView(
-            request.context, request.params[3].get_str(), out)};
+            request.context, request.params[3].get_str(), out, fMempool)};
         if (!view.coin) return UniValue::VNULL;
-        if (view.coin->nHeight > view.entry.height) {
+        if (!view.mempool && view.coin->nHeight > view.entry.height) {
             throw JSONRPCError(
                 RPC_INTERNAL_ERROR,
                 "child UTXO confirmation height exceeds the active tip");
         }
         ret.pushKV("chain_id", view.entry.chain_id.GetHex());
         ret.pushKV("bestblock", view.entry.tip.GetHex());
-        ret.pushKV("confirmations",
+        ret.pushKV("confirmations", view.mempool ? 0 :
                    view.entry.height - view.coin->nHeight + 1);
         ret.pushKV("value", ValueFromAmount(view.coin->out.nValue));
         UniValue o(UniValue::VOBJ);
@@ -3513,7 +3515,7 @@ static RPCHelpMan getdescriptoractivity()
         "getdescriptoractivity",
         "Get spend and receive activity associated with a set of descriptors for a set of blocks. "
         "This command pairs well with the `relevant_blocks` output of `scanblocks()`.\n"
-        "Omit chain_id for the main chain. The reference child runtime currently has no mempool, so child results contain confirmed activity only.\n"
+        "Omit chain_id for the main chain. When include_mempool is true, unconfirmed activity is read from the selected chain's isolated mempool.\n"
         "This call may take several minutes. If you encounter timeouts, try specifying no RPC timeout (kronein-cli -rpcclienttimeout=0)",
         {
             RPCArg{"blockhashes", RPCArg::Type::ARR, RPCArg::Optional::NO, "The list of blockhashes to examine for activity. Order doesn't matter. Must be along main chain or an error is thrown.\n", {
@@ -3684,6 +3686,11 @@ static RPCHelpMan getdescriptoractivity()
         }
     };
 
+    bool search_mempool = true;
+    if (!request.params[2].isNull()) {
+        search_mempool = request.params[2].get_bool();
+    }
+
     if (child_blocks) {
         for (const auto& child_block : child_blocks->blocks) {
             Assume(child_block.block);
@@ -3692,6 +3699,65 @@ static RPCHelpMan getdescriptoractivity()
                 *child_block.block,
                 child_block.undo->coins,
                 {child_block.block_hash, child_block.height});
+        }
+        if (search_mempool) {
+            const auto mempool{EnsureAnyChildChainman(request.context)
+                                   .GetMempool(child_blocks->entry.chain_id)};
+            if (!mempool.IsValid()) {
+                throw JSONRPCError(
+                    RPC_INTERNAL_ERROR,
+                    "loaded child mempool became unavailable");
+            }
+            std::map<COutPoint, CTxOut> mempool_outputs;
+            for (const auto& entry : mempool.runtime.entries) {
+                for (size_t vout_idx = 0;
+                     vout_idx < entry.transaction->vout.size(); ++vout_idx) {
+                    mempool_outputs.emplace(
+                        COutPoint{entry.transaction->GetHash(),
+                                  static_cast<uint32_t>(vout_idx)},
+                        entry.transaction->vout[vout_idx]);
+                }
+            }
+            for (const auto& entry : mempool.runtime.entries) {
+                const auto& tx{entry.transaction};
+                for (size_t vin_idx = 0; vin_idx < tx->vin.size(); ++vin_idx) {
+                    const auto& txin{tx->vin[vin_idx]};
+                    std::optional<CTxOut> prevout;
+                    if (const auto parent{mempool_outputs.find(txin.prevout)};
+                        parent != mempool_outputs.end()) {
+                        prevout = parent->second;
+                    } else {
+                        const auto coin{EnsureAnyChildChainman(request.context)
+                                            .GetCoinView(
+                                                child_blocks->entry.chain_id,
+                                                txin.prevout)};
+                        if (!coin.IsValid()) {
+                            throw JSONRPCError(
+                                RPC_INTERNAL_ERROR,
+                                "loaded child UTXO view became unavailable");
+                        }
+                        if (coin.coin) prevout = coin.coin->out;
+                    }
+                    if (!prevout) {
+                        throw JSONRPCError(
+                            RPC_INTERNAL_ERROR,
+                            "child mempool input is missing its previous output");
+                    }
+                    if (scripts_to_watch.contains(prevout->scriptPubKey)) {
+                        activity.push_back(AddSpend(
+                            prevout->scriptPubKey, prevout->nValue, tx,
+                            vin_idx, txin, std::nullopt));
+                    }
+                }
+                for (size_t vout_idx = 0; vout_idx < tx->vout.size();
+                     ++vout_idx) {
+                    const auto& txout{tx->vout[vout_idx]};
+                    if (scripts_to_watch.contains(txout.scriptPubKey)) {
+                        activity.push_back(AddReceive(
+                            txout, std::nullopt, vout_idx, tx));
+                    }
+                }
+            }
         }
         ret.pushKV("activity", activity);
         ret.pushKV("chain_id", child_blocks->entry.chain_id.GetHex());
@@ -3711,11 +3777,6 @@ static RPCHelpMan getdescriptoractivity()
         ScanBlockActivity(
             block, block_undo,
             {blockindex->GetBlockHash(), blockindex->nHeight});
-    }
-
-    bool search_mempool = true;
-    if (!request.params[2].isNull()) {
-        search_mempool = request.params[2].get_bool();
     }
 
     if (search_mempool) {
