@@ -4,7 +4,9 @@
 
 #include <node/chainregistry.h>
 
+#include <consensus/merkle.h>
 #include <primitives/block.h>
+#include <primitives/bmm.h>
 
 #include <limits>
 #include <optional>
@@ -117,6 +119,65 @@ std::optional<std::vector<BmmAnchorIndexEntry>> BuildBmmAnchorIndexEntries(
 }
 
 } // namespace
+
+BmmAnchorProofBuildResult BuildBmmAnchorProof(
+    const CBlock& block,
+    const BmmAnchorIndexEntry& entry,
+    const uint256& main_genesis_hash)
+{
+    BmmAnchorProofBuildResult result;
+    if (entry.version != BMM_ANCHOR_INDEX_ENTRY_VERSION ||
+        entry.id.chain_id.IsNull() || entry.id.main_block_hash.IsNull() ||
+        entry.anchor.chain_id != entry.id.chain_id ||
+        entry.chain_record.chain_id != entry.id.chain_id) {
+        result.error = BmmAnchorProofBuildError::INVALID_INDEX_ENTRY;
+        return result;
+    }
+    if (block.GetHash() != entry.id.main_block_hash || block.vtx.empty()) {
+        result.error = BmmAnchorProofBuildError::BLOCK_MISMATCH;
+        return result;
+    }
+    if (entry.transaction_index == 0 ||
+        entry.transaction_index >= block.vtx.size() ||
+        block.vtx[entry.transaction_index]->GetHash() !=
+            entry.transaction_id ||
+        entry.output_index >=
+            block.vtx[entry.transaction_index]->vout.size()) {
+        result.error = BmmAnchorProofBuildError::TRANSACTION_MISMATCH;
+        return result;
+    }
+    const auto extracted{chainregistry::ExtractTransactionBmmAnchor(
+        *block.vtx[entry.transaction_index])};
+    if (!extracted.IsValid() || !extracted.anchor ||
+        !extracted.output_index || *extracted.anchor != entry.anchor ||
+        *extracted.output_index != entry.output_index) {
+        result.error = BmmAnchorProofBuildError::ANCHOR_MISMATCH;
+        return result;
+    }
+
+    result.proof = {
+        .main_genesis_hash = main_genesis_hash,
+        .block_height = entry.block_height,
+        .block_header = static_cast<const CBlockHeader&>(block),
+        .anchor_transaction =
+            CMutableTransaction{*block.vtx[entry.transaction_index]},
+        .transaction_index = entry.transaction_index,
+        .transaction_merkle_branch =
+            TransactionMerklePath(block, entry.transaction_index),
+        .coinbase_transaction = CMutableTransaction{*block.vtx[0]},
+        .coinbase_merkle_branch = TransactionMerklePath(block, 0),
+        .chain_record = entry.chain_record,
+        .registry_proof = entry.registry_proof,
+    };
+    result.validation = chainregistry::ValidateBmmAnchorProofStructure(
+        result.proof, main_genesis_hash, entry.id.chain_id);
+    if (!result.validation.IsValid() || !result.validation.anchor ||
+        *result.validation.anchor != entry.anchor ||
+        result.validation.registry_root != entry.registry_root) {
+        result.error = BmmAnchorProofBuildError::PROOF_INVALID;
+    }
+    return result;
+}
 
 ChainRegistryState::ChainRegistryState(Consensus::Params::ChainRegistryParams params,
                                        const uint256& main_genesis_hash)

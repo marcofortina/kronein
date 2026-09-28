@@ -4903,46 +4903,16 @@ static RPCHelpMan getbmmanchorproof()
     }
 
     const CBlock block{GetBlockChecked(chainman.m_blockman, *block_index)};
-    if (block.GetHash() != main_block_hash || block.vtx.empty() ||
-        entry.transaction_index == 0 ||
-        entry.transaction_index >= block.vtx.size() ||
-        block.vtx[entry.transaction_index]->GetHash() != entry.transaction_id ||
-        entry.output_index >= block.vtx[entry.transaction_index]->vout.size()) {
-        throw JSONRPCError(RPC_INTERNAL_ERROR,
-                           "BMM anchor index does not match the stored block");
-    }
-    const auto extracted{chainregistry::ExtractTransactionBmmAnchor(
-        *block.vtx[entry.transaction_index])};
-    if (!extracted.IsValid() || !extracted.anchor || !extracted.output_index ||
-        *extracted.anchor != entry.anchor ||
-        *extracted.output_index != entry.output_index) {
-        throw JSONRPCError(RPC_INTERNAL_ERROR,
-                           "indexed KBMM output does not match the stored transaction");
-    }
-
-    chainregistry::BmmAnchorProof proof{
-        .main_genesis_hash = main_genesis_hash,
-        .block_height = entry.block_height,
-        .block_header = static_cast<const CBlockHeader&>(block),
-        .anchor_transaction = CMutableTransaction{*block.vtx[entry.transaction_index]},
-        .transaction_index = entry.transaction_index,
-        .transaction_merkle_branch = TransactionMerklePath(
-            block, entry.transaction_index),
-        .coinbase_transaction = CMutableTransaction{*block.vtx[0]},
-        .coinbase_merkle_branch = TransactionMerklePath(block, 0),
-        .chain_record = entry.chain_record,
-        .registry_proof = entry.registry_proof,
-    };
-    const auto validation{chainregistry::ValidateBmmAnchorProofStructure(
-        proof, main_genesis_hash, chain_id)};
-    if (!validation.IsValid() || !validation.anchor ||
-        *validation.anchor != entry.anchor ||
-        validation.registry_root != entry.registry_root) {
+    const auto built{
+        node::BuildBmmAnchorProof(block, entry, main_genesis_hash)};
+    if (!built.IsValid()) {
         throw JSONRPCError(
             RPC_INTERNAL_ERROR,
-            strprintf("generated BMM anchor proof failed validation (%u)",
-                      static_cast<unsigned>(validation.error)));
+            strprintf("failed to build BMM anchor proof (build error %u, validation error %u)",
+                      static_cast<unsigned>(built.error),
+                      static_cast<unsigned>(built.validation.error)));
     }
+    const auto& proof{built.proof};
 
     UniValue result{UniValue::VOBJ};
     result.pushKV("proof", SerializeBmmAnchorProofHex(proof));

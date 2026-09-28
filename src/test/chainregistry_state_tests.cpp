@@ -340,6 +340,32 @@ BOOST_AUTO_TEST_CASE(indexes_bmm_anchor_across_restart_and_reorg)
         BOOST_CHECK(stored->anchor.child_block_hash == child_block_hash);
         BOOST_CHECK(stored->transaction_id == anchored.vtx[1]->GetHash());
         BOOST_CHECK_EQUAL(stored->transaction_index, 1U);
+        const auto built{
+            node::BuildBmmAnchorProof(anchored, *stored, genesis_hash)};
+        BOOST_REQUIRE(built.IsValid());
+        BOOST_REQUIRE(built.validation.anchor);
+        BOOST_CHECK(*built.validation.anchor == stored->anchor);
+        BOOST_CHECK(built.validation.registry_root == stored->registry_root);
+        BOOST_CHECK_EQUAL(built.proof.block_height, 101U);
+        BOOST_CHECK(built.proof.block_header.GetHash() == anchored_hash);
+        BOOST_CHECK_EQUAL(built.proof.transaction_index, 1U);
+
+        CBlock wrong_block{anchored};
+        ++wrong_block.nTime;
+        BOOST_CHECK(
+            node::BuildBmmAnchorProof(wrong_block, *stored, genesis_hash)
+                .error == node::BmmAnchorProofBuildError::BLOCK_MISMATCH);
+        auto wrong_entry{*stored};
+        ++wrong_entry.transaction_index;
+        BOOST_CHECK(
+            node::BuildBmmAnchorProof(anchored, wrong_entry, genesis_hash)
+                .error ==
+            node::BmmAnchorProofBuildError::TRANSACTION_MISMATCH);
+        wrong_entry = *stored;
+        wrong_entry.registry_root = {};
+        BOOST_CHECK(
+            node::BuildBmmAnchorProof(anchored, wrong_entry, genesis_hash)
+                .error == node::BmmAnchorProofBuildError::PROOF_INVALID);
     }
 
     {

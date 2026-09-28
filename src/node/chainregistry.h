@@ -47,6 +47,29 @@ struct ChainRegistryStateResult {
     bool IsValid() const { return error == ChainRegistryStateError::NONE; }
 };
 
+enum class BmmAnchorProofBuildError : uint8_t {
+    NONE,
+    INVALID_INDEX_ENTRY,
+    BLOCK_MISMATCH,
+    TRANSACTION_MISMATCH,
+    ANCHOR_MISMATCH,
+    PROOF_INVALID,
+};
+
+struct BmmAnchorProofBuildResult {
+    BmmAnchorProofBuildError error{BmmAnchorProofBuildError::NONE};
+    chainregistry::BmmProofValidationResult validation;
+    chainregistry::BmmAnchorProof proof;
+
+    bool IsValid() const { return error == BmmAnchorProofBuildError::NONE; }
+};
+
+/** Build and self-validate a KBPR from one consensus-indexed main anchor. */
+BmmAnchorProofBuildResult BuildBmmAnchorProof(
+    const CBlock& block,
+    const BmmAnchorIndexEntry& entry,
+    const uint256& main_genesis_hash);
+
 /**
  * Registry state belonging to exactly one chainstate.
  *
