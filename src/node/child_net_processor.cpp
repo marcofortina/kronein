@@ -124,7 +124,9 @@ void ChildNetProcessor::AnnounceAccepted(
     }
 }
 
-ChildNetProcessorResult ChildNetProcessor::Connected(ChildPeerId peer)
+ChildNetProcessorResult ChildNetProcessor::Connected(
+    ChildPeerId peer,
+    uint64_t local_nonce)
 {
     if (!m_ready) {
         return ProcessorError(ChildNetProcessorError::INVALID_DEFINITION);
@@ -140,6 +142,7 @@ ChildNetProcessorResult ChildNetProcessor::Connected(ChildPeerId peer)
         .peer = peer,
         .command = ChildNetCommand::HELLO,
         .message = chainregistry::ChildNetHello{
+            .nonce = local_nonce,
             .chain_id = m_definition.chain_id,
             .genesis_hash = m_definition.genesis_hash,
         },

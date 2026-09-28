@@ -125,7 +125,7 @@ public:
         ChainManager& manager,
         chainregistry::ReferenceChildDefinition definition);
 
-    ChildNetProcessorResult Connected(ChildPeerId peer);
+    ChildNetProcessorResult Connected(ChildPeerId peer, uint64_t local_nonce);
     void Disconnected(ChildPeerId peer);
 
     ChildNetProcessorResult ReceiveHello(

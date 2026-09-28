@@ -208,7 +208,7 @@ BOOST_AUTO_TEST_CASE(requires_full_child_handshake)
         /*sync=*/true).IsValid());
     node::ChildNetProcessor processor{manager, definition};
 
-    const auto connected{processor.Connected(7)};
+    const auto connected{processor.Connected(7, 123)};
     BOOST_REQUIRE(connected.IsValid());
     BOOST_REQUIRE_EQUAL(connected.outbound.size(), 1U);
     BOOST_CHECK(
@@ -218,6 +218,7 @@ BOOST_AUTO_TEST_CASE(requires_full_child_handshake)
         connected.outbound.front().message));
     const auto& local_hello{std::get<chainregistry::ChildNetHello>(
         connected.outbound.front().message)};
+    BOOST_CHECK_EQUAL(local_hello.nonce, 123U);
     BOOST_CHECK(local_hello.chain_id == definition.chain_id);
     BOOST_CHECK(local_hello.genesis_hash == definition.genesis_hash);
 
@@ -282,8 +283,8 @@ BOOST_AUTO_TEST_CASE(downloads_parent_before_connecting_deferred_child)
     StageBlock(manager, definition, child);
 
     node::ChildNetProcessor processor{manager, definition};
-    BOOST_REQUIRE(processor.Connected(1).IsValid());
-    BOOST_REQUIRE(processor.Connected(2).IsValid());
+    BOOST_REQUIRE(processor.Connected(1, 123).IsValid());
+    BOOST_REQUIRE(processor.Connected(2, 456).IsValid());
     const chainregistry::ChildNetHello hello{
         .chain_id = definition.chain_id,
         .genesis_hash = definition.genesis_hash,

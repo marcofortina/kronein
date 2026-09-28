@@ -88,6 +88,7 @@ BOOST_AUTO_TEST_CASE(adapts_only_the_isolated_child_protocol)
         chainregistry::ChildNetHello hello;
         payload >> hello;
         BOOST_CHECK(payload.empty());
+        BOOST_CHECK_EQUAL(hello.nonce, peer.GetLocalNonce());
         BOOST_CHECK(hello.chain_id == definition.chain_id);
         BOOST_CHECK(hello.genesis_hash == definition.genesis_hash);
     }
@@ -98,6 +99,7 @@ BOOST_AUTO_TEST_CASE(adapts_only_the_isolated_child_protocol)
         NetMsg::Make(
             std::string{chainregistry::ChildNetMsgType::HELLO},
             chainregistry::ChildNetHello{
+                .nonce = 123,
                 .chain_id = definition.chain_id,
                 .genesis_hash = definition.genesis_hash,
             })));
@@ -118,6 +120,76 @@ BOOST_AUTO_TEST_CASE(adapts_only_the_isolated_child_protocol)
 
     events.FinalizeNode(peer);
     BOOST_CHECK_EQUAL(events.PeerCount(), 0U);
+}
+
+BOOST_AUTO_TEST_CASE(rejects_child_connections_to_self)
+{
+    const auto definition{Definition()};
+    node::ChainManager manager{
+        Params().GetConsensus(),
+        Params().GenesisBlock(),
+        m_args.GetDataDirBase() / "child_net_self_connection",
+        1 << 20};
+    BOOST_REQUIRE(manager.RegisterChain(definition).IsValid());
+    BOOST_REQUIRE(manager.LoadChain(
+        definition.chain_id,
+        Params().GenesisBlock().nTime,
+        /*wipe_data=*/true,
+        /*sync=*/true).IsValid());
+
+    NetGroupManager netgroup{NetGroupManager::NoAsmap()};
+    AddrMan addrman{
+        netgroup, /*deterministic=*/true,
+        /*consistency_check_ratio=*/0};
+    ConnmanTestMsg connman{
+        1, 2, addrman, netgroup, Params()};
+    node::ChildNetEvents events{connman, manager, definition};
+    connman.SetMsgProc(&events);
+
+    constexpr uint64_t SELF_NONCE{77};
+    auto* outbound = new CNode{
+        /*id=*/7,
+        /*sock=*/nullptr,
+        CAddress{},
+        /*nKeyedNetGroupIn=*/0,
+        /*nLocalHostNonceIn=*/SELF_NONCE,
+        CService{},
+        /*addrNameIn=*/"",
+        ConnectionType::MANUAL,
+        /*inbound_onion=*/false,
+        /*network_key=*/0};
+    connman.AddTestNode(*outbound);
+
+    CNode inbound{
+        /*id=*/8,
+        /*sock=*/nullptr,
+        CAddress{},
+        /*nKeyedNetGroupIn=*/0,
+        /*nLocalHostNonceIn=*/88,
+        CService{},
+        /*addrNameIn=*/"",
+        ConnectionType::INBOUND,
+        /*inbound_onion=*/false,
+        /*network_key=*/0};
+    events.InitializeNode(inbound, NODE_NONE);
+    BOOST_REQUIRE(connman.ReceiveMsgFrom(
+        inbound,
+        NetMsg::Make(
+            std::string{chainregistry::ChildNetMsgType::HELLO},
+            chainregistry::ChildNetHello{
+                .nonce = SELF_NONCE,
+                .chain_id = definition.chain_id,
+                .genesis_hash = definition.genesis_hash,
+            })));
+    {
+        LOCK(NetEventsInterface::g_msgproc_mutex);
+        connman.ProcessMessagesOnce(inbound);
+    }
+    BOOST_CHECK(inbound.fDisconnect);
+    BOOST_CHECK(!inbound.fSuccessfullyConnected);
+
+    events.FinalizeNode(inbound);
+    connman.ClearTestNodes();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

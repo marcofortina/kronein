@@ -112,7 +112,7 @@ void ChildNetEvents::InitializeNode(
     CNode& mutable_node{const_cast<CNode&>(node)};
     ApplyResult(
         mutable_node,
-        m_processor.Connected(node.GetId()));
+        m_processor.Connected(node.GetId(), node.GetLocalNonce()));
 }
 
 void ChildNetEvents::FinalizeNode(const CNode& node)
@@ -136,6 +136,13 @@ ChildNetProcessorResult ChildNetEvents::ProcessMessage(
         chainregistry::ChildNetHello hello;
         message.m_recv >> hello;
         if (!message.m_recv.empty()) {
+            ChildNetProcessorResult result;
+            result.error = ChildNetProcessorError::INVALID_MESSAGE;
+            result.disconnect = true;
+            return result;
+        }
+        if (node.IsInboundConn() &&
+            !m_connman.CheckIncomingNonce(hello.nonce)) {
             ChildNetProcessorResult result;
             result.error = ChildNetProcessorError::INVALID_MESSAGE;
             result.disconnect = true;

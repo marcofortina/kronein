@@ -18,7 +18,7 @@
 
 namespace chainregistry {
 
-inline constexpr uint16_t CHILD_P2P_PROTOCOL_VERSION{1};
+inline constexpr uint16_t CHILD_P2P_PROTOCOL_VERSION{2};
 inline constexpr uint64_t MAX_CHILD_BLOCK_REQUEST_HASHES{16};
 inline constexpr std::string_view CHILD_MESSAGE_START_TAG{
     "Kronein/ChildMessageStart/v1"};
@@ -34,12 +34,13 @@ MessageStartChars DeriveChildMessageStart(const ChainId& chain_id);
 
 struct ChildNetHello {
     uint16_t version{CHILD_P2P_PROTOCOL_VERSION};
+    uint64_t nonce{0};
     ChainId chain_id;
     uint256 genesis_hash;
 
     SERIALIZE_METHODS(ChildNetHello, obj)
     {
-        READWRITE(obj.version, obj.chain_id, obj.genesis_hash);
+        READWRITE(obj.version, obj.nonce, obj.chain_id, obj.genesis_hash);
     }
 };
 

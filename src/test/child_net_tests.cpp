@@ -27,7 +27,7 @@ CBlock ChildBlock(uint32_t discriminator)
     CBlock block;
     block.nVersion = CBlockHeader::CURRENT_VERSION;
     block.hashPrevBlock = GENESIS_HASH;
-    block.hashMerkleRoot = uint256{discriminator};
+    block.hashMerkleRoot = uint256{static_cast<uint8_t>(discriminator)};
     block.nTime = discriminator;
     block.nBits = 0;
     block.nNonce = 0;
@@ -60,6 +60,7 @@ BOOST_AUTO_TEST_CASE(derives_isolated_message_start)
 BOOST_AUTO_TEST_CASE(validates_full_chain_handshake)
 {
     chainregistry::ChildNetHello hello{
+        .nonce = 123,
         .chain_id = CHAIN_ID,
         .genesis_hash = GENESIS_HASH,
     };
@@ -88,6 +89,7 @@ BOOST_AUTO_TEST_CASE(validates_full_chain_handshake)
 
     DataStream encoded;
     const chainregistry::ChildNetHello expected{
+        .nonce = 456,
         .chain_id = CHAIN_ID,
         .genesis_hash = GENESIS_HASH,
     };
@@ -96,6 +98,7 @@ BOOST_AUTO_TEST_CASE(validates_full_chain_handshake)
     encoded >> decoded;
     BOOST_CHECK(encoded.empty());
     BOOST_CHECK_EQUAL(decoded.version, expected.version);
+    BOOST_CHECK_EQUAL(decoded.nonce, expected.nonce);
     BOOST_CHECK(decoded.chain_id == expected.chain_id);
     BOOST_CHECK(decoded.genesis_hash == expected.genesis_hash);
 }
