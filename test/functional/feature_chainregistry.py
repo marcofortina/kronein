@@ -1002,6 +1002,20 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(child_unspent[0]["coinbase"], False)
         assert_equal(child_unspent[0]["solvable"], True)
         assert_equal(child_unspent[0]["safe"], True)
+        assert_equal(wallet.getreceivedbyaddress(
+            child_recipient, 1, False, chain_id), deposit_amount)
+        assert_equal(wallet.getreceivedbyaddress(
+            child_recipient, 2, False, chain_id), Decimal("0.00000000"))
+        assert_equal(wallet.getreceivedbylabel(
+            "child-receive", 1, False, chain_id), deposit_amount)
+        assert_raises_rpc_error(
+            -8, "chain_id must be exactly 32 non-null bytes",
+            wallet.getreceivedbyaddress,
+            child_recipient, 1, False, "00" * 32)
+        assert_raises_rpc_error(
+            -4, "Recipient not found in child wallet",
+            attacker.getreceivedbyaddress,
+            child_recipient, 1, False, chain_id)
         assert_equal(wallet.listunspent(
             2, 9999999, [], True, {}, chain_id), [])
         assert_equal(wallet.listunspent(

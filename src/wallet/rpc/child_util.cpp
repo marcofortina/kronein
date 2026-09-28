@@ -4,12 +4,16 @@
 
 #include <wallet/rpc/child_util.h>
 
+#include <chainregistry/child_template.h>
+#include <consensus/consensus.h>
 #include <key_io.h>
 #include <rpc/util.h>
+#include <util/strencodings.h>
 #include <wallet/wallet.h>
 
 #include <univalue.h>
 
+#include <algorithm>
 #include <set>
 
 namespace wallet {
@@ -23,6 +27,74 @@ chainregistry::ChainId ParseChildChainId(const UniValue& value)
             "chain_id must be exactly 32 non-null bytes encoded as hexadecimal");
     }
     return *chain_id;
+}
+
+WitnessV1Taproot ParseChildRecipient(const UniValue& value)
+{
+    const std::vector<unsigned char> recipient{
+        ParseHexV(value, "recipient")};
+    if (!chainregistry::IsValidReferenceChildRecipient(
+            chainregistry::REFERENCE_CHILD_P2TR_RECIPIENT,
+            recipient)) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "recipient must be a valid 32-byte reference-child P2TR output key");
+    }
+    return WitnessV1Taproot{XOnlyPubKey{recipient}};
+}
+
+ChildReceivedTallies TallyChildReceived(
+    const CWallet& wallet,
+    const chainregistry::ChainId& chain_id,
+    const std::set<CScript>& scripts,
+    int min_depth,
+    bool include_immature_coinbase)
+{
+    ChildReceivedTallies tallies;
+    std::optional<uint256> best_block;
+    uint32_t best_height{0};
+    std::optional<int> start_height;
+    bool include_mempool{true};
+    do {
+        const auto page{ScanChildWalletHistory(
+            wallet, chain_id, scripts, start_height, include_mempool)};
+        if (!best_block) {
+            best_block = page.best_block;
+            best_height = page.height;
+        } else if (*best_block != page.best_block ||
+                   best_height != page.height) {
+            throw JSONRPCError(
+                RPC_MISC_ERROR,
+                "child chain changed while received amounts were scanned; retry");
+        }
+        for (const auto& wallet_tx : page.transactions) {
+            if (wallet_tx.confirmations < min_depth ||
+                (wallet_tx.transaction->IsCoinBase() &&
+                 (wallet_tx.confirmations < 1 ||
+                  (!include_immature_coinbase &&
+                   wallet_tx.confirmations < COINBASE_MATURITY)))) {
+                continue;
+            }
+            for (const CTxOut& output : wallet_tx.transaction->vout) {
+                if (!scripts.contains(output.scriptPubKey)) continue;
+                auto& tally{tallies[output.scriptPubKey]};
+                if (!MoneyRange(output.nValue) ||
+                    output.nValue < 0 ||
+                    !MoneyRange(tally.amount + output.nValue)) {
+                    throw JSONRPCError(
+                        RPC_INTERNAL_ERROR,
+                        "child received amount is out of range");
+                }
+                tally.amount += output.nValue;
+                tally.confirmations = std::min(
+                    tally.confirmations, wallet_tx.confirmations);
+                tally.txids.push_back(wallet_tx.transaction->GetHash());
+            }
+        }
+        start_height = page.next_height;
+        include_mempool = false;
+    } while (start_height);
+    return tallies;
 }
 
 interfaces::ChildWalletScan ScanChildWallet(

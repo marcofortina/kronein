@@ -95,20 +95,6 @@ void AddAmount(CAmount& total, CAmount amount, std::string_view name)
     total += amount;
 }
 
-WitnessV1Taproot ParseChildRecipient(const UniValue& value)
-{
-    const std::vector<unsigned char> recipient{
-        ParseHexV(value, "recipient")};
-    if (!chainregistry::IsValidReferenceChildRecipient(
-            chainregistry::REFERENCE_CHILD_P2TR_RECIPIENT,
-            recipient)) {
-        throw JSONRPCError(
-            RPC_INVALID_PARAMETER,
-            "recipient must be a valid 32-byte reference-child P2TR output key");
-    }
-    return WitnessV1Taproot{XOnlyPubKey{recipient}};
-}
-
 void CheckTransactionStructure(const CMutableTransaction& transaction)
 {
     TxValidationState state;
