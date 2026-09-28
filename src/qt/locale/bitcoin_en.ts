@@ -927,7 +927,7 @@
 <context>
     <name>ChildChainDialog</name>
     <message>
-        <location filename="../childchaindialog.cpp" line="+96"/>
+        <location filename="../childchaindialog.cpp" line="+97"/>
         <source>Available</source>
         <translation type="unfinished"></translation>
     </message>
@@ -962,18 +962,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+42"/>
+        <location line="+60"/>
         <source>Child Chains</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+11"/>
-        <location line="+1973"/>
+        <location line="+2241"/>
         <source>Status</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1972"/>
+        <location line="-2240"/>
         <source>Chain ID</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1009,12 +1009,12 @@
     </message>
     <message>
         <location line="+16"/>
-        <location line="+303"/>
+        <location line="+309"/>
         <source>Select a child chain to manage its local runtime.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-298"/>
+        <location line="-304"/>
         <source>Refresh</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1055,25 +1055,25 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+289"/>
-        <location line="+54"/>
+        <location line="+295"/>
+        <location line="+56"/>
         <source>Pause Network</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-307"/>
+        <location line="-311"/>
         <source>Forget…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-113"/>
-        <location line="+190"/>
+        <location line="-135"/>
+        <location line="+213"/>
         <source>Failed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-191"/>
-        <location line="+191"/>
+        <location line="-214"/>
+        <location line="+214"/>
         <source>Safe halt</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1098,18 +1098,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+211"/>
+        <location line="+214"/>
         <source>Chain ID: %1
 State: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7 • discovery: %8 (%9 bootstrap, %10 known) • rate-limited block requests: %11</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-181"/>
+        <location line="-184"/>
         <source>No explicit child peers configured</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-234"/>
+        <location line="-257"/>
         <source>Confirmed</source>
         <translation type="unfinished">Confirmed</translation>
     </message>
@@ -1134,7 +1134,7 @@ State: %2 • registry: %3 • local configuration: %4 • network: %5 • expli
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+67"/>
+        <location line="+85"/>
         <source>BMM…</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1149,7 +1149,7 @@ State: %2 • registry: %3 • local configuration: %4 • network: %5 • expli
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+2"/>
         <source>Migrate…</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1164,7 +1164,7 @@ State: %2 • registry: %3 • local configuration: %4 • network: %5 • expli
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+154"/>
+        <location line="+158"/>
         <source>Explicit child peers:
 %1</source>
         <translation type="unfinished"></translation>
@@ -1237,7 +1237,7 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+94"/>
+        <location line="+97"/>
         <source>Resume Network</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1338,7 +1338,7 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-717"/>
+        <location line="-743"/>
         <source>Idle</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1383,6 +1383,71 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location line="+6"/>
+        <source>Submitted</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Disabled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>BMM inactive</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Child runtime unavailable</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>No eligible proposal</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Anchor already present</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Minimum interval not reached</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Daily budget exhausted</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Wallet locked</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Transaction creation failed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Security bid limit exceeded</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Signing failed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Broadcast failed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <location line="+61"/>
         <source>Balance…</source>
         <translation type="unfinished"></translation>
@@ -1403,7 +1468,12 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+2"/>
+        <source>Auto Bid…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+7"/>
         <source>Scan the loaded child UTXO set for recipients owned by the selected wallet.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1423,7 +1493,12 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+334"/>
+        <location line="+4"/>
+        <source>Configure explicit wallet limits for automatic main-chain BMM security bids.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+337"/>
         <source>
 WARNING: This child runtime has failed. Spending, migration, and BMM actions are disabled; inspect diagnostics and unload it safely.</source>
         <translation type="unfinished"></translation>
@@ -1524,7 +1599,174 @@ Active child tip: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+29"/>
+        <location line="+59"/>
+        <location line="+4"/>
+        <location line="+7"/>
+        <source>Automatic BMM Security Bids</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Disabled by default. When enabled, the selected wallet may automatically spend main-chain KNE to anchor eligible proposals for this exact child chain. Every transaction remains constrained by the limits below.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Enable automatic spending</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+20"/>
+        <source>seconds</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Main-chain fee rate (KNE/kvB):</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Maximum security bid:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Rolling 24-hour budget:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Minimum interval:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+15"/>
+        <source>Run Saved Policy Now</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Evaluate the already saved policy. Unsaved field changes are ignored.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <location line="+50"/>
+        <location line="+4"/>
+        <location line="+11"/>
+        <source>Save Automatic Bid Policy</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-64"/>
+        <source>The selected wallet changed while editing the policy.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Invalid Automatic Bid Policy</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Enter positive limits and a rolling daily budget at least equal to the maximum security bid.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Enable Automatic BMM Spending</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Allow the selected wallet to sign and broadcast recurring main-chain security bids for child chain %1?
+
+Maximum per bid: %2 KNE
+Rolling 24-hour budget: %3 KNE
+Minimum interval: %4 seconds</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+45"/>
+        <source>The wallet returned an invalid or mismatched policy.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Automatic Bid Policy Saved</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Automatic BMM security bids are enabled for child chain %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Automatic BMM security bids are disabled for child chain %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <location line="+19"/>
+        <location line="+4"/>
+        <location line="+12"/>
+        <source>Run Automatic BMM Bid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-34"/>
+        <source>Evaluate the saved policy now? If an eligible proposal exists, the wallet will immediately sign and broadcast one main-chain security bid within the configured limits.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+35"/>
+        <source>The wallet returned an invalid or mismatched bid result.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Status: %1
+Rolling 24-hour spend: %2 KNE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>
+Child block: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>
+Main-chain transaction: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>
+Security bid: %1 KNE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>
+Detail: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Automatic BMM Bid Submitted</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Automatic BMM Bid Not Submitted</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+11"/>
         <source>Build and Anchor Child Import Block</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1930,8 +2172,9 @@ Child chain: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1608"/>
-        <location line="+137"/>
+        <location line="-1868"/>
+        <location line="+193"/>
+        <location line="+204"/>
         <location line="+872"/>
         <location line="+652"/>
         <source>Child chain:</source>
@@ -2026,7 +2269,7 @@ There is no child-to-main withdrawal path.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-2206"/>
+        <location line="-2469"/>
         <source>%1 proposals • %2 pending • %3/%4 candidates • %5/%6 anchors</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2039,7 +2282,7 @@ Pending BMM anchors: %13/%14 records, %15/%16 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+177"/>
+        <location line="+180"/>
         <source>Activate a stored confirmed proposal</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2097,7 +2340,7 @@ Pending BMM anchors: %13/%14 records, %15/%16 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+259"/>
+        <location line="+519"/>
         <source>Broadcast a main-chain transaction anchoring child block %1?
 
 Imported deposits: %2
@@ -2490,12 +2733,12 @@ Transaction: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1587"/>
+        <location line="-1850"/>
         <source>(limit reached)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+239"/>
+        <location line="+242"/>
         <source>%1 — %2 anchor(s), main heights %3–%4</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2505,7 +2748,7 @@ Transaction: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+230"/>
+        <location line="+490"/>
         <source>sat/vB</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6795,12 +7038,12 @@ Go to File &gt; Open Wallet to load a wallet.
 <context>
     <name>bitcoin-core</name>
     <message>
-        <location filename="../bitcoinstrings.cpp" line="+197"/>
+        <location filename="../bitcoinstrings.cpp" line="+196"/>
         <source>The %s developers</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-185"/>
+        <location line="-184"/>
         <source>%s failed to validate the -assumeutxo snapshot state. This indicates a hardware problem, or a bug in the software, or a bad software modification that allowed an invalid snapshot to be loaded. As a result of this, the node will shut down and stop using any state that was built on the snapshot, resetting the chain height from %d to %d. On the next restart, the node will resume syncing from %d without using any snapshot data. Please report this incident to %s, including how you obtained the snapshot. The invalid snapshot chainstate will be left on disk in case it is helpful in diagnosing the issue that caused this error.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6810,7 +7053,7 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+40"/>
+        <location line="+39"/>
         <source>Disk space for %s may not accommodate the block files. Approximately %u GB of data will be stored in this directory.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6955,7 +7198,7 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-243"/>
+        <location line="-242"/>
         <source>%s is set very high!</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6995,7 +7238,7 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+40"/>
+        <location line="+39"/>
         <source>Error loading %s: External signer wallet being loaded without external signer support compiled</source>
         <translation type="unfinished"></translation>
     </message>
@@ -7131,7 +7374,7 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-241"/>
+        <location line="-240"/>
         <source>A fatal internal error occurred, see debug.log for details: </source>
         <translation type="unfinished"></translation>
     </message>
@@ -7151,7 +7394,7 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+7"/>
         <source>Config setting for %s only applied on %s network when in [%s] section.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -7431,7 +7674,7 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-105"/>
+        <location line="-104"/>
         <source>A %zu MiB dbcache may be too large for a system memory of only %zu MiB.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -7473,11 +7716,6 @@ Go to File &gt; Open Wallet to load a wallet.
     <message>
         <location line="+1"/>
         <source>Child recovery script has the wrong descriptor role</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Child-chain key derivation is not yet supported by external signer wallets</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
