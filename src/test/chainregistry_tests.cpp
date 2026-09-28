@@ -967,4 +967,52 @@ BOOST_AUTO_TEST_CASE(registry_record_validation_and_atomic_loading)
     BOOST_CHECK_EQUAL(loaded.ComputeRoot().GetHex(), loaded_root.GetHex());
 }
 
+BOOST_AUTO_TEST_CASE(registry_root_is_deterministic_across_load_order)
+{
+    constexpr uint256 main_genesis{
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
+    chainregistry::ChainRegistry source;
+    for (uint32_t index{0}; index < 32; ++index) {
+        std::array<unsigned char, 32> anchor_bytes;
+        anchor_bytes.fill(static_cast<unsigned char>(index + 1));
+        const CMutableTransaction registration{RegistrationTx(
+            Txid::FromUint256(uint256{std::span{anchor_bytes}}),
+            index,
+            static_cast<unsigned char>(index + 1))};
+        BOOST_REQUIRE(source.ApplyTransaction(
+            CTransaction{registration},
+            100 + index,
+            main_genesis,
+            1'000).IsValid());
+    }
+
+    std::vector<chainregistry::ChainRecord> records;
+    records.reserve(source.Size());
+    for (const auto& [_, record] : source.Records()) {
+        records.push_back(record);
+    }
+    const uint256 expected_root{source.ComputeRoot()};
+
+    for (size_t permutation{0}; permutation < 64; ++permutation) {
+        auto shuffled{records};
+        std::rotate(
+            shuffled.begin(),
+            shuffled.begin() + permutation % shuffled.size(),
+            shuffled.end());
+        if (permutation % 2 != 0) {
+            std::reverse(shuffled.begin(), shuffled.end());
+        }
+
+        chainregistry::ChainRegistry loaded;
+        BOOST_REQUIRE(loaded.LoadRecords(std::move(shuffled)).IsValid());
+        BOOST_CHECK(loaded.ComputeRoot() == expected_root);
+        for (const auto& [chain_id, record] : loaded.Records()) {
+            const auto proof{loaded.GetInclusionProof(chain_id)};
+            BOOST_REQUIRE(proof.has_value());
+            BOOST_CHECK(chainregistry::VerifyRegistryInclusion(
+                record, *proof, expected_root));
+        }
+    }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
