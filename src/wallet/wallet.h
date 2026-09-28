@@ -1001,6 +1001,11 @@ public:
     //! @return contains value only for active DescriptorScriptPubKeyMan, otherwise undefined
     std::optional<bool> IsInternalScriptPubKeyMan(ScriptPubKeyMan* spk_man) const;
 
+    //! Return the child chain and receive/change role for a child descriptor.
+    std::optional<std::pair<chainregistry::ChainId, bool>>
+    GetChildScriptPubKeyManContext(
+        const ScriptPubKeyMan& spk_man) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+
     //! Add a descriptor to the wallet and return its ScriptPubKeyMan
     util::Result<std::reference_wrapper<DescriptorScriptPubKeyMan>> AddWalletDescriptor(WalletDescriptor& desc, const FlatSigningProvider& signing_provider, const std::string& label, bool internal) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 

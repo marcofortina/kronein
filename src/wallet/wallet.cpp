@@ -3536,6 +3536,18 @@ std::optional<bool> CWallet::IsInternalScriptPubKeyMan(ScriptPubKeyMan* spk_man)
     return GetScriptPubKeyMan(/*internal=*/true) == desc_spk_man;
 }
 
+std::optional<std::pair<chainregistry::ChainId, bool>>
+CWallet::GetChildScriptPubKeyManContext(
+    const ScriptPubKeyMan& spk_man) const
+{
+    AssertLockHeld(cs_wallet);
+    const uint256 id{spk_man.GetID()};
+    for (const auto& [context, descriptor_id] : m_child_spk_managers) {
+        if (descriptor_id == id) return context;
+    }
+    return std::nullopt;
+}
+
 util::Result<std::reference_wrapper<DescriptorScriptPubKeyMan>> CWallet::AddWalletDescriptor(WalletDescriptor& desc, const FlatSigningProvider& signing_provider, const std::string& label, bool internal)
 {
     AssertLockHeld(cs_wallet);

@@ -917,6 +917,15 @@ class ChainRegistryTest(BitcoinTestFramework):
                      deposit_amount - child_spend_amount - child_fee)
         assert_equal(child_psbt["child_tip"], child_block["blockhash"])
         assert_equal(child_psbt["child_height"], 1)
+        child_descriptors = [
+            descriptor
+            for descriptor in wallet.listdescriptors()["descriptors"]
+            if descriptor.get("chain_id") == chain_id
+        ]
+        assert_equal(len(child_descriptors), 2)
+        assert_equal({descriptor["internal"] for descriptor in child_descriptors},
+                     {False, True})
+        assert all(not descriptor["active"] for descriptor in child_descriptors)
         child_wallet_identities = wallet.listchildrecipients(chain_id)
         assert_equal(child_wallet_identities["recipient_count"], 2)
         assert child_identity in child_wallet_identities["recipients"]

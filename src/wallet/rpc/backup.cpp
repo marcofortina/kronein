@@ -466,7 +466,8 @@ RPCHelpMan listdescriptors()
                     {RPCResult::Type::STR, "desc", "Descriptor string representation"},
                     {RPCResult::Type::NUM, "timestamp", "The creation time of the descriptor"},
                     {RPCResult::Type::BOOL, "active", "Whether this descriptor is currently used to generate new addresses"},
-                    {RPCResult::Type::BOOL, "internal", /*optional=*/true, "True if this descriptor is used to generate change addresses. False if this descriptor is used to generate receiving addresses; defined only for active descriptors"},
+                    {RPCResult::Type::BOOL, "internal", /*optional=*/true, "True if this descriptor is used to generate change addresses. False if this descriptor is used to generate receiving addresses; defined for active main descriptors and child descriptors"},
+                    {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Exact child-chain identifier; defined only for child descriptors"},
                     {RPCResult::Type::ARR_FIXED, "range", /*optional=*/true, "Defined only for ranged descriptors", {
                         {RPCResult::Type::NUM, "", "Range start inclusive"},
                         {RPCResult::Type::NUM, "", "Range end inclusive"},
@@ -501,6 +502,7 @@ RPCHelpMan listdescriptors()
         uint64_t creation_time;
         bool active;
         std::optional<bool> internal;
+        std::optional<chainregistry::ChainId> chain_id;
         std::optional<std::pair<int64_t,int64_t>> range;
         int64_t next_index;
     };
@@ -513,6 +515,8 @@ RPCHelpMan listdescriptors()
         }
         LOCK(desc_spk_man->cs_desc_man);
         const auto& wallet_descriptor = desc_spk_man->GetWalletDescriptor();
+        const auto child_context{
+            wallet->GetChildScriptPubKeyManContext(*desc_spk_man)};
         std::string descriptor;
         CHECK_NONFATAL(desc_spk_man->GetDescriptorString(descriptor, priv));
         const bool is_range = wallet_descriptor.descriptor->IsRange();
@@ -520,7 +524,9 @@ RPCHelpMan listdescriptors()
             descriptor,
             wallet_descriptor.creation_time,
             active_spk_mans.contains(desc_spk_man),
-            wallet->IsInternalScriptPubKeyMan(desc_spk_man),
+            child_context ? std::optional{child_context->second}
+                          : wallet->IsInternalScriptPubKeyMan(desc_spk_man),
+            child_context ? std::optional{child_context->first} : std::nullopt,
             is_range ? std::optional(std::make_pair(wallet_descriptor.range_start, wallet_descriptor.range_end)) : std::nullopt,
             wallet_descriptor.next_index
         });
@@ -538,6 +544,9 @@ RPCHelpMan listdescriptors()
         spk.pushKV("active", info.active);
         if (info.internal.has_value()) {
             spk.pushKV("internal", info.internal.value());
+        }
+        if (info.chain_id) {
+            spk.pushKV("chain_id", info.chain_id->GetHex());
         }
         if (info.range.has_value()) {
             UniValue range(UniValue::VARR);
