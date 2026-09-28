@@ -10,6 +10,7 @@
 #include <core_io.h>
 #include <node/chain_manager.h>
 #include <node/child_chain_notifications.h>
+#include <node/child_net_events.h>
 #include <node/child_network_manager.h>
 #include <node/context.h>
 #include <primitives/chainregistry.h>
@@ -903,6 +904,7 @@ void PushChildNetworkStats(UniValue& object,
     object.pushKV("connections", stats.connections);
     object.pushKV("handshaken_peers", stats.handshaken);
     object.pushKV("known_addresses", stats.known_addresses);
+    object.pushKV("max_known_addresses", node::MAX_CHILD_KNOWN_ADDRESSES);
     object.pushKV(
         "rate_limited_block_requests", stats.rate_limited_requests);
     object.pushKV("discovery_enabled", stats.discovery);
@@ -1439,6 +1441,7 @@ RPCHelpMan listchildchainruntimes()
                     {RPCResult::Type::NUM, "connections", "Current child-network connection count"},
                     {RPCResult::Type::NUM, "handshaken_peers", "Authenticated peers serving this exact child chain"},
                     {RPCResult::Type::NUM, "known_addresses", "Routable endpoints in this child's isolated peer store"},
+                    {RPCResult::Type::NUM, "max_known_addresses", "Maximum routable endpoints retained in this child's isolated peer store"},
                     {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
                     {RPCResult::Type::BOOL, "discovery_enabled", "Whether bounded automatic outbound connections from the isolated child peer store are enabled"},
                     {RPCResult::Type::ARR, "bootstrap_nodes", "Numeric bootstrap endpoints kept in the isolated child peer store", {
@@ -1629,6 +1632,7 @@ RPCHelpMan loadchildchain()
             {RPCResult::Type::NUM, "connections", "Current child-network connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Authenticated peers serving this exact child chain"},
             {RPCResult::Type::NUM, "known_addresses", "Routable endpoints in this child's isolated peer store"},
+            {RPCResult::Type::NUM, "max_known_addresses", "Maximum routable endpoints retained in this child's isolated peer store"},
             {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
             {RPCResult::Type::BOOL, "discovery_enabled", "Whether bounded automatic outbound connections from the isolated child peer store are enabled"},
             {RPCResult::Type::ARR, "bootstrap_nodes", "Numeric bootstrap endpoints kept in the isolated child peer store", {
@@ -1824,6 +1828,7 @@ RPCHelpMan getchildnetworkinfo()
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
             {RPCResult::Type::NUM, "known_addresses", "Routable endpoints in this child's isolated peer store"},
+            {RPCResult::Type::NUM, "max_known_addresses", "Maximum routable endpoints retained in this child's isolated peer store"},
             {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
             {RPCResult::Type::BOOL, "discovery_enabled", "Whether bounded automatic outbound connections from the isolated child peer store are enabled"},
             {RPCResult::Type::ARR, "bootstrap_nodes", "Numeric bootstrap endpoints kept in the isolated child peer store", {
@@ -1886,6 +1891,7 @@ RPCHelpMan addchildnode()
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
             {RPCResult::Type::NUM, "known_addresses", "Routable endpoints in this child's isolated peer store"},
+            {RPCResult::Type::NUM, "max_known_addresses", "Maximum routable endpoints retained in this child's isolated peer store"},
             {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
             {RPCResult::Type::BOOL, "discovery_enabled", "Whether bounded automatic outbound connections from the isolated child peer store are enabled"},
             {RPCResult::Type::ARR, "bootstrap_nodes", "Numeric bootstrap endpoints kept in the isolated child peer store", {
@@ -1933,6 +1939,7 @@ RPCHelpMan removechildnode()
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
             {RPCResult::Type::NUM, "known_addresses", "Routable endpoints in this child's isolated peer store"},
+            {RPCResult::Type::NUM, "max_known_addresses", "Maximum routable endpoints retained in this child's isolated peer store"},
             {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
             {RPCResult::Type::BOOL, "discovery_enabled", "Whether bounded automatic outbound connections from the isolated child peer store are enabled"},
             {RPCResult::Type::ARR, "bootstrap_nodes", "Numeric bootstrap endpoints kept in the isolated child peer store", {
@@ -1980,6 +1987,7 @@ RPCHelpMan setchildnetworkactive()
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
             {RPCResult::Type::NUM, "known_addresses", "Routable endpoints in this child's isolated peer store"},
+            {RPCResult::Type::NUM, "max_known_addresses", "Maximum routable endpoints retained in this child's isolated peer store"},
             {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
             {RPCResult::Type::BOOL, "discovery_enabled", "Whether bounded automatic outbound connections from the isolated child peer store are enabled"},
             {RPCResult::Type::ARR, "bootstrap_nodes", "Numeric bootstrap endpoints kept in the isolated child peer store", {
@@ -2030,6 +2038,7 @@ RPCHelpMan setchildnetworkbinds()
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
             {RPCResult::Type::NUM, "known_addresses", "Routable endpoints in this child's isolated peer store"},
+            {RPCResult::Type::NUM, "max_known_addresses", "Maximum routable endpoints retained in this child's isolated peer store"},
             {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
             {RPCResult::Type::BOOL, "discovery_enabled", "Whether bounded automatic outbound connections from the isolated child peer store are enabled"},
             {RPCResult::Type::ARR, "bootstrap_nodes", "Numeric bootstrap endpoints kept in the isolated child peer store", {
@@ -2087,6 +2096,7 @@ RPCHelpMan setchildnetworkdiscovery()
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
             {RPCResult::Type::NUM, "known_addresses", "Routable endpoints in this child's isolated peer store"},
+            {RPCResult::Type::NUM, "max_known_addresses", "Maximum routable endpoints retained in this child's isolated peer store"},
             {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
             {RPCResult::Type::BOOL, "discovery_enabled", "Whether bounded automatic outbound connections from the isolated child peer store are enabled"},
             {RPCResult::Type::ARR, "bootstrap_nodes", "Numeric bootstrap endpoints kept in the isolated child peer store", {

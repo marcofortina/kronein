@@ -66,12 +66,14 @@ ChildNetEvents::ChildNetEvents(
     ChainManager& manager,
     ChildBandwidthLimiter& bandwidth,
     chainregistry::ReferenceChildDefinition definition,
-    bool discovery)
+    bool discovery,
+    size_t max_known_addresses)
     : m_connman{connman},
       m_addrman{addrman},
       m_processor{manager, std::move(definition)},
       m_bandwidth{bandwidth},
-      m_discovery{discovery}
+      m_discovery{discovery},
+      m_max_known_addresses{max_known_addresses}
 {
 }
 
@@ -264,9 +266,14 @@ ChildNetProcessorResult ChildNetEvents::ProcessMessage(
         relay->second.received = true;
 
         const NodeSeconds now{Now<NodeSeconds>()};
+        const size_t known{m_addrman.Size()};
+        const size_t capacity{known >= m_max_known_addresses
+            ? 0
+            : m_max_known_addresses - known};
         std::vector<CAddress> addresses;
-        addresses.reserve(received.addresses.size());
+        addresses.reserve(std::min(capacity, received.addresses.size()));
         for (const auto& address : received.addresses) {
+            if (addresses.size() == capacity) break;
             NodeSeconds seen{
                 std::chrono::seconds{address.time}};
             if (seen <= NodeSeconds{std::chrono::seconds{100000000}} ||

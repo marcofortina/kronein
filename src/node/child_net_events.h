@@ -22,6 +22,7 @@ namespace node {
 class ChildBandwidthLimiter;
 
 inline constexpr uint8_t MAX_CHILD_BLOCK_TIMEOUT_STRIKES{3};
+inline constexpr size_t MAX_CHILD_KNOWN_ADDRESSES{4'096};
 inline constexpr ChildRequestTime CHILD_NET_POLL_INTERVAL{
     std::chrono::milliseconds{100}};
 
@@ -52,6 +53,7 @@ private:
         GUARDED_BY(m_mutex);
     uint64_t m_rate_limited_requests GUARDED_BY(m_mutex){0};
     const bool m_discovery;
+    const size_t m_max_known_addresses;
 
     void PushOutbound(CNode& current,
                       ChildNetOutbound&& outbound);
@@ -68,7 +70,8 @@ public:
         ChainManager& manager,
         ChildBandwidthLimiter& bandwidth,
         chainregistry::ReferenceChildDefinition definition,
-        bool discovery);
+        bool discovery,
+        size_t max_known_addresses = MAX_CHILD_KNOWN_ADDRESSES);
 
     void InitializeNode(const CNode& node,
                         ServiceFlags our_services) override;

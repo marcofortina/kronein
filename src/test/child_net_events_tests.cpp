@@ -271,7 +271,8 @@ BOOST_AUTO_TEST_CASE(relays_bounded_addresses_only_after_handshake)
         manager,
         bandwidth,
         definition,
-        /*discovery=*/true};
+        /*discovery=*/true,
+        /*max_known_addresses=*/1};
     connman.SetMsgProc(&events);
 
     CNode outbound{
@@ -312,6 +313,9 @@ BOOST_AUTO_TEST_CASE(relays_bounded_addresses_only_after_handshake)
         .addresses = {{
             .time = 1'700'000'000,
             .endpoint = LookupNumeric("9.9.9.9", 19846),
+        }, {
+            .time = 1'700'000'000,
+            .endpoint = LookupNumeric("1.1.1.1", 19846),
         }},
     };
     BOOST_REQUIRE(connman.ReceiveMsgFrom(
