@@ -6,6 +6,7 @@
 #define KRONEIN_CHAINREGISTRY_CHILD_NET_H
 
 #include <kernel/messagestartchars.h>
+#include <netaddress.h>
 #include <primitives/block.h>
 #include <primitives/chainregistry.h>
 #include <serialize.h>
@@ -18,8 +19,9 @@
 
 namespace chainregistry {
 
-inline constexpr uint16_t CHILD_P2P_PROTOCOL_VERSION{2};
+inline constexpr uint16_t CHILD_P2P_PROTOCOL_VERSION{3};
 inline constexpr uint64_t MAX_CHILD_BLOCK_REQUEST_HASHES{16};
+inline constexpr uint64_t MAX_CHILD_RELAY_ADDRESSES{32};
 inline constexpr std::string_view CHILD_MESSAGE_START_TAG{
     "Kronein/ChildMessageStart/v1"};
 
@@ -28,6 +30,8 @@ inline constexpr std::string_view HELLO{"chhello"};
 inline constexpr std::string_view INVENTORY{"chinv"};
 inline constexpr std::string_view GET_BLOCKS{"getchblock"};
 inline constexpr std::string_view BLOCK{"chblock"};
+inline constexpr std::string_view GET_ADDRESSES{"getchaddr"};
+inline constexpr std::string_view ADDRESSES{"chaddr"};
 } // namespace ChildNetMsgType
 
 MessageStartChars DeriveChildMessageStart(const ChainId& chain_id);
@@ -88,6 +92,59 @@ struct ChildBlockData {
     }
 };
 
+struct ChildAddressRequest {
+    uint16_t version{CHILD_P2P_PROTOCOL_VERSION};
+    ChainId chain_id;
+
+    SERIALIZE_METHODS(ChildAddressRequest, obj)
+    {
+        READWRITE(obj.version, obj.chain_id);
+    }
+};
+
+struct ChildNetAddress {
+    uint32_t time{0};
+    CService endpoint;
+
+    SERIALIZE_METHODS(ChildNetAddress, obj)
+    {
+        READWRITE(obj.time, obj.endpoint);
+    }
+};
+
+struct ChildAddresses {
+    uint16_t version{CHILD_P2P_PROTOCOL_VERSION};
+    ChainId chain_id;
+    std::vector<ChildNetAddress> addresses;
+
+    template <typename Stream>
+    void Serialize(Stream& stream) const
+    {
+        if (addresses.size() > MAX_CHILD_RELAY_ADDRESSES) {
+            throw std::ios_base::failure(
+                "Child address relay is too large.");
+        }
+        stream << version;
+        stream << chain_id;
+        WriteCompactSize(stream, addresses.size());
+        for (const auto& address : addresses) stream << address;
+    }
+
+    template <typename Stream>
+    void Unserialize(Stream& stream)
+    {
+        stream >> version;
+        stream >> chain_id;
+        const uint64_t count{ReadCompactSize(stream)};
+        if (count > MAX_CHILD_RELAY_ADDRESSES) {
+            throw std::ios_base::failure(
+                "Child address relay is too large.");
+        }
+        addresses.resize(count);
+        for (auto& address : addresses) stream >> address;
+    }
+};
+
 enum class ChildNetValidationError : uint8_t {
     NONE,
     UNSUPPORTED_VERSION,
@@ -101,6 +158,9 @@ enum class ChildNetValidationError : uint8_t {
     DUPLICATE_BLOCK_HASH,
     BLOCK_TOO_LARGE,
     UNEXPECTED_BLOCK_HASH,
+    TOO_MANY_ADDRESSES,
+    INVALID_ADDRESS,
+    DUPLICATE_ADDRESS,
 };
 
 ChildNetValidationError ValidateChildNetHello(
@@ -116,6 +176,14 @@ ChildNetValidationError ValidateChildBlockData(
     const ChildBlockData& message,
     const ChainId& expected_chain_id,
     const uint256& requested_block_hash);
+
+ChildNetValidationError ValidateChildAddressRequest(
+    const ChildAddressRequest& message,
+    const ChainId& expected_chain_id);
+
+ChildNetValidationError ValidateChildAddresses(
+    const ChildAddresses& message,
+    const ChainId& expected_chain_id);
 
 } // namespace chainregistry
 

@@ -158,10 +158,12 @@ public:
 
     size_t PeerCount() const { return m_peers.size(); }
     size_t HandshakenPeerCount() const;
+    bool IsHandshaken(ChildPeerId peer) const;
     size_t PendingCount() const { return m_pending.size(); }
     size_t DeferredCount() const { return m_deferred.size(); }
     size_t DeferredBytes() const { return m_deferred_bytes; }
     const ChildBlockDownloadTracker& Downloads() const { return m_downloads; }
+    const chainregistry::ChainId& ChainId() const { return m_definition.chain_id; }
 };
 
 } // namespace node

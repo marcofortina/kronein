@@ -7,6 +7,7 @@
 
 #include <addrman.h>
 #include <chainparams.h>
+#include <netbase.h>
 #include <netgroup.h>
 #include <netmessagemaker.h>
 #include <test/util/net.h>
@@ -66,7 +67,12 @@ BOOST_AUTO_TEST_CASE(adapts_only_the_isolated_child_protocol)
     node::ChildBandwidthLimiter bandwidth{
         node::DEFAULT_CHILD_UPLOAD_TARGET_BYTES};
     node::ChildNetEvents events{
-        connman, addrman, manager, bandwidth, definition};
+        connman,
+        addrman,
+        manager,
+        bandwidth,
+        definition,
+        /*discovery=*/false};
     connman.SetMsgProc(&events);
 
     CNode peer{
@@ -182,7 +188,12 @@ BOOST_AUTO_TEST_CASE(rejects_child_connections_to_self)
     node::ChildBandwidthLimiter bandwidth{
         node::DEFAULT_CHILD_UPLOAD_TARGET_BYTES};
     node::ChildNetEvents events{
-        connman, addrman, manager, bandwidth, definition};
+        connman,
+        addrman,
+        manager,
+        bandwidth,
+        definition,
+        /*discovery=*/false};
     connman.SetMsgProc(&events);
 
     constexpr uint64_t SELF_NONCE{77};
@@ -229,6 +240,161 @@ BOOST_AUTO_TEST_CASE(rejects_child_connections_to_self)
 
     events.FinalizeNode(inbound);
     connman.ClearTestNodes();
+}
+
+BOOST_AUTO_TEST_CASE(relays_bounded_addresses_only_after_handshake)
+{
+    const auto definition{Definition()};
+    node::ChainManager manager{
+        Params().GetConsensus(),
+        Params().GenesisBlock(),
+        m_args.GetDataDirBase() / "child_net_address_relay",
+        1 << 20};
+    BOOST_REQUIRE(manager.RegisterChain(definition).IsValid());
+    BOOST_REQUIRE(manager.LoadChain(
+        definition.chain_id,
+        Params().GenesisBlock().nTime,
+        /*wipe_data=*/true,
+        /*sync=*/true).IsValid());
+
+    NetGroupManager netgroup{NetGroupManager::NoAsmap()};
+    AddrMan addrman{
+        netgroup, /*deterministic=*/true,
+        /*consistency_check_ratio=*/0};
+    ConnmanTestMsg connman{
+        1, 2, addrman, netgroup, Params()};
+    node::ChildBandwidthLimiter bandwidth{
+        node::DEFAULT_CHILD_UPLOAD_TARGET_BYTES};
+    node::ChildNetEvents events{
+        connman,
+        addrman,
+        manager,
+        bandwidth,
+        definition,
+        /*discovery=*/true};
+    connman.SetMsgProc(&events);
+
+    CNode outbound{
+        /*id=*/9,
+        /*sock=*/nullptr,
+        CAddress{LookupNumeric("8.8.8.8", 19846), NODE_NETWORK},
+        /*nKeyedNetGroupIn=*/0,
+        /*nLocalHostNonceIn=*/91,
+        CService{},
+        /*addrNameIn=*/"8.8.8.8:19846",
+        ConnectionType::OUTBOUND_FULL_RELAY,
+        /*inbound_onion=*/false,
+        /*network_key=*/0};
+    events.InitializeNode(outbound, NODE_NONE);
+    connman.FlushSendBuffer(outbound);
+
+    BOOST_REQUIRE(connman.ReceiveMsgFrom(
+        outbound,
+        NetMsg::Make(
+            std::string{chainregistry::ChildNetMsgType::HELLO},
+            chainregistry::ChildNetHello{
+                .nonce = 92,
+                .chain_id = definition.chain_id,
+                .genesis_hash = definition.genesis_hash,
+            })));
+    {
+        LOCK(NetEventsInterface::g_msgproc_mutex);
+        connman.ProcessMessagesOnce(outbound);
+    }
+    BOOST_REQUIRE(outbound.fSuccessfullyConnected);
+    // Receiving the response below proves that this outbound peer entered the
+    // requested state. CConnman may optimistically move the request from
+    // vSendMsg into the encrypted transport before the test can inspect it.
+    connman.FlushSendBuffer(outbound);
+
+    const chainregistry::ChildAddresses learned{
+        .chain_id = definition.chain_id,
+        .addresses = {{
+            .time = 1'700'000'000,
+            .endpoint = LookupNumeric("9.9.9.9", 19846),
+        }},
+    };
+    BOOST_REQUIRE(connman.ReceiveMsgFrom(
+        outbound,
+        NetMsg::Make(
+            std::string{chainregistry::ChildNetMsgType::ADDRESSES},
+            learned)));
+    {
+        LOCK(NetEventsInterface::g_msgproc_mutex);
+        connman.ProcessMessagesOnce(outbound);
+    }
+    BOOST_CHECK(!outbound.fDisconnect);
+    BOOST_CHECK_EQUAL(events.KnownAddressCount(), 1U);
+    BOOST_CHECK(addrman.FindAddressEntry(CAddress{
+        LookupNumeric("9.9.9.9", 19846), NODE_NETWORK}));
+
+    BOOST_REQUIRE(connman.ReceiveMsgFrom(
+        outbound,
+        NetMsg::Make(
+            std::string{chainregistry::ChildNetMsgType::ADDRESSES},
+            learned)));
+    {
+        LOCK(NetEventsInterface::g_msgproc_mutex);
+        connman.ProcessMessagesOnce(outbound);
+    }
+    BOOST_CHECK(outbound.fDisconnect);
+    events.FinalizeNode(outbound);
+
+    CNode inbound{
+        /*id=*/10,
+        /*sock=*/nullptr,
+        CAddress{LookupNumeric("8.8.4.4", 19846), NODE_NETWORK},
+        /*nKeyedNetGroupIn=*/0,
+        /*nLocalHostNonceIn=*/101,
+        CService{},
+        /*addrNameIn=*/"8.8.4.4:19846",
+        ConnectionType::INBOUND,
+        /*inbound_onion=*/false,
+        /*network_key=*/0};
+    events.InitializeNode(inbound, NODE_NONE);
+    connman.FlushSendBuffer(inbound);
+    BOOST_REQUIRE(connman.ReceiveMsgFrom(
+        inbound,
+        NetMsg::Make(
+            std::string{chainregistry::ChildNetMsgType::HELLO},
+            chainregistry::ChildNetHello{
+                .nonce = 102,
+                .chain_id = definition.chain_id,
+                .genesis_hash = definition.genesis_hash,
+            })));
+    {
+        LOCK(NetEventsInterface::g_msgproc_mutex);
+        connman.ProcessMessagesOnce(inbound);
+    }
+    BOOST_CHECK(inbound.fSuccessfullyConnected);
+    BOOST_REQUIRE(connman.ReceiveMsgFrom(
+        inbound,
+        NetMsg::Make(
+            std::string{chainregistry::ChildNetMsgType::GET_ADDRESSES},
+            chainregistry::ChildAddressRequest{
+                .chain_id = definition.chain_id,
+            })));
+    {
+        LOCK(NetEventsInterface::g_msgproc_mutex);
+        connman.ProcessMessagesOnce(inbound);
+    }
+    BOOST_CHECK(!inbound.fDisconnect);
+    // The one-shot served state is asserted by the repeated request below;
+    // wire encoding and bounds are covered independently in child_net_tests.
+    connman.FlushSendBuffer(inbound);
+    BOOST_REQUIRE(connman.ReceiveMsgFrom(
+        inbound,
+        NetMsg::Make(
+            std::string{chainregistry::ChildNetMsgType::GET_ADDRESSES},
+            chainregistry::ChildAddressRequest{
+                .chain_id = definition.chain_id,
+            })));
+    {
+        LOCK(NetEventsInterface::g_msgproc_mutex);
+        connman.ProcessMessagesOnce(inbound);
+    }
+    BOOST_CHECK(inbound.fDisconnect);
+    events.FinalizeNode(inbound);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

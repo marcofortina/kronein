@@ -305,6 +305,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(loaded["network_active"], True)
         assert_equal(loaded["connections"], 0)
         assert_equal(loaded["handshaken_peers"], 0)
+        assert_equal(loaded["known_addresses"], 0)
         assert_equal(loaded["rate_limited_block_requests"], 0)
         assert_equal(loaded["discovery_enabled"], False)
         assert_equal(loaded["bootstrap_nodes"], [])
@@ -318,6 +319,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(network_info["max_bootstrap_nodes"], 8)
         assert_equal(network_info["max_automatic_connections"], 4)
         assert_equal(network_info["rate_limited_block_requests"], 0)
+        assert_equal(network_info["known_addresses"], 0)
         assert_equal(network_info["aggregate_upload_target"], 8 << 30)
         assert_equal(network_info["aggregate_upload_target_reached"], False)
         assert_equal(network_info["binds"], [child_endpoint])
@@ -328,9 +330,10 @@ class ChainRegistryTest(BitcoinTestFramework):
             node.setchildnetworkdiscovery,
             chain_id, True, ["seed.example:29843"])
         discovery = node.setchildnetworkdiscovery(
-            chain_id, True, ["192.0.2.1:29843"])
+            chain_id, True, ["8.8.8.8:29843"])
         assert_equal(discovery["discovery_enabled"], True)
-        assert_equal(discovery["bootstrap_nodes"], ["192.0.2.1:29843"])
+        assert_equal(discovery["bootstrap_nodes"], ["8.8.8.8:29843"])
+        assert_equal(discovery["known_addresses"], 1)
         discovery_disabled = node.setchildnetworkdiscovery(
             chain_id, False, [])
         assert_equal(discovery_disabled["discovery_enabled"], False)

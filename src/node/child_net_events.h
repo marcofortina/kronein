@@ -33,6 +33,12 @@ inline constexpr ChildRequestTime CHILD_NET_POLL_INTERVAL{
 class ChildNetEvents final : public NetEventsInterface
 {
 private:
+    struct AddressRelayState {
+        bool requested{false};
+        bool received{false};
+        bool served{false};
+    };
+
     CConnman& m_connman;
     AddrMan& m_addrman;
     ChildNetProcessor m_processor;
@@ -40,7 +46,10 @@ private:
     mutable Mutex m_mutex;
     ChildRequestTime m_next_poll GUARDED_BY(m_mutex){0};
     std::map<ChildPeerId, uint8_t> m_timeout_strikes GUARDED_BY(m_mutex);
+    std::map<ChildPeerId, AddressRelayState> m_address_relay
+        GUARDED_BY(m_mutex);
     uint64_t m_rate_limited_requests GUARDED_BY(m_mutex){0};
+    const bool m_discovery;
 
     void PushOutbound(CNode& current,
                       ChildNetOutbound&& outbound);
@@ -56,7 +65,8 @@ public:
         AddrMan& addrman,
         ChainManager& manager,
         ChildBandwidthLimiter& bandwidth,
-        chainregistry::ReferenceChildDefinition definition);
+        chainregistry::ReferenceChildDefinition definition,
+        bool discovery);
 
     void InitializeNode(const CNode& node,
                         ServiceFlags our_services) override;
@@ -71,6 +81,7 @@ public:
     size_t PeerCount() const;
     size_t HandshakenPeerCount() const;
     uint64_t RateLimitedRequests() const;
+    size_t KnownAddressCount() const;
 };
 
 } // namespace node

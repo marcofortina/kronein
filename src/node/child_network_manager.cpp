@@ -376,7 +376,12 @@ struct ChildNetworkManager::Network {
                   *netgroup,
                   params},
           events{std::make_unique<ChildNetEvents>(
-              connman, *addrman, manager, bandwidth, definition)},
+              connman,
+              *addrman,
+              manager,
+              bandwidth,
+              definition,
+              network_config.discovery)},
           config{std::move(network_config)}
     {
     }
@@ -397,6 +402,7 @@ struct ChildNetworkManager::Network {
             .network_active = connman.GetNetworkActive(),
             .connections = connman.GetNodeCount(ConnectionDirection::Both),
             .handshaken = events->HandshakenPeerCount(),
+            .known_addresses = events->KnownAddressCount(),
             .rate_limited_requests = events->RateLimitedRequests(),
             .discovery = config.discovery,
             .added_nodes = {},

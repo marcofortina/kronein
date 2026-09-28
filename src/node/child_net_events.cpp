@@ -10,7 +10,9 @@
 #include <node/child_network_manager.h>
 #include <util/time.h>
 
+#include <algorithm>
 #include <exception>
+#include <limits>
 #include <set>
 #include <string>
 #include <utility>
@@ -29,6 +31,14 @@ ChildRequestTime RequestTimeNow()
 int64_t ValidationTimeNow()
 {
     return TicksSinceEpoch<std::chrono::seconds>(NodeClock::now());
+}
+
+ChildNetProcessorResult InvalidAddressMessage()
+{
+    ChildNetProcessorResult result;
+    result.error = ChildNetProcessorError::INVALID_MESSAGE;
+    result.disconnect = true;
+    return result;
 }
 
 std::string ChildMessageType(ChildNetCommand command)
@@ -53,11 +63,13 @@ ChildNetEvents::ChildNetEvents(
     AddrMan& addrman,
     ChainManager& manager,
     ChildBandwidthLimiter& bandwidth,
-    chainregistry::ReferenceChildDefinition definition)
+    chainregistry::ReferenceChildDefinition definition,
+    bool discovery)
     : m_connman{connman},
       m_addrman{addrman},
       m_processor{manager, std::move(definition)},
-      m_bandwidth{bandwidth}
+      m_bandwidth{bandwidth},
+      m_discovery{discovery}
 {
 }
 
@@ -122,6 +134,7 @@ void ChildNetEvents::InitializeNode(
 {
     LOCK(m_mutex);
     CNode& mutable_node{const_cast<CNode&>(node)};
+    m_address_relay.emplace(node.GetId(), AddressRelayState{});
     ApplyResult(
         mutable_node,
         m_processor.Connected(node.GetId(), node.GetLocalNonce()));
@@ -135,6 +148,7 @@ void ChildNetEvents::FinalizeNode(const CNode& node)
     }
     m_processor.Disconnected(node.GetId());
     m_timeout_strikes.erase(node.GetId());
+    m_address_relay.erase(node.GetId());
 }
 
 bool ChildNetEvents::HasAllDesirableServiceFlags(ServiceFlags) const
@@ -167,8 +181,104 @@ ChildNetProcessorResult ChildNetEvents::ProcessMessage(
         if (result.IsValid()) {
             node.fSuccessfullyConnected = true;
             if (!node.IsInboundConn()) m_addrman.Good(node.addr);
+            auto relay{m_address_relay.find(peer)};
+            if (m_discovery && !node.IsInboundConn() &&
+                relay != m_address_relay.end() &&
+                !relay->second.requested) {
+                m_connman.PushMessage(
+                    &node,
+                    NetMsg::Make(
+                        std::string{
+                            chainregistry::ChildNetMsgType::GET_ADDRESSES},
+                        chainregistry::ChildAddressRequest{
+                            .chain_id = m_processor.ChainId(),
+                        }));
+                relay->second.requested = true;
+            }
         }
         return result;
+    }
+    if (message.m_type == chainregistry::ChildNetMsgType::GET_ADDRESSES) {
+        chainregistry::ChildAddressRequest request;
+        message.m_recv >> request;
+        if (!message.m_recv.empty() || !m_discovery ||
+            !m_processor.IsHandshaken(peer)) {
+            return InvalidAddressMessage();
+        }
+        const auto validation{chainregistry::ValidateChildAddressRequest(
+            request, m_processor.ChainId())};
+        auto relay{m_address_relay.find(peer)};
+        if (validation != chainregistry::ChildNetValidationError::NONE ||
+            relay == m_address_relay.end() || relay->second.served) {
+            return InvalidAddressMessage();
+        }
+        relay->second.served = true;
+
+        chainregistry::ChildAddresses response{
+            .chain_id = m_processor.ChainId(),
+            .addresses = {},
+        };
+        const CService peer_endpoint{node.addr};
+        for (const CAddress& address : m_addrman.GetAddr(
+                 chainregistry::MAX_CHILD_RELAY_ADDRESSES,
+                 /*max_pct=*/100,
+                 /*network=*/std::nullopt)) {
+            const CService endpoint{address};
+            if (endpoint == peer_endpoint || !endpoint.IsRoutable() ||
+                (!endpoint.IsIPv4() && !endpoint.IsIPv6()) ||
+                endpoint.GetPort() == 0) {
+                continue;
+            }
+            const int64_t seconds{
+                TicksSinceEpoch<std::chrono::seconds>(address.nTime)};
+            response.addresses.push_back({
+                .time = static_cast<uint32_t>(std::clamp<int64_t>(
+                    seconds, 0, std::numeric_limits<uint32_t>::max())),
+                .endpoint = endpoint,
+            });
+        }
+        m_connman.PushMessage(
+            &node,
+            NetMsg::Make(
+                std::string{chainregistry::ChildNetMsgType::ADDRESSES},
+                response));
+        return {};
+    }
+    if (message.m_type == chainregistry::ChildNetMsgType::ADDRESSES) {
+        chainregistry::ChildAddresses received;
+        message.m_recv >> received;
+        if (!message.m_recv.empty() || !m_discovery ||
+            !m_processor.IsHandshaken(peer)) {
+            return InvalidAddressMessage();
+        }
+        const auto validation{chainregistry::ValidateChildAddresses(
+            received, m_processor.ChainId())};
+        auto relay{m_address_relay.find(peer)};
+        if (validation != chainregistry::ChildNetValidationError::NONE ||
+            relay == m_address_relay.end() || !relay->second.requested ||
+            relay->second.received) {
+            return InvalidAddressMessage();
+        }
+        relay->second.received = true;
+
+        const NodeSeconds now{Now<NodeSeconds>()};
+        std::vector<CAddress> addresses;
+        addresses.reserve(received.addresses.size());
+        for (const auto& address : received.addresses) {
+            NodeSeconds seen{
+                std::chrono::seconds{address.time}};
+            if (seen <= NodeSeconds{std::chrono::seconds{100000000}} ||
+                seen > now + std::chrono::minutes{10}) {
+                seen = now - std::chrono::hours{5 * 24};
+            }
+            addresses.emplace_back(
+                address.endpoint, NODE_NETWORK, seen);
+        }
+        m_addrman.Add(
+            addresses,
+            static_cast<const CNetAddr&>(node.addr),
+            std::chrono::hours{2});
+        return {};
     }
     if (message.m_type == chainregistry::ChildNetMsgType::INVENTORY) {
         chainregistry::ChildBlockHashes inventory;
@@ -284,6 +394,11 @@ uint64_t ChildNetEvents::RateLimitedRequests() const
 {
     LOCK(m_mutex);
     return m_rate_limited_requests;
+}
+
+size_t ChildNetEvents::KnownAddressCount() const
+{
+    return m_addrman.Size();
 }
 
 } // namespace node

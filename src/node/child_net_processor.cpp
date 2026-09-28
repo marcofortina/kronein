@@ -459,4 +459,10 @@ size_t ChildNetProcessor::HandshakenPeerCount() const
         [](const auto& entry) { return entry.second.handshaken; });
 }
 
+bool ChildNetProcessor::IsHandshaken(ChildPeerId peer) const
+{
+    const auto it{m_peers.find(peer)};
+    return it != m_peers.end() && it->second.handshaken;
+}
+
 } // namespace node

@@ -112,4 +112,39 @@ ChildNetValidationError ValidateChildBlockData(
     return ChildNetValidationError::NONE;
 }
 
+ChildNetValidationError ValidateChildAddressRequest(
+    const ChildAddressRequest& message,
+    const ChainId& expected_chain_id)
+{
+    return ValidateVersionAndChain(
+        message.version, message.chain_id, expected_chain_id);
+}
+
+ChildNetValidationError ValidateChildAddresses(
+    const ChildAddresses& message,
+    const ChainId& expected_chain_id)
+{
+    if (const auto error{ValidateVersionAndChain(
+            message.version, message.chain_id, expected_chain_id)};
+        error != ChildNetValidationError::NONE) {
+        return error;
+    }
+    if (message.addresses.size() > MAX_CHILD_RELAY_ADDRESSES) {
+        return ChildNetValidationError::TOO_MANY_ADDRESSES;
+    }
+    std::set<CService> unique;
+    for (const auto& address : message.addresses) {
+        const CService& endpoint{address.endpoint};
+        if (!endpoint.IsValid() || !endpoint.IsRoutable() ||
+            (!endpoint.IsIPv4() && !endpoint.IsIPv6()) ||
+            endpoint.GetPort() == 0) {
+            return ChildNetValidationError::INVALID_ADDRESS;
+        }
+        if (!unique.insert(endpoint).second) {
+            return ChildNetValidationError::DUPLICATE_ADDRESS;
+        }
+    }
+    return ChildNetValidationError::NONE;
+}
+
 } // namespace chainregistry

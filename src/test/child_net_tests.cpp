@@ -4,6 +4,7 @@
 
 #include <chainregistry/child_net.h>
 
+#include <netbase.h>
 #include <streams.h>
 
 #include <boost/test/unit_test.hpp>
@@ -55,6 +56,10 @@ BOOST_AUTO_TEST_CASE(derives_isolated_message_start)
     BOOST_CHECK_LE(chainregistry::ChildNetMsgType::INVENTORY.size(), 12U);
     BOOST_CHECK_LE(chainregistry::ChildNetMsgType::GET_BLOCKS.size(), 12U);
     BOOST_CHECK_LE(chainregistry::ChildNetMsgType::BLOCK.size(), 12U);
+    BOOST_CHECK_LE(
+        chainregistry::ChildNetMsgType::GET_ADDRESSES.size(), 12U);
+    BOOST_CHECK_LE(
+        chainregistry::ChildNetMsgType::ADDRESSES.size(), 12U);
 }
 
 BOOST_AUTO_TEST_CASE(validates_full_chain_handshake)
@@ -171,6 +176,59 @@ BOOST_AUTO_TEST_CASE(binds_block_data_to_request_and_chain)
     BOOST_CHECK_EQUAL(decoded.version, data.version);
     BOOST_CHECK(decoded.chain_id == data.chain_id);
     BOOST_CHECK(decoded.block.GetHash() == block.GetHash());
+}
+
+BOOST_AUTO_TEST_CASE(bounds_and_validates_address_relay)
+{
+    const chainregistry::ChildAddressRequest request{
+        .chain_id = CHAIN_ID,
+    };
+    BOOST_CHECK(
+        chainregistry::ValidateChildAddressRequest(request, CHAIN_ID) ==
+        chainregistry::ChildNetValidationError::NONE);
+    BOOST_CHECK(
+        chainregistry::ValidateChildAddressRequest(
+            request, OTHER_CHAIN_ID) ==
+        chainregistry::ChildNetValidationError::WRONG_CHAIN);
+
+    chainregistry::ChildAddresses addresses{
+        .chain_id = CHAIN_ID,
+        .addresses = {{
+            .time = 1'700'000'000,
+            .endpoint = LookupNumeric("8.8.8.8", 19846),
+        }},
+    };
+    BOOST_CHECK(
+        chainregistry::ValidateChildAddresses(addresses, CHAIN_ID) ==
+        chainregistry::ChildNetValidationError::NONE);
+
+    addresses.addresses.push_back(addresses.addresses.front());
+    BOOST_CHECK(
+        chainregistry::ValidateChildAddresses(addresses, CHAIN_ID) ==
+        chainregistry::ChildNetValidationError::DUPLICATE_ADDRESS);
+    addresses.addresses.resize(1);
+    addresses.addresses.front().endpoint =
+        LookupNumeric("127.0.0.1", 19846);
+    BOOST_CHECK(
+        chainregistry::ValidateChildAddresses(addresses, CHAIN_ID) ==
+        chainregistry::ChildNetValidationError::INVALID_ADDRESS);
+
+    addresses.addresses.assign(
+        chainregistry::MAX_CHILD_RELAY_ADDRESSES + 1,
+        chainregistry::ChildNetAddress{
+            .time = 1'700'000'000,
+            .endpoint = LookupNumeric("8.8.8.8", 19846),
+        });
+    DataStream encoded;
+    BOOST_CHECK_THROW(encoded << addresses, std::ios_base::failure);
+
+    DataStream hostile;
+    hostile << chainregistry::CHILD_P2P_PROTOCOL_VERSION;
+    hostile << CHAIN_ID;
+    WriteCompactSize(
+        hostile, chainregistry::MAX_CHILD_RELAY_ADDRESSES + 1);
+    chainregistry::ChildAddresses decoded;
+    BOOST_CHECK_THROW(hostile >> decoded, std::ios_base::failure);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
