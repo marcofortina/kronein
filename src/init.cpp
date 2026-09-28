@@ -2077,6 +2077,11 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     connOptions.nMaxOutboundLimit = *opt_max_upload;
     connOptions.m_peer_connect_timeout = peer_connect_timeout;
     connOptions.m_capture_messages = args.GetBoolArg("-capturemessages", false);
+    connOptions.m_listen = fListen;
+    connOptions.m_dns_seed = args.GetBoolArg("-dnsseed", DEFAULT_DNSSEED);
+    connOptions.m_fixed_seeds = args.GetBoolArg("-fixedseeds", DEFAULT_FIXEDSEEDS);
+    connOptions.m_private_broadcast = args.GetBoolArg(
+        "-privatebroadcast", DEFAULT_PRIVATE_BROADCAST);
 
     // Port to bind to if `-bind=addr` is provided without a `:port` suffix.
     const uint16_t default_bind_port =

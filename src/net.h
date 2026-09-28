@@ -929,12 +929,20 @@ public:
         std::vector<CService> onion_binds;
         /// True if the user did not specify -bind= or -whitebind= and thus
         /// we should bind on `0.0.0.0` (IPv4) and `::` (IPv6).
-        bool bind_on_any;
+        bool bind_on_any{false};
         bool m_use_addrman_outgoing = true;
         std::vector<std::string> m_specified_outgoing;
         std::vector<std::string> m_added_nodes;
-        bool m_i2p_accept_incoming;
+        bool m_i2p_accept_incoming{false};
         bool m_capture_messages = false;
+        /** Per-instance overrides used by isolated auxiliary networks. */
+        std::optional<bool> m_listen;
+        std::optional<bool> m_dns_seed;
+        std::optional<bool> m_fixed_seeds;
+        std::optional<bool> m_private_broadcast;
+        bool m_schedule_maintenance{true};
+        bool m_persist_addrman{true};
+        bool m_interrupt_socks5{true};
     };
 
     void Init(const Options& connOptions) EXCLUSIVE_LOCKS_REQUIRED(!m_added_nodes_mutex, !m_total_bytes_sent_mutex)
@@ -968,6 +976,14 @@ public:
         }
         m_onion_binds = connOptions.onion_binds;
         m_capture_messages = connOptions.m_capture_messages;
+        m_listen = connOptions.m_listen.value_or(m_listen);
+        m_dns_seed = connOptions.m_dns_seed.value_or(m_dns_seed);
+        m_fixed_seeds = connOptions.m_fixed_seeds.value_or(m_fixed_seeds);
+        m_enable_private_broadcast = connOptions.m_private_broadcast.value_or(
+            m_enable_private_broadcast);
+        m_schedule_maintenance = connOptions.m_schedule_maintenance;
+        m_persist_addrman = connOptions.m_persist_addrman;
+        m_interrupt_socks5 = connOptions.m_interrupt_socks5;
     }
 
     // test only
@@ -1505,6 +1521,13 @@ private:
     int m_max_inbound;
 
     bool m_use_addrman_outgoing;
+    bool m_listen{true};
+    bool m_dns_seed{true};
+    bool m_fixed_seeds{true};
+    bool m_enable_private_broadcast{false};
+    bool m_schedule_maintenance{true};
+    bool m_persist_addrman{true};
+    bool m_interrupt_socks5{true};
     CClientUIInterface* m_client_interface;
     NetEventsInterface* m_msgproc;
     /** Pointer to this node's banman. May be nullptr - check existence before dereferencing. */

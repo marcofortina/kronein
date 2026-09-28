@@ -2213,9 +2213,9 @@ void CConnman::ThreadOpenConnections(const std::vector<std::string> connect, std
     auto next_feeler = start + rng.rand_exp_duration(FEELER_INTERVAL);
     auto next_extra_block_relay = start + rng.rand_exp_duration(EXTRA_BLOCK_RELAY_ONLY_PEER_INTERVAL);
     auto next_extra_network_peer{start + rng.rand_exp_duration(EXTRA_NETWORK_PEER_INTERVAL)};
-    const bool dnsseed = gArgs.GetBoolArg("-dnsseed", DEFAULT_DNSSEED);
-    bool add_fixed_seeds = gArgs.GetBoolArg("-fixedseeds", DEFAULT_FIXEDSEEDS);
-    const bool use_seednodes{!gArgs.GetArgs("-seednode").empty()};
+    const bool dnsseed{m_dns_seed};
+    bool add_fixed_seeds{m_fixed_seeds};
+    const bool use_seednodes{!seed_nodes.empty()};
 
     auto seed_node_timer = NodeClock::now();
     bool add_addr_fetch{addrman.get().Size() == 0 && !seed_nodes.empty()};
@@ -3113,7 +3113,7 @@ bool CConnman::Start(CScheduler& scheduler, const Options& connOptions)
     AssertLockNotHeld(m_total_bytes_sent_mutex);
     Init(connOptions);
 
-    if (fListen && !InitBinds(connOptions)) {
+    if (m_listen && !InitBinds(connOptions)) {
         if (m_client_interface) {
             m_client_interface->ThreadSafeMessageBox(
                 _("Failed to listen on any port. Use -listen=0 if you want this."),
@@ -3134,7 +3134,7 @@ bool CConnman::Start(CScheduler& scheduler, const Options& connOptions)
         std::shuffle(seed_nodes.begin(), seed_nodes.end(), FastRandomContext{});
     }
 
-    if (m_use_addrman_outgoing) {
+    if (m_use_addrman_outgoing && m_persist_addrman) {
         // Load addresses from anchors.dat
         m_anchors = ReadAnchors(gArgs.GetDataDirNet() / ANCHORS_DATABASE_FILENAME);
         if (m_anchors.size() > MAX_BLOCK_RELAY_ONLY_ANCHORS) {
@@ -3173,7 +3173,7 @@ bool CConnman::Start(CScheduler& scheduler, const Options& connOptions)
     // Send and receive from sockets, accept connections
     threadSocketHandler = std::thread(&util::TraceThread, "net", [this] { ThreadSocketHandler(); });
 
-    if (!gArgs.GetBoolArg("-dnsseed", DEFAULT_DNSSEED))
+    if (!m_dns_seed)
         LogInfo("DNS seeding disabled\n");
     else
         threadDNSAddressSeed = std::thread(&util::TraceThread, "dnsseed", [this] { ThreadDNSAddressSeed(); });
@@ -3203,18 +3203,20 @@ bool CConnman::Start(CScheduler& scheduler, const Options& connOptions)
             std::thread(&util::TraceThread, "i2paccept", [this] { ThreadI2PAcceptIncoming(); });
     }
 
-    if (gArgs.GetBoolArg("-privatebroadcast", DEFAULT_PRIVATE_BROADCAST)) {
+    if (m_enable_private_broadcast) {
         threadPrivateBroadcast =
             std::thread(&util::TraceThread, "privbcast", [this] { ThreadPrivateBroadcast(); });
     }
 
-    // Dump network addresses
-    scheduler.scheduleEvery([this] { DumpAddresses(); }, DUMP_PEERS_INTERVAL);
+    if (m_schedule_maintenance) {
+        // Dump network addresses.
+        scheduler.scheduleEvery([this] { DumpAddresses(); }, DUMP_PEERS_INTERVAL);
 
-    // Run the ASMap Health check once and then schedule it to run every 24h.
-    if (m_netgroupman.UsingASMap()) {
-        ASMapHealthCheck();
-        scheduler.scheduleEvery([this] { ASMapHealthCheck(); }, ASMAP_HEALTH_CHECK_INTERVAL);
+        // Run the ASMap Health check once and then schedule it every 24h.
+        if (m_netgroupman.UsingASMap()) {
+            ASMapHealthCheck();
+            scheduler.scheduleEvery([this] { ASMapHealthCheck(); }, ASMAP_HEALTH_CHECK_INTERVAL);
+        }
     }
 
     return true;
@@ -3244,7 +3246,7 @@ void CConnman::Interrupt()
     condMsgProc.notify_all();
 
     (*m_interrupt_net)();
-    g_socks5_interrupt();
+    if (m_interrupt_socks5) g_socks5_interrupt();
 
     if (semOutbound) {
         for (int i=0; i<m_max_automatic_outbound; i++) {
@@ -3286,10 +3288,10 @@ void CConnman::StopNodes()
 {
 
     if (fAddressesInitialized) {
-        DumpAddresses();
+        if (m_persist_addrman) DumpAddresses();
         fAddressesInitialized = false;
 
-        if (m_use_addrman_outgoing) {
+        if (m_use_addrman_outgoing && m_persist_addrman) {
             // Anchor connections are only dumped during clean shutdown.
             std::vector<CAddress> anchors_to_dump = GetCurrentBlockRelayOnlyConns();
             if (anchors_to_dump.size() > MAX_BLOCK_RELAY_ONLY_ANCHORS) {
