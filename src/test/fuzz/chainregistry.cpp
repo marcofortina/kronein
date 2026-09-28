@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
+#include <chainregistry/child_fork_choice.h>
 #include <consensus/bmm.h>
 #include <consensus/deposit_proof.h>
 #include <primitives/bmm.h>
@@ -13,8 +14,10 @@
 #include <test/fuzz/fuzz.h>
 #include <test/fuzz/util.h>
 
+#include <algorithm>
 #include <cassert>
 #include <optional>
+#include <vector>
 
 FUZZ_TARGET(chainregistry_script_parsers)
 {
@@ -78,5 +81,80 @@ FUZZ_TARGET(chainregistry_proof_parsers)
             provider)}) {
         (void)chainregistry::ValidateBmmAnchorProofStructure(
             *proof, main_genesis, child_chain);
+    }
+}
+
+FUZZ_TARGET(child_fork_choice)
+{
+    FuzzedDataProvider provider{buffer.data(), buffer.size()};
+    const uint256 genesis{ConsumeUInt256(provider)};
+    std::vector<chainregistry::ChildForkPruneCandidate> candidates;
+    const size_t candidate_count{
+        provider.ConsumeIntegralInRange<size_t>(0, 64)};
+    candidates.reserve(candidate_count);
+    for (size_t index{0}; index < candidate_count; ++index) {
+        chainregistry::ChildForkCandidate candidate{
+            .block_hash = ConsumeUInt256(provider),
+            .parent_hash = ConsumeUInt256(provider),
+            .anchors = {},
+        };
+        const size_t anchor_count{
+            provider.ConsumeIntegralInRange<size_t>(0, 8)};
+        candidate.anchors.reserve(anchor_count);
+        for (size_t anchor{0}; anchor < anchor_count; ++anchor) {
+            candidate.anchors.push_back({
+                .main_block_hash = ConsumeUInt256(provider),
+                .main_height = provider.ConsumeIntegral<uint32_t>(),
+                .work = ConsumeArithUInt256(provider),
+            });
+        }
+        const bool prunable{provider.ConsumeBool()};
+        candidates.push_back({
+            .candidate = std::move(candidate),
+            .side_candidate_bytes = prunable
+                ? provider.ConsumeIntegral<uint64_t>()
+                : 0,
+            .candidate_anchor_count =
+                provider.ConsumeIntegral<uint64_t>(),
+            .candidate_anchor_bytes =
+                provider.ConsumeIntegral<uint64_t>(),
+            .prunable = prunable,
+        });
+    }
+
+    std::vector<chainregistry::ChildForkCandidate> fork_candidates;
+    fork_candidates.reserve(candidates.size());
+    for (const auto& candidate : candidates) {
+        fork_candidates.push_back(candidate.candidate);
+    }
+    const auto selected{
+        chainregistry::SelectChildFork(genesis, fork_candidates)};
+    if (selected.IsValid()) {
+        std::reverse(fork_candidates.begin(), fork_candidates.end());
+        const auto reversed{
+            chainregistry::SelectChildFork(genesis, fork_candidates)};
+        assert(reversed.IsValid());
+        assert(reversed.head == selected.head);
+        assert(reversed.head_score.child_height ==
+               selected.head_score.child_height);
+        assert(reversed.head_score.cumulative_anchor_work ==
+               selected.head_score.cumulative_anchor_work);
+    }
+
+    const chainregistry::ChildForkPruneLimits limits{
+        .side_candidate_count = provider.ConsumeIntegral<uint64_t>(),
+        .side_candidate_bytes = provider.ConsumeIntegral<uint64_t>(),
+        .candidate_anchor_count = provider.ConsumeIntegral<uint64_t>(),
+        .candidate_anchor_bytes = provider.ConsumeIntegral<uint64_t>(),
+    };
+    const auto pruned{chainregistry::SelectChildForkPruning(
+        genesis, candidates, limits)};
+    if (pruned.IsValid()) {
+        std::reverse(candidates.begin(), candidates.end());
+        const auto reversed{chainregistry::SelectChildForkPruning(
+            genesis, candidates, limits)};
+        assert(reversed.IsValid());
+        assert(reversed.fork_choice.head == pruned.fork_choice.head);
+        assert(reversed.pruned == pruned.pruned);
     }
 }
