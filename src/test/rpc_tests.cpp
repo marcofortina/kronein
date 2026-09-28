@@ -647,6 +647,48 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
             return std::string_view{error.what()}.find(
                        "virtual child genesis") != std::string_view::npos;
         });
+    const std::string child_scan_object{
+        "[\"raw(" +
+        HexStr(child_block.vtx.front()->vout.front().scriptPubKey) +
+        ")\"]"};
+    for (const std::string& options : {
+             std::string{"{}"},
+             std::string{R"({"filter_false_positives":true})"}}) {
+        const auto scan{CallRPC(
+            "scanblocks start " + child_scan_object + " 0 1 basic " +
+            options + " " + chain_id)};
+        BOOST_CHECK_EQUAL(scan.find_value("from_height").getInt<int>(), 0);
+        BOOST_CHECK_EQUAL(scan.find_value("to_height").getInt<int>(), 1);
+        BOOST_CHECK(scan.find_value("completed").get_bool());
+        BOOST_CHECK_EQUAL(scan.find_value("chain_id").get_str(), chain_id);
+        BOOST_REQUIRE_EQUAL(
+            scan.find_value("relevant_blocks").size(), 1U);
+        BOOST_CHECK_EQUAL(
+            scan.find_value("relevant_blocks")[0].get_str(),
+            child_block.GetHash().GetHex());
+    }
+    const std::string unrelated_scan_object{
+        "[\"raw(" +
+        HexStr(CScript{} << OP_1 << std::vector<unsigned char>(32, 2)) +
+        ")\"]"};
+    const auto empty_child_scan{CallRPC(
+        "scanblocks start " + unrelated_scan_object +
+        " 0 1 basic {} " + chain_id)};
+    BOOST_CHECK_EQUAL(
+        empty_child_scan.find_value("relevant_blocks").size(), 0U);
+    BOOST_CHECK(CallRPC("scanblocks status null null null null null " +
+                        chain_id).isNull());
+    BOOST_CHECK(!CallRPC("scanblocks abort null null null null null " +
+                         chain_id).get_bool());
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("scanblocks start " + child_scan_object +
+                " 2 null basic {} " + chain_id),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find(
+                       "Invalid start_height or stop_height") !=
+                   std::string_view::npos;
+        });
     const auto child_info{CallRPC("getblockchaininfo " + chain_id)};
     BOOST_CHECK_EQUAL(child_info.find_value("blocks").getInt<int>(), 1);
     BOOST_CHECK_EQUAL(child_info.find_value("headers").getInt<int>(), 1);

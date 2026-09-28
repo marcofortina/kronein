@@ -3138,27 +3138,61 @@ static RPCHelpMan scantxoutset()
 /** RAII object to prevent concurrency issue when scanning blockfilters */
 static std::atomic<int> g_scanfilter_progress;
 static std::atomic<int> g_scanfilter_progress_height;
-static std::atomic<bool> g_scanfilter_in_progress;
 static std::atomic<bool> g_scanfilter_should_abort_scan;
+static Mutex g_scanfilter_mutex;
+static bool g_scanfilter_in_progress GUARDED_BY(g_scanfilter_mutex){false};
+static std::optional<chainregistry::ChainId> g_scanfilter_child_chain
+    GUARDED_BY(g_scanfilter_mutex);
+
+static bool BlockFilterScanInProgressFor(
+    const std::optional<chainregistry::ChainId>& child_chain)
+{
+    LOCK(g_scanfilter_mutex);
+    return g_scanfilter_in_progress &&
+           g_scanfilter_child_chain == child_chain;
+}
+
+static bool AbortBlockFilterScanFor(
+    const std::optional<chainregistry::ChainId>& child_chain)
+{
+    LOCK(g_scanfilter_mutex);
+    if (!g_scanfilter_in_progress ||
+        g_scanfilter_child_chain != child_chain) {
+        return false;
+    }
+    g_scanfilter_should_abort_scan = true;
+    return true;
+}
+
 class BlockFiltersScanReserver
 {
 private:
+    const std::optional<chainregistry::ChainId> m_child_chain;
     bool m_could_reserve{false};
 public:
-    explicit BlockFiltersScanReserver() = default;
+    explicit BlockFiltersScanReserver(
+        std::optional<chainregistry::ChainId> child_chain)
+        : m_child_chain{std::move(child_chain)}
+    {
+    }
 
     bool reserve() {
+        LOCK(g_scanfilter_mutex);
         CHECK_NONFATAL(!m_could_reserve);
-        if (g_scanfilter_in_progress.exchange(true)) {
-            return false;
-        }
+        if (g_scanfilter_in_progress) return false;
+        g_scanfilter_in_progress = true;
+        g_scanfilter_child_chain = m_child_chain;
         m_could_reserve = true;
         return true;
     }
 
     ~BlockFiltersScanReserver() {
         if (m_could_reserve) {
+            LOCK(g_scanfilter_mutex);
             g_scanfilter_in_progress = false;
+            g_scanfilter_child_chain.reset();
+            g_scanfilter_progress = 0;
+            g_scanfilter_progress_height = 0;
         }
     }
 };
@@ -3192,8 +3226,10 @@ static RPCHelpMan scanblocks()
 {
     return RPCHelpMan{
         "scanblocks",
-        "Return relevant blockhashes for given descriptors (requires blockfilterindex).\n"
-        "This call may take several minutes. Make sure to use no RPC timeout (kronein-cli -rpcclienttimeout=0)",
+        "Return relevant blockhashes for given descriptors (the main chain requires blockfilterindex).\n"
+        "This call may take several minutes. Make sure to use no RPC timeout (kronein-cli -rpcclienttimeout=0).\n"
+        "Omit chain_id for the main chain, or provide a loaded child-chain identifier to scan its persisted basic filters.\n"
+        "Scan status and abort are chain-scoped.",
         {
             scan_action_arg_desc,
             scan_objects_arg_desc,
@@ -3205,6 +3241,7 @@ static RPCHelpMan scanblocks()
                     {"filter_false_positives", RPCArg::Type::BOOL, RPCArg::Default{false}, "Filter false positives (slower and may fail on pruned nodes). Otherwise they may occur at a rate of 1/M"},
                 },
                 RPCArgOptions{.oneline_description="options"}},
+            RPCArg{"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
         },
         {
             scan_result_status_none,
@@ -3214,11 +3251,13 @@ static RPCHelpMan scanblocks()
                 {RPCResult::Type::ARR, "relevant_blocks", "Blocks that may have matched a scanobject.", {
                     {RPCResult::Type::STR_HEX, "blockhash", "A relevant blockhash"},
                 }},
-                {RPCResult::Type::BOOL, "completed", "true if the scan process was not aborted"}
+                {RPCResult::Type::BOOL, "completed", "true if the scan process was not aborted"},
+                {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Selected child-chain identifier; omitted for the main chain"},
             }},
             RPCResult{"when action=='status' and a scan is currently in progress", RPCResult::Type::OBJ, "", "", {
                     {RPCResult::Type::NUM, "progress", "Approximate percent complete"},
                     {RPCResult::Type::NUM, "current_height", "Height of the block currently being scanned"},
+                    {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Selected child-chain identifier; omitted for the main chain"},
                 },
             },
             scan_result_abort,
@@ -3235,26 +3274,20 @@ static RPCHelpMan scanblocks()
 {
     UniValue ret(UniValue::VOBJ);
     auto action{self.Arg<std::string_view>("action")};
+    std::optional<chainregistry::ChainId> child_chain;
+    if (const auto chain_id{self.MaybeArg<std::string_view>("chain_id")}) {
+        child_chain = ParseChainId(*chain_id);
+    }
     if (action == "status") {
-        BlockFiltersScanReserver reserver;
-        if (reserver.reserve()) {
-            // no scan in progress
-            return NullUniValue;
-        }
+        if (!BlockFilterScanInProgressFor(child_chain)) return NullUniValue;
         ret.pushKV("progress", g_scanfilter_progress.load());
         ret.pushKV("current_height", g_scanfilter_progress_height.load());
+        if (child_chain) ret.pushKV("chain_id", child_chain->GetHex());
         return ret;
     } else if (action == "abort") {
-        BlockFiltersScanReserver reserver;
-        if (reserver.reserve()) {
-            // reserve was possible which means no scan was running
-            return false;
-        }
-        // set the abort flag
-        g_scanfilter_should_abort_scan = true;
-        return true;
+        return AbortBlockFilterScanFor(child_chain);
     } else if (action == "start") {
-        BlockFiltersScanReserver reserver;
+        BlockFiltersScanReserver reserver{child_chain};
         if (!reserver.reserve()) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Scan already in progress, use action \"abort\" or \"status\"");
         }
@@ -3268,8 +3301,13 @@ static RPCHelpMan scanblocks()
         UniValue options{request.params[5].isNull() ? UniValue::VOBJ : request.params[5]};
         bool filter_false_positives{options.exists("filter_false_positives") ? options["filter_false_positives"].get_bool() : false};
 
-        BlockFilterIndex* index = GetBlockFilterIndex(filtertype);
-        if (!index) {
+        BlockFilterIndex* index{nullptr};
+        if (child_chain && filtertype != BlockFilterType::BASIC) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                               "Unknown child filtertype");
+        }
+        if (!child_chain) index = GetBlockFilterIndex(filtertype);
+        if (!child_chain && !index) {
             throw JSONRPCError(RPC_MISC_ERROR, tfm::format("Index is not enabled for filtertype %s", filtertype_name));
         }
 
@@ -3279,7 +3317,7 @@ static RPCHelpMan scanblocks()
         // set the start-height
         const CBlockIndex* start_index = nullptr;
         const CBlockIndex* stop_block = nullptr;
-        {
+        if (!child_chain) {
             LOCK(cs_main);
             CChain& active_chain = chainman.ActiveChain();
             start_index = active_chain.Genesis();
@@ -3297,8 +3335,6 @@ static RPCHelpMan scanblocks()
                 }
             }
         }
-        CHECK_NONFATAL(start_index);
-        CHECK_NONFATAL(stop_block);
 
         // loop through the scan objects, add scripts to the needle_set
         GCSFilter::ElementSet needle_set;
@@ -3309,6 +3345,65 @@ static RPCHelpMan scanblocks()
                 needle_set.emplace(script.begin(), script.end());
             }
         }
+
+        if (child_chain) {
+            const int start_height{request.params[2].isNull()
+                    ? 0
+                    : request.params[2].getInt<int>()};
+            const std::optional<int> stop_height{request.params[3].isNull()
+                    ? std::nullopt
+                    : std::optional<int>{request.params[3].getInt<int>()}};
+            g_scanfilter_should_abort_scan = false;
+            g_scanfilter_progress = 0;
+            g_scanfilter_progress_height = start_height;
+            const auto scan{EnsureAnyChildChainman(request.context)
+                .ScanBlockFilters(
+                    *child_chain,
+                    start_height,
+                    stop_height,
+                    needle_set,
+                    filter_false_positives,
+                    g_scanfilter_progress,
+                    g_scanfilter_progress_height,
+                    g_scanfilter_should_abort_scan,
+                    [&node] { node.rpc_interruption_point(); })};
+            switch (scan.error) {
+            case node::ChainManagerBlockFilterScanError::NONE:
+                break;
+            case node::ChainManagerBlockFilterScanError::NULL_CHAIN_ID:
+                throw JSONRPCError(RPC_INVALID_PARAMETER,
+                                   "chain_id must not be null");
+            case node::ChainManagerBlockFilterScanError::UNKNOWN_CHAIN:
+                throw JSONRPCError(
+                    RPC_INVALID_PARAMETER,
+                    "child chain is not configured locally");
+            case node::ChainManagerBlockFilterScanError::CHAIN_NOT_LOADED:
+                throw JSONRPCError(RPC_MISC_ERROR,
+                                   "child chain is not loaded");
+            case node::ChainManagerBlockFilterScanError::HEIGHT_OUT_OF_RANGE:
+                throw JSONRPCError(
+                    RPC_MISC_ERROR,
+                    "Invalid start_height or stop_height");
+            case node::ChainManagerBlockFilterScanError::DATA_UNAVAILABLE:
+                throw JSONRPCError(
+                    RPC_INTERNAL_ERROR,
+                    "Child block filter data is unavailable");
+            }
+            UniValue blocks{UniValue::VARR};
+            for (const uint256& hash : scan.scan.relevant_blocks) {
+                blocks.push_back(hash.GetHex());
+            }
+            ret.pushKV("from_height", start_height);
+            ret.pushKV("to_height", scan.scan.last_scanned_height);
+            ret.pushKV("relevant_blocks", std::move(blocks));
+            ret.pushKV("completed", scan.scan.completed);
+            ret.pushKV("chain_id", child_chain->GetHex());
+            return ret;
+        }
+
+        CHECK_NONFATAL(index);
+        CHECK_NONFATAL(start_index);
+        CHECK_NONFATAL(stop_block);
         UniValue blocks(UniValue::VARR);
         const int amount_per_chunk = 10000;
         std::vector<BlockFilter> filters;

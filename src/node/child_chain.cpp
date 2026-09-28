@@ -25,6 +25,31 @@ ReferenceChildRuntimeResult RuntimeError(ReferenceChildRuntimeError error)
     return result;
 }
 
+bool ChildBlockMatchesAny(
+    const CBlock& block,
+    const chainregistry::ReferenceChildBlockUndo& undo,
+    const GCSFilter::ElementSet& needles)
+{
+    for (const auto& tx : block.vtx) {
+        for (const auto& output : tx->vout) {
+            if (needles.contains(GCSFilter::Element{
+                    output.scriptPubKey.begin(), output.scriptPubKey.end()})) {
+                return true;
+            }
+        }
+    }
+    for (const auto& tx_undo : undo.coins.vtxundo) {
+        for (const auto& coin : tx_undo.vprevout) {
+            if (needles.contains(GCSFilter::Element{
+                    coin.out.scriptPubKey.begin(),
+                    coin.out.scriptPubKey.end()})) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 } // namespace
 
 ReferenceChildRuntime::ReferenceChildRuntime(
@@ -1267,6 +1292,84 @@ std::optional<kernel::CCoinsStats> ReferenceChildRuntime::GetUTXOStats(
         return std::nullopt;
     }
     return stats;
+}
+
+std::optional<ReferenceChildFilterScanResult>
+ReferenceChildRuntime::ScanBlockFilters(
+    int start_height,
+    int stop_height,
+    const GCSFilter::ElementSet& needles,
+    bool filter_false_positives,
+    std::atomic<int>& progress,
+    std::atomic<int>& progress_height,
+    const std::atomic<bool>& should_abort,
+    const std::function<void()>& interruption_point) const
+{
+    if (!Usable() || !m_tip || !m_db || start_height < 0 ||
+        stop_height < start_height || stop_height > m_tip->nHeight) {
+        return std::nullopt;
+    }
+
+    ReferenceChildFilterScanResult result{
+        .completed = true,
+        .last_scanned_height = start_height,
+        .relevant_blocks = {},
+    };
+    const int64_t total_blocks{
+        static_cast<int64_t>(stop_height) - start_height + 1};
+    progress = 0;
+    progress_height = start_height;
+    for (int height{start_height}; height <= stop_height; ++height) {
+        if ((height - start_height) % 256 == 0 && interruption_point) {
+            interruption_point();
+        }
+        if (should_abort) {
+            result.completed = false;
+            break;
+        }
+
+        if (height != 0) {
+            const auto block_hash{GetBlockHash(height)};
+            if (!block_hash) return std::nullopt;
+            const auto record{m_db->ReadBlockFilter(*block_hash)};
+            if (!record || record->version != CHILD_BLOCK_FILTER_RECORD_VERSION ||
+                record->block_hash != *block_hash) {
+                return std::nullopt;
+            }
+            try {
+                const BlockFilter filter{
+                    BlockFilterType::BASIC,
+                    *block_hash,
+                    record->encoded_filter,
+                    /*skip_decode_check=*/false};
+                if (filter.GetFilter().MatchAny(needles)) {
+                    bool matches{true};
+                    if (filter_false_positives) {
+                        CBlock block;
+                        chainregistry::ReferenceChildBlockUndo undo;
+                        if (!m_db->ReadBlock(*block_hash, block) ||
+                            !m_db->ReadUndo(*block_hash, undo) ||
+                            block.GetHash() != *block_hash ||
+                            undo.block_hash != *block_hash ||
+                            undo.parent_hash != block.hashPrevBlock) {
+                            return std::nullopt;
+                        }
+                        matches = ChildBlockMatchesAny(block, undo, needles);
+                    }
+                    if (matches) result.relevant_blocks.push_back(*block_hash);
+                }
+            } catch (const std::exception&) {
+                return std::nullopt;
+            }
+        }
+
+        result.last_scanned_height = height;
+        progress_height = height;
+        const int64_t processed{
+            static_cast<int64_t>(height) - start_height + 1};
+        progress = static_cast<int>(processed * 100 / total_blocks);
+    }
+    return result;
 }
 
 bool ReferenceChildRuntime::VerifyDatabase(int64_t current_time) const

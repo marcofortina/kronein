@@ -879,6 +879,61 @@ ChainManagerUTXOScanView ChainManager::ScanUTXOSet(
     return result;
 }
 
+ChainManagerBlockFilterScanView ChainManager::ScanBlockFilters(
+    const chainregistry::ChainId& chain_id,
+    int start_height,
+    std::optional<int> stop_height,
+    const GCSFilter::ElementSet& needles,
+    bool filter_false_positives,
+    std::atomic<int>& progress,
+    std::atomic<int>& progress_height,
+    const std::atomic<bool>& should_abort,
+    const std::function<void()>& interruption_point) const
+{
+    LOCK(m_mutex);
+    ChainManagerBlockFilterScanView result;
+    if (chain_id.IsNull()) {
+        result.error = ChainManagerBlockFilterScanError::NULL_CHAIN_ID;
+        return result;
+    }
+    if (!m_definitions.contains(chain_id)) {
+        result.error = ChainManagerBlockFilterScanError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto loaded{m_loaded.find(chain_id)};
+    if (loaded == m_loaded.end()) {
+        result.error = ChainManagerBlockFilterScanError::CHAIN_NOT_LOADED;
+        return result;
+    }
+
+    const CBlockIndex* tip{loaded->second->Tip()};
+    Assume(tip);
+    const int last_height{stop_height.value_or(tip->nHeight)};
+    if (start_height < 0 || start_height > tip->nHeight ||
+        last_height < start_height || last_height > tip->nHeight) {
+        result.error = ChainManagerBlockFilterScanError::HEIGHT_OUT_OF_RANGE;
+        return result;
+    }
+    const auto chain_view{GetChainViewLocked(chain_id)};
+    Assume(chain_view.IsValid());
+    result.entry = chain_view.entry;
+    const auto scan{loaded->second->ScanBlockFilters(
+        start_height,
+        last_height,
+        needles,
+        filter_false_positives,
+        progress,
+        progress_height,
+        should_abort,
+        interruption_point)};
+    if (!scan) {
+        result.error = ChainManagerBlockFilterScanError::DATA_UNAVAILABLE;
+        return result;
+    }
+    result.scan = *scan;
+    return result;
+}
+
 ChainManagerVerifyResult ChainManager::VerifyChain(
     const chainregistry::ChainId& chain_id,
     int64_t current_time) const

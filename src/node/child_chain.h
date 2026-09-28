@@ -5,6 +5,7 @@
 #ifndef KRONEIN_NODE_CHILD_CHAIN_H
 #define KRONEIN_NODE_CHILD_CHAIN_H
 
+#include <blockfilter.h>
 #include <chain.h>
 #include <chainregistry/child_block.h>
 #include <chainregistry/child_fork_choice.h>
@@ -15,6 +16,7 @@
 #include <kernel/coinstats.h>
 #include <node/child_chain_db.h>
 
+#include <atomic>
 #include <cstdint>
 #include <functional>
 #include <map>
@@ -93,6 +95,12 @@ struct ReferenceChildChainTipView {
     int branch_length{0};
     bool active{false};
     chainregistry::ChildForkScore fork_score;
+};
+
+struct ReferenceChildFilterScanResult {
+    bool completed{false};
+    int last_scanned_height{0};
+    std::vector<uint256> relevant_blocks;
 };
 
 /**
@@ -203,6 +211,15 @@ public:
     std::unique_ptr<CCoinsViewCursor> GetUTXOCursor() const;
     std::optional<kernel::CCoinsStats> GetUTXOStats(
         kernel::CoinStatsHashType hash_type,
+        const std::function<void()>& interruption_point = {}) const;
+    std::optional<ReferenceChildFilterScanResult> ScanBlockFilters(
+        int start_height,
+        int stop_height,
+        const GCSFilter::ElementSet& needles,
+        bool filter_false_positives,
+        std::atomic<int>& progress,
+        std::atomic<int>& progress_height,
+        const std::atomic<bool>& should_abort,
         const std::function<void()>& interruption_point = {}) const;
     /** Rebuild and fully validate all persisted runtime state without mutation. */
     bool VerifyDatabase(int64_t current_time) const;

@@ -240,6 +240,27 @@ struct ChainManagerUTXOScanView {
     }
 };
 
+enum class ChainManagerBlockFilterScanError : uint8_t {
+    NONE,
+    NULL_CHAIN_ID,
+    UNKNOWN_CHAIN,
+    CHAIN_NOT_LOADED,
+    HEIGHT_OUT_OF_RANGE,
+    DATA_UNAVAILABLE,
+};
+
+struct ChainManagerBlockFilterScanView {
+    ChainManagerBlockFilterScanError error{
+        ChainManagerBlockFilterScanError::NONE};
+    ChainManagerEntry entry;
+    ReferenceChildFilterScanResult scan;
+
+    bool IsValid() const
+    {
+        return error == ChainManagerBlockFilterScanError::NONE;
+    }
+};
+
 /**
  * Opt-in owner for isolated child runtimes.
  *
@@ -363,6 +384,16 @@ public:
         const chainregistry::ChainId& chain_id,
         const std::set<CScript>& needles,
         std::atomic<int>& progress,
+        const std::atomic<bool>& should_abort,
+        const std::function<void()>& interruption_point = {}) const;
+    ChainManagerBlockFilterScanView ScanBlockFilters(
+        const chainregistry::ChainId& chain_id,
+        int start_height,
+        std::optional<int> stop_height,
+        const GCSFilter::ElementSet& needles,
+        bool filter_false_positives,
+        std::atomic<int>& progress,
+        std::atomic<int>& progress_height,
         const std::atomic<bool>& should_abort,
         const std::function<void()>& interruption_point = {}) const;
     ChainManagerVerifyResult VerifyChain(
