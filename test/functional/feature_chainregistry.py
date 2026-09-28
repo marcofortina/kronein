@@ -266,6 +266,7 @@ class ChainRegistryTest(BitcoinTestFramework):
 
         self.log.info("Derive and persist a wallet-owned child receiving identity")
         assert "chain_id" not in wallet.getbalances()
+        assert all("chain_id" not in coin for coin in wallet.listunspent())
         assert_raises_rpc_error(
             -8, "chain_id must be exactly 32 non-null bytes",
             wallet.getnewchildrecipient, "00" * 32)
@@ -286,6 +287,9 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_raises_rpc_error(
             -8, "chain_id must be exactly 32 non-null bytes",
             wallet.getbalances, "00" * 32)
+        assert_raises_rpc_error(
+            -8, "chain_id must be exactly 32 non-null bytes",
+            wallet.listunspent, 1, 9999999, [], True, {}, "00" * 32)
         assert_raises_rpc_error(
             -8, "child chain is not configured locally",
             wallet.getbalances, chain_id)
@@ -395,6 +399,12 @@ class ChainRegistryTest(BitcoinTestFramework):
             "hash": reference_child["genesis_hash"],
             "height": 0,
         })
+        assert_equal(wallet.listunspent(
+            1, 9999999, [], True, {}, chain_id), [])
+        assert_raises_rpc_error(
+            -8, "addresses must be empty when chain_id selects a child chain",
+            wallet.listunspent, 1, 9999999,
+            [wallet.getnewaddress()], True, {}, chain_id)
         initial_bmm_status = node.getchildbmmstatus(chain_id)
         assert_equal(initial_bmm_status["health"], "idle")
         assert_equal(initial_bmm_status["child_height"], 0)
@@ -531,6 +541,9 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_raises_rpc_error(
             -1, "child chain is not loaded",
             wallet.getbalances, chain_id)
+        assert_raises_rpc_error(
+            -1, "child chain is not loaded",
+            wallet.listunspent, 1, 9999999, [], True, {}, chain_id)
         stopped_network = node.getchildnetworkinfo(chain_id)
         assert_equal(stopped_network["network_running"], False)
         assert_equal(stopped_network["network_active"], True)
@@ -856,6 +869,26 @@ class ChainRegistryTest(BitcoinTestFramework):
             "hash": child_block["blockhash"],
             "height": 1,
         })
+        child_unspent = wallet.listunspent(
+            1, 9999999, [], True, {}, chain_id)
+        assert_equal(len(child_unspent), 1)
+        assert_equal(child_unspent[0]["txid"], child_import["txid"])
+        assert_equal(child_unspent[0]["vout"], 0)
+        assert_equal(child_unspent[0]["chain_id"], chain_id)
+        assert_equal(child_unspent[0]["recipient_type"], 1)
+        assert_equal(child_unspent[0]["recipient"], child_recipient)
+        assert_equal(child_unspent[0]["label"], "child-receive")
+        assert_equal(child_unspent[0]["scriptPubKey"], "5120" + child_recipient)
+        assert_equal(child_unspent[0]["amount"], deposit_amount)
+        assert_equal(child_unspent[0]["confirmations"], 1)
+        assert_equal(child_unspent[0]["coinbase"], False)
+        assert_equal(child_unspent[0]["solvable"], True)
+        assert_equal(child_unspent[0]["safe"], True)
+        assert_equal(wallet.listunspent(
+            2, 9999999, [], True, {}, chain_id), [])
+        assert_equal(wallet.listunspent(
+            1, 9999999, [], True,
+            {"maximumAmount": Decimal("0.24999999")}, chain_id), [])
         assert_equal(node.getchildpendingblocks(chain_id)["block_count"], 0)
         assert_equal(node.listchildproposals(chain_id)["proposal_count"], 0)
         anchored_bmm_status = node.getchildbmmstatus(chain_id)

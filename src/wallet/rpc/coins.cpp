@@ -3,8 +3,9 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <core_io.h>
+#include <chainregistry/child_template.h>
 #include <consensus/consensus.h>
+#include <core_io.h>
 #include <hash.h>
 #include <interfaces/chain.h>
 #include <key_io.h>
@@ -19,6 +20,7 @@
 
 #include <univalue.h>
 
+#include <algorithm>
 
 namespace wallet {
 namespace {
@@ -108,6 +110,87 @@ UniValue GetChildBalances(
     balances.pushKV("lastprocessedblock", std::move(last_processed));
     balances.pushKV("chain_id", chain_id.GetHex());
     return balances;
+}
+
+UniValue ListChildUnspent(
+    const CWallet& wallet,
+    const chainregistry::ChainId& chain_id,
+    int min_depth,
+    int max_depth,
+    const CoinFilterParams& filter)
+{
+    const interfaces::ChildWalletScan scan{
+        ScanChildWallet(wallet, chain_id)};
+    UniValue results{UniValue::VARR};
+    CAmount selected_amount{0};
+
+    LOCK(wallet.cs_wallet);
+    for (const interfaces::ChildWalletCoin& coin : scan.coins) {
+        if (coin.height > scan.height || !MoneyRange(coin.output.nValue)) {
+            throw JSONRPCError(RPC_INTERNAL_ERROR,
+                               "child wallet UTXO data is inconsistent");
+        }
+        const uint64_t confirmations{
+            uint64_t{scan.height} - coin.height + 1};
+        if (confirmations < static_cast<uint64_t>(std::max(min_depth, 0)) ||
+            (max_depth >= 0 &&
+             confirmations > static_cast<uint64_t>(max_depth)) ||
+            coin.output.nValue < filter.min_amount ||
+            coin.output.nValue > filter.max_amount ||
+            (coin.coinbase && confirmations < COINBASE_MATURITY &&
+             !filter.include_immature_coinbase)) {
+            continue;
+        }
+
+        CTxDestination destination;
+        if (!ExtractDestination(coin.output.scriptPubKey, destination) ||
+            !std::holds_alternative<WitnessV1Taproot>(destination)) {
+            throw JSONRPCError(RPC_INTERNAL_ERROR,
+                               "child wallet UTXO has an invalid recipient script");
+        }
+        const auto& recipient{std::get<WitnessV1Taproot>(destination)};
+
+        UniValue entry{UniValue::VOBJ};
+        entry.pushKV("txid", coin.outpoint.hash.GetHex());
+        entry.pushKV("vout", coin.outpoint.n);
+        entry.pushKV("chain_id", chain_id.GetHex());
+        entry.pushKV("recipient_type",
+                     chainregistry::REFERENCE_CHILD_P2TR_RECIPIENT);
+        entry.pushKV("recipient", HexStr(recipient));
+        if (const auto* address_book_entry{
+                wallet.FindAddressBookEntry(destination)}) {
+            entry.pushKV("label", address_book_entry->GetLabel());
+        }
+        entry.pushKV("scriptPubKey", HexStr(coin.output.scriptPubKey));
+        entry.pushKV("amount", ValueFromAmount(coin.output.nValue));
+        entry.pushKV("confirmations", confirmations);
+        entry.pushKV("coinbase", coin.coinbase);
+        std::unique_ptr<SigningProvider> provider{
+            wallet.GetSolvingProvider(coin.output.scriptPubKey)};
+        entry.pushKV("solvable", provider != nullptr);
+        if (provider) {
+            if (auto descriptor{
+                    InferDescriptor(coin.output.scriptPubKey, *provider)}) {
+                entry.pushKV("desc", descriptor->ToString());
+            }
+        }
+        PushParentDescriptors(wallet, coin.output.scriptPubKey, entry);
+        entry.pushKV("safe", true);
+        results.push_back(std::move(entry));
+
+        if (!MoneyRange(selected_amount + coin.output.nValue)) {
+            throw JSONRPCError(RPC_INTERNAL_ERROR,
+                               "child wallet balance is out of range");
+        }
+        selected_amount += coin.output.nValue;
+        if ((filter.max_count > 0 &&
+             results.size() >= filter.max_count) ||
+            (filter.min_sum_amount != MAX_MONEY &&
+             selected_amount >= filter.min_sum_amount)) {
+            break;
+        }
+    }
+    return results;
 }
 
 } // namespace
@@ -556,7 +639,8 @@ RPCHelpMan listunspent()
         "listunspent",
         "Returns array of unspent transaction outputs\n"
                 "with between minconf and maxconf (inclusive) confirmations.\n"
-                "Optionally filter to only include txouts paid to specified addresses.\n",
+                "Optionally filter to only include txouts paid to specified addresses.\n"
+                "When chain_id is provided, scan the loaded child chain for wallet recipients explicitly bound to that chain. Child recipients are raw P2TR output keys, so the main-chain addresses filter must be empty.\n",
                 {
                     {"minconf", RPCArg::Type::NUM, RPCArg::Default{1}, "The minimum confirmations to filter"},
                     {"maxconf", RPCArg::Type::NUM, RPCArg::Default{9999999}, "The maximum confirmations to filter"},
@@ -576,6 +660,7 @@ RPCHelpMan listunspent()
                             {"include_immature_coinbase", RPCArg::Type::BOOL, RPCArg::Default{false}, "Include immature coinbase UTXOs"}
                         },
                         RPCArgOptions{.oneline_description="query_options"}},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 RPCResult{
                     RPCResult::Type::ARR, "", "",
@@ -584,11 +669,15 @@ RPCHelpMan listunspent()
                         {
                             {RPCResult::Type::STR_HEX, "txid", "the transaction id"},
                             {RPCResult::Type::NUM, "vout", "the vout value"},
+                            {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Exact child-chain identifier; child results only"},
+                            {RPCResult::Type::NUM, "recipient_type", /*optional=*/true, "Child recipient namespace; child results only"},
+                            {RPCResult::Type::STR_HEX, "recipient", /*optional=*/true, "32-byte P2TR output key; child results only"},
                             {RPCResult::Type::STR, "address", /*optional=*/true, "the Kronein address"},
                             {RPCResult::Type::STR, "label", /*optional=*/true, "The associated label, or \"\" for the default label"},
                             {RPCResult::Type::STR, "scriptPubKey", "the output script"},
                             {RPCResult::Type::STR_AMOUNT, "amount", "the transaction output amount in " + CURRENCY_UNIT},
                             {RPCResult::Type::NUM, "confirmations", "The number of confirmations"},
+                            {RPCResult::Type::BOOL, "coinbase", /*optional=*/true, "Whether this is a child coinbase output; child results only"},
                             {RPCResult::Type::NUM, "ancestorcount", /*optional=*/true, "The number of in-mempool ancestor transactions, including this one (if transaction is in the mempool)"},
                             {RPCResult::Type::NUM, "ancestorsize", /*optional=*/true, "The virtual transaction size of in-mempool ancestors, including this one (if transaction is in the mempool)"},
                             {RPCResult::Type::STR_AMOUNT, "ancestorfees", /*optional=*/true, "The total fees of in-mempool ancestors (including this one) with fee deltas used for mining priority in " + CURRENCY_ATOM + " (if transaction is in the mempool)"},
@@ -610,11 +699,16 @@ RPCHelpMan listunspent()
             + HelpExampleRpc("listunspent", "6, 9999999 \"[\\\"" + EXAMPLE_ADDRESS[0] + "\\\",\\\"" + EXAMPLE_ADDRESS[1] + "\\\"]\"")
             + HelpExampleCli("listunspent", "6 9999999 '[]' true '{ \"minimumAmount\": 0.005 }'")
             + HelpExampleRpc("listunspent", "6, 9999999, [] , true, { \"minimumAmount\": 0.005 } ")
+            + HelpExampleCli("listunspent", "1 9999999 '[]' true '{}' \"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     const std::shared_ptr<const CWallet> pwallet = GetWalletForJSONRPCRequest(request);
     if (!pwallet) return UniValue::VNULL;
+
+    const auto chain_arg{self.MaybeArg<UniValue>("chain_id")};
+    const std::optional<chainregistry::ChainId> child_chain{
+        chain_arg ? std::optional{ParseChildChainId(*chain_arg)} : std::nullopt};
 
     int nMinDepth = 1;
     if (!request.params[0].isNull()) {
@@ -629,6 +723,11 @@ RPCHelpMan listunspent()
     std::set<CTxDestination> destinations;
     if (!request.params[2].isNull()) {
         UniValue inputs = request.params[2].get_array();
+        if (child_chain && !inputs.empty()) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "addresses must be empty when chain_id selects a child chain");
+        }
         for (unsigned int idx = 0; idx < inputs.size(); idx++) {
             const UniValue& input = inputs[idx];
             CTxDestination dest = DecodeDestination(input.get_str());
@@ -677,6 +776,11 @@ RPCHelpMan listunspent()
         if (options.exists("include_immature_coinbase")) {
             filter_coins.include_immature_coinbase = options["include_immature_coinbase"].get_bool();
         }
+    }
+
+    if (child_chain) {
+        return ListChildUnspent(
+            *pwallet, *child_chain, nMinDepth, nMaxDepth, filter_coins);
     }
 
     // Make sure the results are valid at least up to the most recent block
