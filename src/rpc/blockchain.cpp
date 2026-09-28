@@ -14,6 +14,7 @@
 #include <coins.h>
 #include <common/args.h>
 #include <consensus/amount.h>
+#include <consensus/bmm.h>
 #include <consensus/chainregistry.h>
 #include <consensus/deposit_proof.h>
 #include <consensus/merkle.h>
@@ -4496,6 +4497,13 @@ static std::string SerializeDepositProofHex(const chainregistry::DepositProof& p
     return HexStr(stream);
 }
 
+static std::string SerializeBmmAnchorProofHex(const chainregistry::BmmAnchorProof& proof)
+{
+    DataStream stream;
+    stream << proof;
+    return HexStr(stream);
+}
+
 static std::string SerializeHeaderHex(const CBlockHeader& header)
 {
     DataStream stream;
@@ -4564,6 +4572,11 @@ static RPCHelpMan getchainregistryinfo()
             {RPCResult::Type::NUM, "activation_height", "Activation height, or -1 when disabled"},
             {RPCResult::Type::STR_AMOUNT, "minimum_registration_burn", "Minimum registration burn in KNE"},
             {RPCResult::Type::NUM, "maximum_operations", "Maximum registry transitions per block"},
+            {RPCResult::Type::BOOL, "bmm_enabled", "Whether child-chain BMM anchor consensus is configured"},
+            {RPCResult::Type::BOOL, "bmm_active", "Whether child-chain BMM anchors are active at the current tip"},
+            {RPCResult::Type::BOOL, "bmm_active_for_next_block", "Whether child-chain BMM anchor consensus applies to the next block"},
+            {RPCResult::Type::NUM, "bmm_activation_height", "BMM activation height, or -1 when disabled"},
+            {RPCResult::Type::NUM, "maximum_bmm_anchors", "Maximum KBMM anchors per block"},
             {RPCResult::Type::BOOL, "deposits_enabled", "Whether one-way deposit consensus is configured"},
             {RPCResult::Type::BOOL, "deposits_active", "Whether one-way deposits are active at the current tip"},
             {RPCResult::Type::BOOL, "deposits_active_for_next_block", "Whether one-way deposit consensus applies to the next block"},
@@ -4577,6 +4590,9 @@ static RPCHelpMan getchainregistryinfo()
             {RPCResult::Type::NUM, "deposit_history_start_height", "First height covered completely by the persistent deposit index"},
             {RPCResult::Type::BOOL, "deposit_history_complete", "Whether the deposit index covers the chain from genesis"},
             {RPCResult::Type::NUM, "deposit_count", "Number of indexed deposits in the covered active-chain history"},
+            {RPCResult::Type::NUM, "bmm_anchor_history_start_height", "First height covered completely by the persistent BMM anchor index"},
+            {RPCResult::Type::BOOL, "bmm_anchor_history_complete", "Whether the BMM anchor index covers the chain from genesis"},
+            {RPCResult::Type::NUM, "bmm_anchor_count", "Number of indexed BMM anchors in the covered active-chain history"},
         }},
         RPCExamples{
             HelpExampleCli("getchainregistryinfo", "")
@@ -4599,6 +4615,11 @@ static RPCHelpMan getchainregistryinfo()
     result.pushKV("activation_height", params.activation_height);
     result.pushKV("minimum_registration_burn", ValueFromAmount(params.minimum_registration_burn));
     result.pushKV("maximum_operations", params.maximum_operations);
+    result.pushKV("bmm_enabled", params.BmmEnabled());
+    result.pushKV("bmm_active", params.BmmActive(height));
+    result.pushKV("bmm_active_for_next_block", params.BmmActive(height + 1));
+    result.pushKV("bmm_activation_height", params.bmm_activation_height);
+    result.pushKV("maximum_bmm_anchors", params.maximum_bmm_anchors);
     result.pushKV("deposits_enabled", params.DepositsEnabled());
     result.pushKV("deposits_active", params.DepositsActive(height));
     result.pushKV("deposits_active_for_next_block", params.DepositsActive(height + 1));
@@ -4612,6 +4633,9 @@ static RPCHelpMan getchainregistryinfo()
     result.pushKV("deposit_history_start_height", state.deposit_history_start_height);
     result.pushKV("deposit_history_complete", state.deposit_history_start_height == 0);
     result.pushKV("deposit_count", state.deposit_count);
+    result.pushKV("bmm_anchor_history_start_height", state.anchor_history_start_height);
+    result.pushKV("bmm_anchor_history_complete", state.anchor_history_start_height == 0);
+    result.pushKV("bmm_anchor_count", state.anchor_count);
     return result;
 }
     };
@@ -4796,6 +4820,155 @@ static RPCHelpMan getdepositproof()
     };
 }
 
+static RPCHelpMan getbmmanchorproof()
+{
+    return RPCHelpMan{
+        "getbmmanchorproof",
+        "Build and independently validate a canonical KBPR v1 proof for one consensus-validated BMM anchor in an active main-chain block. The loaded child runtime can consume this proof through submitchildanchor or submitchildblock.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Exact non-null child-chain identifier"},
+            {"main_block_hash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Active main-chain block containing the KBMM anchor"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "", {
+            {RPCResult::Type::STR_HEX, "proof", "Canonical serialized KBPR v1 package"},
+            {RPCResult::Type::NUM, "proof_version", "KBPR format version"},
+            {RPCResult::Type::STR_HEX, "main_genesis_hash", "Main-network identity bound into the proof"},
+            {RPCResult::Type::STR_HEX, "main_block_hash", "Containing active main-chain block"},
+            {RPCResult::Type::NUM, "main_block_height", "Containing main-chain block height"},
+            {RPCResult::Type::NUM, "confirmations", "Current active-main-chain confirmations"},
+            {RPCResult::Type::STR_HEX, "chain_id", "Anchored child-chain identifier"},
+            {RPCResult::Type::STR_HEX, "child_block_hash", "Child block committed by the anchor"},
+            {RPCResult::Type::STR_HEX, "transaction_id", "Main-chain KBMM transaction id"},
+            {RPCResult::Type::NUM, "transaction_index", "KBMM transaction position in the block"},
+            {RPCResult::Type::NUM, "output_index", "Canonical KBMM output position in the transaction"},
+            {RPCResult::Type::STR_HEX, "registry_root", "Historical registry root committed by the containing block"},
+            {RPCResult::Type::OBJ, "chain_record", "Historical active child-chain record", CHAIN_REGISTRY_RECORD_RESULT},
+            {RPCResult::Type::OBJ, "registry_proof", "Historical record inclusion proof", CHAIN_REGISTRY_INCLUSION_PROOF_RESULT},
+            {RPCResult::Type::STR_HEX, "block_header", "Serialized containing main-chain block header"},
+            {RPCResult::Type::STR_HEX, "anchor_transaction", "Serialized stripped KBMM transaction"},
+            {RPCResult::Type::ARR, "transaction_merkle_branch", "KBMM transaction branch from leaf to root", {
+                {RPCResult::Type::STR_HEX, "", "Sibling hash"},
+            }},
+            {RPCResult::Type::STR_HEX, "coinbase_transaction", "Serialized stripped coinbase transaction carrying the registry commitment"},
+            {RPCResult::Type::ARR, "coinbase_merkle_branch", "Coinbase branch from leaf to root", {
+                {RPCResult::Type::STR_HEX, "", "Sibling hash"},
+            }},
+        }},
+        RPCExamples{
+            HelpExampleCli("getbmmanchorproof", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" \"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\"")
+            + HelpExampleRpc("getbmmanchorproof", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\", \"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const chainregistry::ChainId chain_id{
+        ParseChainId(self.Arg<std::string_view>("chain_id"))};
+    const uint256 main_block_hash{
+        ParseHashV(self.Arg<UniValue>("main_block_hash"), "main_block_hash")};
+    if (main_block_hash.IsNull()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "main_block_hash must not be null");
+    }
+
+    ChainstateManager& chainman{EnsureAnyChainman(request.context)};
+    const CBlockIndex* block_index{nullptr};
+    node::BmmAnchorIndexEntry entry;
+    int confirmations{0};
+    uint32_t history_start_height{0};
+    const uint256 main_genesis_hash{chainman.GetConsensus().hashGenesisBlock};
+    {
+        LOCK(cs_main);
+        const Chainstate& chainstate{chainman.ActiveChainstate()};
+        const auto& registry_state{chainstate.ChainRegistryState()};
+        history_start_height = registry_state.State().anchor_history_start_height;
+        const auto indexed{registry_state.FindAnchor(node::BmmAnchorId{
+            .chain_id = chain_id,
+            .main_block_hash = main_block_hash,
+        })};
+        if (!indexed) {
+            throw JSONRPCError(
+                RPC_INVALID_ADDRESS_OR_KEY,
+                strprintf("BMM anchor not found in active-chain index (history starts at height %u)",
+                          history_start_height));
+        }
+        entry = *indexed;
+        block_index = chainman.m_blockman.LookupBlockIndex(main_block_hash);
+        if (!block_index ||
+            block_index->nHeight != static_cast<int>(entry.block_height) ||
+            !chainstate.m_chain.Contains(block_index)) {
+            throw JSONRPCError(
+                RPC_INTERNAL_ERROR,
+                "BMM anchor index references a block outside the active chain");
+        }
+        confirmations = chainstate.m_chain.Height() - block_index->nHeight + 1;
+    }
+
+    const CBlock block{GetBlockChecked(chainman.m_blockman, *block_index)};
+    if (block.GetHash() != main_block_hash || block.vtx.empty() ||
+        entry.transaction_index == 0 ||
+        entry.transaction_index >= block.vtx.size() ||
+        block.vtx[entry.transaction_index]->GetHash() != entry.transaction_id ||
+        entry.output_index >= block.vtx[entry.transaction_index]->vout.size()) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR,
+                           "BMM anchor index does not match the stored block");
+    }
+    const auto extracted{chainregistry::ExtractTransactionBmmAnchor(
+        *block.vtx[entry.transaction_index])};
+    if (!extracted.IsValid() || !extracted.anchor || !extracted.output_index ||
+        *extracted.anchor != entry.anchor ||
+        *extracted.output_index != entry.output_index) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR,
+                           "indexed KBMM output does not match the stored transaction");
+    }
+
+    chainregistry::BmmAnchorProof proof{
+        .main_genesis_hash = main_genesis_hash,
+        .block_height = entry.block_height,
+        .block_header = static_cast<const CBlockHeader&>(block),
+        .anchor_transaction = CMutableTransaction{*block.vtx[entry.transaction_index]},
+        .transaction_index = entry.transaction_index,
+        .transaction_merkle_branch = TransactionMerklePath(
+            block, entry.transaction_index),
+        .coinbase_transaction = CMutableTransaction{*block.vtx[0]},
+        .coinbase_merkle_branch = TransactionMerklePath(block, 0),
+        .chain_record = entry.chain_record,
+        .registry_proof = entry.registry_proof,
+    };
+    const auto validation{chainregistry::ValidateBmmAnchorProofStructure(
+        proof, main_genesis_hash, chain_id)};
+    if (!validation.IsValid() || !validation.anchor ||
+        *validation.anchor != entry.anchor ||
+        validation.registry_root != entry.registry_root) {
+        throw JSONRPCError(
+            RPC_INTERNAL_ERROR,
+            strprintf("generated BMM anchor proof failed validation (%u)",
+                      static_cast<unsigned>(validation.error)));
+    }
+
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("proof", SerializeBmmAnchorProofHex(proof));
+    result.pushKV("proof_version", proof.version);
+    result.pushKV("main_genesis_hash", main_genesis_hash.GetHex());
+    result.pushKV("main_block_hash", main_block_hash.GetHex());
+    result.pushKV("main_block_height", entry.block_height);
+    result.pushKV("confirmations", confirmations);
+    result.pushKV("chain_id", entry.anchor.chain_id.GetHex());
+    result.pushKV("child_block_hash", entry.anchor.child_block_hash.GetHex());
+    result.pushKV("transaction_id", entry.transaction_id.GetHex());
+    result.pushKV("transaction_index", entry.transaction_index);
+    result.pushKV("output_index", entry.output_index);
+    result.pushKV("registry_root", entry.registry_root.GetHex());
+    result.pushKV("chain_record", ChainRegistryRecordToUniv(entry.chain_record));
+    result.pushKV("registry_proof", ChainRegistryInclusionProofToUniv(entry.registry_proof));
+    result.pushKV("block_header", SerializeHeaderHex(proof.block_header));
+    result.pushKV("anchor_transaction", SerializeBaseTransactionHex(proof.anchor_transaction));
+    result.pushKV("transaction_merkle_branch", MerkleBranchToUniv(proof.transaction_merkle_branch));
+    result.pushKV("coinbase_transaction", SerializeBaseTransactionHex(proof.coinbase_transaction));
+    result.pushKV("coinbase_merkle_branch", MerkleBranchToUniv(proof.coinbase_merkle_branch));
+    return result;
+}
+    };
+}
+
 static RPCHelpMan listchildchains()
 {
     return RPCHelpMan{
@@ -4969,6 +5142,7 @@ void RegisterBlockchainRPCCommands(CRPCTable& t)
         {"blockchain", &getchainregistryinfo},
         {"blockchain", &getdepositstatus},
         {"blockchain", &getdepositproof},
+        {"blockchain", &getbmmanchorproof},
         {"blockchain", &listchildchains},
         {"blockchain", &getchildchain},
         {"hidden", &invalidateblock},

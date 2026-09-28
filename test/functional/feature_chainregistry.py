@@ -703,6 +703,49 @@ class ChainRegistryTest(BitcoinTestFramework):
         anchor_block = self.generatetoaddress(node, 1, wallet.getnewaddress())[0]
         mature_deposit_tip = anchor_block
 
+        self.log.info("Export the authenticated BMM proof and activate the child block")
+        registry_with_anchor = node.getchainregistryinfo()
+        assert_equal(registry_with_anchor["bmm_enabled"], True)
+        assert_equal(registry_with_anchor["bmm_active"], True)
+        assert_equal(registry_with_anchor["bmm_anchor_count"], 1)
+        anchor_proof = node.getbmmanchorproof(chain_id, anchor_block)
+        assert anchor_proof["proof"].startswith("4b42505201")
+        assert_equal(anchor_proof["proof_version"], 1)
+        assert_equal(anchor_proof["main_genesis_hash"], node.getblockhash(0))
+        assert_equal(anchor_proof["main_block_hash"], anchor_block)
+        assert_equal(anchor_proof["confirmations"], 1)
+        assert_equal(anchor_proof["chain_id"], chain_id)
+        assert_equal(anchor_proof["child_block_hash"], child_block["blockhash"])
+        assert_equal(anchor_proof["transaction_id"], submitted_anchor["txid"])
+        assert_equal(anchor_proof["output_index"], 0)
+        assert_equal(anchor_proof["registry_root"], registered_info["root"])
+        assert_equal(anchor_proof["chain_record"], registered["chain"])
+        assert_equal(len(anchor_proof["block_header"]), 160)
+
+        staged_anchor = node.submitchildanchor(chain_id, anchor_proof["proof"])
+        assert_equal(staged_anchor["chain_id"], chain_id)
+        assert_equal(staged_anchor["child_block_hash"], child_block["blockhash"])
+        assert_equal(staged_anchor["already_known"], False)
+        assert_equal(staged_anchor["bestblockhash"], reference_child["genesis_hash"])
+        pending_blocks = node.getchildpendingblocks(chain_id)
+        assert_equal(pending_blocks["block_count"], 1)
+        assert_equal(pending_blocks["anchor_count"], 1)
+        assert_equal(pending_blocks["blocks"][0]["blockhash"], child_block["blockhash"])
+
+        accepted_child = node.submitchildblock(chain_id, child_block["block"])
+        assert_equal(accepted_child["accepted"], True)
+        assert_equal(accepted_child["anchor_source"], "staged")
+        assert_equal(accepted_child["blockhash"], child_block["blockhash"])
+        assert_equal(accepted_child["bestblockhash"], child_block["blockhash"])
+        assert_equal(node.getchildpendingblocks(chain_id)["block_count"], 0)
+        active_child_info = node.getblockchaininfo(chain_id)
+        assert_equal(active_child_info["blocks"], 1)
+        assert_equal(active_child_info["bestblockhash"], child_block["blockhash"])
+        assert_equal(active_child_info["bmm_anchor_count"], 1)
+        assert_raises_rpc_error(
+            -25, "deposit is already imported",
+            node.createchildimporttransaction, chain_id, deposit_proof["proof"])
+
         successor_address = wallet.getnewaddress()
         update_psbt = wallet.walletcreatechainregistrypsbt("update", {
             "chain_id": chain_id,
