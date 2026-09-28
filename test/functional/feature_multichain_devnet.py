@@ -7,14 +7,14 @@
 from decimal import Decimal
 
 from test_framework.test_framework import BitcoinTestFramework
-from test_framework.util import assert_equal, child_port
+from test_framework.util import assert_equal, assert_raises_rpc_error, child_port
 
 
 class MultichainDevnetTest(BitcoinTestFramework):
     def set_test_params(self):
-        self.num_nodes = 1
+        self.num_nodes = 2
         self.setup_clean_chain = True
-        self.extra_args = [[
+        node_args = [
             "-chainregistryactivationheight=1",
             "-chainregistryminregistrationburn=1",
             "-chainregistrymaxoperations=4",
@@ -23,7 +23,8 @@ class MultichainDevnetTest(BitcoinTestFramework):
             "-chaindepositmaxperblock=8",
             "-chainbmmactivationheight=1",
             "-chainbmmmaxanchorsperblock=4",
-        ]]
+        ]
+        self.extra_args = [node_args, node_args]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -48,7 +49,8 @@ class MultichainDevnetTest(BitcoinTestFramework):
             "control_address": wallet.getnewaddress(),
         }, {"fee_rate": 1})
         submitted = wallet.walletsubmitchainregistrypsbt(registration["psbt"])
-        self.generatetoaddress(node, 1, wallet.getnewaddress())
+        self.generatetoaddress(
+            node, 1, wallet.getnewaddress(), sync_fun=lambda: None)
         assert_equal(submitted["chain_id"], registration["chain_id"])
         return {
             "anchor": anchor,
@@ -79,23 +81,33 @@ class MultichainDevnetTest(BitcoinTestFramework):
             anchor["psbt"], chain_id, block_hash, Decimal("1.00000000"))
         assert_equal(submitted["chain_id"], chain_id)
         assert_equal(submitted["child_block_hash"], block_hash)
-        self.generatetoaddress(node, 1, wallet.getnewaddress())
+        self.generatetoaddress(
+            node, 1, wallet.getnewaddress(), sync_fun=lambda: None)
         node.syncwithvalidationinterfacequeue()
 
     def run_test(self):
         node = self.nodes[0]
+        fork_node = self.nodes[1]
         self.generate(node, 1)
+        self.sync_blocks()
         node.createwallet("devnet")
         wallet = node.get_wallet_rpc("devnet")
+        fork_node.createwallet("devnet_fork")
+        fork_wallet = fork_node.get_wallet_rpc("devnet_fork")
         self.generatetoaddress(node, 101, wallet.getnewaddress())
+        self.sync_blocks()
+        self.generatetoaddress(fork_node, 101, fork_wallet.getnewaddress())
+        self.sync_blocks()
 
         self.log.info("Register two distinct reference child chains")
         children = [
             self.register_child(wallet, "11"),
             self.register_child(wallet, "22"),
         ]
+        self.sync_blocks()
         assert children[0]["chain_id"] != children[1]["chain_id"]
-        assert children[0]["reference"]["genesis_hash"] != children[1]["reference"]["genesis_hash"]
+        assert (children[0]["reference"]["genesis_hash"] !=
+                children[1]["reference"]["genesis_hash"])
         assert_equal(node.getchainregistryinfo()["size"], 2)
 
         self.log.info("Configure and load both child runtimes with isolated listeners")
@@ -106,7 +118,8 @@ class MultichainDevnetTest(BitcoinTestFramework):
             endpoint = f"127.0.0.1:{child_port(index)}"
             loaded = node.loadchildchain(
                 child["chain_id"], {"bind": [endpoint]})
-            assert_equal(loaded["bestblockhash"], child["reference"]["genesis_hash"])
+            assert_equal(loaded["bestblockhash"],
+                         child["reference"]["genesis_hash"])
             assert_equal(loaded["binds"], [endpoint])
 
         runtimes = node.listchildchainruntimes()
@@ -118,17 +131,23 @@ class MultichainDevnetTest(BitcoinTestFramework):
 
         self.log.info("Migrate independent balances to both children")
         amount = Decimal("0.05000000")
-        deposits = [
-            self.fund_child(wallet, children[0], amount, "devnet-child-a"),
-            self.fund_child(wallet, children[1], amount, "devnet-child-b"),
-        ]
-        assert deposits[0]["recipient"] != deposits[1]["recipient"]
+        deposits = []
+        deposits.append(self.fund_child(
+            wallet, children[0], amount, "devnet-child-a"))
         self.generatetoaddress(node, 1, wallet.getnewaddress())
+        self.sync_blocks()
+        self.disconnect_nodes(0, 1)
+        deposits.append(self.fund_child(
+            wallet, children[1], amount, "devnet-child-b"))
+        self.generatetoaddress(
+            node, 1, wallet.getnewaddress(), sync_fun=lambda: None)
+        assert deposits[0]["recipient"] != deposits[1]["recipient"]
         proofs = [
             node.getdepositproof(deposit["txid"], deposit["vout"])["proof"]
             for deposit in deposits
         ]
-        self.generatetoaddress(node, 143, wallet.getnewaddress())
+        self.generatetoaddress(
+            node, 143, wallet.getnewaddress(), sync_fun=lambda: None)
         node.syncwithvalidationinterfacequeue()
 
         proposals = []
@@ -142,24 +161,72 @@ class MultichainDevnetTest(BitcoinTestFramework):
             assert_equal(node.getchildbmmstatus(child["chain_id"])["health"],
                          "awaiting_anchor")
 
+        fork_anchor = fork_wallet.walletcreatechildanchorpsbt(
+            children[1]["chain_id"], proposals[1], {"fee_rate": 1})
+        fork_submitted = fork_wallet.walletsubmitchildanchorpsbt(
+            fork_anchor["psbt"], children[1]["chain_id"], proposals[1],
+            Decimal("1.00000000"))
+        assert_equal(fork_submitted["child_block_hash"], proposals[1])
+
         self.log.info("Anchor one child without advancing the other")
         self.anchor_proposal(wallet, children[0]["chain_id"], proposals[0])
         assert_equal(node.getblockcount(children[0]["chain_id"]), 1)
         assert_equal(node.getblockcount(children[1]["chain_id"]), 0)
-        assert_equal(wallet.getbalances(children[0]["chain_id"])["mine"]["trusted"], amount)
-        assert_equal(wallet.getbalances(children[1]["chain_id"])["mine"]["trusted"], Decimal("0.00000000"))
+        assert_equal(
+            wallet.getbalances(children[0]["chain_id"])["mine"]["trusted"],
+            amount)
+        assert_equal(
+            wallet.getbalances(children[1]["chain_id"])["mine"]["trusted"],
+            Decimal("0.00000000"))
 
         self.log.info("Anchor the second child and verify independent balances")
         self.anchor_proposal(wallet, children[1]["chain_id"], proposals[1])
         for child in children:
             assert_equal(node.getblockcount(child["chain_id"]), 1)
-            assert_equal(wallet.getbalances(child["chain_id"])["mine"]["trusted"], amount)
+            assert_equal(
+                wallet.getbalances(child["chain_id"])["mine"]["trusted"],
+                amount)
 
         self.log.info("Pause and unload one child without affecting its peer")
         assert_equal(node.setchildnetworkactive(
             children[0]["chain_id"], False)["network_active"], False)
         assert_equal(node.getchildnetworkinfo(
             children[1]["chain_id"])["network_active"], True)
+        assert_equal(node.setchildnetworkactive(
+            children[0]["chain_id"], True)["network_active"], True)
+
+        self.log.info("Build a longer competing main branch without the second deposit")
+        competing_blocks = node.getblockcount() - fork_node.getblockcount() + 1
+        assert competing_blocks > 0
+        self.generatetoaddress(
+            fork_node, competing_blocks, fork_wallet.getnewaddress(),
+            sync_fun=lambda: None)
+        competing_tip = fork_node.getbestblockhash()
+        self.connect_nodes(0, 1)
+        self.sync_blocks()
+        node.syncwithvalidationinterfacequeue()
+        assert_equal(node.getbestblockhash(), competing_tip)
+
+        self.log.info("Verify selective SAFE_HALT evidence after the deep reorg")
+        normal_status = node.getchildbmmstatus(children[0]["chain_id"])
+        halted_status = node.getchildbmmstatus(children[1]["chain_id"])
+        assert_equal(normal_status["safe_halt"], False)
+        assert "safe_halt_reason" not in normal_status
+        assert_equal(halted_status["health"], "safe_halt")
+        assert_equal(halted_status["safe_halt"], True)
+        assert_equal(halted_status["safe_halt_reason"],
+                     "imported_deposit_left_main_chain")
+        assert_equal(halted_status["safe_halt_observed_main_tip"],
+                     competing_tip)
+        assert_equal(halted_status["safe_halt_affected_deposits"],
+                     [deposits[1]["deposit_id"]])
+        assert_equal(node.getblockcount(children[0]["chain_id"]), 0)
+        assert_equal(node.getblockcount(children[1]["chain_id"]), 1)
+        assert_raises_rpc_error(
+            -26, "child chain is in SAFE_HALT",
+            node.createchildimporttransaction,
+            children[1]["chain_id"], proofs[1])
+
         assert_equal(node.unloadchildchain(
             children[0]["chain_id"])["loaded"], False)
         assert_equal(node.getchildnetworkinfo(
