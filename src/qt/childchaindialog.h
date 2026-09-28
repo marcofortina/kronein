@@ -57,6 +57,7 @@ private Q_SLOTS:
     void sendSelected();
     void showActivity();
     void showDeposits();
+    void manageAutoBid();
     void migrateSelected();
     void updateSelected();
     void retireSelected();
@@ -104,6 +105,7 @@ private:
 #ifdef ENABLE_WALLET
     std::string walletUri() const;
     void createBmmProposal(const QString& chain_id);
+    void runAutoBid(const QString& chain_id);
     void submitRegistryOperation(const char* operation,
                                  const QString& chain_id,
                                  UniValue parameters,
@@ -133,6 +135,7 @@ private:
     QPushButton* m_send_button{nullptr};
     QPushButton* m_activity_button{nullptr};
     QPushButton* m_deposits_button{nullptr};
+    QPushButton* m_auto_bid_button{nullptr};
     QPushButton* m_migrate_button{nullptr};
     QPushButton* m_update_button{nullptr};
     QPushButton* m_retire_button{nullptr};

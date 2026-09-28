@@ -10,6 +10,7 @@
 #include <chainregistry/child_template.h>
 #include <qt/bitcoinamountfield.h>
 #include <qt/walletmodel.h>
+#include <rpc/util.h>
 #endif
 #include <qt/guiutil.h>
 #include <univalue.h>
@@ -134,6 +135,24 @@ QString TransactionCategoryLabel(const QString& category)
     if (category == QStringLiteral("immature")) return ChildChainDialog::tr("Immature");
     return {};
 }
+
+QString AutoBidStatusLabel(const QString& status)
+{
+    if (status == QStringLiteral("submitted")) return ChildChainDialog::tr("Submitted");
+    if (status == QStringLiteral("disabled")) return ChildChainDialog::tr("Disabled");
+    if (status == QStringLiteral("bmm_inactive")) return ChildChainDialog::tr("BMM inactive");
+    if (status == QStringLiteral("child_unavailable")) return ChildChainDialog::tr("Child runtime unavailable");
+    if (status == QStringLiteral("no_proposal")) return ChildChainDialog::tr("No eligible proposal");
+    if (status == QStringLiteral("duplicate_anchor")) return ChildChainDialog::tr("Anchor already present");
+    if (status == QStringLiteral("interval_limit")) return ChildChainDialog::tr("Minimum interval not reached");
+    if (status == QStringLiteral("daily_budget_exceeded")) return ChildChainDialog::tr("Daily budget exhausted");
+    if (status == QStringLiteral("wallet_locked")) return ChildChainDialog::tr("Wallet locked");
+    if (status == QStringLiteral("create_failed")) return ChildChainDialog::tr("Transaction creation failed");
+    if (status == QStringLiteral("bid_limit_exceeded")) return ChildChainDialog::tr("Security bid limit exceeded");
+    if (status == QStringLiteral("signing_failed")) return ChildChainDialog::tr("Signing failed");
+    if (status == QStringLiteral("broadcast_failed")) return ChildChainDialog::tr("Broadcast failed");
+    return status;
+}
 #endif
 
 } // namespace
@@ -197,6 +216,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     m_send_button = actions->addButton(tr("Send…"), QDialogButtonBox::ActionRole);
     m_activity_button = actions->addButton(tr("Activity…"), QDialogButtonBox::ActionRole);
     m_deposits_button = actions->addButton(tr("Deposits…"), QDialogButtonBox::ActionRole);
+    m_auto_bid_button = actions->addButton(tr("Auto Bid…"), QDialogButtonBox::ActionRole);
     m_migrate_button = actions->addButton(tr("Migrate…"), QDialogButtonBox::ActionRole);
     m_update_button = actions->addButton(tr("Update Metadata…"), QDialogButtonBox::ActionRole);
     m_retire_button = actions->addButton(tr("Retire…"), QDialogButtonBox::DestructiveRole);
@@ -214,6 +234,9 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     m_activity_button->setToolTip(
         tr("Show confirmed and pending wallet activity on the loaded child chain."));
     m_deposits_button->setObjectName(QStringLiteral("childChainDepositsButton"));
+    m_auto_bid_button->setObjectName(QStringLiteral("childChainAutoBidButton"));
+    m_auto_bid_button->setToolTip(
+        tr("Configure explicit wallet limits for automatic main-chain BMM security bids."));
     m_migrate_button->setObjectName(QStringLiteral("childChainMigrateButton"));
     m_update_button->setObjectName(QStringLiteral("childChainUpdateButton"));
     m_retire_button->setObjectName(QStringLiteral("childChainRetireButton"));
@@ -251,6 +274,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     connect(m_send_button, &QPushButton::clicked, this, &ChildChainDialog::sendSelected);
     connect(m_activity_button, &QPushButton::clicked, this, &ChildChainDialog::showActivity);
     connect(m_deposits_button, &QPushButton::clicked, this, &ChildChainDialog::showDeposits);
+    connect(m_auto_bid_button, &QPushButton::clicked, this, &ChildChainDialog::manageAutoBid);
     connect(m_migrate_button, &QPushButton::clicked, this, &ChildChainDialog::migrateSelected);
     connect(m_update_button, &QPushButton::clicked, this, &ChildChainDialog::updateSelected);
     connect(m_retire_button, &QPushButton::clicked, this, &ChildChainDialog::retireSelected);
@@ -473,6 +497,7 @@ void ChildChainDialog::updateSelection()
         m_send_button->setEnabled(false);
         m_activity_button->setEnabled(false);
         m_deposits_button->setEnabled(false);
+        m_auto_bid_button->setEnabled(false);
         m_migrate_button->setEnabled(false);
         m_update_button->setEnabled(false);
         m_retire_button->setEnabled(false);
@@ -527,6 +552,8 @@ void ChildChainDialog::updateSelection()
          state == QStringLiteral("configured") ||
          state == QStringLiteral("loaded"))};
     m_migrate_button->setEnabled(
+        active_registry_record && supported && operational);
+    m_auto_bid_button->setEnabled(
         active_registry_record && supported && operational);
     m_update_button->setEnabled(active_registry_record);
     m_retire_button->setEnabled(active_registry_record);
@@ -881,6 +908,266 @@ std::string ChildChainDialog::walletUri() const
     return "/wallet/" +
         std::string{encoded_name.constData(),
                     static_cast<size_t>(encoded_name.size())};
+}
+
+void ChildChainDialog::manageAutoBid()
+{
+    const QString chain_id{selectedChainId()};
+    if (chain_id.isEmpty() || !m_wallet_model) return;
+    const QPointer<WalletModel> wallet_model{m_wallet_model};
+    const std::string wallet_uri{walletUri()};
+
+    UniValue params{UniValue::VARR};
+    params.push_back(chain_id.toStdString());
+    UniValue policy;
+    CAmount current_fee_rate{1000};
+    CAmount current_max_bid{100000};
+    CAmount current_daily_budget{1000000};
+    int current_interval{600};
+    bool currently_enabled{false};
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        policy = m_node.executeRpc(
+            "getchildanchorautobid", params, wallet_uri);
+        const UniValue& enabled{policy.find_value("enabled")};
+        if (!policy.isObject() || !enabled.isBool() ||
+            StringField(policy, "chain_id").compare(
+                chain_id, Qt::CaseInsensitive) != 0) {
+            throw std::runtime_error{
+                "getchildanchorautobid returned an invalid result"};
+        }
+        currently_enabled = enabled.get_bool();
+        if (currently_enabled) {
+            current_fee_rate = AmountFromValue(policy.find_value("fee_rate"));
+            current_max_bid = AmountFromValue(
+                policy.find_value("max_security_bid"));
+            current_daily_budget = AmountFromValue(
+                policy.find_value("daily_budget"));
+            current_interval = policy.find_value("min_interval").getInt<int>();
+        }
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Automatic BMM Security Bids"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Automatic BMM Security Bids"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+
+    QDialog dialog{this};
+    dialog.setWindowTitle(tr("Automatic BMM Security Bids"));
+    auto* layout = new QVBoxLayout{&dialog};
+    auto* warning = new QLabel{
+        tr("Disabled by default. When enabled, the selected wallet may automatically spend main-chain KNE to anchor eligible proposals for this exact child chain. Every transaction remains constrained by the limits below."),
+        &dialog};
+    warning->setWordWrap(true);
+    layout->addWidget(warning);
+
+    auto* form = new QFormLayout;
+    auto* chain = new QLineEdit{chain_id, &dialog};
+    chain->setReadOnly(true);
+    auto* enabled = new QCheckBox{tr("Enable automatic spending"), &dialog};
+    enabled->setChecked(currently_enabled);
+    auto* fee_rate = new BitcoinAmountField{&dialog};
+    fee_rate->SetAllowEmpty(false);
+    fee_rate->SetMinValue(1);
+    fee_rate->SetMaxValue(MAX_MONEY);
+    fee_rate->setValue(current_fee_rate);
+    auto* max_bid = new BitcoinAmountField{&dialog};
+    max_bid->SetAllowEmpty(false);
+    max_bid->SetMinValue(1);
+    max_bid->SetMaxValue(MAX_MONEY);
+    max_bid->setValue(current_max_bid);
+    auto* daily_budget = new BitcoinAmountField{&dialog};
+    daily_budget->SetAllowEmpty(false);
+    daily_budget->SetMinValue(1);
+    daily_budget->SetMaxValue(MAX_MONEY);
+    daily_budget->setValue(current_daily_budget);
+    auto* min_interval = new QSpinBox{&dialog};
+    min_interval->setRange(60, 86400);
+    min_interval->setValue(current_interval);
+    min_interval->setSuffix(QStringLiteral(" ") + tr("seconds"));
+    form->addRow(tr("Child chain:"), chain);
+    form->addRow(QString{}, enabled);
+    form->addRow(tr("Main-chain fee rate (KNE/kvB):"), fee_rate);
+    form->addRow(tr("Maximum security bid:"), max_bid);
+    form->addRow(tr("Rolling 24-hour budget:"), daily_budget);
+    form->addRow(tr("Minimum interval:"), min_interval);
+    layout->addLayout(form);
+
+    const auto update_fields = [=](bool checked) {
+        fee_rate->setEnabled(checked);
+        max_bid->setEnabled(checked);
+        daily_budget->setEnabled(checked);
+        min_interval->setEnabled(checked);
+    };
+    update_fields(currently_enabled);
+    connect(enabled, &QCheckBox::toggled, &dialog, update_fields);
+
+    auto* buttons = new QDialogButtonBox{
+        QDialogButtonBox::Save | QDialogButtonBox::Cancel, &dialog};
+    auto* run_now = buttons->addButton(
+        tr("Run Saved Policy Now"), QDialogButtonBox::ActionRole);
+    run_now->setEnabled(currently_enabled);
+    run_now->setToolTip(
+        tr("Evaluate the already saved policy. Unsaved field changes are ignored."));
+    connect(run_now, &QPushButton::clicked, &dialog,
+            [this, chain_id] { runAutoBid(chain_id); });
+    connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    layout->addWidget(buttons);
+    if (dialog.exec() != QDialog::Accepted) return;
+    if (!wallet_model || m_wallet_model != wallet_model) {
+        showRpcError(
+            tr("Save Automatic Bid Policy"),
+            tr("The selected wallet changed while editing the policy."));
+        return;
+    }
+
+    if (enabled->isChecked() &&
+        (!fee_rate->validate() || !max_bid->validate() ||
+         !daily_budget->validate() || fee_rate->value() <= 0 ||
+         max_bid->value() <= 0 ||
+         daily_budget->value() < max_bid->value())) {
+        QMessageBox::warning(
+            this,
+            tr("Invalid Automatic Bid Policy"),
+            tr("Enter positive limits and a rolling daily budget at least equal to the maximum security bid."));
+        return;
+    }
+
+    if (enabled->isChecked()) {
+        QMessageBox confirmation{
+            QMessageBox::Warning,
+            tr("Enable Automatic BMM Spending"),
+            tr("Allow the selected wallet to sign and broadcast recurring main-chain security bids for child chain %1?\n\nMaximum per bid: %2 KNE\nRolling 24-hour budget: %3 KNE\nMinimum interval: %4 seconds")
+                .arg(chain_id,
+                     QString::fromStdString(
+                         ValueFromAmount(max_bid->value()).getValStr()),
+                     QString::fromStdString(
+                         ValueFromAmount(daily_budget->value()).getValStr()),
+                     QString::number(min_interval->value())),
+            QMessageBox::Yes | QMessageBox::Cancel,
+            this};
+        confirmation.setDefaultButton(QMessageBox::Cancel);
+        if (confirmation.exec() != QMessageBox::Yes) return;
+    }
+
+    UniValue save_params{UniValue::VARR};
+    save_params.push_back(chain_id.toStdString());
+    save_params.push_back(enabled->isChecked());
+    if (enabled->isChecked()) {
+        save_params.push_back(ValueFromAmount(fee_rate->value()));
+        save_params.push_back(ValueFromAmount(max_bid->value()));
+        save_params.push_back(ValueFromAmount(daily_budget->value()));
+        save_params.push_back(min_interval->value());
+    }
+    UniValue saved;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        saved = m_node.executeRpc(
+            "setchildanchorautobid", save_params, wallet_uri);
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Save Automatic Bid Policy"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Save Automatic Bid Policy"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+    const UniValue& saved_enabled{saved.find_value("enabled")};
+    if (!saved.isObject() || !saved_enabled.isBool() ||
+        saved_enabled.get_bool() != enabled->isChecked() ||
+        StringField(saved, "chain_id").compare(
+            chain_id, Qt::CaseInsensitive) != 0) {
+        showRpcError(
+            tr("Save Automatic Bid Policy"),
+            tr("The wallet returned an invalid or mismatched policy."));
+        return;
+    }
+    QMessageBox::information(
+        this,
+        tr("Automatic Bid Policy Saved"),
+        enabled->isChecked()
+            ? tr("Automatic BMM security bids are enabled for child chain %1.")
+                  .arg(chain_id)
+            : tr("Automatic BMM security bids are disabled for child chain %1.")
+                  .arg(chain_id));
+}
+
+void ChildChainDialog::runAutoBid(const QString& chain_id)
+{
+    if (!m_wallet_model) return;
+    const QPointer<WalletModel> wallet_model{m_wallet_model};
+    QMessageBox confirmation{
+        QMessageBox::Warning,
+        tr("Run Automatic BMM Bid"),
+        tr("Evaluate the saved policy now? If an eligible proposal exists, the wallet will immediately sign and broadcast one main-chain security bid within the configured limits."),
+        QMessageBox::Yes | QMessageBox::Cancel,
+        this};
+    confirmation.setDefaultButton(QMessageBox::Cancel);
+    if (confirmation.exec() != QMessageBox::Yes) return;
+    if (!wallet_model || m_wallet_model != wallet_model) return;
+    WalletModel::UnlockContext unlock_context{wallet_model->requestUnlock()};
+    if (!unlock_context.isValid()) return;
+
+    UniValue params{UniValue::VARR};
+    params.push_back(chain_id.toStdString());
+    UniValue result;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        result = m_node.executeRpc(
+            "runchildanchorautobid", params, walletUri());
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Run Automatic BMM Bid"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Run Automatic BMM Bid"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+
+    const UniValue& submitted{result.find_value("submitted")};
+    const QString status{StringField(result, "status")};
+    if (!result.isObject() || !submitted.isBool() || status.isEmpty() ||
+        StringField(result, "chain_id").compare(
+            chain_id, Qt::CaseInsensitive) != 0) {
+        showRpcError(
+            tr("Run Automatic BMM Bid"),
+            tr("The wallet returned an invalid or mismatched bid result."));
+        return;
+    }
+
+    QString details{
+        tr("Status: %1\nRolling 24-hour spend: %2 KNE")
+            .arg(AutoBidStatusLabel(status), NumberField(result, "daily_spent"))};
+    const QString child_block_hash{StringField(result, "child_block_hash")};
+    const QString txid{StringField(result, "txid")};
+    const QString error{StringField(result, "error")};
+    if (!child_block_hash.isEmpty()) {
+        details += tr("\nChild block: %1").arg(child_block_hash);
+    }
+    if (!txid.isEmpty()) details += tr("\nMain-chain transaction: %1").arg(txid);
+    if (!result.find_value("security_bid").isNull()) {
+        details += tr("\nSecurity bid: %1 KNE")
+                       .arg(NumberField(result, "security_bid"));
+    }
+    if (!error.isEmpty()) details += tr("\nDetail: %1").arg(error);
+    QMessageBox::information(
+        this,
+        submitted.get_bool()
+            ? tr("Automatic BMM Bid Submitted")
+            : tr("Automatic BMM Bid Not Submitted"),
+        details);
 }
 
 void ChildChainDialog::createBmmProposal(const QString& chain_id)
