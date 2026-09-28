@@ -1260,7 +1260,17 @@ ReferenceChildRuntime::TestTransactions(
         return results;
     }
     ChildMempool candidate{m_mempool};
+    std::set<Txid> package_txids;
     for (const auto& transaction : transactions) {
+        if (transaction &&
+            !package_txids.insert(transaction->GetHash()).second) {
+            ReferenceChildMempoolAcceptResult result;
+            result.txid = transaction->GetHash();
+            result.error = ReferenceChildMempoolAcceptError::POOL_REJECTED;
+            result.pool_error = ChildMempoolError::DUPLICATE_TRANSACTION;
+            results.push_back(std::move(result));
+            break;
+        }
         auto result{AcceptMempoolTransaction(
             candidate,
             transaction,
@@ -1272,6 +1282,52 @@ ReferenceChildRuntime::TestTransactions(
         results.push_back(std::move(result));
         if (stop) break;
     }
+    return results;
+}
+
+std::vector<ReferenceChildMempoolAcceptResult>
+ReferenceChildRuntime::SubmitTransactions(
+    std::span<const CTransactionRef> transactions,
+    std::span<const std::optional<CAmount>> max_fees,
+    int64_t current_time)
+{
+    std::vector<ReferenceChildMempoolAcceptResult> results;
+    results.reserve(transactions.size());
+    if (transactions.size() != max_fees.size()) return results;
+    if (!m_initialized || m_failed || m_imports.IsSafeHalted()) {
+        ReferenceChildMempoolAcceptResult result;
+        result.error = !m_initialized
+            ? ReferenceChildMempoolAcceptError::NOT_INITIALIZED
+            : m_failed
+                ? ReferenceChildMempoolAcceptError::FAILED_RUNTIME
+                : ReferenceChildMempoolAcceptError::SAFE_HALT;
+        results.push_back(std::move(result));
+        return results;
+    }
+    ChildMempool candidate{m_mempool};
+    std::set<Txid> package_txids;
+    for (size_t index{0}; index < transactions.size(); ++index) {
+        if (transactions[index] &&
+            !package_txids.insert(transactions[index]->GetHash()).second) {
+            ReferenceChildMempoolAcceptResult result;
+            result.txid = transactions[index]->GetHash();
+            result.error = ReferenceChildMempoolAcceptError::POOL_REJECTED;
+            result.pool_error = ChildMempoolError::DUPLICATE_TRANSACTION;
+            results.push_back(std::move(result));
+            return results;
+        }
+        auto result{AcceptMempoolTransaction(
+            candidate,
+            transactions[index],
+            current_time,
+            current_time,
+            static_cast<uint32_t>(m_tip->nHeight),
+            max_fees[index])};
+        const bool stop{!result.IsValid()};
+        results.push_back(std::move(result));
+        if (stop) return results;
+    }
+    m_mempool = std::move(candidate);
     return results;
 }
 

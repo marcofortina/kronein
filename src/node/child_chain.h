@@ -278,6 +278,10 @@ public:
     std::vector<ReferenceChildMempoolAcceptResult> TestTransactions(
         std::span<const CTransactionRef> transactions,
         int64_t current_time) const;
+    std::vector<ReferenceChildMempoolAcceptResult> SubmitTransactions(
+        std::span<const CTransactionRef> transactions,
+        std::span<const std::optional<CAmount>> max_fees,
+        int64_t current_time);
     ReferenceChildMempoolView GetMempool() const;
     ReferenceChildRuntimeResult DisconnectTip(bool sync = false);
 

@@ -1992,6 +1992,11 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(
             node.getrawmempool(False, False, chain_id),
             child_mempool_before_test)
+        duplicate_package = node.submitpackage(
+            [child_psbt["hex"], child_psbt["hex"]], 0, 0, chain_id)
+        assert duplicate_package["package_msg"] != "success"
+        assert child_psbt["txid"] not in node.getrawmempool(
+            False, False, chain_id)
 
         child_sweep_inputs = sum(
             (utxo["amount"] for utxo in attacker.listunspent(
@@ -2017,6 +2022,21 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(wallet.getreceivedbyaddress(
             generic_recipient, 0, False, chain_id),
             deposit_amount + generic_amount + child_sweep_fixed)
+
+        package_tx = wallet.send(
+            outputs=[{child_many_b: Decimal("0.00100000")}],
+            options={"add_to_wallet": False, "psbt": True},
+            child_fee=child_send_fee,
+            chain_id=chain_id)
+        package_decoded = node.decoderawtransaction(package_tx["hex"])
+        package_result = node.submitpackage(
+            [package_tx["hex"]], 0, 0, chain_id)
+        assert_equal(package_result["package_msg"], "success")
+        assert_equal(
+            package_result["tx-results"][package_decoded["hash"]]["fees"]["base"],
+            child_send_fee)
+        assert package_decoded["txid"] in node.getrawmempool(
+            False, False, chain_id)
         child_wallet_identities = wallet.listchildrecipients(chain_id)
 
         successor_address = wallet.getnewaddress()

@@ -192,20 +192,22 @@ struct ChainManagerMempoolAcceptResult {
     }
 };
 
-enum class ChainManagerMempoolTestError : uint8_t {
+enum class ChainManagerMempoolPackageError : uint8_t {
     NONE,
     NULL_CHAIN_ID,
     UNKNOWN_CHAIN,
     CHAIN_NOT_LOADED,
 };
 
-struct ChainManagerMempoolTestResult {
-    ChainManagerMempoolTestError error{ChainManagerMempoolTestError::NONE};
+struct ChainManagerMempoolPackageResult {
+    ChainManagerMempoolPackageError error{
+        ChainManagerMempoolPackageError::NONE};
     std::vector<ReferenceChildMempoolAcceptResult> transactions;
+    bool submitted{false};
 
     bool IsValid() const
     {
-        return error == ChainManagerMempoolTestError::NONE;
+        return error == ChainManagerMempoolPackageError::NONE;
     }
 };
 
@@ -632,10 +634,16 @@ public:
         int64_t current_time,
         std::optional<CAmount> max_fee = std::nullopt);
     /** Test an ordered package without changing the isolated child mempool. */
-    ChainManagerMempoolTestResult TestTransactions(
+    ChainManagerMempoolPackageResult TestTransactions(
         const chainregistry::ChainId& chain_id,
         std::span<const CTransactionRef> transactions,
         int64_t current_time) const;
+    /** Atomically admit an ordered package to one isolated child mempool. */
+    ChainManagerMempoolPackageResult SubmitTransactions(
+        const chainregistry::ChainId& chain_id,
+        std::span<const CTransactionRef> transactions,
+        std::span<const std::optional<CAmount>> max_fees,
+        int64_t current_time);
     ChainManagerMempoolView GetMempool(
         const chainregistry::ChainId& chain_id) const;
     /** Feed a header already connected by the local main chainstate. */

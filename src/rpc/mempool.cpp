@@ -118,17 +118,17 @@ node::ReferenceChildMempoolView GetChildMempool(
     throw JSONRPCError(RPC_MISC_ERROR, "Unknown child mempool error");
 }
 
-void CheckChildMempoolTestResult(
-    const node::ChainManagerMempoolTestResult& result)
+void CheckChildMempoolPackageResult(
+    const node::ChainManagerMempoolPackageResult& result)
 {
     switch (result.error) {
-    case node::ChainManagerMempoolTestError::NONE:
+    case node::ChainManagerMempoolPackageError::NONE:
         return;
-    case node::ChainManagerMempoolTestError::NULL_CHAIN_ID:
+    case node::ChainManagerMempoolPackageError::NULL_CHAIN_ID:
         throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must not be null");
-    case node::ChainManagerMempoolTestError::UNKNOWN_CHAIN:
+    case node::ChainManagerMempoolPackageError::UNKNOWN_CHAIN:
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown child chain");
-    case node::ChainManagerMempoolTestError::CHAIN_NOT_LOADED:
+    case node::ChainManagerMempoolPackageError::CHAIN_NOT_LOADED:
         throw JSONRPCError(RPC_MISC_ERROR, "Child chain is not loaded");
     }
     throw JSONRPCError(RPC_MISC_ERROR, "Unknown child mempool test error");
@@ -490,7 +490,7 @@ static RPCHelpMan testmempoolaccept()
                         txns,
                         TicksSinceEpoch<std::chrono::seconds>(
                             NodeClock::now()))};
-                CheckChildMempoolTestResult(tested);
+                CheckChildMempoolPackageResult(tested);
 
                 UniValue rpc_result(UniValue::VARR);
                 bool exit_early{false};
@@ -1851,6 +1851,7 @@ static RPCHelpMan submitpackage()
     return RPCHelpMan{"submitpackage",
         "Submit a package of raw transactions (serialized, hex-encoded) to local node.\n"
         "The package will be validated according to consensus and mempool policy rules. If any transaction passes, it will be accepted to mempool.\n"
+        "For a child chain, the ordered package is admitted atomically: if one transaction fails, none of its new transactions are retained.\n"
         "This RPC is experimental and the interface may be unstable. Refer to doc/policy/packages.md for documentation on package policies.\n"
         "Warning: successful submission does not mean the transactions will propagate throughout the network.\n"
         ,
@@ -1871,6 +1872,8 @@ static RPCHelpMan submitpackage()
              "If burning funds through unspendable outputs is desired, increase this value.\n"
              "This check is based on heuristics and does not guarantee spendability of outputs.\n"
             },
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED,
+             "Optional child chain identifier. Omit to submit to the main-chain mempool."},
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "",
@@ -1939,6 +1942,99 @@ static RPCHelpMan submitpackage()
                 txns.emplace_back(MakeTransactionRef(std::move(mtx)));
             }
             CHECK_NONFATAL(!txns.empty());
+            const auto child_chain{
+                OptionalChildChainId(request.params[3])};
+            if (child_chain) {
+                std::vector<std::optional<CAmount>> max_fees;
+                max_fees.reserve(txns.size());
+                for (const auto& tx : txns) {
+                    max_fees.push_back(
+                        client_maxfeerate
+                            ? std::optional<CAmount>{client_maxfeerate->GetFee(
+                                  GetVirtualTransactionSize(*tx))}
+                            : std::nullopt);
+                }
+                const auto submitted{
+                    EnsureAnyChildChainman(request.context).SubmitTransactions(
+                        *child_chain,
+                        txns,
+                        max_fees,
+                        TicksSinceEpoch<std::chrono::seconds>(
+                            NodeClock::now()))};
+                CheckChildMempoolPackageResult(submitted);
+
+                UniValue rpc_result{UniValue::VOBJ};
+                std::string package_message{"success"};
+                if (!submitted.submitted) {
+                    package_message = submitted.transactions.empty()
+                        ? "child-package-not-validated"
+                        : ChildMempoolRejectReason(
+                              submitted.transactions.back()).second;
+                } else {
+                    for (size_t index{0}; index < txns.size(); ++index) {
+                        if (submitted.transactions[index].already_known) {
+                            continue;
+                        }
+                        EnsureAnyChildNetworkman(request.context)
+                            .RelayTransaction(*child_chain, txns[index]);
+                    }
+                }
+                rpc_result.pushKV("package_msg", package_message);
+
+                UniValue tx_results{UniValue::VOBJ};
+                for (size_t index{0}; index < txns.size(); ++index) {
+                    const auto& tx{txns[index]};
+                    UniValue transaction_result{UniValue::VOBJ};
+                    transaction_result.pushKV(
+                        "txid", tx->GetHash().GetHex());
+                    if (index >= submitted.transactions.size()) {
+                        transaction_result.pushKV(
+                            "error", "package-not-validated");
+                    } else {
+                        const auto& accepted{
+                            submitted.transactions[index]};
+                        if (!accepted.IsValid()) {
+                            transaction_result.pushKV(
+                                "error",
+                                ChildMempoolRejectReason(accepted).second);
+                        } else if (!submitted.submitted &&
+                                   !accepted.already_known) {
+                            transaction_result.pushKV(
+                                "error", "package-not-submitted");
+                        } else {
+                            const int64_t virtual_size{
+                                GetVirtualTransactionSize(*tx)};
+                            transaction_result.pushKV(
+                                "vsize", virtual_size);
+                            UniValue fees{UniValue::VOBJ};
+                            fees.pushKV(
+                                "base", ValueFromAmount(accepted.fee));
+                            if (!accepted.already_known) {
+                                fees.pushKV(
+                                    "effective-feerate",
+                                    ValueFromAmount(
+                                        CFeeRate(accepted.fee, virtual_size)
+                                            .GetFeePerK()));
+                                UniValue includes{UniValue::VARR};
+                                includes.push_back(
+                                    tx->GetWitnessHash().ToString());
+                                fees.pushKV(
+                                    "effective-includes",
+                                    std::move(includes));
+                            }
+                            transaction_result.pushKV(
+                                "fees", std::move(fees));
+                        }
+                    }
+                    tx_results.pushKV(
+                        tx->GetWitnessHash().GetHex(),
+                        std::move(transaction_result));
+                }
+                rpc_result.pushKV("tx-results", std::move(tx_results));
+                rpc_result.pushKV(
+                    "replaced-transactions", UniValue{UniValue::VARR});
+                return rpc_result;
+            }
             if (txns.size() > 1 && !IsChildWithParentsTree(txns)) {
                 throw JSONRPCTransactionError(TransactionError::INVALID_PACKAGE, "package topology disallowed. not child-with-parents or parents depend on each other.");
             }

@@ -206,17 +206,17 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
         manager.TestTransactions(
             chainregistry::ChainId{}, no_transactions,
             Params().GenesisBlock().nTime).error ==
-        node::ChainManagerMempoolTestError::NULL_CHAIN_ID);
+        node::ChainManagerMempoolPackageError::NULL_CHAIN_ID);
     BOOST_CHECK(
         manager.TestTransactions(
             Definition(99).chain_id, no_transactions,
             Params().GenesisBlock().nTime).error ==
-        node::ChainManagerMempoolTestError::UNKNOWN_CHAIN);
+        node::ChainManagerMempoolPackageError::UNKNOWN_CHAIN);
     BOOST_CHECK(
         manager.TestTransactions(
             first.chain_id, no_transactions,
             Params().GenesisBlock().nTime).error ==
-        node::ChainManagerMempoolTestError::CHAIN_NOT_LOADED);
+        node::ChainManagerMempoolPackageError::CHAIN_NOT_LOADED);
     BOOST_CHECK(
         manager.ScanWalletHistory(chainregistry::ChainId{}, {}).error ==
         node::ChainManagerWalletHistoryError::NULL_CHAIN_ID);
@@ -302,6 +302,17 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
     BOOST_CHECK(
         tested.transactions[0].error ==
         node::ReferenceChildMempoolAcceptError::CONTEXT_REJECTED);
+    BOOST_CHECK(manager.GetMempool(first.chain_id).runtime.entries.empty());
+    const std::array<std::optional<CAmount>, 1> no_fee_limits{
+        std::nullopt};
+    const auto package_rejected{manager.SubmitTransactions(
+        first.chain_id,
+        missing_package,
+        no_fee_limits,
+        Params().GenesisBlock().nTime)};
+    BOOST_REQUIRE(package_rejected.IsValid());
+    BOOST_CHECK(!package_rejected.submitted);
+    BOOST_REQUIRE_EQUAL(package_rejected.transactions.size(), 1U);
     BOOST_CHECK(manager.GetMempool(first.chain_id).runtime.entries.empty());
     const auto rejected{manager.SubmitTransaction(
         first.chain_id,
