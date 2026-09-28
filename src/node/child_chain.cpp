@@ -1006,6 +1006,7 @@ std::optional<ReferenceChildBlockView> ReferenceChildRuntime::GetBlockView(
     ReferenceChildBlockView result{
         .block_hash = block_hash,
         .block = std::nullopt,
+        .undo = std::nullopt,
         .height = index->nHeight,
         .confirmations = -1,
         .time = index->nTime,
@@ -1028,10 +1029,25 @@ std::optional<ReferenceChildBlockView> ReferenceChildRuntime::GetBlockView(
     if (virtual_genesis) return result;
 
     CBlock block;
-    if (!m_db->ReadBlock(block_hash, block) || block.GetHash() != block_hash) {
+    chainregistry::ReferenceChildBlockUndo undo;
+    if (!m_db->ReadBlock(block_hash, block) ||
+        !m_db->ReadUndo(block_hash, undo) ||
+        block.GetHash() != block_hash ||
+        undo.block_hash != block_hash ||
+        undo.parent_hash != block.hashPrevBlock ||
+        undo.block_height != static_cast<uint32_t>(index->nHeight) ||
+        undo.coins.vtxundo.size() + 1 != block.vtx.size()) {
         return std::nullopt;
     }
+    for (size_t transaction{1}; transaction < block.vtx.size(); ++transaction) {
+        const auto& spent{undo.coins.vtxundo[transaction - 1].vprevout};
+        const size_t expected{chainregistry::IsReferenceChildImport(*block.vtx[transaction])
+                ? 0
+                : block.vtx[transaction]->vin.size()};
+        if (spent.size() != expected) return std::nullopt;
+    }
     result.block = std::move(block);
+    result.undo = std::move(undo);
     const auto candidates{m_db->ReadForkCandidates(*m_main_headers)};
     if (!candidates) return std::nullopt;
     const auto selected{chainregistry::SelectChildFork(

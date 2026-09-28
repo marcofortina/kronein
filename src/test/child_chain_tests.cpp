@@ -297,7 +297,10 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
         const auto child_view{runtime.GetBlockView(child_hash)};
         BOOST_REQUIRE(child_view);
         BOOST_REQUIRE(child_view->block);
+        BOOST_REQUIRE(child_view->undo);
         BOOST_CHECK(child_view->block->GetHash() == child_hash);
+        BOOST_CHECK(child_view->undo->block_hash == child_hash);
+        BOOST_CHECK(child_view->undo->parent_hash == block.hashPrevBlock);
         BOOST_CHECK(child_view->active);
         BOOST_CHECK(!child_view->virtual_genesis);
         BOOST_CHECK_EQUAL(child_view->height, 1);

@@ -69,6 +69,7 @@ struct ReferenceChildRuntimeResult {
 struct ReferenceChildBlockView {
     uint256 block_hash;
     std::optional<CBlock> block;
+    std::optional<chainregistry::ReferenceChildBlockUndo> undo;
     int height{0};
     int confirmations{-1};
     uint32_t time{0};
