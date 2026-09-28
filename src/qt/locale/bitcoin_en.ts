@@ -927,7 +927,7 @@
 <context>
     <name>ChildChainDialog</name>
     <message>
-        <location filename="../childchaindialog.cpp" line="+95"/>
+        <location filename="../childchaindialog.cpp" line="+96"/>
         <source>Available</source>
         <translation type="unfinished"></translation>
     </message>
@@ -962,18 +962,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+21"/>
+        <location line="+33"/>
         <source>Child Chains</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+11"/>
-        <location line="+1280"/>
+        <location line="+1391"/>
         <source>Status</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1279"/>
+        <location line="-1390"/>
         <source>Chain ID</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1066,12 +1066,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+73"/>
+        <location line="-88"/>
+        <location line="+161"/>
         <source>Failed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="-162"/>
+        <location line="+162"/>
         <source>Safe halt</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1282,12 +1284,12 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+12"/>
         <source>Build and anchor an import block</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+10"/>
         <source>Child BMM Workflow</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1297,7 +1299,7 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+52"/>
+        <location line="+160"/>
         <source>Activate Confirmed Child Proposal</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1341,7 +1343,109 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location line="-665"/>
+        <source>Idle</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <location line="+1"/>
+        <source>Awaiting BMM anchor</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Anchor ready</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Awaiting child block data</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Anchored</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+399"/>
+        <source>View operational status</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+42"/>
+        <location line="+4"/>
+        <location line="+11"/>
+        <source>Child BMM status</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The node returned an invalid BMM status snapshot.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Child BMM Operational Status</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Health: %1
+Child: height %2 • tip %3
+Main: height %4 • tip %5
+Canonical anchors: %6 • tip anchor: %7
+Local proposals: %8 (%9 waiting, %10 anchored) • pending block data: %11 (%12 anchors)
+Competing DAG: %13 blocks / %14 anchors</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+13"/>
+        <source>%1 at main height %2 (%3 confirmations)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>none (virtual genesis)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+15"/>
+        <source>Pending child block data:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>  %1 — %2 anchor(s), main heights %3–%4</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Durable local proposals:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>  %1 — parent %2 — %3 bytes — %4</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>authenticated anchor ready</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>waiting for anchor</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>No pending BMM work is queued for this child chain.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+139"/>
         <source>The verified main-chain anchor does not commit to this proposal.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1776,7 +1880,7 @@ Child chain: %2</source>
     <message>
         <location line="-1069"/>
         <location line="+137"/>
-        <location line="+937"/>
+        <location line="+985"/>
         <source>Child chain:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1857,14 +1961,14 @@ There is no child-to-main withdrawal path.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-754"/>
+        <location line="-802"/>
         <location line="+162"/>
-        <location line="+547"/>
+        <location line="+595"/>
         <source>The selected wallet is no longer available.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1485"/>
+        <location line="-1644"/>
         <source>%1 proposals • %2 pending • %3/%4 candidates • %5/%6 anchors</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1877,12 +1981,12 @@ Pending BMM anchors: %13/%14 records, %15/%16 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+160"/>
+        <location line="+158"/>
         <source>Activate a stored confirmed proposal</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+31"/>
+        <location line="+144"/>
         <location line="+4"/>
         <location line="+9"/>
         <location line="+41"/>
@@ -2083,7 +2187,34 @@ The validated proposal is already stored durably by this node and will remain av
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+177"/>
+        <location line="+43"/>
+        <source>This is a child-chain receiving key, not a main-chain address.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>New Wallet Recipient</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Derive and save a receiving key owned by the selected wallet and bound to this exact child chain.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+14"/>
+        <location line="+4"/>
+        <location line="+14"/>
+        <source>Create child recipient</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The wallet returned an invalid child recipient.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+141"/>
         <source>The wallet returned an invalid migration result.</source>
         <translation type="unfinished"></translation>
     </message>

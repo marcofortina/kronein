@@ -21,6 +21,7 @@
 #include <QDialogButtonBox>
 #include <QFormLayout>
 #include <QHeaderView>
+#include <QHBoxLayout>
 #include <QInputDialog>
 #include <QLabel>
 #include <QLineEdit>
@@ -1787,13 +1788,61 @@ void ChildChainDialog::migrateSelected()
     recipient->setValidator(new QRegularExpressionValidator{
         QRegularExpression{QStringLiteral("[0-9A-Fa-f]{64}")}, recipient});
     recipient->setPlaceholderText(tr("32-byte P2TR output key in hexadecimal"));
+    recipient->setToolTip(
+        tr("This is a child-chain receiving key, not a main-chain address."));
+    auto* recipient_row = new QWidget{&input_dialog};
+    auto* recipient_layout = new QHBoxLayout{recipient_row};
+    recipient_layout->setContentsMargins(0, 0, 0, 0);
+    recipient_layout->addWidget(recipient, 1);
+    auto* new_recipient = new QPushButton{tr("New Wallet Recipient"), recipient_row};
+    new_recipient->setObjectName(QStringLiteral("childChainNewRecipientButton"));
+    new_recipient->setToolTip(
+        tr("Derive and save a receiving key owned by the selected wallet and bound to this exact child chain."));
+    recipient_layout->addWidget(new_recipient);
+    connect(new_recipient, &QPushButton::clicked, &input_dialog,
+            [this, chain_id, wallet_uri, recipient, recipient_type] {
+        UniValue params{UniValue::VARR};
+        params.push_back(chain_id.toStdString());
+        params.push_back("");
+        QApplication::setOverrideCursor(Qt::WaitCursor);
+        UniValue result;
+        try {
+            result = m_node.executeRpc(
+                "getnewchildrecipient", params, wallet_uri);
+        } catch (UniValue& error) {
+            QApplication::restoreOverrideCursor();
+            showRpcError(tr("Create child recipient"), RpcErrorMessage(error));
+            return;
+        } catch (const std::exception& error) {
+            QApplication::restoreOverrideCursor();
+            showRpcError(tr("Create child recipient"),
+                         QString::fromStdString(error.what()));
+            return;
+        }
+        QApplication::restoreOverrideCursor();
+
+        const QString returned_chain{StringField(result, "chain_id")};
+        const QString returned_recipient{StringField(result, "recipient")};
+        const UniValue& returned_type{result.find_value("recipient_type")};
+        if (returned_chain.compare(chain_id, Qt::CaseInsensitive) != 0 ||
+            !returned_type.isNum() || returned_type.getInt<int>() != 1 ||
+            !QRegularExpression{QStringLiteral("^[0-9A-Fa-f]{64}$")}
+                 .match(returned_recipient).hasMatch()) {
+            showRpcError(
+                tr("Create child recipient"),
+                tr("The wallet returned an invalid child recipient."));
+            return;
+        }
+        recipient_type->setValue(1);
+        recipient->setText(returned_recipient);
+    });
     auto* amount = new BitcoinAmountField{&input_dialog};
     amount->SetAllowEmpty(false);
     amount->SetMinValue(1);
     amount->SetMaxValue(MAX_MONEY);
     form->addRow(tr("Child chain:"), chain);
     form->addRow(tr("Recipient type:"), recipient_type);
-    form->addRow(tr("Recipient bytes:"), recipient);
+    form->addRow(tr("Recipient bytes:"), recipient_row);
     form->addRow(tr("Amount:"), amount);
     layout->addLayout(form);
 
