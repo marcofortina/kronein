@@ -2310,6 +2310,62 @@ util::Result<CTxDestination> CWallet::GetNewChangeDestination()
     return op_dest;
 }
 
+namespace {
+util::Result<std::unique_ptr<Descriptor>> ParseChildExternalDescriptor(
+    const std::string& descriptor_string,
+    const std::string& signer_fingerprint,
+    const std::vector<uint32_t>& account_path,
+    bool internal)
+{
+    FlatSigningProvider parsed_keys;
+    std::string parse_error;
+    auto descriptors{Parse(
+        descriptor_string,
+        parsed_keys,
+        parse_error,
+        /*require_checksum=*/true)};
+    if (descriptors.size() != 1) {
+        return util::Error{Untranslated(strprintf(
+            "External signer returned an invalid child descriptor: %s",
+            parse_error))};
+    }
+    auto descriptor{std::move(descriptors.front())};
+    if (!parsed_keys.keys.empty()) {
+        return util::Error{Untranslated(
+            "External signer child descriptor must not contain private keys")};
+    }
+    if (!descriptor->IsSolvable() || !descriptor->IsRange()) {
+        return util::Error{Untranslated(
+            "External signer child descriptor must be ranged and solvable")};
+    }
+
+    std::vector<CScript> scripts;
+    FlatSigningProvider expanded;
+    if (!descriptor->Expand(0, parsed_keys, scripts, expanded) ||
+        scripts.size() != 1 || !scripts.front().IsPayToTaproot()) {
+        return util::Error{Untranslated(
+            "External signer child descriptor must derive one native Taproot script")};
+    }
+
+    const std::vector<unsigned char> fingerprint{ParseHex(signer_fingerprint)};
+    std::vector<uint32_t> expected_path{account_path};
+    expected_path.push_back(static_cast<uint32_t>(
+        internal ? ChildKeyRole::CHANGE : ChildKeyRole::RECEIVE));
+    expected_path.push_back(0);
+    if (fingerprint.size() != 4 || expanded.origins.size() != 1) {
+        return util::Error{Untranslated(
+            "External signer child descriptor has an invalid key origin")};
+    }
+    const KeyOriginInfo& origin{expanded.origins.begin()->second.second};
+    if (!std::ranges::equal(fingerprint, origin.fingerprint) ||
+        origin.path != expected_path) {
+        return util::Error{Untranslated(
+            "External signer child descriptor does not match the requested fingerprint and D-039 path")};
+    }
+    return descriptor;
+}
+} // namespace
+
 util::Result<std::reference_wrapper<DescriptorScriptPubKeyMan>>
 CWallet::GetOrCreateChildScriptPubKeyMan(
     const chainregistry::ChainId& chain_id,
@@ -2331,8 +2387,50 @@ CWallet::GetOrCreateChildScriptPubKeyMan(
         return std::ref(*manager);
     }
 
+    const auto account_path{ChildKeyAccountPath(chain_id)};
+    if (!account_path) {
+        return util::Error{_("The child-chain derivation path is invalid")};
+    }
     if (IsWalletFlagSet(WALLET_FLAG_EXTERNAL_SIGNER)) {
-        return util::Error{_("Child-chain key derivation is not yet supported by external signer wallets")};
+        auto signer{ExternalSignerScriptPubKeyMan::GetExternalSigner()};
+        if (!signer) return util::Error{util::ErrorString(signer)};
+        const UniValue signer_result{
+            signer->GetChildDescriptors(chain_id, *account_path)};
+        if (!signer_result.isObject()) {
+            return util::Error{Untranslated(
+                "External signer returned an invalid child descriptor response")};
+        }
+        const UniValue& signer_error{signer_result.find_value("error")};
+        if (signer_error.isStr()) {
+            return util::Error{Untranslated(strprintf(
+                "External signer returned error: %s",
+                signer_error.get_str()))};
+        }
+        const UniValue& descriptor_values{signer_result.find_value(
+            internal ? "internal" : "receive")};
+        if (!descriptor_values.isArray() || descriptor_values.size() != 1 ||
+            !descriptor_values[0].isStr()) {
+            return util::Error{Untranslated(
+                "External signer must return exactly one descriptor for each child role")};
+        }
+        auto descriptor{ParseChildExternalDescriptor(
+            descriptor_values[0].get_str(),
+            signer->m_fingerprint,
+            *account_path,
+            internal)};
+        if (!descriptor) return util::Error{util::ErrorString(descriptor)};
+
+        WalletBatch batch{GetDatabase()};
+        auto manager{std::make_unique<ExternalSignerScriptPubKeyMan>(
+            *this, m_keypool_size)};
+        manager->SetupDescriptor(batch, std::move(*descriptor));
+        const uint256 id{manager->GetID()};
+        auto* manager_ptr{manager.get()};
+        AddScriptPubKeyMan(id, std::move(manager));
+        if (!SetChildScriptPubKeyMan(chain_id, internal, id)) {
+            return util::Error{_("Could not persist the child-chain descriptor role")};
+        }
+        return std::ref(static_cast<DescriptorScriptPubKeyMan&>(*manager_ptr));
     }
     if (IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS)) {
         return util::Error{_("Child-chain key derivation requires a wallet with private keys")};
@@ -2351,10 +2449,6 @@ CWallet::GetOrCreateChildScriptPubKeyMan(
         return util::Error{_("The wallet HD root private key is unavailable")};
     }
 
-    const auto account_path{ChildKeyAccountPath(chain_id)};
-    if (!account_path) {
-        return util::Error{_("The child-chain derivation path is invalid")};
-    }
     CExtKey account{root_xpub, *root_key};
     for (const uint32_t component : *account_path) {
         CExtKey derived;

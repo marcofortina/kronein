@@ -6,10 +6,18 @@
 
 from decimal import Decimal
 from io import BytesIO
+import json
+import os
+import sys
 
 from test_framework.address import address_to_scriptpubkey
 from test_framework.messages import CBlock
-from test_framework.psbt import PSBT, PSBT_OUT_SCRIPT
+from test_framework.psbt import (
+    PSBT,
+    PSBT_IN_TAP_BIP32_DERIVATION,
+    PSBT_OUT_SCRIPT,
+    PSBT_OUT_TAP_BIP32_DERIVATION,
+)
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
@@ -20,6 +28,11 @@ from test_framework.util import (
 
 
 class ChainRegistryTest(BitcoinTestFramework):
+    def mock_signer_path(self):
+        path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                            "mocks", "signer.py")
+        return sys.executable + " " + path
+
     def set_test_params(self):
         self.num_nodes = 2
         self.setup_clean_chain = True
@@ -33,7 +46,10 @@ class ChainRegistryTest(BitcoinTestFramework):
             "-chainbmmactivationheight=1",
             "-chainbmmmaxanchorsperblock=4",
         ]
-        self.extra_args = [registry_args.copy(), registry_args.copy()]
+        node_args = registry_args.copy()
+        if self.is_external_signer_compiled():
+            node_args.append(f"-signer={self.mock_signer_path()}")
+        self.extra_args = [node_args, registry_args.copy()]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -1056,6 +1072,100 @@ class ChainRegistryTest(BitcoinTestFramework):
             child_destination["scriptPubKey"]]
         assert_equal(len(destination_outputs), 1)
         assert_equal(destination_outputs[0]["value"], child_spend_amount)
+
+        if self.is_external_signer_compiled():
+            self.log.info("Sign the same child PSBT with an external signer")
+            all_private_descriptors = wallet.listdescriptors(True)["descriptors"]
+            all_public_descriptors = wallet.listdescriptors()["descriptors"]
+            main_descriptors = [
+                descriptor for descriptor in all_public_descriptors
+                if "chain_id" not in descriptor and descriptor["active"]
+            ]
+            child_private_descriptors = [
+                descriptor for descriptor in all_private_descriptors
+                if descriptor.get("chain_id") == chain_id
+            ]
+            origin = child_private_descriptors[0]["desc"].split("[", 1)[1].split("]", 1)[0]
+            fingerprint, origin_path = origin.split("/", 1)
+            account_path = "m/" + origin_path
+            account_path = account_path.replace("'", "h")
+
+            signer_identity = {
+                "fingerprint": fingerprint,
+                "receive": [next(
+                    descriptor for descriptor in main_descriptors
+                    if not descriptor["internal"])["desc"]],
+                "internal": [next(
+                    descriptor for descriptor in main_descriptors
+                    if descriptor["internal"])["desc"]],
+            }
+            signer_child_descriptors = {
+                "chain_id": chain_id,
+                "account_path": account_path,
+                "receive": [next(
+                    descriptor for descriptor in child_descriptors
+                    if not descriptor["internal"])["desc"]],
+                "internal": [next(
+                    descriptor for descriptor in child_descriptors
+                    if descriptor["internal"])["desc"]],
+            }
+            with open(os.path.join(node.cwd, "mock_signer_identity"), "w") as f:
+                json.dump(signer_identity, f)
+            with open(os.path.join(node.cwd, "mock_child_descriptors"), "w") as f:
+                json.dump(signer_child_descriptors, f)
+            with open(os.path.join(node.cwd, "mock_child_signing_context"), "w") as f:
+                json.dump({
+                    "chain_id": chain_id,
+                    "genesis_hash": reference_child["genesis_hash"],
+                    "template_id": 1,
+                    "template_version": 1,
+                }, f)
+            with open(os.path.join(node.cwd, "mock_psbt"), "w") as f:
+                f.write(signed_child["psbt"])
+
+            node.createwallet(wallet_name="child_external",
+                              disable_private_keys=True,
+                              external_signer=True)
+            external_wallet = node.get_wallet_rpc("child_external")
+            invalid_child_descriptors = dict(signer_child_descriptors)
+            invalid_child_descriptors["receive"] = signer_child_descriptors["internal"]
+            with open(os.path.join(node.cwd, "mock_child_descriptors"), "w") as f:
+                json.dump(invalid_child_descriptors, f)
+            assert_raises_rpc_error(
+                -12, "does not match the requested fingerprint and D-039 path",
+                external_wallet.getnewchildrecipient, chain_id)
+            with open(os.path.join(node.cwd, "mock_child_descriptors"), "w") as f:
+                json.dump(signer_child_descriptors, f)
+            external_recipient = external_wallet.getnewchildrecipient(chain_id)
+            assert_equal(external_recipient["recipient"], child_identity["recipient"])
+            external_wallet.recoverchildwallet(chain_id, 0, 1)
+            with open(os.path.join(node.cwd, "mock_psbt"), "w") as f:
+                f.write(main_domain_psbt["psbt"])
+            assert_raises_rpc_error(
+                -4, "external signer returned invalid child input 0",
+                external_wallet.walletprocesschildpsbt,
+                child_psbt["psbt"], child_fee)
+            with open(os.path.join(node.cwd, "mock_psbt"), "w") as f:
+                f.write(signed_child["psbt"])
+            external_signed = external_wallet.walletprocesschildpsbt(
+                child_psbt["psbt"], child_fee)
+            assert_equal(external_signed["complete"], True)
+            assert_equal(external_signed["hex"], signed_child["hex"])
+            assert_equal(external_signed["txid"], signed_child["txid"])
+            external_without_paths = external_wallet.walletprocesschildpsbt(
+                child_psbt["psbt"], child_fee, True, "DEFAULT", False)
+            assert_equal(external_without_paths["complete"], True)
+            stripped_psbt = PSBT.from_base64(external_without_paths["psbt"])
+            assert all(not any(
+                isinstance(key, bytes) and
+                key[0] == PSBT_IN_TAP_BIP32_DERIVATION
+                for key in psbt_map.map
+            ) for psbt_map in stripped_psbt.i)
+            assert all(not any(
+                isinstance(key, bytes) and
+                key[0] == PSBT_OUT_TAP_BIP32_DERIVATION
+                for key in psbt_map.map
+            ) for psbt_map in stripped_psbt.o)
 
         assert_equal(node.getchildpendingblocks(chain_id)["block_count"], 0)
         assert_equal(node.listchildproposals(chain_id)["proposal_count"], 0)

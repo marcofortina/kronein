@@ -9,6 +9,7 @@
 #include <consensus/tx_check.h>
 #include <consensus/validation.h>
 #include <core_io.h>
+#include <external_signer.h>
 #include <interfaces/chain.h>
 #include <policy/policy.h>
 #include <psbt.h>
@@ -17,8 +18,9 @@
 #include <script/signingprovider.h>
 #include <util/moneystr.h>
 #include <util/strencodings.h>
-#include <wallet/rpc/util.h>
+#include <wallet/external_signer_scriptpubkeyman.h>
 #include <wallet/rpc/child_util.h>
+#include <wallet/rpc/util.h>
 #include <wallet/scriptpubkeyman.h>
 #include <wallet/wallet.h>
 #include <wallet/walletdb.h>
@@ -573,6 +575,8 @@ RPCHelpMan walletprocesschildpsbt()
     const bool sign{self.Arg<bool>("sign")};
     const bool bip32_derivs{self.Arg<bool>("bip32derivs")};
     const bool finalize{self.Arg<bool>("finalize")};
+    const bool external_signer{
+        sign && wallet.IsWalletFlagSet(WALLET_FLAG_EXTERNAL_SIGNER)};
     const std::optional<int> sighash_type{
         ParseSighashString(self.Arg<UniValue>("sighashtype"))};
     if (sign) EnsureWalletIsUnlocked(wallet);
@@ -588,11 +592,79 @@ RPCHelpMan walletprocesschildpsbt()
                        definition,
                        *txdata,
                        sign,
-                       bip32_derivs,
+                       bip32_derivs || external_signer,
                        finalize,
                        sighash_type);
     }
-    FillChildOutputs(wallet, psbt, bip32_derivs);
+    FillChildOutputs(wallet, psbt, bip32_derivs || external_signer);
+
+    if (external_signer) {
+        const CTransaction authorized_transaction{*unsigned_tx};
+        std::vector<CTxOut> authorized_inputs;
+        authorized_inputs.reserve(psbt.inputs.size());
+        for (const PSBTInput& input : psbt.inputs) {
+            authorized_inputs.push_back(input.witness_utxo);
+        }
+
+        auto signer{ExternalSignerScriptPubKeyMan::GetExternalSigner()};
+        if (!signer) {
+            throw JSONRPCError(
+                RPC_WALLET_ERROR,
+                util::ErrorString(signer).original);
+        }
+        std::string signer_error;
+        if (!signer->SignTransaction(psbt, signer_error, &identity)) {
+            throw JSONRPCError(
+                RPC_WALLET_ERROR,
+                strprintf("external signer failed to sign child PSBT: %s",
+                          signer_error));
+        }
+
+        const auto returned_transaction{psbt.GetUnsignedTx()};
+        if (!returned_transaction ||
+            CTransaction{*returned_transaction} != authorized_transaction ||
+            psbt.inputs.size() != authorized_inputs.size() ||
+            psbt.outputs.size() != authorized_transaction.vout.size() ||
+            chainregistry::VerifyChildPSBTIdentity(psbt, definition) !=
+                chainregistry::ChildPSBTIdentityError::NONE) {
+            throw JSONRPCError(
+                RPC_WALLET_ERROR,
+                "external signer changed the authorized child transaction or identity");
+        }
+        for (unsigned int index{0}; index < psbt.inputs.size(); ++index) {
+            if (psbt.inputs[index].witness_utxo != authorized_inputs[index]) {
+                throw JSONRPCError(
+                    RPC_WALLET_ERROR,
+                    strprintf("external signer changed child input %u UTXO",
+                              index));
+            }
+            const auto finalized{chainregistry::UpdateChildPSBTInput(
+                DUMMY_SIGNING_PROVIDER,
+                psbt,
+                index,
+                definition,
+                *txdata,
+                sighash_type,
+                finalize)};
+            if (!finalized.IsValid()) {
+                throw JSONRPCError(
+                    RPC_WALLET_ERROR,
+                    strprintf("external signer returned invalid child input %u: %s",
+                              index,
+                              chainregistry::ChildPSBTSignErrorString(
+                                  finalized.error)));
+            }
+        }
+    }
+
+    if (!bip32_derivs) {
+        for (PSBTInput& input : psbt.inputs) {
+            input.m_tap_bip32_paths.clear();
+        }
+        for (PSBTOutput& output : psbt.outputs) {
+            output.m_tap_bip32_paths.clear();
+        }
+    }
 
     bool complete{true};
     for (unsigned int index{0}; index < psbt.inputs.size(); ++index) {
