@@ -1390,6 +1390,24 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(child_mempool_info["maxmempool"], 16 * 1024 * 1024)
         assert_equal(child_mempool_info["limitclustercount"], 10000)
         assert_equal(child_mempool_info["limitclustersize"], 16 * 1024 * 1024)
+        destination_outpoint = destination_outputs[0]["n"]
+        child_spenders = node.gettxspendingprevout([
+            {"txid": child_import["txid"], "vout": 0},
+            {"txid": signed_child["txid"], "vout": destination_outpoint},
+        ], {"mempool_only": True}, chain_id)
+        assert_equal(child_spenders[0]["chain_id"], chain_id)
+        assert_equal(child_spenders[0]["spendingtxid"], signed_child["txid"])
+        assert "spendingtx" not in child_spenders[0]
+        assert_equal(child_spenders[1], {
+            "txid": signed_child["txid"],
+            "vout": destination_outpoint,
+            "chain_id": chain_id,
+        })
+        child_spender_tx = node.gettxspendingprevout([
+            {"txid": child_import["txid"], "vout": 0},
+        ], {"return_spending_tx": True}, chain_id)[0]
+        assert_equal(child_spender_tx["spendingtxid"], signed_child["txid"])
+        assert_equal(child_spender_tx["spendingtx"], signed_child["hex"])
         assert_equal(node.getmempoolancestors(
             signed_child["txid"], False, chain_id), [])
         assert_equal(node.getmempoolancestors(
@@ -1414,7 +1432,6 @@ class ChainRegistryTest(BitcoinTestFramework):
             node.gettxout(child_import["txid"], 0, False, chain_id)
                 ["confirmations"],
             1)
-        destination_outpoint = destination_outputs[0]["n"]
         mempool_destination = node.gettxout(
             signed_child["txid"], destination_outpoint, True, chain_id)
         assert_equal(mempool_destination["chain_id"], chain_id)
@@ -1579,6 +1596,18 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(empty_child_mempool_info["bytes"], 0)
         assert_equal(empty_child_mempool_info["usage"], 0)
         assert_equal(empty_child_mempool_info["total_fee"], Decimal("0"))
+        assert_equal(node.gettxspendingprevout([
+            {"txid": child_import["txid"], "vout": 0},
+        ], {}, chain_id), [{
+            "txid": child_import["txid"],
+            "vout": 0,
+            "chain_id": chain_id,
+        }])
+        assert_raises_rpc_error(
+            -1, "Child txospenderindex is unavailable",
+            node.gettxspendingprevout,
+            [{"txid": child_import["txid"], "vout": 0}],
+            {"mempool_only": False}, chain_id)
         assert_raises_rpc_error(
             -5, "Transaction not in child mempool",
             node.getmempoolentry, signed_child["txid"], chain_id)

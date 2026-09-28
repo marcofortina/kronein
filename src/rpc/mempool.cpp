@@ -1257,6 +1257,8 @@ static RPCHelpMan gettxspendingprevout()
                     {"return_spending_tx", RPCArg::Type::BOOL, RPCArg::DefaultHint{"false"}, "If true, return the full spending tx."},
                 },
             },
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED,
+             "Non-null child-chain identifier. Omit to use the main chain."},
         },
         RPCResult{
             RPCResult::Type::ARR, "", "",
@@ -1268,6 +1270,7 @@ static RPCHelpMan gettxspendingprevout()
                     {RPCResult::Type::STR_HEX, "spendingtxid", /*optional=*/true, "the transaction id of the mempool transaction spending this output (omitted if unspent)"},
                     {RPCResult::Type::STR_HEX, "spendingtx", /*optional=*/true, "the transaction spending this output (only if return_spending_tx is set, omitted if unspent)"},
                     {RPCResult::Type::STR_HEX, "blockhash", /*optional=*/true, "the hash of the spending block (omitted if unspent or the spending tx is not confirmed)"},
+                    {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Selected child-chain identifier; omitted for main-chain results"},
                 }},
             }
         },
@@ -1289,7 +1292,11 @@ static RPCHelpMan gettxspendingprevout()
                                 {"return_spending_tx", UniValueType(UniValue::VBOOL)},
                             }, /*fAllowNull=*/true, /*fStrict=*/true);
 
-            const bool mempool_only{options.exists("mempool_only") ? options["mempool_only"].get_bool() : !g_txospenderindex};
+            const auto child_chain{
+                OptionalChildChainId(request.params[2])};
+            const bool mempool_only{options.exists("mempool_only")
+                ? options["mempool_only"].get_bool()
+                : child_chain.has_value() || !g_txospenderindex};
             const bool return_spending_tx{options.exists("return_spending_tx") ? options["return_spending_tx"].get_bool() : false};
 
             struct Entry {
@@ -1315,6 +1322,39 @@ static RPCHelpMan gettxspendingprevout()
                     throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, vout cannot be negative");
                 }
                 prevouts.emplace_back(COutPoint{txid, uint32_t(nOutput)}, o, UniValue{});
+            }
+
+            if (child_chain) {
+                const auto view{GetChildMempool(request, *child_chain)};
+                std::map<COutPoint, const CTransaction*> spenders;
+                for (const auto& candidate : view.entries) {
+                    for (const CTxIn& input : candidate.transaction->vin) {
+                        spenders.try_emplace(
+                            input.prevout, candidate.transaction.get());
+                    }
+                }
+
+                UniValue result{UniValue::VARR};
+                for (const auto& entry : prevouts) {
+                    UniValue output{entry.input};
+                    output.pushKV("chain_id", child_chain->GetHex());
+                    const auto spender{spenders.find(entry.prevout)};
+                    if (spender != spenders.end()) {
+                        output.pushKV(
+                            "spendingtxid",
+                            spender->second->GetHash().ToString());
+                        if (return_spending_tx) {
+                            output.pushKV(
+                                "spendingtx", EncodeHexTx(*spender->second));
+                        }
+                    } else if (!mempool_only) {
+                        throw JSONRPCError(
+                            RPC_MISC_ERROR,
+                            "Child txospenderindex is unavailable");
+                    }
+                    result.push_back(std::move(output));
+                }
+                return result;
             }
 
             // search the mempool first
