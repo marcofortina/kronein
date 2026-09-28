@@ -55,7 +55,7 @@
     </message>
     <message>
         <location line="-30"/>
-        <location filename="../addressbookpage.cpp" line="+105"/>
+        <location filename="../addressbookpage.cpp" line="+106"/>
         <source>&amp;Delete</source>
         <translation>&amp;Delete</translation>
     </message>
@@ -135,7 +135,7 @@
 <context>
     <name>AddressTableModel</name>
     <message>
-        <location filename="../addresstablemodel.cpp" line="+160"/>
+        <location filename="../addresstablemodel.cpp" line="+161"/>
         <source>Label</source>
         <translation type="unfinished"></translation>
     </message>
@@ -178,7 +178,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../askpassphrasedialog.cpp" line="+45"/>
+        <location filename="../askpassphrasedialog.cpp" line="+46"/>
         <source>Encrypt wallet</source>
         <translation type="unfinished"></translation>
     </message>
@@ -327,7 +327,7 @@
 <context>
     <name>BitcoinApplication</name>
     <message>
-        <location filename="../bitcoin.cpp" line="+251"/>
+        <location filename="../bitcoin.cpp" line="+252"/>
         <source>Settings file %1 might be corrupt or invalid.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -355,7 +355,7 @@
 <context>
     <name>BitcoinGUI</name>
     <message>
-        <location filename="../bitcoingui.cpp" line="+258"/>
+        <location filename="../bitcoingui.cpp" line="+260"/>
         <source>&amp;Overview</source>
         <translation>&amp;Overview</translation>
     </message>
@@ -410,22 +410,22 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+40"/>
+        <location line="+44"/>
         <source>Create a new wallet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+150"/>
+        <location line="+151"/>
         <source>&amp;Minimize</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+79"/>
+        <location line="+81"/>
         <source>Wallet:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+396"/>
+        <location line="+408"/>
         <source>Network activity disabled.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished"></translation>
@@ -436,7 +436,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1103"/>
+        <location line="-1122"/>
         <source>Backup wallet to another location</source>
         <translation>Backup wallet to another location</translation>
     </message>
@@ -491,7 +491,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+16"/>
+        <location line="+20"/>
         <source>Open &amp;URI…</source>
         <translation type="unfinished"></translation>
     </message>
@@ -516,7 +516,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+106"/>
+        <location line="+107"/>
         <source>&amp;File</source>
         <translation>&amp;File</translation>
     </message>
@@ -526,7 +526,7 @@
         <translation>&amp;Settings</translation>
     </message>
     <message>
-        <location line="+61"/>
+        <location line="+63"/>
         <source>&amp;Help</source>
         <translation>&amp;Help</translation>
     </message>
@@ -536,7 +536,7 @@
         <translation>Tabs toolbar</translation>
     </message>
     <message numerus="yes">
-        <location line="+413"/>
+        <location line="+425"/>
         <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
@@ -570,12 +570,12 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-819"/>
+        <location line="-838"/>
         <source>Request payments (generates QR codes and kronein: URIs)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+61"/>
+        <location line="+65"/>
         <source>Show the list of used sending addresses and labels</source>
         <translation type="unfinished"></translation>
     </message>
@@ -590,7 +590,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location line="+739"/>
+        <location line="+754"/>
         <source>Processed %n block(s) of transaction history.</source>
         <translation>
             <numerusform>Processed %n block of transaction history.</numerusform>
@@ -638,7 +638,7 @@
         <translation>Up to date</translation>
     </message>
     <message>
-        <location line="-804"/>
+        <location line="-823"/>
         <source>Ctrl+Q</source>
         <translation type="unfinished"></translation>
     </message>
@@ -669,6 +669,16 @@
     </message>
     <message>
         <location line="+5"/>
+        <source>Child Chains</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>View registered child chains and manage local child-chain runtimes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
         <source>&amp;Sending addresses</source>
         <translation type="unfinished"></translation>
     </message>
@@ -725,7 +735,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+47"/>
+        <location line="+48"/>
         <source>No wallets available</source>
         <translation type="unfinished"></translation>
     </message>
@@ -784,7 +794,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+273"/>
+        <location line="+275"/>
         <source>%1 client</source>
         <translation type="unfinished"></translation>
     </message>
@@ -799,7 +809,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+117"/>
+        <location line="+129"/>
         <source>Click for more actions.</source>
         <extracomment>A substring of the tooltip. &quot;More actions&quot; are available via the context menu.</extracomment>
         <translation type="unfinished"></translation>
@@ -915,6 +925,247 @@
     </message>
 </context>
 <context>
+    <name>ChildChainDialog</name>
+    <message>
+        <location filename="../childchaindialog.cpp" line="+54"/>
+        <source>Available</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Configured</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Loaded</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Retired</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Unsupported template</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Manifest mismatch</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Not in registry</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Child Chains</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Status</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Chain ID</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Child height</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Main height</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Fork DAG</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Template</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Safety</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+15"/>
+        <location line="+150"/>
+        <source>Select a child chain to manage its local runtime.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-145"/>
+        <source>Refresh</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Add Manifest…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Load</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Unload</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Forget…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+48"/>
+        <source>Failed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Safe halt</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Normal</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>%1 pending • %2/%3 candidates • %4/%5 anchors</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+30"/>
+        <source>Side candidates: %1/%2 records, %3/%4 bytes
+Candidate BMM anchors: %5/%6 records, %7/%8 bytes
+Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+17"/>
+        <source>Pending block data: %1 distinct blocks</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message numerus="yes">
+        <location line="+8"/>
+        <source>Main-chain registry at height %1 • root %2 • %n child chain(s)</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <location line="+2"/>
+        <source>Refresh child chains</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+37"/>
+        <source>Chain ID: %1
+State: %2 • registry: %3 • local configuration: %4</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <location line="+1"/>
+        <source>present</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-1"/>
+        <location line="+1"/>
+        <source>not present</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Add Child Manifest</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Paste a JSON object containing registration_anchor and manifest.
+The complete manifest will be validated against child chain %1 on the active main-chain registry.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <location line="+8"/>
+        <source>Invalid Manifest</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-8"/>
+        <source>The supplied text is not a valid JSON object.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>The JSON object must contain registration_anchor and manifest objects.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+16"/>
+        <location line="+4"/>
+        <source>Add child manifest</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+40"/>
+        <source>Unload Child Chain</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Stop the local runtime for child chain %1?
+
+Its manifest and all chain data will be preserved.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+15"/>
+        <source>Forget Child Chain</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Remove child chain %1 from this node&apos;s local catalog?
+
+Existing chain data will remain on disk. The chain can be reopened later by adding the same manifest again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+12"/>
+        <source>Child Chain Error</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>%1 failed:
+%2</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>CoinControlDialog</name>
     <message>
         <location filename="../forms/coincontroldialog.ui" line="+14"/>
@@ -997,7 +1248,7 @@
         <translation type="unfinished">Confirmed</translation>
     </message>
     <message>
-        <location filename="../coincontroldialog.cpp" line="+65"/>
+        <location filename="../coincontroldialog.cpp" line="+66"/>
         <source>Copy amount</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1230,7 +1481,7 @@
         <translation>&amp;Address</translation>
     </message>
     <message>
-        <location filename="../editaddressdialog.cpp" line="+29"/>
+        <location filename="../editaddressdialog.cpp" line="+30"/>
         <source>New sending address</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1301,7 +1552,7 @@
 <context>
     <name>HelpMessageDialog</name>
     <message>
-        <location filename="../utilitydialog.cpp" line="+36"/>
+        <location filename="../utilitydialog.cpp" line="+37"/>
         <source>version</source>
         <translation type="unfinished">version</translation>
     </message>
@@ -1374,7 +1625,7 @@
         <translation>Use a custom data directory:</translation>
     </message>
     <message numerus="yes">
-        <location filename="../intro.cpp" line="+218"/>
+        <location filename="../intro.cpp" line="+219"/>
         <source>%n GB of space available</source>
         <translation type="unfinished">
             <numerusform>%n GB of space available</numerusform>
@@ -2036,7 +2287,7 @@
 <context>
     <name>OptionsModel</name>
     <message>
-        <location filename="../optionsmodel.cpp" line="+208"/>
+        <location filename="../optionsmodel.cpp" line="+209"/>
         <source>Could not read setting &quot;%1&quot;, %2.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2105,7 +2356,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../overviewpage.cpp" line="+176"/>
+        <location filename="../overviewpage.cpp" line="+177"/>
         <source>Privacy mode activated for the Overview tab. To unmask the values, uncheck Settings-&gt;Mask values.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2288,7 +2539,7 @@
 <context>
     <name>PaymentServer</name>
     <message>
-        <location filename="../paymentserver.cpp" line="+145"/>
+        <location filename="../paymentserver.cpp" line="+146"/>
         <source>Payment request error</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2407,12 +2658,12 @@ If you are receiving this error you should request the merchant provide a BIP21 
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../bitcoinunits.cpp" line="+197"/>
+        <location filename="../bitcoinunits.cpp" line="+198"/>
         <source>Amount</source>
         <translation type="unfinished">Amount</translation>
     </message>
     <message>
-        <location filename="../guiutil.cpp" line="+136"/>
+        <location filename="../guiutil.cpp" line="+139"/>
         <source>Enter a Kronein address (e.g. %1)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2754,7 +3005,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <location line="+26"/>
         <location line="+26"/>
         <location line="+26"/>
-        <location filename="../rpcconsole.h" line="+147"/>
+        <location filename="../rpcconsole.h" line="+148"/>
         <source>N/A</source>
         <translation>N/A</translation>
     </message>
@@ -3671,7 +3922,7 @@ For more information on using this console, type %6.
     <name>SendCoinsDialog</name>
     <message>
         <location filename="../forms/sendcoinsdialog.ui" line="+14"/>
-        <location filename="../sendcoinsdialog.cpp" line="+747"/>
+        <location filename="../sendcoinsdialog.cpp" line="+748"/>
         <source>Send Coins</source>
         <translation>Send Coins</translation>
     </message>
@@ -4208,7 +4459,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
 <context>
     <name>SendConfirmationDialog</name>
     <message>
-        <location filename="../sendcoinsdialog.h" line="+151"/>
+        <location filename="../sendcoinsdialog.h" line="+152"/>
         <source>Send</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4234,7 +4485,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
 <context>
     <name>SplashScreen</name>
     <message>
-        <location filename="../splashscreen.cpp" line="+175"/>
+        <location filename="../splashscreen.cpp" line="+176"/>
         <source>(press q to shutdown and continue later)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4255,7 +4506,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
 <context>
     <name>TransactionDesc</name>
     <message>
-        <location filename="../transactiondesc.cpp" line="+34"/>
+        <location filename="../transactiondesc.cpp" line="+35"/>
         <source>conflicted with a transaction with %1 confirmations</source>
         <extracomment>Text explaining the current status of a transaction, shown in the status field of the details window for this transaction. This status represents an unconfirmed transaction that conflicts with a confirmed transaction.</extracomment>
         <translation type="unfinished"></translation>
@@ -4867,7 +5118,7 @@ Go to File &gt; Open Wallet to load a wallet.
 <context>
     <name>WalletModel</name>
     <message>
-        <location filename="../walletmodel.cpp" line="+208"/>
+        <location filename="../walletmodel.cpp" line="+209"/>
         <location line="+20"/>
         <source>Send Coins</source>
         <translation type="unfinished">Send Coins</translation>
@@ -5004,12 +5255,12 @@ Go to File &gt; Open Wallet to load a wallet.
 <context>
     <name>bitcoin-core</name>
     <message>
-        <location filename="../bitcoinstrings.cpp" line="+178"/>
+        <location filename="../bitcoinstrings.cpp" line="+179"/>
         <source>The %s developers</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-166"/>
+        <location line="-167"/>
         <source>%s failed to validate the -assumeutxo snapshot state. This indicates a hardware problem, or a bug in the software, or a bad software modification that allowed an invalid snapshot to be loaded. As a result of this, the node will shut down and stop using any state that was built on the snapshot, resetting the chain height from %d to %d. On the next restart, the node will resume syncing from %d without using any snapshot data. Please report this incident to %s, including how you obtained the snapshot. The invalid snapshot chainstate will be left on disk in case it is helpful in diagnosing the issue that caused this error.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5034,7 +5285,7 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="+5"/>
         <source>Error reading %s! Transaction data may be missing or incorrect. Rescanning wallet.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5164,7 +5415,7 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-218"/>
+        <location line="-219"/>
         <source>%s is set very high!</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5209,7 +5460,7 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+9"/>
         <source>Error reading %s! All keys read correctly, but transaction data or address metadata may be missing or incorrect.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5340,7 +5591,7 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-217"/>
+        <location line="-218"/>
         <source>A fatal internal error occurred, see debug.log for details: </source>
         <translation type="unfinished"></translation>
     </message>
@@ -5460,7 +5711,7 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+2"/>
         <source>Error opening coins database</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5640,7 +5891,7 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-88"/>
+        <location line="-89"/>
         <source>A %zu MiB dbcache may be too large for a system memory of only %zu MiB.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5665,7 +5916,12 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+27"/>
+        <location line="+11"/>
+        <source>Error opening child chain registry database</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+17"/>
         <source>Error: No addresses available.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6079,12 +6335,12 @@ Please try running the latest software version.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-179"/>
+        <location line="-180"/>
         <source>Do you want to rebuild the databases now?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+41"/>
+        <location line="+42"/>
         <source>Failed to start indexes, shutting down…</source>
         <translation type="unfinished"></translation>
     </message>
