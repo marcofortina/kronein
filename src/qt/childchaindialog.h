@@ -93,6 +93,7 @@ private:
     bool runCommand(const char* command, UniValue params);
     bool runLifecycleCommand(const char* command, const QString& chain_id);
     void showRpcError(const QString& operation, const QString& message);
+    void showBmmStatus(const QString& chain_id);
     void activateBmmProposal(const QString& chain_id);
 #ifdef ENABLE_WALLET
     std::string walletUri() const;

@@ -102,6 +102,18 @@ QString StateLabel(const QString& state)
     return state;
 }
 
+QString BmmHealthLabel(const QString& health)
+{
+    if (health == QStringLiteral("idle")) return ChildChainDialog::tr("Idle");
+    if (health == QStringLiteral("awaiting_anchor")) return ChildChainDialog::tr("Awaiting BMM anchor");
+    if (health == QStringLiteral("anchor_ready")) return ChildChainDialog::tr("Anchor ready");
+    if (health == QStringLiteral("awaiting_block_data")) return ChildChainDialog::tr("Awaiting child block data");
+    if (health == QStringLiteral("anchored")) return ChildChainDialog::tr("Anchored");
+    if (health == QStringLiteral("safe_halt")) return ChildChainDialog::tr("Safe halt");
+    if (health == QStringLiteral("failed")) return ChildChainDialog::tr("Failed");
+    return health;
+}
+
 #ifdef ENABLE_WALLET
 QString DepositStatusLabel(const QString& status)
 {
@@ -495,11 +507,14 @@ void ChildChainDialog::manageBmm()
     const QString chain_id{selectedChainId()};
     if (chain_id.isEmpty()) return;
 
-    QStringList actions;
+    const QString status_action{tr("View operational status")};
+    const QString build_action{tr("Build and anchor an import block")};
+    const QString activate_action{tr("Activate a stored confirmed proposal")};
+    QStringList actions{status_action};
 #ifdef ENABLE_WALLET
-    if (m_wallet_model) actions.push_back(tr("Build and anchor an import block"));
+    if (m_wallet_model) actions.push_back(build_action);
 #endif
-    actions.push_back(tr("Activate a stored confirmed proposal"));
+    actions.push_back(activate_action);
     bool accepted{false};
     const QString action{QInputDialog::getItem(
         this,
@@ -511,13 +526,121 @@ void ChildChainDialog::manageBmm()
         &accepted)};
     if (!accepted || action.isEmpty()) return;
 
+    if (action == status_action) {
+        showBmmStatus(chain_id);
+        return;
+    }
 #ifdef ENABLE_WALLET
-    if (m_wallet_model && action == actions.front()) {
+    if (m_wallet_model && action == build_action) {
         createBmmProposal(chain_id);
         return;
     }
 #endif
     activateBmmProposal(chain_id);
+}
+
+void ChildChainDialog::showBmmStatus(const QString& chain_id)
+{
+    UniValue params{UniValue::VARR};
+    params.push_back(chain_id.toStdString());
+    UniValue status;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        status = m_node.executeRpc("getchildbmmstatus", params, "");
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Child BMM status"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Child BMM status"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+
+    const UniValue& pending{status.find_value("pending_blocks")};
+    const UniValue& proposals{status.find_value("proposals")};
+    if (!status.isObject() || !pending.isArray() || !proposals.isArray() ||
+        StringField(status, "chain_id").compare(
+            chain_id, Qt::CaseInsensitive) != 0) {
+        showRpcError(tr("Child BMM status"),
+                     tr("The node returned an invalid BMM status snapshot."));
+        return;
+    }
+
+    QDialog dialog{this};
+    dialog.setWindowTitle(tr("Child BMM Operational Status"));
+    dialog.setMinimumSize(900, 580);
+    auto* layout = new QVBoxLayout{&dialog};
+    auto* summary = new QLabel{
+        tr("Health: %1\n"
+           "Child: height %2 • tip %3\n"
+           "Main: height %4 • tip %5\n"
+           "Canonical anchors: %6 • tip anchor: %7\n"
+           "Local proposals: %8 (%9 waiting, %10 anchored) • pending block data: %11 (%12 anchors)\n"
+           "Competing DAG: %13 blocks / %14 anchors")
+            .arg(BmmHealthLabel(StringField(status, "health")),
+                 NumberField(status, "child_height"),
+                 StringField(status, "bestblockhash"),
+                 NumberField(status, "main_height"),
+                 StringField(status, "main_bestblockhash"),
+                 NumberField(status, "canonical_anchor_count"),
+                 BoolField(status, "has_tip_anchor")
+                     ? tr("%1 at main height %2 (%3 confirmations)")
+                           .arg(StringField(status, "tip_anchor_main_block_hash"),
+                                NumberField(status, "tip_anchor_main_height"),
+                                NumberField(status, "tip_anchor_confirmations"))
+                     : tr("none (virtual genesis)"),
+                 NumberField(status, "proposal_count"),
+                 NumberField(status, "proposals_without_anchor"),
+                 NumberField(status, "proposals_with_anchor"),
+                 NumberField(status, "pending_block_count"),
+                 NumberField(status, "pending_anchor_count"),
+                 NumberField(status, "side_candidate_count"),
+                 NumberField(status, "candidate_anchor_count")),
+        &dialog};
+    summary->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    summary->setWordWrap(true);
+    layout->addWidget(summary);
+
+    QStringList details;
+    if (!pending.empty()) {
+        details.push_back(tr("Pending child block data:"));
+        for (const UniValue& block : pending.getValues()) {
+            details.push_back(
+                tr("  %1 — %2 anchor(s), main heights %3–%4")
+                    .arg(StringField(block, "blockhash"),
+                         NumberField(block, "anchor_count"),
+                         NumberField(block, "oldest_anchor_height"),
+                         NumberField(block, "newest_anchor_height")));
+        }
+    }
+    if (!proposals.empty()) {
+        if (!details.isEmpty()) details.push_back(QString{});
+        details.push_back(tr("Durable local proposals:"));
+        for (const UniValue& proposal : proposals.getValues()) {
+            details.push_back(
+                tr("  %1 — parent %2 — %3 bytes — %4")
+                    .arg(StringField(proposal, "blockhash"),
+                         StringField(proposal, "previousblockhash"),
+                         NumberField(proposal, "size"),
+                         BoolField(proposal, "anchor_available")
+                             ? tr("authenticated anchor ready")
+                             : tr("waiting for anchor")));
+        }
+    }
+    if (details.isEmpty()) {
+        details.push_back(tr("No pending BMM work is queued for this child chain."));
+    }
+    auto* detail_view = new QPlainTextEdit{details.join(QLatin1Char('\n')), &dialog};
+    detail_view->setReadOnly(true);
+    detail_view->setLineWrapMode(QPlainTextEdit::NoWrap);
+    layout->addWidget(detail_view, 1);
+    auto* buttons = new QDialogButtonBox{QDialogButtonBox::Close, &dialog};
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    layout->addWidget(buttons);
+    dialog.exec();
 }
 
 void ChildChainDialog::activateBmmProposal(const QString& chain_id)
