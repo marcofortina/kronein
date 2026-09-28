@@ -194,6 +194,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     m_register_button = actions->addButton(tr("Register…"), QDialogButtonBox::ActionRole);
     m_balance_button = actions->addButton(tr("Balance…"), QDialogButtonBox::ActionRole);
     m_receive_button = actions->addButton(tr("Receive…"), QDialogButtonBox::ActionRole);
+    m_send_button = actions->addButton(tr("Send…"), QDialogButtonBox::ActionRole);
     m_activity_button = actions->addButton(tr("Activity…"), QDialogButtonBox::ActionRole);
     m_deposits_button = actions->addButton(tr("Deposits…"), QDialogButtonBox::ActionRole);
     m_migrate_button = actions->addButton(tr("Migrate…"), QDialogButtonBox::ActionRole);
@@ -206,6 +207,9 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     m_receive_button->setObjectName(QStringLiteral("childChainReceiveButton"));
     m_receive_button->setToolTip(
         tr("Create a wallet-owned receiving key bound to the selected child chain."));
+    m_send_button->setObjectName(QStringLiteral("childChainSendButton"));
+    m_send_button->setToolTip(
+        tr("Create, sign, and broadcast a transaction on the selected child chain."));
     m_activity_button->setObjectName(QStringLiteral("childChainActivityButton"));
     m_activity_button->setToolTip(
         tr("Show confirmed and pending wallet activity on the loaded child chain."));
@@ -244,6 +248,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     connect(m_register_button, &QPushButton::clicked, this, &ChildChainDialog::registerChildChain);
     connect(m_balance_button, &QPushButton::clicked, this, &ChildChainDialog::showBalance);
     connect(m_receive_button, &QPushButton::clicked, this, &ChildChainDialog::receiveSelected);
+    connect(m_send_button, &QPushButton::clicked, this, &ChildChainDialog::sendSelected);
     connect(m_activity_button, &QPushButton::clicked, this, &ChildChainDialog::showActivity);
     connect(m_deposits_button, &QPushButton::clicked, this, &ChildChainDialog::showDeposits);
     connect(m_migrate_button, &QPushButton::clicked, this, &ChildChainDialog::migrateSelected);
@@ -463,6 +468,7 @@ void ChildChainDialog::updateSelection()
         m_register_button->setEnabled(m_wallet_model);
         m_balance_button->setEnabled(false);
         m_receive_button->setEnabled(false);
+        m_send_button->setEnabled(false);
         m_activity_button->setEnabled(false);
         m_deposits_button->setEnabled(false);
         m_migrate_button->setEnabled(false);
@@ -505,6 +511,7 @@ void ChildChainDialog::updateSelection()
     m_register_button->setEnabled(m_wallet_model);
     m_balance_button->setEnabled(m_wallet_model && loaded && supported);
     m_receive_button->setEnabled(m_wallet_model && loaded && supported);
+    m_send_button->setEnabled(m_wallet_model && loaded && supported);
     m_activity_button->setEnabled(m_wallet_model && loaded && supported);
     m_deposits_button->setEnabled(m_wallet_model);
     const bool active_registry_record{
@@ -1656,6 +1663,221 @@ void ChildChainDialog::receiveSelected()
     connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
     layout->addWidget(buttons);
     dialog.exec();
+}
+
+void ChildChainDialog::sendSelected()
+{
+    const QString chain_id{selectedChainId()};
+    if (chain_id.isEmpty() || !m_wallet_model) return;
+    const QPointer<WalletModel> wallet_model{m_wallet_model};
+    const std::string wallet_uri{walletUri()};
+
+    QDialog input_dialog{this};
+    input_dialog.setWindowTitle(tr("Send KNE on Child Chain"));
+    auto* layout = new QVBoxLayout{&input_dialog};
+    auto* notice = new QLabel{
+        tr("This transaction is confined to the selected child ledger. Child funds cannot be withdrawn back to the main chain."),
+        &input_dialog};
+    notice->setWordWrap(true);
+    layout->addWidget(notice);
+
+    auto* form = new QFormLayout;
+    auto* chain = new QLineEdit{chain_id, &input_dialog};
+    chain->setReadOnly(true);
+    auto* recipient = new QLineEdit{&input_dialog};
+    recipient->setValidator(new QRegularExpressionValidator{
+        QRegularExpression{QStringLiteral("[0-9A-Fa-f]{64}")}, recipient});
+    recipient->setPlaceholderText(tr("32-byte child P2TR output key in hexadecimal"));
+    recipient->setToolTip(
+        tr("Paste the raw recipient returned for this exact child chain, not a main-chain address."));
+    auto* amount = new BitcoinAmountField{&input_dialog};
+    amount->SetAllowEmpty(false);
+    amount->SetMinValue(1);
+    amount->SetMaxValue(MAX_MONEY);
+    auto* fee = new BitcoinAmountField{&input_dialog};
+    fee->SetAllowEmpty(false);
+    fee->SetMinValue(0);
+    fee->SetMaxValue(MAX_MONEY);
+    fee->setValue(1000);
+    fee->setToolTip(
+        tr("Absolute fee paid on the child chain. Child chains do not use the main-chain fee estimator."));
+    form->addRow(tr("Child chain:"), chain);
+    form->addRow(tr("Recipient bytes:"), recipient);
+    form->addRow(tr("Amount:"), amount);
+    form->addRow(tr("Absolute fee:"), fee);
+    layout->addLayout(form);
+
+    auto* buttons = new QDialogButtonBox{
+        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &input_dialog};
+    buttons->button(QDialogButtonBox::Ok)->setText(tr("Review Transaction"));
+    connect(buttons, &QDialogButtonBox::accepted,
+            &input_dialog, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected,
+            &input_dialog, &QDialog::reject);
+    layout->addWidget(buttons);
+    if (input_dialog.exec() != QDialog::Accepted) return;
+    if (!recipient->hasAcceptableInput()) {
+        QMessageBox::warning(
+            this, tr("Invalid Recipient"),
+            tr("Enter exactly 32 bytes (64 hexadecimal characters) for the child P2TR output key."));
+        return;
+    }
+    if (!amount->validate() || amount->value() <= 0) {
+        QMessageBox::warning(
+            this, tr("Invalid Amount"),
+            tr("Enter a positive child transaction amount."));
+        return;
+    }
+    if (!fee->validate() || fee->value() < 0) {
+        QMessageBox::warning(
+            this, tr("Invalid Fee"),
+            tr("Enter a non-negative absolute child transaction fee."));
+        return;
+    }
+
+    UniValue outputs{UniValue::VARR};
+    UniValue output{UniValue::VOBJ};
+    output.pushKV("recipient", recipient->text().trimmed().toStdString());
+    output.pushKV("amount", ValueFromAmount(amount->value()));
+    outputs.push_back(std::move(output));
+    UniValue create_params{UniValue::VARR};
+    create_params.push_back(chain_id.toStdString());
+    create_params.push_back(std::move(outputs));
+    create_params.push_back(ValueFromAmount(fee->value()));
+
+    UniValue created;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        created = m_node.executeRpc(
+            "walletcreatechildpsbt", create_params, wallet_uri);
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Create child transaction"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Create child transaction"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+
+    const UniValue& psbt{created.find_value("psbt")};
+    const UniValue& created_fee{created.find_value("fee")};
+    const UniValue& change{created.find_value("change")};
+    const UniValue& inputs{created.find_value("inputs")};
+    const UniValue& child_height{created.find_value("child_height")};
+    const QString child_tip{StringField(created, "child_tip")};
+    if (!created.isObject() ||
+        StringField(created, "chain_id").compare(
+            chain_id, Qt::CaseInsensitive) != 0 ||
+        !psbt.isStr() || !created_fee.isNum() ||
+        created_fee.getValStr() != ValueFromAmount(fee->value()).getValStr() ||
+        !change.isNum() || !inputs.isNum() ||
+        inputs.getInt<int>() <= 0 || !child_height.isNum() ||
+        !QRegularExpression{QStringLiteral("^[0-9A-Fa-f]{64}$")}
+             .match(child_tip).hasMatch()) {
+        showRpcError(tr("Create child transaction"),
+                     tr("The wallet returned an invalid child transaction proposal."));
+        return;
+    }
+
+    QMessageBox confirmation{
+        QMessageBox::Warning,
+        tr("Confirm Child Transaction"),
+        tr("Send %1 KNE on child chain %2?\n\nRecipient: %3\nAbsolute child fee: %4 KNE\nChange: %5 KNE\nInputs: %6\nChild tip: height %7\n%8\n\nThis transaction cannot move funds back to the main chain.")
+            .arg(QString::fromStdString(ValueFromAmount(amount->value()).getValStr()),
+                 chain_id,
+                 recipient->text().trimmed(),
+                 QString::fromStdString(created_fee.getValStr()),
+                 QString::fromStdString(change.getValStr()),
+                 QString::fromStdString(inputs.getValStr()),
+                 QString::fromStdString(child_height.getValStr()),
+                 child_tip),
+        QMessageBox::Yes | QMessageBox::Cancel,
+        this};
+    confirmation.setDefaultButton(QMessageBox::Cancel);
+    if (confirmation.exec() != QMessageBox::Yes) return;
+    if (!wallet_model || m_wallet_model != wallet_model) {
+        showRpcError(tr("Sign child transaction"),
+                     tr("The selected wallet changed while preparing the transaction."));
+        return;
+    }
+    WalletModel::UnlockContext unlock_context{wallet_model->requestUnlock()};
+    if (!unlock_context.isValid()) return;
+
+    UniValue process_params{UniValue::VARR};
+    process_params.push_back(psbt.get_str());
+    process_params.push_back(created_fee);
+    UniValue processed;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        processed = m_node.executeRpc(
+            "walletprocesschildpsbt", process_params, wallet_uri);
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Sign child transaction"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Sign child transaction"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+
+    const UniValue& complete{processed.find_value("complete")};
+    const UniValue& processed_fee{processed.find_value("fee")};
+    const QString transaction_hex{StringField(processed, "hex")};
+    const QString transaction_id{StringField(processed, "txid")};
+    if (!processed.isObject() ||
+        StringField(processed, "chain_id").compare(
+            chain_id, Qt::CaseInsensitive) != 0 ||
+        !complete.isBool() || !complete.get_bool() ||
+        !processed_fee.isNum() ||
+        processed_fee.getValStr() != created_fee.getValStr() ||
+        transaction_hex.isEmpty() || transaction_hex.size() % 2 != 0 ||
+        !QRegularExpression{QStringLiteral("^[0-9A-Fa-f]+$")}
+             .match(transaction_hex).hasMatch() ||
+        !QRegularExpression{QStringLiteral("^[0-9A-Fa-f]{64}$")}
+             .match(transaction_id).hasMatch()) {
+        showRpcError(tr("Sign child transaction"),
+                     tr("The wallet did not return a complete, valid child transaction."));
+        return;
+    }
+
+    UniValue send_params{UniValue::VARR};
+    send_params.push_back(transaction_hex.toStdString());
+    send_params.push_back(0);
+    send_params.push_back(0);
+    send_params.push_back(chain_id.toStdString());
+    UniValue submitted;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        submitted = m_node.executeRpc("sendrawtransaction", send_params, "");
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Broadcast child transaction"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Broadcast child transaction"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+
+    if (!submitted.isStr() ||
+        QString::fromStdString(submitted.get_str()).compare(
+            transaction_id, Qt::CaseInsensitive) != 0) {
+        showRpcError(tr("Broadcast child transaction"),
+                     tr("The node returned an unexpected child transaction identifier."));
+        return;
+    }
+    QMessageBox::information(
+        this, tr("Child Transaction Submitted"),
+        tr("The child transaction was accepted and relayed.\n\nTransaction: %1")
+            .arg(transaction_id));
 }
 
 void ChildChainDialog::showActivity()
