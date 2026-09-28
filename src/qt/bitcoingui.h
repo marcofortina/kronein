@@ -33,6 +33,7 @@ class Notificator;
 class OptionsModel;
 class PlatformStyle;
 class RPCConsole;
+class ChildChainDialog;
 class SendCoinsRecipient;
 class UnitDisplayStatusBarControl;
 class WalletController;
@@ -149,6 +150,7 @@ private:
     QAction* changePassphraseAction = nullptr;
     QAction* aboutQtAction = nullptr;
     QAction* openRPCConsoleAction = nullptr;
+    QAction* m_child_chains_action{nullptr};
     QAction* openAction = nullptr;
     QAction* showHelpMessageAction = nullptr;
     QAction* m_create_wallet_action{nullptr};
@@ -168,6 +170,7 @@ private:
     const std::unique_ptr<QMenu> trayIconMenu;
     Notificator* notificator = nullptr;
     RPCConsole* rpcConsole = nullptr;
+    ChildChainDialog* m_child_chain_dialog{nullptr};
     HelpMessageDialog* helpMessageDialog = nullptr;
     ModalOverlay* modalOverlay = nullptr;
 
@@ -295,6 +298,8 @@ public Q_SLOTS:
     void aboutClicked();
     /** Show debug window */
     void showDebugWindow();
+    /** Show the registered child-chain catalog and local runtime controls. */
+    void showChildChains();
     /** Show debug window and set focus to the console */
     void showDebugWindowActivateConsole();
     /** Show help message dialog */

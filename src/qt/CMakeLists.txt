@@ -80,6 +80,8 @@ add_library(bitcoinqt STATIC EXCLUDE_FROM_ALL
   bitcoingui.h
   bitcoinunits.cpp
   bitcoinunits.h
+  childchaindialog.cpp
+  childchaindialog.h
   clientmodel.cpp
   clientmodel.h
   csvmodelwriter.cpp

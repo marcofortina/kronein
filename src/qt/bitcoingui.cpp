@@ -9,6 +9,7 @@
 
 #include <qt/bitcoinunits.h>
 #include <qt/clientmodel.h>
+#include <qt/childchaindialog.h>
 #include <qt/createwalletdialog.h>
 #include <qt/guiconstants.h>
 #include <qt/guiutil.h>
@@ -331,6 +332,10 @@ void BitcoinGUI::createActions()
     openRPCConsoleAction->setEnabled(false);
     openRPCConsoleAction->setObjectName("openRPCConsoleAction");
 
+    m_child_chains_action = new QAction(tr("Child Chains"), this);
+    m_child_chains_action->setStatusTip(tr("View registered child chains and manage local child-chain runtimes"));
+    m_child_chains_action->setObjectName("childChainsAction");
+
     usedSendingAddressesAction = new QAction(tr("&Sending addresses"), this);
     usedSendingAddressesAction->setStatusTip(tr("Show the list of used sending addresses and labels"));
     usedReceivingAddressesAction = new QAction(tr("&Receiving addresses"), this);
@@ -375,6 +380,7 @@ void BitcoinGUI::createActions()
     connect(optionsAction, &QAction::triggered, this, &BitcoinGUI::optionsClicked);
     connect(showHelpMessageAction, &QAction::triggered, this, &BitcoinGUI::showHelpMessageClicked);
     connect(openRPCConsoleAction, &QAction::triggered, this, &BitcoinGUI::showDebugWindow);
+    connect(m_child_chains_action, &QAction::triggered, this, &BitcoinGUI::showChildChains);
     // prevents an open debug window from becoming stuck/unusable on client shutdown
     connect(quitAction, &QAction::triggered, rpcConsole, &QWidget::hide);
 
@@ -537,6 +543,8 @@ void BitcoinGUI::createMenuBar()
         window_menu->addAction(usedReceivingAddressesAction);
     }
 
+    window_menu->addSeparator();
+    window_menu->addAction(m_child_chains_action);
     window_menu->addSeparator();
     for (RPCConsole::TabTypes tab_type : rpcConsole->tabs()) {
         QAction* tab_action = window_menu->addAction(rpcConsole->tabTitle(tab_type));
@@ -900,6 +908,18 @@ void BitcoinGUI::showDebugWindow()
 {
     GUIUtil::bringToFront(rpcConsole);
     Q_EMIT consoleShown(rpcConsole);
+}
+
+void BitcoinGUI::showChildChains()
+{
+    if (!m_child_chain_dialog) {
+        m_child_chain_dialog = new ChildChainDialog{m_node, this};
+        m_child_chain_dialog->setAttribute(Qt::WA_DeleteOnClose);
+        connect(m_child_chain_dialog, &QObject::destroyed, this, [this] {
+            m_child_chain_dialog = nullptr;
+        });
+    }
+    GUIUtil::bringToFront(m_child_chain_dialog);
 }
 
 void BitcoinGUI::showDebugWindowActivateConsole()

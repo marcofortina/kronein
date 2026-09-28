@@ -10,6 +10,7 @@
 #include <logging.h>
 #include <qt/bitcoin.h>
 #include <qt/bitcoingui.h>
+#include <qt/childchaindialog.h>
 #include <qt/networkstyle.h>
 #include <qt/rpcconsole.h>
 #include <test/util/setup_common.h>
@@ -23,6 +24,7 @@
 #include <QString>
 #include <QTest>
 #include <QTextEdit>
+#include <QTableWidget>
 #include <QtGlobal>
 #include <QtTest/QtTestWidgets>
 #include <QtTest/QtTestGui>
@@ -89,6 +91,18 @@ void AppTests::appTests()
 void AppTests::guiTests(BitcoinGUI* window)
 {
     HandleCallback callback{"guiTests", *this};
+
+    QAction* child_chains_action = window->findChild<QAction*>("childChainsAction");
+    QVERIFY(child_chains_action);
+    child_chains_action->activate(QAction::Trigger);
+    ChildChainDialog* child_chains = window->findChild<ChildChainDialog*>();
+    QVERIFY(child_chains);
+    QVERIFY(child_chains->isVisible());
+    QTableWidget* child_chain_table = child_chains->findChild<QTableWidget*>("childChainTable");
+    QVERIFY(child_chain_table);
+    QCOMPARE(child_chain_table->columnCount(), 6);
+    child_chains->close();
+
     connect(window, &BitcoinGUI::consoleShown, this, &AppTests::consoleTests);
     expectCallback("consoleTests");
     QAction* action = window->findChild<QAction*>("openRPCConsoleAction");
