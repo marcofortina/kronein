@@ -85,6 +85,13 @@ struct ChainManagerEntry {
     uint256 tip{};
     uint32_t main_height{0};
     uint256 main_tip{};
+    uint64_t anchor_count{0};
+    uint64_t pending_anchor_count{0};
+    uint64_t pending_anchor_bytes{0};
+    uint64_t side_candidate_count{0};
+    uint64_t side_candidate_bytes{0};
+    uint64_t candidate_anchor_count{0};
+    uint64_t candidate_anchor_bytes{0};
 };
 
 enum class ChainManagerViewError : uint8_t {

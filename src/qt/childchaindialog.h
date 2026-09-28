@@ -37,6 +37,7 @@ private:
         CHAIN_ID,
         CHILD_HEIGHT,
         MAIN_HEIGHT,
+        FORK_DAG,
         TEMPLATE,
         SAFETY,
         COLUMN_COUNT,

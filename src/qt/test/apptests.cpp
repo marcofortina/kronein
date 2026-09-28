@@ -100,7 +100,7 @@ void AppTests::guiTests(BitcoinGUI* window)
     QVERIFY(child_chains->isVisible());
     QTableWidget* child_chain_table = child_chains->findChild<QTableWidget*>("childChainTable");
     QVERIFY(child_chain_table);
-    QCOMPARE(child_chain_table->columnCount(), 6);
+    QCOMPARE(child_chain_table->columnCount(), 7);
     child_chains->close();
 
     connect(window, &BitcoinGUI::consoleShown, this, &AppTests::consoleTests);

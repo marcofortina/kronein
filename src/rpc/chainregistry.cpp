@@ -114,6 +114,24 @@ chainregistry::BmmAnchorProof ParseBmmProof(const UniValue& value)
     return proof;
 }
 
+void PushChildStorageStats(UniValue& object,
+                           const node::ChainManagerEntry& entry)
+{
+    object.pushKV("bmm_anchor_count", entry.anchor_count);
+    object.pushKV("pending_bmm_anchor_count", entry.pending_anchor_count);
+    object.pushKV("pending_bmm_anchor_bytes", entry.pending_anchor_bytes);
+    object.pushKV("pending_bmm_anchor_limit", node::MAX_CHILD_PENDING_BMM_ANCHORS);
+    object.pushKV("pending_bmm_anchor_bytes_limit", node::MAX_CHILD_PENDING_BMM_BYTES);
+    object.pushKV("side_candidate_count", entry.side_candidate_count);
+    object.pushKV("side_candidate_bytes", entry.side_candidate_bytes);
+    object.pushKV("side_candidate_limit", node::MAX_CHILD_SIDE_CANDIDATES);
+    object.pushKV("side_candidate_bytes_limit", node::MAX_CHILD_SIDE_CANDIDATE_BYTES);
+    object.pushKV("candidate_bmm_anchor_count", entry.candidate_anchor_count);
+    object.pushKV("candidate_bmm_anchor_bytes", entry.candidate_anchor_bytes);
+    object.pushKV("candidate_bmm_anchor_limit", node::MAX_CHILD_CANDIDATE_BMM_ANCHORS);
+    object.pushKV("candidate_bmm_anchor_bytes_limit", node::MAX_CHILD_CANDIDATE_BMM_BYTES);
+}
+
 CBlock ParseChildBlock(const UniValue& value)
 {
     const auto bytes{ParseBoundedHex(
@@ -935,6 +953,19 @@ RPCHelpMan listchildchainruntimes()
                     {RPCResult::Type::STR_HEX, "bestblockhash", /*optional=*/true, "Loaded child tip"},
                     {RPCResult::Type::NUM, "main_height", /*optional=*/true, "Main-header light-client height"},
                     {RPCResult::Type::STR_HEX, "main_bestblockhash", /*optional=*/true, "Main-header light-client tip"},
+                    {RPCResult::Type::NUM, "bmm_anchor_count", /*optional=*/true, "Canonical child blocks with persisted BMM anchors"},
+                    {RPCResult::Type::NUM, "pending_bmm_anchor_count", /*optional=*/true, "Authenticated BMM anchors waiting for child block data"},
+                    {RPCResult::Type::NUM, "pending_bmm_anchor_bytes", /*optional=*/true, "Serialized bytes used by pending BMM anchors"},
+                    {RPCResult::Type::NUM, "pending_bmm_anchor_limit", /*optional=*/true, "Maximum pending BMM anchor records"},
+                    {RPCResult::Type::NUM, "pending_bmm_anchor_bytes_limit", /*optional=*/true, "Maximum serialized bytes for pending BMM anchors"},
+                    {RPCResult::Type::NUM, "side_candidate_count", /*optional=*/true, "Validated non-canonical candidates retained in the fork DAG"},
+                    {RPCResult::Type::NUM, "side_candidate_bytes", /*optional=*/true, "Serialized bytes used by retained non-canonical candidates"},
+                    {RPCResult::Type::NUM, "side_candidate_limit", /*optional=*/true, "Maximum retained non-canonical candidates"},
+                    {RPCResult::Type::NUM, "side_candidate_bytes_limit", /*optional=*/true, "Maximum serialized bytes for retained non-canonical candidates"},
+                    {RPCResult::Type::NUM, "candidate_bmm_anchor_count", /*optional=*/true, "BMM anchors retained for non-canonical candidates"},
+                    {RPCResult::Type::NUM, "candidate_bmm_anchor_bytes", /*optional=*/true, "Serialized bytes used by non-canonical candidate anchors"},
+                    {RPCResult::Type::NUM, "candidate_bmm_anchor_limit", /*optional=*/true, "Maximum BMM anchors retained for non-canonical candidates"},
+                    {RPCResult::Type::NUM, "candidate_bmm_anchor_bytes_limit", /*optional=*/true, "Maximum serialized bytes for non-canonical candidate anchors"},
                     {RPCResult::Type::STR, "data_path", /*optional=*/true, "Local chain directory"},
                 }},
             }},
@@ -1000,6 +1031,7 @@ RPCHelpMan listchildchainruntimes()
                 chain.pushKV("bestblockhash", configured->second.tip.GetHex());
                 chain.pushKV("main_height", configured->second.main_height);
                 chain.pushKV("main_bestblockhash", configured->second.main_tip.GetHex());
+                PushChildStorageStats(chain, configured->second);
             }
             local.erase(configured);
         }
@@ -1025,6 +1057,7 @@ RPCHelpMan listchildchainruntimes()
             chain.pushKV("bestblockhash", entry.tip.GetHex());
             chain.pushKV("main_height", entry.main_height);
             chain.pushKV("main_bestblockhash", entry.main_tip.GetHex());
+            PushChildStorageStats(chain, entry);
         }
         chains.push_back(std::move(chain));
     }

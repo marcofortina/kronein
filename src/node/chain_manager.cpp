@@ -443,6 +443,13 @@ ChainManagerView ChainManager::GetChainView(
         .tip = child_tip->GetBlockHash(),
         .main_height = static_cast<uint32_t>(main_tip->nHeight),
         .main_tip = main_tip->GetBlockHash(),
+        .anchor_count = runtime.State().anchor_count,
+        .pending_anchor_count = runtime.State().pending_anchor_count,
+        .pending_anchor_bytes = runtime.State().pending_anchor_bytes,
+        .side_candidate_count = runtime.State().side_candidate_count,
+        .side_candidate_bytes = runtime.State().side_candidate_bytes,
+        .candidate_anchor_count = runtime.State().candidate_anchor_count,
+        .candidate_anchor_bytes = runtime.State().candidate_anchor_bytes,
     };
     if (height) {
         result.block_hash = runtime.GetBlockHash(*height);
@@ -530,6 +537,13 @@ ChainManagerBlockView ChainManager::GetBlockViewLocked(
         .tip = child_tip->GetBlockHash(),
         .main_height = static_cast<uint32_t>(main_tip->nHeight),
         .main_tip = main_tip->GetBlockHash(),
+        .anchor_count = runtime.State().anchor_count,
+        .pending_anchor_count = runtime.State().pending_anchor_count,
+        .pending_anchor_bytes = runtime.State().pending_anchor_bytes,
+        .side_candidate_count = runtime.State().side_candidate_count,
+        .side_candidate_bytes = runtime.State().side_candidate_bytes,
+        .candidate_anchor_count = runtime.State().candidate_anchor_count,
+        .candidate_anchor_bytes = runtime.State().candidate_anchor_bytes,
     };
     result.block = *block;
     return result;
@@ -574,6 +588,13 @@ ChainManagerCoinView ChainManager::GetCoinView(
         .tip = child_tip->GetBlockHash(),
         .main_height = static_cast<uint32_t>(main_tip->nHeight),
         .main_tip = main_tip->GetBlockHash(),
+        .anchor_count = runtime.State().anchor_count,
+        .pending_anchor_count = runtime.State().pending_anchor_count,
+        .pending_anchor_bytes = runtime.State().pending_anchor_bytes,
+        .side_candidate_count = runtime.State().side_candidate_count,
+        .side_candidate_bytes = runtime.State().side_candidate_bytes,
+        .candidate_anchor_count = runtime.State().candidate_anchor_count,
+        .candidate_anchor_bytes = runtime.State().candidate_anchor_bytes,
     };
     result.coin = runtime.GetCoin(outpoint);
     return result;
@@ -694,6 +715,13 @@ std::vector<ChainManagerEntry> ChainManager::List() const
             Assume(main_tip);
             entry.main_height = static_cast<uint32_t>(main_tip->nHeight);
             entry.main_tip = main_tip->GetBlockHash();
+            entry.anchor_count = loaded->second->State().anchor_count;
+            entry.pending_anchor_count = loaded->second->State().pending_anchor_count;
+            entry.pending_anchor_bytes = loaded->second->State().pending_anchor_bytes;
+            entry.side_candidate_count = loaded->second->State().side_candidate_count;
+            entry.side_candidate_bytes = loaded->second->State().side_candidate_bytes;
+            entry.candidate_anchor_count = loaded->second->State().candidate_anchor_count;
+            entry.candidate_anchor_bytes = loaded->second->State().candidate_anchor_bytes;
         }
         result.push_back(std::move(entry));
     }

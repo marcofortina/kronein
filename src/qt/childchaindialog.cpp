@@ -67,7 +67,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     : QDialog{parent}, m_node{node}
 {
     setWindowTitle(tr("Child Chains"));
-    setMinimumSize(980, 480);
+    setMinimumSize(1100, 480);
 
     m_registry_summary = new QLabel{this};
     m_registry_summary->setTextInteractionFlags(Qt::TextSelectableByMouse);
@@ -81,6 +81,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
         tr("Chain ID"),
         tr("Child height"),
         tr("Main height"),
+        tr("Fork DAG"),
         tr("Template"),
         tr("Safety"),
     });
@@ -93,6 +94,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     m_table->horizontalHeader()->setSectionResizeMode(CHAIN_ID, QHeaderView::Stretch);
     m_table->horizontalHeader()->setSectionResizeMode(CHILD_HEIGHT, QHeaderView::ResizeToContents);
     m_table->horizontalHeader()->setSectionResizeMode(MAIN_HEIGHT, QHeaderView::ResizeToContents);
+    m_table->horizontalHeader()->setSectionResizeMode(FORK_DAG, QHeaderView::ResizeToContents);
     m_table->horizontalHeader()->setSectionResizeMode(TEMPLATE, QHeaderView::ResizeToContents);
     m_table->horizontalHeader()->setSectionResizeMode(SAFETY, QHeaderView::ResizeToContents);
 
@@ -154,6 +156,15 @@ void ChildChainDialog::refresh()
             const QString template_name{QStringLiteral("%1/%2")
                 .arg(NumberField(chain, "template_id"), NumberField(chain, "template_version"))};
             const QString safety{failed ? tr("Failed") : safe_halt ? tr("Safe halt") : tr("Normal")};
+            const QString side_candidates{NumberField(chain, "side_candidate_count")};
+            const QString side_candidate_limit{NumberField(chain, "side_candidate_limit")};
+            const QString candidate_anchors{NumberField(chain, "candidate_bmm_anchor_count")};
+            const QString candidate_anchor_limit{NumberField(chain, "candidate_bmm_anchor_limit")};
+            const QString dag_usage{loaded
+                ? tr("%1/%2 candidates • %3/%4 anchors")
+                      .arg(side_candidates, side_candidate_limit,
+                           candidate_anchors, candidate_anchor_limit)
+                : QStringLiteral("—")};
 
             const int row{m_table->rowCount()};
             m_table->insertRow(row);
@@ -167,11 +178,31 @@ void ChildChainDialog::refresh()
             m_table->setItem(row, CHAIN_ID, new QTableWidgetItem{chain_id});
             m_table->setItem(row, CHILD_HEIGHT, new QTableWidgetItem{NumberField(chain, "child_height")});
             m_table->setItem(row, MAIN_HEIGHT, new QTableWidgetItem{NumberField(chain, "main_height")});
+            auto* dag_item = new QTableWidgetItem{dag_usage};
+            m_table->setItem(row, FORK_DAG, dag_item);
             m_table->setItem(row, TEMPLATE, new QTableWidgetItem{template_name});
             m_table->setItem(row, SAFETY, new QTableWidgetItem{safety});
 
             for (int column = 0; column < COLUMN_COUNT; ++column) {
                 m_table->item(row, column)->setToolTip(chain_id);
+            }
+            if (loaded) {
+                dag_item->setToolTip(
+                    tr("Side candidates: %1/%2 records, %3/%4 bytes\n"
+                       "Candidate BMM anchors: %5/%6 records, %7/%8 bytes\n"
+                       "Pending BMM anchors: %9/%10 records, %11/%12 bytes")
+                        .arg(side_candidates,
+                             side_candidate_limit,
+                             NumberField(chain, "side_candidate_bytes"),
+                             NumberField(chain, "side_candidate_bytes_limit"),
+                             candidate_anchors,
+                             candidate_anchor_limit,
+                             NumberField(chain, "candidate_bmm_anchor_bytes"),
+                             NumberField(chain, "candidate_bmm_anchor_bytes_limit"),
+                             NumberField(chain, "pending_bmm_anchor_count"),
+                             NumberField(chain, "pending_bmm_anchor_limit"),
+                             NumberField(chain, "pending_bmm_anchor_bytes"),
+                             NumberField(chain, "pending_bmm_anchor_bytes_limit")));
             }
             if (chain_id == selected) m_table->selectRow(row);
         }

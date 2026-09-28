@@ -287,6 +287,21 @@ BOOST_AUTO_TEST_CASE(blockchain_rpc_routes_explicit_child_chain)
     BOOST_CHECK(!child_info.find_value("network_sync_available").get_bool());
     BOOST_CHECK(!child_info.find_value("safe_halt").get_bool());
     BOOST_CHECK(child_info.find_value("size_on_disk").isNull());
+    BOOST_CHECK_EQUAL(child_info.find_value("bmm_anchor_count").getInt<int>(), 0);
+    BOOST_CHECK_EQUAL(child_info.find_value("pending_bmm_anchor_count").getInt<int>(), 0);
+    BOOST_CHECK_EQUAL(child_info.find_value("side_candidate_count").getInt<int>(), 0);
+    BOOST_CHECK_EQUAL(child_info.find_value("candidate_bmm_anchor_count").getInt<int>(), 0);
+    BOOST_CHECK_EQUAL(child_info.find_value("side_candidate_limit").getInt<int>(),
+                      node::MAX_CHILD_SIDE_CANDIDATES);
+    BOOST_CHECK_EQUAL(child_info.find_value("candidate_bmm_anchor_limit").getInt<int>(),
+                      node::MAX_CHILD_CANDIDATE_BMM_ANCHORS);
+    const auto runtimes{CallRPC("listchildchainruntimes")};
+    BOOST_REQUIRE_EQUAL(runtimes.find_value("chains").size(), 1U);
+    const auto& runtime{runtimes.find_value("chains")[0]};
+    BOOST_CHECK(runtime.find_value("loaded").get_bool());
+    BOOST_CHECK_EQUAL(runtime.find_value("chain_id").get_str(), chain_id);
+    BOOST_CHECK_EQUAL(runtime.find_value("side_candidate_count").getInt<int>(), 0);
+    BOOST_CHECK_EQUAL(runtime.find_value("candidate_bmm_anchor_count").getInt<int>(), 0);
     const auto child_tips{CallRPC("getchaintips " + chain_id)};
     BOOST_REQUIRE_EQUAL(child_tips.size(), 1U);
     BOOST_CHECK_EQUAL(child_tips[0].find_value("chain_id").get_str(),
@@ -508,6 +523,9 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
     BOOST_CHECK_EQUAL(child_info.find_value("bestblockhash").get_str(),
                       child_block.GetHash().GetHex());
     BOOST_CHECK(child_info.find_value("bmm_eligible").get_bool());
+    BOOST_CHECK_EQUAL(child_info.find_value("bmm_anchor_count").getInt<int>(), 1);
+    BOOST_CHECK_EQUAL(child_info.find_value("side_candidate_count").getInt<int>(), 0);
+    BOOST_CHECK_EQUAL(child_info.find_value("candidate_bmm_anchor_count").getInt<int>(), 0);
     BOOST_CHECK_EQUAL(child_info.find_value("chainwork").get_str(),
                       child_info.find_value("bmm_cumulative_work").get_str());
     const auto child_tips{CallRPC("getchaintips " + chain_id)};

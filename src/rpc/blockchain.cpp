@@ -438,6 +438,19 @@ UniValue childBlockchainInfoToJSON(const node::ChainManagerBlockView& view)
     result.pushKV("network_sync_available", false);
     result.pushKV("main_height", entry.main_height);
     result.pushKV("main_tip", entry.main_tip.GetHex());
+    result.pushKV("bmm_anchor_count", entry.anchor_count);
+    result.pushKV("pending_bmm_anchor_count", entry.pending_anchor_count);
+    result.pushKV("pending_bmm_anchor_bytes", entry.pending_anchor_bytes);
+    result.pushKV("pending_bmm_anchor_limit", node::MAX_CHILD_PENDING_BMM_ANCHORS);
+    result.pushKV("pending_bmm_anchor_bytes_limit", node::MAX_CHILD_PENDING_BMM_BYTES);
+    result.pushKV("side_candidate_count", entry.side_candidate_count);
+    result.pushKV("side_candidate_bytes", entry.side_candidate_bytes);
+    result.pushKV("side_candidate_limit", node::MAX_CHILD_SIDE_CANDIDATES);
+    result.pushKV("side_candidate_bytes_limit", node::MAX_CHILD_SIDE_CANDIDATE_BYTES);
+    result.pushKV("candidate_bmm_anchor_count", entry.candidate_anchor_count);
+    result.pushKV("candidate_bmm_anchor_bytes", entry.candidate_anchor_bytes);
+    result.pushKV("candidate_bmm_anchor_limit", node::MAX_CHILD_CANDIDATE_BMM_ANCHORS);
+    result.pushKV("candidate_bmm_anchor_bytes_limit", node::MAX_CHILD_CANDIDATE_BMM_BYTES);
     result.pushKV("bmm_eligible", tip.fork_score.eligible);
     result.pushKV("bmm_activation_main_height",
                   tip.fork_score.activation_main_height);
@@ -1791,6 +1804,19 @@ RPCHelpMan getblockchaininfo()
                 {RPCResult::Type::BOOL, "network_sync_available", /*optional=*/true, "Whether child P2P synchronization is implemented"},
                 {RPCResult::Type::NUM, "main_height", /*optional=*/true, "Height of the active main-chain tip tracked by the child runtime"},
                 {RPCResult::Type::STR_HEX, "main_tip", /*optional=*/true, "Active main-chain tip tracked by the child runtime"},
+                {RPCResult::Type::NUM, "bmm_anchor_count", /*optional=*/true, "Canonical child blocks with persisted BMM anchors"},
+                {RPCResult::Type::NUM, "pending_bmm_anchor_count", /*optional=*/true, "Authenticated BMM anchors waiting for child block data"},
+                {RPCResult::Type::NUM, "pending_bmm_anchor_bytes", /*optional=*/true, "Serialized bytes used by pending BMM anchors"},
+                {RPCResult::Type::NUM, "pending_bmm_anchor_limit", /*optional=*/true, "Maximum pending BMM anchor records"},
+                {RPCResult::Type::NUM, "pending_bmm_anchor_bytes_limit", /*optional=*/true, "Maximum serialized bytes for pending BMM anchors"},
+                {RPCResult::Type::NUM, "side_candidate_count", /*optional=*/true, "Validated non-canonical child candidates retained in the fork DAG"},
+                {RPCResult::Type::NUM, "side_candidate_bytes", /*optional=*/true, "Serialized bytes used by retained non-canonical candidates"},
+                {RPCResult::Type::NUM, "side_candidate_limit", /*optional=*/true, "Maximum retained non-canonical child candidates"},
+                {RPCResult::Type::NUM, "side_candidate_bytes_limit", /*optional=*/true, "Maximum serialized bytes for retained non-canonical candidates"},
+                {RPCResult::Type::NUM, "candidate_bmm_anchor_count", /*optional=*/true, "BMM anchors retained for non-canonical candidates"},
+                {RPCResult::Type::NUM, "candidate_bmm_anchor_bytes", /*optional=*/true, "Serialized bytes used by non-canonical candidate anchors"},
+                {RPCResult::Type::NUM, "candidate_bmm_anchor_limit", /*optional=*/true, "Maximum BMM anchors retained for non-canonical candidates"},
+                {RPCResult::Type::NUM, "candidate_bmm_anchor_bytes_limit", /*optional=*/true, "Maximum serialized bytes for non-canonical candidate anchors"},
                 {RPCResult::Type::BOOL, "bmm_eligible", /*optional=*/true, "Whether the active child tip is eligible for BMM fork choice"},
                 {RPCResult::Type::NUM, "bmm_activation_main_height", /*optional=*/true, "Earliest active main height anchoring the child tip after its parent"},
                 {RPCResult::Type::STR_HEX, "bmm_own_work", /*optional=*/true, "Active main-chain work committed directly to the child tip"},
