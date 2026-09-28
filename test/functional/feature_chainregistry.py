@@ -1923,6 +1923,33 @@ class ChainRegistryTest(BitcoinTestFramework):
             generic_recipient, 0, False, chain_id),
             deposit_amount + generic_amount)
 
+        child_many_a = attacker.getnewaddress("child-many-a", chain_id)
+        child_many_b = attacker.getnewaddress("child-many-b", chain_id)
+        child_many_amounts = {
+            child_many_a: Decimal("0.01000000"),
+            child_many_b: Decimal("0.01500000"),
+        }
+        child_many_fee = Decimal("0.00001000")
+        child_many_send = wallet.sendmany(
+            amounts=child_many_amounts,
+            subtractfeefrom=[child_many_a, child_many_b],
+            verbose=True,
+            child_fee=child_many_fee,
+            chain_id=chain_id)
+        assert_equal(child_many_send["fee_reason"], "Child explicit fee")
+        assert_equal(set(node.getrawmempool(False, False, chain_id)), {
+            generic_send["txid"], child_many_send["txid"],
+        })
+        child_many_tx = wallet.gettransaction(
+            child_many_send["txid"], False, chain_id)
+        assert_equal(child_many_tx["amount"], Decimal("-0.02499000"))
+        assert_equal(child_many_tx["fee"], -child_many_fee)
+        assert_equal(attacker.getreceivedbyaddress(
+            child_many_a, 0, False, chain_id), Decimal("0.00999500"))
+        assert_equal(attacker.getreceivedbyaddress(
+            child_many_b, 0, False, chain_id), Decimal("0.01499500"))
+        child_wallet_identities = wallet.listchildrecipients(chain_id)
+
         successor_address = wallet.getnewaddress()
         update_psbt = wallet.walletcreatechainregistrypsbt("update", {
             "chain_id": chain_id,

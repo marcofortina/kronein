@@ -10,6 +10,8 @@
 #include <primitives/chainregistry.h>
 #include <primitives/transaction.h>
 
+#include <vector>
+
 namespace wallet {
 
 class CWallet;
@@ -18,6 +20,19 @@ struct ChildWalletSendResult {
     CTransactionRef transaction;
     CAmount fee{0};
 };
+
+struct ChildWalletPayment {
+    WitnessV1Taproot recipient;
+    CAmount amount{0};
+    bool subtract_fee{false};
+};
+
+ChildWalletSendResult CreateSignedChildPayments(
+    CWallet& wallet,
+    const chainregistry::ChainId& chain_id,
+    const std::vector<ChildWalletPayment>& payments,
+    CAmount fee,
+    int minconf = 1);
 
 ChildWalletSendResult CreateSignedChildPayment(
     CWallet& wallet,

@@ -57,6 +57,44 @@ std::vector<CRecipient> CreateRecipients(const std::vector<std::pair<CTxDestinat
     return recipients;
 }
 
+static Txid SubmitChildWalletTransaction(
+    CWallet& wallet,
+    const chainregistry::ChainId& chain_id,
+    const ChildWalletSendResult& transaction)
+{
+    const auto submitted{wallet.chain().submitChildTransaction(
+        chain_id, transaction.transaction, transaction.fee)};
+    switch (submitted.error) {
+    case interfaces::ChildTransactionSubmitError::NONE:
+        return transaction.transaction->GetHash();
+    case interfaces::ChildTransactionSubmitError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "chain_id must not be null");
+    case interfaces::ChildTransactionSubmitError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "Unknown child chain");
+    case interfaces::ChildTransactionSubmitError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_MISC_ERROR,
+                           "Child chain is not loaded");
+    case interfaces::ChildTransactionSubmitError::MAX_FEE_EXCEEDED:
+        throw JSONRPCTransactionError(TransactionError::MAX_FEE_EXCEEDED);
+    case interfaces::ChildTransactionSubmitError::SAFE_HALT:
+        throw JSONRPCError(RPC_VERIFY_REJECTED,
+                           "child chain is in SAFE_HALT");
+    case interfaces::ChildTransactionSubmitError::UNAVAILABLE:
+        throw JSONRPCError(RPC_INTERNAL_ERROR,
+                           "child-chain manager is unavailable");
+    case interfaces::ChildTransactionSubmitError::REJECTED:
+        throw JSONRPCError(
+            RPC_VERIFY_REJECTED,
+            strprintf("Child transaction rejected (runtime error %u, pool error %u)",
+                      submitted.runtime_error,
+                      submitted.pool_error));
+    }
+    throw JSONRPCError(RPC_INTERNAL_ERROR,
+                       "unhandled child transaction submission result");
+}
+
 static uint32_t ParseRegistryUint32(const UniValue& value, std::string_view name)
 {
     const int64_t parsed{value.getInt<int64_t>()};
@@ -532,36 +570,8 @@ RPCHelpMan sendtoaddress()
             amount,
             child_fee,
             subtract_fee)};
-        const auto submitted{pwallet->chain().submitChildTransaction(
-            chain_id, sent.transaction, sent.fee)};
-        switch (submitted.error) {
-        case interfaces::ChildTransactionSubmitError::NONE:
-            break;
-        case interfaces::ChildTransactionSubmitError::NULL_CHAIN_ID:
-            throw JSONRPCError(RPC_INVALID_PARAMETER,
-                               "chain_id must not be null");
-        case interfaces::ChildTransactionSubmitError::UNKNOWN_CHAIN:
-            throw JSONRPCError(RPC_INVALID_PARAMETER,
-                               "Unknown child chain");
-        case interfaces::ChildTransactionSubmitError::CHAIN_NOT_LOADED:
-            throw JSONRPCError(RPC_MISC_ERROR,
-                               "Child chain is not loaded");
-        case interfaces::ChildTransactionSubmitError::MAX_FEE_EXCEEDED:
-            throw JSONRPCTransactionError(TransactionError::MAX_FEE_EXCEEDED);
-        case interfaces::ChildTransactionSubmitError::SAFE_HALT:
-            throw JSONRPCError(RPC_VERIFY_REJECTED,
-                               "child chain is in SAFE_HALT");
-        case interfaces::ChildTransactionSubmitError::UNAVAILABLE:
-            throw JSONRPCError(RPC_INTERNAL_ERROR,
-                               "child-chain manager is unavailable");
-        case interfaces::ChildTransactionSubmitError::REJECTED:
-            throw JSONRPCError(
-                RPC_VERIFY_REJECTED,
-                strprintf("Child transaction rejected (runtime error %u, pool error %u)",
-                          submitted.runtime_error,
-                          submitted.pool_error));
-        }
-        const Txid txid{sent.transaction->GetHash()};
+        const Txid txid{
+            SubmitChildWalletTransaction(*pwallet, chain_id, sent)};
         if (!verbose) return txid.GetHex();
         UniValue result{UniValue::VOBJ};
         result.pushKV("txid", txid.GetHex());
@@ -639,6 +649,8 @@ RPCHelpMan sendmany()
                       + FeeModesDetail(std::string("economical mode is used if the transaction is replaceable;\notherwise, conservative mode is used"))},
                     {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
                     {"verbose", RPCArg::Type::BOOL, RPCArg::Default{false}, "If true, return extra information about the transaction."},
+                    {"child_fee", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "Exact absolute child-chain fee in KNE. Required with chain_id and invalid without it."},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain."},
                 },
                 {
                     RPCResult{"if verbose is not set or set to false",
@@ -663,6 +675,8 @@ RPCHelpMan sendmany()
             + HelpExampleCli("sendmany", "\"{\\\"" + EXAMPLE_ADDRESS[0] + "\\\":0.01,\\\"" + EXAMPLE_ADDRESS[1] + "\\\":0.02}\" \"\" \"[\\\"" + EXAMPLE_ADDRESS[0] + "\\\",\\\"" + EXAMPLE_ADDRESS[1] + "\\\"]\"") +
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("sendmany", "{\"" + EXAMPLE_ADDRESS[0] + "\":0.01,\"" + EXAMPLE_ADDRESS[1] + "\":0.02}, \"testing\"")
+            + "\nSend to two child-chain recipients with one explicit absolute fee\n"
+            + HelpExampleCli("-named sendmany", "amounts='{\"2222222222222222222222222222222222222222222222222222222222222222\":0.01,\"3333333333333333333333333333333333333333333333333333333333333333\":0.02}' child_fee=0.00001 chain_id=\"1111111111111111111111111111111111111111111111111111111111111111\"")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -672,6 +686,84 @@ RPCHelpMan sendmany()
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
     pwallet->BlockUntilSyncedToCurrentChain();
+
+    const auto chain_arg{self.MaybeArg<UniValue>("chain_id")};
+    const auto child_fee_arg{self.MaybeArg<UniValue>("child_fee")};
+    if (chain_arg) {
+        if (!child_fee_arg) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "child_fee is required when chain_id is specified");
+        }
+        if (!request.params[1].isNull() &&
+            !request.params[1].get_str().empty()) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "child transactions do not yet support wallet comments");
+        }
+        if (!request.params[3].isNull() ||
+            !request.params[4].isNull() ||
+            (!request.params[5].isNull() &&
+             request.params[5].get_str() != "unset") ||
+            !request.params[6].isNull()) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "child transactions require child_fee and do not use replaceable, conf_target, estimate_mode, or fee_rate");
+        }
+
+        const UniValue amounts{request.params[0].get_obj()};
+        std::set<std::string> subtract_fee_from;
+        if (!request.params[2].isNull()) {
+            for (const UniValue& value : request.params[2].getValues()) {
+                const std::string recipient{value.get_str()};
+                if (!amounts.exists(recipient)) {
+                    throw JSONRPCError(
+                        RPC_INVALID_PARAMETER,
+                        strprintf("subtractfeefrom recipient %s is not present in amounts",
+                                  recipient));
+                }
+                if (!subtract_fee_from.insert(recipient).second) {
+                    throw JSONRPCError(
+                        RPC_INVALID_PARAMETER,
+                        strprintf("duplicated subtractfeefrom recipient %s",
+                                  recipient));
+                }
+            }
+        }
+        std::set<std::string> seen;
+        std::vector<ChildWalletPayment> payments;
+        for (const std::string& recipient : amounts.getKeys()) {
+            if (!seen.insert(recipient).second) {
+                throw JSONRPCError(
+                    RPC_INVALID_PARAMETER,
+                    strprintf("duplicated child recipient %s", recipient));
+            }
+            payments.push_back({
+                .recipient = ParseChildRecipient(
+                    UniValue{UniValue::VSTR, recipient}),
+                .amount = AmountFromValue(amounts[recipient]),
+                .subtract_fee = subtract_fee_from.contains(recipient),
+            });
+        }
+        const auto chain_id{ParseChildChainId(*chain_arg)};
+        const CAmount child_fee{AmountFromValue(*child_fee_arg)};
+        const bool verbose{
+            !request.params[7].isNull() && request.params[7].get_bool()};
+        auto sent{CreateSignedChildPayments(
+            *pwallet, chain_id, payments, child_fee)};
+        const Txid txid{
+            SubmitChildWalletTransaction(*pwallet, chain_id, sent)};
+        if (!verbose) return txid.GetHex();
+        UniValue result{UniValue::VOBJ};
+        result.pushKV("txid", txid.GetHex());
+        result.pushKV("fee_reason", "Child explicit fee");
+        return result;
+    }
+    if (child_fee_arg) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "child_fee is only valid when chain_id is specified");
+    }
 
     LOCK(pwallet->cs_wallet);
 

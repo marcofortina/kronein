@@ -606,35 +606,48 @@ ProcessedChildPSBT ProcessChildPSBT(
 
 } // namespace
 
-ChildWalletSendResult CreateSignedChildPayment(
+ChildWalletSendResult CreateSignedChildPayments(
     CWallet& wallet,
     const chainregistry::ChainId& chain_id,
-    const WitnessV1Taproot& recipient,
-    CAmount amount,
+    const std::vector<ChildWalletPayment>& payments,
     CAmount fee,
-    bool subtract_fee_from_amount,
     int minconf)
 {
     wallet.BlockUntilSyncedToCurrentChain();
-    if (amount <= 0 || !MoneyRange(amount)) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER,
-                           "amount must be positive and in range");
-    }
     if (fee < 0 || !MoneyRange(fee)) {
         throw JSONRPCError(RPC_INVALID_PARAMETER,
                            "child_fee must be non-negative and in range");
     }
-    const CAmount recipient_amount{
-        subtract_fee_from_amount ? amount - fee : amount};
-    if (recipient_amount <= 0 || !MoneyRange(recipient_amount)) {
-        throw JSONRPCError(
-            RPC_INVALID_PARAMETER,
-            "child_fee must be smaller than amount when subtractfeefromamount is true");
+    const size_t subtract_count{std::count_if(
+        payments.begin(), payments.end(),
+        [](const auto& payment) { return payment.subtract_fee; })};
+    std::vector<std::pair<WitnessV1Taproot, CAmount>> outputs;
+    outputs.reserve(payments.size());
+    bool first_subtract{true};
+    for (const auto& payment : payments) {
+        if (payment.amount <= 0 || !MoneyRange(payment.amount)) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               "amount must be positive and in range");
+        }
+        CAmount recipient_amount{payment.amount};
+        if (payment.subtract_fee) {
+            recipient_amount -= fee / subtract_count;
+            if (first_subtract) {
+                recipient_amount -= fee % subtract_count;
+                first_subtract = false;
+            }
+        }
+        if (recipient_amount <= 0 || !MoneyRange(recipient_amount)) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "child_fee leaves a non-positive recipient amount");
+        }
+        outputs.emplace_back(payment.recipient, recipient_amount);
     }
     auto funded{FundChildPSBT(
         wallet,
         chain_id,
-        {{recipient, recipient_amount}},
+        outputs,
         fee,
         minconf,
         /*bip32_derivs=*/true)};
@@ -654,6 +667,23 @@ ChildWalletSendResult CreateSignedChildPayment(
         .transaction = MakeTransactionRef(std::move(*processed.transaction)),
         .fee = processed.fee,
     };
+}
+
+ChildWalletSendResult CreateSignedChildPayment(
+    CWallet& wallet,
+    const chainregistry::ChainId& chain_id,
+    const WitnessV1Taproot& recipient,
+    CAmount amount,
+    CAmount fee,
+    bool subtract_fee_from_amount,
+    int minconf)
+{
+    return CreateSignedChildPayments(
+        wallet,
+        chain_id,
+        {{recipient, amount, subtract_fee_from_amount}},
+        fee,
+        minconf);
 }
 
 RPCHelpMan walletcreatechildpsbt()
