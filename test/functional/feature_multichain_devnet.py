@@ -233,6 +233,27 @@ class MultichainDevnetTest(BitcoinTestFramework):
             children[1]["chain_id"])["network_running"], True)
         assert_equal(node.getblockcount(children[1]["chain_id"]), 1)
 
+        self.log.info("Persist SAFE_HALT evidence across restart and explicit reload")
+        self.restart_node(0)
+        node = self.nodes[0]
+        node.loadwallet("devnet")
+        assert_equal(node.getbestblockhash(), competing_tip)
+        runtime_by_id = {
+            entry["chain_id"]: entry
+            for entry in node.listchildchainruntimes()["chains"]
+        }
+        assert_equal(runtime_by_id[children[1]["chain_id"]]["loaded"], False)
+        node.loadchildchain(children[1]["chain_id"])
+        restored_status = node.getchildbmmstatus(children[1]["chain_id"])
+        assert_equal(restored_status["health"], "safe_halt")
+        assert_equal(restored_status["safe_halt_reason"],
+                     halted_status["safe_halt_reason"])
+        assert_equal(restored_status["safe_halt_observed_main_tip"],
+                     halted_status["safe_halt_observed_main_tip"])
+        assert_equal(restored_status["safe_halt_affected_deposits"],
+                     halted_status["safe_halt_affected_deposits"])
+        assert_equal(node.getblockcount(children[1]["chain_id"]), 1)
+
 
 if __name__ == "__main__":
     MultichainDevnetTest(__file__).main()

@@ -443,33 +443,37 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::Initialize(
         m_failed = true;
         return result;
     }
-    const auto candidates{m_db->ReadForkCandidates(*m_main_headers)};
-    if (!candidates) {
-        result.error = ReferenceChildRuntimeError::CHILD_INDEX_REBUILD_FAILED;
-        m_failed = true;
-        return result;
-    }
-    const auto selected{chainregistry::SelectChildFork(
-        m_definition.genesis_hash, *candidates)};
-    if (!selected.IsValid()) {
-        result.error = ReferenceChildRuntimeError::CHILD_INDEX_REBUILD_FAILED;
-        m_failed = true;
-        return result;
-    }
-    if (selected.head != m_tip->GetBlockHash() &&
-        !ActivateSelectedHead(
-            selected,
-            *candidates,
-            current_time,
-            *m_main_headers,
-            sync,
-            result)) {
-        if (result.error == ReferenceChildRuntimeError::NONE) {
+    if (!m_imports.IsSafeHalted()) {
+        const auto candidates{m_db->ReadForkCandidates(*m_main_headers)};
+        if (!candidates) {
             result.error =
-                ReferenceChildRuntimeError::CHILD_REORGANIZATION_FAILED;
+                ReferenceChildRuntimeError::CHILD_INDEX_REBUILD_FAILED;
+            m_failed = true;
+            return result;
         }
-        m_failed = true;
-        return result;
+        const auto selected{chainregistry::SelectChildFork(
+            m_definition.genesis_hash, *candidates)};
+        if (!selected.IsValid()) {
+            result.error =
+                ReferenceChildRuntimeError::CHILD_INDEX_REBUILD_FAILED;
+            m_failed = true;
+            return result;
+        }
+        if (selected.head != m_tip->GetBlockHash() &&
+            !ActivateSelectedHead(
+                selected,
+                *candidates,
+                current_time,
+                *m_main_headers,
+                sync,
+                result)) {
+            if (result.error == ReferenceChildRuntimeError::NONE) {
+                result.error =
+                    ReferenceChildRuntimeError::CHILD_REORGANIZATION_FAILED;
+            }
+            m_failed = true;
+            return result;
+        }
     }
     m_initialized = true;
     if (result.loaded_existing && validated_active_headers) {
