@@ -474,6 +474,10 @@ class ChainRegistryTest(BitcoinTestFramework):
             [wallet.getnewaddress()], True, {}, chain_id)
         initial_bmm_status = node.getchildbmmstatus(chain_id)
         assert_equal(initial_bmm_status["health"], "idle")
+        assert_equal(initial_bmm_status["safe_halt"], False)
+        assert "safe_halt_reason" not in initial_bmm_status
+        assert "safe_halt_observed_main_tip" not in initial_bmm_status
+        assert "safe_halt_affected_deposits" not in initial_bmm_status
         assert_equal(initial_bmm_status["child_height"], 0)
         assert_equal(initial_bmm_status["bestblockhash"], reference_child["genesis_hash"])
         assert_equal(initial_bmm_status["main_height"], node.getblockcount())

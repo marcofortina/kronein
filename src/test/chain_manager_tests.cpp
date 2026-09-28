@@ -220,6 +220,7 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
     BOOST_REQUIRE(bmm_status.IsValid());
     BOOST_CHECK_EQUAL(bmm_status.entry.height, 0U);
     BOOST_CHECK(bmm_status.entry.tip == first.genesis_hash);
+    BOOST_CHECK(!bmm_status.safe_halt);
     BOOST_CHECK(!bmm_status.tip_anchor);
     BOOST_CHECK(bmm_status.pending_blocks.empty());
     BOOST_CHECK(bmm_status.proposals.empty());

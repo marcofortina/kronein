@@ -67,6 +67,16 @@ chainregistry::ChainId ParseChainId(const UniValue& value)
     return *chain_id;
 }
 
+std::string DepositSafeHaltReasonName(
+    chainregistry::DepositSafeHaltReason reason)
+{
+    switch (reason) {
+    case chainregistry::DepositSafeHaltReason::IMPORTED_DEPOSIT_LEFT_MAIN_CHAIN:
+        return "imported_deposit_left_main_chain";
+    }
+    return "unknown";
+}
+
 uint256 ParseNonNullHash(const UniValue& value, std::string_view name)
 {
     const uint256 hash{ParseHashV(value, name)};
@@ -2208,6 +2218,11 @@ RPCHelpMan getchildbmmstatus()
             {RPCResult::Type::STR_HEX, "chain_id", "Child-chain identifier"},
             {RPCResult::Type::STR, "health", "idle, awaiting_anchor, anchor_ready, awaiting_block_data, anchored, safe_halt, or failed"},
             {RPCResult::Type::BOOL, "safe_halt", "Whether irreversible import safety has halted the child"},
+            {RPCResult::Type::STR, "safe_halt_reason", /*optional=*/true, "Machine-readable reason for the permanent safety halt"},
+            {RPCResult::Type::STR_HEX, "safe_halt_observed_main_tip", /*optional=*/true, "Authenticated main-chain tip that first exposed the safety violation"},
+            {RPCResult::Type::ARR, "safe_halt_affected_deposits", /*optional=*/true, "Imported deposits no longer present on the authenticated active main chain", {
+                {RPCResult::Type::STR_HEX, "deposit_id", "Affected deposit identifier"},
+            }},
             {RPCResult::Type::BOOL, "failed", "Whether the child runtime has entered a failed state"},
             {RPCResult::Type::NUM, "child_height", "Active child height"},
             {RPCResult::Type::STR_HEX, "bestblockhash", "Active child tip"},
@@ -2317,6 +2332,18 @@ RPCHelpMan getchildbmmstatus()
     result.pushKV("chain_id", chain_id.GetHex());
     result.pushKV("health", health);
     result.pushKV("safe_halt", view.entry.safe_halt);
+    if (view.safe_halt) {
+        UniValue affected_deposits{UniValue::VARR};
+        for (const auto& deposit_id : view.safe_halt->affected_imports) {
+            affected_deposits.push_back(deposit_id.GetHex());
+        }
+        result.pushKV("safe_halt_reason",
+                      DepositSafeHaltReasonName(view.safe_halt->reason));
+        result.pushKV("safe_halt_observed_main_tip",
+                      view.safe_halt->observed_main_tip.GetHex());
+        result.pushKV("safe_halt_affected_deposits",
+                      std::move(affected_deposits));
+    }
     result.pushKV("failed", view.entry.failed);
     result.pushKV("child_height", view.entry.height);
     result.pushKV("bestblockhash", view.entry.tip.GetHex());

@@ -1418,6 +1418,7 @@ ChainManagerBmmStatusView ChainManager::GetBmmStatusView(
     const ChainManagerView chain_view{GetChainViewLocked(chain_id)};
     Assume(chain_view.IsValid());
     result.entry = chain_view.entry;
+    result.safe_halt = loaded->second->Imports().SafeHalt();
     const auto pending_blocks{loaded->second->GetPendingBlocks()};
     const auto proposals{loaded->second->GetLocalProposals()};
     if (!pending_blocks || !proposals) {

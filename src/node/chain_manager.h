@@ -380,6 +380,7 @@ struct ChainManagerBmmStatusView {
     ChainManagerBmmStatusViewError error{
         ChainManagerBmmStatusViewError::NONE};
     ChainManagerEntry entry;
+    std::optional<chainregistry::DepositSafeHalt> safe_halt;
     std::optional<ChildBmmAnchorRecord> tip_anchor;
     std::vector<ChildPendingBlockView> pending_blocks;
     std::vector<ChildLocalProposalRecord> proposals;
