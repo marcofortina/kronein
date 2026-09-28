@@ -83,12 +83,14 @@ RPCHelpMan getnewaddress()
         "getnewaddress",
         "Returns a new Kronein address for receiving payments.\n"
                 "If 'label' is specified, it is added to the address book \n"
-                "so payments received with the address will be associated with 'label'.\n",
+                "so payments received with the address will be associated with 'label'.\n"
+                "When chain_id is present, returns a 32-byte hexadecimal child recipient instead of a main-chain address.\n",
                 {
                     {"label", RPCArg::Type::STR, RPCArg::Default{""}, "The label name for the address to be linked to. It can also be set to the empty string \"\" to represent the default label. The label does not need to exist, it will be created if there is no label by the given name."},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 RPCResult{
-                    RPCResult::Type::STR, "address", "The new Kronein address"
+                    RPCResult::Type::STR, "address", "The new main-chain address, or raw child recipient when chain_id is present"
                 },
                 RPCExamples{
                     HelpExampleCli("getnewaddress", "")
@@ -99,15 +101,33 @@ RPCHelpMan getnewaddress()
     std::shared_ptr<CWallet> const pwallet = GetWalletForJSONRPCRequest(request);
     if (!pwallet) return UniValue::VNULL;
 
-    LOCK(pwallet->cs_wallet);
-
-    if (!pwallet->CanGetAddresses()) {
-        throw JSONRPCError(RPC_WALLET_ERROR, "Error: This wallet has no available keys");
-    }
-
     // Parse the label first so we don't generate a key if there's an error
     const std::string label{LabelFromValue(request.params[0])};
 
+    if (const auto chain_arg{self.MaybeArg<UniValue>("chain_id")}) {
+        const auto chain_id{ParseChildChainId(*chain_arg)};
+        EnsureActiveReferenceChild(*pwallet, chain_id);
+        const auto destination{
+            pwallet->GetNewChildDestination(chain_id, label)};
+        if (!destination) {
+            throw JSONRPCError(
+                RPC_WALLET_KEYPOOL_RAN_OUT,
+                util::ErrorString(destination).original);
+        }
+        const auto* recipient{
+            std::get_if<WitnessV1Taproot>(&*destination)};
+        if (!recipient) {
+            throw JSONRPCError(
+                RPC_WALLET_ERROR,
+                "wallet did not derive a Taproot child recipient");
+        }
+        return HexStr(*recipient);
+    }
+
+    LOCK(pwallet->cs_wallet);
+    if (!pwallet->CanGetAddresses()) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Error: This wallet has no available keys");
+    }
     auto op_dest = pwallet->GetNewDestination(label);
     if (!op_dest) {
         throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, util::ErrorString(op_dest).original);
@@ -354,10 +374,13 @@ RPCHelpMan getrawchangeaddress()
     return RPCHelpMan{
         "getrawchangeaddress",
         "Returns a new Kronein address, for receiving change.\n"
-                "This is for use with raw transactions, NOT normal use.\n",
-                {},
+                "This is for use with raw transactions, NOT normal use.\n"
+                "When chain_id is present, returns a 32-byte hexadecimal child change recipient.\n",
+                {
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
+                },
                 RPCResult{
-                    RPCResult::Type::STR, "address", "The address"
+                    RPCResult::Type::STR, "address", "The main-chain change address, or raw child change recipient when chain_id is present"
                 },
                 RPCExamples{
                     HelpExampleCli("getrawchangeaddress", "")
@@ -368,8 +391,27 @@ RPCHelpMan getrawchangeaddress()
     std::shared_ptr<CWallet> const pwallet = GetWalletForJSONRPCRequest(request);
     if (!pwallet) return UniValue::VNULL;
 
-    LOCK(pwallet->cs_wallet);
+    if (const auto chain_arg{self.MaybeArg<UniValue>("chain_id")}) {
+        const auto chain_id{ParseChildChainId(*chain_arg)};
+        EnsureActiveReferenceChild(*pwallet, chain_id);
+        const auto destination{
+            pwallet->GetNewChildChangeDestination(chain_id)};
+        if (!destination) {
+            throw JSONRPCError(
+                RPC_WALLET_KEYPOOL_RAN_OUT,
+                util::ErrorString(destination).original);
+        }
+        const auto* recipient{
+            std::get_if<WitnessV1Taproot>(&*destination)};
+        if (!recipient) {
+            throw JSONRPCError(
+                RPC_WALLET_ERROR,
+                "wallet did not derive a Taproot child change recipient");
+        }
+        return HexStr(*recipient);
+    }
 
+    LOCK(pwallet->cs_wallet);
     if (!pwallet->CanGetAddresses(true)) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Error: This wallet has no available keys");
     }

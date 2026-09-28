@@ -1131,8 +1131,22 @@ class ChainRegistryTest(BitcoinTestFramework):
             1, 9999999, [], True, {}, chain_id)), 1)
 
         self.log.info("Create and sign a wallet PSBT in the child signature domain")
-        child_destination = attacker.getnewchildrecipient(
-            chain_id, "child-destination")
+        child_destination_recipient = attacker.getnewaddress(
+            "child-destination", chain_id)
+        child_destination_info = attacker.getaddressinfo(
+            child_destination_recipient, chain_id)
+        child_destination = {
+            "recipient": child_destination_recipient,
+            "scriptPubKey": child_destination_info["scriptPubKey"],
+        }
+        assert_equal(child_destination_info["labels"],
+                     ["child-destination"])
+        attacker_change_recipient = attacker.getrawchangeaddress(chain_id)
+        assert attacker_change_recipient != child_destination_recipient
+        attacker_change_info = attacker.getaddressinfo(
+            attacker_change_recipient, chain_id)
+        assert_equal(attacker_change_info["ischange"], True)
+        assert_equal(attacker_change_info["labels"], [])
         child_spend_amount = Decimal("0.10000000")
         child_fee = Decimal("0.00001000")
         assert_raises_rpc_error(
