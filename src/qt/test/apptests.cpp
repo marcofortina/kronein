@@ -111,6 +111,7 @@ void AppTests::guiTests(BitcoinGUI* window)
 #ifdef ENABLE_WALLET
     QPushButton* register_button = child_chains->findChild<QPushButton*>("childChainRegisterButton");
     QPushButton* balance_button = child_chains->findChild<QPushButton*>("childChainBalanceButton");
+    QPushButton* receive_button = child_chains->findChild<QPushButton*>("childChainReceiveButton");
     QPushButton* activity_button = child_chains->findChild<QPushButton*>("childChainActivityButton");
     QPushButton* deposits_button = child_chains->findChild<QPushButton*>("childChainDepositsButton");
     QPushButton* migrate_button = child_chains->findChild<QPushButton*>("childChainMigrateButton");
@@ -126,6 +127,7 @@ void AppTests::guiTests(BitcoinGUI* window)
 #ifdef ENABLE_WALLET
     QVERIFY(register_button);
     QVERIFY(balance_button);
+    QVERIFY(receive_button);
     QVERIFY(activity_button);
     QVERIFY(deposits_button);
     QVERIFY(migrate_button);
@@ -141,6 +143,7 @@ void AppTests::guiTests(BitcoinGUI* window)
 #ifdef ENABLE_WALLET
     QVERIFY(!register_button->isEnabled());
     QVERIFY(!balance_button->isEnabled());
+    QVERIFY(!receive_button->isEnabled());
     QVERIFY(!activity_button->isEnabled());
     QVERIFY(!deposits_button->isEnabled());
     QVERIFY(!migrate_button->isEnabled());

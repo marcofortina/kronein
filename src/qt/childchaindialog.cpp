@@ -193,6 +193,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
 #ifdef ENABLE_WALLET
     m_register_button = actions->addButton(tr("Register…"), QDialogButtonBox::ActionRole);
     m_balance_button = actions->addButton(tr("Balance…"), QDialogButtonBox::ActionRole);
+    m_receive_button = actions->addButton(tr("Receive…"), QDialogButtonBox::ActionRole);
     m_activity_button = actions->addButton(tr("Activity…"), QDialogButtonBox::ActionRole);
     m_deposits_button = actions->addButton(tr("Deposits…"), QDialogButtonBox::ActionRole);
     m_migrate_button = actions->addButton(tr("Migrate…"), QDialogButtonBox::ActionRole);
@@ -202,6 +203,9 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     m_balance_button->setObjectName(QStringLiteral("childChainBalanceButton"));
     m_balance_button->setToolTip(
         tr("Scan the loaded child UTXO set for recipients owned by the selected wallet."));
+    m_receive_button->setObjectName(QStringLiteral("childChainReceiveButton"));
+    m_receive_button->setToolTip(
+        tr("Create a wallet-owned receiving key bound to the selected child chain."));
     m_activity_button->setObjectName(QStringLiteral("childChainActivityButton"));
     m_activity_button->setToolTip(
         tr("Show confirmed and pending wallet activity on the loaded child chain."));
@@ -239,6 +243,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
 #ifdef ENABLE_WALLET
     connect(m_register_button, &QPushButton::clicked, this, &ChildChainDialog::registerChildChain);
     connect(m_balance_button, &QPushButton::clicked, this, &ChildChainDialog::showBalance);
+    connect(m_receive_button, &QPushButton::clicked, this, &ChildChainDialog::receiveSelected);
     connect(m_activity_button, &QPushButton::clicked, this, &ChildChainDialog::showActivity);
     connect(m_deposits_button, &QPushButton::clicked, this, &ChildChainDialog::showDeposits);
     connect(m_migrate_button, &QPushButton::clicked, this, &ChildChainDialog::migrateSelected);
@@ -457,6 +462,7 @@ void ChildChainDialog::updateSelection()
 #ifdef ENABLE_WALLET
         m_register_button->setEnabled(m_wallet_model);
         m_balance_button->setEnabled(false);
+        m_receive_button->setEnabled(false);
         m_activity_button->setEnabled(false);
         m_deposits_button->setEnabled(false);
         m_migrate_button->setEnabled(false);
@@ -498,6 +504,7 @@ void ChildChainDialog::updateSelection()
 #ifdef ENABLE_WALLET
     m_register_button->setEnabled(m_wallet_model);
     m_balance_button->setEnabled(m_wallet_model && loaded && supported);
+    m_receive_button->setEnabled(m_wallet_model && loaded && supported);
     m_activity_button->setEnabled(m_wallet_model && loaded && supported);
     m_deposits_button->setEnabled(m_wallet_model);
     const bool active_registry_record{
@@ -1563,6 +1570,92 @@ void ChildChainDialog::showBalance()
                  QString::fromStdString(immature.getValStr()),
                  NumberField(last_processed, "height"),
                  tip_hash));
+}
+
+void ChildChainDialog::receiveSelected()
+{
+    const QString chain_id{selectedChainId()};
+    if (chain_id.isEmpty() || !m_wallet_model) return;
+
+    bool accepted{false};
+    const QString label{QInputDialog::getText(
+        this, tr("Create Child Recipient"), tr("Label (optional):"),
+        QLineEdit::Normal, {}, &accepted)};
+    if (!accepted) return;
+
+    UniValue params{UniValue::VARR};
+    params.push_back(chain_id.toStdString());
+    params.push_back(label.toStdString());
+    UniValue result;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        result = m_node.executeRpc(
+            "getnewchildrecipient", params, walletUri());
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Create child recipient"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Create child recipient"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+
+    const QString returned_chain{StringField(result, "chain_id")};
+    const QString recipient{StringField(result, "recipient")};
+    const QString script_pub_key{StringField(result, "scriptPubKey")};
+    const QString returned_label{StringField(result, "label")};
+    const UniValue& recipient_type{result.find_value("recipient_type")};
+    if (!result.isObject() ||
+        returned_chain.compare(chain_id, Qt::CaseInsensitive) != 0 ||
+        !recipient_type.isNum() || recipient_type.getInt<int>() != 1 ||
+        !QRegularExpression{QStringLiteral("^[0-9A-Fa-f]{64}$")}
+             .match(recipient).hasMatch() ||
+        !QRegularExpression{QStringLiteral("^5120[0-9A-Fa-f]{64}$")}
+             .match(script_pub_key).hasMatch() ||
+        returned_label != label) {
+        showRpcError(tr("Create child recipient"),
+                     tr("The wallet returned an invalid child recipient."));
+        return;
+    }
+
+    QDialog dialog{this};
+    dialog.setWindowTitle(tr("Child Recipient — %1").arg(chain_id));
+    dialog.setMinimumWidth(720);
+    auto* layout = new QVBoxLayout{&dialog};
+    auto* warning = new QLabel{
+        tr("This recipient belongs only to the selected child chain. It is not a main-chain address."),
+        &dialog};
+    warning->setWordWrap(true);
+    layout->addWidget(warning);
+
+    auto* form = new QFormLayout;
+    auto add_read_only_field = [&dialog, form](const QString& title,
+                                               const QString& value) {
+        auto* field = new QLineEdit{value, &dialog};
+        field->setReadOnly(true);
+        field->setCursorPosition(0);
+        form->addRow(title, field);
+    };
+    add_read_only_field(tr("Chain ID:"), chain_id);
+    add_read_only_field(tr("Recipient type:"), QStringLiteral("1"));
+    add_read_only_field(tr("Recipient:"), recipient);
+    add_read_only_field(tr("Output script:"), script_pub_key);
+    add_read_only_field(tr("Label:"), returned_label);
+    layout->addLayout(form);
+
+    auto* buttons = new QDialogButtonBox{&dialog};
+    auto* copy_button = buttons->addButton(
+        tr("Copy Recipient"), QDialogButtonBox::ActionRole);
+    copy_button->setObjectName(QStringLiteral("childRecipientCopyButton"));
+    buttons->addButton(QDialogButtonBox::Close);
+    connect(copy_button, &QPushButton::clicked, &dialog,
+            [recipient] { GUIUtil::setClipboard(recipient); });
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    layout->addWidget(buttons);
+    dialog.exec();
 }
 
 void ChildChainDialog::showActivity()
