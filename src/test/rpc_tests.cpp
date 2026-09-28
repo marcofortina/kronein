@@ -831,8 +831,8 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
         [](const UniValue& error) {
             const UniValue& message{error.find_value("message")};
             return message.isStr() &&
-                std::string_view{message.get_str()}.find(
-                    "blockhash is required") != std::string_view::npos;
+                message.get_str().find(
+                    "blockhash is required") != std::string::npos;
         });
 
     JSONRPCRequest missing_block_request;
@@ -848,8 +848,9 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
         [](const UniValue& error) {
             const UniValue& message{error.find_value("message")};
             return message.isStr() &&
-                std::string_view{message.get_str()}.find(
-                    "blockhash is required") != std::string_view::npos;
+                message.get_str().find(
+                    "No such transaction found in the child mempool") !=
+                    std::string::npos;
         });
     BOOST_CHECK_EXCEPTION(
         CallRPC("getrawtransaction " + std::string(64, 'f') + " 1 " +
