@@ -192,6 +192,8 @@ public:
     std::optional<kernel::CCoinsStats> GetUTXOStats(
         kernel::CoinStatsHashType hash_type,
         const std::function<void()>& interruption_point = {}) const;
+    /** Rebuild and fully validate all persisted runtime state without mutation. */
+    bool VerifyDatabase(int64_t current_time) const;
     bool ReadBlock(const uint256& block_hash, CBlock& block) const;
 };
 

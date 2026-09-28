@@ -158,6 +158,20 @@ enum class ChainManagerUTXOStatsViewError : uint8_t {
     DATA_UNAVAILABLE,
 };
 
+enum class ChainManagerVerifyError : uint8_t {
+    NONE,
+    NULL_CHAIN_ID,
+    UNKNOWN_CHAIN,
+    CHAIN_NOT_LOADED,
+};
+
+struct ChainManagerVerifyResult {
+    ChainManagerVerifyError error{ChainManagerVerifyError::NONE};
+    bool verified{false};
+
+    bool IsValid() const { return error == ChainManagerVerifyError::NONE; }
+};
+
 struct ChainManagerUTXOStatsView {
     ChainManagerUTXOStatsViewError error{
         ChainManagerUTXOStatsViewError::NONE};
@@ -271,6 +285,9 @@ public:
         const chainregistry::ChainId& chain_id,
         kernel::CoinStatsHashType hash_type,
         const std::function<void()>& interruption_point = {}) const;
+    ChainManagerVerifyResult VerifyChain(
+        const chainregistry::ChainId& chain_id,
+        int64_t current_time) const;
     std::vector<ChainManagerEntry> List() const;
     size_t RegisteredCount() const;
     size_t LoadedCount() const;

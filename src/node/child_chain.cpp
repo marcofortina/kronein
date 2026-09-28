@@ -1148,6 +1148,40 @@ std::optional<kernel::CCoinsStats> ReferenceChildRuntime::GetUTXOStats(
     return stats;
 }
 
+bool ReferenceChildRuntime::VerifyDatabase(int64_t current_time) const
+{
+    if (!Usable() || !m_tip || !m_main_headers || !m_db) return false;
+
+    chainregistry::MainHeaderChain headers{m_main_params};
+    chainregistry::DepositImportState imports{
+        m_definition.chain_id,
+        m_imports.MinimumConfirmations()};
+    ChildChainDBState state;
+    const auto loaded{m_db->Load(
+        headers, imports, state, current_time)};
+    if (!loaded.IsValid() || !loaded.initialized || state != m_state ||
+        !headers.Tip() ||
+        headers.Tip()->GetBlockHash() != m_main_headers->Tip()->GetBlockHash() ||
+        imports.Imports() != m_imports.Imports() ||
+        imports.SafeHalt() != m_imports.SafeHalt() ||
+        state.child_tip != m_tip->GetBlockHash() ||
+        state.child_height != static_cast<uint32_t>(m_tip->nHeight)) {
+        return false;
+    }
+    const auto stored_headers{headers.ExportHeaders()};
+    const auto active_headers{m_main_headers->ExportHeaders()};
+    if (stored_headers.size() != active_headers.size()) return false;
+    for (size_t index{0}; index < stored_headers.size(); ++index) {
+        if (stored_headers[index].version != active_headers[index].version ||
+            stored_headers[index].height != active_headers[index].height ||
+            stored_headers[index].header.GetHash() !=
+                active_headers[index].header.GetHash()) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool ReferenceChildRuntime::ReadBlock(const uint256& block_hash,
                                       CBlock& block) const
 {

@@ -345,6 +345,7 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
             static_cast<int>(rejected.child_block.error));
         BOOST_CHECK(runtime.Tip()->GetBlockHash() == child_hash);
         BOOST_CHECK_EQUAL(runtime.State().child_height, 1U);
+        BOOST_CHECK(runtime.VerifyDatabase(invalid_main_anchor.nTime));
     }
 
     {
@@ -359,6 +360,7 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
         BOOST_REQUIRE(runtime.Tip());
         BOOST_CHECK(runtime.Tip()->GetBlockHash() == child_hash);
         BOOST_CHECK_EQUAL(runtime.Tip()->nHeight, 1);
+        BOOST_CHECK(runtime.VerifyDatabase(main_genesis.nTime + 2));
 
         const auto disconnected{runtime.DisconnectTip(/*sync=*/true)};
         BOOST_REQUIRE_MESSAGE(

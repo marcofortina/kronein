@@ -165,6 +165,10 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
     BOOST_REQUIRE(utxo_stats.stats.total_amount);
     BOOST_CHECK_EQUAL(*utxo_stats.stats.total_amount, 0);
     BOOST_CHECK(!utxo_stats.stats.muhash.IsNull());
+    const auto verified{manager.VerifyChain(
+        first.chain_id, Params().GenesisBlock().nTime)};
+    BOOST_REQUIRE(verified.IsValid());
+    BOOST_CHECK(verified.verified);
     BOOST_CHECK(
         manager.GetBlockView(first.chain_id, uint256{42}).error ==
         node::ChainManagerBlockViewError::BLOCK_NOT_FOUND);
@@ -189,12 +193,18 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
     BOOST_CHECK(manager.GetUTXOStatsView(
         second.chain_id, kernel::CoinStatsHashType::NONE).error ==
         node::ChainManagerUTXOStatsViewError::CHAIN_NOT_LOADED);
+    BOOST_CHECK(manager.VerifyChain(
+        second.chain_id, Params().GenesisBlock().nTime).error ==
+        node::ChainManagerVerifyError::CHAIN_NOT_LOADED);
     BOOST_CHECK(manager.GetCoinView(
         chainregistry::ChainId{}, COutPoint{}).error ==
         node::ChainManagerCoinViewError::NULL_CHAIN_ID);
     BOOST_CHECK(manager.GetUTXOStatsView(
         chainregistry::ChainId{}, kernel::CoinStatsHashType::NONE).error ==
         node::ChainManagerUTXOStatsViewError::NULL_CHAIN_ID);
+    BOOST_CHECK(manager.VerifyChain(
+        chainregistry::ChainId{}, Params().GenesisBlock().nTime).error ==
+        node::ChainManagerVerifyError::NULL_CHAIN_ID);
 
     const auto already_loaded{manager.LoadChain(
         first.chain_id, Params().GenesisBlock().nTime)};

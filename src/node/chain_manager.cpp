@@ -646,6 +646,29 @@ ChainManagerUTXOStatsView ChainManager::GetUTXOStatsView(
     return result;
 }
 
+ChainManagerVerifyResult ChainManager::VerifyChain(
+    const chainregistry::ChainId& chain_id,
+    int64_t current_time) const
+{
+    LOCK(m_mutex);
+    ChainManagerVerifyResult result;
+    if (chain_id.IsNull()) {
+        result.error = ChainManagerVerifyError::NULL_CHAIN_ID;
+        return result;
+    }
+    if (!m_definitions.contains(chain_id)) {
+        result.error = ChainManagerVerifyError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto loaded{m_loaded.find(chain_id)};
+    if (loaded == m_loaded.end()) {
+        result.error = ChainManagerVerifyError::CHAIN_NOT_LOADED;
+        return result;
+    }
+    result.verified = loaded->second->VerifyDatabase(current_time);
+    return result;
+}
+
 std::vector<ChainManagerEntry> ChainManager::List() const
 {
     LOCK(m_mutex);
