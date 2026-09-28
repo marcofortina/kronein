@@ -10,6 +10,7 @@
 #include <scheduler.h>
 #include <test/util/setup_common.h>
 #include <util/chaintype.h>
+#include <util/readwritefile.h>
 
 #include <boost/test/unit_test.hpp>
 
@@ -61,13 +62,15 @@ BOOST_AUTO_TEST_CASE(owns_an_isolated_network_per_loaded_child)
     node::ChildNetworkManager networks{chains, Params(), scheduler};
     const auto invalid{networks.Start(
         definition.chain_id,
-        {.connect = {"127.0.0.1"}, .network_active = false})};
+        node::ChildNetworkConfig{
+            .connect = {"127.0.0.1"}, .network_active = false})};
     BOOST_CHECK(
         invalid.error == node::ChildNetworkError::INVALID_ENDPOINT);
 
     BOOST_REQUIRE(networks.Start(
         definition.chain_id,
-        {.connect = {}, .network_active = false}).IsValid());
+        node::ChildNetworkConfig{
+            .connect = {}, .network_active = false}).IsValid());
     BOOST_CHECK(networks.IsRunning(definition.chain_id));
     const auto running{networks.GetStats(definition.chain_id)};
     BOOST_CHECK(running.running);
@@ -103,7 +106,31 @@ BOOST_AUTO_TEST_CASE(owns_an_isolated_network_per_loaded_child)
     // The peer-store directory is durable state, not a one-shot startup path.
     BOOST_REQUIRE(networks.Start(
         definition.chain_id,
-        {.connect = {}, .network_active = false}).IsValid());
+        node::ChildNetworkConfig{
+            .connect = {}, .network_active = false}).IsValid());
+    BOOST_REQUIRE(networks.AddNode(
+        definition.chain_id, "127.0.0.1:19844").IsValid());
+    BOOST_REQUIRE(networks.Stop(definition.chain_id).IsValid());
+
+    BOOST_REQUIRE(networks.Start(definition.chain_id).IsValid());
+    const auto restored{networks.GetStats(definition.chain_id)};
+    BOOST_CHECK(!restored.network_active);
+    BOOST_REQUIRE_EQUAL(restored.added_nodes.size(), 1U);
+    BOOST_CHECK_EQUAL(restored.added_nodes.front(), "127.0.0.1:19844");
+    BOOST_REQUIRE(networks.Stop(definition.chain_id).IsValid());
+
+    const fs::path config_path{
+        chains.DataPath(definition.chain_id) / "network" / "config.json"};
+    BOOST_REQUIRE(WriteBinaryFile(config_path, "{}"));
+    BOOST_CHECK(
+        networks.Start(definition.chain_id).error ==
+        node::ChildNetworkError::CONFIG_INVALID);
+
+    // An explicit replacement is the recovery path for invalid local config.
+    BOOST_REQUIRE(networks.Start(
+        definition.chain_id,
+        node::ChildNetworkConfig{
+            .connect = {}, .network_active = false}).IsValid());
     BOOST_REQUIRE(networks.Stop(definition.chain_id).IsValid());
 }
 

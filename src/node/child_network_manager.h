@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -40,6 +41,9 @@ enum class ChildNetworkError : uint8_t {
     INVALID_ENDPOINT,
     DATA_DIRECTORY_ERROR,
     PEER_STORE_ERROR,
+    CONFIG_READ_ERROR,
+    CONFIG_WRITE_ERROR,
+    CONFIG_INVALID,
     START_FAILED,
     NODE_ALREADY_ADDED,
     NODE_NOT_ADDED,
@@ -81,12 +85,15 @@ public:
     ~ChildNetworkManager();
 
     ChildNetworkResult Start(const chainregistry::ChainId& chain_id,
-                             const ChildNetworkConfig& config = {});
+                             std::optional<ChildNetworkConfig> config = std::nullopt);
     ChildNetworkResult Stop(const chainregistry::ChainId& chain_id);
     ChildNetworkResult AddNode(const chainregistry::ChainId& chain_id,
                                const std::string& endpoint);
     ChildNetworkResult RemoveNode(const chainregistry::ChainId& chain_id,
                                   const std::string& endpoint);
+    ChildNetworkResult SetNetworkActive(
+        const chainregistry::ChainId& chain_id,
+        bool active);
     void Interrupt();
     void StopAll();
 

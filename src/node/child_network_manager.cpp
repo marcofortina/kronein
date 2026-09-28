@@ -9,6 +9,7 @@
 #include <banman.h>
 #include <chainparams.h>
 #include <chainregistry/child_net.h>
+#include <common/settings.h>
 #include <net.h>
 #include <netbase.h>
 #include <netgroup.h>
@@ -16,14 +17,19 @@
 #include <node/child_net_events.h>
 #include <random.h>
 #include <scheduler.h>
+#include <util/check.h>
 #include <util/fs_helpers.h>
 #include <util/translation.h>
+#include <univalue.h>
 
 #include <algorithm>
 #include <utility>
 
 namespace node {
 namespace {
+
+constexpr uint32_t CHILD_NETWORK_CONFIG_VERSION{1};
+constexpr const char* CHILD_NETWORK_CONFIG_FILENAME{"config.json"};
 
 ChildNetworkResult NetworkError(ChildNetworkError error,
                                 std::string detail = {})
@@ -62,6 +68,80 @@ ChildNetworkResult ValidateEndpoints(
     return {};
 }
 
+struct LoadedNetworkConfig {
+    ChildNetworkResult result;
+    ChildNetworkConfig config;
+};
+
+LoadedNetworkConfig ReadNetworkConfig(const fs::path& path)
+{
+    LoadedNetworkConfig loaded;
+    if (!fs::exists(path)) return loaded;
+
+    std::map<std::string, common::SettingsValue> values;
+    std::vector<std::string> errors;
+    if (!common::ReadSettings(path, values, errors)) {
+        loaded.result = NetworkError(
+            ChildNetworkError::CONFIG_READ_ERROR,
+            errors.empty() ? fs::PathToString(path) : errors.front());
+        return loaded;
+    }
+    const auto version{values.find("version")};
+    const auto network_active{values.find("network_active")};
+    const auto connect{values.find("connect")};
+    if (values.size() != 3 || version == values.end() ||
+        network_active == values.end() || connect == values.end() ||
+        !version->second.isNum() ||
+        version->second.getInt<int64_t>() != CHILD_NETWORK_CONFIG_VERSION ||
+        !network_active->second.isBool() || !connect->second.isArray()) {
+        loaded.result = NetworkError(
+            ChildNetworkError::CONFIG_INVALID,
+            fs::PathToString(path));
+        return loaded;
+    }
+    loaded.config.network_active = network_active->second.get_bool();
+    for (const UniValue& endpoint : connect->second.getValues()) {
+        if (!endpoint.isStr()) {
+            loaded.result = NetworkError(
+                ChildNetworkError::CONFIG_INVALID,
+                fs::PathToString(path));
+            return loaded;
+        }
+        loaded.config.connect.push_back(endpoint.get_str());
+    }
+    loaded.result = ValidateEndpoints(loaded.config.connect);
+    if (!loaded.result.IsValid()) {
+        loaded.result.error = ChildNetworkError::CONFIG_INVALID;
+        loaded.result.detail = fs::PathToString(path);
+    }
+    return loaded;
+}
+
+ChildNetworkResult WriteNetworkConfig(
+    const fs::path& path,
+    const ChildNetworkConfig& config)
+{
+    UniValue connect{UniValue::VARR};
+    for (const std::string& endpoint : config.connect) {
+        connect.push_back(endpoint);
+    }
+    fs::path temporary{path};
+    temporary += ".tmp";
+    std::vector<std::string> errors;
+    const std::map<std::string, common::SettingsValue> values{
+        {"version", static_cast<int64_t>(CHILD_NETWORK_CONFIG_VERSION)},
+        {"network_active", config.network_active},
+        {"connect", std::move(connect)},
+    };
+    if (!common::WriteSettings(temporary, values, errors) ||
+        !RenameOver(temporary, path)) {
+        return NetworkError(
+            ChildNetworkError::CONFIG_WRITE_ERROR,
+            errors.empty() ? fs::PathToString(path) : errors.front());
+    }
+    return {};
+}
+
 } // namespace
 
 struct ChildNetworkManager::Network {
@@ -73,6 +153,7 @@ struct ChildNetworkManager::Network {
     BanMan banman;
     CConnman connman;
     std::unique_ptr<ChildNetEvents> events;
+    ChildNetworkConfig config;
     bool started{false};
 
     Network(const chainregistry::ChainId& id,
@@ -82,7 +163,8 @@ struct ChildNetworkManager::Network {
             std::unique_ptr<AddrMan> addresses,
             const CChainParams& params,
             ChainManager& manager,
-            const chainregistry::ReferenceChildDefinition& definition)
+            const chainregistry::ReferenceChildDefinition& definition,
+            ChildNetworkConfig network_config)
         : chain_id{id},
           network_path{std::move(path)},
           message_start{magic},
@@ -97,7 +179,8 @@ struct ChildNetworkManager::Network {
                   *netgroup,
                   params},
           events{std::make_unique<ChildNetEvents>(
-              connman, manager, definition)}
+              connman, manager, definition)},
+          config{std::move(network_config)}
     {
     }
 
@@ -119,10 +202,7 @@ struct ChildNetworkManager::Network {
             .handshaken = events->HandshakenPeerCount(),
             .added_nodes = {},
         };
-        for (const AddedNodeInfo& node :
-             connman.GetAddedNodeInfo(/*include_connected=*/true)) {
-            result.added_nodes.push_back(node.m_params.m_added_node);
-        }
+        result.added_nodes = config.connect;
         return result;
     }
 };
@@ -144,14 +224,10 @@ ChildNetworkManager::~ChildNetworkManager()
 
 ChildNetworkResult ChildNetworkManager::Start(
     const chainregistry::ChainId& chain_id,
-    const ChildNetworkConfig& config)
+    std::optional<ChildNetworkConfig> config)
 {
     if (chain_id.IsNull()) {
         return NetworkError(ChildNetworkError::NULL_CHAIN_ID);
-    }
-    if (const auto endpoints{ValidateEndpoints(config.connect)};
-        !endpoints.IsValid()) {
-        return endpoints;
     }
     const auto definition{m_chain_manager.Definition(chain_id)};
     if (!definition) {
@@ -175,6 +251,20 @@ ChildNetworkResult ChildNetworkManager::Start(
             ChildNetworkError::DATA_DIRECTORY_ERROR,
             fs::PathToString(network_path));
     }
+    const fs::path config_path{
+        network_path / fs::PathFromString(CHILD_NETWORK_CONFIG_FILENAME)};
+    ChildNetworkConfig effective_config;
+    if (config) {
+        effective_config = std::move(*config);
+    } else {
+        const auto loaded_config{ReadNetworkConfig(config_path)};
+        if (!loaded_config.result.IsValid()) return loaded_config.result;
+        effective_config = loaded_config.config;
+    }
+    if (const auto endpoints{ValidateEndpoints(effective_config.connect)};
+        !endpoints.IsValid()) {
+        return endpoints;
+    }
     const MessageStartChars message_start{
         chainregistry::DeriveChildMessageStart(chain_id)};
     auto netgroup{std::make_unique<NetGroupManager>(
@@ -197,7 +287,8 @@ ChildNetworkResult ChildNetworkManager::Start(
         std::move(*loaded_addrman),
         m_chain_params,
         m_chain_manager,
-        *definition)};
+        *definition,
+        effective_config)};
     CConnman::Options options;
     options.m_local_services = NODE_NONE;
     options.m_max_automatic_connections = 0;
@@ -205,7 +296,7 @@ ChildNetworkResult ChildNetworkManager::Start(
     options.m_banman = &network->banman;
     options.nSendBufferMaxSize = DEFAULT_MAXSENDBUFFER * 1000;
     options.nReceiveFloodSize = DEFAULT_MAXRECEIVEBUFFER * 1000;
-    for (const auto& endpoint : config.connect) {
+    for (const auto& endpoint : effective_config.connect) {
         options.m_added_nodes.push_back(endpoint);
     }
     options.bind_on_any = false;
@@ -220,10 +311,14 @@ ChildNetworkResult ChildNetworkManager::Start(
     options.m_addrman_path = network_path / "peers.dat";
     options.m_anchors_path = network_path / "anchors.dat";
     options.m_addrman_message_start = message_start;
-    network->connman.SetNetworkActive(config.network_active);
+    network->connman.SetNetworkActive(effective_config.network_active);
     network->started = true;
     if (!network->connman.Start(m_scheduler, options)) {
         return NetworkError(ChildNetworkError::START_FAILED);
+    }
+    if (const auto saved{WriteNetworkConfig(config_path, effective_config)};
+        !saved.IsValid()) {
+        return saved;
     }
     m_networks.emplace(chain_id, std::move(network));
     return {};
@@ -270,6 +365,16 @@ ChildNetworkResult ChildNetworkManager::AddNode(
     if (!entry->second->connman.AddNode({endpoint})) {
         return NetworkError(ChildNetworkError::NODE_ALREADY_ADDED, endpoint);
     }
+    entry->second->config.connect.push_back(endpoint);
+    const auto saved{WriteNetworkConfig(
+        entry->second->network_path /
+            fs::PathFromString(CHILD_NETWORK_CONFIG_FILENAME),
+        entry->second->config)};
+    if (!saved.IsValid()) {
+        entry->second->config.connect.pop_back();
+        entry->second->connman.RemoveAddedNode(endpoint);
+        return saved;
+    }
     return {};
 }
 
@@ -285,7 +390,43 @@ ChildNetworkResult ChildNetworkManager::RemoveNode(
     if (!entry->second->connman.RemoveAddedNode(endpoint)) {
         return NetworkError(ChildNetworkError::NODE_NOT_ADDED, endpoint);
     }
+    const auto configured{std::find(
+        entry->second->config.connect.begin(),
+        entry->second->config.connect.end(),
+        endpoint)};
+    Assume(configured != entry->second->config.connect.end());
+    entry->second->config.connect.erase(configured);
+    const auto saved{WriteNetworkConfig(
+        entry->second->network_path /
+            fs::PathFromString(CHILD_NETWORK_CONFIG_FILENAME),
+        entry->second->config)};
+    if (!saved.IsValid()) {
+        entry->second->config.connect.push_back(endpoint);
+        entry->second->connman.AddNode({endpoint});
+        return saved;
+    }
     entry->second->connman.DisconnectNode(endpoint);
+    return {};
+}
+
+ChildNetworkResult ChildNetworkManager::SetNetworkActive(
+    const chainregistry::ChainId& chain_id,
+    bool active)
+{
+    LOCK(m_mutex);
+    const auto entry{m_networks.find(chain_id)};
+    if (entry == m_networks.end()) {
+        return NetworkError(ChildNetworkError::NOT_RUNNING);
+    }
+    ChildNetworkConfig config{entry->second->config};
+    config.network_active = active;
+    const auto saved{WriteNetworkConfig(
+        entry->second->network_path /
+            fs::PathFromString(CHILD_NETWORK_CONFIG_FILENAME),
+        config)};
+    if (!saved.IsValid()) return saved;
+    entry->second->config = std::move(config);
+    entry->second->connman.SetNetworkActive(active);
     return {};
 }
 
