@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <map>
 #include <optional>
+#include <set>
 #include <vector>
 
 namespace chainregistry {
@@ -78,6 +79,58 @@ struct ChildForkChoiceResult {
 ChildForkChoiceResult SelectChildFork(
     const uint256& child_genesis_hash,
     const std::vector<ChildForkCandidate>& candidates);
+
+/** Storage accounting for one candidate considered by DAG pruning. */
+struct ChildForkPruneCandidate {
+    ChildForkCandidate candidate;
+    uint64_t side_candidate_bytes{0};
+    uint64_t candidate_anchor_count{0};
+    uint64_t candidate_anchor_bytes{0};
+    /** Canonical candidates are structural inputs and may never be pruned. */
+    bool prunable{false};
+};
+
+struct ChildForkPruneLimits {
+    uint64_t side_candidate_count{0};
+    uint64_t side_candidate_bytes{0};
+    uint64_t candidate_anchor_count{0};
+    uint64_t candidate_anchor_bytes{0};
+};
+
+enum class ChildForkPruneError : uint8_t {
+    NONE,
+    INVALID_FORK_CHOICE,
+    DUPLICATE_CANDIDATE,
+    INVALID_ACCOUNTING,
+    ACCOUNTING_OVERFLOW,
+    LIMIT_UNSATISFIABLE,
+};
+
+struct ChildForkPruneResult {
+    ChildForkPruneError error{ChildForkPruneError::NONE};
+    ChildForkChoiceResult fork_choice;
+    std::vector<uint256> pruned;
+    uint64_t side_candidate_count{0};
+    uint64_t side_candidate_bytes{0};
+    uint64_t candidate_anchor_count{0};
+    uint64_t candidate_anchor_bytes{0};
+
+    bool IsValid() const { return error == ChildForkPruneError::NONE; }
+};
+
+/**
+ * Select side-candidate leaves to remove until every storage limit is met.
+ *
+ * The selected head, its complete ancestry and every canonical candidate are
+ * protected. Only non-protected leaves are removable, so the retained graph
+ * is always parent-complete. The least competitive leaf is removed first:
+ * ineligible candidates, then lower cumulative anchor work, lower child
+ * height, and finally the numerically greater child hash.
+ */
+ChildForkPruneResult SelectChildForkPruning(
+    const uint256& child_genesis_hash,
+    const std::vector<ChildForkPruneCandidate>& candidates,
+    const ChildForkPruneLimits& limits);
 
 } // namespace chainregistry
 

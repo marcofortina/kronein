@@ -40,6 +40,24 @@ chainregistry::ChildForkCandidate Candidate(
     };
 }
 
+chainregistry::ChildForkPruneCandidate PruneCandidate(
+    uint64_t hash,
+    uint64_t parent,
+    std::vector<chainregistry::ChildForkAnchor> anchors,
+    bool prunable = true,
+    uint64_t bytes = 100,
+    uint64_t anchor_count = 1,
+    uint64_t anchor_bytes = 50)
+{
+    return {
+        .candidate = Candidate(hash, parent, std::move(anchors)),
+        .side_candidate_bytes = prunable ? bytes : 0,
+        .candidate_anchor_count = anchor_count,
+        .candidate_anchor_bytes = anchor_bytes,
+        .prunable = prunable,
+    };
+}
+
 } // namespace
 
 BOOST_AUTO_TEST_SUITE(child_fork_choice_tests)
@@ -199,6 +217,112 @@ BOOST_AUTO_TEST_CASE(rejects_ambiguous_or_invalid_candidate_graphs)
         static_cast<int>(cycle.error),
         static_cast<int>(
             chainregistry::ChildForkChoiceError::CYCLIC_PARENT));
+}
+
+BOOST_AUTO_TEST_CASE(pruning_protects_selected_branch_and_removes_weakest_leaf)
+{
+    const uint256 genesis{Hash(1)};
+    std::vector<chainregistry::ChildForkPruneCandidate> candidates{
+        PruneCandidate(10, 1, {Anchor(101, 1, 5)}, false),
+        PruneCandidate(20, 10, {Anchor(102, 2, 5)}),
+        PruneCandidate(11, 1, {Anchor(103, 3, 3)}),
+        PruneCandidate(12, 1, {}),
+    };
+    const chainregistry::ChildForkPruneLimits limits{
+        .side_candidate_count = 2,
+        .side_candidate_bytes = 1'000,
+        .candidate_anchor_count = 10,
+        .candidate_anchor_bytes = 1'000,
+    };
+
+    const auto result{chainregistry::SelectChildForkPruning(
+        genesis, candidates, limits)};
+    BOOST_REQUIRE(result.IsValid());
+    BOOST_CHECK(result.fork_choice.head == Hash(20));
+    BOOST_REQUIRE_EQUAL(result.pruned.size(), 1U);
+    BOOST_CHECK(result.pruned.front() == Hash(12));
+    BOOST_CHECK_EQUAL(result.side_candidate_count, 2U);
+
+    std::reverse(candidates.begin(), candidates.end());
+    const auto reversed{chainregistry::SelectChildForkPruning(
+        genesis, candidates, limits)};
+    BOOST_REQUIRE(reversed.IsValid());
+    BOOST_CHECK(reversed.pruned == result.pruned);
+}
+
+BOOST_AUTO_TEST_CASE(pruning_removes_only_leaves_and_can_collapse_a_losing_branch)
+{
+    const uint256 genesis{Hash(1)};
+    const auto result{chainregistry::SelectChildForkPruning(
+        genesis,
+        {
+            PruneCandidate(10, 1, {Anchor(101, 1, 10)}, false),
+            PruneCandidate(11, 1, {Anchor(102, 2, 1)}),
+            PruneCandidate(21, 11, {Anchor(103, 3, 1)}),
+            PruneCandidate(31, 21, {}),
+        },
+        {
+            .side_candidate_count = 1,
+            .side_candidate_bytes = 1'000,
+            .candidate_anchor_count = 10,
+            .candidate_anchor_bytes = 1'000,
+        })};
+
+    BOOST_REQUIRE(result.IsValid());
+    BOOST_REQUIRE_EQUAL(result.pruned.size(), 2U);
+    BOOST_CHECK(result.pruned[0] == Hash(31));
+    BOOST_CHECK(result.pruned[1] == Hash(21));
+    BOOST_CHECK_EQUAL(result.side_candidate_count, 1U);
+}
+
+BOOST_AUTO_TEST_CASE(pruning_honors_byte_and_anchor_budgets)
+{
+    const uint256 genesis{Hash(1)};
+    const auto result{chainregistry::SelectChildForkPruning(
+        genesis,
+        {
+            PruneCandidate(10, 1, {Anchor(101, 1, 10)}, false,
+                           0, 2, 80),
+            PruneCandidate(11, 1, {Anchor(102, 2, 1)}, true,
+                           300, 3, 120),
+            PruneCandidate(12, 1, {}, true, 200, 2, 100),
+        },
+        {
+            .side_candidate_count = 10,
+            .side_candidate_bytes = 300,
+            .candidate_anchor_count = 5,
+            .candidate_anchor_bytes = 200,
+        })};
+
+    BOOST_REQUIRE(result.IsValid());
+    BOOST_REQUIRE_EQUAL(result.pruned.size(), 1U);
+    BOOST_CHECK(result.pruned.front() == Hash(12));
+    BOOST_CHECK_EQUAL(result.side_candidate_bytes, 300U);
+    BOOST_CHECK_EQUAL(result.candidate_anchor_count, 5U);
+    BOOST_CHECK_EQUAL(result.candidate_anchor_bytes, 200U);
+}
+
+BOOST_AUTO_TEST_CASE(pruning_fails_instead_of_discarding_the_selected_branch)
+{
+    const uint256 genesis{Hash(1)};
+    const auto result{chainregistry::SelectChildForkPruning(
+        genesis,
+        {
+            PruneCandidate(10, 1, {Anchor(101, 1, 5)}),
+            PruneCandidate(20, 10, {Anchor(102, 2, 5)}),
+        },
+        {
+            .side_candidate_count = 1,
+            .side_candidate_bytes = 1'000,
+            .candidate_anchor_count = 10,
+            .candidate_anchor_bytes = 1'000,
+        })};
+
+    BOOST_CHECK_EQUAL(
+        static_cast<int>(result.error),
+        static_cast<int>(
+            chainregistry::ChildForkPruneError::LIMIT_UNSATISFIABLE));
+    BOOST_CHECK(result.pruned.empty());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

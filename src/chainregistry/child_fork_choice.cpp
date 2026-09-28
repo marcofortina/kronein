@@ -7,6 +7,7 @@
 #include <limits>
 #include <map>
 #include <set>
+#include <vector>
 
 namespace chainregistry {
 namespace {
@@ -42,6 +43,22 @@ bool BetterHead(const uint256& candidate_hash,
         return candidate.child_height > current.child_height;
     }
     return candidate_hash < current_hash;
+}
+
+bool WorsePruneCandidate(const uint256& candidate_hash,
+                         const ChildForkScore& candidate,
+                         const uint256& current_hash,
+                         const ChildForkScore& current)
+{
+    if (candidate.eligible != current.eligible) return !candidate.eligible;
+    if (candidate.cumulative_anchor_work != current.cumulative_anchor_work) {
+        return candidate.cumulative_anchor_work <
+               current.cumulative_anchor_work;
+    }
+    if (candidate.child_height != current.child_height) {
+        return candidate.child_height < current.child_height;
+    }
+    return current_hash < candidate_hash;
 }
 
 } // namespace
@@ -191,6 +208,135 @@ ChildForkChoiceResult SelectChildFork(
             result.head = hash;
             result.head_score = score;
         }
+    }
+    return result;
+}
+
+ChildForkPruneResult SelectChildForkPruning(
+    const uint256& child_genesis_hash,
+    const std::vector<ChildForkPruneCandidate>& candidates,
+    const ChildForkPruneLimits& limits)
+{
+    ChildForkPruneResult result;
+    std::vector<ChildForkCandidate> fork_candidates;
+    fork_candidates.reserve(candidates.size());
+    std::map<uint256, const ChildForkPruneCandidate*> by_hash;
+    for (const auto& candidate : candidates) {
+        const uint256& hash{candidate.candidate.block_hash};
+        if (!by_hash.emplace(hash, &candidate).second) {
+            result.error = ChildForkPruneError::DUPLICATE_CANDIDATE;
+            return result;
+        }
+        if ((candidate.prunable &&
+             (candidate.side_candidate_bytes == 0 ||
+              candidate.candidate_anchor_count == 0 ||
+              candidate.candidate_anchor_bytes == 0)) ||
+            (!candidate.prunable && candidate.side_candidate_bytes != 0)) {
+            result.error = ChildForkPruneError::INVALID_ACCOUNTING;
+            return result;
+        }
+        if ((candidate.prunable &&
+             result.side_candidate_count ==
+                 std::numeric_limits<uint64_t>::max()) ||
+            candidate.side_candidate_bytes >
+                std::numeric_limits<uint64_t>::max() -
+                    result.side_candidate_bytes ||
+            candidate.candidate_anchor_count >
+                std::numeric_limits<uint64_t>::max() -
+                    result.candidate_anchor_count ||
+            candidate.candidate_anchor_bytes >
+                std::numeric_limits<uint64_t>::max() -
+                    result.candidate_anchor_bytes) {
+            result.error = ChildForkPruneError::ACCOUNTING_OVERFLOW;
+            return result;
+        }
+        if (candidate.prunable) ++result.side_candidate_count;
+        result.side_candidate_bytes += candidate.side_candidate_bytes;
+        result.candidate_anchor_count += candidate.candidate_anchor_count;
+        result.candidate_anchor_bytes += candidate.candidate_anchor_bytes;
+        fork_candidates.push_back(candidate.candidate);
+    }
+
+    result.fork_choice = SelectChildFork(child_genesis_hash, fork_candidates);
+    if (!result.fork_choice.IsValid()) {
+        result.error = ChildForkPruneError::INVALID_FORK_CHOICE;
+        return result;
+    }
+
+    std::set<uint256> protected_candidates;
+    uint256 protected_hash{result.fork_choice.head};
+    while (protected_hash != child_genesis_hash) {
+        const auto candidate{by_hash.find(protected_hash)};
+        if (candidate == by_hash.end() ||
+            !protected_candidates.insert(protected_hash).second) {
+            result.error = ChildForkPruneError::INVALID_FORK_CHOICE;
+            return result;
+        }
+        protected_hash = candidate->second->candidate.parent_hash;
+    }
+
+    std::map<uint256, uint64_t> retained_children;
+    std::set<uint256> retained;
+    for (const auto& [hash, candidate] : by_hash) {
+        retained.insert(hash);
+        if (candidate->candidate.parent_hash != child_genesis_hash) {
+            ++retained_children[candidate->candidate.parent_hash];
+        }
+    }
+
+    const auto over_limit = [&] {
+        return result.side_candidate_count > limits.side_candidate_count ||
+               result.side_candidate_bytes > limits.side_candidate_bytes ||
+               result.candidate_anchor_count >
+                   limits.candidate_anchor_count ||
+               result.candidate_anchor_bytes >
+                   limits.candidate_anchor_bytes;
+    };
+    while (over_limit()) {
+        std::optional<uint256> worst;
+        for (const uint256& hash : retained) {
+            const auto& candidate{*by_hash.at(hash)};
+            if (!candidate.prunable || protected_candidates.contains(hash) ||
+                retained_children[hash] != 0) {
+                continue;
+            }
+            if (!worst || WorsePruneCandidate(
+                    hash,
+                    result.fork_choice.scores.at(hash),
+                    *worst,
+                    result.fork_choice.scores.at(*worst))) {
+                worst = hash;
+            }
+        }
+        if (!worst) {
+            result.error = ChildForkPruneError::LIMIT_UNSATISFIABLE;
+            return result;
+        }
+
+        const auto& candidate{*by_hash.at(*worst)};
+        if (result.side_candidate_count == 0 ||
+            candidate.side_candidate_bytes > result.side_candidate_bytes ||
+            candidate.candidate_anchor_count >
+                result.candidate_anchor_count ||
+            candidate.candidate_anchor_bytes >
+                result.candidate_anchor_bytes) {
+            result.error = ChildForkPruneError::INVALID_ACCOUNTING;
+            return result;
+        }
+        --result.side_candidate_count;
+        result.side_candidate_bytes -= candidate.side_candidate_bytes;
+        result.candidate_anchor_count -= candidate.candidate_anchor_count;
+        result.candidate_anchor_bytes -= candidate.candidate_anchor_bytes;
+        retained.erase(*worst);
+        if (candidate.candidate.parent_hash != child_genesis_hash) {
+            auto& children{retained_children[candidate.candidate.parent_hash]};
+            if (children == 0) {
+                result.error = ChildForkPruneError::INVALID_ACCOUNTING;
+                return result;
+            }
+            --children;
+        }
+        result.pruned.push_back(*worst);
     }
     return result;
 }
