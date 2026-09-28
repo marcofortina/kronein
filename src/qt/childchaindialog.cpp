@@ -10,12 +10,15 @@
 
 #include <QAbstractItemView>
 #include <QApplication>
+#include <QCheckBox>
 #include <QDialogButtonBox>
+#include <QFormLayout>
 #include <QHeaderView>
 #include <QInputDialog>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
+#include <QPlainTextEdit>
 #include <QPushButton>
 #include <QStringList>
 #include <QTableWidget>
@@ -135,10 +138,12 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     m_add_peer_button = actions->addButton(tr("Add Peer…"), QDialogButtonBox::ActionRole);
     m_remove_peer_button = actions->addButton(tr("Remove Peer…"), QDialogButtonBox::ActionRole);
     m_binds_button = actions->addButton(tr("Listening…"), QDialogButtonBox::ActionRole);
+    m_discovery_button = actions->addButton(tr("Discovery…"), QDialogButtonBox::ActionRole);
     m_network_button = actions->addButton(tr("Pause Network"), QDialogButtonBox::ActionRole);
     m_add_peer_button->setObjectName(QStringLiteral("childChainAddPeerButton"));
     m_remove_peer_button->setObjectName(QStringLiteral("childChainRemovePeerButton"));
     m_binds_button->setObjectName(QStringLiteral("childChainBindsButton"));
+    m_discovery_button->setObjectName(QStringLiteral("childChainDiscoveryButton"));
     m_network_button->setObjectName(QStringLiteral("childChainNetworkButton"));
     m_forget_button = actions->addButton(tr("Forget…"), QDialogButtonBox::DestructiveRole);
     actions->addButton(QDialogButtonBox::Close);
@@ -157,6 +162,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     connect(m_add_peer_button, &QPushButton::clicked, this, &ChildChainDialog::addPeer);
     connect(m_remove_peer_button, &QPushButton::clicked, this, &ChildChainDialog::removePeer);
     connect(m_binds_button, &QPushButton::clicked, this, &ChildChainDialog::configureBinds);
+    connect(m_discovery_button, &QPushButton::clicked, this, &ChildChainDialog::configureDiscovery);
     connect(m_network_button, &QPushButton::clicked, this, &ChildChainDialog::toggleNetwork);
     connect(m_forget_button, &QPushButton::clicked, this, &ChildChainDialog::forgetSelected);
     connect(actions, &QDialogButtonBox::rejected, this, &QDialog::close);
@@ -197,6 +203,9 @@ void ChildChainDialog::refresh()
                 NumberField(chain, "rate_limited_block_requests")};
             const QStringList added_nodes{StringArrayField(chain, "added_nodes")};
             const QStringList binds{StringArrayField(chain, "binds")};
+            const bool discovery{BoolField(chain, "discovery_enabled")};
+            const QStringList bootstrap_nodes{
+                StringArrayField(chain, "bootstrap_nodes")};
             const QString state{StringField(chain, "state")};
             const QString template_name{QStringLiteral("%1/%2")
                 .arg(NumberField(chain, "template_id"), NumberField(chain, "template_version"))};
@@ -233,6 +242,8 @@ void ChildChainDialog::refresh()
             status_item->setData(NETWORK_ACTIVE_ROLE, network_active);
             status_item->setData(ADDED_NODES_ROLE, added_nodes);
             status_item->setData(BINDS_ROLE, binds);
+            status_item->setData(DISCOVERY_ROLE, discovery);
+            status_item->setData(BOOTSTRAP_NODES_ROLE, bootstrap_nodes);
             status_item->setData(
                 RATE_LIMITED_REQUESTS_ROLE, rate_limited);
             m_table->setItem(row, STATUS, status_item);
@@ -246,8 +257,15 @@ void ChildChainDialog::refresh()
             const QString inbound_tooltip{binds.isEmpty()
                 ? tr("Inbound child connections disabled")
                 : tr("Child listen endpoints:\n%1").arg(binds.join(QLatin1Char('\n')))};
+            const QString discovery_tooltip{!discovery
+                ? tr("Automatic child peer discovery disabled")
+                : bootstrap_nodes.isEmpty()
+                    ? tr("Automatic child peer discovery enabled using the isolated peer store")
+                    : tr("Automatic child peer discovery enabled\nBootstrap endpoints:\n%1")
+                          .arg(bootstrap_nodes.join(QLatin1Char('\n')))};
             network_item->setToolTip(
                 outbound_tooltip + QStringLiteral("\n\n") + inbound_tooltip +
+                QStringLiteral("\n\n") + discovery_tooltip +
                 QStringLiteral("\n\n") +
                 tr("Rate-limited block requests: %1").arg(rate_limited));
             m_table->setItem(row, NETWORK, network_item);
@@ -337,6 +355,7 @@ void ChildChainDialog::updateSelection()
         m_add_peer_button->setEnabled(false);
         m_remove_peer_button->setEnabled(false);
         m_binds_button->setEnabled(false);
+        m_discovery_button->setEnabled(false);
         m_network_button->setEnabled(false);
         m_network_button->setText(tr("Pause Network"));
         m_selection_summary->setText(tr("Select a child chain to manage its local runtime."));
@@ -352,6 +371,9 @@ void ChildChainDialog::updateSelection()
     const bool network_active{item->data(NETWORK_ACTIVE_ROLE).toBool()};
     const QStringList added_nodes{item->data(ADDED_NODES_ROLE).toStringList()};
     const QStringList binds{item->data(BINDS_ROLE).toStringList()};
+    const bool discovery{item->data(DISCOVERY_ROLE).toBool()};
+    const QStringList bootstrap_nodes{
+        item->data(BOOTSTRAP_NODES_ROLE).toStringList()};
     const QString rate_limited{
         item->data(RATE_LIMITED_REQUESTS_ROLE).toString()};
     m_load_button->setEnabled(configured && !loaded && state == QStringLiteral("configured"));
@@ -361,10 +383,11 @@ void ChildChainDialog::updateSelection()
     m_add_peer_button->setEnabled(loaded && network_running);
     m_remove_peer_button->setEnabled(loaded && network_running && !added_nodes.isEmpty());
     m_binds_button->setEnabled(loaded && network_running);
+    m_discovery_button->setEnabled(loaded && network_running);
     m_network_button->setEnabled(loaded && network_running);
     m_network_button->setText(network_active ? tr("Pause Network") : tr("Resume Network"));
     m_selection_summary->setText(
-        tr("Chain ID: %1\nState: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7 • rate-limited block requests: %8")
+        tr("Chain ID: %1\nState: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7 • discovery: %8 (%9 bootstrap) • rate-limited block requests: %10")
             .arg(chain_id,
                  StateLabel(state),
                  registry_found ? tr("present") : tr("not present"),
@@ -372,6 +395,8 @@ void ChildChainDialog::updateSelection()
                  !network_running ? tr("stopped") : network_active ? tr("active") : tr("paused"),
                  QString::number(added_nodes.size()),
                  QString::number(binds.size()),
+                 discovery ? tr("enabled") : tr("disabled"),
+                 QString::number(bootstrap_nodes.size()),
                  rate_limited));
 }
 
@@ -525,6 +550,52 @@ void ChildChainDialog::configureBinds()
     params.push_back(chain_id.toStdString());
     params.push_back(std::move(binds));
     runCommand("setchildnetworkbinds", std::move(params));
+}
+
+void ChildChainDialog::configureDiscovery()
+{
+    const int row{m_table->currentRow()};
+    const QTableWidgetItem* item{row >= 0 ? m_table->item(row, STATUS) : nullptr};
+    if (!item) return;
+    const QString chain_id{item->data(CHAIN_ID_ROLE).toString()};
+    if (chain_id.isEmpty()) return;
+
+    QDialog dialog{this};
+    dialog.setWindowTitle(tr("Child Peer Discovery"));
+    auto* enabled = new QCheckBox{tr("Enable bounded automatic outbound connections"), &dialog};
+    enabled->setChecked(item->data(DISCOVERY_ROLE).toBool());
+    auto* endpoints = new QPlainTextEdit{&dialog};
+    endpoints->setPlainText(
+        item->data(BOOTSTRAP_NODES_ROLE).toStringList().join(QLatin1Char('\n')));
+    endpoints->setPlaceholderText(tr("One numeric address and explicit port per line"));
+    auto* form = new QFormLayout;
+    form->addRow(enabled);
+    form->addRow(tr("Bootstrap endpoints:"), endpoints);
+    auto* buttons = new QDialogButtonBox{
+        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog};
+    connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    auto* layout = new QVBoxLayout{&dialog};
+    layout->addLayout(form);
+    auto* explanation = new QLabel{
+        tr("Bootstrap names are intentionally not resolved: use numeric IPv4 or IPv6 endpoints. Discovery remains confined to this child chain and never loads another runtime."),
+        &dialog};
+    explanation->setWordWrap(true);
+    layout->addWidget(explanation);
+    layout->addWidget(buttons);
+    if (dialog.exec() != QDialog::Accepted) return;
+
+    UniValue bootstrap{UniValue::VARR};
+    for (const QString& line :
+         endpoints->toPlainText().split(QLatin1Char('\n'), Qt::SkipEmptyParts)) {
+        const QString endpoint{line.trimmed()};
+        if (!endpoint.isEmpty()) bootstrap.push_back(endpoint.toStdString());
+    }
+    UniValue params{UniValue::VARR};
+    params.push_back(chain_id.toStdString());
+    params.push_back(enabled->isChecked());
+    params.push_back(std::move(bootstrap));
+    runCommand("setchildnetworkdiscovery", std::move(params));
 }
 
 void ChildChainDialog::toggleNetwork()

@@ -927,7 +927,7 @@
 <context>
     <name>ChildChainDialog</name>
     <message>
-        <location filename="../childchaindialog.cpp" line="+77"/>
+        <location filename="../childchaindialog.cpp" line="+80"/>
         <source>Available</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1008,12 +1008,12 @@
     </message>
     <message>
         <location line="+16"/>
-        <location line="+216"/>
+        <location line="+232"/>
         <source>Select a child chain to manage its local runtime.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-211"/>
+        <location line="-227"/>
         <source>Refresh</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1049,18 +1049,23 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+203"/>
-        <location line="+24"/>
+        <source>Discovery…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <location line="+218"/>
+        <location line="+28"/>
         <source>Pause Network</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-222"/>
+        <location line="-240"/>
         <source>Forget…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+60"/>
+        <location line="+64"/>
         <source>Failed</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1095,7 +1100,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+23"/>
+        <location line="+25"/>
         <source>No explicit child peers configured</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1117,7 +1122,24 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="+2"/>
+        <source>Automatic child peer discovery disabled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Automatic child peer discovery enabled using the isolated peer store</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Automatic child peer discovery enabled
+Bootstrap endpoints:
+%1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+6"/>
         <source>Rate-limited block requests: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1163,14 +1185,14 @@ Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+51"/>
+        <location line="+56"/>
         <source>Resume Network</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Chain ID: %1
-State: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7 • rate-limited block requests: %8</source>
+State: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7 • discovery: %8 (%9 bootstrap) • rate-limited block requests: %10</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1201,7 +1223,17 @@ State: %2 • registry: %3 • local configuration: %4 • network: %5 • expli
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+14"/>
+        <location line="+3"/>
+        <source>enabled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>disabled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+13"/>
         <source>Add Child Manifest</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1265,7 +1297,32 @@ Leave the field empty to disable inbound connections for this child chain.</sour
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+42"/>
+        <location line="+26"/>
+        <source>Child Peer Discovery</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Enable bounded automatic outbound connections</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>One numeric address and explicit port per line</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Bootstrap endpoints:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Bootstrap names are intentionally not resolved: use numeric IPv4 or IPv6 endpoints. Discovery remains confined to this child chain and never loads another runtime.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+43"/>
         <source>Unload Child Chain</source>
         <translation type="unfinished"></translation>
     </message>

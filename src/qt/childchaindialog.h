@@ -34,6 +34,7 @@ private Q_SLOTS:
     void addPeer();
     void removePeer();
     void configureBinds();
+    void configureDiscovery();
     void toggleNetwork();
 
 private:
@@ -59,6 +60,8 @@ private:
         NETWORK_ACTIVE_ROLE,
         ADDED_NODES_ROLE,
         BINDS_ROLE,
+        DISCOVERY_ROLE,
+        BOOTSTRAP_NODES_ROLE,
         RATE_LIMITED_REQUESTS_ROLE,
     };
 
@@ -79,6 +82,7 @@ private:
     QPushButton* m_add_peer_button{nullptr};
     QPushButton* m_remove_peer_button{nullptr};
     QPushButton* m_binds_button{nullptr};
+    QPushButton* m_discovery_button{nullptr};
     QPushButton* m_network_button{nullptr};
 };
 
