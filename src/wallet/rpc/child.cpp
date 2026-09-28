@@ -29,6 +29,7 @@
 #include <univalue.h>
 
 #include <algorithm>
+#include <limits>
 #include <map>
 #include <optional>
 #include <set>
@@ -230,7 +231,10 @@ FundedChildPSBT FundChildPSBT(
     CAmount requested_fee,
     int minconf,
     bool bip32_derivs,
-    const std::optional<std::set<COutPoint>>& input_filter = std::nullopt)
+    const std::optional<std::set<COutPoint>>& input_filter = std::nullopt,
+    const std::vector<CTxIn>& required_inputs = {},
+    bool add_inputs = true,
+    uint32_t lock_time = 0)
 {
     if (requested_fee < 0) {
         throw JSONRPCError(RPC_INVALID_PARAMETER,
@@ -246,6 +250,7 @@ FundedChildPSBT FundChildPSBT(
     }
 
     CMutableTransaction transaction;
+    transaction.nLockTime = lock_time;
     CAmount required{requested_fee};
     for (const auto& [recipient, amount] : outputs) {
         if (amount <= 0) {
@@ -271,6 +276,33 @@ FundedChildPSBT FundChildPSBT(
     }
     const std::set<COutPoint> locked{
         locked_outputs.begin(), locked_outputs.end()};
+    const auto indexed_coins{IndexChildCoins(scan)};
+    CAmount selected{0};
+    std::set<COutPoint> selected_outpoints;
+    std::vector<const interfaces::ChildWalletCoin*> selected_coins;
+    selected_coins.reserve(required_inputs.size());
+    for (const CTxIn& input : required_inputs) {
+        if (!selected_outpoints.insert(input.prevout).second) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               "duplicated child input");
+        }
+        const auto found{indexed_coins.find(input.prevout)};
+        if (found == indexed_coins.end()) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "specified child input is spent, unknown, or not owned by this wallet");
+        }
+        const auto* coin{found->second};
+        if (Confirmations(scan, *coin) < static_cast<uint64_t>(minconf) ||
+            !IsMature(scan, *coin) || !coin->trusted) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "specified child input is immature, unsafe, or has insufficient confirmations");
+        }
+        selected_coins.push_back(coin);
+        AddAmount(selected, coin->output.nValue, "selected input");
+        transaction.vin.push_back(input);
+    }
     std::vector<const interfaces::ChildWalletCoin*> candidates;
     for (const auto& coin : scan.coins) {
         if (!MoneyRange(coin.output.nValue) || coin.output.nValue <= 0) {
@@ -280,6 +312,7 @@ FundedChildPSBT FundChildPSBT(
         if (Confirmations(scan, coin) < static_cast<uint64_t>(minconf) ||
             !IsMature(scan, coin) || !coin.trusted ||
             locked.contains(coin.outpoint) ||
+            selected_outpoints.contains(coin.outpoint) ||
             (input_filter && !input_filter->contains(coin.outpoint))) {
             continue;
         }
@@ -293,12 +326,18 @@ FundedChildPSBT FundChildPSBT(
         return left->outpoint < right->outpoint;
     });
 
-    CAmount selected{0};
-    std::vector<const interfaces::ChildWalletCoin*> selected_coins;
-    for (const auto* coin : candidates) {
-        selected_coins.push_back(coin);
-        AddAmount(selected, coin->output.nValue, "selected input");
-        if (selected >= required) break;
+    if (add_inputs && selected < required) {
+        for (const auto* coin : candidates) {
+            selected_coins.push_back(coin);
+            selected_outpoints.insert(coin->outpoint);
+            AddAmount(selected, coin->output.nValue, "selected input");
+            const uint32_t sequence{
+                std::numeric_limits<uint32_t>::max() -
+                static_cast<uint32_t>(lock_time != 0)};
+            transaction.vin.emplace_back(
+                coin->outpoint, CScript{}, sequence);
+            if (selected >= required) break;
+        }
     }
     if (selected < required) {
         throw JSONRPCError(
@@ -307,9 +346,6 @@ FundedChildPSBT FundChildPSBT(
                       FormatMoney(required), FormatMoney(selected)));
     }
 
-    for (const auto* coin : selected_coins) {
-        transaction.vin.emplace_back(coin->outpoint);
-    }
     const CAmount change{selected - required};
     int change_position{-1};
     if (change > 0) {
@@ -731,7 +767,10 @@ static FundedChildPSBT FundChildPayments(
     const std::vector<ChildWalletPayment>& payments,
     CAmount fee,
     int minconf,
-    bool bip32_derivs)
+    bool bip32_derivs,
+    const std::vector<CTxIn>& inputs = {},
+    bool add_inputs = true,
+    uint32_t lock_time = 0)
 {
     wallet.BlockUntilSyncedToCurrentChain();
     if (fee < 0 || !MoneyRange(fee)) {
@@ -770,7 +809,11 @@ static FundedChildPSBT FundChildPayments(
         outputs,
         fee,
         minconf,
-        bip32_derivs);
+        bip32_derivs,
+        std::nullopt,
+        inputs,
+        add_inputs,
+        lock_time);
 }
 
 ChildWalletFundResult CreateFundedChildPayments(
@@ -779,25 +822,36 @@ ChildWalletFundResult CreateFundedChildPayments(
     const std::vector<ChildWalletPayment>& payments,
     CAmount fee,
     int minconf,
-    bool bip32_derivs)
+    bool bip32_derivs,
+    const std::vector<CTxIn>& inputs,
+    bool add_inputs,
+    uint32_t lock_time)
 {
     auto funded{FundChildPayments(
-        wallet, chain_id, payments, fee, minconf, bip32_derivs)};
+        wallet,
+        chain_id,
+        payments,
+        fee,
+        minconf,
+        bip32_derivs,
+        inputs,
+        add_inputs,
+        lock_time)};
     const auto transaction{funded.psbt.GetUnsignedTx()};
     if (!transaction) {
         throw JSONRPCError(RPC_INTERNAL_ERROR,
                            "funded child PSBT has no transaction");
     }
-    std::vector<COutPoint> inputs;
-    inputs.reserve(transaction->vin.size());
+    std::vector<COutPoint> funded_inputs;
+    funded_inputs.reserve(transaction->vin.size());
     for (const CTxIn& input : transaction->vin) {
-        inputs.push_back(input.prevout);
+        funded_inputs.push_back(input.prevout);
     }
     return {
         .psbt = EncodePSBT(funded.psbt),
         .fee = funded.fee,
         .change_position = funded.change_position,
-        .inputs = std::move(inputs),
+        .inputs = std::move(funded_inputs),
     };
 }
 

@@ -58,7 +58,10 @@ ChildWalletFundResult CreateFundedChildPayments(
     const std::vector<ChildWalletPayment>& payments,
     CAmount fee,
     int minconf = 1,
-    bool bip32_derivs = true);
+    bool bip32_derivs = true,
+    const std::vector<CTxIn>& inputs = {},
+    bool add_inputs = true,
+    uint32_t lock_time = 0);
 
 ChildWalletProcessResult ProcessChildWalletPSBT(
     CWallet& wallet,

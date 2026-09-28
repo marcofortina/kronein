@@ -11,7 +11,14 @@ import os
 import sys
 
 from test_framework.address import address_to_scriptpubkey
-from test_framework.messages import COIN, CBlock, CTransaction, CTxOut
+from test_framework.messages import (
+    COIN,
+    CBlock,
+    COutPoint,
+    CTransaction,
+    CTxIn,
+    CTxOut,
+)
 from test_framework.psbt import (
     PSBT,
     PSBT_IN_TAP_BIP32_DERIVATION,
@@ -1994,6 +2001,31 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(node.testmempoolaccept(
             [compatible_processed["hex"]], 0, chain_id)[0]["allowed"], True)
 
+        explicit_coin = max(
+            wallet.listunspent(0, 9999999, [], False, {}, chain_id),
+            key=lambda coin: coin["amount"])
+        explicit_amount = explicit_coin["amount"] - child_send_fee
+        explicit_funded = wallet.walletcreatefundedpsbt(
+            inputs=[{
+                "txid": explicit_coin["txid"],
+                "vout": explicit_coin["vout"],
+                "sequence": 0xfffffffe,
+            }],
+            outputs=[{child_many_b: explicit_amount}],
+            locktime=1,
+            options={"add_inputs": False, "minconf": 0},
+            child_fee=child_send_fee,
+            chain_id=chain_id)
+        assert_equal(explicit_funded["changepos"], -1)
+        explicit_processed = wallet.walletprocesspsbt(
+            explicit_funded["psbt"],
+            child_max_fee=child_send_fee,
+            chain_id=chain_id)
+        explicit_decoded = node.decoderawtransaction(explicit_processed["hex"])
+        assert_equal(explicit_decoded["locktime"], 1)
+        assert_equal(explicit_decoded["vin"][0]["txid"], explicit_coin["txid"])
+        assert_equal(explicit_decoded["vin"][0]["vout"], explicit_coin["vout"])
+
         child_raw_tx = CTransaction()
         child_raw_tx.vout = [CTxOut(
             int(Decimal("0.00090000") * COIN),
@@ -2038,6 +2070,26 @@ class ChainRegistryTest(BitcoinTestFramework):
             compatible_raw_resigned["hex"], compatible_raw_signed["hex"])
         assert_equal(node.testmempoolaccept(
             [compatible_raw_signed["hex"]], 0, chain_id)[0]["allowed"], True)
+
+        explicit_raw_tx = CTransaction()
+        explicit_raw_tx.nLockTime = 2
+        explicit_raw_tx.vin = [CTxIn(
+            COutPoint(int(explicit_coin["txid"], 16), explicit_coin["vout"]),
+            nSequence=0xfffffffe)]
+        explicit_raw_tx.vout = [CTxOut(
+            int(explicit_amount * COIN),
+            output_key_to_p2tr_script(bytes.fromhex(child_many_b)))]
+        explicit_raw_funded = wallet.fundrawtransaction(
+            explicit_raw_tx.serialize().hex(),
+            {"add_inputs": False, "minconf": 0},
+            child_fee=child_send_fee,
+            chain_id=chain_id)
+        assert_equal(explicit_raw_funded["changepos"], -1)
+        explicit_raw_decoded = node.decoderawtransaction(
+            explicit_raw_funded["hex"])
+        assert_equal(explicit_raw_decoded["locktime"], 2)
+        assert_equal(explicit_raw_decoded["vin"][0]["txid"], explicit_coin["txid"])
+        assert_equal(explicit_raw_decoded["vin"][0]["vout"], explicit_coin["vout"])
 
         child_mempool_before_test = node.getrawmempool(
             False, False, chain_id)

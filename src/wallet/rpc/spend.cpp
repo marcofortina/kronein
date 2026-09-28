@@ -167,6 +167,42 @@ static std::vector<ChildWalletPayment> ParseChildRawPayments(
     return payments;
 }
 
+static std::vector<CTxIn> ParseChildFundingInputs(
+    const UniValue& inputs_arg,
+    uint32_t lock_time)
+{
+    std::vector<CTxIn> inputs;
+    inputs.reserve(inputs_arg.size());
+    for (const UniValue& value : inputs_arg.getValues()) {
+        const UniValue& input{value.get_obj()};
+        const Txid txid{
+            Txid::FromUint256(ParseHashV(input["txid"], "txid"))};
+        const int64_t output_index{input["vout"].getInt<int64_t>()};
+        if (output_index < 0 ||
+            output_index > std::numeric_limits<uint32_t>::max()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               "child input vout is out of range");
+        }
+        uint32_t sequence{
+            std::numeric_limits<uint32_t>::max() -
+            static_cast<uint32_t>(lock_time != 0)};
+        if (input.exists("sequence") && !input["sequence"].isNull()) {
+            const int64_t parsed{input["sequence"].getInt<int64_t>()};
+            if (parsed < 0 ||
+                parsed > std::numeric_limits<uint32_t>::max()) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER,
+                                   "child input sequence is out of range");
+            }
+            sequence = static_cast<uint32_t>(parsed);
+        }
+        inputs.emplace_back(
+            COutPoint{txid, static_cast<uint32_t>(output_index)},
+            CScript{},
+            sequence);
+    }
+    return inputs;
+}
+
 static std::vector<ChildWalletSweepRecipient> ParseChildSweepRecipients(
     const UniValue& recipients_arg)
 {
@@ -1261,16 +1297,6 @@ RPCHelpMan fundrawtransaction()
                 RPC_INVALID_PARAMETER,
                 "child_fee is required when chain_id is specified");
         }
-        if (!tx.vin.empty()) {
-            throw JSONRPCError(
-                RPC_INVALID_PARAMETER,
-                "child fundrawtransaction currently requires automatic input selection");
-        }
-        if (tx.nLockTime != 0) {
-            throw JSONRPCError(
-                RPC_INVALID_PARAMETER,
-                "child fundrawtransaction requires locktime 0");
-        }
         if (!request.params[1].isNull() &&
             !request.params[1].isObject()) {
             throw JSONRPCError(
@@ -1296,16 +1322,17 @@ RPCHelpMan fundrawtransaction()
             }
         }
         if (options.exists("add_inputs") &&
-            !options["add_inputs"].get_bool()) {
-            throw JSONRPCError(
-                RPC_INVALID_PARAMETER,
-                "child fundrawtransaction requires add_inputs=true");
+            !options["add_inputs"].isBool()) {
+            throw JSONRPCError(RPC_TYPE_ERROR,
+                               "add_inputs must be a boolean");
         }
         const chainregistry::ChainId chain_id{
             ParseChildChainId(*chain_arg)};
         const int minconf{options.exists("minconf")
                               ? options["minconf"].getInt<int>()
                               : 0};
+        const bool add_inputs{!options.exists("add_inputs") ||
+                              options["add_inputs"].get_bool()};
         auto funded{CreateFundedChildPayments(
             *pwallet,
             chain_id,
@@ -1313,7 +1340,10 @@ RPCHelpMan fundrawtransaction()
                 tx, options["subtract_fee_from_outputs"]),
             AmountFromValue(*child_fee_arg),
             minconf,
-            /*bip32_derivs=*/false)};
+            /*bip32_derivs=*/false,
+            tx.vin,
+            add_inputs,
+            tx.nLockTime)};
         if (options.exists("lock_unspents") &&
             options["lock_unspents"].get_bool()) {
             LOCK(pwallet->cs_wallet);
@@ -2472,17 +2502,6 @@ RPCHelpMan walletcreatefundedpsbt()
                 RPC_INVALID_PARAMETER,
                 "child_fee is required when chain_id is specified");
         }
-        if (!request.params[0].get_array().empty()) {
-            throw JSONRPCError(
-                RPC_INVALID_PARAMETER,
-                "child walletcreatefundedpsbt currently requires automatic input selection");
-        }
-        if (!request.params[2].isNull() &&
-            request.params[2].getInt<int64_t>() != 0) {
-            throw JSONRPCError(
-                RPC_INVALID_PARAMETER,
-                "child walletcreatefundedpsbt requires locktime 0");
-        }
         const std::set<std::string> supported_options{
             "add_inputs",
             "lock_unspents",
@@ -2498,14 +2517,23 @@ RPCHelpMan walletcreatefundedpsbt()
                         option));
             }
         }
-        if (options.exists("add_inputs") &&
-            !options["add_inputs"].get_bool()) {
-            throw JSONRPCError(
-                RPC_INVALID_PARAMETER,
-                "child walletcreatefundedpsbt requires add_inputs=true");
-        }
         const chainregistry::ChainId chain_id{
             ParseChildChainId(*chain_arg)};
+        const int64_t parsed_lock_time{
+            request.params[2].isNull()
+                ? 0
+                : request.params[2].getInt<int64_t>()};
+        if (parsed_lock_time < 0 || parsed_lock_time > LOCKTIME_MAX) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               "Invalid parameter, locktime out of range");
+        }
+        const uint32_t lock_time{static_cast<uint32_t>(parsed_lock_time)};
+        const std::vector<CTxIn> inputs{
+            ParseChildFundingInputs(request.params[0], lock_time)};
+        const bool add_inputs{
+            options.exists("add_inputs")
+                ? options["add_inputs"].get_bool()
+                : inputs.empty()};
         const int minconf{options.exists("minconf")
                               ? options["minconf"].getInt<int>()
                               : 0};
@@ -2521,7 +2549,10 @@ RPCHelpMan walletcreatefundedpsbt()
                 options["subtract_fee_from_outputs"]),
             AmountFromValue(*child_fee_arg),
             minconf,
-            bip32_derivs)};
+            bip32_derivs,
+            inputs,
+            add_inputs,
+            lock_time)};
         if (options.exists("lock_unspents") &&
             options["lock_unspents"].get_bool()) {
             LOCK(wallet.cs_wallet);
