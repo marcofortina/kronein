@@ -1541,6 +1541,13 @@ bool ReferenceChildRuntime::ReadBlock(const uint256& block_hash,
     return Usable() && m_db && m_db->ReadBlock(block_hash, block);
 }
 
+std::optional<ChildBmmAnchorRecord>
+ReferenceChildRuntime::GetBmmAnchor(const uint256& block_hash) const
+{
+    if (!Usable() || !m_db || block_hash.IsNull()) return std::nullopt;
+    return m_db->ReadBmmAnchor(block_hash);
+}
+
 std::optional<std::vector<ChildPendingBlockView>>
 ReferenceChildRuntime::GetPendingBlocks() const
 {

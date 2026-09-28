@@ -247,6 +247,8 @@ public:
     /** Rebuild and fully validate all persisted runtime state without mutation. */
     bool VerifyDatabase(int64_t current_time) const;
     bool ReadBlock(const uint256& block_hash, CBlock& block) const;
+    std::optional<ChildBmmAnchorRecord> GetBmmAnchor(
+        const uint256& block_hash) const;
     std::optional<std::vector<ChildPendingBlockView>> GetPendingBlocks() const;
     std::optional<ChildLocalProposalRecord> GetLocalProposal(
         const uint256& block_hash) const;

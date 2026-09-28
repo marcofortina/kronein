@@ -293,6 +293,29 @@ struct ChainManagerProposalsView {
     }
 };
 
+enum class ChainManagerBmmStatusViewError : uint8_t {
+    NONE,
+    NULL_CHAIN_ID,
+    UNKNOWN_CHAIN,
+    CHAIN_NOT_LOADED,
+    DATA_UNAVAILABLE,
+};
+
+/** One lock-consistent operational snapshot of a loaded child's BMM state. */
+struct ChainManagerBmmStatusView {
+    ChainManagerBmmStatusViewError error{
+        ChainManagerBmmStatusViewError::NONE};
+    ChainManagerEntry entry;
+    std::optional<ChildBmmAnchorRecord> tip_anchor;
+    std::vector<ChildPendingBlockView> pending_blocks;
+    std::vector<ChildLocalProposalRecord> proposals;
+
+    bool IsValid() const
+    {
+        return error == ChainManagerBmmStatusViewError::NONE;
+    }
+};
+
 enum class ChainManagerUTXOStatsViewError : uint8_t {
     NONE,
     NULL_CHAIN_ID,
@@ -509,6 +532,8 @@ public:
     ChainManagerProposalsView GetProposalsView(
         const chainregistry::ChainId& chain_id,
         std::optional<uint256> block_hash = std::nullopt) const;
+    ChainManagerBmmStatusView GetBmmStatusView(
+        const chainregistry::ChainId& chain_id) const;
     ChainManagerUTXOStatsView GetUTXOStatsView(
         const chainregistry::ChainId& chain_id,
         kernel::CoinStatsHashType hash_type,

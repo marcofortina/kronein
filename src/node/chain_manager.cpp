@@ -1131,6 +1131,49 @@ ChainManagerProposalsView ChainManager::GetProposalsView(
     return result;
 }
 
+ChainManagerBmmStatusView ChainManager::GetBmmStatusView(
+    const chainregistry::ChainId& chain_id) const
+{
+    LOCK(m_mutex);
+    ChainManagerBmmStatusView result;
+    if (chain_id.IsNull()) {
+        result.error = ChainManagerBmmStatusViewError::NULL_CHAIN_ID;
+        return result;
+    }
+    if (!m_definitions.contains(chain_id)) {
+        result.error = ChainManagerBmmStatusViewError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto loaded{m_loaded.find(chain_id)};
+    if (loaded == m_loaded.end()) {
+        result.error = ChainManagerBmmStatusViewError::CHAIN_NOT_LOADED;
+        return result;
+    }
+
+    const ChainManagerView chain_view{GetChainViewLocked(chain_id)};
+    Assume(chain_view.IsValid());
+    result.entry = chain_view.entry;
+    const auto pending_blocks{loaded->second->GetPendingBlocks()};
+    const auto proposals{loaded->second->GetLocalProposals()};
+    if (!pending_blocks || !proposals) {
+        result.error = ChainManagerBmmStatusViewError::DATA_UNAVAILABLE;
+        return result;
+    }
+    result.pending_blocks = *pending_blocks;
+    result.proposals = *proposals;
+
+    if (result.entry.height != 0) {
+        result.tip_anchor = loaded->second->GetBmmAnchor(result.entry.tip);
+        if (!result.tip_anchor ||
+            result.tip_anchor->child_block_hash != result.entry.tip ||
+            result.tip_anchor->proof.block_height > result.entry.main_height ||
+            result.tip_anchor->proof.block_header.GetHash().IsNull()) {
+            result.error = ChainManagerBmmStatusViewError::DATA_UNAVAILABLE;
+        }
+    }
+    return result;
+}
+
 ChainManagerUTXOStatsView ChainManager::GetUTXOStatsView(
     const chainregistry::ChainId& chain_id,
     kernel::CoinStatsHashType hash_type,

@@ -705,6 +705,27 @@ void EnsureRegistryMatchesDefinition(
                        "unknown child proposal view error");
 }
 
+[[noreturn]] void ThrowBmmStatusViewError(
+    node::ChainManagerBmmStatusViewError error)
+{
+    switch (error) {
+    case node::ChainManagerBmmStatusViewError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must not be null");
+    case node::ChainManagerBmmStatusViewError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not configured locally");
+    case node::ChainManagerBmmStatusViewError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "child chain is not loaded");
+    case node::ChainManagerBmmStatusViewError::DATA_UNAVAILABLE:
+        throw JSONRPCError(
+            RPC_DATABASE_ERROR,
+            "consistent child BMM status is unavailable");
+    case node::ChainManagerBmmStatusViewError::NONE:
+        break;
+    }
+    throw JSONRPCError(RPC_INTERNAL_ERROR, "unknown child BMM status error");
+}
+
 [[noreturn]] void ThrowChildAnchorCatchUpError(
     node::ChildAnchorCatchUpError error)
 {
@@ -2035,6 +2056,167 @@ RPCHelpMan submitchildanchor()
     };
 }
 
+RPCHelpMan getchildbmmstatus()
+{
+    return RPCHelpMan{
+        "getchildbmmstatus",
+        "Return one lock-consistent operational BMM snapshot for a loaded child chain. This combines its canonical anchor, durable proposals, pending block requests and bounded fork storage without racing separate RPC calls.\n",
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null child-chain identifier"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Child BMM operational status", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Child-chain identifier"},
+            {RPCResult::Type::STR, "health", "idle, awaiting_anchor, anchor_ready, awaiting_block_data, anchored, safe_halt, or failed"},
+            {RPCResult::Type::BOOL, "safe_halt", "Whether irreversible import safety has halted the child"},
+            {RPCResult::Type::BOOL, "failed", "Whether the child runtime has entered a failed state"},
+            {RPCResult::Type::NUM, "child_height", "Active child height"},
+            {RPCResult::Type::STR_HEX, "bestblockhash", "Active child tip"},
+            {RPCResult::Type::NUM, "main_height", "Authenticated main-chain height"},
+            {RPCResult::Type::STR_HEX, "main_bestblockhash", "Authenticated main-chain tip"},
+            {RPCResult::Type::NUM, "canonical_anchor_count", "Canonical child anchors retained"},
+            {RPCResult::Type::BOOL, "has_tip_anchor", "Whether the non-genesis child tip has a canonical BMM anchor"},
+            {RPCResult::Type::STR_HEX, "tip_anchor_main_block_hash", /*optional=*/true, "Main block anchoring the active child tip"},
+            {RPCResult::Type::NUM, "tip_anchor_main_height", /*optional=*/true, "Height of the main block anchoring the active child tip"},
+            {RPCResult::Type::NUM, "tip_anchor_confirmations", /*optional=*/true, "Authenticated main-chain confirmations for the tip anchor"},
+            {RPCResult::Type::NUM, "tip_anchor_gap", /*optional=*/true, "Authenticated main-chain blocks after the tip anchor"},
+            {RPCResult::Type::NUM, "pending_block_count", "Child blocks requested by authenticated pending anchors"},
+            {RPCResult::Type::NUM, "pending_anchor_count", "Authenticated pending anchor records"},
+            {RPCResult::Type::NUM, "pending_anchor_bytes", "Serialized bytes used by pending anchors"},
+            {RPCResult::Type::NUM, "proposal_count", "Durable local block proposals"},
+            {RPCResult::Type::NUM, "proposal_bytes", "Serialized child block bytes retained as proposals"},
+            {RPCResult::Type::NUM, "proposals_with_anchor", "Local proposals with an authenticated anchor staged"},
+            {RPCResult::Type::NUM, "proposals_without_anchor", "Local proposals still waiting for an anchor"},
+            {RPCResult::Type::NUM_TIME, "oldest_proposal_time", /*optional=*/true, "Creation time of the oldest local proposal"},
+            {RPCResult::Type::NUM_TIME, "newest_proposal_time", /*optional=*/true, "Creation time of the newest local proposal"},
+            {RPCResult::Type::NUM, "side_candidate_count", "Retained competing child block candidates"},
+            {RPCResult::Type::NUM, "side_candidate_bytes", "Serialized bytes used by competing child candidates"},
+            {RPCResult::Type::NUM, "candidate_anchor_count", "BMM anchors retained for competing candidates"},
+            {RPCResult::Type::NUM, "candidate_anchor_bytes", "Serialized bytes used by candidate anchors"},
+            {RPCResult::Type::ARR, "pending_blocks", "Authenticated anchors awaiting exact child block data", {
+                {RPCResult::Type::OBJ, "", "One pending child block", {
+                    {RPCResult::Type::STR_HEX, "blockhash", "Requested child block"},
+                    {RPCResult::Type::NUM, "oldest_anchor_height", "Oldest active main anchor height"},
+                    {RPCResult::Type::NUM, "newest_anchor_height", "Newest active main anchor height"},
+                    {RPCResult::Type::NUM, "anchor_count", "Authenticated anchors for this child block"},
+                }},
+            }},
+            {RPCResult::Type::ARR, "proposals", "Durable local proposals", {
+                {RPCResult::Type::OBJ, "", "One local proposal", {
+                    {RPCResult::Type::STR_HEX, "blockhash", "Child block hash"},
+                    {RPCResult::Type::STR_HEX, "previousblockhash", "Proposed parent block"},
+                    {RPCResult::Type::NUM_TIME, "created_time", "Local proposal creation time"},
+                    {RPCResult::Type::NUM, "size", "Serialized block size including witness"},
+                    {RPCResult::Type::BOOL, "anchor_available", "Whether an authenticated pending anchor is staged"},
+                    {RPCResult::Type::NUM, "anchor_count", "Authenticated pending anchors for this proposal"},
+                }},
+            }},
+        }},
+        RPCExamples{
+            HelpExampleCli("getchildbmmstatus", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const auto chain_id{ParseChainId(self.Arg<UniValue>("chain_id"))};
+    const auto view{
+        EnsureAnyChildChainman(request.context).GetBmmStatusView(chain_id)};
+    if (!view.IsValid()) ThrowBmmStatusViewError(view.error);
+
+    std::map<uint256, uint64_t> anchor_counts;
+    uint64_t pending_anchor_count{0};
+    UniValue pending_blocks{UniValue::VARR};
+    for (const auto& block : view.pending_blocks) {
+        anchor_counts.emplace(block.block_hash, block.anchor_count);
+        pending_anchor_count += block.anchor_count;
+        UniValue object{UniValue::VOBJ};
+        object.pushKV("blockhash", block.block_hash.GetHex());
+        object.pushKV("oldest_anchor_height", block.oldest_anchor_height);
+        object.pushKV("newest_anchor_height", block.newest_anchor_height);
+        object.pushKV("anchor_count", block.anchor_count);
+        pending_blocks.push_back(std::move(object));
+    }
+
+    uint64_t proposal_bytes{0};
+    uint64_t proposals_with_anchor{0};
+    std::optional<int64_t> oldest_proposal_time;
+    std::optional<int64_t> newest_proposal_time;
+    UniValue proposals{UniValue::VARR};
+    for (const auto& proposal : view.proposals) {
+        proposal_bytes += proposal.serialized_size;
+        const uint256 block_hash{proposal.block.GetHash()};
+        const uint64_t anchor_count{anchor_counts[block_hash]};
+        if (anchor_count != 0) ++proposals_with_anchor;
+        oldest_proposal_time = std::min(
+            oldest_proposal_time.value_or(proposal.created_time),
+            proposal.created_time);
+        newest_proposal_time = std::max(
+            newest_proposal_time.value_or(proposal.created_time),
+            proposal.created_time);
+        UniValue object{UniValue::VOBJ};
+        object.pushKV("blockhash", block_hash.GetHex());
+        object.pushKV("previousblockhash", proposal.block.hashPrevBlock.GetHex());
+        object.pushKV("created_time", proposal.created_time);
+        object.pushKV("size", proposal.serialized_size);
+        object.pushKV("anchor_available", anchor_count != 0);
+        object.pushKV("anchor_count", anchor_count);
+        proposals.push_back(std::move(object));
+    }
+
+    const char* health{
+        view.entry.safe_halt
+            ? "safe_halt"
+            : view.entry.failed
+                ? "failed"
+                : !view.pending_blocks.empty()
+                    ? "awaiting_block_data"
+                    : proposals_with_anchor != 0
+                        ? "anchor_ready"
+                        : !view.proposals.empty()
+                            ? "awaiting_anchor"
+                            : view.entry.height != 0 ? "anchored" : "idle"};
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", chain_id.GetHex());
+    result.pushKV("health", health);
+    result.pushKV("safe_halt", view.entry.safe_halt);
+    result.pushKV("failed", view.entry.failed);
+    result.pushKV("child_height", view.entry.height);
+    result.pushKV("bestblockhash", view.entry.tip.GetHex());
+    result.pushKV("main_height", view.entry.main_height);
+    result.pushKV("main_bestblockhash", view.entry.main_tip.GetHex());
+    result.pushKV("canonical_anchor_count", view.entry.anchor_count);
+    result.pushKV("has_tip_anchor", view.tip_anchor.has_value());
+    if (view.tip_anchor) {
+        const auto& proof{view.tip_anchor->proof};
+        result.pushKV("tip_anchor_main_block_hash",
+                      proof.block_header.GetHash().GetHex());
+        result.pushKV("tip_anchor_main_height", proof.block_height);
+        result.pushKV("tip_anchor_confirmations",
+                      view.entry.main_height - proof.block_height + 1);
+        result.pushKV("tip_anchor_gap",
+                      view.entry.main_height - proof.block_height);
+    }
+    result.pushKV("pending_block_count", view.pending_blocks.size());
+    result.pushKV("pending_anchor_count", pending_anchor_count);
+    result.pushKV("pending_anchor_bytes", view.entry.pending_anchor_bytes);
+    result.pushKV("proposal_count", view.proposals.size());
+    result.pushKV("proposal_bytes", proposal_bytes);
+    result.pushKV("proposals_with_anchor", proposals_with_anchor);
+    result.pushKV("proposals_without_anchor",
+                  view.proposals.size() - proposals_with_anchor);
+    if (oldest_proposal_time) {
+        result.pushKV("oldest_proposal_time", *oldest_proposal_time);
+        result.pushKV("newest_proposal_time", *newest_proposal_time);
+    }
+    result.pushKV("side_candidate_count", view.entry.side_candidate_count);
+    result.pushKV("side_candidate_bytes", view.entry.side_candidate_bytes);
+    result.pushKV("candidate_anchor_count", view.entry.candidate_anchor_count);
+    result.pushKV("candidate_anchor_bytes", view.entry.candidate_anchor_bytes);
+    result.pushKV("pending_blocks", std::move(pending_blocks));
+    result.pushKV("proposals", std::move(proposals));
+    return result;
+},
+    };
+}
+
 RPCHelpMan getchildpendingblocks()
 {
     return RPCHelpMan{
@@ -2712,6 +2894,7 @@ void RegisterChainRegistryRPCCommands(CRPCTable& table)
         {"network", &setchildnetworkactive},
         {"network", &setchildnetworkbinds},
         {"network", &setchildnetworkdiscovery},
+        {"blockchain", &getchildbmmstatus},
         {"blockchain", &getchildpendingblocks},
         {"blockchain", &listchildproposals},
         {"blockchain", &getchildproposal},

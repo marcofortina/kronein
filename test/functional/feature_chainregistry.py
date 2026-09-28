@@ -359,6 +359,16 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(loaded["bootstrap_nodes"], [])
         assert_equal(loaded["added_nodes"], [])
         assert_equal(loaded["binds"], [child_endpoint])
+        initial_bmm_status = node.getchildbmmstatus(chain_id)
+        assert_equal(initial_bmm_status["health"], "idle")
+        assert_equal(initial_bmm_status["child_height"], 0)
+        assert_equal(initial_bmm_status["bestblockhash"], reference_child["genesis_hash"])
+        assert_equal(initial_bmm_status["main_height"], node.getblockcount())
+        assert_equal(initial_bmm_status["main_bestblockhash"], node.getbestblockhash())
+        assert_equal(initial_bmm_status["canonical_anchor_count"], 0)
+        assert_equal(initial_bmm_status["has_tip_anchor"], False)
+        assert_equal(initial_bmm_status["pending_blocks"], [])
+        assert_equal(initial_bmm_status["proposals"], [])
         network_info = node.getchildnetworkinfo(chain_id)
         assert_equal(network_info["chain_id"], chain_id)
         assert_equal(network_info["network_running"], True)
@@ -685,6 +695,14 @@ class ChainRegistryTest(BitcoinTestFramework):
             "anchor_available": False,
             "anchor_count": 0,
         }])
+        proposed_bmm_status = node.getchildbmmstatus(chain_id)
+        assert_equal(proposed_bmm_status["health"], "awaiting_anchor")
+        assert_equal(proposed_bmm_status["proposal_count"], 1)
+        assert_equal(proposed_bmm_status["proposal_bytes"], child_block["size"])
+        assert_equal(proposed_bmm_status["proposals_with_anchor"], 0)
+        assert_equal(proposed_bmm_status["proposals_without_anchor"], 1)
+        assert_equal(proposed_bmm_status["pending_block_count"], 0)
+        assert_equal(proposed_bmm_status["proposals"], proposals["proposals"])
         stored_proposal = node.getchildproposal(
             chain_id, child_block["blockhash"])
         assert_equal(stored_proposal["block"], child_block["block"])
@@ -747,6 +765,9 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(peer_proposal["stored"], True)
         assert_equal(peer_proposal["blockhash"], child_block["blockhash"])
         assert_equal(peer_node.unloadchildchain(chain_id)["loaded"], False)
+        assert_raises_rpc_error(
+            -8, "child chain is not loaded",
+            peer_node.getchildbmmstatus, chain_id)
 
         anchor_block = self.generatetoaddress(node, 1, wallet.getnewaddress())[0]
         node.syncwithvalidationinterfacequeue()
@@ -760,6 +781,18 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(automatic_child_info["bestblockhash"], child_block["blockhash"])
         assert_equal(node.getchildpendingblocks(chain_id)["block_count"], 0)
         assert_equal(node.listchildproposals(chain_id)["proposal_count"], 0)
+        anchored_bmm_status = node.getchildbmmstatus(chain_id)
+        assert_equal(anchored_bmm_status["health"], "anchored")
+        assert_equal(anchored_bmm_status["child_height"], 1)
+        assert_equal(anchored_bmm_status["bestblockhash"], child_block["blockhash"])
+        assert_equal(anchored_bmm_status["canonical_anchor_count"], 1)
+        assert_equal(anchored_bmm_status["has_tip_anchor"], True)
+        assert_equal(anchored_bmm_status["tip_anchor_main_block_hash"], anchor_block)
+        assert_equal(anchored_bmm_status["tip_anchor_main_height"], node.getblockheader(anchor_block)["height"])
+        assert_equal(anchored_bmm_status["tip_anchor_confirmations"], 1)
+        assert_equal(anchored_bmm_status["tip_anchor_gap"], 0)
+        assert_equal(anchored_bmm_status["proposal_count"], 0)
+        assert_equal(anchored_bmm_status["pending_block_count"], 0)
 
         self.log.info("Catch up the anchor missed while the peer child runtime was unloaded")
         peer_catch_up = peer_node.loadchildchain(chain_id)
@@ -776,6 +809,11 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(peer_catch_up["historical_proposal_activation_failures"], 0)
         assert_equal(peer_catch_up["historical_anchor_stage_failures"], 0)
         assert_equal(peer_node.listchildproposals(chain_id)["proposal_count"], 0)
+        peer_bmm_status = peer_node.getchildbmmstatus(chain_id)
+        assert_equal(peer_bmm_status["health"], "anchored")
+        assert_equal(peer_bmm_status["bestblockhash"], child_block["blockhash"])
+        assert_equal(peer_bmm_status["tip_anchor_main_block_hash"], anchor_block)
+        assert_equal(peer_bmm_status["proposal_count"], 0)
         assert_equal(peer_node.unloadchildchain(chain_id)["loaded"], False)
 
         self.log.info("Export the authenticated BMM proof and verify idempotent manual submission")

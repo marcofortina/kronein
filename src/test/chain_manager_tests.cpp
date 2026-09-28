@@ -135,6 +135,13 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
     BOOST_REQUIRE(view.IsValid());
     BOOST_CHECK_EQUAL(view.entry.height, 0U);
     BOOST_CHECK(view.entry.tip == first.genesis_hash);
+    const auto bmm_status{manager.GetBmmStatusView(first.chain_id)};
+    BOOST_REQUIRE(bmm_status.IsValid());
+    BOOST_CHECK_EQUAL(bmm_status.entry.height, 0U);
+    BOOST_CHECK(bmm_status.entry.tip == first.genesis_hash);
+    BOOST_CHECK(!bmm_status.tip_anchor);
+    BOOST_CHECK(bmm_status.pending_blocks.empty());
+    BOOST_CHECK(bmm_status.proposals.empty());
     const auto genesis_view{manager.GetChainView(first.chain_id, 0)};
     BOOST_REQUIRE(genesis_view.IsValid());
     BOOST_REQUIRE(genesis_view.block_hash);
@@ -196,6 +203,12 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
                 node::ChainManagerViewError::HEIGHT_OUT_OF_RANGE);
     BOOST_CHECK(manager.GetChainView(second.chain_id).error ==
                 node::ChainManagerViewError::CHAIN_NOT_LOADED);
+    BOOST_CHECK(manager.GetBmmStatusView(second.chain_id).error ==
+                node::ChainManagerBmmStatusViewError::CHAIN_NOT_LOADED);
+    BOOST_CHECK(manager.GetBmmStatusView(Definition(100).chain_id).error ==
+                node::ChainManagerBmmStatusViewError::UNKNOWN_CHAIN);
+    BOOST_CHECK(manager.GetBmmStatusView(chainregistry::ChainId{}).error ==
+                node::ChainManagerBmmStatusViewError::NULL_CHAIN_ID);
     BOOST_CHECK(manager.GetChainView(chainregistry::ChainId{}).error ==
                 node::ChainManagerViewError::NULL_CHAIN_ID);
     BOOST_CHECK(manager.GetCoinView(
