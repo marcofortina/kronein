@@ -800,6 +800,31 @@ ChainManagerMempoolAcceptResult ChainManager::SubmitTransaction(
     return result;
 }
 
+ChainManagerMempoolTestResult ChainManager::TestTransactions(
+    const chainregistry::ChainId& chain_id,
+    std::span<const CTransactionRef> transactions,
+    int64_t current_time) const
+{
+    LOCK(m_mutex);
+    ChainManagerMempoolTestResult result;
+    if (chain_id.IsNull()) {
+        result.error = ChainManagerMempoolTestError::NULL_CHAIN_ID;
+        return result;
+    }
+    if (!m_definitions.contains(chain_id)) {
+        result.error = ChainManagerMempoolTestError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto runtime{m_loaded.find(chain_id)};
+    if (runtime == m_loaded.end()) {
+        result.error = ChainManagerMempoolTestError::CHAIN_NOT_LOADED;
+        return result;
+    }
+    result.transactions = runtime->second->TestTransactions(
+        transactions, current_time);
+    return result;
+}
+
 ChainManagerMempoolView ChainManager::GetMempool(
     const chainregistry::ChainId& chain_id) const
 {

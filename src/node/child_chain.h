@@ -206,11 +206,12 @@ private:
         bool sync,
         ReferenceChildRuntimeResult& result);
     ReferenceChildMempoolAcceptResult AcceptMempoolTransaction(
+        ChildMempool& mempool,
         CTransactionRef transaction,
         int64_t current_time,
         int64_t entry_time,
         uint32_t entry_height,
-        std::optional<CAmount> max_fee = std::nullopt);
+        std::optional<CAmount> max_fee = std::nullopt) const;
     void RevalidateMempool(int64_t current_time,
                            ReferenceChildRuntimeResult& result);
 
@@ -274,6 +275,9 @@ public:
         CTransactionRef transaction,
         int64_t current_time,
         std::optional<CAmount> max_fee = std::nullopt);
+    std::vector<ReferenceChildMempoolAcceptResult> TestTransactions(
+        std::span<const CTransactionRef> transactions,
+        int64_t current_time) const;
     ReferenceChildMempoolView GetMempool() const;
     ReferenceChildRuntimeResult DisconnectTip(bool sync = false);
 

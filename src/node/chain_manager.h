@@ -192,6 +192,23 @@ struct ChainManagerMempoolAcceptResult {
     }
 };
 
+enum class ChainManagerMempoolTestError : uint8_t {
+    NONE,
+    NULL_CHAIN_ID,
+    UNKNOWN_CHAIN,
+    CHAIN_NOT_LOADED,
+};
+
+struct ChainManagerMempoolTestResult {
+    ChainManagerMempoolTestError error{ChainManagerMempoolTestError::NONE};
+    std::vector<ReferenceChildMempoolAcceptResult> transactions;
+
+    bool IsValid() const
+    {
+        return error == ChainManagerMempoolTestError::NONE;
+    }
+};
+
 enum class ChainManagerMempoolViewError : uint8_t {
     NONE,
     NULL_CHAIN_ID,
@@ -614,6 +631,11 @@ public:
         CTransactionRef transaction,
         int64_t current_time,
         std::optional<CAmount> max_fee = std::nullopt);
+    /** Test an ordered package without changing the isolated child mempool. */
+    ChainManagerMempoolTestResult TestTransactions(
+        const chainregistry::ChainId& chain_id,
+        std::span<const CTransactionRef> transactions,
+        int64_t current_time) const;
     ChainManagerMempoolView GetMempool(
         const chainregistry::ChainId& chain_id) const;
     /** Feed a header already connected by the local main chainstate. */

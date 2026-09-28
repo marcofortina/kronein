@@ -118,6 +118,48 @@ node::ReferenceChildMempoolView GetChildMempool(
     throw JSONRPCError(RPC_MISC_ERROR, "Unknown child mempool error");
 }
 
+void CheckChildMempoolTestResult(
+    const node::ChainManagerMempoolTestResult& result)
+{
+    switch (result.error) {
+    case node::ChainManagerMempoolTestError::NONE:
+        return;
+    case node::ChainManagerMempoolTestError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must not be null");
+    case node::ChainManagerMempoolTestError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown child chain");
+    case node::ChainManagerMempoolTestError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_MISC_ERROR, "Child chain is not loaded");
+    }
+    throw JSONRPCError(RPC_MISC_ERROR, "Unknown child mempool test error");
+}
+
+std::pair<std::string, std::string> ChildMempoolRejectReason(
+    const node::ReferenceChildMempoolAcceptResult& result)
+{
+    if (result.already_known) {
+        return {"txn-already-in-mempool", "txn-already-in-mempool"};
+    }
+    if (result.error ==
+            node::ReferenceChildMempoolAcceptError::CONTEXT_REJECTED &&
+        result.validation.transaction_error ==
+            TxValidationResult::TX_MISSING_INPUTS) {
+        return {"missing-inputs", "missing-inputs"};
+    }
+    const std::string reason{strprintf(
+        "child-mempool-error-%u", static_cast<unsigned>(result.error))};
+    return {
+        reason,
+        strprintf(
+            "%s (build error %u, validation error %u, transaction error %u, script error %u, pool error %u)",
+            reason,
+            static_cast<unsigned>(result.build.error),
+            static_cast<unsigned>(result.validation.error),
+            static_cast<unsigned>(result.validation.transaction_error),
+            static_cast<unsigned>(result.validation.script_error),
+            static_cast<unsigned>(result.pool_error))};
+}
+
 } // namespace
 
 static RPCHelpMan sendrawtransaction()
@@ -379,6 +421,8 @@ static RPCHelpMan testmempoolaccept()
             {"maxfeerate", RPCArg::Type::AMOUNT, RPCArg::Default{FormatMoney(DEFAULT_MAX_RAW_TX_FEE_RATE.GetFeePerK())},
              "Reject transactions whose fee rate is higher than the specified value, expressed in " + CURRENCY_UNIT +
                  "/kvB.\nFee rates larger than 1KNE/kvB are rejected.\nSet to 0 to accept any fee rate."},
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED,
+             "Optional child chain identifier. Omit to test the main-chain mempool."},
         },
         RPCResult{
             RPCResult::Type::ARR, "", "The result of the mempool acceptance test for each raw transaction in the input array.\n"
@@ -435,6 +479,69 @@ static RPCHelpMan testmempoolaccept()
                                        "TX decode failed: " + rawtx.get_str() + " Make sure the tx has at least one input.");
                 }
                 txns.emplace_back(MakeTransactionRef(std::move(mtx)));
+            }
+
+            const auto child_chain{
+                OptionalChildChainId(request.params[2])};
+            if (child_chain) {
+                const auto tested{
+                    EnsureAnyChildChainman(request.context).TestTransactions(
+                        *child_chain,
+                        txns,
+                        TicksSinceEpoch<std::chrono::seconds>(
+                            NodeClock::now()))};
+                CheckChildMempoolTestResult(tested);
+
+                UniValue rpc_result(UniValue::VARR);
+                bool exit_early{false};
+                for (size_t index{0}; index < txns.size(); ++index) {
+                    const auto& tx{txns[index]};
+                    UniValue result_inner(UniValue::VOBJ);
+                    result_inner.pushKV("txid", tx->GetHash().GetHex());
+                    result_inner.pushKV("wtxid", tx->GetWitnessHash().GetHex());
+                    if (exit_early || index >= tested.transactions.size()) {
+                        rpc_result.push_back(std::move(result_inner));
+                        continue;
+                    }
+                    const auto& result{tested.transactions[index]};
+                    if (!result.IsValid() || result.already_known) {
+                        const auto [reason, details]{
+                            ChildMempoolRejectReason(result)};
+                        result_inner.pushKV("allowed", false);
+                        result_inner.pushKV("reject-reason", reason);
+                        result_inner.pushKV("reject-details", details);
+                        exit_early = true;
+                    } else {
+                        const int64_t virtual_size{
+                            GetVirtualTransactionSize(*tx)};
+                        const CAmount max_fee{
+                            max_raw_tx_fee_rate.GetFee(virtual_size)};
+                        if (max_fee && result.fee > max_fee) {
+                            result_inner.pushKV("allowed", false);
+                            result_inner.pushKV(
+                                "reject-reason", "max-fee-exceeded");
+                            exit_early = true;
+                        } else {
+                            result_inner.pushKV("allowed", true);
+                            result_inner.pushKV("vsize", virtual_size);
+                            UniValue fees(UniValue::VOBJ);
+                            fees.pushKV("base", ValueFromAmount(result.fee));
+                            fees.pushKV(
+                                "effective-feerate",
+                                ValueFromAmount(
+                                    CFeeRate(result.fee, virtual_size)
+                                        .GetFeePerK()));
+                            UniValue includes(UniValue::VARR);
+                            includes.push_back(
+                                tx->GetWitnessHash().ToString());
+                            fees.pushKV(
+                                "effective-includes", std::move(includes));
+                            result_inner.pushKV("fees", std::move(fees));
+                        }
+                    }
+                    rpc_result.push_back(std::move(result_inner));
+                }
+                return rpc_result;
             }
 
             NodeContext& node = EnsureAnyNodeContext(request.context);

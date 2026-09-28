@@ -1978,6 +1978,21 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert child_psbt["txid"] not in node.getrawmempool(
             False, False, chain_id)
 
+        child_mempool_before_test = node.getrawmempool(
+            False, False, chain_id)
+        child_fee_rejected = node.testmempoolaccept(
+            [child_psbt["hex"]], Decimal("0.00000001"), chain_id)[0]
+        assert_equal(child_fee_rejected["allowed"], False)
+        assert_equal(
+            child_fee_rejected["reject-reason"], "max-fee-exceeded")
+        child_accepted = node.testmempoolaccept(
+            [child_psbt["hex"]], 0, chain_id)[0]
+        assert_equal(child_accepted["allowed"], True)
+        assert_equal(child_accepted["fees"]["base"], child_send_fee)
+        assert_equal(
+            node.getrawmempool(False, False, chain_id),
+            child_mempool_before_test)
+
         child_sweep_inputs = sum(
             (utxo["amount"] for utxo in attacker.listunspent(
                 0, 9999999, [], False, {}, chain_id)),

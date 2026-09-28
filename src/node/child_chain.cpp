@@ -1115,11 +1115,12 @@ ReferenceChildRuntime::ValidateTipBlock(
 
 ReferenceChildMempoolAcceptResult
 ReferenceChildRuntime::AcceptMempoolTransaction(
+    ChildMempool& mempool,
     CTransactionRef transaction,
     int64_t current_time,
     int64_t entry_time,
     uint32_t entry_height,
-    std::optional<CAmount> max_fee)
+    std::optional<CAmount> max_fee) const
 {
     ReferenceChildMempoolAcceptResult result;
     if (!transaction) {
@@ -1127,7 +1128,7 @@ ReferenceChildRuntime::AcceptMempoolTransaction(
         return result;
     }
     result.txid = transaction->GetHash();
-    for (const auto& entry : m_mempool.Entries()) {
+    for (const auto& entry : mempool.Entries()) {
         if (entry.transaction->GetHash() != result.txid) continue;
         result.fee = entry.fee;
         result.already_known = true;
@@ -1157,8 +1158,8 @@ ReferenceChildRuntime::AcceptMempoolTransaction(
     }
 
     std::vector<CTransactionRef> transactions;
-    transactions.reserve(m_mempool.Size() + 1);
-    for (const auto& entry : m_mempool.Entries()) {
+    transactions.reserve(mempool.Size() + 1);
+    for (const auto& entry : mempool.Entries()) {
         transactions.push_back(entry.transaction);
     }
     transactions.push_back(transaction);
@@ -1173,17 +1174,17 @@ ReferenceChildRuntime::AcceptMempoolTransaction(
     }
     result.validation = ValidateTipBlock(*result.build.block, current_time);
     if (!result.validation.IsValid() ||
-        result.validation.total_fees < m_mempool.TotalFees()) {
+        result.validation.total_fees < mempool.TotalFees()) {
         result.error = ReferenceChildMempoolAcceptError::CONTEXT_REJECTED;
         return result;
     }
-    result.fee = result.validation.total_fees - m_mempool.TotalFees();
+    result.fee = result.validation.total_fees - mempool.TotalFees();
     if (max_fee && result.fee > *max_fee) {
         result.error =
             ReferenceChildMempoolAcceptError::MAX_FEE_EXCEEDED;
         return result;
     }
-    const auto added{m_mempool.Add(
+    const auto added{mempool.Add(
         std::move(transaction), result.fee, entry_time, entry_height)};
     result.pool_error = added.error;
     if (!added.IsValid()) {
@@ -1200,6 +1201,7 @@ void ReferenceChildRuntime::RevalidateMempool(
     m_mempool.Clear();
     for (const auto& entry : previous) {
         const auto accepted{AcceptMempoolTransaction(
+            m_mempool,
             entry.transaction,
             std::max(current_time, entry.entry_time),
             entry.entry_time,
@@ -1232,11 +1234,45 @@ ReferenceChildMempoolAcceptResult ReferenceChildRuntime::SubmitTransaction(
         return result;
     }
     return AcceptMempoolTransaction(
+        m_mempool,
         std::move(transaction),
         current_time,
         current_time,
         static_cast<uint32_t>(m_tip->nHeight),
         max_fee);
+}
+
+std::vector<ReferenceChildMempoolAcceptResult>
+ReferenceChildRuntime::TestTransactions(
+    std::span<const CTransactionRef> transactions,
+    int64_t current_time) const
+{
+    std::vector<ReferenceChildMempoolAcceptResult> results;
+    results.reserve(transactions.size());
+    if (!m_initialized || m_failed || m_imports.IsSafeHalted()) {
+        ReferenceChildMempoolAcceptResult result;
+        result.error = !m_initialized
+            ? ReferenceChildMempoolAcceptError::NOT_INITIALIZED
+            : m_failed
+                ? ReferenceChildMempoolAcceptError::FAILED_RUNTIME
+                : ReferenceChildMempoolAcceptError::SAFE_HALT;
+        results.push_back(std::move(result));
+        return results;
+    }
+    ChildMempool candidate{m_mempool};
+    for (const auto& transaction : transactions) {
+        auto result{AcceptMempoolTransaction(
+            candidate,
+            transaction,
+            current_time,
+            current_time,
+            static_cast<uint32_t>(m_tip->nHeight),
+            std::nullopt)};
+        const bool stop{!result.IsValid() || result.already_known};
+        results.push_back(std::move(result));
+        if (stop) break;
+    }
+    return results;
 }
 
 ReferenceChildMempoolView ReferenceChildRuntime::GetMempool() const

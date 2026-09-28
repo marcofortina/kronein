@@ -203,6 +203,21 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
         manager.GetMempool(first.chain_id).error ==
         node::ChainManagerMempoolViewError::CHAIN_NOT_LOADED);
     BOOST_CHECK(
+        manager.TestTransactions(
+            chainregistry::ChainId{}, no_transactions,
+            Params().GenesisBlock().nTime).error ==
+        node::ChainManagerMempoolTestError::NULL_CHAIN_ID);
+    BOOST_CHECK(
+        manager.TestTransactions(
+            Definition(99).chain_id, no_transactions,
+            Params().GenesisBlock().nTime).error ==
+        node::ChainManagerMempoolTestError::UNKNOWN_CHAIN);
+    BOOST_CHECK(
+        manager.TestTransactions(
+            first.chain_id, no_transactions,
+            Params().GenesisBlock().nTime).error ==
+        node::ChainManagerMempoolTestError::CHAIN_NOT_LOADED);
+    BOOST_CHECK(
         manager.ScanWalletHistory(chainregistry::ChainId{}, {}).error ==
         node::ChainManagerWalletHistoryError::NULL_CHAIN_ID);
     BOOST_CHECK(
@@ -274,9 +289,23 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
     missing_input.vin.emplace_back(
         COutPoint{Txid::FromUint256(uint256{1}), 0});
     missing_input.vout.emplace_back(1, CScript{} << OP_TRUE);
+    const CTransactionRef missing_input_ref{
+        MakeTransactionRef(std::move(missing_input))};
+    const std::array<CTransactionRef, 1> missing_package{
+        missing_input_ref};
+    const auto tested{manager.TestTransactions(
+        first.chain_id,
+        missing_package,
+        Params().GenesisBlock().nTime)};
+    BOOST_REQUIRE(tested.IsValid());
+    BOOST_REQUIRE_EQUAL(tested.transactions.size(), 1U);
+    BOOST_CHECK(
+        tested.transactions[0].error ==
+        node::ReferenceChildMempoolAcceptError::CONTEXT_REJECTED);
+    BOOST_CHECK(manager.GetMempool(first.chain_id).runtime.entries.empty());
     const auto rejected{manager.SubmitTransaction(
         first.chain_id,
-        MakeTransactionRef(std::move(missing_input)),
+        missing_input_ref,
         Params().GenesisBlock().nTime)};
     BOOST_CHECK(
         rejected.error ==
