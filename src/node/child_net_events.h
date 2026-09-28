@@ -62,6 +62,7 @@ public:
         EXCLUSIVE_LOCKS_REQUIRED(g_msgproc_mutex);
 
     size_t PeerCount() const;
+    size_t HandshakenPeerCount() const;
 };
 
 } // namespace node

@@ -243,4 +243,10 @@ size_t ChildNetEvents::PeerCount() const
     return m_processor.PeerCount();
 }
 
+size_t ChildNetEvents::HandshakenPeerCount() const
+{
+    LOCK(m_mutex);
+    return m_processor.HandshakenPeerCount();
+}
+
 } // namespace node
