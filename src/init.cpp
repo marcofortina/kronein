@@ -566,6 +566,7 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
     argsman.AddArg("-maxconnections=<n>", strprintf("Maintain at most <n> automatic connections to peers (default: %u). This limit does not apply to connections manually added via -addnode or the addnode RPC, which have a separate limit of %u. It does not apply to short-lived private broadcast connections either, which have a separate limit of %u.", DEFAULT_MAX_PEER_CONNECTIONS, MAX_ADDNODE_CONNECTIONS, MAX_PRIVATE_BROADCAST_CONNECTIONS), ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
     argsman.AddArg("-maxreceivebuffer=<n>", strprintf("Maximum per-connection receive buffer, <n>*1000 bytes (default: %u)", DEFAULT_MAXRECEIVEBUFFER), ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
     argsman.AddArg("-maxsendbuffer=<n>", strprintf("Maximum per-connection memory usage for the send buffer, <n>*1000 bytes (default: %u)", DEFAULT_MAXSENDBUFFER), ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
+    argsman.AddArg("-maxchilduploadtarget=<n>", strprintf("Keep aggregate child block-serving traffic under the given target per 24h across all loaded child chains. 0 = no limit (default: %s). Optional suffix units [k|K|m|M|g|G|t|T] (default: M). Lowercase is 1000 base while uppercase is 1024 base", node::DEFAULT_CHILD_UPLOAD_TARGET), ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
     argsman.AddArg("-maxuploadtarget=<n>", strprintf("Tries to keep outbound traffic under the given target per 24h. Limit does not apply to peers with 'download' permission or blocks created within past week. 0 = no limit (default: %s). Optional suffix units [k|K|m|M|g|G|t|T] (default: M). Lowercase is 1000 base while uppercase is 1024 base", DEFAULT_MAX_UPLOAD_TARGET), ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
 #ifdef HAVE_SOCKADDR_UN
     argsman.AddArg("-onion=<ip:port|path>", "Use separate SOCKS5 proxy to reach peers via Tor onion services, set -noonion to disable (default: -proxy). May be a local file path prefixed with 'unix:'.", ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
@@ -1383,6 +1384,16 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     if (!opt_max_upload) {
         return InitError(strprintf(_("Unable to parse -maxuploadtarget: '%s'"), args.GetArg("-maxuploadtarget", "")));
     }
+    auto opt_max_child_upload{ParseByteUnits(
+        args.GetArg(
+            "-maxchilduploadtarget",
+            std::string{node::DEFAULT_CHILD_UPLOAD_TARGET}),
+        ByteUnit::M)};
+    if (!opt_max_child_upload) {
+        return InitError(strprintf(
+            _("Unable to parse -maxchilduploadtarget: '%s'"),
+            args.GetArg("-maxchilduploadtarget", "")));
+    }
 
     // ********************************************************* Step 4a: application initialization
     if (!CreatePidFile(args)) {
@@ -1863,7 +1874,8 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     node.child_networkman = std::make_unique<node::ChildNetworkManager>(
         *node.child_chainman,
         Params(),
-        *Assert(node.scheduler));
+        *Assert(node.scheduler),
+        *opt_max_child_upload);
     assert(!node.child_chain_notifications);
     node.child_chain_notifications =
         std::make_unique<node::ChildChainNotifications>(

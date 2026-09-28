@@ -6,6 +6,7 @@
 
 #include <chainregistry/child_net.h>
 #include <netmessagemaker.h>
+#include <node/child_network_manager.h>
 #include <util/time.h>
 
 #include <exception>
@@ -49,9 +50,11 @@ std::string ChildMessageType(ChildNetCommand command)
 ChildNetEvents::ChildNetEvents(
     CConnman& connman,
     ChainManager& manager,
+    ChildBandwidthLimiter& bandwidth,
     chainregistry::ReferenceChildDefinition definition)
     : m_connman{connman},
-      m_processor{manager, std::move(definition)}
+      m_processor{manager, std::move(definition)},
+      m_bandwidth{bandwidth}
 {
 }
 
@@ -60,14 +63,20 @@ void ChildNetEvents::PushOutbound(
     ChildNetOutbound&& outbound)
 {
     const std::string message_type{ChildMessageType(outbound.command)};
+    CSerializedNetMsg message{std::visit(
+        [&](auto&& payload) {
+            return NetMsg::Make(message_type, payload);
+        },
+        std::move(outbound.message))};
+    if (outbound.command == ChildNetCommand::BLOCK &&
+        !m_bandwidth.TryReserve(
+            message.data.size(),
+            std::chrono::duration_cast<std::chrono::seconds>(
+                MockableSteadyClock::now().time_since_epoch()))) {
+        return;
+    }
     auto push{[&](CNode& target) {
-        std::visit(
-            [&](auto&& message) {
-                m_connman.PushMessage(
-                    &target,
-                    NetMsg::Make(message_type, message));
-            },
-            std::move(outbound.message));
+        m_connman.PushMessage(&target, std::move(message));
     }};
 
     if (outbound.peer == current.GetId()) {

@@ -267,6 +267,12 @@ class ChainRegistryTest(BitcoinTestFramework):
         runtimes = node.listchildchainruntimes()
         assert_equal(runtimes["loaded"], 0)
         assert_equal(runtimes["max_loaded"], 8)
+        assert_equal(runtimes["aggregate_upload_target"], 8 << 30)
+        assert_equal(runtimes["aggregate_upload_bytes_sent"], 0)
+        assert_equal(runtimes["aggregate_upload_bytes_left"], 8 << 30)
+        assert_equal(runtimes["aggregate_upload_timeframe"], 24 * 60 * 60)
+        assert_equal(runtimes["aggregate_upload_time_left"], 24 * 60 * 60)
+        assert_equal(runtimes["aggregate_upload_target_reached"], False)
         assert_equal(len(runtimes["chains"]), 1)
         assert_equal(runtimes["chains"][0]["chain_id"], chain_id)
         assert_equal(runtimes["chains"][0]["state"], "available")
@@ -306,6 +312,8 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(network_info["network_running"], True)
         assert_equal(network_info["max_added_nodes"], 8)
         assert_equal(network_info["max_bind_endpoints"], 4)
+        assert_equal(network_info["aggregate_upload_target"], 8 << 30)
+        assert_equal(network_info["aggregate_upload_target_reached"], False)
         assert_equal(network_info["binds"], [child_endpoint])
         paused = node.setchildnetworkactive(chain_id, False)
         assert_equal(paused["network_active"], False)
@@ -656,6 +664,13 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(node.getchainregistryinfo()["root"], retired_info["root"])
         assert_equal(node.getchildchain(chain_id, True)["chain"]["status"], "retired")
         assert_equal(node.getdepositstatus(deposit_txid, 0)["found"], True)
+
+        self.log.info("Reject an invalid aggregate child upload target")
+        self.stop_node(0)
+        self.nodes[0].assert_start_raises_init_error(
+            extra_args=prune_args + ["-maxchilduploadtarget=invalid"],
+            expected_msg="Error: Unable to parse -maxchilduploadtarget: 'invalid'",
+        )
 
 
 if __name__ == "__main__":

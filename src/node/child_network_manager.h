@@ -8,12 +8,14 @@
 #include <primitives/chainregistry.h>
 #include <sync.h>
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <map>
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 class CChainParams;
@@ -26,6 +28,39 @@ class ChainManager;
 inline constexpr size_t MAX_CHILD_CONNECT_NODES{8};
 inline constexpr size_t MAX_CHILD_BIND_ENDPOINTS{4};
 inline constexpr int MAX_CHILD_INBOUND_CONNECTIONS{8};
+inline constexpr uint64_t DEFAULT_CHILD_UPLOAD_TARGET_BYTES{8ULL << 30};
+inline constexpr std::string_view DEFAULT_CHILD_UPLOAD_TARGET{"8G"};
+inline constexpr std::chrono::seconds CHILD_UPLOAD_TIMEFRAME{
+    std::chrono::hours{24}};
+
+struct ChildBandwidthStats {
+    uint64_t target{0};
+    uint64_t bytes_sent{0};
+    uint64_t bytes_left{0};
+    std::chrono::seconds timeframe{0};
+    std::chrono::seconds time_left{0};
+    bool target_reached{false};
+};
+
+/** Process-wide block-serving budget shared by every child network. */
+class ChildBandwidthLimiter
+{
+private:
+    const uint64_t m_target;
+    mutable Mutex m_mutex;
+    mutable bool m_cycle_started GUARDED_BY(m_mutex){false};
+    mutable std::chrono::seconds m_cycle_start GUARDED_BY(m_mutex){0};
+    mutable uint64_t m_bytes_sent GUARDED_BY(m_mutex){0};
+
+    void RefreshCycle(std::chrono::seconds now) const
+        EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
+
+public:
+    explicit ChildBandwidthLimiter(uint64_t target) : m_target{target} {}
+
+    bool TryReserve(uint64_t bytes, std::chrono::seconds now);
+    ChildBandwidthStats GetStats(std::chrono::seconds now) const;
+};
 
 struct ChildNetworkConfig {
     std::vector<std::string> connect;
@@ -87,6 +122,7 @@ private:
     ChainManager& m_chain_manager;
     const CChainParams& m_chain_params;
     CScheduler& m_scheduler;
+    ChildBandwidthLimiter m_bandwidth;
     mutable Mutex m_mutex;
     std::map<chainregistry::ChainId, std::unique_ptr<Network>> m_networks
         GUARDED_BY(m_mutex);
@@ -99,7 +135,9 @@ private:
 public:
     ChildNetworkManager(ChainManager& chain_manager,
                         const CChainParams& chain_params,
-                        CScheduler& scheduler);
+                        CScheduler& scheduler,
+                        uint64_t max_upload_target =
+                            DEFAULT_CHILD_UPLOAD_TARGET_BYTES);
     ~ChildNetworkManager();
 
     ChildNetworkResult Start(const chainregistry::ChainId& chain_id,
@@ -124,6 +162,7 @@ public:
     ChildNetworkStats GetStats(
         const chainregistry::ChainId& chain_id) const;
     std::vector<ChildNetworkStats> List() const;
+    ChildBandwidthStats GetBandwidthStats() const;
 };
 
 } // namespace node

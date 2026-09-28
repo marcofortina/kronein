@@ -43,6 +43,43 @@ BOOST_FIXTURE_TEST_SUITE(
     child_network_manager_tests,
     ChildNetworkManagerSetup)
 
+BOOST_AUTO_TEST_CASE(enforces_process_wide_child_upload_budget)
+{
+    node::ChildBandwidthLimiter limiter{/*target=*/100};
+    const std::chrono::seconds start{1'000};
+
+    auto stats{limiter.GetStats(start)};
+    BOOST_CHECK_EQUAL(stats.target, 100U);
+    BOOST_CHECK_EQUAL(stats.bytes_sent, 0U);
+    BOOST_CHECK_EQUAL(stats.bytes_left, 100U);
+    BOOST_CHECK_EQUAL(stats.time_left.count(),
+                      node::CHILD_UPLOAD_TIMEFRAME.count());
+    BOOST_CHECK(!stats.target_reached);
+
+    BOOST_CHECK(limiter.TryReserve(60, start));
+    BOOST_CHECK(!limiter.TryReserve(41, start + std::chrono::seconds{1}));
+    BOOST_CHECK(limiter.TryReserve(40, start + std::chrono::seconds{2}));
+    stats = limiter.GetStats(start + std::chrono::seconds{3});
+    BOOST_CHECK_EQUAL(stats.bytes_sent, 100U);
+    BOOST_CHECK_EQUAL(stats.bytes_left, 0U);
+    BOOST_CHECK(stats.target_reached);
+
+    const auto next_cycle{start + node::CHILD_UPLOAD_TIMEFRAME};
+    stats = limiter.GetStats(next_cycle);
+    BOOST_CHECK_EQUAL(stats.bytes_sent, 0U);
+    BOOST_CHECK_EQUAL(stats.bytes_left, 100U);
+    BOOST_CHECK(!stats.target_reached);
+    BOOST_CHECK(limiter.TryReserve(100, next_cycle));
+
+    node::ChildBandwidthLimiter unlimited{/*target=*/0};
+    BOOST_CHECK(unlimited.TryReserve(101, start));
+    stats = unlimited.GetStats(start);
+    BOOST_CHECK_EQUAL(stats.target, 0U);
+    BOOST_CHECK_EQUAL(stats.bytes_sent, 101U);
+    BOOST_CHECK_EQUAL(stats.bytes_left, 0U);
+    BOOST_CHECK(!stats.target_reached);
+}
+
 BOOST_AUTO_TEST_CASE(owns_an_isolated_network_per_loaded_child)
 {
     const auto definition{Definition()};

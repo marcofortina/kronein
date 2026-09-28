@@ -19,10 +19,12 @@
 #include <scheduler.h>
 #include <util/check.h>
 #include <util/fs_helpers.h>
+#include <util/time.h>
 #include <util/translation.h>
 #include <univalue.h>
 
 #include <algorithm>
+#include <limits>
 #include <utility>
 
 namespace node {
@@ -215,6 +217,59 @@ ChildNetworkResult WriteNetworkConfig(
 
 } // namespace
 
+void ChildBandwidthLimiter::RefreshCycle(std::chrono::seconds now) const
+{
+    AssertLockHeld(m_mutex);
+    if (m_cycle_started && now >= m_cycle_start + CHILD_UPLOAD_TIMEFRAME) {
+        m_cycle_started = false;
+        m_cycle_start = std::chrono::seconds{0};
+        m_bytes_sent = 0;
+    }
+}
+
+bool ChildBandwidthLimiter::TryReserve(
+    uint64_t bytes,
+    std::chrono::seconds now)
+{
+    LOCK(m_mutex);
+    RefreshCycle(now);
+    if (!m_cycle_started) {
+        m_cycle_started = true;
+        m_cycle_start = now;
+    }
+    if (m_target != 0 &&
+        (m_bytes_sent >= m_target || bytes > m_target - m_bytes_sent)) {
+        return false;
+    }
+    if (bytes > std::numeric_limits<uint64_t>::max() - m_bytes_sent) {
+        m_bytes_sent = std::numeric_limits<uint64_t>::max();
+    } else {
+        m_bytes_sent += bytes;
+    }
+    return true;
+}
+
+ChildBandwidthStats ChildBandwidthLimiter::GetStats(
+    std::chrono::seconds now) const
+{
+    LOCK(m_mutex);
+    RefreshCycle(now);
+    const bool reached{m_target != 0 && m_bytes_sent >= m_target};
+    const std::chrono::seconds time_left{
+        m_target == 0 ? std::chrono::seconds{0} :
+        !m_cycle_started ? CHILD_UPLOAD_TIMEFRAME :
+        std::max(std::chrono::seconds{0},
+                 m_cycle_start + CHILD_UPLOAD_TIMEFRAME - now)};
+    return {
+        .target = m_target,
+        .bytes_sent = m_bytes_sent,
+        .bytes_left = m_target == 0 || reached ? 0 : m_target - m_bytes_sent,
+        .timeframe = CHILD_UPLOAD_TIMEFRAME,
+        .time_left = time_left,
+        .target_reached = reached,
+    };
+}
+
 struct ChildNetworkManager::Network {
     chainregistry::ChainId chain_id;
     fs::path network_path;
@@ -234,6 +289,7 @@ struct ChildNetworkManager::Network {
             std::unique_ptr<AddrMan> addresses,
             const CChainParams& params,
             ChainManager& manager,
+            ChildBandwidthLimiter& bandwidth,
             const chainregistry::ReferenceChildDefinition& definition,
             ChildNetworkConfig network_config)
         : chain_id{id},
@@ -250,7 +306,7 @@ struct ChildNetworkManager::Network {
                   *netgroup,
                   params},
           events{std::make_unique<ChildNetEvents>(
-              connman, manager, definition)},
+              connman, manager, bandwidth, definition)},
           config{std::move(network_config)}
     {
     }
@@ -283,10 +339,12 @@ struct ChildNetworkManager::Network {
 ChildNetworkManager::ChildNetworkManager(
     ChainManager& chain_manager,
     const CChainParams& chain_params,
-    CScheduler& scheduler)
+    CScheduler& scheduler,
+    uint64_t max_upload_target)
     : m_chain_manager{chain_manager},
       m_chain_params{chain_params},
-      m_scheduler{scheduler}
+      m_scheduler{scheduler},
+      m_bandwidth{max_upload_target}
 {
 }
 
@@ -369,6 +427,7 @@ ChildNetworkResult ChildNetworkManager::StartLocked(
         std::move(*loaded_addrman),
         m_chain_params,
         m_chain_manager,
+        m_bandwidth,
         *definition,
         effective_config)};
     CConnman::Options options;
@@ -668,6 +727,13 @@ std::vector<ChildNetworkStats> ChildNetworkManager::List() const
         result.push_back(network->Stats());
     }
     return result;
+}
+
+ChildBandwidthStats ChildNetworkManager::GetBandwidthStats() const
+{
+    return m_bandwidth.GetStats(
+        std::chrono::duration_cast<std::chrono::seconds>(
+            MockableSteadyClock::now().time_since_epoch()));
 }
 
 } // namespace node

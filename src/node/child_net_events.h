@@ -17,6 +17,8 @@
 
 namespace node {
 
+class ChildBandwidthLimiter;
+
 inline constexpr uint8_t MAX_CHILD_BLOCK_TIMEOUT_STRIKES{3};
 inline constexpr ChildRequestTime CHILD_NET_POLL_INTERVAL{
     std::chrono::milliseconds{100}};
@@ -33,6 +35,7 @@ class ChildNetEvents final : public NetEventsInterface
 private:
     CConnman& m_connman;
     ChildNetProcessor m_processor;
+    ChildBandwidthLimiter& m_bandwidth;
     mutable Mutex m_mutex;
     ChildRequestTime m_next_poll GUARDED_BY(m_mutex){0};
     std::map<ChildPeerId, uint8_t> m_timeout_strikes GUARDED_BY(m_mutex);
@@ -49,6 +52,7 @@ public:
     ChildNetEvents(
         CConnman& connman,
         ChainManager& manager,
+        ChildBandwidthLimiter& bandwidth,
         chainregistry::ReferenceChildDefinition definition);
 
     void InitializeNode(const CNode& node,

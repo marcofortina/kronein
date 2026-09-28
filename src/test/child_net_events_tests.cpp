@@ -3,6 +3,7 @@
 // file COPYING or https://opensource.org/license/mit/.
 
 #include <node/child_net_events.h>
+#include <node/child_network_manager.h>
 
 #include <addrman.h>
 #include <chainparams.h>
@@ -62,7 +63,10 @@ BOOST_AUTO_TEST_CASE(adapts_only_the_isolated_child_protocol)
         /*consistency_check_ratio=*/0};
     ConnmanTestMsg connman{
         1, 2, addrman, netgroup, Params()};
-    node::ChildNetEvents events{connman, manager, definition};
+    node::ChildBandwidthLimiter bandwidth{
+        node::DEFAULT_CHILD_UPLOAD_TARGET_BYTES};
+    node::ChildNetEvents events{
+        connman, manager, bandwidth, definition};
     connman.SetMsgProc(&events);
 
     CNode peer{
@@ -143,7 +147,10 @@ BOOST_AUTO_TEST_CASE(rejects_child_connections_to_self)
         /*consistency_check_ratio=*/0};
     ConnmanTestMsg connman{
         1, 2, addrman, netgroup, Params()};
-    node::ChildNetEvents events{connman, manager, definition};
+    node::ChildBandwidthLimiter bandwidth{
+        node::DEFAULT_CHILD_UPLOAD_TARGET_BYTES};
+    node::ChildNetEvents events{
+        connman, manager, bandwidth, definition};
     connman.SetMsgProc(&events);
 
     constexpr uint64_t SELF_NONCE{77};

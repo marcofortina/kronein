@@ -611,6 +611,17 @@ void PushChildNetworkStats(UniValue& object,
     object.pushKV("binds", std::move(bind_endpoints));
 }
 
+void PushChildBandwidthStats(UniValue& object,
+                             const node::ChildBandwidthStats& stats)
+{
+    object.pushKV("aggregate_upload_target", stats.target);
+    object.pushKV("aggregate_upload_bytes_sent", stats.bytes_sent);
+    object.pushKV("aggregate_upload_bytes_left", stats.bytes_left);
+    object.pushKV("aggregate_upload_timeframe", stats.timeframe.count());
+    object.pushKV("aggregate_upload_time_left", stats.time_left.count());
+    object.pushKV("aggregate_upload_target_reached", stats.target_reached);
+}
+
 RPCHelpMan derivechildchainid()
 {
     return RPCHelpMan{
@@ -1065,6 +1076,12 @@ RPCHelpMan listchildchainruntimes()
             {RPCResult::Type::STR_HEX, "root", "Committed registry root"},
             {RPCResult::Type::NUM, "loaded", "Number of locally loaded child runtimes"},
             {RPCResult::Type::NUM, "max_loaded", "Maximum child runtimes this process permits"},
+            {RPCResult::Type::NUM, "aggregate_upload_target", "Process-wide child block-serving target in bytes per cycle; zero means unlimited"},
+            {RPCResult::Type::NUM, "aggregate_upload_bytes_sent", "Serialized child block bytes reserved in the current cycle"},
+            {RPCResult::Type::NUM, "aggregate_upload_bytes_left", "Bytes remaining in the aggregate target; zero when unlimited or exhausted"},
+            {RPCResult::Type::NUM, "aggregate_upload_timeframe", "Upload target cycle length in seconds"},
+            {RPCResult::Type::NUM, "aggregate_upload_time_left", "Seconds remaining in the current cycle"},
+            {RPCResult::Type::BOOL, "aggregate_upload_target_reached", "Whether child block serving is currently exhausted"},
             {RPCResult::Type::ARR, "chains", "Known child chains", {
                 {RPCResult::Type::OBJ, "", "One child-chain view", {
                     {RPCResult::Type::STR_HEX, "chain_id", "Full child-chain identifier"},
@@ -1227,6 +1244,7 @@ RPCHelpMan listchildchainruntimes()
     result.pushKV("root", registry.root.GetHex());
     result.pushKV("loaded", manager.LoadedCount());
     result.pushKV("max_loaded", node::MAX_LOADED_CHILD_CHAINS);
+    PushChildBandwidthStats(result, networks.GetBandwidthStats());
     result.pushKV("chains", std::move(chains));
     return result;
 }
@@ -1410,6 +1428,12 @@ RPCHelpMan getchildnetworkinfo()
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
             {RPCResult::Type::NUM, "max_added_nodes", "Maximum number of explicit endpoints"},
             {RPCResult::Type::NUM, "max_bind_endpoints", "Maximum number of child listen endpoints"},
+            {RPCResult::Type::NUM, "aggregate_upload_target", "Process-wide child block-serving target in bytes per cycle; zero means unlimited"},
+            {RPCResult::Type::NUM, "aggregate_upload_bytes_sent", "Serialized child block bytes reserved in the current cycle"},
+            {RPCResult::Type::NUM, "aggregate_upload_bytes_left", "Bytes remaining in the aggregate target; zero when unlimited or exhausted"},
+            {RPCResult::Type::NUM, "aggregate_upload_timeframe", "Upload target cycle length in seconds"},
+            {RPCResult::Type::NUM, "aggregate_upload_time_left", "Seconds remaining in the current cycle"},
+            {RPCResult::Type::BOOL, "aggregate_upload_target_reached", "Whether child block serving is currently exhausted"},
             {RPCResult::Type::ARR, "added_nodes", "Persistent explicit endpoints", {
                 {RPCResult::Type::STR, "", "Host and explicit port"},
             }},
@@ -1423,12 +1447,14 @@ RPCHelpMan getchildnetworkinfo()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     const auto chain_id{ParseChainId(self.Arg<UniValue>("chain_id"))};
-    const auto info{
-        EnsureAnyChildNetworkman(request.context).GetInfo(chain_id)};
+    node::ChildNetworkManager& networks{
+        EnsureAnyChildNetworkman(request.context)};
+    const auto info{networks.GetInfo(chain_id)};
     if (!info.IsValid()) ThrowChildNetworkError(info.result);
     UniValue result{UniValue::VOBJ};
     result.pushKV("chain_id", chain_id.GetHex());
     PushChildNetworkStats(result, info.stats);
+    PushChildBandwidthStats(result, networks.GetBandwidthStats());
     result.pushKV("max_added_nodes", node::MAX_CHILD_CONNECT_NODES);
     result.pushKV("max_bind_endpoints", node::MAX_CHILD_BIND_ENDPOINTS);
     return result;
