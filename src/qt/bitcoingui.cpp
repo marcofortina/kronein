@@ -123,7 +123,13 @@ BitcoinGUI::BitcoinGUI(interfaces::Node& node, const PlatformStyle *_platformSty
         connect(walletFrame, &WalletFrame::message, [this](const QString& title, const QString& message, unsigned int style) {
             this->message(title, message, style);
         });
-        connect(walletFrame, &WalletFrame::currentWalletSet, [this] { updateWalletStatus(); });
+        connect(walletFrame, &WalletFrame::currentWalletSet, [this] {
+            updateWalletStatus();
+            if (m_child_chain_dialog) {
+                m_child_chain_dialog->setWalletModel(
+                    walletFrame->currentWalletModel());
+            }
+        });
         setCentralWidget(walletFrame);
     } else
 #endif // ENABLE_WALLET
@@ -734,6 +740,9 @@ void BitcoinGUI::addWallet(WalletModel* walletModel)
     wallet_view->setPrivacy(isPrivacyModeActivated());
     const QString display_name = walletModel->getDisplayName();
     m_wallet_selector->addItem(display_name, QVariant::fromValue(walletModel));
+    if (m_child_chain_dialog) {
+        m_child_chain_dialog->setWalletModel(walletFrame->currentWalletModel());
+    }
 }
 
 void BitcoinGUI::removeWallet(WalletModel* walletModel)
@@ -754,6 +763,9 @@ void BitcoinGUI::removeWallet(WalletModel* walletModel)
     }
     rpcConsole->removeWallet(walletModel);
     walletFrame->removeWallet(walletModel);
+    if (m_child_chain_dialog) {
+        m_child_chain_dialog->setWalletModel(walletFrame->currentWalletModel());
+    }
     updateWindowTitle();
 }
 
@@ -782,6 +794,7 @@ void BitcoinGUI::removeAllWallets()
         return;
     setWalletActionsEnabled(false);
     walletFrame->removeAllWallets();
+    if (m_child_chain_dialog) m_child_chain_dialog->setWalletModel(nullptr);
 }
 #endif // ENABLE_WALLET
 
@@ -914,6 +927,10 @@ void BitcoinGUI::showChildChains()
 {
     if (!m_child_chain_dialog) {
         m_child_chain_dialog = new ChildChainDialog{m_node, this};
+#ifdef ENABLE_WALLET
+        m_child_chain_dialog->setWalletModel(
+            walletFrame ? walletFrame->currentWalletModel() : nullptr);
+#endif
         m_child_chain_dialog->setAttribute(Qt::WA_DeleteOnClose);
         connect(m_child_chain_dialog, &QObject::destroyed, this, [this] {
             m_child_chain_dialog = nullptr;

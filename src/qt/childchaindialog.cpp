@@ -4,7 +4,12 @@
 
 #include <qt/childchaindialog.h>
 
+#include <core_io.h>
 #include <interfaces/node.h>
+#ifdef ENABLE_WALLET
+#include <qt/bitcoinamountfield.h>
+#include <qt/walletmodel.h>
+#endif
 #include <qt/guiutil.h>
 #include <univalue.h>
 
@@ -20,6 +25,12 @@
 #include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#ifdef ENABLE_WALLET
+#include <QRegularExpression>
+#include <QRegularExpressionValidator>
+#include <QSpinBox>
+#include <QUrl>
+#endif
 #include <QStringList>
 #include <QTableWidget>
 #include <QTableWidgetItem>
@@ -28,6 +39,7 @@
 
 #include <cstdint>
 #include <exception>
+#include <limits>
 #include <stdexcept>
 #include <utility>
 
@@ -140,6 +152,10 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     m_binds_button = actions->addButton(tr("Listening…"), QDialogButtonBox::ActionRole);
     m_discovery_button = actions->addButton(tr("Discovery…"), QDialogButtonBox::ActionRole);
     m_network_button = actions->addButton(tr("Pause Network"), QDialogButtonBox::ActionRole);
+#ifdef ENABLE_WALLET
+    m_migrate_button = actions->addButton(tr("Migrate…"), QDialogButtonBox::ActionRole);
+    m_migrate_button->setObjectName(QStringLiteral("childChainMigrateButton"));
+#endif
     m_add_peer_button->setObjectName(QStringLiteral("childChainAddPeerButton"));
     m_remove_peer_button->setObjectName(QStringLiteral("childChainRemovePeerButton"));
     m_binds_button->setObjectName(QStringLiteral("childChainBindsButton"));
@@ -164,6 +180,9 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     connect(m_binds_button, &QPushButton::clicked, this, &ChildChainDialog::configureBinds);
     connect(m_discovery_button, &QPushButton::clicked, this, &ChildChainDialog::configureDiscovery);
     connect(m_network_button, &QPushButton::clicked, this, &ChildChainDialog::toggleNetwork);
+#ifdef ENABLE_WALLET
+    connect(m_migrate_button, &QPushButton::clicked, this, &ChildChainDialog::migrateSelected);
+#endif
     connect(m_forget_button, &QPushButton::clicked, this, &ChildChainDialog::forgetSelected);
     connect(actions, &QDialogButtonBox::rejected, this, &QDialog::close);
 
@@ -248,6 +267,7 @@ void ChildChainDialog::refresh()
             status_item->setData(KNOWN_ADDRESSES_ROLE, known_addresses);
             status_item->setData(
                 RATE_LIMITED_REQUESTS_ROLE, rate_limited);
+            status_item->setData(SUPPORTED_ROLE, BoolField(chain, "supported"));
             m_table->setItem(row, STATUS, status_item);
             m_table->setItem(row, CHAIN_ID, new QTableWidgetItem{chain_id});
             m_table->setItem(row, CHILD_HEIGHT, new QTableWidgetItem{NumberField(chain, "child_height")});
@@ -362,6 +382,9 @@ void ChildChainDialog::updateSelection()
         m_binds_button->setEnabled(false);
         m_discovery_button->setEnabled(false);
         m_network_button->setEnabled(false);
+#ifdef ENABLE_WALLET
+        m_migrate_button->setEnabled(false);
+#endif
         m_network_button->setText(tr("Pause Network"));
         m_selection_summary->setText(tr("Select a child chain to manage its local runtime."));
         return;
@@ -383,6 +406,7 @@ void ChildChainDialog::updateSelection()
         item->data(RATE_LIMITED_REQUESTS_ROLE).toString()};
     const QString known_addresses{
         item->data(KNOWN_ADDRESSES_ROLE).toString()};
+    const bool supported{item->data(SUPPORTED_ROLE).toBool()};
     m_load_button->setEnabled(configured && !loaded && state == QStringLiteral("configured"));
     m_unload_button->setEnabled(loaded);
     m_forget_button->setEnabled(configured && !loaded);
@@ -392,6 +416,13 @@ void ChildChainDialog::updateSelection()
     m_binds_button->setEnabled(loaded && network_running);
     m_discovery_button->setEnabled(loaded && network_running);
     m_network_button->setEnabled(loaded && network_running);
+#ifdef ENABLE_WALLET
+    m_migrate_button->setEnabled(
+        m_wallet_model && registry_found && supported &&
+        (state == QStringLiteral("available") ||
+         state == QStringLiteral("configured") ||
+         state == QStringLiteral("loaded")));
+#endif
     m_network_button->setText(network_active ? tr("Pause Network") : tr("Resume Network"));
     m_selection_summary->setText(
         tr("Chain ID: %1\nState: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7 • discovery: %8 (%9 bootstrap, %10 known) • rate-limited block requests: %11")
@@ -407,6 +438,199 @@ void ChildChainDialog::updateSelection()
                  known_addresses,
                  rate_limited));
 }
+
+#ifdef ENABLE_WALLET
+void ChildChainDialog::setWalletModel(WalletModel* wallet_model)
+{
+    m_wallet_model = wallet_model;
+    updateSelection();
+}
+
+std::string ChildChainDialog::walletUri() const
+{
+    if (!m_wallet_model || m_wallet_model->getWalletName().isEmpty()) return {};
+    const QByteArray encoded_name{
+        QUrl::toPercentEncoding(m_wallet_model->getWalletName())};
+    return "/wallet/" +
+        std::string{encoded_name.constData(),
+                    static_cast<size_t>(encoded_name.size())};
+}
+
+void ChildChainDialog::migrateSelected()
+{
+    const QString chain_id{selectedChainId()};
+    if (chain_id.isEmpty() || !m_wallet_model) return;
+    const QPointer<WalletModel> wallet_model{m_wallet_model};
+    const std::string wallet_uri{walletUri()};
+
+    QDialog input_dialog{this};
+    input_dialog.setWindowTitle(tr("Migrate KNE to Child Chain"));
+    auto* layout = new QVBoxLayout{&input_dialog};
+    auto* warning = new QLabel{
+        tr("This transfer is irreversible. Main-chain KNE will be permanently destroyed and cannot return from the child chain."),
+        &input_dialog};
+    warning->setWordWrap(true);
+    layout->addWidget(warning);
+
+    auto* form = new QFormLayout;
+    auto* chain = new QLineEdit{chain_id, &input_dialog};
+    chain->setReadOnly(true);
+    auto* recipient_type = new QSpinBox{&input_dialog};
+    recipient_type->setRange(1, std::numeric_limits<uint16_t>::max());
+    recipient_type->setValue(1);
+    recipient_type->setReadOnly(true);
+    recipient_type->setToolTip(
+        tr("Reference child template v1 uses recipient type 1 for P2TR output keys."));
+    auto* recipient = new QLineEdit{&input_dialog};
+    recipient->setValidator(new QRegularExpressionValidator{
+        QRegularExpression{QStringLiteral("[0-9A-Fa-f]{64}")}, recipient});
+    recipient->setPlaceholderText(tr("32-byte P2TR output key in hexadecimal"));
+    auto* amount = new BitcoinAmountField{&input_dialog};
+    amount->SetAllowEmpty(false);
+    amount->SetMinValue(1);
+    amount->SetMaxValue(MAX_MONEY);
+    form->addRow(tr("Child chain:"), chain);
+    form->addRow(tr("Recipient type:"), recipient_type);
+    form->addRow(tr("Recipient bytes:"), recipient);
+    form->addRow(tr("Amount:"), amount);
+    layout->addLayout(form);
+
+    auto* buttons = new QDialogButtonBox{
+        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &input_dialog};
+    buttons->button(QDialogButtonBox::Ok)->setText(tr("Review Migration"));
+    connect(buttons, &QDialogButtonBox::accepted, &input_dialog, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &input_dialog, &QDialog::reject);
+    layout->addWidget(buttons);
+    if (input_dialog.exec() != QDialog::Accepted) return;
+    if (!recipient->hasAcceptableInput()) {
+        QMessageBox::warning(
+            this,
+            tr("Invalid Recipient"),
+            tr("Enter exactly 32 bytes (64 hexadecimal characters) for the child P2TR output key."));
+        return;
+    }
+    if (!amount->validate() || amount->value() <= 0) {
+        QMessageBox::warning(this, tr("Invalid Amount"), tr("Enter a positive migration amount."));
+        return;
+    }
+
+    UniValue create_params{UniValue::VARR};
+    create_params.push_back(chain_id.toStdString());
+    create_params.push_back(recipient_type->value());
+    create_params.push_back(recipient->text().trimmed().toStdString());
+    create_params.push_back(ValueFromAmount(amount->value()));
+
+    UniValue created;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        created = m_node.executeRpc(
+            "walletcreatefundchainpsbt", create_params, wallet_uri);
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Create child migration"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Create child migration"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+
+    const UniValue& created_chain{created.find_value("chain_id")};
+    const UniValue& psbt{created.find_value("psbt")};
+    const UniValue& created_amount{created.find_value("amount")};
+    const UniValue& fee{created.find_value("fee")};
+    const UniValue& irreversible{created.find_value("irreversible")};
+    const UniValue& created_recipient_type{created.find_value("recipient_type")};
+    const UniValue& created_recipient{created.find_value("recipient")};
+    if (!created_chain.isStr() ||
+        QString::fromStdString(created_chain.get_str()) != chain_id ||
+        !psbt.isStr() || !created_amount.isNum() || !fee.isNum() ||
+        !irreversible.isBool() || !irreversible.get_bool() ||
+        !created_recipient_type.isNum() ||
+        created_recipient_type.getInt<int>() != recipient_type->value() ||
+        !created_recipient.isStr() ||
+        QString::fromStdString(created_recipient.get_str()).compare(
+            recipient->text().trimmed(), Qt::CaseInsensitive) != 0) {
+        showRpcError(tr("Create child migration"),
+                     tr("The wallet returned an invalid migration proposal."));
+        return;
+    }
+
+    QMessageBox confirmation{
+        QMessageBox::Warning,
+        tr("Confirm Irreversible Migration"),
+        tr("Permanently destroy %1 KNE on the main chain and migrate it to child chain %2?\n\nRecipient type: %3\nRecipient: %4\nMain-chain fee: %5 KNE\n\nThere is no child-to-main withdrawal path.")
+            .arg(QString::fromStdString(created_amount.getValStr()),
+                 chain_id,
+                 QString::number(recipient_type->value()),
+                 QString::fromStdString(created_recipient.get_str()),
+                 QString::fromStdString(fee.getValStr())),
+        QMessageBox::Yes | QMessageBox::Cancel,
+        this};
+    confirmation.setDefaultButton(QMessageBox::Cancel);
+    if (confirmation.exec() != QMessageBox::Yes) return;
+
+    if (!wallet_model) {
+        showRpcError(tr("Submit child migration"),
+                     tr("The selected wallet is no longer available."));
+        return;
+    }
+    WalletModel::UnlockContext unlock_context{wallet_model->requestUnlock()};
+    if (!unlock_context.isValid()) return;
+
+    UniValue submit_params{UniValue::VARR};
+    submit_params.push_back(psbt.get_str());
+    submit_params.push_back(true);
+    submit_params.push_back(created_amount);
+    UniValue submitted;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        submitted = m_node.executeRpc(
+            "walletsubmitfundchainpsbt", submit_params, wallet_uri);
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Submit child migration"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Submit child migration"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+
+    const UniValue& submitted_chain{submitted.find_value("chain_id")};
+    const UniValue& txid{submitted.find_value("txid")};
+    const UniValue& deposit_id{submitted.find_value("deposit_id")};
+    const UniValue& submitted_recipient_type{submitted.find_value("recipient_type")};
+    const UniValue& submitted_recipient{submitted.find_value("recipient")};
+    const UniValue& submitted_amount{submitted.find_value("amount")};
+    const UniValue& submitted_irreversible{submitted.find_value("irreversible")};
+    if (!submitted_chain.isStr() ||
+        QString::fromStdString(submitted_chain.get_str()) != chain_id ||
+        !txid.isStr() || !deposit_id.isStr() ||
+        !submitted_recipient_type.isNum() ||
+        submitted_recipient_type.getInt<int>() != recipient_type->value() ||
+        !submitted_recipient.isStr() ||
+        submitted_recipient.get_str() != created_recipient.get_str() ||
+        !submitted_amount.isNum() ||
+        submitted_amount.getValStr() != created_amount.getValStr() ||
+        !submitted_irreversible.isBool() ||
+        !submitted_irreversible.get_bool()) {
+        showRpcError(tr("Submit child migration"),
+                     tr("The wallet returned an invalid migration result."));
+        return;
+    }
+    QMessageBox::information(
+        this,
+        tr("Migration Submitted"),
+        tr("The irreversible migration was broadcast.\n\nTransaction: %1\nDeposit ID: %2")
+            .arg(QString::fromStdString(txid.get_str()),
+                 QString::fromStdString(deposit_id.get_str())));
+}
+#endif
 
 void ChildChainDialog::addManifest()
 {

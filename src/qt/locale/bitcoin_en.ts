@@ -355,7 +355,7 @@
 <context>
     <name>BitcoinGUI</name>
     <message>
-        <location filename="../bitcoingui.cpp" line="+260"/>
+        <location filename="../bitcoingui.cpp" line="+266"/>
         <source>&amp;Overview</source>
         <translation>&amp;Overview</translation>
     </message>
@@ -425,7 +425,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+408"/>
+        <location line="+419"/>
         <source>Network activity disabled.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished"></translation>
@@ -436,7 +436,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1122"/>
+        <location line="-1133"/>
         <source>Backup wallet to another location</source>
         <translation>Backup wallet to another location</translation>
     </message>
@@ -536,7 +536,7 @@
         <translation>Tabs toolbar</translation>
     </message>
     <message numerus="yes">
-        <location line="+425"/>
+        <location line="+436"/>
         <source>%n active connection(s) to Kronein network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
@@ -570,7 +570,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-838"/>
+        <location line="-849"/>
         <source>Request payments (generates QR codes and kronein: URIs)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -590,7 +590,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location line="+754"/>
+        <location line="+765"/>
         <source>Processed %n block(s) of transaction history.</source>
         <translation>
             <numerusform>Processed %n block of transaction history.</numerusform>
@@ -638,7 +638,7 @@
         <translation>Up to date</translation>
     </message>
     <message>
-        <location line="-823"/>
+        <location line="-834"/>
         <source>Ctrl+Q</source>
         <translation type="unfinished"></translation>
     </message>
@@ -794,7 +794,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+275"/>
+        <location line="+282"/>
         <source>%1 client</source>
         <translation type="unfinished"></translation>
     </message>
@@ -809,7 +809,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+129"/>
+        <location line="+133"/>
         <source>Click for more actions.</source>
         <extracomment>A substring of the tooltip. &quot;More actions&quot; are available via the context menu.</extracomment>
         <translation type="unfinished"></translation>
@@ -927,7 +927,7 @@
 <context>
     <name>ChildChainDialog</name>
     <message>
-        <location filename="../childchaindialog.cpp" line="+80"/>
+        <location filename="../childchaindialog.cpp" line="+92"/>
         <source>Available</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1008,12 +1008,12 @@
     </message>
     <message>
         <location line="+16"/>
-        <location line="+237"/>
+        <location line="+248"/>
         <source>Select a child chain to manage its local runtime.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-232"/>
+        <location line="-243"/>
         <source>Refresh</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1054,18 +1054,18 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+223"/>
-        <location line="+30"/>
+        <location line="+234"/>
+        <location line="+38"/>
         <source>Pause Network</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-247"/>
+        <location line="-262"/>
         <source>Forget…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+65"/>
+        <location line="+68"/>
         <source>Failed</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1100,18 +1100,23 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+166"/>
+        <location line="+178"/>
         <source>Chain ID: %1
 State: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7 • discovery: %8 (%9 bootstrap, %10 known) • rate-limited block requests: %11</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-140"/>
+        <location line="-151"/>
         <source>No explicit child peers configured</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-121"/>
+        <source>Migrate…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+122"/>
         <source>Explicit child peers:
 %1</source>
         <translation type="unfinished"></translation>
@@ -1196,7 +1201,7 @@ Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+58"/>
+        <location line="+69"/>
         <source>Resume Network</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1235,6 +1240,130 @@ Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
     <message>
         <location line="+0"/>
         <source>disabled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+31"/>
+        <source>Migrate KNE to Child Chain</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>This transfer is irreversible. Main-chain KNE will be permanently destroyed and cannot return from the child chain.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+13"/>
+        <source>Reference child template v1 uses recipient type 1 for P2TR output keys.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>32-byte P2TR output key in hexadecimal</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Child chain:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Recipient type:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Recipient bytes:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Amount:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Review Migration</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Invalid Recipient</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Enter exactly 32 bytes (64 hexadecimal characters) for the child P2TR output key.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Invalid Amount</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Enter a positive migration amount.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+17"/>
+        <location line="+4"/>
+        <location line="+22"/>
+        <source>Create child migration</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The wallet returned an invalid migration proposal.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Confirm Irreversible Migration</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Permanently destroy %1 KNE on the main chain and migrate it to child chain %2?
+
+Recipient type: %3
+Recipient: %4
+Main-chain fee: %5 KNE
+
+There is no child-to-main withdrawal path.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+12"/>
+        <location line="+18"/>
+        <location line="+4"/>
+        <location line="+24"/>
+        <source>Submit child migration</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-45"/>
+        <source>The selected wallet is no longer available.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+46"/>
+        <source>The wallet returned an invalid migration result.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Migration Submitted</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The irreversible migration was broadcast.
+
+Transaction: %1
+Deposit ID: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

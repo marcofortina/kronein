@@ -5,12 +5,22 @@
 #ifndef BITCOIN_QT_CHILDCHAINDIALOG_H
 #define BITCOIN_QT_CHILDCHAINDIALOG_H
 
+#include <bitcoin-build-config.h> // IWYU pragma: keep
+
 #include <QDialog>
+#ifdef ENABLE_WALLET
+#include <QPointer>
+#endif
+
+#include <string>
 
 class QLabel;
 class QPushButton;
 class QTableWidget;
 class UniValue;
+#ifdef ENABLE_WALLET
+class WalletModel;
+#endif
 
 namespace interfaces {
 class Node;
@@ -23,6 +33,9 @@ class ChildChainDialog : public QDialog
 
 public:
     explicit ChildChainDialog(interfaces::Node& node, QWidget* parent = nullptr);
+#ifdef ENABLE_WALLET
+    void setWalletModel(WalletModel* wallet_model);
+#endif
 
 private Q_SLOTS:
     void refresh();
@@ -36,6 +49,9 @@ private Q_SLOTS:
     void configureBinds();
     void configureDiscovery();
     void toggleNetwork();
+#ifdef ENABLE_WALLET
+    void migrateSelected();
+#endif
 
 private:
     enum Column {
@@ -64,12 +80,16 @@ private:
         BOOTSTRAP_NODES_ROLE,
         KNOWN_ADDRESSES_ROLE,
         RATE_LIMITED_REQUESTS_ROLE,
+        SUPPORTED_ROLE,
     };
 
     QString selectedChainId() const;
     bool runCommand(const char* command, UniValue params);
     bool runLifecycleCommand(const char* command, const QString& chain_id);
     void showRpcError(const QString& operation, const QString& message);
+#ifdef ENABLE_WALLET
+    std::string walletUri() const;
+#endif
 
     interfaces::Node& m_node;
     QLabel* m_registry_summary{nullptr};
@@ -85,6 +105,10 @@ private:
     QPushButton* m_binds_button{nullptr};
     QPushButton* m_discovery_button{nullptr};
     QPushButton* m_network_button{nullptr};
+#ifdef ENABLE_WALLET
+    QPointer<WalletModel> m_wallet_model;
+    QPushButton* m_migrate_button{nullptr};
+#endif
 };
 
 #endif // BITCOIN_QT_CHILDCHAINDIALOG_H
