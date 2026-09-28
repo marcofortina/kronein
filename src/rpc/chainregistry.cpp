@@ -462,6 +462,12 @@ void EnsureRegistryMatchesDefinition(
             strprintf("failed to initialize child runtime (error %u)",
                       static_cast<unsigned>(result.runtime.error)));
     case node::ChainManagerError::RUNTIME_REJECTED:
+        if (result.runtime.error ==
+            node::ReferenceChildRuntimeError::BMM_ANCHOR_UNAVAILABLE) {
+            throw JSONRPCError(
+                RPC_VERIFY_REJECTED,
+                "no authenticated pending BMM anchor commits to this child block");
+        }
         throw JSONRPCError(
             RPC_VERIFY_REJECTED,
             strprintf("child runtime rejected request (runtime error %u, BMM error %u, block error %u)",
@@ -1252,16 +1258,17 @@ RPCHelpMan submitchildblock()
 {
     return RPCHelpMan{
         "submitchildblock",
-        "Validate and persist one child block together with its authenticated BMM proof. The block may extend the active tip or enter the bounded competing-branch DAG; fork choice can reorganize the child chain immediately.\n",
+        "Validate and persist one child block. If bmm_proof is omitted, the newest authenticated pending anchor for the exact block hash is used. The block may extend the active tip or enter the bounded competing-branch DAG; fork choice can reorganize the child chain immediately.\n",
         {
             {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null child-chain identifier"},
             {"block", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Serialized child block, including witness data"},
-            {"bmm_proof", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Canonical serialized BMM anchor proof committing to this child block"},
+            {"bmm_proof", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Canonical serialized BMM anchor proof committing to this child block; omit only after submitchildanchor staged one"},
         },
         RPCResult{RPCResult::Type::OBJ, "", "Child block submission result", {
             {RPCResult::Type::STR_HEX, "chain_id", "Child-chain identifier"},
             {RPCResult::Type::STR_HEX, "blockhash", "Submitted child block hash"},
             {RPCResult::Type::BOOL, "accepted", "True after validation and durable persistence"},
+            {RPCResult::Type::STR, "anchor_source", "supplied or staged"},
             {RPCResult::Type::BOOL, "candidate_stored", "Whether the block was first persisted on a competing branch"},
             {RPCResult::Type::STR_HEX, "selected_head", "Fork-choice result"},
             {RPCResult::Type::STR_HEX, "bestblockhash", "Active child-chain tip after processing"},
@@ -1274,19 +1281,27 @@ RPCHelpMan submitchildblock()
         }},
         RPCExamples{
             HelpExampleCli("submitchildblock", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" \"blockhex\" \"4b425052...\"")
+            + HelpExampleCli("submitchildblock", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" \"blockhex\"")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     const auto chain_id{ParseChainId(self.Arg<UniValue>("chain_id"))};
     const CBlock block{ParseChildBlock(self.Arg<UniValue>("block"))};
-    const auto proof{ParseBmmProof(self.Arg<UniValue>("bmm_proof"))};
     node::ChainManager& manager{EnsureAnyChildChainman(request.context)};
-    const auto submitted{manager.SubmitBlock(
-        chain_id,
-        block,
-        proof,
-        Now<NodeSeconds>().time_since_epoch().count(),
-        /*sync=*/true)};
+    const UniValue* proof_arg{self.MaybeArg<UniValue>("bmm_proof")};
+    const int64_t current_time{Now<NodeSeconds>().time_since_epoch().count()};
+    const auto submitted{proof_arg
+        ? manager.SubmitBlock(
+              chain_id,
+              block,
+              ParseBmmProof(*proof_arg),
+              current_time,
+              /*sync=*/true)
+        : manager.SubmitBlockData(
+              chain_id,
+              block,
+              current_time,
+              /*sync=*/true)};
     if (!submitted.IsValid()) ThrowChainManagerError(submitted);
     const auto view{manager.GetChainView(chain_id)};
     Assume(view.IsValid());
@@ -1303,6 +1318,7 @@ RPCHelpMan submitchildblock()
     result.pushKV("chain_id", chain_id.GetHex());
     result.pushKV("blockhash", block.GetHash().GetHex());
     result.pushKV("accepted", true);
+    result.pushKV("anchor_source", proof_arg ? "supplied" : "staged");
     result.pushKV("candidate_stored", submitted.runtime.candidate_stored);
     result.pushKV("selected_head", submitted.runtime.selected_child_head.GetHex());
     result.pushKV("bestblockhash", view.entry.tip.GetHex());

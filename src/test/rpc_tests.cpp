@@ -468,6 +468,14 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
                        "child runtime rejected request") !=
                    std::string_view::npos;
         });
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("submitchildblock " + chain_id + " " + block_hex),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find(
+                       "no authenticated pending BMM anchor") !=
+                   std::string_view::npos;
+        });
 
     const CBlock child_block{RpcChildBlock(definition)};
     CBlock main_anchor;
@@ -483,10 +491,15 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
     child_block_stream << TX_WITH_WITNESS(child_block);
     const std::string valid_proof_hex{HexStr(valid_proof_stream)};
     const std::string child_block_hex{HexStr(child_block_stream)};
+    const auto staged{CallRPC(
+        "submitchildanchor " + chain_id + " " + valid_proof_hex)};
+    BOOST_CHECK_EQUAL(staged.find_value("child_block_hash").get_str(),
+                      child_block.GetHash().GetHex());
     const auto submitted{CallRPC(
-        "submitchildblock " + chain_id + " " + child_block_hex + " " +
-        valid_proof_hex)};
+        "submitchildblock " + chain_id + " " + child_block_hex)};
     BOOST_CHECK(submitted.find_value("accepted").get_bool());
+    BOOST_CHECK_EQUAL(submitted.find_value("anchor_source").get_str(),
+                      "staged");
     BOOST_CHECK_EQUAL(submitted.find_value("blockhash").get_str(),
                       child_block.GetHash().GetHex());
     BOOST_CHECK_EQUAL(submitted.find_value("bestblockhash").get_str(),

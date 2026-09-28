@@ -329,6 +329,15 @@ BOOST_AUTO_TEST_CASE(serializes_child_submission_through_loaded_runtime)
                 node::ChainManagerError::RUNTIME_REJECTED);
     BOOST_CHECK(rejected_block.runtime.error ==
                 node::ReferenceChildRuntimeError::BMM_ANCHOR_REJECTED);
+    const auto unavailable_block{manager.SubmitBlockData(
+        definition.chain_id,
+        block,
+        Params().GenesisBlock().nTime,
+        /*sync=*/true)};
+    BOOST_CHECK(unavailable_block.error ==
+                node::ChainManagerError::RUNTIME_REJECTED);
+    BOOST_CHECK(unavailable_block.runtime.error ==
+                node::ReferenceChildRuntimeError::BMM_ANCHOR_UNAVAILABLE);
 }
 
 BOOST_AUTO_TEST_CASE(rejects_catalog_from_another_main_network)

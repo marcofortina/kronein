@@ -326,6 +326,10 @@ public:
         const uint256& child_block_hash) const;
     std::optional<ChildPendingBmmAnchorRecord> ReadPendingBmmAnchor(
         const uint256& main_block_hash) const;
+    std::optional<std::vector<ChildPendingBmmAnchorRecord>>
+    ReadPendingBmmAnchorsForChild(
+        const uint256& child_block_hash,
+        const chainregistry::MainHeaderChain& main_headers) const;
     std::optional<ChildCandidateBmmAnchorRecord> ReadCandidateBmmAnchor(
         const uint256& main_block_hash) const;
 };

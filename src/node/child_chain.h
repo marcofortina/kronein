@@ -41,6 +41,7 @@ enum class ReferenceChildRuntimeError : uint8_t {
     MAIN_HEADER_PERSIST_FAILED,
     MAIN_REORG_ROLLBACK_FAILED,
     BMM_ANCHOR_REJECTED,
+    BMM_ANCHOR_UNAVAILABLE,
     BMM_ANCHOR_PERSIST_FAILED,
     CHILD_BLOCK_REJECTED,
     CHILD_BLOCK_PERSIST_FAILED,
@@ -170,6 +171,11 @@ public:
                                              const chainregistry::BmmAnchorProof& anchor_proof,
                                              int64_t current_time,
                                              bool sync = false);
+    /** Validate block data using the newest authenticated pending anchor. */
+    ReferenceChildRuntimeResult ConnectStagedBlock(
+        const CBlock& block,
+        int64_t current_time,
+        bool sync = false);
     ReferenceChildRuntimeResult DisconnectTip(bool sync = false);
 
     bool IsInitialized() const { return m_initialized; }

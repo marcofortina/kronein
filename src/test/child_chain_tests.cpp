@@ -210,6 +210,9 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
 
         const CBlock block{ChildBlock(*runtime.Tip())};
         child_hash = block.GetHash();
+        BOOST_CHECK(
+            runtime.ConnectStagedBlock(block, block.nTime).error ==
+            node::ReferenceChildRuntimeError::BMM_ANCHOR_UNAVAILABLE);
         const CBlockIndex* main_parent{runtime.MainHeaders()->Tip()};
         BOOST_REQUIRE(main_parent);
         CBlock main_anchor;
@@ -252,12 +255,14 @@ BOOST_AUTO_TEST_CASE(connect_restart_disconnect_is_atomic)
         BOOST_REQUIRE(runtime.StageBmmAnchor(
             repeated_anchor_proof, block.nTime, /*sync=*/true).IsValid());
         BOOST_CHECK_EQUAL(runtime.State().pending_anchor_count, 2U);
-        const auto connected{runtime.ConnectBlock(
-            block, anchor_proof, block.nTime, /*sync=*/true)};
+        const auto connected{runtime.ConnectStagedBlock(
+            block, block.nTime, /*sync=*/true)};
         BOOST_REQUIRE_MESSAGE(
             connected.IsValid(),
             static_cast<int>(connected.error) << ":" <<
                 static_cast<int>(connected.child_block.error));
+        BOOST_CHECK(connected.bmm_anchor.anchor_chain_work ==
+                    runtime.MainHeaders()->Tip()->nChainWork);
         BOOST_REQUIRE(runtime.Tip());
         BOOST_CHECK(runtime.Tip()->GetBlockHash() == child_hash);
         BOOST_CHECK_EQUAL(runtime.State().child_height, 1U);

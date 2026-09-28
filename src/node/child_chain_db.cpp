@@ -3302,6 +3302,48 @@ ChildChainDB::ReadPendingBmmAnchor(const uint256& main_block_hash) const
     return record;
 }
 
+std::optional<std::vector<ChildPendingBmmAnchorRecord>>
+ChildChainDB::ReadPendingBmmAnchorsForChild(
+    const uint256& child_block_hash,
+    const chainregistry::MainHeaderChain& main_headers) const
+{
+    ChildChainDBState state;
+    if (child_block_hash.IsNull() || !m_db.Read(DB_STATE, state) ||
+        !ValidConfiguration(state,
+                            m_child_chain,
+                            m_main_genesis_hash,
+                            m_minimum_confirmations,
+                            m_child_genesis_hash) ||
+        main_headers.Params().hashGenesisBlock != m_main_genesis_hash ||
+        !main_headers.IsInitialized() ||
+        main_headers.Tip()->GetBlockHash() != state.main_tip) {
+        return std::nullopt;
+    }
+    std::vector<std::pair<PendingAnchorKey, ChildPendingBmmAnchorRecord>> matches;
+    if (!CollectPendingAnchorsForChild(
+            m_db,
+            main_headers,
+            m_child_chain,
+            child_block_hash,
+            state,
+            matches)) {
+        return std::nullopt;
+    }
+    std::vector<ChildPendingBmmAnchorRecord> result;
+    result.reserve(matches.size());
+    for (auto& [_, record] : matches) {
+        result.push_back(std::move(record));
+    }
+    std::sort(result.begin(), result.end(), [](const auto& left, const auto& right) {
+        if (left.proof.block_height != right.proof.block_height) {
+            return left.proof.block_height > right.proof.block_height;
+        }
+        return left.proof.block_header.GetHash() <
+               right.proof.block_header.GetHash();
+    });
+    return result;
+}
+
 std::optional<ChildCandidateBmmAnchorRecord>
 ChildChainDB::ReadCandidateBmmAnchor(const uint256& main_block_hash) const
 {

@@ -253,6 +253,11 @@ public:
         const chainregistry::BmmAnchorProof& anchor_proof,
         int64_t current_time,
         bool sync = false);
+    ChainManagerResult SubmitBlockData(
+        const chainregistry::ChainId& chain_id,
+        const CBlock& block,
+        int64_t current_time,
+        bool sync = false);
     /** Feed a header already connected by the local main chainstate. */
     ChainManagerMainUpdate AddMainHeader(
         const CBlockHeader& header,

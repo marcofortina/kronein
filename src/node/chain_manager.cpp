@@ -257,6 +257,38 @@ ChainManagerResult ChainManager::SubmitBlock(
     return result;
 }
 
+ChainManagerResult ChainManager::SubmitBlockData(
+    const chainregistry::ChainId& chain_id,
+    const CBlock& block,
+    int64_t current_time,
+    bool sync)
+{
+    LOCK(m_mutex);
+    if (!IsCatalogReady()) {
+        return ManagerError(ChainManagerError::CATALOG_UNAVAILABLE);
+    }
+    ChainManagerResult result;
+    if (chain_id.IsNull()) {
+        result.error = ChainManagerError::NULL_CHAIN_ID;
+        return result;
+    }
+    if (!m_definitions.contains(chain_id)) {
+        result.error = ChainManagerError::UNKNOWN_CHAIN;
+        return result;
+    }
+    const auto runtime{m_loaded.find(chain_id)};
+    if (runtime == m_loaded.end()) {
+        result.error = ChainManagerError::CHAIN_NOT_LOADED;
+        return result;
+    }
+    result.runtime = runtime->second->ConnectStagedBlock(
+        block, current_time, sync);
+    if (!result.runtime.IsValid()) {
+        result.error = ChainManagerError::RUNTIME_REJECTED;
+    }
+    return result;
+}
+
 ChainManagerMainUpdate ChainManager::AddMainHeader(
     const CBlockHeader& header,
     int64_t current_time,

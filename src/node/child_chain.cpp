@@ -979,6 +979,30 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
     return result;
 }
 
+ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectStagedBlock(
+    const CBlock& block,
+    int64_t current_time,
+    bool sync)
+{
+    if (!m_initialized) {
+        return RuntimeError(ReferenceChildRuntimeError::NOT_INITIALIZED);
+    }
+    if (m_failed) {
+        return RuntimeError(ReferenceChildRuntimeError::FAILED_RUNTIME);
+    }
+    const auto pending{m_db->ReadPendingBmmAnchorsForChild(
+        block.GetHash(), *m_main_headers)};
+    if (!pending) {
+        m_failed = true;
+        return RuntimeError(ReferenceChildRuntimeError::FAILED_RUNTIME);
+    }
+    if (pending->empty()) {
+        return RuntimeError(
+            ReferenceChildRuntimeError::BMM_ANCHOR_UNAVAILABLE);
+    }
+    return ConnectBlock(block, pending->front().proof, current_time, sync);
+}
+
 ReferenceChildRuntimeResult ReferenceChildRuntime::DisconnectTip(bool sync)
 {
     if (!m_initialized) {
