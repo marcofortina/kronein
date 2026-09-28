@@ -1123,6 +1123,7 @@ std::optional<ReferenceChildBlockView> ReferenceChildRuntime::GetBlockView(
         .block_hash = block_hash,
         .block = std::nullopt,
         .undo = std::nullopt,
+        .basic_filter = std::nullopt,
         .height = index->nHeight,
         .confirmations = -1,
         .time = index->nTime,
@@ -1147,8 +1148,10 @@ std::optional<ReferenceChildBlockView> ReferenceChildRuntime::GetBlockView(
 
     CBlock block;
     chainregistry::ReferenceChildBlockUndo undo;
+    const auto basic_filter{m_db->ReadBlockFilter(block_hash)};
     if (!m_db->ReadBlock(block_hash, block) ||
         !m_db->ReadUndo(block_hash, undo) ||
+        !basic_filter || basic_filter->block_hash != block_hash ||
         block.GetHash() != block_hash ||
         undo.block_hash != block_hash ||
         undo.parent_hash != block.hashPrevBlock ||
@@ -1165,6 +1168,7 @@ std::optional<ReferenceChildBlockView> ReferenceChildRuntime::GetBlockView(
     }
     result.block = std::move(block);
     result.undo = std::move(undo);
+    result.basic_filter = *basic_filter;
     const auto candidates{m_db->ReadForkCandidates(*m_main_headers)};
     if (!candidates) return std::nullopt;
     const auto selected{chainregistry::SelectChildFork(

@@ -23,8 +23,9 @@
 
 namespace node {
 
-inline constexpr uint8_t CHILD_CHAIN_DB_VERSION{5};
+inline constexpr uint8_t CHILD_CHAIN_DB_VERSION{6};
 inline constexpr uint8_t CHILD_BMM_ANCHOR_RECORD_VERSION{1};
+inline constexpr uint8_t CHILD_BLOCK_FILTER_RECORD_VERSION{1};
 inline constexpr uint8_t CHILD_PENDING_BMM_ANCHOR_RECORD_VERSION{1};
 inline constexpr uint8_t CHILD_CANDIDATE_RECORD_VERSION{1};
 inline constexpr uint8_t CHILD_CANDIDATE_BMM_ANCHOR_RECORD_VERSION{1};
@@ -49,6 +50,25 @@ struct ChildBmmAnchorRecord {
 
     friend bool operator==(const ChildBmmAnchorRecord&,
                            const ChildBmmAnchorRecord&) = default;
+};
+
+/** A validated BIP157 basic filter and its branch-specific filter header. */
+struct ChildBlockFilterRecord {
+    uint8_t version{CHILD_BLOCK_FILTER_RECORD_VERSION};
+    uint256 block_hash;
+    std::vector<unsigned char> encoded_filter;
+    uint256 filter_header;
+
+    SERIALIZE_METHODS(ChildBlockFilterRecord, obj)
+    {
+        READWRITE(obj.version,
+                  obj.block_hash,
+                  obj.encoded_filter,
+                  obj.filter_header);
+    }
+
+    friend bool operator==(const ChildBlockFilterRecord&,
+                           const ChildBlockFilterRecord&) = default;
 };
 
 struct ChildPendingBmmAnchorRecord {
@@ -178,6 +198,11 @@ enum class ChildChainDBLoadError : uint8_t {
     BLOCK_DECODE_FAILED,
     BLOCK_COUNT_MISMATCH,
     INVALID_BLOCK_CHAIN,
+    FILTER_KEY_DECODE_FAILED,
+    FILTER_KEY_MISMATCH,
+    FILTER_DECODE_FAILED,
+    FILTER_COUNT_MISMATCH,
+    INVALID_BLOCK_FILTER,
     ANCHOR_KEY_DECODE_FAILED,
     ANCHOR_KEY_MISMATCH,
     ANCHOR_DECODE_FAILED,
@@ -323,6 +348,8 @@ public:
         const chainregistry::DepositId& deposit_id) const;
     bool ReadState(ChildChainDBState& state) const;
     bool ReadBlock(const uint256& child_block_hash, CBlock& block) const;
+    std::optional<ChildBlockFilterRecord> ReadBlockFilter(
+        const uint256& child_block_hash) const;
     std::optional<ChildCandidateRecord> ReadSideCandidate(
         const uint256& child_block_hash) const;
     std::optional<std::vector<chainregistry::ChildForkCandidate>>

@@ -4,6 +4,7 @@
 
 #include <node/child_chain_db.h>
 
+#include <blockfilter.h>
 #include <chainparams.h>
 #include <consensus/merkle.h>
 #include <pow.h>
@@ -296,6 +297,14 @@ BOOST_AUTO_TEST_CASE(persists_headers_imports_and_child_undo)
             child_undo,
             anchor_proof,
             /*sync=*/true));
+        const BlockFilter expected_filter{
+            BlockFilterType::BASIC, child_block, child_undo.coins};
+        const auto stored_filter{db.ReadBlockFilter(child_block.GetHash())};
+        BOOST_REQUIRE(stored_filter.has_value());
+        BOOST_CHECK(stored_filter->encoded_filter ==
+                    expected_filter.GetEncodedFilter());
+        BOOST_CHECK(stored_filter->filter_header ==
+                    expected_filter.ComputeHeader({}));
         coin_cache.Flush();
         const auto stored{db.ReadImport(deposit_id)};
         BOOST_REQUIRE(stored.has_value());
@@ -332,6 +341,9 @@ BOOST_AUTO_TEST_CASE(persists_headers_imports_and_child_undo)
         CBlock stored_block;
         BOOST_REQUIRE(db.ReadBlock(child_block.GetHash(), stored_block));
         BOOST_CHECK(stored_block.vtx.size() == child_block.vtx.size());
+        const auto stored_filter{db.ReadBlockFilter(child_block.GetHash())};
+        BOOST_REQUIRE(stored_filter.has_value());
+        BOOST_CHECK(stored_filter->block_hash == child_block.GetHash());
         const auto stored_anchor{db.ReadBmmAnchor(child_block.GetHash())};
         BOOST_REQUIRE(stored_anchor.has_value());
         BOOST_CHECK(stored_anchor->child_block_hash == child_block.GetHash());
@@ -377,6 +389,7 @@ BOOST_AUTO_TEST_CASE(persists_headers_imports_and_child_undo)
         coin_cache.Flush();
         BOOST_CHECK(!db.ReadImport(deposit_id).has_value());
         BOOST_CHECK(!db.ReadBmmAnchor(child_block.GetHash()).has_value());
+        BOOST_CHECK(!db.ReadBlockFilter(child_block.GetHash()).has_value());
         BOOST_CHECK(!db.HaveCoin(COutPoint{child_block.vtx.front()->GetHash(), 0}));
     }
 
@@ -781,6 +794,7 @@ BOOST_AUTO_TEST_CASE(persists_bounded_candidate_dag_and_repeated_anchors)
             first_undo,
             first_anchor,
             /*sync=*/true));
+        BOOST_REQUIRE(db.ReadBlockFilter(first.GetHash()).has_value());
 
         parent = headers.Find(first_anchor_block.GetHash());
         BOOST_REQUIRE(parent);
@@ -801,6 +815,7 @@ BOOST_AUTO_TEST_CASE(persists_bounded_candidate_dag_and_repeated_anchors)
             second_undo,
             second_anchor,
             /*sync=*/true));
+        BOOST_REQUIRE(db.ReadBlockFilter(second.GetHash()).has_value());
 
         parent = headers.Find(second_anchor_block.GetHash());
         BOOST_REQUIRE(parent);
@@ -850,6 +865,8 @@ BOOST_AUTO_TEST_CASE(persists_bounded_candidate_dag_and_repeated_anchors)
         BOOST_CHECK_EQUAL(state.candidate_anchor_count, 2U);
         BOOST_CHECK(!db.ReadSideCandidate(first.GetHash()).has_value());
         BOOST_CHECK(db.ReadSideCandidate(second.GetHash()).has_value());
+        BOOST_REQUIRE(db.ReadBlockFilter(first.GetHash()).has_value());
+        BOOST_REQUIRE(db.ReadBlockFilter(second.GetHash()).has_value());
 
         const auto promoted_candidates{db.ReadForkCandidates(headers)};
         BOOST_REQUIRE(promoted_candidates.has_value());
@@ -878,6 +895,8 @@ BOOST_AUTO_TEST_CASE(persists_bounded_candidate_dag_and_repeated_anchors)
         BOOST_CHECK_EQUAL(state.child_height, 1U);
         BOOST_CHECK_EQUAL(state.side_candidate_count, 1U);
         BOOST_CHECK_EQUAL(state.candidate_anchor_count, 2U);
+        BOOST_REQUIRE(db.ReadBlockFilter(first.GetHash()).has_value());
+        BOOST_REQUIRE(db.ReadBlockFilter(second.GetHash()).has_value());
         const auto candidates{db.ReadForkCandidates(headers)};
         BOOST_REQUIRE(candidates.has_value());
         const auto selected{

@@ -4,6 +4,7 @@
 
 #include <node/child_chain_db.h>
 
+#include <blockfilter.h>
 #include <consensus/amount.h>
 #include <hash.h>
 #include <pow.h>
@@ -23,6 +24,7 @@ namespace {
 
 constexpr uint8_t DB_STATE{'S'};
 constexpr uint8_t DB_BLOCK{'B'};
+constexpr uint8_t DB_BLOCK_FILTER{'F'};
 constexpr uint8_t DB_COIN{'C'};
 constexpr uint8_t DB_HEADER{'H'};
 constexpr uint8_t DB_IMPORT{'I'};
@@ -35,6 +37,7 @@ constexpr uint8_t DB_CANDIDATE_BMM_ANCHOR{'V'};
 
 using AnchorKey = std::pair<uint8_t, uint256>;
 using BlockKey = std::pair<uint8_t, uint256>;
+using BlockFilterKey = std::pair<uint8_t, uint256>;
 using CoinKey = std::pair<uint8_t, COutPoint>;
 using CandidateKey = std::pair<uint8_t, uint256>;
 using CandidateAnchorKey = std::pair<uint8_t, uint256>;
@@ -58,6 +61,46 @@ struct StoredChildBlock {
         READWRITE(TX_WITH_WITNESS(obj.block));
     }
 };
+
+std::optional<ChildBlockFilterRecord> BuildChildBlockFilterRecord(
+    const CDBWrapper& db,
+    const uint256& child_genesis_hash,
+    const CBlock& block,
+    const chainregistry::ReferenceChildBlockUndo& undo)
+{
+    uint256 previous_filter_header;
+    if (block.hashPrevBlock != child_genesis_hash) {
+        ChildBlockFilterRecord previous;
+        if (!db.Read(
+                BlockFilterKey{DB_BLOCK_FILTER, block.hashPrevBlock},
+                previous) ||
+            previous.version != CHILD_BLOCK_FILTER_RECORD_VERSION ||
+            previous.block_hash != block.hashPrevBlock) {
+            return std::nullopt;
+        }
+        previous_filter_header = previous.filter_header;
+    }
+    const BlockFilter filter{BlockFilterType::BASIC, block, undo.coins};
+    return ChildBlockFilterRecord{
+        .block_hash = block.GetHash(),
+        .encoded_filter = filter.GetEncodedFilter(),
+        .filter_header = filter.ComputeHeader(previous_filter_header),
+    };
+}
+
+bool HasExpectedChildBlockFilter(
+    const CDBWrapper& db,
+    const uint256& child_genesis_hash,
+    const CBlock& block,
+    const chainregistry::ReferenceChildBlockUndo& undo)
+{
+    const auto expected{BuildChildBlockFilterRecord(
+        db, child_genesis_hash, block, undo)};
+    ChildBlockFilterRecord stored;
+    return expected &&
+           db.Read(BlockFilterKey{DB_BLOCK_FILTER, block.GetHash()}, stored) &&
+           stored == *expected;
+}
 
 ChildChainDBLoadResult LoadError(
     ChildChainDBLoadError error,
@@ -1076,6 +1119,7 @@ ChildChainDBLoadResult ChildChainDB::Load(
             return LoadError(ChildChainDBLoadError::STATE_DECODE_FAILED);
         }
         if (HasKeyWithPrefix(m_db, DB_BLOCK) ||
+            HasKeyWithPrefix(m_db, DB_BLOCK_FILTER) ||
             HasKeyWithPrefix(m_db, DB_BMM_ANCHOR) ||
             HasKeyWithPrefix(m_db, DB_PENDING_BMM_ANCHOR) ||
             HasKeyWithPrefix(m_db, DB_SIDE_CANDIDATE) ||
@@ -1530,6 +1574,70 @@ ChildChainDBLoadResult ChildChainDB::Load(
     }
     std::reverse(active_blocks.begin(), active_blocks.end());
 
+    std::map<uint256, ChildBlockFilterRecord> filters;
+    cursor.reset(const_cast<CDBWrapper&>(m_db).NewIterator());
+    cursor->Seek(BlockFilterKey{DB_BLOCK_FILTER, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) {
+            return LoadError(
+                ChildChainDBLoadError::FILTER_KEY_DECODE_FAILED);
+        }
+        if (prefix != DB_BLOCK_FILTER) break;
+        BlockFilterKey key;
+        if (!cursor->GetKey(key)) {
+            return LoadError(
+                ChildChainDBLoadError::FILTER_KEY_DECODE_FAILED);
+        }
+        ChildBlockFilterRecord record;
+        if (!cursor->GetValue(record)) {
+            return LoadError(ChildChainDBLoadError::FILTER_DECODE_FAILED);
+        }
+        if (record.block_hash != key.second) {
+            return LoadError(ChildChainDBLoadError::FILTER_KEY_MISMATCH);
+        }
+        if (!filters.emplace(key.second, std::move(record)).second) {
+            return LoadError(ChildChainDBLoadError::INVALID_BLOCK_FILTER);
+        }
+        cursor->Next();
+    }
+    if (filters.size() != blocks.size() + side_candidates.size()) {
+        return LoadError(ChildChainDBLoadError::FILTER_COUNT_MISMATCH);
+    }
+    for (const auto& [hash, record] : filters) {
+        const CBlock* block{nullptr};
+        const chainregistry::ReferenceChildBlockUndo* undo{nullptr};
+        if (const auto active{blocks.find(hash)}; active != blocks.end()) {
+            const auto active_undo{undos.find(hash)};
+            if (active_undo == undos.end()) {
+                return LoadError(ChildChainDBLoadError::INVALID_BLOCK_FILTER);
+            }
+            block = &active->second;
+            undo = &active_undo->second;
+        } else if (const auto side{side_candidates.find(hash)};
+                   side != side_candidates.end()) {
+            block = &side->second.block;
+            undo = &side->second.undo;
+        } else {
+            return LoadError(ChildChainDBLoadError::INVALID_BLOCK_FILTER);
+        }
+        uint256 previous_header;
+        if (block->hashPrevBlock != stored_state.child_genesis_hash) {
+            const auto parent{filters.find(block->hashPrevBlock)};
+            if (parent == filters.end()) {
+                return LoadError(ChildChainDBLoadError::INVALID_BLOCK_FILTER);
+            }
+            previous_header = parent->second.filter_header;
+        }
+        const BlockFilter expected{
+            BlockFilterType::BASIC, *block, undo->coins};
+        if (record.version != CHILD_BLOCK_FILTER_RECORD_VERSION ||
+            record.encoded_filter != expected.GetEncodedFilter() ||
+            record.filter_header != expected.ComputeHeader(previous_header)) {
+            return LoadError(ChildChainDBLoadError::INVALID_BLOCK_FILTER);
+        }
+    }
+
     std::set<chainregistry::DepositId> undo_imports;
     CoinSet expected_coins;
     uint32_t previous_anchor_height{0};
@@ -1617,6 +1725,7 @@ bool ChildChainDB::WriteInitialState(
         imports.MinimumConfirmations() != m_minimum_confirmations ||
         imports.Size() != 0 || imports.IsSafeHalted() ||
         m_db.Exists(DB_STATE) || HasKeyWithPrefix(m_db, DB_BLOCK) ||
+        HasKeyWithPrefix(m_db, DB_BLOCK_FILTER) ||
         HasKeyWithPrefix(m_db, DB_BMM_ANCHOR) ||
         HasKeyWithPrefix(m_db, DB_PENDING_BMM_ANCHOR) ||
         HasKeyWithPrefix(m_db, DB_SIDE_CANDIDATE) ||
@@ -1763,6 +1872,8 @@ bool ChildChainDB::WriteMainChainUpdate(
             !m_db.Read(UndoKey{DB_UNDO, block_hash}, stored_undo) ||
             !m_db.Read(AnchorKey{DB_BMM_ANCHOR, block_hash}, stored_anchor) ||
             !BlocksEqual(stored_block.block, block) || stored_undo != undo ||
+            !HasExpectedChildBlockFilter(
+                m_db, m_child_genesis_hash, block, undo) ||
             stored_anchor.child_block_hash != block_hash ||
             !IsValidStoredAnchor(
                 stored_anchor,
@@ -1921,6 +2032,7 @@ bool ChildChainDB::WriteMainChainUpdate(
     }
     for (const uint256& hash : pruned) {
         batch.Erase(CandidateKey{DB_SIDE_CANDIDATE, hash});
+        batch.Erase(BlockFilterKey{DB_BLOCK_FILTER, hash});
         const auto anchor_keys{pruning->anchor_keys.find(hash)};
         if (anchor_keys == pruning->anchor_keys.end()) return false;
         for (const CandidateAnchorKey& key : anchor_keys->second) {
@@ -2045,10 +2157,12 @@ bool ChildChainDB::WriteValidatedChildCandidate(
         .undo = undo,
     };
     candidate.serialized_size = GetSerializeSize(candidate);
+    const auto filter_record{BuildChildBlockFilterRecord(
+        m_db, m_child_genesis_hash, block, undo)};
     ChildChainDBState state;
     const auto parent_height{
         StoredChildHeight(m_db, m_child_genesis_hash, block.hashPrevBlock)};
-    if (!m_db.Read(DB_STATE, state) ||
+    if (!filter_record || !m_db.Read(DB_STATE, state) ||
         !ValidConfiguration(state,
                             m_child_chain,
                             m_main_genesis_hash,
@@ -2062,6 +2176,7 @@ bool ChildChainDB::WriteValidatedChildCandidate(
         !main_headers.IsInitialized() ||
         main_headers.Tip()->GetBlockHash() != state.main_tip ||
         m_db.Exists(BlockKey{DB_BLOCK, child_block_hash}) ||
+        m_db.Exists(BlockFilterKey{DB_BLOCK_FILTER, child_block_hash}) ||
         m_db.Exists(UndoKey{DB_UNDO, child_block_hash}) ||
         m_db.Exists(CandidateKey{DB_SIDE_CANDIDATE, child_block_hash})) {
         return false;
@@ -2182,6 +2297,7 @@ bool ChildChainDB::WriteValidatedChildCandidate(
     CDBBatch batch{m_db};
     for (const uint256& hash : pruning->selection.pruned) {
         batch.Erase(CandidateKey{DB_SIDE_CANDIDATE, hash});
+        batch.Erase(BlockFilterKey{DB_BLOCK_FILTER, hash});
         const auto anchor_keys{pruning->anchor_keys.find(hash)};
         if (anchor_keys == pruning->anchor_keys.end()) return false;
         for (const CandidateAnchorKey& key : anchor_keys->second) {
@@ -2190,6 +2306,8 @@ bool ChildChainDB::WriteValidatedChildCandidate(
     }
     batch.Write(
         CandidateKey{DB_SIDE_CANDIDATE, child_block_hash}, candidate);
+    batch.Write(
+        BlockFilterKey{DB_BLOCK_FILTER, child_block_hash}, *filter_record);
     for (const auto& [main_block_hash, record] : anchors) {
         batch.Write(
             CandidateAnchorKey{DB_CANDIDATE_BMM_ANCHOR, main_block_hash},
@@ -2318,6 +2436,7 @@ bool ChildChainDB::WriteCandidateBmmAnchor(
     CDBBatch batch{m_db};
     for (const uint256& hash : pruning->selection.pruned) {
         batch.Erase(CandidateKey{DB_SIDE_CANDIDATE, hash});
+        batch.Erase(BlockFilterKey{DB_BLOCK_FILTER, hash});
         const auto anchor_keys{pruning->anchor_keys.find(hash)};
         if (anchor_keys == pruning->anchor_keys.end()) return false;
         for (const CandidateAnchorKey& anchor_key : anchor_keys->second) {
@@ -2349,11 +2468,16 @@ bool ChildChainDB::WriteConnectedChildBlock(
     const CandidateKey candidate_key{
         DB_SIDE_CANDIDATE, child_block_hash};
     const bool promoting_candidate{m_db.Read(candidate_key, stored_candidate)};
+    const auto filter_record{BuildChildBlockFilterRecord(
+        m_db, m_child_genesis_hash, block, undo)};
+    ChildBlockFilterRecord stored_filter;
+    const BlockFilterKey filter_key{DB_BLOCK_FILTER, child_block_hash};
+    const bool filter_exists{m_db.Read(filter_key, stored_filter)};
     const ChildBmmAnchorRecord anchor_record{
         .child_block_hash = child_block_hash,
         .proof = anchor_proof,
     };
-    if (!m_db.Read(DB_STATE, state) ||
+    if (!filter_record || !m_db.Read(DB_STATE, state) ||
         !ValidConfiguration(state,
                             m_child_chain,
                             m_main_genesis_hash,
@@ -2378,6 +2502,10 @@ bool ChildChainDB::WriteConnectedChildBlock(
         m_db.Exists(BlockKey{DB_BLOCK, child_block_hash}) ||
         m_db.Exists(UndoKey{DB_UNDO, child_block_hash}) ||
         m_db.Exists(AnchorKey{DB_BMM_ANCHOR, child_block_hash}) ||
+        (promoting_candidate &&
+         (!filter_exists || stored_filter != *filter_record)) ||
+        (!promoting_candidate &&
+         (filter_exists || m_db.Exists(filter_key))) ||
         (!promoting_candidate && m_db.Exists(candidate_key)) ||
         (promoting_candidate &&
          (!IsValidStoredCandidate(stored_candidate, child_block_hash) ||
@@ -2604,6 +2732,7 @@ bool ChildChainDB::WriteConnectedChildBlock(
     CDBBatch batch{m_db};
     for (const uint256& hash : pruning->selection.pruned) {
         batch.Erase(CandidateKey{DB_SIDE_CANDIDATE, hash});
+        batch.Erase(BlockFilterKey{DB_BLOCK_FILTER, hash});
         const auto anchor_keys{pruning->anchor_keys.find(hash)};
         if (anchor_keys == pruning->anchor_keys.end()) return false;
         for (const CandidateAnchorKey& anchor_key : anchor_keys->second) {
@@ -2621,6 +2750,7 @@ bool ChildChainDB::WriteConnectedChildBlock(
         }
     }
     batch.Write(BlockKey{DB_BLOCK, child_block_hash}, StoredChildBlock{block});
+    if (!promoting_candidate) batch.Write(filter_key, *filter_record);
     batch.Write(UndoKey{DB_UNDO, child_block_hash}, undo);
     batch.Write(AnchorKey{DB_BMM_ANCHOR, child_block_hash}, anchor_record);
     if (promoting_candidate) batch.Erase(candidate_key);
@@ -2660,6 +2790,8 @@ bool ChildChainDB::WriteDisconnectedChildBlock(
         !m_db.Read(AnchorKey{DB_BMM_ANCHOR, disconnected_child_block},
                    stored_anchor) ||
         !BlocksEqual(stored_block.block, block) || stored_undo != undo ||
+        !HasExpectedChildBlockFilter(
+            m_db, m_child_genesis_hash, block, undo) ||
         stored_anchor.child_block_hash != disconnected_child_block ||
         !ValidConfiguration(state,
                             m_child_chain,
@@ -2749,6 +2881,8 @@ bool ChildChainDB::WriteDisconnectedChildBlock(
         }
     }
     batch.Erase(BlockKey{DB_BLOCK, disconnected_child_block});
+    batch.Erase(
+        BlockFilterKey{DB_BLOCK_FILTER, disconnected_child_block});
     batch.Erase(UndoKey{DB_UNDO, disconnected_child_block});
     batch.Erase(AnchorKey{DB_BMM_ANCHOR, disconnected_child_block});
     for (const auto& [key, record] : candidate_anchors) batch.Erase(key);
@@ -2816,6 +2950,11 @@ bool ChildChainDB::WriteChildReorganization(
             !m_db.Read(AnchorKey{DB_BMM_ANCHOR, hash}, primary_anchor) ||
             !BlocksEqual(stored_block.block, disconnected.block) ||
             stored_undo != disconnected.undo ||
+            !HasExpectedChildBlockFilter(
+                m_db,
+                m_child_genesis_hash,
+                disconnected.block,
+                disconnected.undo) ||
             disconnected.undo.block_height != fork_height ||
             disconnected.undo.block_hash != hash ||
             disconnected.undo.parent_hash !=
@@ -2913,6 +3052,11 @@ bool ChildChainDB::WriteChildReorganization(
             !IsValidStoredCandidate(candidate, hash) ||
             !BlocksEqual(candidate.block, connected.block) ||
             candidate.undo != connected.undo ||
+            !HasExpectedChildBlockFilter(
+                m_db,
+                m_child_genesis_hash,
+                connected.block,
+                connected.undo) ||
             connected.primary_anchor.block_height <=
                 previous_anchor_height ||
             m_db.Exists(BlockKey{DB_BLOCK, hash}) ||
@@ -3060,6 +3204,7 @@ bool ChildChainDB::WriteChildReorganization(
         pruning->selection.pruned.end()};
     for (const uint256& hash : pruned) {
         batch.Erase(CandidateKey{DB_SIDE_CANDIDATE, hash});
+        batch.Erase(BlockFilterKey{DB_BLOCK_FILTER, hash});
         const auto anchor_keys{pruning->anchor_keys.find(hash)};
         if (anchor_keys == pruning->anchor_keys.end()) return false;
         for (const CandidateAnchorKey& key : anchor_keys->second) {
@@ -3235,6 +3380,17 @@ bool ChildChainDB::ReadBlock(const uint256& child_block_hash,
     if (!candidate) return false;
     block = candidate->block;
     return true;
+}
+
+std::optional<ChildBlockFilterRecord> ChildChainDB::ReadBlockFilter(
+    const uint256& child_block_hash) const
+{
+    ChildBlockFilterRecord record;
+    if (!m_db.Read(
+            BlockFilterKey{DB_BLOCK_FILTER, child_block_hash}, record)) {
+        return std::nullopt;
+    }
+    return record;
 }
 
 std::optional<ChildCandidateRecord> ChildChainDB::ReadSideCandidate(
