@@ -662,8 +662,17 @@ ChainRegistryDB::ReadAnchorsForChildBlocks(
     }
 
     std::unique_ptr<CDBIterator> cursor;
-    bool limit_reached{false};
+    size_t target_index{0};
     for (const uint256& child_block_hash : targets) {
+        const uint64_t remaining_budget{lookup_limit - result.lookups};
+        const size_t remaining_targets{targets.size() - target_index++};
+        if (remaining_budget == 0) {
+            result.complete = false;
+            break;
+        }
+        const uint64_t target_limit{std::max<uint64_t>(
+            1, remaining_budget / remaining_targets)};
+        uint64_t target_lookups{0};
         cursor.reset(const_cast<CDBWrapper&>(m_db).NewIterator());
         cursor->Seek(AnchorByChildKey{
             DB_BMM_ANCHOR_BY_CHILD,
@@ -678,12 +687,12 @@ ChainRegistryDB::ReadAnchorsForChildBlocks(
                 key.second.child_block_hash != child_block_hash) {
                 break;
             }
-            if (result.lookups == lookup_limit) {
+            if (target_lookups == target_limit) {
                 result.complete = false;
-                limit_reached = true;
                 break;
             }
             ++result.lookups;
+            ++target_lookups;
             BmmAnchorId anchor_id;
             if (!cursor->GetValue(anchor_id) ||
                 anchor_id.chain_id != chain_id ||
@@ -698,7 +707,6 @@ ChainRegistryDB::ReadAnchorsForChildBlocks(
             result.anchors.push_back(*anchor);
             cursor->Next();
         }
-        if (limit_reached) break;
     }
     std::ranges::sort(result.anchors, [](const auto& left, const auto& right) {
         if (left.anchor.child_block_hash != right.anchor.child_block_hash) {

@@ -77,7 +77,9 @@ node::DepositIndexEntry Deposit(const chainregistry::ChainRegistry& registry,
 node::BmmAnchorIndexEntry Anchor(const chainregistry::ChainRegistry& registry,
                                  const chainregistry::ChainRecord& record,
                                  const uint256& block_hash,
-                                 uint32_t block_height)
+                                 uint32_t block_height,
+                                 const uint256& child_block_hash = uint256{
+                                     "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"})
 {
     const auto proof{registry.GetInclusionProof(record.chain_id)};
     BOOST_REQUIRE(proof.has_value());
@@ -88,8 +90,7 @@ node::BmmAnchorIndexEntry Anchor(const chainregistry::ChainRegistry& registry,
         },
         .anchor = {
             .chain_id = record.chain_id,
-            .child_block_hash = uint256{
-                "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"},
+            .child_block_hash = child_block_hash,
         },
         .block_height = block_height,
         .transaction_id = Txid{
@@ -579,12 +580,18 @@ BOOST_AUTO_TEST_CASE(bmm_anchor_child_lookup_is_bounded)
         "6161616161616161616161616161616161616161616161616161616161616161"};
     constexpr uint256 block_two{
         "7171717171717171717171717171717171717171717171717171717171717171"};
+    constexpr uint256 block_three{
+        "8181818181818181818181818181818181818181818181818181818181818181"};
+    constexpr uint256 other_child_block{
+        "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
 
     const auto record{Record(6, 16, 50)};
     chainregistry::ChainRegistry registry;
     BOOST_REQUIRE(registry.LoadRecords({record}).IsValid());
     const auto anchor_one{Anchor(registry, record, block_one, 100)};
     const auto anchor_two{Anchor(registry, record, block_two, 101)};
+    const auto anchor_three{
+        Anchor(registry, record, block_three, 102, other_child_block)};
     const node::ChainRegistryDBUndo undo_one{
         .registry = {},
         .deposits = {},
@@ -595,12 +602,19 @@ BOOST_AUTO_TEST_CASE(bmm_anchor_child_lookup_is_bounded)
         .deposits = {},
         .anchors = {anchor_two.id},
     };
+    const node::ChainRegistryDBUndo undo_three{
+        .registry = {},
+        .deposits = {},
+        .anchors = {anchor_three.id},
+    };
     const auto parent_state{
         node::MakeChainRegistryDBState(parent_hash, 99, registry)};
     const auto state_one{node::MakeChainRegistryDBState(
         block_one, 100, registry, 0, 0, 0, 1)};
     const auto state_two{node::MakeChainRegistryDBState(
         block_two, 101, registry, 0, 0, 0, 2)};
+    const auto state_three{node::MakeChainRegistryDBState(
+        block_three, 102, registry, 0, 0, 0, 3)};
 
     node::ChainRegistryDB db{{
                                  .path = path,
@@ -615,6 +629,9 @@ BOOST_AUTO_TEST_CASE(bmm_anchor_child_lookup_is_bounded)
         /*sync=*/true));
     BOOST_REQUIRE(db.WriteConnectedBlock(
         registry, state_two, block_two, undo_two, {}, {&anchor_two, 1},
+        /*sync=*/true));
+    BOOST_REQUIRE(db.WriteConnectedBlock(
+        registry, state_three, block_three, undo_three, {}, {&anchor_three, 1},
         /*sync=*/true));
 
     const std::array child_hashes{anchor_one.anchor.child_block_hash};
@@ -633,6 +650,23 @@ BOOST_AUTO_TEST_CASE(bmm_anchor_child_lookup_is_bounded)
     BOOST_REQUIRE_EQUAL(complete->anchors.size(), 2U);
     BOOST_CHECK_EQUAL(complete->anchors[0].block_height, 101U);
     BOOST_CHECK_EQUAL(complete->anchors[1].block_height, 100U);
+
+    const std::array competing_hashes{
+        anchor_one.anchor.child_block_hash,
+        anchor_three.anchor.child_block_hash,
+    };
+    const auto fair{db.ReadAnchorsForChildBlocks(
+        record.chain_id, competing_hashes, /*lookup_limit=*/2)};
+    BOOST_REQUIRE(fair);
+    BOOST_CHECK(!fair->complete);
+    BOOST_CHECK_EQUAL(fair->lookups, 2U);
+    BOOST_REQUIRE_EQUAL(fair->anchors.size(), 2U);
+    BOOST_CHECK(
+        fair->anchors[0].anchor.child_block_hash ==
+        anchor_one.anchor.child_block_hash);
+    BOOST_CHECK(
+        fair->anchors[1].anchor.child_block_hash ==
+        anchor_three.anchor.child_block_hash);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
