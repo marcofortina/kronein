@@ -32,6 +32,7 @@
 
 #include <univalue.h>
 
+#include <algorithm>
 #include <limits>
 #include <optional>
 #include <string>
@@ -169,7 +170,8 @@ static std::vector<ChildWalletPayment> ParseChildRawPayments(
 
 static std::vector<CTxIn> ParseChildFundingInputs(
     const UniValue& inputs_arg,
-    uint32_t lock_time)
+    uint32_t lock_time,
+    bool replaceable)
 {
     std::vector<CTxIn> inputs;
     inputs.reserve(inputs_arg.size());
@@ -184,8 +186,11 @@ static std::vector<CTxIn> ParseChildFundingInputs(
                                "child input vout is out of range");
         }
         uint32_t sequence{
-            std::numeric_limits<uint32_t>::max() -
-            static_cast<uint32_t>(lock_time != 0)};
+            replaceable
+                ? MAX_BIP125_RBF_SEQUENCE
+                : (lock_time != 0
+                       ? CTxIn::MAX_SEQUENCE_NONFINAL
+                       : CTxIn::SEQUENCE_FINAL)};
         if (input.exists("sequence") && !input["sequence"].isNull()) {
             const int64_t parsed{input["sequence"].getInt<int64_t>()};
             if (parsed < 0 ||
@@ -201,6 +206,71 @@ static std::vector<CTxIn> ParseChildFundingInputs(
             sequence);
     }
     return inputs;
+}
+
+static ChildWalletFundOptions ParseChildFundOptions(
+    CWallet& wallet,
+    const UniValue& options,
+    std::vector<CTxIn> inputs,
+    bool default_add_inputs,
+    uint32_t lock_time,
+    bool bip32_derivs,
+    size_t output_count)
+{
+    ChildWalletFundOptions result;
+    result.minconf = options.exists("minconf")
+                         ? options["minconf"].getInt<int>()
+                         : 0;
+    if (options.exists("maxconf")) {
+        result.maxconf = options["maxconf"].getInt<int>();
+    }
+    result.include_unsafe = options.exists("include_unsafe") &&
+                            options["include_unsafe"].get_bool();
+    result.bip32_derivs = bip32_derivs;
+    result.inputs = std::move(inputs);
+    result.add_inputs = options.exists("add_inputs")
+                            ? options["add_inputs"].get_bool()
+                            : default_add_inputs;
+    result.lock_time = lock_time;
+    result.replaceable = options.exists("replaceable")
+                             ? options["replaceable"].get_bool()
+                             : wallet.m_signal_rbf;
+    if (options.exists("max_tx_weight")) {
+        result.max_tx_weight = options["max_tx_weight"].getInt<int>();
+    }
+    if (options.exists("change_address")) {
+        result.change_recipient =
+            ParseChildRecipient(options["change_address"]);
+    }
+    if (options.exists("change_position")) {
+        const int position{options["change_position"].getInt<int>()};
+        if (position < 0 || static_cast<size_t>(position) > output_count) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               "change_position out of bounds");
+        }
+        result.change_position = position;
+    }
+    return result;
+}
+
+static void CheckChildFundOptions(const UniValue& options)
+{
+    RPCTypeCheckObj(
+        options,
+        {
+            {"add_inputs", UniValueType(UniValue::VBOOL)},
+            {"include_unsafe", UniValueType(UniValue::VBOOL)},
+            {"minconf", UniValueType(UniValue::VNUM)},
+            {"maxconf", UniValueType(UniValue::VNUM)},
+            {"change_address", UniValueType(UniValue::VSTR)},
+            {"change_position", UniValueType(UniValue::VNUM)},
+            {"lock_unspents", UniValueType(UniValue::VBOOL)},
+            {"subtract_fee_from_outputs", UniValueType(UniValue::VARR)},
+            {"replaceable", UniValueType(UniValue::VBOOL)},
+            {"max_tx_weight", UniValueType(UniValue::VNUM)},
+        },
+        /*allow_null=*/true,
+        /*strict=*/true);
 }
 
 static std::vector<ChildWalletSweepRecipient> ParseChildSweepRecipients(
@@ -1306,44 +1376,24 @@ RPCHelpMan fundrawtransaction()
         UniValue options{request.params[1].isNull()
                              ? UniValue::VOBJ
                              : request.params[1]};
-        const std::set<std::string> supported_options{
-            "add_inputs",
-            "lock_unspents",
-            "minconf",
-            "subtract_fee_from_outputs",
-        };
-        for (const std::string& option : options.getKeys()) {
-            if (!supported_options.contains(option)) {
-                throw JSONRPCError(
-                    RPC_INVALID_PARAMETER,
-                    strprintf(
-                        "child fundrawtransaction does not support option %s",
-                        option));
-            }
-        }
-        if (options.exists("add_inputs") &&
-            !options["add_inputs"].isBool()) {
-            throw JSONRPCError(RPC_TYPE_ERROR,
-                               "add_inputs must be a boolean");
-        }
+        CheckChildFundOptions(options);
         const chainregistry::ChainId chain_id{
             ParseChildChainId(*chain_arg)};
-        const int minconf{options.exists("minconf")
-                              ? options["minconf"].getInt<int>()
-                              : 0};
-        const bool add_inputs{!options.exists("add_inputs") ||
-                              options["add_inputs"].get_bool()};
+        auto fund_options{ParseChildFundOptions(
+            *pwallet,
+            options,
+            tx.vin,
+            /*default_add_inputs=*/true,
+            tx.nLockTime,
+            /*bip32_derivs=*/false,
+            tx.vout.size())};
         auto funded{CreateFundedChildPayments(
             *pwallet,
             chain_id,
             ParseChildRawPayments(
                 tx, options["subtract_fee_from_outputs"]),
             AmountFromValue(*child_fee_arg),
-            minconf,
-            /*bip32_derivs=*/false,
-            tx.vin,
-            add_inputs,
-            tx.nLockTime)};
+            std::move(fund_options))};
         if (options.exists("lock_unspents") &&
             options["lock_unspents"].get_bool()) {
             LOCK(pwallet->cs_wallet);
@@ -2502,21 +2552,7 @@ RPCHelpMan walletcreatefundedpsbt()
                 RPC_INVALID_PARAMETER,
                 "child_fee is required when chain_id is specified");
         }
-        const std::set<std::string> supported_options{
-            "add_inputs",
-            "lock_unspents",
-            "minconf",
-            "subtract_fee_from_outputs",
-        };
-        for (const std::string& option : options.getKeys()) {
-            if (!supported_options.contains(option)) {
-                throw JSONRPCError(
-                    RPC_INVALID_PARAMETER,
-                    strprintf(
-                        "child walletcreatefundedpsbt does not support option %s",
-                        option));
-            }
-        }
+        CheckChildFundOptions(options);
         const chainregistry::ChainId chain_id{
             ParseChildChainId(*chain_arg)};
         const int64_t parsed_lock_time{
@@ -2528,19 +2564,33 @@ RPCHelpMan walletcreatefundedpsbt()
                                "Invalid parameter, locktime out of range");
         }
         const uint32_t lock_time{static_cast<uint32_t>(parsed_lock_time)};
+        const bool replaceable{
+            options.exists("replaceable")
+                ? options["replaceable"].get_bool()
+                : wallet.m_signal_rbf};
         const std::vector<CTxIn> inputs{
-            ParseChildFundingInputs(request.params[0], lock_time)};
-        const bool add_inputs{
-            options.exists("add_inputs")
-                ? options["add_inputs"].get_bool()
-                : inputs.empty()};
-        const int minconf{options.exists("minconf")
-                              ? options["minconf"].getInt<int>()
-                              : 0};
+            ParseChildFundingInputs(
+                request.params[0], lock_time, replaceable)};
+        if (replaceable && !inputs.empty() &&
+            std::none_of(inputs.begin(), inputs.end(), [](const CTxIn& input) {
+                return input.nSequence <= MAX_BIP125_RBF_SEQUENCE;
+            })) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "Invalid parameter combination: Sequence number(s) contradict replaceable option");
+        }
         const bool bip32_derivs{
             request.params[4].isNull()
                 ? true
                 : request.params[4].get_bool()};
+        auto fund_options{ParseChildFundOptions(
+            wallet,
+            options,
+            inputs,
+            /*default_add_inputs=*/inputs.empty(),
+            lock_time,
+            bip32_derivs,
+            request.params[1].size())};
         auto funded{CreateFundedChildPayments(
             wallet,
             chain_id,
@@ -2548,11 +2598,7 @@ RPCHelpMan walletcreatefundedpsbt()
                 request.params[1],
                 options["subtract_fee_from_outputs"]),
             AmountFromValue(*child_fee_arg),
-            minconf,
-            bip32_derivs,
-            inputs,
-            add_inputs,
-            lock_time)};
+            std::move(fund_options))};
         if (options.exists("lock_unspents") &&
             options["lock_unspents"].get_bool()) {
             LOCK(wallet.cs_wallet);

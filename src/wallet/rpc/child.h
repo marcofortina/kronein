@@ -43,6 +43,20 @@ struct ChildWalletFundResult {
     std::vector<COutPoint> inputs;
 };
 
+struct ChildWalletFundOptions {
+    int minconf{1};
+    std::optional<int> maxconf;
+    bool include_unsafe{false};
+    bool bip32_derivs{true};
+    std::vector<CTxIn> inputs;
+    bool add_inputs{true};
+    uint32_t lock_time{0};
+    bool replaceable{false};
+    std::optional<WitnessV1Taproot> change_recipient;
+    std::optional<int> change_position;
+    std::optional<int> max_tx_weight;
+};
+
 struct ChildWalletProcessResult {
     std::string psbt;
     chainregistry::ChainId chain_id;
@@ -57,11 +71,7 @@ ChildWalletFundResult CreateFundedChildPayments(
     const chainregistry::ChainId& chain_id,
     const std::vector<ChildWalletPayment>& payments,
     CAmount fee,
-    int minconf = 1,
-    bool bip32_derivs = true,
-    const std::vector<CTxIn>& inputs = {},
-    bool add_inputs = true,
-    uint32_t lock_time = 0);
+    ChildWalletFundOptions options = {});
 
 ChildWalletProcessResult ProcessChildWalletPSBT(
     CWallet& wallet,

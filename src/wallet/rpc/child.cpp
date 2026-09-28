@@ -17,6 +17,7 @@
 #include <rpc/util.h>
 #include <script/signingprovider.h>
 #include <util/moneystr.h>
+#include <util/rbf.h>
 #include <util/strencodings.h>
 #include <wallet/external_signer_scriptpubkeyman.h>
 #include <wallet/rpc/child.h>
@@ -108,18 +109,18 @@ void CheckTransactionStructure(const CMutableTransaction& transaction)
     }
 }
 
-void CheckSignedWeight(CMutableTransaction transaction)
+void CheckSignedWeight(CMutableTransaction transaction,
+                       int max_tx_weight = MAX_STANDARD_TX_WEIGHT)
 {
     for (CTxIn& input : transaction.vin) {
         input.scriptWitness.stack = {
             std::vector<unsigned char>(64, 0)};
     }
-    if (GetTransactionWeight(CTransaction{transaction}) >
-        MAX_STANDARD_TX_WEIGHT) {
+    if (GetTransactionWeight(CTransaction{transaction}) > max_tx_weight) {
         throw JSONRPCError(
             RPC_INVALID_PARAMETER,
-            strprintf("child transaction exceeds maximum standard weight %d",
-                      MAX_STANDARD_TX_WEIGHT));
+            strprintf("child transaction exceeds maximum weight %d",
+                      max_tx_weight));
     }
 }
 
@@ -229,20 +230,33 @@ FundedChildPSBT FundChildPSBT(
     const chainregistry::ChainId& chain_id,
     const std::vector<std::pair<WitnessV1Taproot, CAmount>>& outputs,
     CAmount requested_fee,
-    int minconf,
-    bool bip32_derivs,
-    const std::optional<std::set<COutPoint>>& input_filter = std::nullopt,
-    const std::vector<CTxIn>& required_inputs = {},
-    bool add_inputs = true,
-    uint32_t lock_time = 0)
+    ChildWalletFundOptions options,
+    const std::optional<std::set<COutPoint>>& input_filter = std::nullopt)
 {
     if (requested_fee < 0) {
         throw JSONRPCError(RPC_INVALID_PARAMETER,
                            "fee must not be negative");
     }
-    if (minconf < 0) {
+    if (options.minconf < 0) {
         throw JSONRPCError(RPC_INVALID_PARAMETER,
                            "minconf must not be negative");
+    }
+    if (options.maxconf && *options.maxconf < options.minconf) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("maxconf can't be lower than minconf: %d < %d",
+                      *options.maxconf, options.minconf));
+    }
+    const int max_tx_weight{
+        options.max_tx_weight.value_or(MAX_STANDARD_TX_WEIGHT)};
+    const int minimum_tx_weight{
+        MIN_STANDARD_TX_NONWITNESS_SIZE * WITNESS_SCALE_FACTOR};
+    if (max_tx_weight < minimum_tx_weight ||
+        max_tx_weight > MAX_STANDARD_TX_WEIGHT) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("Maximum transaction weight must be between %d and %d",
+                      minimum_tx_weight, MAX_STANDARD_TX_WEIGHT));
     }
     if (outputs.empty()) {
         throw JSONRPCError(RPC_INVALID_PARAMETER,
@@ -250,7 +264,7 @@ FundedChildPSBT FundChildPSBT(
     }
 
     CMutableTransaction transaction;
-    transaction.nLockTime = lock_time;
+    transaction.nLockTime = options.lock_time;
     CAmount required{requested_fee};
     for (const auto& [recipient, amount] : outputs) {
         if (amount <= 0) {
@@ -280,8 +294,8 @@ FundedChildPSBT FundChildPSBT(
     CAmount selected{0};
     std::set<COutPoint> selected_outpoints;
     std::vector<const interfaces::ChildWalletCoin*> selected_coins;
-    selected_coins.reserve(required_inputs.size());
-    for (const CTxIn& input : required_inputs) {
+    selected_coins.reserve(options.inputs.size());
+    for (const CTxIn& input : options.inputs) {
         if (!selected_outpoints.insert(input.prevout).second) {
             throw JSONRPCError(RPC_INVALID_PARAMETER,
                                "duplicated child input");
@@ -293,8 +307,11 @@ FundedChildPSBT FundChildPSBT(
                 "specified child input is spent, unknown, or not owned by this wallet");
         }
         const auto* coin{found->second};
-        if (Confirmations(scan, *coin) < static_cast<uint64_t>(minconf) ||
-            !IsMature(scan, *coin) || !coin->trusted) {
+        const uint64_t confirmations{Confirmations(scan, *coin)};
+        if (confirmations < static_cast<uint64_t>(options.minconf) ||
+            (options.maxconf && confirmations > static_cast<uint64_t>(*options.maxconf)) ||
+            !IsMature(scan, *coin) ||
+            (!options.include_unsafe && !coin->trusted)) {
             throw JSONRPCError(
                 RPC_INVALID_PARAMETER,
                 "specified child input is immature, unsafe, or has insufficient confirmations");
@@ -309,8 +326,11 @@ FundedChildPSBT FundChildPSBT(
             throw JSONRPCError(RPC_INTERNAL_ERROR,
                                "child wallet UTXO amount is invalid");
         }
-        if (Confirmations(scan, coin) < static_cast<uint64_t>(minconf) ||
-            !IsMature(scan, coin) || !coin.trusted ||
+        const uint64_t confirmations{Confirmations(scan, coin)};
+        if (confirmations < static_cast<uint64_t>(options.minconf) ||
+            (options.maxconf && confirmations > static_cast<uint64_t>(*options.maxconf)) ||
+            !IsMature(scan, coin) ||
+            (!options.include_unsafe && !coin.trusted) ||
             locked.contains(coin.outpoint) ||
             selected_outpoints.contains(coin.outpoint) ||
             (input_filter && !input_filter->contains(coin.outpoint))) {
@@ -326,14 +346,17 @@ FundedChildPSBT FundChildPSBT(
         return left->outpoint < right->outpoint;
     });
 
-    if (add_inputs && selected < required) {
+    if (options.add_inputs && selected < required) {
         for (const auto* coin : candidates) {
             selected_coins.push_back(coin);
             selected_outpoints.insert(coin->outpoint);
             AddAmount(selected, coin->output.nValue, "selected input");
             const uint32_t sequence{
-                std::numeric_limits<uint32_t>::max() -
-                static_cast<uint32_t>(lock_time != 0)};
+                options.replaceable
+                    ? MAX_BIP125_RBF_SEQUENCE
+                    : (options.lock_time != 0
+                           ? CTxIn::MAX_SEQUENCE_NONFINAL
+                           : CTxIn::SEQUENCE_FINAL)};
             transaction.vin.emplace_back(
                 coin->outpoint, CScript{}, sequence);
             if (selected >= required) break;
@@ -349,33 +372,49 @@ FundedChildPSBT FundChildPSBT(
     const CAmount change{selected - required};
     int change_position{-1};
     if (change > 0) {
-        auto destination{wallet.GetNewChildChangeDestination(chain_id)};
-        if (!destination) {
-            throw JSONRPCError(
-                RPC_WALLET_KEYPOOL_RAN_OUT,
-                util::ErrorString(destination).original);
-        }
-        if (!std::holds_alternative<WitnessV1Taproot>(*destination)) {
-            throw JSONRPCError(
-                RPC_WALLET_ERROR,
-                "wallet did not derive a Taproot child change recipient");
+        CTxDestination destination;
+        if (options.change_recipient) {
+            destination = *options.change_recipient;
+        } else {
+            auto derived{wallet.GetNewChildChangeDestination(chain_id)};
+            if (!derived) {
+                throw JSONRPCError(
+                    RPC_WALLET_KEYPOOL_RAN_OUT,
+                    util::ErrorString(derived).original);
+            }
+            if (!std::holds_alternative<WitnessV1Taproot>(*derived)) {
+                throw JSONRPCError(
+                    RPC_WALLET_ERROR,
+                    "wallet did not derive a Taproot child change recipient");
+            }
+            destination = *derived;
         }
         CTxOut change_output{
-            change, GetScriptForDestination(*destination)};
+            change, GetScriptForDestination(destination)};
         if (IsDust(change_output, wallet.chain().relayDustFee())) {
             throw JSONRPCError(
                 RPC_WALLET_ERROR,
                 "selected child change is below the dust threshold; adjust outputs or fee");
         }
-        FastRandomContext random;
-        change_position = random.randrange(transaction.vout.size() + 1);
+        if (options.change_position) {
+            if (*options.change_position < 0 ||
+                static_cast<size_t>(*options.change_position) >
+                    transaction.vout.size()) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER,
+                                   "change_position out of bounds");
+            }
+            change_position = *options.change_position;
+        } else {
+            FastRandomContext random;
+            change_position = random.randrange(transaction.vout.size() + 1);
+        }
         transaction.vout.insert(
             transaction.vout.begin() + change_position,
             std::move(change_output));
     }
 
     CheckTransactionStructure(transaction);
-    CheckSignedWeight(transaction);
+    CheckSignedWeight(transaction, max_tx_weight);
     PartiallySignedTransaction psbt{transaction};
     for (unsigned int index{0}; index < selected_coins.size(); ++index) {
         psbt.inputs[index].witness_utxo = selected_coins[index]->output;
@@ -407,11 +446,11 @@ FundedChildPSBT FundChildPSBT(
                        definition,
                        *txdata,
                        /*sign=*/false,
-                       bip32_derivs,
+                       options.bip32_derivs,
                        /*finalize=*/false,
                        SIGHASH_DEFAULT);
     }
-    FillChildOutputs(wallet, psbt, bip32_derivs);
+    FillChildOutputs(wallet, psbt, options.bip32_derivs);
 
     return {
         .psbt = std::move(psbt),
@@ -766,11 +805,7 @@ static FundedChildPSBT FundChildPayments(
     const chainregistry::ChainId& chain_id,
     const std::vector<ChildWalletPayment>& payments,
     CAmount fee,
-    int minconf,
-    bool bip32_derivs,
-    const std::vector<CTxIn>& inputs = {},
-    bool add_inputs = true,
-    uint32_t lock_time = 0)
+    ChildWalletFundOptions options)
 {
     wallet.BlockUntilSyncedToCurrentChain();
     if (fee < 0 || !MoneyRange(fee)) {
@@ -808,12 +843,7 @@ static FundedChildPSBT FundChildPayments(
         chain_id,
         outputs,
         fee,
-        minconf,
-        bip32_derivs,
-        std::nullopt,
-        inputs,
-        add_inputs,
-        lock_time);
+        std::move(options));
 }
 
 ChildWalletFundResult CreateFundedChildPayments(
@@ -821,22 +851,14 @@ ChildWalletFundResult CreateFundedChildPayments(
     const chainregistry::ChainId& chain_id,
     const std::vector<ChildWalletPayment>& payments,
     CAmount fee,
-    int minconf,
-    bool bip32_derivs,
-    const std::vector<CTxIn>& inputs,
-    bool add_inputs,
-    uint32_t lock_time)
+    ChildWalletFundOptions options)
 {
     auto funded{FundChildPayments(
         wallet,
         chain_id,
         payments,
         fee,
-        minconf,
-        bip32_derivs,
-        inputs,
-        add_inputs,
-        lock_time)};
+        std::move(options))};
     const auto transaction{funded.psbt.GetUnsignedTx()};
     if (!transaction) {
         throw JSONRPCError(RPC_INTERNAL_ERROR,
@@ -862,6 +884,8 @@ ChildWalletSendResult CreateSignedChildPayments(
     CAmount fee,
     int minconf)
 {
+    ChildWalletFundOptions options;
+    options.minconf = minconf;
     return SignFundedChildPSBT(
         wallet,
         FundChildPayments(
@@ -869,8 +893,7 @@ ChildWalletSendResult CreateSignedChildPayments(
             chain_id,
             payments,
             fee,
-            minconf,
-            /*bip32_derivs=*/true));
+            std::move(options)));
 }
 
 ChildWalletSendResult CreateSignedChildSweep(
@@ -966,13 +989,14 @@ ChildWalletSendResult CreateSignedChildSweep(
         }
         outputs.emplace_back(recipient.recipient, amount);
     }
+    ChildWalletFundOptions options;
+    options.minconf = minconf;
     auto funded{FundChildPSBT(
         wallet,
         chain_id,
         outputs,
         fee,
-        minconf,
-        /*bip32_derivs=*/true,
+        std::move(options),
         selected)};
     return SignFundedChildPSBT(wallet, std::move(funded));
 }
@@ -1057,12 +1081,14 @@ RPCHelpMan walletcreatechildpsbt()
         child_outputs.emplace_back(
             ParseChildRecipient(object.find_value("recipient")), amount);
     }
+    ChildWalletFundOptions options;
+    options.minconf = minconf;
+    options.bip32_derivs = bip32_derivs;
     auto funded{FundChildPSBT(wallet,
                               chain_id,
                               child_outputs,
                               requested_fee,
-                              minconf,
-                              bip32_derivs)};
+                              std::move(options))};
 
     UniValue result{UniValue::VOBJ};
     result.pushKV("psbt", EncodePSBT(funded.psbt));

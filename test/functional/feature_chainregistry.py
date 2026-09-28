@@ -2001,6 +2001,47 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(node.testmempoolaccept(
             [compatible_processed["hex"]], 0, chain_id)[0]["allowed"], True)
 
+        advanced_change = wallet.getnewaddress("child-change", chain_id)
+        advanced_funded = wallet.walletcreatefundedpsbt(
+            inputs=[],
+            outputs=[{child_many_b: Decimal("0.00100000")}],
+            options={
+                "include_unsafe": True,
+                "minconf": 0,
+                "maxconf": 9999999,
+                "change_address": advanced_change,
+                "change_position": 0,
+                "replaceable": True,
+                "max_tx_weight": 400000,
+            },
+            child_fee=child_send_fee,
+            chain_id=chain_id)
+        assert_equal(advanced_funded["changepos"], 0)
+        advanced_processed = wallet.walletprocesspsbt(
+            advanced_funded["psbt"],
+            child_max_fee=child_send_fee,
+            chain_id=chain_id)
+        advanced_decoded = node.decoderawtransaction(
+            advanced_processed["hex"])
+        assert_equal(
+            advanced_decoded["vout"][0]["scriptPubKey"]["hex"],
+            bytes(output_key_to_p2tr_script(
+                bytes.fromhex(advanced_change))).hex())
+        assert all(vin["sequence"] <= 0xfffffffd
+                   for vin in advanced_decoded["vin"])
+        assert_raises_rpc_error(
+            -8, "maxconf can't be lower than minconf",
+            wallet.walletcreatefundedpsbt,
+            [], [{child_many_b: Decimal("0.00100000")}], 0,
+            {"minconf": 1, "maxconf": 0}, True,
+            child_send_fee, chain_id)
+        assert_raises_rpc_error(
+            -8, "exceeds maximum weight 300",
+            wallet.walletcreatefundedpsbt,
+            [], [{child_many_b: Decimal("0.00100000")}], 0,
+            {"minconf": 0, "max_tx_weight": 300}, True,
+            child_send_fee, chain_id)
+
         explicit_coin = max(
             wallet.listunspent(0, 9999999, [], False, {}, chain_id),
             key=lambda coin: coin["amount"])
@@ -2013,7 +2054,11 @@ class ChainRegistryTest(BitcoinTestFramework):
             }],
             outputs=[{child_many_b: explicit_amount}],
             locktime=1,
-            options={"add_inputs": False, "minconf": 0},
+            options={
+                "add_inputs": False,
+                "minconf": 0,
+                "replaceable": False,
+            },
             child_fee=child_send_fee,
             chain_id=chain_id)
         assert_equal(explicit_funded["changepos"], -1)
@@ -2051,6 +2096,28 @@ class ChainRegistryTest(BitcoinTestFramework):
                 1 if compatible_raw_funded["changepos"] == 0 else 0
             ]["value"],
             Decimal("0.00090000"))
+        advanced_raw_funded = wallet.fundrawtransaction(
+            child_raw,
+            {
+                "include_unsafe": True,
+                "minconf": 0,
+                "maxconf": 9999999,
+                "change_address": advanced_change,
+                "change_position": 0,
+                "replaceable": True,
+                "max_tx_weight": 400000,
+            },
+            child_fee=child_send_fee,
+            chain_id=chain_id)
+        advanced_raw_decoded = node.decoderawtransaction(
+            advanced_raw_funded["hex"])
+        assert_equal(advanced_raw_funded["changepos"], 0)
+        assert_equal(
+            advanced_raw_decoded["vout"][0]["scriptPubKey"]["hex"],
+            bytes(output_key_to_p2tr_script(
+                bytes.fromhex(advanced_change))).hex())
+        assert all(vin["sequence"] <= 0xfffffffd
+                   for vin in advanced_raw_decoded["vin"])
         assert_raises_rpc_error(
             -8, "child_max_fee is only valid when chain_id is specified",
             wallet.signrawtransactionwithwallet,
