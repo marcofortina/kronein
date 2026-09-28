@@ -1060,6 +1060,32 @@ class ChainRegistryTest(BitcoinTestFramework):
             -8, "valid 32-byte reference-child P2TR output key",
             node.createchildblock, chain_id, [signed_child["hex"]], "01")
 
+        assert_equal(
+            node.sendrawtransaction(
+                signed_child["hex"], 0, 0, chain_id),
+            signed_child["txid"])
+        assert_equal(
+            node.sendrawtransaction(
+                signed_child["hex"], 0, 0, chain_id),
+            signed_child["txid"])
+        assert_equal(
+            node.getrawmempool(False, False, chain_id),
+            [signed_child["txid"]])
+        child_mempool_sequence = node.getrawmempool(
+            False, True, chain_id)
+        assert_equal(child_mempool_sequence["txids"],
+                     [signed_child["txid"]])
+        assert child_mempool_sequence["mempool_sequence"] > 0
+        child_mempool_entry = node.getmempoolentry(
+            signed_child["txid"], chain_id)
+        assert_equal(child_mempool_entry["fees"]["base"], child_fee)
+        assert_equal(child_mempool_entry["ancestorcount"], 1)
+        assert_equal(child_mempool_entry["descendantcount"], 1)
+        assert_equal(
+            node.getrawmempool(True, False, chain_id)
+                [signed_child["txid"]]["wtxid"],
+            decoded_child_spend["hash"])
+
         child_fee_recipient = wallet.getnewchildrecipient(
             chain_id, "child-fees")
         child_wallet_identities = wallet.listchildrecipients(chain_id)
@@ -1100,6 +1126,10 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(spend_chain_info["bestblockhash"],
                      spend_block["blockhash"])
         assert_equal(node.listchildproposals(chain_id)["proposal_count"], 0)
+        assert_equal(node.getrawmempool(False, False, chain_id), [])
+        assert_raises_rpc_error(
+            -5, "Transaction not in child mempool",
+            node.getmempoolentry, signed_child["txid"], chain_id)
         spend_bmm_status = node.getchildbmmstatus(chain_id)
         assert_equal(spend_bmm_status["health"], "anchored")
         assert_equal(spend_bmm_status["child_height"], 2)

@@ -30,6 +30,7 @@ struct ChildMempoolEntry {
     CTransactionRef transaction;
     CAmount fee{0};
     int64_t entry_time{0};
+    uint32_t entry_height{0};
     size_t serialized_size{0};
 };
 
@@ -52,18 +53,21 @@ private:
     std::vector<ChildMempoolEntry> m_entries;
     size_t m_total_bytes{0};
     CAmount m_total_fees{0};
+    uint64_t m_sequence{0};
 
 public:
     bool Contains(const Txid& txid) const;
     ChildMempoolAddResult Add(CTransactionRef transaction,
                               CAmount fee,
-                              int64_t entry_time);
+                              int64_t entry_time,
+                              uint32_t entry_height);
     std::vector<Txid> Clear();
 
     const std::vector<ChildMempoolEntry>& Entries() const { return m_entries; }
     size_t Size() const { return m_entries.size(); }
     size_t TotalBytes() const { return m_total_bytes; }
     CAmount TotalFees() const { return m_total_fees; }
+    uint64_t Sequence() const { return m_sequence; }
 };
 
 } // namespace node

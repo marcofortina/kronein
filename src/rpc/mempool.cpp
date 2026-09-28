@@ -16,6 +16,7 @@
 #include <kernel/mempool_entry.h>
 #include <net_processing.h>
 #include <netbase.h>
+#include <node/chain_manager.h>
 #include <node/mempool_persist_args.h>
 #include <node/types.h>
 #include <primitives/transaction.h>
@@ -31,6 +32,8 @@
 #include <util/vector.h>
 
 #include <map>
+#include <optional>
+#include <set>
 #include <string_view>
 #include <utility>
 
@@ -42,6 +45,74 @@ using node::MempoolPath;
 using node::NodeContext;
 using node::TransactionError;
 using util::ToString;
+
+namespace {
+
+std::optional<chainregistry::ChainId> OptionalChildChainId(
+    const UniValue& value)
+{
+    if (value.isNull()) return std::nullopt;
+    const auto chain_id{chainregistry::ChainId::FromHex(value.get_str())};
+    if (!chain_id) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "chain_id must be exactly 32 bytes encoded as hexadecimal");
+    }
+    if (chain_id->IsNull()) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "chain_id must not be null; omit it to use the main chain");
+    }
+    return chain_id;
+}
+
+[[noreturn]] void ThrowChildMempoolSubmissionError(
+    const node::ChainManagerMempoolAcceptResult& result)
+{
+    switch (result.error) {
+    case node::ChainManagerMempoolAcceptError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must not be null");
+    case node::ChainManagerMempoolAcceptError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown child chain");
+    case node::ChainManagerMempoolAcceptError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_MISC_ERROR, "Child chain is not loaded");
+    case node::ChainManagerMempoolAcceptError::RUNTIME_REJECTED:
+        break;
+    case node::ChainManagerMempoolAcceptError::NONE:
+        break;
+    }
+    if (result.runtime.error ==
+        node::ReferenceChildMempoolAcceptError::MAX_FEE_EXCEEDED) {
+        throw JSONRPCTransactionError(TransactionError::MAX_FEE_EXCEEDED);
+    }
+    throw JSONRPCError(
+        RPC_VERIFY_REJECTED,
+        strprintf(
+            "Child transaction rejected (runtime error %u, pool error %u)",
+            static_cast<unsigned>(result.runtime.error),
+            static_cast<unsigned>(result.runtime.pool_error)));
+}
+
+node::ReferenceChildMempoolView GetChildMempool(
+    const JSONRPCRequest& request,
+    const chainregistry::ChainId& chain_id)
+{
+    const auto view{
+        EnsureAnyChildChainman(request.context).GetMempool(chain_id)};
+    switch (view.error) {
+    case node::ChainManagerMempoolViewError::NONE:
+        return view.runtime;
+    case node::ChainManagerMempoolViewError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must not be null");
+    case node::ChainManagerMempoolViewError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown child chain");
+    case node::ChainManagerMempoolViewError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_MISC_ERROR, "Child chain is not loaded");
+    }
+    throw JSONRPCError(RPC_MISC_ERROR, "Unknown child mempool error");
+}
+
+} // namespace
 
 static RPCHelpMan sendrawtransaction()
 {
@@ -72,6 +143,8 @@ static RPCHelpMan sendrawtransaction()
              "Reject transactions with provably unspendable outputs (e.g. 'datacarrier' outputs that use the OP_RETURN opcode) greater than the specified value, expressed in " + CURRENCY_UNIT + ".\n"
              "If burning funds through unspendable outputs is desired, increase this value.\n"
              "This check is based on heuristics and does not guarantee spendability of outputs.\n"},
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED,
+             "Non-null child-chain identifier. Omit to use the main chain."},
         },
         RPCResult{
             RPCResult::Type::STR_HEX, "", "The transaction hash in hex"
@@ -107,6 +180,27 @@ static RPCHelpMan sendrawtransaction()
 
             int64_t virtual_size = GetVirtualTransactionSize(*tx);
             CAmount max_raw_tx_fee = max_raw_tx_fee_rate.GetFee(virtual_size);
+
+            const auto child_chain{
+                OptionalChildChainId(request.params[3])};
+            if (child_chain) {
+                const std::optional<CAmount> max_fee{
+                    max_raw_tx_fee_rate.GetFeePerK() == 0
+                        ? std::nullopt
+                        : std::optional<CAmount>{max_raw_tx_fee}};
+                const auto accepted{
+                    EnsureAnyChildChainman(request.context)
+                        .SubmitTransaction(
+                            *child_chain,
+                            tx,
+                            TicksSinceEpoch<std::chrono::seconds>(
+                                NodeClock::now()),
+                            max_fee)};
+                if (!accepted.IsValid()) {
+                    ThrowChildMempoolSubmissionError(accepted);
+                }
+                return tx->GetHash().GetHex();
+            }
 
             std::string err_string;
             AssertLockNotHeld(cs_main);
@@ -556,6 +650,144 @@ static void entryToJSON(const CTxMemPool& pool, UniValue& info, const CTxMemPool
     info.pushKV("unbroadcast", pool.IsUnbroadcastTx(tx.GetHash()));
 }
 
+namespace {
+
+struct ChildMempoolGraph {
+    std::map<Txid, const node::ChildMempoolEntry*> entries;
+    std::map<Txid, std::set<Txid>> parents;
+    std::map<Txid, std::set<Txid>> children;
+};
+
+ChildMempoolGraph BuildChildMempoolGraph(
+    const node::ReferenceChildMempoolView& view)
+{
+    ChildMempoolGraph graph;
+    for (const auto& entry : view.entries) {
+        const Txid txid{entry.transaction->GetHash()};
+        graph.entries.emplace(txid, &entry);
+        graph.parents.try_emplace(txid);
+        graph.children.try_emplace(txid);
+    }
+    for (const auto& entry : view.entries) {
+        const Txid txid{entry.transaction->GetHash()};
+        for (const CTxIn& input : entry.transaction->vin) {
+            if (!graph.entries.contains(input.prevout.hash)) continue;
+            graph.parents.at(txid).insert(input.prevout.hash);
+            graph.children.at(input.prevout.hash).insert(txid);
+        }
+    }
+    return graph;
+}
+
+std::set<Txid> ChildMempoolClosure(
+    const Txid& start,
+    const std::map<Txid, std::set<Txid>>& links)
+{
+    std::set<Txid> result{start};
+    std::vector<Txid> pending{start};
+    while (!pending.empty()) {
+        const Txid current{pending.back()};
+        pending.pop_back();
+        const auto found{links.find(current)};
+        if (found == links.end()) continue;
+        for (const Txid& linked : found->second) {
+            if (result.insert(linked).second) pending.push_back(linked);
+        }
+    }
+    return result;
+}
+
+void ChildMempoolEntryToJSON(
+    const ChildMempoolGraph& graph,
+    const node::ChildMempoolEntry& entry,
+    UniValue& info)
+{
+    const Txid txid{entry.transaction->GetHash()};
+    const auto ancestors{ChildMempoolClosure(txid, graph.parents)};
+    const auto descendants{ChildMempoolClosure(txid, graph.children)};
+    auto aggregate{[&](const std::set<Txid>& transactions) {
+        std::pair<int64_t, CAmount> totals;
+        for (const Txid& member : transactions) {
+            const auto* item{graph.entries.at(member)};
+            totals.first += GetVirtualTransactionSize(*item->transaction);
+            totals.second += item->fee;
+        }
+        return totals;
+    }};
+    const auto [ancestor_size, ancestor_fees]{aggregate(ancestors)};
+    const auto [descendant_size, descendant_fees]{aggregate(descendants)};
+    const int64_t virtual_size{GetVirtualTransactionSize(*entry.transaction)};
+    const int64_t weight{GetTransactionWeight(*entry.transaction)};
+
+    info.pushKV("vsize", virtual_size);
+    info.pushKV("weight", weight);
+    info.pushKV("time", entry.entry_time);
+    info.pushKV("height", entry.entry_height);
+    info.pushKV("descendantcount", descendants.size());
+    info.pushKV("descendantsize", descendant_size);
+    info.pushKV("ancestorcount", ancestors.size());
+    info.pushKV("ancestorsize", ancestor_size);
+    info.pushKV("chunkweight", weight);
+    info.pushKV("wtxid", entry.transaction->GetWitnessHash().ToString());
+
+    UniValue fees(UniValue::VOBJ);
+    fees.pushKV("base", ValueFromAmount(entry.fee));
+    fees.pushKV("modified", ValueFromAmount(entry.fee));
+    fees.pushKV("ancestor", ValueFromAmount(ancestor_fees));
+    fees.pushKV("descendant", ValueFromAmount(descendant_fees));
+    fees.pushKV("chunk", ValueFromAmount(entry.fee));
+    info.pushKV("fees", std::move(fees));
+
+    UniValue depends(UniValue::VARR);
+    for (const Txid& parent : graph.parents.at(txid)) {
+        depends.push_back(parent.ToString());
+    }
+    info.pushKV("depends", std::move(depends));
+
+    UniValue spent_by(UniValue::VARR);
+    for (const Txid& child : graph.children.at(txid)) {
+        spent_by.push_back(child.ToString());
+    }
+    info.pushKV("spentby", std::move(spent_by));
+    info.pushKV("unbroadcast", true);
+}
+
+UniValue ChildMempoolToJSON(
+    const node::ReferenceChildMempoolView& view,
+    bool verbose,
+    bool include_mempool_sequence)
+{
+    if (verbose && include_mempool_sequence) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "Verbose results cannot contain mempool sequence values.");
+    }
+    if (verbose) {
+        const ChildMempoolGraph graph{BuildChildMempoolGraph(view)};
+        UniValue result(UniValue::VOBJ);
+        for (const auto& entry : view.entries) {
+            UniValue info(UniValue::VOBJ);
+            ChildMempoolEntryToJSON(graph, entry, info);
+            result.pushKVEnd(
+                entry.transaction->GetHash().ToString(), std::move(info));
+        }
+        return result;
+    }
+
+    UniValue transactions(UniValue::VARR);
+    for (const auto& entry : view.entries) {
+        transactions.push_back(entry.transaction->GetHash().ToString());
+    }
+    if (!include_mempool_sequence) return transactions;
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("txids", std::move(transactions));
+    result.pushKV("mempool_sequence", view.sequence);
+    return result;
+}
+
+} // namespace
+
 UniValue MempoolToJSON(const CTxMemPool& pool, bool verbose, bool include_mempool_sequence)
 {
     if (verbose) {
@@ -646,6 +878,8 @@ static RPCHelpMan getrawmempool()
         {
             {"verbose", RPCArg::Type::BOOL, RPCArg::Default{false}, "True for a json object, false for array of transaction ids"},
             {"mempool_sequence", RPCArg::Type::BOOL, RPCArg::Default{false}, "If verbose=false, returns a json object with transaction list and mempool sequence number attached."},
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED,
+             "Non-null child-chain identifier. Omit to use the main chain."},
         },
         {
             RPCResult{"for verbose = false",
@@ -681,6 +915,15 @@ static RPCHelpMan getrawmempool()
     bool include_mempool_sequence = false;
     if (!request.params[1].isNull()) {
         include_mempool_sequence = request.params[1].get_bool();
+    }
+
+    const auto child_chain{
+        OptionalChildChainId(request.params[2])};
+    if (child_chain) {
+        return ChildMempoolToJSON(
+            GetChildMempool(request, *child_chain),
+            fVerbose,
+            include_mempool_sequence);
     }
 
     return MempoolToJSON(EnsureAnyMemPool(request.context), fVerbose, include_mempool_sequence);
@@ -856,6 +1099,8 @@ static RPCHelpMan getmempoolentry()
         "Returns mempool data for given transaction\n",
         {
             {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The transaction id (must be in mempool)"},
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED,
+             "Non-null child-chain identifier. Omit to use the main chain."},
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "", MempoolEntryDescription()},
@@ -866,6 +1111,25 @@ static RPCHelpMan getmempoolentry()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     auto txid{Txid::FromUint256(ParseHashV(request.params[0], "txid"))};
+
+    const auto child_chain{
+        OptionalChildChainId(request.params[1])};
+    if (child_chain) {
+        const auto view{GetChildMempool(request, *child_chain)};
+        const auto entry{std::find_if(
+            view.entries.begin(), view.entries.end(), [&](const auto& item) {
+                return item.transaction->GetHash() == txid;
+            })};
+        if (entry == view.entries.end()) {
+            throw JSONRPCError(
+                RPC_INVALID_ADDRESS_OR_KEY,
+                "Transaction not in child mempool");
+        }
+        const ChildMempoolGraph graph{BuildChildMempoolGraph(view)};
+        UniValue info(UniValue::VOBJ);
+        ChildMempoolEntryToJSON(graph, *entry, info);
+        return info;
+    }
 
     const CTxMemPool& mempool = EnsureAnyMemPool(request.context);
     LOCK(mempool.cs);

@@ -21,7 +21,8 @@ bool ChildMempool::Contains(const Txid& txid) const
 
 ChildMempoolAddResult ChildMempool::Add(CTransactionRef transaction,
                                         CAmount fee,
-                                        int64_t entry_time)
+                                        int64_t entry_time,
+                                        uint32_t entry_height)
 {
     ChildMempoolAddResult result;
     if (!transaction) {
@@ -49,10 +50,12 @@ ChildMempoolAddResult ChildMempool::Add(CTransactionRef transaction,
 
     m_total_bytes += result.serialized_size;
     m_total_fees += fee;
+    ++m_sequence;
     m_entries.push_back({
         .transaction = std::move(transaction),
         .fee = fee,
         .entry_time = entry_time,
+        .entry_height = entry_height,
         .serialized_size = result.serialized_size,
     });
     return result;
@@ -65,6 +68,7 @@ std::vector<Txid> ChildMempool::Clear()
     for (const auto& entry : m_entries) {
         removed.push_back(entry.transaction->GetHash());
     }
+    if (!m_entries.empty()) ++m_sequence;
     m_entries.clear();
     m_total_bytes = 0;
     m_total_fees = 0;

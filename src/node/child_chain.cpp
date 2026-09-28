@@ -1101,6 +1101,7 @@ ReferenceChildRuntime::AcceptMempoolTransaction(
     CTransactionRef transaction,
     int64_t current_time,
     int64_t entry_time,
+    uint32_t entry_height,
     std::optional<CAmount> max_fee)
 {
     ReferenceChildMempoolAcceptResult result;
@@ -1166,7 +1167,7 @@ ReferenceChildRuntime::AcceptMempoolTransaction(
         return result;
     }
     const auto added{m_mempool.Add(
-        std::move(transaction), result.fee, entry_time)};
+        std::move(transaction), result.fee, entry_time, entry_height)};
     result.pool_error = added.error;
     if (!added.IsValid()) {
         result.error = ReferenceChildMempoolAcceptError::POOL_REJECTED;
@@ -1184,7 +1185,8 @@ void ReferenceChildRuntime::RevalidateMempool(
         const auto accepted{AcceptMempoolTransaction(
             entry.transaction,
             std::max(current_time, entry.entry_time),
-            entry.entry_time)};
+            entry.entry_time,
+            entry.entry_height)};
         if (!accepted.IsValid()) {
             result.removed_mempool_transactions.push_back(
                 entry.transaction->GetHash());
@@ -1208,7 +1210,11 @@ ReferenceChildMempoolAcceptResult ReferenceChildRuntime::SubmitTransaction(
         return result;
     }
     return AcceptMempoolTransaction(
-        std::move(transaction), current_time, current_time, max_fee);
+        std::move(transaction),
+        current_time,
+        current_time,
+        static_cast<uint32_t>(m_tip->nHeight),
+        max_fee);
 }
 
 ReferenceChildMempoolView ReferenceChildRuntime::GetMempool() const
@@ -1217,6 +1223,7 @@ ReferenceChildMempoolView ReferenceChildRuntime::GetMempool() const
         .entries = m_mempool.Entries(),
         .total_bytes = m_mempool.TotalBytes(),
         .total_fees = m_mempool.TotalFees(),
+        .sequence = m_mempool.Sequence(),
     };
 }
 

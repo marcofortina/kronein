@@ -117,6 +117,7 @@ struct ReferenceChildMempoolView {
     std::vector<ChildMempoolEntry> entries;
     size_t total_bytes{0};
     CAmount total_fees{0};
+    uint64_t sequence{0};
 };
 
 struct ReferenceChildBlockView {
@@ -206,6 +207,7 @@ private:
         CTransactionRef transaction,
         int64_t current_time,
         int64_t entry_time,
+        uint32_t entry_height,
         std::optional<CAmount> max_fee = std::nullopt);
     void RevalidateMempool(int64_t current_time,
                            ReferenceChildRuntimeResult& result);
