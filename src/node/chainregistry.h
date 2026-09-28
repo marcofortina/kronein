@@ -119,6 +119,9 @@ public:
     const chainregistry::ChainRegistry& Registry() const { return m_registry; }
     const ChainRegistryDBState& State() const { return m_state; }
     std::optional<DepositIndexEntry> FindDeposit(const chainregistry::DepositId& deposit_id) const;
+    std::optional<DepositLookupResult> FindDepositsForChild(
+        const chainregistry::ChainId& chain_id,
+        uint64_t lookup_limit) const;
     std::optional<BmmAnchorIndexEntry> FindAnchor(const BmmAnchorId& anchor_id) const;
     std::optional<BmmAnchorLookupResult> FindAnchorsForChildBlocks(
         const chainregistry::ChainId& chain_id,

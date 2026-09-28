@@ -46,10 +46,14 @@ chainregistry::ChainRecord Record(unsigned char id_byte,
 node::DepositIndexEntry Deposit(const chainregistry::ChainRegistry& registry,
                                 const chainregistry::ChainRecord& record,
                                 const uint256& block_hash,
-                                uint32_t block_height)
+                                uint32_t block_height,
+                                unsigned char transaction_byte = 0xbb,
+                                uint32_t transaction_index = 3)
 {
+    std::array<unsigned char, 32> transaction{};
+    transaction.fill(transaction_byte);
     const COutPoint outpoint{
-        Txid{"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}, 2};
+        Txid::FromUint256(uint256{std::span{transaction}}), 2};
     const auto proof{registry.GetInclusionProof(record.chain_id)};
     BOOST_REQUIRE(proof.has_value());
     return {
@@ -63,7 +67,7 @@ node::DepositIndexEntry Deposit(const chainregistry::ChainRegistry& registry,
         },
         .block_hash = block_hash,
         .block_height = block_height,
-        .transaction_index = 3,
+        .transaction_index = transaction_index,
         .registry_root = registry.ComputeRoot(),
         .chain_record = record,
         .registry_proof = *proof,
@@ -300,6 +304,13 @@ BOOST_AUTO_TEST_CASE(deposit_index_connect_load_disconnect)
         const auto stored{db.ReadDeposit(deposit.deposit_id)};
         BOOST_REQUIRE(stored.has_value());
         BOOST_CHECK(*stored == deposit);
+        const auto lookup{db.ReadDepositsForChild(
+            record.chain_id, /*lookup_limit=*/1)};
+        BOOST_REQUIRE(lookup);
+        BOOST_CHECK(lookup->complete);
+        BOOST_CHECK_EQUAL(lookup->lookups, 1U);
+        BOOST_REQUIRE_EQUAL(lookup->deposits.size(), 1U);
+        BOOST_CHECK(lookup->deposits.front() == deposit);
     }
 
     {
@@ -334,6 +345,12 @@ BOOST_AUTO_TEST_CASE(deposit_index_connect_load_disconnect)
         BOOST_REQUIRE(db.WriteDisconnectedBlock(
             loaded, parent_state, block_hash, undo, /*sync=*/true));
         BOOST_CHECK(!db.ReadDeposit(deposit.deposit_id).has_value());
+        const auto lookup{db.ReadDepositsForChild(
+            record.chain_id, /*lookup_limit=*/1)};
+        BOOST_REQUIRE(lookup);
+        BOOST_CHECK(lookup->complete);
+        BOOST_CHECK_EQUAL(lookup->lookups, 0U);
+        BOOST_CHECK(lookup->deposits.empty());
     }
 
     {
@@ -349,6 +366,71 @@ BOOST_AUTO_TEST_CASE(deposit_index_connect_load_disconnect)
         BOOST_CHECK(loaded_state == parent_state);
         BOOST_CHECK_EQUAL(loaded_state.deposit_count, 0U);
     }
+}
+
+BOOST_AUTO_TEST_CASE(deposit_child_lookup_is_bounded)
+{
+    const fs::path path{
+        m_args.GetDataDirBase() / "chainregistry_deposit_child_lookup_db"};
+    constexpr uint256 parent_hash{
+        "5151515151515151515151515151515151515151515151515151515151515151"};
+    constexpr uint256 block_hash{
+        "6161616161616161616161616161616161616161616161616161616161616161"};
+
+    const auto record{Record(7, 17, 50)};
+    chainregistry::ChainRegistry registry;
+    BOOST_REQUIRE(registry.LoadRecords({record}).IsValid());
+    const auto first{Deposit(
+        registry, record, block_hash, 100, /*transaction_byte=*/0x71,
+        /*transaction_index=*/2)};
+    const auto second{Deposit(
+        registry, record, block_hash, 100, /*transaction_byte=*/0x72,
+        /*transaction_index=*/3)};
+    const std::array deposits{first, second};
+    const node::ChainRegistryDBUndo undo{
+        .registry = {},
+        .deposits = {first.deposit_id, second.deposit_id},
+        .anchors = {},
+    };
+    const auto parent_state{
+        node::MakeChainRegistryDBState(parent_hash, 99, registry)};
+    const auto state{node::MakeChainRegistryDBState(
+        block_hash, 100, registry, 0, deposits.size())};
+
+    node::ChainRegistryDB db{{
+                                 .path = path,
+                                 .cache_bytes = 1 << 20,
+                                 .wipe_data = true,
+                                 .obfuscate = true,
+                             },
+                             MAIN_GENESIS};
+    BOOST_REQUIRE(db.WriteInitialState(registry, parent_state, /*sync=*/true));
+    BOOST_REQUIRE(db.WriteConnectedBlock(
+        registry, state, block_hash, undo, deposits, {}, /*sync=*/true));
+
+    const auto bounded{db.ReadDepositsForChild(
+        record.chain_id, /*lookup_limit=*/1)};
+    BOOST_REQUIRE(bounded);
+    BOOST_CHECK(!bounded->complete);
+    BOOST_CHECK_EQUAL(bounded->lookups, 1U);
+    BOOST_REQUIRE_EQUAL(bounded->deposits.size(), 1U);
+
+    const auto complete{db.ReadDepositsForChild(
+        record.chain_id, /*lookup_limit=*/2)};
+    BOOST_REQUIRE(complete);
+    BOOST_CHECK(complete->complete);
+    BOOST_CHECK_EQUAL(complete->lookups, 2U);
+    BOOST_REQUIRE_EQUAL(complete->deposits.size(), 2U);
+    BOOST_CHECK(complete->deposits[0] == first);
+    BOOST_CHECK(complete->deposits[1] == second);
+
+    const auto other_chain{Record(8, 18, 50).chain_id};
+    const auto empty{db.ReadDepositsForChild(
+        other_chain, /*lookup_limit=*/2)};
+    BOOST_REQUIRE(empty);
+    BOOST_CHECK(empty->complete);
+    BOOST_CHECK_EQUAL(empty->lookups, 0U);
+    BOOST_CHECK(empty->deposits.empty());
 }
 
 BOOST_AUTO_TEST_CASE(bmm_anchor_index_connect_load_disconnect)

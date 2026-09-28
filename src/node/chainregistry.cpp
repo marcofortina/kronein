@@ -489,6 +489,14 @@ std::optional<DepositIndexEntry> ChainRegistryState::FindDeposit(
     return m_db->ReadDeposit(deposit_id);
 }
 
+std::optional<DepositLookupResult> ChainRegistryState::FindDepositsForChild(
+    const chainregistry::ChainId& chain_id,
+    uint64_t lookup_limit) const
+{
+    if (!m_initialized || !m_db) return std::nullopt;
+    return m_db->ReadDepositsForChild(chain_id, lookup_limit);
+}
+
 std::optional<BmmAnchorIndexEntry> ChainRegistryState::FindAnchor(
     const BmmAnchorId& anchor_id) const
 {

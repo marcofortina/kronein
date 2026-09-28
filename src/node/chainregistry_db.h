@@ -18,7 +18,7 @@
 
 namespace node {
 
-inline constexpr uint8_t CHAIN_REGISTRY_DB_VERSION{4};
+inline constexpr uint8_t CHAIN_REGISTRY_DB_VERSION{5};
 inline constexpr uint8_t DEPOSIT_INDEX_ENTRY_VERSION{1};
 inline constexpr uint8_t BMM_ANCHOR_INDEX_ENTRY_VERSION{1};
 
@@ -100,6 +100,12 @@ struct DepositIndexEntry {
     friend bool operator==(const DepositIndexEntry&, const DepositIndexEntry&) = default;
 };
 
+struct DepositLookupResult {
+    std::vector<DepositIndexEntry> deposits;
+    uint64_t lookups{0};
+    bool complete{true};
+};
+
 struct ChainRegistryDBUndo {
     chainregistry::RegistryBlockUndo registry;
     std::vector<chainregistry::DepositId> deposits;
@@ -159,6 +165,10 @@ enum class ChainRegistryDBLoadError : uint8_t {
     INVALID_DEPOSIT,
     INVALID_DEPOSIT_HISTORY_RANGE,
     DEPOSIT_COUNT_MISMATCH,
+    DEPOSIT_CHILD_KEY_DECODE_FAILED,
+    DEPOSIT_CHILD_VALUE_DECODE_FAILED,
+    DEPOSIT_CHILD_INDEX_MISMATCH,
+    DEPOSIT_CHILD_COUNT_MISMATCH,
     ANCHOR_KEY_DECODE_FAILED,
     ANCHOR_KEY_MISMATCH,
     ANCHOR_DECODE_FAILED,
@@ -225,6 +235,9 @@ public:
     bool ReadUndo(const uint256& block_hash, ChainRegistryDBUndo& undo) const;
     bool ReadRecord(const chainregistry::ChainId& chain_id, chainregistry::ChainRecord& record) const;
     std::optional<DepositIndexEntry> ReadDeposit(const chainregistry::DepositId& deposit_id) const;
+    std::optional<DepositLookupResult> ReadDepositsForChild(
+        const chainregistry::ChainId& chain_id,
+        uint64_t lookup_limit) const;
     std::optional<BmmAnchorIndexEntry> ReadAnchor(const BmmAnchorId& anchor_id) const;
     std::optional<BmmAnchorLookupResult> ReadAnchorsForChildBlocks(
         const chainregistry::ChainId& chain_id,

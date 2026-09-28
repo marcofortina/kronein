@@ -18,6 +18,7 @@ constexpr uint8_t DB_REGISTRY_RECORD{'R'};
 constexpr uint8_t DB_REGISTRY_STATE{'S'};
 constexpr uint8_t DB_REGISTRY_UNDO{'U'};
 constexpr uint8_t DB_DEPOSIT{'D'};
+constexpr uint8_t DB_DEPOSIT_BY_CHILD{'E'};
 constexpr uint8_t DB_BMM_ANCHOR{'A'};
 constexpr uint8_t DB_BMM_ANCHOR_BY_CHILD{'B'};
 
@@ -35,9 +36,23 @@ struct BmmAnchorByChildId {
                            const BmmAnchorByChildId&) = default;
 };
 
+struct DepositByChildId {
+    chainregistry::ChainId chain_id;
+    chainregistry::DepositId deposit_id;
+
+    SERIALIZE_METHODS(DepositByChildId, obj)
+    {
+        READWRITE(obj.chain_id, obj.deposit_id);
+    }
+
+    friend bool operator==(const DepositByChildId&,
+                           const DepositByChildId&) = default;
+};
+
 using RecordKey = std::pair<uint8_t, chainregistry::ChainId>;
 using UndoKey = std::pair<uint8_t, uint256>;
 using DepositKey = std::pair<uint8_t, chainregistry::DepositId>;
+using DepositByChildKey = std::pair<uint8_t, DepositByChildId>;
 using AnchorKey = std::pair<uint8_t, BmmAnchorId>;
 using AnchorByChildKey = std::pair<uint8_t, BmmAnchorByChildId>;
 
@@ -47,6 +62,14 @@ BmmAnchorByChildId AnchorByChildId(const BmmAnchorIndexEntry& anchor)
         .chain_id = anchor.id.chain_id,
         .child_block_hash = anchor.anchor.child_block_hash,
         .main_block_hash = anchor.id.main_block_hash,
+    };
+}
+
+DepositByChildId DepositByChild(const DepositIndexEntry& deposit)
+{
+    return {
+        .chain_id = deposit.fund.chain_id,
+        .deposit_id = deposit.deposit_id,
     };
 }
 
@@ -247,6 +270,41 @@ ChainRegistryDBLoadResult ChainRegistryDB::Load(chainregistry::ChainRegistry& re
         return LoadError(ChainRegistryDBLoadError::DEPOSIT_COUNT_MISMATCH);
     }
 
+    uint64_t child_deposit_count{0};
+    cursor.reset(const_cast<CDBWrapper&>(m_db).NewIterator());
+    cursor->Seek(DepositByChildKey{DB_DEPOSIT_BY_CHILD, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) {
+            return LoadError(
+                ChainRegistryDBLoadError::DEPOSIT_CHILD_KEY_DECODE_FAILED);
+        }
+        if (prefix != DB_DEPOSIT_BY_CHILD) break;
+
+        DepositByChildKey key;
+        if (!cursor->GetKey(key)) {
+            return LoadError(
+                ChainRegistryDBLoadError::DEPOSIT_CHILD_KEY_DECODE_FAILED);
+        }
+        chainregistry::DepositId deposit_id;
+        if (!cursor->GetValue(deposit_id)) {
+            return LoadError(
+                ChainRegistryDBLoadError::DEPOSIT_CHILD_VALUE_DECODE_FAILED);
+        }
+        const auto deposit{ReadDeposit(deposit_id)};
+        if (!deposit || deposit_id != key.second.deposit_id ||
+            deposit->fund.chain_id != key.second.chain_id) {
+            return LoadError(
+                ChainRegistryDBLoadError::DEPOSIT_CHILD_INDEX_MISMATCH);
+        }
+        ++child_deposit_count;
+        cursor->Next();
+    }
+    if (stored_state.deposit_count != child_deposit_count) {
+        return LoadError(
+            ChainRegistryDBLoadError::DEPOSIT_CHILD_COUNT_MISMATCH);
+    }
+
     if (stored_state.anchor_history_start_height >
         static_cast<uint64_t>(stored_state.height) + 1) {
         return LoadError(ChainRegistryDBLoadError::INVALID_ANCHOR_HISTORY_RANGE);
@@ -334,6 +392,7 @@ bool ChainRegistryDB::WriteInitialState(const chainregistry::ChainRegistry& regi
     if (!IsConsistent(registry, state) || state.deposit_count != 0 ||
         state.anchor_count != 0 || m_db.Exists(DB_REGISTRY_STATE) ||
         HasKeyWithPrefix(m_db, DB_DEPOSIT) ||
+        HasKeyWithPrefix(m_db, DB_DEPOSIT_BY_CHILD) ||
         HasKeyWithPrefix(m_db, DB_BMM_ANCHOR) ||
         HasKeyWithPrefix(m_db, DB_BMM_ANCHOR_BY_CHILD)) return false;
 
@@ -378,7 +437,9 @@ bool ChainRegistryDB::WriteConnectedBlock(const chainregistry::ChainRegistry& re
             deposits[index].block_height != state.height ||
             undo.deposits[index] != deposits[index].deposit_id ||
             !unique_deposits.insert(deposits[index].deposit_id).second ||
-            m_db.Exists(DepositKey{DB_DEPOSIT, deposits[index].deposit_id})) return false;
+            m_db.Exists(DepositKey{DB_DEPOSIT, deposits[index].deposit_id}) ||
+            m_db.Exists(DepositByChildKey{
+                DB_DEPOSIT_BY_CHILD, DepositByChild(deposits[index])})) return false;
     }
 
     std::set<chainregistry::ChainId> unique_anchor_chains;
@@ -397,6 +458,9 @@ bool ChainRegistryDB::WriteConnectedBlock(const chainregistry::ChainRegistry& re
     WriteChangedRecords(batch, registry, undo.registry);
     for (const auto& deposit : deposits) {
         batch.Write(DepositKey{DB_DEPOSIT, deposit.deposit_id}, deposit);
+        batch.Write(DepositByChildKey{
+                        DB_DEPOSIT_BY_CHILD, DepositByChild(deposit)},
+                    deposit.deposit_id);
     }
     for (const auto& anchor : anchors) {
         batch.Write(AnchorKey{DB_BMM_ANCHOR, anchor.id}, anchor);
@@ -438,7 +502,9 @@ bool ChainRegistryDB::WriteDisconnectedBlock(const chainregistry::ChainRegistry&
     for (const auto& deposit_id : undo.deposits) {
         const auto deposit{ReadDeposit(deposit_id)};
         if (!unique_deposits.insert(deposit_id).second || !deposit ||
-            deposit->block_hash != disconnected_block_hash) return false;
+            deposit->block_hash != disconnected_block_hash ||
+            !m_db.Exists(DepositByChildKey{
+                DB_DEPOSIT_BY_CHILD, DepositByChild(*deposit)})) return false;
     }
 
     std::set<chainregistry::ChainId> unique_anchor_chains;
@@ -453,7 +519,11 @@ bool ChainRegistryDB::WriteDisconnectedBlock(const chainregistry::ChainRegistry&
     CDBBatch batch{m_db};
     WriteChangedRecords(batch, registry, undo.registry);
     for (const auto& deposit_id : undo.deposits) {
+        const auto deposit{ReadDeposit(deposit_id)};
+        if (!deposit) return false;
         batch.Erase(DepositKey{DB_DEPOSIT, deposit_id});
+        batch.Erase(DepositByChildKey{
+            DB_DEPOSIT_BY_CHILD, DepositByChild(*deposit)});
     }
     for (const auto& anchor_id : undo.anchors) {
         const auto anchor{ReadAnchor(anchor_id)};
@@ -491,6 +561,62 @@ std::optional<DepositIndexEntry> ChainRegistryDB::ReadDeposit(
     DepositIndexEntry deposit;
     if (!m_db.Read(DepositKey{DB_DEPOSIT, deposit_id}, deposit)) return std::nullopt;
     return deposit;
+}
+
+std::optional<DepositLookupResult> ChainRegistryDB::ReadDepositsForChild(
+    const chainregistry::ChainId& chain_id,
+    uint64_t lookup_limit) const
+{
+    DepositLookupResult result;
+    if (chain_id.IsNull()) return result;
+    if (lookup_limit == 0) {
+        result.complete = false;
+        return result;
+    }
+
+    std::unique_ptr<CDBIterator> cursor{
+        const_cast<CDBWrapper&>(m_db).NewIterator()};
+    cursor->Seek(DepositByChildKey{
+        DB_DEPOSIT_BY_CHILD, {chain_id, {}}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) return std::nullopt;
+        if (prefix != DB_DEPOSIT_BY_CHILD) break;
+        DepositByChildKey key;
+        if (!cursor->GetKey(key)) return std::nullopt;
+        if (key.second.chain_id != chain_id) break;
+        if (result.lookups == lookup_limit) {
+            result.complete = false;
+            break;
+        }
+        ++result.lookups;
+        chainregistry::DepositId deposit_id;
+        if (!cursor->GetValue(deposit_id) ||
+            deposit_id != key.second.deposit_id) {
+            return std::nullopt;
+        }
+        const auto deposit{ReadDeposit(deposit_id)};
+        if (!deposit || !IsValidDeposit(*deposit, m_main_genesis_hash) ||
+            deposit->fund.chain_id != chain_id) {
+            return std::nullopt;
+        }
+        result.deposits.push_back(*deposit);
+        cursor->Next();
+    }
+    std::ranges::sort(result.deposits, [](const auto& left,
+                                          const auto& right) {
+        if (left.block_height != right.block_height) {
+            return left.block_height < right.block_height;
+        }
+        if (left.transaction_index != right.transaction_index) {
+            return left.transaction_index < right.transaction_index;
+        }
+        if (left.outpoint.n != right.outpoint.n) {
+            return left.outpoint.n < right.outpoint.n;
+        }
+        return left.deposit_id < right.deposit_id;
+    });
+    return result;
 }
 
 std::optional<BmmAnchorIndexEntry> ChainRegistryDB::ReadAnchor(
