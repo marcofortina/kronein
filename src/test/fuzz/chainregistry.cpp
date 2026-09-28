@@ -2,24 +2,54 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
+#include <chainregistry/child_block.h>
 #include <chainregistry/child_fork_choice.h>
 #include <chainregistry/child_net.h>
+#include <chainregistry/deposit_import.h>
+#include <chainregistry/mainchain_lightclient.h>
 #include <consensus/bmm.h>
 #include <consensus/chainregistry.h>
 #include <consensus/deposit_proof.h>
+#include <node/child_chain_db.h>
 #include <primitives/bmm.h>
 #include <primitives/chainregistry.h>
 #include <primitives/deposit.h>
 #include <primitives/transaction.h>
 #include <script/script.h>
+#include <streams.h>
 #include <test/fuzz/FuzzedDataProvider.h>
 #include <test/fuzz/fuzz.h>
 #include <test/fuzz/util.h>
 
 #include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <optional>
 #include <vector>
+
+namespace {
+
+template <typename T>
+void FuzzPersistenceRecord(FuzzedDataProvider& provider)
+{
+    const auto record{ConsumeDeserializable<T>(provider)};
+    if (!record) return;
+
+    DataStream encoded;
+    encoded << *record;
+    const std::vector<std::byte> bytes{
+        encoded.begin(), encoded.end()};
+    SpanReader reader{bytes};
+    T decoded;
+    reader >> decoded;
+    assert(reader.empty());
+
+    DataStream reencoded;
+    reencoded << decoded;
+    assert(std::ranges::equal(bytes, reencoded));
+}
+
+} // namespace
 
 FUZZ_TARGET(chainregistry_script_parsers)
 {
@@ -153,6 +183,25 @@ FUZZ_TARGET(child_wire_parsers)
         (void)chainregistry::ValidateChildAddresses(
             *message, expected_chain);
     }
+}
+
+FUZZ_TARGET(child_persistence_records)
+{
+    FuzzedDataProvider provider{buffer.data(), buffer.size()};
+    CallOneOf(
+        provider,
+        [&] { FuzzPersistenceRecord<chainregistry::MainHeaderRecord>(provider); },
+        [&] { FuzzPersistenceRecord<chainregistry::ImportedDeposit>(provider); },
+        [&] { FuzzPersistenceRecord<chainregistry::DepositImportUndo>(provider); },
+        [&] { FuzzPersistenceRecord<chainregistry::DepositSafeHalt>(provider); },
+        [&] { FuzzPersistenceRecord<chainregistry::ReferenceChildBlockUndo>(provider); },
+        [&] { FuzzPersistenceRecord<node::ChildBmmAnchorRecord>(provider); },
+        [&] { FuzzPersistenceRecord<node::ChildBlockFilterRecord>(provider); },
+        [&] { FuzzPersistenceRecord<node::ChildPendingBmmAnchorRecord>(provider); },
+        [&] { FuzzPersistenceRecord<node::ChildCandidateRecord>(provider); },
+        [&] { FuzzPersistenceRecord<node::ChildCandidateBmmAnchorRecord>(provider); },
+        [&] { FuzzPersistenceRecord<node::ChildLocalProposalRecord>(provider); },
+        [&] { FuzzPersistenceRecord<node::ChildChainDBState>(provider); });
 }
 
 FUZZ_TARGET(child_fork_choice)
