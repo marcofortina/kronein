@@ -625,18 +625,21 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::CommitMainChainUpdate(
             candidate_child_tip = candidate_child_tip->pprev;
         }
     }
+    std::vector<uint256> pruned_candidates;
     const bool persisted{added_header
         ? m_db->WriteMainHeaderAndDisconnect(
               *candidate_headers,
               candidate_imports,
               *added_header,
               disconnected_blocks,
-              sync)
+              sync,
+              &pruned_candidates)
         : m_db->WriteMainTipAndDisconnect(
               *candidate_headers,
               candidate_imports,
               disconnected_blocks,
-              sync)};
+              sync,
+              &pruned_candidates)};
     if (!persisted) {
         result.error = ReferenceChildRuntimeError::MAIN_HEADER_PERSIST_FAILED;
         return result;
@@ -660,6 +663,18 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::CommitMainChainUpdate(
     }
     m_tip = candidate_child_tip;
     result.disconnected_child_blocks = std::move(disconnected_hashes);
+    for (const uint256& hash : pruned_candidates) {
+        if (hash == m_tip->GetBlockHash() ||
+            m_child_index.erase(hash) != 1) {
+            m_failed = true;
+            result.error = ReferenceChildRuntimeError::FAILED_RUNTIME;
+            return result;
+        }
+    }
+    result.pruned_child_candidates.insert(
+        result.pruned_child_candidates.end(),
+        pruned_candidates.begin(),
+        pruned_candidates.end());
     if (!m_imports.IsSafeHalted()) {
         const auto candidates{m_db->ReadForkCandidates(*m_main_headers)};
         if (!candidates) {

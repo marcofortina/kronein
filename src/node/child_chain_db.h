@@ -231,7 +231,8 @@ private:
         const chainregistry::DepositImportState& imports,
         const CBlockHeader* added_header,
         std::span<const ChildChainDBDisconnect> disconnected_blocks,
-        bool sync);
+        bool sync,
+        std::vector<uint256>* pruned_candidates);
 
 public:
     ChildChainDB(const DBParams& params,
@@ -258,12 +259,14 @@ public:
         const chainregistry::DepositImportState& imports,
         const CBlockHeader& header,
         std::span<const ChildChainDBDisconnect> disconnected_blocks,
-        bool sync = false);
+        bool sync = false,
+        std::vector<uint256>* pruned_candidates = nullptr);
     bool WriteMainTipAndDisconnect(
         const chainregistry::MainHeaderChain& main_headers,
         const chainregistry::DepositImportState& imports,
         std::span<const ChildChainDBDisconnect> disconnected_blocks,
-        bool sync = false);
+        bool sync = false,
+        std::vector<uint256>* pruned_candidates = nullptr);
     bool WritePendingBmmAnchor(
         const chainregistry::MainHeaderChain& main_headers,
         const chainregistry::BmmAnchorProof& anchor_proof,

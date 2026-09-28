@@ -369,6 +369,130 @@ bool CollectCandidateAnchorsForChild(
 bool IsValidStoredCandidate(const ChildCandidateRecord& record,
                             const uint256& expected_hash);
 
+std::optional<std::vector<chainregistry::ChildForkCandidate>>
+ReadForkCandidatesFromDB(
+    const CDBWrapper& db,
+    const chainregistry::MainHeaderChain& main_headers,
+    const chainregistry::ChainId& child_chain,
+    uint64_t expected_candidate_count)
+{
+    std::map<uint256, chainregistry::ChildForkCandidate> candidates;
+    std::unique_ptr<CDBIterator> cursor{const_cast<CDBWrapper&>(db).NewIterator()};
+    cursor->Seek(BlockKey{DB_BLOCK, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) return std::nullopt;
+        if (prefix != DB_BLOCK) break;
+        BlockKey key;
+        StoredChildBlock stored;
+        if (!cursor->GetKey(key) || !cursor->GetValue(stored) ||
+            stored.block.GetHash() != key.second ||
+            !candidates.emplace(
+                key.second,
+                chainregistry::ChildForkCandidate{
+                    .block_hash = key.second,
+                    .parent_hash = stored.block.hashPrevBlock,
+                    .anchors = {},
+                }).second) {
+            return std::nullopt;
+        }
+        cursor->Next();
+    }
+
+    cursor.reset(const_cast<CDBWrapper&>(db).NewIterator());
+    cursor->Seek(CandidateKey{DB_SIDE_CANDIDATE, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) return std::nullopt;
+        if (prefix != DB_SIDE_CANDIDATE) break;
+        CandidateKey key;
+        ChildCandidateRecord stored;
+        if (!cursor->GetKey(key) || !cursor->GetValue(stored) ||
+            !IsValidStoredCandidate(stored, key.second) ||
+            !candidates.emplace(
+                key.second,
+                chainregistry::ChildForkCandidate{
+                    .block_hash = key.second,
+                    .parent_hash = stored.block.hashPrevBlock,
+                    .anchors = {},
+                }).second) {
+            return std::nullopt;
+        }
+        cursor->Next();
+    }
+    if (candidates.size() != expected_candidate_count) return std::nullopt;
+
+    const auto add_anchor = [&](const uint256& child_block_hash,
+                                const chainregistry::BmmAnchorProof& proof)
+        -> bool {
+        auto candidate{candidates.find(child_block_hash)};
+        if (candidate == candidates.end()) return false;
+        const uint256 main_block_hash{proof.block_header.GetHash()};
+        const auto status{main_headers.GetStatus(main_block_hash)};
+        if (!status.known ||
+            status.height != static_cast<int>(proof.block_height)) {
+            return false;
+        }
+        if (!status.active) return true;
+        const CBlockIndex* entry{main_headers.Find(main_block_hash)};
+        if (!entry) return false;
+        const arith_uint256 work{GetBlockProof(*entry)};
+        if (work == 0) return false;
+        candidate->second.anchors.push_back({
+            .main_block_hash = main_block_hash,
+            .main_height = proof.block_height,
+            .work = work,
+        });
+        return true;
+    };
+
+    cursor.reset(const_cast<CDBWrapper&>(db).NewIterator());
+    cursor->Seek(AnchorKey{DB_BMM_ANCHOR, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) return std::nullopt;
+        if (prefix != DB_BMM_ANCHOR) break;
+        AnchorKey key;
+        ChildBmmAnchorRecord record;
+        if (!cursor->GetKey(key) || !cursor->GetValue(record) ||
+            key.second != record.child_block_hash ||
+            !IsValidStoredAnchor(
+                record,
+                main_headers,
+                child_chain,
+                /*allow_inactive=*/true) ||
+            !add_anchor(record.child_block_hash, record.proof)) {
+            return std::nullopt;
+        }
+        cursor->Next();
+    }
+
+    cursor.reset(const_cast<CDBWrapper&>(db).NewIterator());
+    cursor->Seek(CandidateAnchorKey{DB_CANDIDATE_BMM_ANCHOR, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) return std::nullopt;
+        if (prefix != DB_CANDIDATE_BMM_ANCHOR) break;
+        CandidateAnchorKey key;
+        ChildCandidateBmmAnchorRecord record;
+        if (!cursor->GetKey(key) || !cursor->GetValue(record) ||
+            key.second != record.proof.block_header.GetHash() ||
+            !IsValidStoredCandidateAnchor(
+                record, main_headers, child_chain) ||
+            !add_anchor(record.child_block_hash, record.proof)) {
+            return std::nullopt;
+        }
+        cursor->Next();
+    }
+
+    std::vector<chainregistry::ChildForkCandidate> result;
+    result.reserve(candidates.size());
+    for (auto& [hash, candidate] : candidates) {
+        result.push_back(std::move(candidate));
+    }
+    return result;
+}
+
 struct CandidatePruningPlan {
     chainregistry::ChildForkPruneResult selection;
     std::map<uint256, std::vector<CandidateAnchorKey>> anchor_keys;
@@ -1524,7 +1648,7 @@ bool ChildChainDB::WriteMainHeader(
     bool sync)
 {
     return WriteMainHeaderAndDisconnect(
-        main_headers, imports, header, {}, sync);
+        main_headers, imports, header, {}, sync, nullptr);
 }
 
 bool ChildChainDB::WriteMainHeaderAndDisconnect(
@@ -1532,20 +1656,32 @@ bool ChildChainDB::WriteMainHeaderAndDisconnect(
     const chainregistry::DepositImportState& imports,
     const CBlockHeader& header,
     std::span<const ChildChainDBDisconnect> disconnected_blocks,
-    bool sync)
+    bool sync,
+    std::vector<uint256>* pruned_candidates)
 {
     return WriteMainChainUpdate(
-        main_headers, imports, &header, disconnected_blocks, sync);
+        main_headers,
+        imports,
+        &header,
+        disconnected_blocks,
+        sync,
+        pruned_candidates);
 }
 
 bool ChildChainDB::WriteMainTipAndDisconnect(
     const chainregistry::MainHeaderChain& main_headers,
     const chainregistry::DepositImportState& imports,
     std::span<const ChildChainDBDisconnect> disconnected_blocks,
-    bool sync)
+    bool sync,
+    std::vector<uint256>* pruned_candidates)
 {
     return WriteMainChainUpdate(
-        main_headers, imports, nullptr, disconnected_blocks, sync);
+        main_headers,
+        imports,
+        nullptr,
+        disconnected_blocks,
+        sync,
+        pruned_candidates);
 }
 
 bool ChildChainDB::WriteMainChainUpdate(
@@ -1553,7 +1689,8 @@ bool ChildChainDB::WriteMainChainUpdate(
     const chainregistry::DepositImportState& imports,
     const CBlockHeader* added_header,
     std::span<const ChildChainDBDisconnect> disconnected_blocks,
-    bool sync)
+    bool sync,
+    std::vector<uint256>* pruned_candidates)
 {
     ChildChainDBState state;
     const auto headers{main_headers.ExportHeaders()};
@@ -1598,6 +1735,15 @@ bool ChildChainDB::WriteMainChainUpdate(
             m_db, batch, main_headers, m_child_chain, state)) {
         return false;
     }
+    const ChildChainDBState stored_candidate_state{state};
+    struct DemotedMainReorgBlock {
+        uint256 hash;
+        ChildCandidateRecord candidate;
+        CandidateAnchorKey candidate_anchor_key;
+        ChildCandidateBmmAnchorRecord candidate_anchor;
+    };
+    std::vector<DemotedMainReorgBlock> demoted_candidates;
+    demoted_candidates.reserve(disconnected_blocks.size());
     CoinTransition coin_transition;
     std::set<uint256> disconnected_hashes;
     for (const auto& disconnected : disconnected_blocks) {
@@ -1662,14 +1808,15 @@ bool ChildChainDB::WriteMainChainUpdate(
                 candidate_anchor, main_headers, m_child_chain) ||
             m_db.Exists(CandidateKey{DB_SIDE_CANDIDATE, block_hash}) ||
             m_db.Exists(candidate_anchor_key) ||
-            state.side_candidate_count == MAX_CHILD_SIDE_CANDIDATES ||
+            state.side_candidate_count ==
+                std::numeric_limits<uint64_t>::max() ||
             candidate.serialized_size >
-                MAX_CHILD_SIDE_CANDIDATE_BYTES -
+                std::numeric_limits<uint64_t>::max() -
                     state.side_candidate_bytes ||
             state.candidate_anchor_count ==
-                MAX_CHILD_CANDIDATE_BMM_ANCHORS ||
+                std::numeric_limits<uint64_t>::max() ||
             candidate_anchor_size >
-                MAX_CHILD_CANDIDATE_BMM_BYTES -
+                std::numeric_limits<uint64_t>::max() -
                     state.candidate_anchor_bytes) {
             return false;
         }
@@ -1703,9 +1850,50 @@ bool ChildChainDB::WriteMainChainUpdate(
         batch.Erase(BlockKey{DB_BLOCK, block_hash});
         batch.Erase(UndoKey{DB_UNDO, block_hash});
         batch.Erase(AnchorKey{DB_BMM_ANCHOR, block_hash});
-        batch.Write(
-            CandidateKey{DB_SIDE_CANDIDATE, block_hash}, candidate);
-        batch.Write(candidate_anchor_key, candidate_anchor);
+        demoted_candidates.push_back({
+            .hash = block_hash,
+            .candidate = std::move(candidate),
+            .candidate_anchor_key = candidate_anchor_key,
+            .candidate_anchor = candidate_anchor,
+        });
+    }
+
+    std::optional<CandidatePruningPlan> pruning;
+    if (!demoted_candidates.empty()) {
+        const auto current_candidates{ReadForkCandidatesFromDB(
+            m_db,
+            main_headers,
+            m_child_chain,
+            stored_candidate_state.child_height +
+                stored_candidate_state.side_candidate_count)};
+        if (!current_candidates) return false;
+        std::vector<CandidatePruningChange> pruning_changes;
+        pruning_changes.reserve(demoted_candidates.size());
+        for (const auto& entry : demoted_candidates) {
+            pruning_changes.push_back({
+                .block_hash = entry.hash,
+                .prunable = true,
+                .side_candidate_bytes = entry.candidate.serialized_size,
+                .added_anchor_count = 1,
+                .added_anchor_bytes = entry.candidate_anchor.serialized_size,
+                .added_anchor_keys = {entry.candidate_anchor_key},
+                .removed_anchor_keys = {},
+            });
+        }
+        pruning = PlanCandidatePruning(
+            m_db,
+            stored_candidate_state,
+            *current_candidates,
+            m_child_genesis_hash,
+            std::nullopt,
+            pruning_changes);
+        if (!pruning) return false;
+        state.side_candidate_count = pruning->selection.side_candidate_count;
+        state.side_candidate_bytes = pruning->selection.side_candidate_bytes;
+        state.candidate_anchor_count =
+            pruning->selection.candidate_anchor_count;
+        state.candidate_anchor_bytes =
+            pruning->selection.candidate_anchor_bytes;
     }
 
     if (imports.Size() != state.import_count ||
@@ -1718,6 +1906,26 @@ bool ChildChainDB::WriteMainChainUpdate(
             imports.IsSafeHalted(),
             &disconnected_hashes)) {
         return false;
+    }
+    std::set<uint256> pruned;
+    if (pruning) {
+        pruned.insert(
+            pruning->selection.pruned.begin(),
+            pruning->selection.pruned.end());
+    }
+    for (const uint256& hash : pruned) {
+        batch.Erase(CandidateKey{DB_SIDE_CANDIDATE, hash});
+        const auto anchor_keys{pruning->anchor_keys.find(hash)};
+        if (anchor_keys == pruning->anchor_keys.end()) return false;
+        for (const CandidateAnchorKey& key : anchor_keys->second) {
+            batch.Erase(key);
+        }
+    }
+    for (const auto& entry : demoted_candidates) {
+        if (pruned.contains(entry.hash)) continue;
+        batch.Write(
+            CandidateKey{DB_SIDE_CANDIDATE, entry.hash}, entry.candidate);
+        batch.Write(entry.candidate_anchor_key, entry.candidate_anchor);
     }
     for (const auto& [outpoint, coin] : coin_transition.changes) {
         if (coin) {
@@ -1742,6 +1950,11 @@ bool ChildChainDB::WriteMainChainUpdate(
     }
     batch.Write(DB_STATE, state);
     m_db.WriteBatch(batch, sync);
+    if (pruned_candidates) {
+        *pruned_candidates = pruning
+            ? pruning->selection.pruned
+            : std::vector<uint256>{};
+    }
     return true;
 }
 
@@ -2903,125 +3116,11 @@ ChildChainDB::ReadForkCandidates(
         main_headers.Tip()->GetBlockHash() != state.main_tip) {
         return std::nullopt;
     }
-
-    std::map<uint256, chainregistry::ChildForkCandidate> candidates;
-    std::unique_ptr<CDBIterator> cursor{
-        const_cast<CDBWrapper&>(m_db).NewIterator()};
-    cursor->Seek(BlockKey{DB_BLOCK, {}});
-    while (cursor->Valid()) {
-        uint8_t prefix;
-        if (!cursor->GetKey(prefix)) return std::nullopt;
-        if (prefix != DB_BLOCK) break;
-        BlockKey key;
-        StoredChildBlock stored;
-        if (!cursor->GetKey(key) || !cursor->GetValue(stored) ||
-            stored.block.GetHash() != key.second ||
-            !candidates.emplace(
-                key.second,
-                chainregistry::ChildForkCandidate{
-                    .block_hash = key.second,
-                    .parent_hash = stored.block.hashPrevBlock,
-                    .anchors = {},
-                }).second) {
-            return std::nullopt;
-        }
-        cursor->Next();
-    }
-
-    cursor.reset(const_cast<CDBWrapper&>(m_db).NewIterator());
-    cursor->Seek(CandidateKey{DB_SIDE_CANDIDATE, {}});
-    while (cursor->Valid()) {
-        uint8_t prefix;
-        if (!cursor->GetKey(prefix)) return std::nullopt;
-        if (prefix != DB_SIDE_CANDIDATE) break;
-        CandidateKey key;
-        ChildCandidateRecord stored;
-        if (!cursor->GetKey(key) || !cursor->GetValue(stored) ||
-            !IsValidStoredCandidate(stored, key.second) ||
-            !candidates.emplace(
-                key.second,
-                chainregistry::ChildForkCandidate{
-                    .block_hash = key.second,
-                    .parent_hash = stored.block.hashPrevBlock,
-                    .anchors = {},
-                }).second) {
-            return std::nullopt;
-        }
-        cursor->Next();
-    }
-    if (candidates.size() != state.child_height + state.side_candidate_count) {
-        return std::nullopt;
-    }
-
-    const auto add_anchor = [&](const uint256& child_block_hash,
-                                const chainregistry::BmmAnchorProof& proof)
-        -> bool {
-        auto candidate{candidates.find(child_block_hash)};
-        if (candidate == candidates.end()) return false;
-        const uint256 main_block_hash{proof.block_header.GetHash()};
-        const auto status{main_headers.GetStatus(main_block_hash)};
-        if (!status.known ||
-            status.height != static_cast<int>(proof.block_height)) {
-            return false;
-        }
-        if (!status.active) return true;
-        const CBlockIndex* entry{main_headers.Find(main_block_hash)};
-        if (!entry) return false;
-        const arith_uint256 work{GetBlockProof(*entry)};
-        if (work == 0) return false;
-        candidate->second.anchors.push_back({
-            .main_block_hash = main_block_hash,
-            .main_height = proof.block_height,
-            .work = work,
-        });
-        return true;
-    };
-
-    cursor.reset(const_cast<CDBWrapper&>(m_db).NewIterator());
-    cursor->Seek(AnchorKey{DB_BMM_ANCHOR, {}});
-    while (cursor->Valid()) {
-        uint8_t prefix;
-        if (!cursor->GetKey(prefix)) return std::nullopt;
-        if (prefix != DB_BMM_ANCHOR) break;
-        AnchorKey key;
-        ChildBmmAnchorRecord record;
-        if (!cursor->GetKey(key) || !cursor->GetValue(record) ||
-            key.second != record.child_block_hash ||
-            !IsValidStoredAnchor(
-                record,
-                main_headers,
-                m_child_chain,
-                /*allow_inactive=*/true) ||
-            !add_anchor(record.child_block_hash, record.proof)) {
-            return std::nullopt;
-        }
-        cursor->Next();
-    }
-
-    cursor.reset(const_cast<CDBWrapper&>(m_db).NewIterator());
-    cursor->Seek(CandidateAnchorKey{DB_CANDIDATE_BMM_ANCHOR, {}});
-    while (cursor->Valid()) {
-        uint8_t prefix;
-        if (!cursor->GetKey(prefix)) return std::nullopt;
-        if (prefix != DB_CANDIDATE_BMM_ANCHOR) break;
-        CandidateAnchorKey key;
-        ChildCandidateBmmAnchorRecord record;
-        if (!cursor->GetKey(key) || !cursor->GetValue(record) ||
-            key.second != record.proof.block_header.GetHash() ||
-            !IsValidStoredCandidateAnchor(
-                record, main_headers, m_child_chain) ||
-            !add_anchor(record.child_block_hash, record.proof)) {
-            return std::nullopt;
-        }
-        cursor->Next();
-    }
-
-    std::vector<chainregistry::ChildForkCandidate> result;
-    result.reserve(candidates.size());
-    for (auto& [hash, candidate] : candidates) {
-        result.push_back(std::move(candidate));
-    }
-    return result;
+    return ReadForkCandidatesFromDB(
+        m_db,
+        main_headers,
+        m_child_chain,
+        state.child_height + state.side_candidate_count);
 }
 
 bool ChildChainDB::ReadUndo(const uint256& child_block_hash,
