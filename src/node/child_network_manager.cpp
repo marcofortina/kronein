@@ -350,8 +350,17 @@ ChildNetworkResult ChildNetworkManager::AddNode(
     const chainregistry::ChainId& chain_id,
     const std::string& endpoint)
 {
+    if (chain_id.IsNull()) {
+        return NetworkError(ChildNetworkError::NULL_CHAIN_ID);
+    }
     if (!IsExplicitEndpoint(endpoint)) {
         return NetworkError(ChildNetworkError::INVALID_ENDPOINT, endpoint);
+    }
+    if (!m_chain_manager.Definition(chain_id)) {
+        return NetworkError(ChildNetworkError::UNKNOWN_CHAIN);
+    }
+    if (!m_chain_manager.IsLoaded(chain_id)) {
+        return NetworkError(ChildNetworkError::CHAIN_NOT_LOADED);
     }
     LOCK(m_mutex);
     const auto entry{m_networks.find(chain_id)};
@@ -382,6 +391,15 @@ ChildNetworkResult ChildNetworkManager::RemoveNode(
     const chainregistry::ChainId& chain_id,
     const std::string& endpoint)
 {
+    if (chain_id.IsNull()) {
+        return NetworkError(ChildNetworkError::NULL_CHAIN_ID);
+    }
+    if (!m_chain_manager.Definition(chain_id)) {
+        return NetworkError(ChildNetworkError::UNKNOWN_CHAIN);
+    }
+    if (!m_chain_manager.IsLoaded(chain_id)) {
+        return NetworkError(ChildNetworkError::CHAIN_NOT_LOADED);
+    }
     LOCK(m_mutex);
     const auto entry{m_networks.find(chain_id)};
     if (entry == m_networks.end()) {
@@ -413,6 +431,15 @@ ChildNetworkResult ChildNetworkManager::SetNetworkActive(
     const chainregistry::ChainId& chain_id,
     bool active)
 {
+    if (chain_id.IsNull()) {
+        return NetworkError(ChildNetworkError::NULL_CHAIN_ID);
+    }
+    if (!m_chain_manager.Definition(chain_id)) {
+        return NetworkError(ChildNetworkError::UNKNOWN_CHAIN);
+    }
+    if (!m_chain_manager.IsLoaded(chain_id)) {
+        return NetworkError(ChildNetworkError::CHAIN_NOT_LOADED);
+    }
     LOCK(m_mutex);
     const auto entry{m_networks.find(chain_id)};
     if (entry == m_networks.end()) {
@@ -464,14 +491,40 @@ bool ChildNetworkManager::IsRunning(
 ChildNetworkStats ChildNetworkManager::GetStats(
     const chainregistry::ChainId& chain_id) const
 {
+    return GetInfo(chain_id).stats;
+}
+
+ChildNetworkInfo ChildNetworkManager::GetInfo(
+    const chainregistry::ChainId& chain_id) const
+{
+    ChildNetworkInfo info;
+    info.stats.chain_id = chain_id;
+    if (chain_id.IsNull()) {
+        info.result = NetworkError(ChildNetworkError::NULL_CHAIN_ID);
+        return info;
+    }
+    if (!m_chain_manager.Definition(chain_id)) {
+        info.result = NetworkError(ChildNetworkError::UNKNOWN_CHAIN);
+        return info;
+    }
+    const fs::path config_path{
+        m_chain_manager.DataPath(chain_id) / "network" /
+        fs::PathFromString(CHILD_NETWORK_CONFIG_FILENAME)};
+
     LOCK(m_mutex);
     const auto entry{m_networks.find(chain_id)};
-    if (entry == m_networks.end()) {
-        ChildNetworkStats result;
-        result.chain_id = chain_id;
-        return result;
+    if (entry != m_networks.end()) {
+        info.stats = entry->second->Stats();
+        return info;
     }
-    return entry->second->Stats();
+    const auto loaded_config{ReadNetworkConfig(config_path)};
+    if (!loaded_config.result.IsValid()) {
+        info.result = loaded_config.result;
+        return info;
+    }
+    info.stats.network_active = loaded_config.config.network_active;
+    info.stats.added_nodes = loaded_config.config.connect;
+    return info;
 }
 
 std::vector<ChildNetworkStats> ChildNetworkManager::List() const

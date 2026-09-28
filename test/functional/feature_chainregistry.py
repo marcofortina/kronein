@@ -275,6 +275,25 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(loaded["connections"], 0)
         assert_equal(loaded["handshaken_peers"], 0)
         assert_equal(loaded["added_nodes"], [])
+        network_info = node.getchildnetworkinfo(chain_id)
+        assert_equal(network_info["chain_id"], chain_id)
+        assert_equal(network_info["network_running"], True)
+        assert_equal(network_info["max_added_nodes"], 8)
+        paused = node.setchildnetworkactive(chain_id, False)
+        assert_equal(paused["network_active"], False)
+        endpoint = "127.0.0.1:29999"
+        added_node = node.addchildnode(chain_id, endpoint)
+        assert_equal(added_node["added_nodes"], [endpoint])
+        assert_raises_rpc_error(
+            -8, "already configured",
+            node.addchildnode, chain_id, endpoint)
+        removed_node = node.removechildnode(chain_id, endpoint)
+        assert_equal(removed_node["added_nodes"], [])
+        assert_raises_rpc_error(
+            -8, "not configured",
+            node.removechildnode, chain_id, endpoint)
+        resumed = node.setchildnetworkactive(chain_id, True)
+        assert_equal(resumed["network_active"], True)
         main_height = node.getblockcount()
         main_tip = node.getbestblockhash()
         assert_equal(node.getblockcount(chain_id), 0)
@@ -293,6 +312,10 @@ class ChainRegistryTest(BitcoinTestFramework):
         unloaded = node.unloadchildchain(chain_id)
         assert_equal(unloaded["loaded"], False)
         assert_equal(unloaded["network_running"], False)
+        stopped_network = node.getchildnetworkinfo(chain_id)
+        assert_equal(stopped_network["network_running"], False)
+        assert_equal(stopped_network["network_active"], True)
+        assert_equal(stopped_network["added_nodes"], [])
         assert_raises_rpc_error(-1, "child chain is not loaded",
                                 node.getblockcount, chain_id)
         forgotten = node.forgetchildchain(chain_id)

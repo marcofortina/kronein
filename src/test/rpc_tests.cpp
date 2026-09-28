@@ -240,7 +240,8 @@ BOOST_AUTO_TEST_CASE(child_chain_lifecycle_rpc)
 
     const std::string unknown_id(64, '1');
     for (const std::string command : {
-             "loadchildchain ", "unloadchildchain ", "forgetchildchain "}) {
+             "loadchildchain ", "unloadchildchain ", "forgetchildchain ",
+             "getchildnetworkinfo "}) {
         BOOST_CHECK_EXCEPTION(
             CallRPC(command + unknown_id),
             std::runtime_error,
@@ -1066,6 +1067,12 @@ BOOST_AUTO_TEST_CASE(rpc_convert_values_loadchildchain)
     BOOST_CHECK_EQUAL(
         result[1].find_value("connect")[0].get_str(),
         "127.0.0.1:19843");
+
+    const UniValue active{RPCConvertValues(
+        "setchildnetworkactive", {chain_id, "false"})};
+    BOOST_REQUIRE_EQUAL(active.size(), 2U);
+    BOOST_CHECK_EQUAL(active[0].get_str(), chain_id);
+    BOOST_CHECK(!active[1].get_bool());
 }
 
 BOOST_AUTO_TEST_CASE(rpc_getblockstats_calculate_percentiles_by_weight)

@@ -65,6 +65,13 @@ struct ChildNetworkStats {
     std::vector<std::string> added_nodes;
 };
 
+struct ChildNetworkInfo {
+    ChildNetworkResult result;
+    ChildNetworkStats stats;
+
+    bool IsValid() const { return result.IsValid(); }
+};
+
 /** Owns one physically separate CConnman stack for every loaded child. */
 class ChildNetworkManager
 {
@@ -98,6 +105,8 @@ public:
     void StopAll();
 
     bool IsRunning(const chainregistry::ChainId& chain_id) const;
+    ChildNetworkInfo GetInfo(
+        const chainregistry::ChainId& chain_id) const;
     ChildNetworkStats GetStats(
         const chainregistry::ChainId& chain_id) const;
     std::vector<ChildNetworkStats> List() const;

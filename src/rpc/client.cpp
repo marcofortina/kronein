@@ -58,6 +58,7 @@ public:
 static const CRPCConvertParam vRPCConvertParams[] =
 {
     { "loadchildchain", 1, "network" },
+    { "setchildnetworkactive", 1, "active" },
     { "setmocktime", 0, "timestamp" },
     { "mockscheduler", 0, "delta_time" },
     { "utxoupdatepsbt", 0, "psbt", ParamFormat::STRING },
