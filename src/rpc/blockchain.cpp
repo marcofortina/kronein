@@ -527,7 +527,7 @@ UniValue childBlockchainInfoToJSON(const node::ChainManagerBlockView& view)
     result.pushKV("chainwork", tip.fork_score.cumulative_anchor_work.GetHex());
     result.pushKV("pruned", false);
     result.pushKV("safe_halt", entry.safe_halt);
-    result.pushKV("network_sync_available", false);
+    result.pushKV("network_sync_available", true);
     result.pushKV("main_height", entry.main_height);
     result.pushKV("main_tip", entry.main_tip.GetHex());
     result.pushKV("bmm_anchor_count", entry.anchor_count);
@@ -1948,7 +1948,7 @@ RPCHelpMan getblockchaininfo()
 {
     return RPCHelpMan{"getblockchaininfo",
         "Returns an object containing various state info regarding blockchain processing.\n"
-        "Omit chain_id for the main chain. Child results describe the locally loaded runtime; child networking and synchronization are not implemented yet.\n",
+        "Omit chain_id for the main chain. Child results describe the locally loaded runtime and its isolated P2P synchronization state.\n",
         {
             {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
         },
@@ -1970,7 +1970,7 @@ RPCHelpMan getblockchaininfo()
                 {RPCResult::Type::NUM_TIME, "time", "The block time expressed in " + UNIX_EPOCH_TIME},
                 {RPCResult::Type::NUM_TIME, "mediantime", "The median block time expressed in " + UNIX_EPOCH_TIME},
                 {RPCResult::Type::NUM, "verificationprogress", "estimate of verification progress [0..1]; one for all locally accepted child data"},
-                {RPCResult::Type::BOOL, "initialblockdownload", "(debug information) estimate of whether this node is in Initial Block Download mode; false until child networking exists"},
+                {RPCResult::Type::BOOL, "initialblockdownload", "(debug information) estimate of whether this node is in Initial Block Download mode; false for child runtimes"},
                 {RPCResult::Type::STR_HEX, "chainwork", "total PoW on main or cumulative active BMM anchor work on a child, in hexadecimal"},
                 {RPCResult::Type::NUM, "size_on_disk", /*optional=*/true, "the estimated size of the main-chain block and undo files on disk; currently unavailable for child runtimes"},
                 {RPCResult::Type::BOOL, "pruned", "if the blocks are subject to pruning"},

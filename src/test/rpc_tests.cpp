@@ -301,7 +301,7 @@ BOOST_AUTO_TEST_CASE(blockchain_rpc_routes_explicit_child_chain)
     BOOST_CHECK_EQUAL(child_info.find_value("headers").getInt<int>(), 0);
     BOOST_CHECK_EQUAL(child_info.find_value("bestblockhash").get_str(),
                       definition.genesis_hash.GetHex());
-    BOOST_CHECK(!child_info.find_value("network_sync_available").get_bool());
+    BOOST_CHECK(child_info.find_value("network_sync_available").get_bool());
     BOOST_CHECK(!child_info.find_value("safe_halt").get_bool());
     BOOST_CHECK(child_info.find_value("size_on_disk").isNull());
     BOOST_CHECK_EQUAL(child_info.find_value("bmm_anchor_count").getInt<int>(), 0);

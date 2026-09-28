@@ -486,6 +486,8 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(initial_bmm_status["has_tip_anchor"], False)
         assert_equal(initial_bmm_status["pending_blocks"], [])
         assert_equal(initial_bmm_status["proposals"], [])
+        assert_equal(node.getblockchaininfo(
+            chain_id)["network_sync_available"], True)
         network_info = node.getchildnetworkinfo(chain_id)
         assert_equal(network_info["chain_id"], chain_id)
         assert_equal(network_info["network_running"], True)
