@@ -6,6 +6,7 @@
 
 from decimal import Decimal
 
+from test_framework.psbt import PSBT, PSBT_OUT_SCRIPT
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
@@ -235,6 +236,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         self.sync_blocks()
 
         chain_id = registration_psbt["chain_id"]
+        child_recipient = "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
         registered = node.getchildchain(chain_id, True)
         assert_equal(registered["found"], True)
         assert_equal(registered["chain"]["status"], "active")
@@ -256,7 +258,7 @@ class ChainRegistryTest(BitcoinTestFramework):
             0,
             {"add_inputs": False, "fee_rate": 1})
         funding_probe = wallet.walletcreatefundchainpsbt(
-            chain_id, 1, "41" * 32, Decimal("0.01000000"), {"fee_rate": 1})
+            chain_id, 1, child_recipient, Decimal("0.01000000"), {"fee_rate": 1})
         decoded_probe = node.decodepsbt(funding_probe["psbt"])["tx"]
         assert control_outpoint not in [
             {"txid": txin["txid"], "vout": txin["vout"]}
@@ -459,13 +461,21 @@ class ChainRegistryTest(BitcoinTestFramework):
 
         self.log.info("Index and export a canonical proof for an irreversible child deposit")
         deposit_amount = Decimal("0.25000000")
+        assert_raises_rpc_error(
+            -8, "requires recipient_type 1",
+            wallet.walletcreatefundchainpsbt,
+            chain_id, 2, child_recipient, deposit_amount, {"fee_rate": 1})
+        assert_raises_rpc_error(
+            -8, "valid 32-byte P2TR output key",
+            wallet.walletcreatefundchainpsbt,
+            chain_id, 1, "42" * 31, deposit_amount, {"fee_rate": 1})
         deposit_psbt = wallet.walletcreatefundchainpsbt(
-            chain_id, 1, "42" * 32, deposit_amount, {"fee_rate": 1})
+            chain_id, 1, child_recipient, deposit_amount, {"fee_rate": 1})
         assert_equal(deposit_psbt["deposit_vout"], 0)
         assert_equal(deposit_psbt["amount"], deposit_amount)
         assert_equal(deposit_psbt["chain_id"], chain_id)
         assert_equal(deposit_psbt["recipient_type"], 1)
-        assert_equal(deposit_psbt["recipient"], "42" * 32)
+        assert_equal(deposit_psbt["recipient"], child_recipient)
         assert_equal(deposit_psbt["irreversible"], True)
         assert "cannot be reversed" in deposit_psbt["warning"]
         assert_raises_rpc_error(
@@ -476,11 +486,18 @@ class ChainRegistryTest(BitcoinTestFramework):
             -8, "exceeds authorized maximum",
             wallet.walletsubmitfundchainpsbt,
             deposit_psbt["psbt"], True, Decimal("0.24999999"))
+        invalid_submit_psbt = PSBT.from_base64(deposit_psbt["psbt"])
+        invalid_submit_psbt.o[0].map[PSBT_OUT_SCRIPT] = bytes.fromhex(
+            node.createfundchainoutput(chain_id, 2, child_recipient)["script"])
+        assert_raises_rpc_error(
+            -8, "requires recipient_type 1",
+            wallet.walletsubmitfundchainpsbt,
+            invalid_submit_psbt.to_base64(), True, deposit_amount)
         submitted_deposit = wallet.walletsubmitfundchainpsbt(
             deposit_psbt["psbt"], True, deposit_amount)
         assert_equal(submitted_deposit["vout"], 0)
         assert_equal(submitted_deposit["chain_id"], chain_id)
-        assert_equal(submitted_deposit["recipient"], "42" * 32)
+        assert_equal(submitted_deposit["recipient"], child_recipient)
         assert_equal(submitted_deposit["amount"], deposit_amount)
         assert_equal(submitted_deposit["irreversible"], True)
         deposit_txid = submitted_deposit["txid"]
@@ -496,7 +513,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(deposit_status["deposit"]["destination"], {
             "chain_id": chain_id,
             "recipient_type": 1,
-            "recipient": "42" * 32,
+            "recipient": child_recipient,
         })
         assert_equal(deposit_status["deposit"]["blockhash"], deposit_block)
         assert_equal(deposit_status["deposit"]["confirmations"], 1)

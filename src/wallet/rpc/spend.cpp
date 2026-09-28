@@ -3,6 +3,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <chainregistry/child_template.h>
 #include <common/messages.h>
 #include <consensus/chainregistry.h>
 #include <consensus/validation.h>
@@ -113,6 +114,25 @@ static chainregistry::FundChain ParseFundDestination(const UniValue& chain_id_ar
                            "recipient must not exceed 64 bytes");
     default:
         throw JSONRPCError(RPC_INVALID_PARAMETER, "invalid child deposit destination");
+    }
+}
+
+static void ValidateFundDestinationForTemplate(
+    const chainregistry::ChainRecord& record,
+    const chainregistry::FundChain& fund)
+{
+    if (record.template_id != chainregistry::REFERENCE_CHILD_TEMPLATE_ID ||
+        record.template_version != chainregistry::REFERENCE_CHILD_TEMPLATE_VERSION) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("wallet cannot validate deposit recipients for child template %u version %u",
+                      record.template_id, record.template_version));
+    }
+    if (!chainregistry::IsValidReferenceChildRecipient(
+            fund.recipient_type, fund.recipient)) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "reference child template v1 requires recipient_type 1 and a valid 32-byte P2TR output key");
     }
 }
 
@@ -1826,7 +1846,8 @@ RPCHelpMan walletcreatefundchainpsbt()
     return RPCHelpMan{
         "walletcreatefundchainpsbt",
         "Create and fund an unsigned PSBT for an irreversible main-chain to child-chain deposit.\n"
-        "The canonical KFND burn is fixed at vout[0], and change, when present, is appended after it. This RPC does not sign or broadcast.\n",
+        "The canonical KFND burn is fixed at vout[0], and change, when present, is appended after it. This RPC does not sign or broadcast.\n"
+        "The destination is validated against the registered child template before any PSBT is returned.\n",
         {
             {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Exact non-null destination child-chain identifier"},
             {"recipient_type", RPCArg::Type::NUM, RPCArg::Optional::NO, "Non-zero recipient namespace defined by the child template"},
@@ -1883,6 +1904,7 @@ RPCHelpMan walletcreatefundchainpsbt()
     if (snapshot.record->status != chainregistry::ChainStatus::ACTIVE) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "child chain is retired");
     }
+    ValidateFundDestinationForTemplate(*snapshot.record, fund);
     if (amount < snapshot.minimum_deposit_amount) {
         throw JSONRPCError(
             RPC_INVALID_PARAMETER,
@@ -2024,6 +2046,7 @@ RPCHelpMan walletsubmitfundchainpsbt()
     if (snapshot.record->status != chainregistry::ChainStatus::ACTIVE) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "child chain is retired");
     }
+    ValidateFundDestinationForTemplate(*snapshot.record, fund.fund);
     if (fund.amount < snapshot.minimum_deposit_amount) {
         throw JSONRPCError(
             RPC_INVALID_PARAMETER,
