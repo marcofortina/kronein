@@ -13,6 +13,7 @@
 #include <node/types.h>
 #include <numeric>
 #include <policy/policy.h>
+#include <primitives/chainregistry.h>
 #include <primitives/transaction.h>
 #include <primitives/transaction_identifier.h>
 #include <script/script.h>
@@ -44,6 +45,25 @@ TRACEPOINT_SEMAPHORE(coin_selection, aps_create_tx_internal);
 
 namespace wallet {
 static constexpr size_t OUTPUT_GROUP_MAX_ENTRIES{100};
+
+static std::optional<uint32_t> GetChainRegistryControlOutput(const CTransaction& tx)
+{
+    // A zero minimum is intentional here. The wallet is identifying the
+    // structural role of an output, while consensus separately enforces the
+    // network's minimum registration burn.
+    const auto extracted{chainregistry::ExtractTransactionOperation(tx, /*minimum_registration_burn=*/0)};
+    if (!extracted.IsValid() || !extracted.operation) return std::nullopt;
+
+    if (const auto* registration{std::get_if<chainregistry::RegisterChain>(
+            &extracted.operation->operation)}) {
+        return registration->control_output;
+    }
+    if (const auto* update{std::get_if<chainregistry::UpdateChain>(
+            &extracted.operation->operation)}) {
+        return update->control_output;
+    }
+    return std::nullopt;
+}
 
 /** Get the size of an input (in witness units) once it's signed.
  *
@@ -204,6 +224,12 @@ util::Result<CoinsResult> FetchSelectedInputs(const CWallet& wallet, const CCoin
         }
         CTxOut txout;
         if (auto txo = wallet.GetTXO(outpoint)) {
+            if (!coin_control.m_allow_chain_registry_control_input &&
+                GetChainRegistryControlOutput(*txo->GetWalletTx().tx) == outpoint.n) {
+                return util::Error{strprintf(
+                    _("Pre-selected input %s is reserved as a child-chain registry control output"),
+                    outpoint.ToString())};
+            }
             txout = txo->GetTxOut();
             if (input_bytes == -1) {
                 input_bytes = CalculateMaximumSignedInputSize(txout, &wallet, &coin_control);
@@ -258,9 +284,14 @@ CoinsResult AvailableCoins(const CWallet& wallet,
     std::set<Txid> trusted_parents;
     // Cache for whether each tx passes the tx level checks (first bool), and whether the transaction is "safe" (second bool)
     std::unordered_map<Txid, std::pair<bool, bool>, SaltedTxidHasher> tx_safe_cache;
+    std::unordered_map<Txid, std::optional<uint32_t>, SaltedTxidHasher> registry_control_cache;
     for (const auto& [outpoint, txo] : wallet.GetTXOs()) {
         const CWalletTx& wtx = txo.GetWalletTx();
         const CTxOut& output = txo.GetTxOut();
+
+        const auto [control_it, inserted]{registry_control_cache.try_emplace(outpoint.hash)};
+        if (inserted) control_it->second = GetChainRegistryControlOutput(*wtx.tx);
+        if (control_it->second == outpoint.n) continue;
 
         if (tx_safe_cache.contains(outpoint.hash) && !tx_safe_cache.at(outpoint.hash).first) {
             continue;

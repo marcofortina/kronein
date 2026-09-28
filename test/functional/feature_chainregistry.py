@@ -246,6 +246,23 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert "inclusion_proof" in registered
         registered_info = node.getchainregistryinfo()
 
+        self.log.info("Reserve registry control outputs from ordinary wallet spending")
+        control_outpoint = {"txid": registration_txid, "vout": 1}
+        assert_raises_rpc_error(
+            -4, "reserved as a child-chain registry control output",
+            wallet.walletcreatefundedpsbt,
+            [control_outpoint],
+            [{wallet.getnewaddress(): Decimal("0.00001000")}],
+            0,
+            {"add_inputs": False, "fee_rate": 1})
+        funding_probe = wallet.walletcreatefundchainpsbt(
+            chain_id, 1, "41" * 32, Decimal("0.01000000"), {"fee_rate": 1})
+        decoded_probe = node.decodepsbt(funding_probe["psbt"])["tx"]
+        assert control_outpoint not in [
+            {"txid": txin["txid"], "vout": txin["vout"]}
+            for txin in decoded_probe["vin"]
+        ]
+
         self.log.info("Configure and exercise the opt-in child runtime lifecycle")
         runtimes = node.listchildchainruntimes()
         assert_equal(len(runtimes["chains"]), 1)

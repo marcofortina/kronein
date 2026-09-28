@@ -105,6 +105,9 @@ public:
     std::optional<uint32_t> m_locktime;
     //! Caps weight of resulting tx
     std::optional<int> m_max_tx_weight{std::nullopt};
+    //! Allow an explicitly selected child-chain registry control input.
+    //! Automatic coin selection never spends registry control outputs.
+    bool m_allow_chain_registry_control_input{false};
 
     CCoinControl();
 

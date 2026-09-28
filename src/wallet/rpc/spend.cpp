@@ -2335,6 +2335,7 @@ RPCHelpMan walletcreatechainregistrypsbt()
     raw_tx.vin.emplace_back(authority_outpoint);
     CCoinControl coin_control;
     coin_control.m_allow_other_inputs = true;
+    coin_control.m_allow_chain_registry_control_input = true;
     coin_control.Select(authority_outpoint).SetPosition(0);
     auto tx_result{FundTransaction(wallet, raw_tx, recipients, options, coin_control,
                                    /*override_min_fee=*/true)};
