@@ -413,6 +413,14 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(child_tx_stats["window_final_block_height"], 0)
         assert_equal(child_tx_stats["window_block_count"], 0)
         assert_equal(child_tx_stats["txcount"], 0)
+        for waited in [
+            node.waitfornewblock(1, reference_child["genesis_hash"], chain_id),
+            node.waitforblock("33" * 32, 1, chain_id),
+            node.waitforblockheight(1, 1, chain_id),
+        ]:
+            assert_equal(waited["chain_id"], chain_id)
+            assert_equal(waited["hash"], reference_child["genesis_hash"])
+            assert_equal(waited["height"], 0)
         assert_equal(node.getblockcount(), main_height)
         assert_equal(node.getbestblockhash(), main_tip)
         assert_raises_rpc_error(-8, "Block height out of range",

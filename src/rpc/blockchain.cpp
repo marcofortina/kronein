@@ -92,13 +92,9 @@ static chainregistry::ChainId ParseChainId(std::string_view value)
     return *chain_id;
 }
 
-static node::ChainManagerView GetLoadedChildChainView(
-    const std::any& context,
-    std::string_view chain_id,
-    std::optional<int> height = std::nullopt)
+static node::ChainManagerView CheckedLoadedChildChainView(
+    node::ChainManagerView view)
 {
-    const auto view{EnsureAnyChildChainman(context).GetChainView(
-        ParseChainId(chain_id), height)};
     switch (view.error) {
     case node::ChainManagerViewError::NONE:
         return view;
@@ -114,6 +110,37 @@ static node::ChainManagerView GetLoadedChildChainView(
     }
     throw JSONRPCError(RPC_INTERNAL_ERROR,
                        "unhandled child chain view error");
+}
+
+static node::ChainManagerView GetLoadedChildChainView(
+    const std::any& context,
+    std::string_view chain_id,
+    std::optional<int> height = std::nullopt)
+{
+    return CheckedLoadedChildChainView(
+        EnsureAnyChildChainman(context).GetChainView(
+            ParseChainId(chain_id), height));
+}
+
+static node::ChainManagerWaitResult WaitForLoadedChildTip(
+    const std::any& context,
+    std::string_view chain_id,
+    std::optional<uint256> current_tip,
+    std::optional<std::chrono::milliseconds> timeout)
+{
+    auto result{EnsureAnyChildChainman(context).WaitForTipChanged(
+        ParseChainId(chain_id), current_tip, timeout)};
+    result.view = CheckedLoadedChildChainView(std::move(result.view));
+    return result;
+}
+
+static UniValue ChildTipWaitResult(const node::ChainManagerView& view)
+{
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("hash", view.entry.tip.GetHex());
+    result.pushKV("height", view.entry.height);
+    result.pushKV("chain_id", view.entry.chain_id.GetHex());
+    return result;
 }
 
 node::ChainManagerBlockView GetLoadedChildBlockView(
@@ -651,21 +678,26 @@ static RPCHelpMan waitfornewblock()
     return RPCHelpMan{
         "waitfornewblock",
         "Waits for any new block and returns useful info about it.\n"
+                "Omit chain_id for the main chain.\n"
                 "\nReturns the current block on timeout or exit.\n"
                 "\nMake sure to use no RPC timeout (kronein-cli -rpcclienttimeout=0)",
                 {
                     {"timeout", RPCArg::Type::NUM, RPCArg::Default{0}, "Time in milliseconds to wait for a response. 0 indicates no timeout."},
                     {"current_tip", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Method waits for the chain tip to differ from this."},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
                     {
                         {RPCResult::Type::STR_HEX, "hash", "The blockhash"},
                         {RPCResult::Type::NUM, "height", "Block height"},
+                        {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Child-chain identifier; present only for child results"},
                     }},
                 RPCExamples{
                     HelpExampleCli("waitfornewblock", "1000")
+            + HelpExampleCli("waitfornewblock", "1000 \"current_tip\" \"chain_id\"")
             + HelpExampleRpc("waitfornewblock", "1000")
+            + HelpExampleRpc("waitfornewblock", "1000, \"current_tip\", \"chain_id\"")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -673,6 +705,22 @@ static RPCHelpMan waitfornewblock()
     if (!request.params[0].isNull())
         timeout = request.params[0].getInt<int>();
     if (timeout < 0) throw JSONRPCError(RPC_MISC_ERROR, "Negative timeout");
+
+    if (const auto chain_id{self.MaybeArg<std::string_view>("chain_id")}) {
+        const std::optional<uint256> current_tip{request.params[1].isNull()
+            ? std::nullopt
+            : std::optional<uint256>{
+                  ParseHashV(request.params[1], "current_tip")}};
+        return ChildTipWaitResult(
+            WaitForLoadedChildTip(
+                request.context,
+                *chain_id,
+                current_tip,
+                timeout == 0
+                    ? std::nullopt
+                    : std::optional<std::chrono::milliseconds>{timeout})
+                .view);
+    }
 
     NodeContext& node = EnsureAnyNodeContext(request.context);
     Mining& miner = EnsureMining(node);
@@ -710,21 +758,26 @@ static RPCHelpMan waitforblock()
     return RPCHelpMan{
         "waitforblock",
         "Waits for a specific new block and returns useful info about it.\n"
+                "Omit chain_id for the main chain.\n"
                 "\nReturns the current block on timeout or exit.\n"
                 "\nMake sure to use no RPC timeout (kronein-cli -rpcclienttimeout=0)",
                 {
                     {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Block hash to wait for."},
                     {"timeout", RPCArg::Type::NUM, RPCArg::Default{0}, "Time in milliseconds to wait for a response. 0 indicates no timeout."},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
                     {
                         {RPCResult::Type::STR_HEX, "hash", "The blockhash"},
                         {RPCResult::Type::NUM, "height", "Block height"},
+                        {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Child-chain identifier; present only for child results"},
                     }},
                 RPCExamples{
                     HelpExampleCli("waitforblock", "\"0000000000079f8ef3d2c688c244eb7a4570b24c9ed7b4a8c619eb02596f8862\" 1000")
+            + HelpExampleCli("waitforblock", "\"childblockhash\" 1000 \"chain_id\"")
             + HelpExampleRpc("waitforblock", "\"0000000000079f8ef3d2c688c244eb7a4570b24c9ed7b4a8c619eb02596f8862\", 1000")
+            + HelpExampleRpc("waitforblock", "\"childblockhash\", 1000, \"chain_id\"")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -735,6 +788,29 @@ static RPCHelpMan waitforblock()
     if (!request.params[1].isNull())
         timeout = request.params[1].getInt<int>();
     if (timeout < 0) throw JSONRPCError(RPC_MISC_ERROR, "Negative timeout");
+
+    if (const auto chain_id{self.MaybeArg<std::string_view>("chain_id")}) {
+        auto current{GetLoadedChildChainView(request.context, *chain_id)};
+        const auto deadline{
+            std::chrono::steady_clock::now() + 1ms * timeout};
+        while (current.entry.tip != hash) {
+            std::optional<std::chrono::milliseconds> remaining;
+            if (timeout) {
+                const auto now{std::chrono::steady_clock::now()};
+                if (now >= deadline) break;
+                remaining = std::chrono::ceil<std::chrono::milliseconds>(
+                    deadline - now);
+            }
+            auto waited{WaitForLoadedChildTip(
+                request.context,
+                *chain_id,
+                current.entry.tip,
+                remaining)};
+            current = std::move(waited.view);
+            if (waited.interrupted) break;
+        }
+        return ChildTipWaitResult(current);
+    }
 
     NodeContext& node = EnsureAnyNodeContext(request.context);
     Mining& miner = EnsureMining(node);
@@ -772,21 +848,26 @@ static RPCHelpMan waitforblockheight()
         "waitforblockheight",
         "Waits for (at least) block height and returns the height and hash\n"
                 "of the current tip.\n"
+                "Omit chain_id for the main chain.\n"
                 "\nReturns the current block on timeout or exit.\n"
                 "\nMake sure to use no RPC timeout (kronein-cli -rpcclienttimeout=0)",
                 {
                     {"height", RPCArg::Type::NUM, RPCArg::Optional::NO, "Block height to wait for."},
                     {"timeout", RPCArg::Type::NUM, RPCArg::Default{0}, "Time in milliseconds to wait for a response. 0 indicates no timeout."},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
                     {
                         {RPCResult::Type::STR_HEX, "hash", "The blockhash"},
                         {RPCResult::Type::NUM, "height", "Block height"},
+                        {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Child-chain identifier; present only for child results"},
                     }},
                 RPCExamples{
                     HelpExampleCli("waitforblockheight", "100 1000")
+            + HelpExampleCli("waitforblockheight", "100 1000 \"chain_id\"")
             + HelpExampleRpc("waitforblockheight", "100, 1000")
+            + HelpExampleRpc("waitforblockheight", "100, 1000, \"chain_id\"")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -797,6 +878,29 @@ static RPCHelpMan waitforblockheight()
     if (!request.params[1].isNull())
         timeout = request.params[1].getInt<int>();
     if (timeout < 0) throw JSONRPCError(RPC_MISC_ERROR, "Negative timeout");
+
+    if (const auto chain_id{self.MaybeArg<std::string_view>("chain_id")}) {
+        auto current{GetLoadedChildChainView(request.context, *chain_id)};
+        const auto deadline{
+            std::chrono::steady_clock::now() + 1ms * timeout};
+        while (static_cast<int64_t>(current.entry.height) < height) {
+            std::optional<std::chrono::milliseconds> remaining;
+            if (timeout) {
+                const auto now{std::chrono::steady_clock::now()};
+                if (now >= deadline) break;
+                remaining = std::chrono::ceil<std::chrono::milliseconds>(
+                    deadline - now);
+            }
+            auto waited{WaitForLoadedChildTip(
+                request.context,
+                *chain_id,
+                current.entry.tip,
+                remaining)};
+            current = std::move(waited.view);
+            if (waited.interrupted) break;
+        }
+        return ChildTipWaitResult(current);
+    }
 
     NodeContext& node = EnsureAnyNodeContext(request.context);
     Mining& miner = EnsureMining(node);

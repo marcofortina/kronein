@@ -14,6 +14,8 @@
 #include <sync.h>
 #include <util/fs.h>
 
+#include <chrono>
+#include <condition_variable>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -111,6 +113,13 @@ struct ChainManagerView {
     std::optional<uint256> block_hash;
 
     bool IsValid() const { return error == ChainManagerViewError::NONE; }
+};
+
+struct ChainManagerWaitResult {
+    ChainManagerView view;
+    bool interrupted{false};
+
+    bool IsValid() const { return view.IsValid(); }
 };
 
 enum class ChainManagerBlockViewError : uint8_t {
@@ -237,6 +246,12 @@ private:
     std::map<chainregistry::ChainId,
              std::unique_ptr<ReferenceChildRuntime>> m_loaded
         GUARDED_BY(m_mutex);
+    std::condition_variable m_tip_changed_cv GUARDED_BY(m_mutex);
+    bool m_interrupt_waits GUARDED_BY(m_mutex){false};
+    ChainManagerView GetChainViewLocked(
+        const chainregistry::ChainId& chain_id,
+        std::optional<int> height = std::nullopt) const
+        EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
     ChainManagerBlockView GetBlockViewLocked(
         const chainregistry::ChainId& chain_id,
         const uint256& block_hash) const
@@ -305,6 +320,11 @@ public:
     ChainManagerView GetChainView(
         const chainregistry::ChainId& chain_id,
         std::optional<int> height = std::nullopt) const;
+    ChainManagerWaitResult WaitForTipChanged(
+        const chainregistry::ChainId& chain_id,
+        std::optional<uint256> current_tip,
+        std::optional<std::chrono::milliseconds> timeout = std::nullopt);
+    void InterruptWaits();
     ChainManagerBlockView GetBlockView(
         const chainregistry::ChainId& chain_id,
         const uint256& block_hash) const;

@@ -25,6 +25,7 @@
 #include <util/time.h>
 
 #include <any>
+#include <future>
 #include <string_view>
 
 #include <boost/test/unit_test.hpp>
@@ -278,6 +279,17 @@ BOOST_AUTO_TEST_CASE(blockchain_rpc_routes_explicit_child_chain)
                       definition.genesis_hash.GetHex());
     BOOST_CHECK_EQUAL(CallRPC("getblockhash 0 " + chain_id).get_str(),
                       definition.genesis_hash.GetHex());
+    for (const std::string& command : {
+             "waitfornewblock 1 " + definition.genesis_hash.GetHex() + " " + chain_id,
+             "waitforblock " + std::string(64, '2') + " 1 " + chain_id,
+             "waitforblockheight 1 1 " + chain_id}) {
+        const auto waited{CallRPC(command)};
+        BOOST_CHECK_EQUAL(waited.find_value("chain_id").get_str(), chain_id);
+        BOOST_CHECK_EQUAL(
+            waited.find_value("hash").get_str(),
+            definition.genesis_hash.GetHex());
+        BOOST_CHECK_EQUAL(waited.find_value("height").getInt<int>(), 0);
+    }
     const auto child_info{CallRPC("getblockchaininfo " + chain_id)};
     BOOST_CHECK_EQUAL(child_info.find_value("chain").get_str(), "child");
     BOOST_CHECK_EQUAL(child_info.find_value("chain_id").get_str(), chain_id);
@@ -542,6 +554,13 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
         1);
     BOOST_CHECK_EQUAL(
         pending_blocks[0].find_value("anchor_count").getInt<int>(), 1);
+    std::promise<void> waiter_started;
+    auto waiter_ready{waiter_started.get_future()};
+    auto height_waiter{std::async(std::launch::async, [&] {
+        waiter_started.set_value();
+        return CallRPC("waitforblockheight 1 10000 " + chain_id);
+    })};
+    waiter_ready.wait();
     const auto submitted{CallRPC(
         "submitchildblock " + chain_id + " " + child_block_hex)};
     BOOST_CHECK(submitted.find_value("accepted").get_bool());
@@ -553,6 +572,27 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
                       child_block.GetHash().GetHex());
     BOOST_CHECK(submitted.find_value("pruned").isArray());
     BOOST_CHECK_EQUAL(submitted.find_value("pruned").size(), 0U);
+    BOOST_REQUIRE(
+        height_waiter.wait_for(std::chrono::seconds{5}) ==
+        std::future_status::ready);
+    const auto waited_height{height_waiter.get()};
+    BOOST_CHECK_EQUAL(waited_height.find_value("chain_id").get_str(), chain_id);
+    BOOST_CHECK_EQUAL(
+        waited_height.find_value("hash").get_str(),
+        child_block.GetHash().GetHex());
+    BOOST_CHECK_EQUAL(waited_height.find_value("height").getInt<int>(), 1);
+    const auto waited_block{CallRPC(
+        "waitforblock " + child_block.GetHash().GetHex() + " 1 " +
+        chain_id)};
+    BOOST_CHECK_EQUAL(
+        waited_block.find_value("hash").get_str(),
+        child_block.GetHash().GetHex());
+    const auto waited_new_block{CallRPC(
+        "waitfornewblock 1 " + definition.genesis_hash.GetHex() + " " +
+        chain_id)};
+    BOOST_CHECK_EQUAL(
+        waited_new_block.find_value("hash").get_str(),
+        child_block.GetHash().GetHex());
     const auto recovered{CallRPC("getchildpendingblocks " + chain_id)};
     BOOST_CHECK_EQUAL(recovered.find_value("block_count").getInt<int>(), 0);
     BOOST_CHECK_EQUAL(recovered.find_value("anchor_count").getInt<int>(), 0);

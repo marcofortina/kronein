@@ -13,6 +13,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include <array>
+#include <future>
 #include <thread>
 #include <vector>
 
@@ -351,6 +352,31 @@ BOOST_AUTO_TEST_CASE(serializes_child_submission_through_loaded_runtime)
                 node::ChainManagerError::RUNTIME_REJECTED);
     BOOST_CHECK(unavailable_block.runtime.error ==
                 node::ReferenceChildRuntimeError::BMM_ANCHOR_UNAVAILABLE);
+
+    BOOST_CHECK(
+        manager.WaitForTipChanged(
+            unknown.chain_id,
+            std::nullopt,
+            std::chrono::milliseconds{1}).view.error ==
+        node::ChainManagerViewError::UNKNOWN_CHAIN);
+    std::promise<void> waiter_started;
+    auto waiter_ready{waiter_started.get_future()};
+    auto waiter{std::async(std::launch::async, [&] {
+        waiter_started.set_value();
+        return manager.WaitForTipChanged(
+            definition.chain_id,
+            definition.genesis_hash,
+            std::nullopt);
+    })};
+    waiter_ready.wait();
+    manager.InterruptWaits();
+    BOOST_REQUIRE(
+        waiter.wait_for(std::chrono::seconds{5}) ==
+        std::future_status::ready);
+    const auto interrupted{waiter.get()};
+    BOOST_REQUIRE(interrupted.IsValid());
+    BOOST_CHECK(interrupted.interrupted);
+    BOOST_CHECK(interrupted.view.entry.tip == definition.genesis_hash);
 }
 
 BOOST_AUTO_TEST_CASE(rejects_catalog_from_another_main_network)

@@ -173,6 +173,7 @@ ChainManagerResult ChainManager::LoadChain(
         return result;
     }
     m_loaded.emplace(chain_id, std::move(runtime));
+    m_tip_changed_cv.notify_all();
     return result;
 }
 
@@ -192,6 +193,7 @@ ChainManagerResult ChainManager::UnloadChain(
     if (m_loaded.erase(chain_id) == 0) {
         return ManagerError(ChainManagerError::CHAIN_NOT_LOADED);
     }
+    m_tip_changed_cv.notify_all();
     return {};
 }
 
@@ -219,10 +221,13 @@ ChainManagerResult ChainManager::StageBmmAnchor(
         result.error = ChainManagerError::CHAIN_NOT_LOADED;
         return result;
     }
+    const uint256 old_tip{runtime->second->Tip()->GetBlockHash()};
     result.runtime = runtime->second->StageBmmAnchor(
         anchor_proof, current_time, sync);
     if (!result.runtime.IsValid()) {
         result.error = ChainManagerError::RUNTIME_REJECTED;
+    } else if (runtime->second->Tip()->GetBlockHash() != old_tip) {
+        m_tip_changed_cv.notify_all();
     }
     return result;
 }
@@ -252,10 +257,13 @@ ChainManagerResult ChainManager::SubmitBlock(
         result.error = ChainManagerError::CHAIN_NOT_LOADED;
         return result;
     }
+    const uint256 old_tip{runtime->second->Tip()->GetBlockHash()};
     result.runtime = runtime->second->ConnectBlock(
         block, anchor_proof, current_time, sync);
     if (!result.runtime.IsValid()) {
         result.error = ChainManagerError::RUNTIME_REJECTED;
+    } else if (runtime->second->Tip()->GetBlockHash() != old_tip) {
+        m_tip_changed_cv.notify_all();
     }
     return result;
 }
@@ -284,10 +292,13 @@ ChainManagerResult ChainManager::SubmitBlockData(
         result.error = ChainManagerError::CHAIN_NOT_LOADED;
         return result;
     }
+    const uint256 old_tip{runtime->second->Tip()->GetBlockHash()};
     result.runtime = runtime->second->ConnectStagedBlock(
         block, current_time, sync);
     if (!result.runtime.IsValid()) {
         result.error = ChainManagerError::RUNTIME_REJECTED;
+    } else if (runtime->second->Tip()->GetBlockHash() != old_tip) {
+        m_tip_changed_cv.notify_all();
     }
     return result;
 }
@@ -299,7 +310,9 @@ ChainManagerMainUpdate ChainManager::AddMainHeader(
 {
     LOCK(m_mutex);
     ChainManagerMainUpdate update;
+    bool tip_changed{false};
     for (auto entry{m_loaded.begin()}; entry != m_loaded.end();) {
+        const uint256 old_tip{entry->second->Tip()->GetBlockHash()};
         const auto advanced{
             entry->second->AddValidatedMainHeader(
                 header, current_time, sync)};
@@ -310,13 +323,16 @@ ChainManagerMainUpdate ChainManager::AddMainHeader(
                 .runtime_error = advanced.error,
             });
             entry = m_loaded.erase(entry);
+            tip_changed = true;
             continue;
         }
         if (!advanced.main_header.already_known) {
             update.advanced.push_back(entry->first);
         }
+        tip_changed |= entry->second->Tip()->GetBlockHash() != old_tip;
         ++entry;
     }
+    if (tip_changed) m_tip_changed_cv.notify_all();
     return update;
 }
 
@@ -328,12 +344,14 @@ ChainManagerMainUpdate ChainManager::SynchronizeMainChain(
 {
     LOCK(m_mutex);
     ChainManagerMainUpdate update;
+    bool tip_changed{false};
     for (auto entry{m_loaded.begin()}; entry != m_loaded.end();) {
         auto& runtime{*entry->second};
         if (runtime.MainHeaders()->Tip()->GetBlockHash() == active_tip) {
             ++entry;
             continue;
         }
+        const uint256 old_tip{runtime.Tip()->GetBlockHash()};
         ReferenceChildRuntimeResult result;
         for (const CBlockHeader& header : active_headers) {
             result = runtime.AddValidatedMainHeader(
@@ -351,11 +369,14 @@ ChainManagerMainUpdate ChainManager::SynchronizeMainChain(
                 .runtime_error = result.error,
             });
             entry = m_loaded.erase(entry);
+            tip_changed = true;
             continue;
         }
         update.advanced.push_back(entry->first);
+        tip_changed |= runtime.Tip()->GetBlockHash() != old_tip;
         ++entry;
     }
+    if (tip_changed) m_tip_changed_cv.notify_all();
     return update;
 }
 
@@ -365,6 +386,7 @@ ChainManagerMainUpdate ChainManager::ReconcileRegistry(
 {
     LOCK(m_mutex);
     ChainManagerMainUpdate update;
+    bool unloaded{false};
     for (auto entry{m_loaded.begin()}; entry != m_loaded.end();) {
         const auto record{records.find(entry->first)};
         std::optional<ChainManagerUnloadReason> reason;
@@ -386,10 +408,12 @@ ChainManagerMainUpdate ChainManager::ReconcileRegistry(
                 .reason = *reason,
             });
             entry = m_loaded.erase(entry);
+            unloaded = true;
             continue;
         }
         ++entry;
     }
+    if (unloaded) m_tip_changed_cv.notify_all();
     return update;
 }
 
@@ -444,6 +468,14 @@ ChainManagerView ChainManager::GetChainView(
     std::optional<int> height) const
 {
     LOCK(m_mutex);
+    return GetChainViewLocked(chain_id, height);
+}
+
+ChainManagerView ChainManager::GetChainViewLocked(
+    const chainregistry::ChainId& chain_id,
+    std::optional<int> height) const
+{
+    AssertLockHeld(m_mutex);
     ChainManagerView result;
     if (chain_id.IsNull()) {
         result.error = ChainManagerViewError::NULL_CHAIN_ID;
@@ -495,6 +527,39 @@ ChainManagerView ChainManager::GetChainView(
         }
     }
     return result;
+}
+
+ChainManagerWaitResult ChainManager::WaitForTipChanged(
+    const chainregistry::ChainId& chain_id,
+    std::optional<uint256> current_tip,
+    std::optional<std::chrono::milliseconds> timeout)
+{
+    WAIT_LOCK(m_mutex, lock);
+    ChainManagerView current{GetChainViewLocked(chain_id)};
+    if (!current.IsValid()) return {.view = std::move(current)};
+    const uint256 watched_tip{current_tip.value_or(current.entry.tip)};
+    const auto changed{[&]() EXCLUSIVE_LOCKS_REQUIRED(m_mutex) {
+        AssertLockHeld(m_mutex);
+        current = GetChainViewLocked(chain_id);
+        return m_interrupt_waits || !current.IsValid() ||
+            current.entry.tip != watched_tip;
+    }};
+    if (timeout) {
+        m_tip_changed_cv.wait_for(lock, *timeout, changed);
+    } else {
+        m_tip_changed_cv.wait(lock, changed);
+    }
+    return {
+        .view = GetChainViewLocked(chain_id),
+        .interrupted = m_interrupt_waits,
+    };
+}
+
+void ChainManager::InterruptWaits()
+{
+    LOCK(m_mutex);
+    m_interrupt_waits = true;
+    m_tip_changed_cv.notify_all();
 }
 
 ChainManagerBlockView ChainManager::GetBlockView(

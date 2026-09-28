@@ -282,6 +282,7 @@ void Interrupt(NodeContext& node)
     InterruptMapPort();
     if (node.connman)
         node.connman->Interrupt();
+    if (node.child_chainman) node.child_chainman->InterruptWaits();
     if (node.child_networkman) node.child_networkman->Interrupt();
     for (auto* index : node.indexes) {
         index->Interrupt();
