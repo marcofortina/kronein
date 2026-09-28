@@ -5,6 +5,7 @@
 
 # Wallet functionality used by kroneind and kronein-wallet executables.
 add_library(bitcoin_wallet STATIC EXCLUDE_FROM_ALL
+  child_derivation.cpp
   coincontrol.cpp
   coinselection.cpp
   context.cpp
