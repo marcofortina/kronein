@@ -186,6 +186,22 @@ const chainregistry::ChildBlockHashes& OutboundHashes(
     return std::get<chainregistry::ChildBlockHashes>(outbound.message);
 }
 
+chainregistry::ChildBlockHashes BlockRequest(
+    const chainregistry::ChainId& chain_id,
+    uint64_t first,
+    size_t count)
+{
+    chainregistry::ChildBlockHashes request{
+        .chain_id = chain_id,
+        .block_hashes = {},
+    };
+    request.block_hashes.reserve(count);
+    for (size_t index{0}; index < count; ++index) {
+        request.block_hashes.emplace_back(first + index);
+    }
+    return request;
+}
+
 } // namespace
 
 BOOST_FIXTURE_TEST_SUITE(
@@ -257,6 +273,69 @@ BOOST_AUTO_TEST_CASE(requires_full_child_handshake)
         node::ChildNetProcessorError::UNAUTHENTICATED_BLOCK);
     BOOST_CHECK(unanchored.disconnect);
     BOOST_CHECK_EQUAL(processor.Downloads().CandidateCount(), 0U);
+}
+
+BOOST_AUTO_TEST_CASE(rate_limits_block_hash_requests_per_peer)
+{
+    const auto definition{Definition()};
+    node::ChainManager manager{
+        Params().GetConsensus(),
+        Params().GenesisBlock(),
+        m_args.GetDataDirBase() / "child_net_request_rate",
+        1 << 20};
+    BOOST_REQUIRE(manager.RegisterChain(definition).IsValid());
+    BOOST_REQUIRE(manager.LoadChain(
+        definition.chain_id,
+        Params().GenesisBlock().nTime,
+        /*wipe_data=*/true,
+        /*sync=*/true).IsValid());
+
+    node::ChildNetProcessor processor{manager, definition};
+    const chainregistry::ChildNetHello hello{
+        .chain_id = definition.chain_id,
+        .genesis_hash = definition.genesis_hash,
+    };
+    BOOST_REQUIRE(processor.Connected(7, 123).IsValid());
+    BOOST_REQUIRE(processor.ReceiveHello(7, hello).IsValid());
+
+    const node::ChildRequestTime start{0};
+    const auto full_request{BlockRequest(
+        definition.chain_id,
+        /*first=*/1,
+        chainregistry::MAX_CHILD_BLOCK_REQUEST_HASHES)};
+    for (uint64_t batch{0}; batch < 4; ++batch) {
+        const auto accepted{processor.ReceiveGetBlocks(
+            7,
+            BlockRequest(
+                definition.chain_id,
+                1 + batch * chainregistry::MAX_CHILD_BLOCK_REQUEST_HASHES,
+                chainregistry::MAX_CHILD_BLOCK_REQUEST_HASHES),
+            start)};
+        BOOST_CHECK(accepted.IsValid());
+        BOOST_CHECK(accepted.outbound.empty());
+    }
+    const auto limited{processor.ReceiveGetBlocks(7, full_request, start)};
+    BOOST_CHECK(
+        limited.error ==
+        node::ChildNetProcessorError::REQUEST_RATE_LIMITED);
+    BOOST_CHECK(limited.disconnect);
+
+    BOOST_REQUIRE(processor.Connected(8, 456).IsValid());
+    BOOST_REQUIRE(processor.ReceiveHello(8, hello).IsValid());
+    for (uint64_t batch{0}; batch < 4; ++batch) {
+        BOOST_REQUIRE(processor.ReceiveGetBlocks(
+            8,
+            BlockRequest(
+                definition.chain_id,
+                100 + batch * chainregistry::MAX_CHILD_BLOCK_REQUEST_HASHES,
+                chainregistry::MAX_CHILD_BLOCK_REQUEST_HASHES),
+            start).IsValid());
+    }
+    const auto refilled{processor.ReceiveGetBlocks(
+        8,
+        BlockRequest(definition.chain_id, 200, 1),
+        start + node::CHILD_GETBLOCKS_REFILL_INTERVAL)};
+    BOOST_CHECK(refilled.IsValid());
 }
 
 BOOST_AUTO_TEST_CASE(downloads_parent_before_connecting_deferred_child)

@@ -25,6 +25,9 @@ inline constexpr size_t MAX_DEFERRED_CHILD_BLOCK_BYTES{64 << 20};
 inline constexpr ChildRequestTime DEFERRED_CHILD_BLOCK_TIMEOUT{
     std::chrono::minutes{2}};
 inline constexpr size_t MAX_CHILD_BLOCK_RESPONSE_BYTES{16 << 20};
+inline constexpr uint64_t MAX_CHILD_GETBLOCKS_BURST_HASHES{64};
+inline constexpr ChildRequestTime CHILD_GETBLOCKS_REFILL_INTERVAL{
+    std::chrono::milliseconds{250}};
 
 using ChildNetMessage = std::variant<
     chainregistry::ChildNetHello,
@@ -54,6 +57,7 @@ enum class ChildNetProcessorError : uint8_t {
     INVALID_DEFINITION,
     UNAUTHENTICATED_BLOCK,
     DOWNLOAD_REJECTED,
+    REQUEST_RATE_LIMITED,
     DEFERRED_CACHE_FULL,
     BLOCK_REJECTED,
 };
@@ -88,6 +92,8 @@ class ChildNetProcessor
 private:
     struct PeerState {
         bool handshaken{false};
+        uint64_t block_request_tokens{MAX_CHILD_GETBLOCKS_BURST_HASHES};
+        std::optional<ChildRequestTime> block_request_refill_time;
     };
 
     struct DeferredBlock {
@@ -137,7 +143,8 @@ public:
         ChildRequestTime now);
     ChildNetProcessorResult ReceiveGetBlocks(
         ChildPeerId peer,
-        const chainregistry::ChildBlockHashes& request);
+        const chainregistry::ChildBlockHashes& request,
+        ChildRequestTime now);
     ChildNetProcessorResult ReceiveBlock(
         ChildPeerId peer,
         const chainregistry::ChildBlockData& data,

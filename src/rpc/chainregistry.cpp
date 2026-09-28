@@ -599,6 +599,8 @@ void PushChildNetworkStats(UniValue& object,
     object.pushKV("network_active", stats.network_active);
     object.pushKV("connections", stats.connections);
     object.pushKV("handshaken_peers", stats.handshaken);
+    object.pushKV(
+        "rate_limited_block_requests", stats.rate_limited_requests);
     UniValue added_nodes{UniValue::VARR};
     for (const auto& endpoint : stats.added_nodes) {
         added_nodes.push_back(endpoint);
@@ -1122,6 +1124,7 @@ RPCHelpMan listchildchainruntimes()
                     {RPCResult::Type::BOOL, "network_active", "Whether new child-network connections are enabled"},
                     {RPCResult::Type::NUM, "connections", "Current child-network connection count"},
                     {RPCResult::Type::NUM, "handshaken_peers", "Authenticated peers serving this exact child chain"},
+                    {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
                     {RPCResult::Type::ARR, "added_nodes", "Explicit child endpoints", {
                         {RPCResult::Type::STR, "", "Host and explicit port"},
                     }},
@@ -1282,6 +1285,7 @@ RPCHelpMan loadchildchain()
             {RPCResult::Type::BOOL, "network_active", "Whether new child-network connections are enabled"},
             {RPCResult::Type::NUM, "connections", "Current child-network connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Authenticated peers serving this exact child chain"},
+            {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
             {RPCResult::Type::ARR, "added_nodes", "Explicit child endpoints", {
                 {RPCResult::Type::STR, "", "Host and explicit port"},
             }},
@@ -1426,6 +1430,7 @@ RPCHelpMan getchildnetworkinfo()
             {RPCResult::Type::BOOL, "network_active", "Whether new child-network connections are enabled"},
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
+            {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
             {RPCResult::Type::NUM, "max_added_nodes", "Maximum number of explicit endpoints"},
             {RPCResult::Type::NUM, "max_bind_endpoints", "Maximum number of child listen endpoints"},
             {RPCResult::Type::NUM, "aggregate_upload_target", "Process-wide child block-serving target in bytes per cycle; zero means unlimited"},
@@ -1477,6 +1482,7 @@ RPCHelpMan addchildnode()
             {RPCResult::Type::BOOL, "network_active", "Whether new child-network connections are enabled"},
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
+            {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
             {RPCResult::Type::ARR, "added_nodes", "Persistent explicit endpoints", {
                 {RPCResult::Type::STR, "", "Host and explicit port"},
             }},
@@ -1518,6 +1524,7 @@ RPCHelpMan removechildnode()
             {RPCResult::Type::BOOL, "network_active", "Whether new child-network connections are enabled"},
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
+            {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
             {RPCResult::Type::ARR, "added_nodes", "Persistent explicit endpoints", {
                 {RPCResult::Type::STR, "", "Host and explicit port"},
             }},
@@ -1559,6 +1566,7 @@ RPCHelpMan setchildnetworkactive()
             {RPCResult::Type::BOOL, "network_active", "Whether new child-network connections are enabled"},
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
+            {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
             {RPCResult::Type::ARR, "added_nodes", "Persistent explicit endpoints", {
                 {RPCResult::Type::STR, "", "Host and explicit port"},
             }},
@@ -1603,6 +1611,7 @@ RPCHelpMan setchildnetworkbinds()
             {RPCResult::Type::BOOL, "network_active", "Whether new child-network connections are enabled"},
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
+            {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
             {RPCResult::Type::ARR, "added_nodes", "Persistent explicit endpoints", {
                 {RPCResult::Type::STR, "", "Host and explicit port"},
             }},

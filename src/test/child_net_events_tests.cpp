@@ -114,6 +114,38 @@ BOOST_AUTO_TEST_CASE(adapts_only_the_isolated_child_protocol)
     BOOST_CHECK(peer.fSuccessfullyConnected);
     BOOST_CHECK(!peer.fDisconnect);
 
+    chainregistry::ChildBlockHashes block_request{
+        .chain_id = definition.chain_id,
+        .block_hashes = {},
+    };
+    for (uint64_t value{1};
+         value <= chainregistry::MAX_CHILD_BLOCK_REQUEST_HASHES;
+         ++value) {
+        block_request.block_hashes.emplace_back(value);
+    }
+    for (int request{0}; request < 4; ++request) {
+        BOOST_REQUIRE(connman.ReceiveMsgFrom(
+            peer,
+            NetMsg::Make(
+                std::string{chainregistry::ChildNetMsgType::GET_BLOCKS},
+                block_request)));
+        LOCK(NetEventsInterface::g_msgproc_mutex);
+        connman.ProcessMessagesOnce(peer);
+        BOOST_CHECK(!peer.fDisconnect);
+    }
+    BOOST_REQUIRE(connman.ReceiveMsgFrom(
+        peer,
+        NetMsg::Make(
+            std::string{chainregistry::ChildNetMsgType::GET_BLOCKS},
+            block_request)));
+    {
+        LOCK(NetEventsInterface::g_msgproc_mutex);
+        connman.ProcessMessagesOnce(peer);
+    }
+    BOOST_CHECK(peer.fDisconnect);
+    BOOST_CHECK_EQUAL(events.RateLimitedRequests(), 1U);
+    peer.fDisconnect = false;
+
     BOOST_REQUIRE(connman.ReceiveMsgFrom(
         peer, NetMsg::Make("main-only-message", uint8_t{0})));
     {

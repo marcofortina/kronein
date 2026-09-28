@@ -239,7 +239,8 @@ ChildNetProcessorResult ChildNetProcessor::ReceiveInventory(
 
 ChildNetProcessorResult ChildNetProcessor::ReceiveGetBlocks(
     ChildPeerId peer,
-    const chainregistry::ChildBlockHashes& request)
+    const chainregistry::ChildBlockHashes& request,
+    ChildRequestTime now)
 {
     ChildNetProcessorResult result;
     if (!RequireHandshake(peer, result)) return result;
@@ -251,6 +252,36 @@ ChildNetProcessorResult ChildNetProcessor::ReceiveGetBlocks(
         result.disconnect = true;
         return result;
     }
+
+    PeerState& state{m_peers.at(peer)};
+    if (!state.block_request_refill_time) {
+        state.block_request_refill_time = now;
+    } else if (now > *state.block_request_refill_time) {
+        const auto intervals{
+            (now - *state.block_request_refill_time) /
+            CHILD_GETBLOCKS_REFILL_INTERVAL};
+        if (intervals > 0) {
+            const uint64_t refill{std::min<uint64_t>(
+                MAX_CHILD_GETBLOCKS_BURST_HASHES,
+                static_cast<uint64_t>(intervals))};
+            state.block_request_tokens = std::min(
+                MAX_CHILD_GETBLOCKS_BURST_HASHES,
+                state.block_request_tokens + refill);
+            if (state.block_request_tokens ==
+                MAX_CHILD_GETBLOCKS_BURST_HASHES) {
+                state.block_request_refill_time = now;
+            } else {
+                *state.block_request_refill_time +=
+                    CHILD_GETBLOCKS_REFILL_INTERVAL * refill;
+            }
+        }
+    }
+    if (request.block_hashes.size() > state.block_request_tokens) {
+        result.error = ChildNetProcessorError::REQUEST_RATE_LIMITED;
+        result.disconnect = true;
+        return result;
+    }
+    state.block_request_tokens -= request.block_hashes.size();
 
     size_t response_bytes{0};
     for (const uint256& hash : request.block_hashes) {

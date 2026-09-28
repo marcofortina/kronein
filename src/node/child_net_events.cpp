@@ -182,7 +182,13 @@ ChildNetProcessorResult ChildNetEvents::ProcessMessage(
             result.disconnect = true;
             return result;
         }
-        return m_processor.ReceiveGetBlocks(peer, request);
+        auto result{m_processor.ReceiveGetBlocks(
+            peer, request, RequestTimeNow())};
+        if (result.error ==
+            ChildNetProcessorError::REQUEST_RATE_LIMITED) {
+            ++m_rate_limited_requests;
+        }
+        return result;
     }
     if (message.m_type == chainregistry::ChildNetMsgType::BLOCK) {
         chainregistry::ChildBlockData block;
@@ -263,6 +269,12 @@ size_t ChildNetEvents::HandshakenPeerCount() const
 {
     LOCK(m_mutex);
     return m_processor.HandshakenPeerCount();
+}
+
+uint64_t ChildNetEvents::RateLimitedRequests() const
+{
+    LOCK(m_mutex);
+    return m_rate_limited_requests;
 }
 
 } // namespace node

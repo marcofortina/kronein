@@ -327,6 +327,7 @@ struct ChildNetworkManager::Network {
             .network_active = connman.GetNetworkActive(),
             .connections = connman.GetNodeCount(ConnectionDirection::Both),
             .handshaken = events->HandshakenPeerCount(),
+            .rate_limited_requests = events->RateLimitedRequests(),
             .added_nodes = {},
             .bind_endpoints = {},
         };

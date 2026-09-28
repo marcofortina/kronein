@@ -102,6 +102,7 @@ struct ChildNetworkStats {
     bool network_active{false};
     size_t connections{0};
     size_t handshaken{0};
+    uint64_t rate_limited_requests{0};
     std::vector<std::string> added_nodes;
     std::vector<std::string> bind_endpoints;
 };

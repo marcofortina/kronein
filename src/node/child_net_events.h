@@ -39,6 +39,7 @@ private:
     mutable Mutex m_mutex;
     ChildRequestTime m_next_poll GUARDED_BY(m_mutex){0};
     std::map<ChildPeerId, uint8_t> m_timeout_strikes GUARDED_BY(m_mutex);
+    uint64_t m_rate_limited_requests GUARDED_BY(m_mutex){0};
 
     void PushOutbound(CNode& current,
                       ChildNetOutbound&& outbound);
@@ -67,6 +68,7 @@ public:
 
     size_t PeerCount() const;
     size_t HandshakenPeerCount() const;
+    uint64_t RateLimitedRequests() const;
 };
 
 } // namespace node
