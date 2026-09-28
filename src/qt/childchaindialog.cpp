@@ -422,7 +422,7 @@ void ChildChainDialog::refresh()
                 : tr("%1 of %2").arg(GUIUtil::formatBytes(upload_bytes),
                                       GUIUtil::formatBytes(upload_target))};
         if (BoolField(result, "aggregate_upload_target_reached")) {
-            upload_summary += tr(" (limit reached)");
+            upload_summary += QStringLiteral(" ") + tr("(limit reached)");
         }
         m_registry_summary->setText(
             tr("Main-chain registry at height %1 • root %2 • %3/%4 child runtime(s) loaded • child block upload %5 • %n registered child chain(s)", nullptr, m_table->rowCount())
@@ -660,7 +660,8 @@ void ChildChainDialog::showBmmStatus(const QString& chain_id)
         details.push_back(tr("Pending child block data:"));
         for (const UniValue& block : pending.getValues()) {
             details.push_back(
-                tr("  %1 — %2 anchor(s), main heights %3–%4")
+                QStringLiteral("  ") +
+                tr("%1 — %2 anchor(s), main heights %3–%4")
                     .arg(StringField(block, "blockhash"),
                          NumberField(block, "anchor_count"),
                          NumberField(block, "oldest_anchor_height"),
@@ -672,7 +673,8 @@ void ChildChainDialog::showBmmStatus(const QString& chain_id)
         details.push_back(tr("Durable local proposals:"));
         for (const UniValue& proposal : proposals.getValues()) {
             details.push_back(
-                tr("  %1 — parent %2 — %3 bytes — %4")
+                QStringLiteral("  ") +
+                tr("%1 — parent %2 — %3 bytes — %4")
                     .arg(StringField(proposal, "blockhash"),
                          StringField(proposal, "previousblockhash"),
                          NumberField(proposal, "size"),
@@ -902,7 +904,7 @@ void ChildChainDialog::createBmmProposal(const QString& chain_id)
     auto* fee_rate = new QSpinBox{&input_dialog};
     fee_rate->setRange(1, 100000);
     fee_rate->setValue(1);
-    fee_rate->setSuffix(tr(" sat/vB"));
+    fee_rate->setSuffix(QStringLiteral(" ") + tr("sat/vB"));
     fee_rate->setToolTip(
         tr("The resulting main-chain transaction fee is the recurring BMM security bid."));
     form->addRow(tr("Child chain:"), chain);
