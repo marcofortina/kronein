@@ -122,6 +122,32 @@ struct ChildWalletHistoryPage {
     bool IsValid() const { return error == ChildWalletScanError::NONE; }
 };
 
+enum class ChildBmmStateError : uint8_t {
+    NONE,
+    NULL_CHAIN_ID,
+    UNKNOWN_CHAIN,
+    CHAIN_NOT_LOADED,
+    DATA_UNAVAILABLE,
+};
+
+/** One durable local child proposal and its authenticated anchor count. */
+struct ChildBmmProposal {
+    uint256 block_hash;
+    uint256 previous_block_hash;
+    int64_t created_time{0};
+    uint64_t anchor_count{0};
+};
+
+/** Lock-consistent child tip and proposal view used by automatic bidding. */
+struct ChildBmmState {
+    ChildBmmStateError error{ChildBmmStateError::NONE};
+    uint32_t height{0};
+    uint256 best_block;
+    std::vector<ChildBmmProposal> proposals;
+
+    bool IsValid() const { return error == ChildBmmStateError::NONE; }
+};
+
 //! Helper for findBlock to selectively return pieces of block data. If block is
 //! found, data will be returned by setting specified output variables. If block
 //! is not found, output variables will keep their previous values.
@@ -215,6 +241,10 @@ public:
         std::optional<int> start_height = std::nullopt,
         bool include_mempool = true) = 0;
 
+    //! Return one loaded child's active tip and durable BMM proposals.
+    virtual ChildBmmState getChildBmmState(
+        const chainregistry::ChainId& chain_id) = 0;
+
     //! Get block hash. Height must be valid or this function will abort.
     virtual uint256 getBlockHash(int height) = 0;
 
@@ -278,6 +308,11 @@ public:
 
     //! Check if transaction is in mempool.
     virtual bool isInMempool(const Txid& txid) = 0;
+
+    //! Check for an unconfirmed main-chain BMM anchor for one exact proposal.
+    virtual bool hasBmmAnchorInMempool(
+        const chainregistry::ChainId& chain_id,
+        const uint256& child_block_hash) = 0;
 
     //! Check if transaction has descendants in mempool.
     virtual bool hasDescendantsInMempool(const Txid& txid) = 0;

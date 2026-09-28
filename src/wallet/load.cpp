@@ -142,6 +142,7 @@ void StartWallets(WalletContext& context)
     }
 
     context.scheduler->scheduleEvery([&context] { MaybeResendWalletTxs(context); }, 1min);
+    context.scheduler->scheduleEvery([&context] { MaybeSendChildAutoBids(context); }, 1min);
 }
 
 void UnloadWallets(WalletContext& context)

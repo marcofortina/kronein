@@ -3036,6 +3036,13 @@ std::optional<ChildAutoBidPolicy> CWallet::GetChildAutoBidPolicy(
     return policy->second;
 }
 
+std::map<chainregistry::ChainId, ChildAutoBidPolicy>
+CWallet::GetChildAutoBidPolicies() const
+{
+    LOCK(cs_wallet);
+    return m_child_autobid_policies;
+}
+
 bool CWallet::SetAddressChildChain(
     WalletBatch& batch,
     const CTxDestination& dest,

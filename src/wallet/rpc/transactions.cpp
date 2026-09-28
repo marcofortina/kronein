@@ -57,8 +57,10 @@ static void WalletTxToJSON(const CWallet& wallet, const CWalletTx& wtx, UniValue
     entry.pushKV("time", wtx.GetTxTime());
     entry.pushKV("timereceived", wtx.nTimeReceived);
 
-    for (const std::pair<const std::string, std::string>& item : wtx.mapValue)
+    for (const std::pair<const std::string, std::string>& item : wtx.mapValue) {
+        if (item.first.starts_with("__")) continue;
         entry.pushKV(item.first, item.second);
+    }
 }
 
 struct tallyitem

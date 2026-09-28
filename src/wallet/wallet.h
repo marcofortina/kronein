@@ -421,6 +421,13 @@ private:
     std::map<chainregistry::ChainId, ChildAutoBidPolicy>
         m_child_autobid_policies GUARDED_BY(cs_wallet);
 
+    /** Serialize scheduled and explicit automatic spending attempts. */
+    Mutex m_child_autobid_mutex;
+
+    friend ChildAutoBidResult RunChildAutoBid(
+        CWallet& wallet,
+        const chainregistry::ChainId& chain_id);
+
     util::Result<std::reference_wrapper<DescriptorScriptPubKeyMan>>
     GetOrCreateChildScriptPubKeyMan(
         const chainregistry::ChainId& chain_id,
@@ -814,6 +821,7 @@ public:
     bool SetChildAutoBidPolicy(const chainregistry::ChainId& chain_id, const ChildAutoBidPolicy& policy);
     bool EraseChildAutoBidPolicy(const chainregistry::ChainId& chain_id);
     std::optional<ChildAutoBidPolicy> GetChildAutoBidPolicy(const chainregistry::ChainId& chain_id) const;
+    std::map<chainregistry::ChainId, ChildAutoBidPolicy> GetChildAutoBidPolicies() const;
     bool SetAddressChildChain(WalletBatch& batch, const CTxDestination& dest, const chainregistry::ChainId& chain_id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     std::vector<std::pair<CTxDestination, std::string>> ListChildRecipients(const chainregistry::ChainId& chain_id) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 

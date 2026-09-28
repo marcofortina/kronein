@@ -172,6 +172,7 @@ public:
      *                         bumpfee on transaction created by bumpfee
      *     "replaced_by_txid" - txid (as HexStr) of transaction created by
      *                         bumpfee on transaction replaced by bumpfee
+     *     "__*"             - internal wallet metadata, never exposed by RPC
      */
     mapValue_t mapValue;
     std::vector<std::pair<std::string, std::string> > vOrderForm;

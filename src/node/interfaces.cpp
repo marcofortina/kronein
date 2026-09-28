@@ -44,6 +44,7 @@
 #include <policy/fees/block_policy_estimator.h>
 #include <policy/policy.h>
 #include <pow.h>
+#include <primitives/bmm.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
 #include <rpc/blockchain.h>
@@ -78,6 +79,9 @@ using interfaces::BlockTemplate;
 using interfaces::BlockTip;
 using interfaces::Chain;
 using interfaces::ChainRegistrySnapshot;
+using interfaces::ChildBmmProposal;
+using interfaces::ChildBmmState;
+using interfaces::ChildBmmStateError;
 using interfaces::ChildWalletCoin;
 using interfaces::ChildWalletScan;
 using interfaces::ChildWalletScanError;
@@ -702,6 +706,50 @@ public:
         }
         return result;
     }
+    ChildBmmState getChildBmmState(
+        const chainregistry::ChainId& chain_id) override
+    {
+        ChildBmmState result;
+        if (!m_node.child_chainman) {
+            result.error = ChildBmmStateError::UNKNOWN_CHAIN;
+            return result;
+        }
+        const auto view{m_node.child_chainman->GetBmmStatusView(chain_id)};
+        switch (view.error) {
+        case ChainManagerBmmStatusViewError::NONE:
+            break;
+        case ChainManagerBmmStatusViewError::NULL_CHAIN_ID:
+            result.error = ChildBmmStateError::NULL_CHAIN_ID;
+            return result;
+        case ChainManagerBmmStatusViewError::UNKNOWN_CHAIN:
+            result.error = ChildBmmStateError::UNKNOWN_CHAIN;
+            return result;
+        case ChainManagerBmmStatusViewError::CHAIN_NOT_LOADED:
+            result.error = ChildBmmStateError::CHAIN_NOT_LOADED;
+            return result;
+        case ChainManagerBmmStatusViewError::DATA_UNAVAILABLE:
+            result.error = ChildBmmStateError::DATA_UNAVAILABLE;
+            return result;
+        }
+
+        std::map<uint256, uint64_t> anchor_counts;
+        for (const auto& pending : view.pending_blocks) {
+            anchor_counts.emplace(pending.block_hash, pending.anchor_count);
+        }
+        result.height = view.entry.height;
+        result.best_block = view.entry.tip;
+        result.proposals.reserve(view.proposals.size());
+        for (const auto& proposal : view.proposals) {
+            const uint256 block_hash{proposal.block.GetHash()};
+            result.proposals.push_back(ChildBmmProposal{
+                .block_hash = block_hash,
+                .previous_block_hash = proposal.block.hashPrevBlock,
+                .created_time = proposal.created_time,
+                .anchor_count = anchor_counts[block_hash],
+            });
+        }
+        return result;
+    }
     uint256 getBlockHash(int height) override
     {
         LOCK(::cs_main);
@@ -808,6 +856,23 @@ public:
     {
         if (!m_node.mempool) return false;
         return m_node.mempool->exists(txid);
+    }
+    bool hasBmmAnchorInMempool(
+        const chainregistry::ChainId& chain_id,
+        const uint256& child_block_hash) override
+    {
+        if (!m_node.mempool) return false;
+        LOCK(m_node.mempool->cs);
+        for (const CTxMemPoolEntry& entry : m_node.mempool->entryAll()) {
+            const auto extracted{chainregistry::ExtractTransactionBmmAnchor(
+                entry.GetTx())};
+            if (extracted.IsValid() && extracted.anchor &&
+                extracted.anchor->chain_id == chain_id &&
+                extracted.anchor->child_block_hash == child_block_hash) {
+                return true;
+            }
+        }
+        return false;
     }
     bool hasDescendantsInMempool(const Txid& txid) override
     {

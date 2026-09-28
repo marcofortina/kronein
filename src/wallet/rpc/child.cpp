@@ -715,6 +715,24 @@ static UniValue ChildAutoBidPolicyToJSON(
     return result;
 }
 
+static UniValue ChildAutoBidResultToJSON(const ChildAutoBidResult& bid)
+{
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("chain_id", bid.chain_id.GetHex());
+    result.pushKV("status", ChildAutoBidStatusString(bid.status));
+    result.pushKV("submitted", bid.Submitted());
+    result.pushKV("daily_spent", ValueFromAmount(bid.daily_spent));
+    if (!bid.child_block_hash.IsNull()) {
+        result.pushKV("child_block_hash", bid.child_block_hash.GetHex());
+    }
+    if (!bid.txid.IsNull()) result.pushKV("txid", bid.txid.GetHex());
+    if (bid.security_bid > 0) {
+        result.pushKV("security_bid", ValueFromAmount(bid.security_bid));
+    }
+    if (!bid.error.empty()) result.pushKV("error", bid.error);
+    return result;
+}
+
 RPCHelpMan getchildanchorautobid()
 {
     return RPCHelpMan{
@@ -832,6 +850,40 @@ RPCHelpMan setchildanchorautobid()
                            "could not persist automatic BMM bid policy");
     }
     return ChildAutoBidPolicyToJSON(chain_id, policy);
+},
+    };
+}
+
+RPCHelpMan runchildanchorautobid()
+{
+    return RPCHelpMan{
+        "runchildanchorautobid",
+        "Immediately evaluate this wallet's stored automatic BMM bid policy for one child chain.\n"
+        "At most one eligible proposal is anchored. All configured interval, per-bid, and rolling daily limits are enforced.\n" +
+            HELP_REQUIRING_PASSPHRASE,
+        {
+            {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Exact non-null child-chain identifier"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Automatic bid attempt", {
+            {RPCResult::Type::STR_HEX, "chain_id", "Child-chain identifier"},
+            {RPCResult::Type::STR, "status", "Machine-readable outcome"},
+            {RPCResult::Type::BOOL, "submitted", "Whether a transaction was signed and broadcast"},
+            {RPCResult::Type::STR_AMOUNT, "daily_spent", "Automatic anchor fees in the current rolling 24-hour window"},
+            {RPCResult::Type::STR_HEX, "child_block_hash", /*optional=*/true, "Eligible child block, when one was found"},
+            {RPCResult::Type::STR_HEX, "txid", /*optional=*/true, "Submitted main-chain transaction"},
+            {RPCResult::Type::STR_AMOUNT, "security_bid", /*optional=*/true, "Fee of the constructed or submitted anchor transaction"},
+            {RPCResult::Type::STR, "error", /*optional=*/true, "Failure detail"},
+        }},
+        RPCExamples{
+            HelpExampleCli("runchildanchorautobid", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const std::shared_ptr<CWallet> wallet{
+        GetWalletForJSONRPCRequest(request)};
+    if (!wallet) return UniValue::VNULL;
+    const auto chain_id{ParseChildChainId(self.Arg<UniValue>("chain_id"))};
+    return ChildAutoBidResultToJSON(RunChildAutoBid(*wallet, chain_id));
 },
     };
 }

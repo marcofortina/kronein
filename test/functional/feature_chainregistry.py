@@ -883,19 +883,35 @@ class ChainRegistryTest(BitcoinTestFramework):
             -8, "exceeds authorized maximum",
             wallet.walletsubmitchildanchorpsbt,
             anchor_psbt["psbt"], chain_id, child_block["blockhash"], 0)
-        submitted_anchor = wallet.walletsubmitchildanchorpsbt(
-            anchor_psbt["psbt"],
-            chain_id,
-            child_block["blockhash"],
-            Decimal("1.00000000"))
+        auto_policy = wallet.setchildanchorautobid(
+            chain_id, True,
+            Decimal("0.00001000"),
+            Decimal("0.00100000"),
+            Decimal("0.01000000"),
+            60)
+        assert_equal(auto_policy["enabled"], True)
+        submitted_anchor = wallet.runchildanchorautobid(chain_id)
+        assert_equal(submitted_anchor["status"], "submitted")
+        assert_equal(submitted_anchor["submitted"], True)
         assert_equal(submitted_anchor["chain_id"], chain_id)
         assert_equal(submitted_anchor["child_block_hash"], child_block["blockhash"])
-        assert_equal(submitted_anchor["vout"], 0)
-        assert_equal(submitted_anchor["security_bid"], anchor_psbt["security_bid"])
-        assert_equal(node.decoderawtransaction(submitted_anchor["hex"])["txid"],
-                     submitted_anchor["txid"])
+        assert submitted_anchor["security_bid"] > 0
+        decoded_auto_anchor = node.getrawtransaction(
+            submitted_anchor["txid"], 1)
+        assert_equal(decoded_auto_anchor["vout"][0]["value"],
+                     Decimal("0.00000000"))
+        assert_equal(decoded_auto_anchor["vout"][0]["scriptPubKey"]["hex"],
+                     child_block["bmm_anchor_script"])
         assert_equal(node.getmempoolentry(submitted_anchor["txid"])["fees"]["base"],
                      submitted_anchor["security_bid"])
+        auto_wallet_tx = wallet.gettransaction(submitted_anchor["txid"])
+        assert "__child_autobid" not in auto_wallet_tx
+        duplicate_bid = wallet.runchildanchorautobid(chain_id)
+        assert_equal(duplicate_bid["status"], "duplicate_anchor")
+        assert_equal(duplicate_bid["submitted"], False)
+        assert_equal(duplicate_bid["child_block_hash"], child_block["blockhash"])
+        assert_equal(wallet.setchildanchorautobid(
+            chain_id, False)["enabled"], False)
 
         self.log.info("Persist the same proposal on an unloaded peer for historical anchor catch-up")
         self.sync_blocks()
