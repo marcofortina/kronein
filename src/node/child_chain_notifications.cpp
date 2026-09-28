@@ -7,7 +7,9 @@
 #include <kernel/types.h>
 #include <logging.h>
 #include <node/chain_manager.h>
+#include <node/chainregistry.h>
 #include <node/child_network_manager.h>
+#include <primitives/bmm.h>
 #include <util/check.h>
 #include <util/time.h>
 #include <validation.h>
@@ -72,7 +74,7 @@ void ChildChainNotifications::HandleUnloaded(
 void ChildChainNotifications::BlockConnected(
     const kernel::ChainstateRole& role,
     const std::shared_ptr<const CBlock>& block,
-    const CBlockIndex*)
+    const CBlockIndex* index)
 {
     if (role.historical) return;
     const auto update{m_manager.AddMainHeader(
@@ -80,6 +82,77 @@ void ChildChainNotifications::BlockConnected(
         Now<NodeSeconds>().time_since_epoch().count(),
         /*sync=*/false)};
     for (const auto& event : update.unloaded) HandleUnloaded(event);
+    ProcessBmmAnchors(*block, index);
+}
+
+void ChildChainNotifications::ProcessBmmAnchors(
+    const CBlock& block,
+    const CBlockIndex* index)
+{
+    if (!index || block.GetHash() != index->GetBlockHash()) {
+        LogWarning("Cannot process child BMM anchors from a mismatched main block callback\n");
+        return;
+    }
+
+    std::vector<BmmAnchorIndexEntry> entries;
+    {
+        LOCK(cs_main);
+        const Chainstate& chainstate{m_chainman.ActiveChainstate()};
+        if (!chainstate.m_chain.Contains(index)) return;
+        const auto& registry_state{chainstate.ChainRegistryState()};
+        for (size_t transaction_index{1};
+             transaction_index < block.vtx.size();
+             ++transaction_index) {
+            const auto extracted{chainregistry::ExtractTransactionBmmAnchor(
+                *block.vtx[transaction_index])};
+            if (!extracted.IsValid() || !extracted.anchor) continue;
+            const auto indexed{registry_state.FindAnchor({
+                .chain_id = extracted.anchor->chain_id,
+                .main_block_hash = index->GetBlockHash(),
+            })};
+            if (indexed) entries.push_back(*indexed);
+        }
+    }
+
+    const int64_t current_time{
+        Now<NodeSeconds>().time_since_epoch().count()};
+    const uint256 main_genesis_hash{
+        m_chainman.GetConsensus().hashGenesisBlock};
+    for (const auto& entry : entries) {
+        if (!m_manager.IsLoaded(entry.id.chain_id)) continue;
+        const auto built{
+            BuildBmmAnchorProof(block, entry, main_genesis_hash)};
+        if (!built.IsValid()) {
+            LogError(
+                "Failed to build automatic BMM proof for child %s from main block %s (build error %u, validation error %u)\n",
+                entry.id.chain_id.GetHex(),
+                entry.id.main_block_hash.GetHex(),
+                static_cast<unsigned>(built.error),
+                static_cast<unsigned>(built.validation.error));
+            continue;
+        }
+        const auto staged{m_manager.StageBmmAnchor(
+            entry.id.chain_id,
+            built.proof,
+            current_time,
+            /*sync=*/false)};
+        if (!staged.IsValid()) {
+            LogWarning(
+                "Failed to ingest automatic BMM proof for child %s from main block %s (manager error %u, runtime error %u)\n",
+                entry.id.chain_id.GetHex(),
+                entry.id.main_block_hash.GetHex(),
+                static_cast<unsigned>(staged.error),
+                static_cast<unsigned>(staged.runtime.error));
+            continue;
+        }
+        if (staged.runtime.local_proposal_activated) {
+            LogInfo(
+                "Activated local child proposal %s for chain %s from main block %s\n",
+                entry.anchor.child_block_hash.GetHex(),
+                entry.id.chain_id.GetHex(),
+                entry.id.main_block_hash.GetHex());
+        }
+    }
 }
 
 void ChildChainNotifications::UpdatedBlockTip(

@@ -30,6 +30,7 @@ private:
     ChildNetworkManager& m_networks;
     ChainstateManager& m_chainman;
     void HandleUnloaded(const ChainManagerRuntimeEvent& event);
+    void ProcessBmmAnchors(const CBlock& block, const CBlockIndex* index);
     void Synchronize();
 
 protected:

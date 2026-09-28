@@ -729,9 +729,17 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(node.getmempoolentry(submitted_anchor["txid"])["fees"]["base"],
                      submitted_anchor["security_bid"])
         anchor_block = self.generatetoaddress(node, 1, wallet.getnewaddress())[0]
+        node.syncwithvalidationinterfacequeue()
         mature_deposit_tip = anchor_block
 
-        self.log.info("Export the authenticated BMM proof and activate the child block")
+        self.log.info("Automatically ingest the confirmed BMM anchor and activate the child block")
+        automatic_child_info = node.getblockchaininfo(chain_id)
+        assert_equal(automatic_child_info["blocks"], 1)
+        assert_equal(automatic_child_info["bestblockhash"], child_block["blockhash"])
+        assert_equal(node.getchildpendingblocks(chain_id)["block_count"], 0)
+        assert_equal(node.listchildproposals(chain_id)["proposal_count"], 0)
+
+        self.log.info("Export the authenticated BMM proof and verify idempotent manual submission")
         registry_with_anchor = node.getchainregistryinfo()
         assert_equal(registry_with_anchor["bmm_enabled"], True)
         assert_equal(registry_with_anchor["bmm_active"], True)
@@ -753,9 +761,9 @@ class ChainRegistryTest(BitcoinTestFramework):
         staged_anchor = node.submitchildanchor(chain_id, anchor_proof["proof"])
         assert_equal(staged_anchor["chain_id"], chain_id)
         assert_equal(staged_anchor["child_block_hash"], child_block["blockhash"])
-        assert_equal(staged_anchor["already_known"], False)
-        assert_equal(staged_anchor["local_proposal_found"], True)
-        assert_equal(staged_anchor["local_proposal_activated"], True)
+        assert_equal(staged_anchor["already_known"], True)
+        assert_equal(staged_anchor["local_proposal_found"], False)
+        assert_equal(staged_anchor["local_proposal_activated"], False)
         assert_equal(staged_anchor["selected_head"], child_block["blockhash"])
         assert_equal(staged_anchor["bestblockhash"], child_block["blockhash"])
         pending_blocks = node.getchildpendingblocks(chain_id)
