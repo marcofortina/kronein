@@ -17,9 +17,7 @@
 #include <QAbstractItemView>
 #include <QApplication>
 #include <QCheckBox>
-#ifdef ENABLE_WALLET
 #include <QComboBox>
-#endif
 #include <QDialogButtonBox>
 #include <QFormLayout>
 #include <QHeaderView>
@@ -267,9 +265,12 @@ void ChildChainDialog::refresh()
             const QString candidate_anchors{NumberField(chain, "candidate_bmm_anchor_count")};
             const QString candidate_anchor_limit{NumberField(chain, "candidate_bmm_anchor_limit")};
             const QString pending_blocks{NumberField(chain, "pending_child_block_count")};
+            const QString local_proposals{NumberField(chain, "local_proposal_count")};
+            const QString local_proposal_limit{NumberField(chain, "local_proposal_limit")};
             const QString dag_usage{loaded
-                ? tr("%1 pending • %2/%3 candidates • %4/%5 anchors")
-                      .arg(pending_blocks,
+                ? tr("%1 proposals • %2 pending • %3/%4 candidates • %5/%6 anchors")
+                      .arg(local_proposals,
+                           pending_blocks,
                            side_candidates,
                            side_candidate_limit,
                            candidate_anchors,
@@ -338,10 +339,15 @@ void ChildChainDialog::refresh()
             }
             if (loaded) {
                 const QString storage_tooltip{
-                    tr("Side candidates: %1/%2 records, %3/%4 bytes\n"
-                       "Candidate BMM anchors: %5/%6 records, %7/%8 bytes\n"
-                       "Pending BMM anchors: %9/%10 records, %11/%12 bytes")
-                        .arg(side_candidates,
+                    tr("Local proposals: %1/%2 records, %3/%4 bytes\n"
+                       "Side candidates: %5/%6 records, %7/%8 bytes\n"
+                       "Candidate BMM anchors: %9/%10 records, %11/%12 bytes\n"
+                       "Pending BMM anchors: %13/%14 records, %15/%16 bytes")
+                        .arg(local_proposals,
+                             local_proposal_limit,
+                             NumberField(chain, "local_proposal_bytes"),
+                             NumberField(chain, "local_proposal_bytes_limit"),
+                             side_candidates,
                              side_candidate_limit,
                              NumberField(chain, "side_candidate_bytes"),
                              NumberField(chain, "side_candidate_bytes_limit"),
@@ -493,7 +499,7 @@ void ChildChainDialog::manageBmm()
 #ifdef ENABLE_WALLET
     if (m_wallet_model) actions.push_back(tr("Build and anchor an import block"));
 #endif
-    actions.push_back(tr("Activate a confirmed proposal"));
+    actions.push_back(tr("Activate a stored confirmed proposal"));
     bool accepted{false};
     const QString action{QInputDialog::getItem(
         this,
@@ -516,18 +522,72 @@ void ChildChainDialog::manageBmm()
 
 void ChildChainDialog::activateBmmProposal(const QString& chain_id)
 {
+    UniValue list_params{UniValue::VARR};
+    list_params.push_back(chain_id.toStdString());
+    UniValue stored;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        stored = m_node.executeRpc("listchildproposals", list_params, "");
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("List child proposals"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("List child proposals"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+
+    const UniValue& proposals{stored.find_value("proposals")};
+    if (!stored.isObject() || !proposals.isArray()) {
+        showRpcError(
+            tr("List child proposals"),
+            tr("The node returned an invalid child proposal list."));
+        return;
+    }
+    if (proposals.empty()) {
+        QMessageBox::information(
+            this,
+            tr("No Stored Child Proposals"),
+            tr("This child chain has no local block proposal waiting for a BMM anchor."));
+        return;
+    }
+
     QDialog dialog{this};
     dialog.setWindowTitle(tr("Activate Confirmed Child Proposal"));
-    dialog.setMinimumSize(850, 520);
+    dialog.setMinimumSize(850, 300);
     auto* layout = new QVBoxLayout{&dialog};
     auto* explanation = new QLabel{
-        tr("Paste the proposal JSON saved when the security bid was broadcast, then enter the active main-chain block containing that anchor. The node will reconstruct and verify the KBPR proof before validating the child block."),
+        tr("Select a durable local proposal and enter the active main-chain block containing its confirmed anchor. The node will reconstruct and verify the KBPR proof before validating the stored child block."),
         &dialog};
     explanation->setWordWrap(true);
     layout->addWidget(explanation);
     auto* form = new QFormLayout;
     auto* chain = new QLineEdit{chain_id, &dialog};
     chain->setReadOnly(true);
+    auto* proposal_selector = new QComboBox{&dialog};
+    for (const UniValue& proposal : proposals.getValues()) {
+        const QString block_hash{StringField(proposal, "blockhash")};
+        if (!QRegularExpression{QStringLiteral("^[0-9A-Fa-f]{64}$")}
+                 .match(block_hash).hasMatch()) {
+            continue;
+        }
+        const QString status{BoolField(proposal, "anchor_available")
+            ? tr("anchor staged")
+            : tr("awaiting confirmation")};
+        proposal_selector->addItem(
+            tr("%1 — %2 — %3 bytes")
+                .arg(block_hash, status, NumberField(proposal, "size")),
+            block_hash);
+    }
+    if (proposal_selector->count() == 0) {
+        showRpcError(
+            tr("List child proposals"),
+            tr("The node returned no valid child proposal identifiers."));
+        return;
+    }
     auto* main_block_hash = new QLineEdit{&dialog};
     main_block_hash->setValidator(new QRegularExpressionValidator{
         QRegularExpression{QStringLiteral("[0-9A-Fa-f]{64}")},
@@ -535,12 +595,9 @@ void ChildChainDialog::activateBmmProposal(const QString& chain_id)
     main_block_hash->setPlaceholderText(
         tr("32-byte active main-chain block hash"));
     form->addRow(tr("Child chain:"), chain);
+    form->addRow(tr("Stored proposal:"), proposal_selector);
     form->addRow(tr("Main anchor block:"), main_block_hash);
     layout->addLayout(form);
-    auto* proposal_text = new QPlainTextEdit{&dialog};
-    proposal_text->setPlaceholderText(
-        tr("Paste the Kronein child proposal JSON here"));
-    layout->addWidget(proposal_text, 1);
     auto* buttons = new QDialogButtonBox{
         QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog};
     buttons->button(QDialogButtonBox::Ok)->setText(tr("Verify and Activate"));
@@ -556,31 +613,10 @@ void ChildChainDialog::activateBmmProposal(const QString& chain_id)
         return;
     }
 
-    UniValue proposal;
-    if (!proposal.read(proposal_text->toPlainText().toStdString()) ||
-        !proposal.isObject()) {
-        QMessageBox::warning(
-            this,
-            tr("Invalid Child Proposal"),
-            tr("The supplied text is not a valid proposal JSON object."));
-        return;
-    }
-    const QString proposal_chain{StringField(proposal, "chain_id")};
-    const QString child_block{StringField(proposal, "block")};
-    const QString child_block_hash{StringField(proposal, "blockhash")};
-    const UniValue& version{proposal.find_value("version")};
+    const QString child_block_hash{
+        proposal_selector->currentData().toString()};
     const QRegularExpression hex_bytes{
         QStringLiteral("^(?:[0-9A-Fa-f]{2})+$")};
-    const QRegularExpression hash_hex{QStringLiteral("^[0-9A-Fa-f]{64}$")};
-    if (!version.isNum() || version.getInt<int>() != 1 ||
-        proposal_chain.compare(chain_id, Qt::CaseInsensitive) != 0 ||
-        !hex_bytes.match(child_block).hasMatch() ||
-        !hash_hex.match(child_block_hash).hasMatch()) {
-        showRpcError(
-            tr("Activate child proposal"),
-            tr("The proposal is malformed or belongs to a different child chain."));
-        return;
-    }
 
     UniValue proof_params{UniValue::VARR};
     proof_params.push_back(chain_id.toStdString());
@@ -617,12 +653,13 @@ void ChildChainDialog::activateBmmProposal(const QString& chain_id)
 
     UniValue submit_params{UniValue::VARR};
     submit_params.push_back(chain_id.toStdString());
-    submit_params.push_back(child_block.toStdString());
+    submit_params.push_back(child_block_hash.toStdString());
     submit_params.push_back(proof_hex.toStdString());
     UniValue submitted;
     QApplication::setOverrideCursor(Qt::WaitCursor);
     try {
-        submitted = m_node.executeRpc("submitchildblock", submit_params, "");
+        submitted = m_node.executeRpc(
+            "submitchildproposal", submit_params, "");
     } catch (UniValue& error) {
         QApplication::restoreOverrideCursor();
         showRpcError(tr("Activate child proposal"), RpcErrorMessage(error));
@@ -768,6 +805,7 @@ void ChildChainDialog::createBmmProposal(const QString& chain_id)
         !proof_hex.match(anchor_script).hasMatch() ||
         !deposits.isArray() || deposits.empty() ||
         !BoolField(child_block, "requires_bmm_anchor") ||
+        !BoolField(child_block, "proposal_stored") ||
         !BoolField(child_block, "contextually_valid")) {
         showRpcError(
             tr("Build child import block"),
@@ -816,7 +854,7 @@ void ChildChainDialog::createBmmProposal(const QString& chain_id)
     QMessageBox confirmation{
         QMessageBox::Warning,
         tr("Confirm BMM Security Bid"),
-        tr("Broadcast a main-chain transaction anchoring child block %1?\n\nImported deposits: %2\nChild block size: %3 bytes\nSecurity bid (main-chain fee): %4 KNE\n\nSave the proposal returned after broadcast. It is required to submit the child block after the anchor confirms.")
+        tr("Broadcast a main-chain transaction anchoring child block %1?\n\nImported deposits: %2\nChild block size: %3 bytes\nSecurity bid (main-chain fee): %4 KNE\n\nThe validated proposal is already stored durably by this node and will remain available after restart.")
             .arg(block_hash,
                  QString::number(deposits.size()),
                  NumberField(child_block, "size"),
@@ -886,7 +924,7 @@ void ChildChainDialog::createBmmProposal(const QString& chain_id)
     result_dialog.setMinimumSize(900, 560);
     auto* result_layout = new QVBoxLayout{&result_dialog};
     auto* result_summary = new QLabel{
-        tr("The BMM security bid was broadcast as %1. Save this proposal now. After the transaction confirms, choose BMM… → Activate a confirmed proposal and enter the containing main-chain block hash.")
+        tr("The BMM security bid was broadcast as %1. The child proposal is stored by this node; exporting the JSON below is optional. After confirmation, choose BMM… → Activate a stored confirmed proposal and enter the containing main-chain block hash.")
             .arg(anchor_txid),
         &result_dialog};
     result_summary->setWordWrap(true);

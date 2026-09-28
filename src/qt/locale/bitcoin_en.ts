@@ -927,7 +927,7 @@
 <context>
     <name>ChildChainDialog</name>
     <message>
-        <location filename="../childchaindialog.cpp" line="+97"/>
+        <location filename="../childchaindialog.cpp" line="+95"/>
         <source>Available</source>
         <translation type="unfinished"></translation>
     </message>
@@ -968,12 +968,12 @@
     </message>
     <message>
         <location line="+11"/>
-        <location line="+1240"/>
+        <location line="+1280"/>
         <source>Status</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1239"/>
+        <location line="-1279"/>
         <source>Chain ID</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1009,12 +1009,12 @@
     </message>
     <message>
         <location line="+16"/>
-        <location line="+269"/>
+        <location line="+277"/>
         <source>Select a child chain to manage its local runtime.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-264"/>
+        <location line="-272"/>
         <source>Refresh</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1055,13 +1055,13 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+255"/>
+        <location line="+263"/>
         <location line="+45"/>
         <source>Pause Network</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-280"/>
+        <location line="-288"/>
         <source>Forget…</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1081,12 +1081,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+7"/>
-        <source>%1 pending • %2/%3 candidates • %4/%5 anchors</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+8"/>
+        <location line="+18"/>
         <source>Stopped</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1101,18 +1096,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+191"/>
+        <location line="+196"/>
         <source>Chain ID: %1
 State: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7 • discovery: %8 (%9 bootstrap, %10 known) • rate-limited block requests: %11</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-163"/>
+        <location line="-168"/>
         <source>No explicit child peers configured</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-200"/>
+        <location line="-203"/>
         <source>Confirmed</source>
         <translation type="unfinished">Confirmed</translation>
     </message>
@@ -1167,7 +1162,7 @@ State: %2 • registry: %3 • local configuration: %4 • network: %5 • expli
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+133"/>
+        <location line="+136"/>
         <source>Explicit child peers:
 %1</source>
         <translation type="unfinished"></translation>
@@ -1211,14 +1206,7 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+13"/>
-        <source>Side candidates: %1/%2 records, %3/%4 bytes
-Candidate BMM anchors: %5/%6 records, %7/%8 bytes
-Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+17"/>
+        <location line="+35"/>
         <source>Pending block data: %1 distinct blocks</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1299,12 +1287,7 @@ Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+2"/>
-        <source>Activate a confirmed proposal</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+4"/>
+        <location line="+6"/>
         <source>Child BMM Workflow</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1314,28 +1297,18 @@ Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+19"/>
+        <location line="+52"/>
         <source>Activate Confirmed Child Proposal</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+4"/>
-        <source>Paste the proposal JSON saved when the security bid was broadcast, then enter the active main-chain block containing that anchor. The node will reconstruct and verify the KBPR proof before validating the child block.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+12"/>
+        <location line="+37"/>
         <source>32-byte active main-chain block hash</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="+3"/>
         <source>Main anchor block:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+4"/>
-        <source>Paste the Kronein child proposal JSON here</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1354,30 +1327,14 @@ Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+9"/>
-        <source>Invalid Child Proposal</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>The supplied text is not a valid proposal JSON object.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+15"/>
-        <location line="+48"/>
+        <location line="+53"/>
         <location line="+4"/>
         <location line="+12"/>
         <source>Activate child proposal</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-63"/>
-        <source>The proposal is malformed or belongs to a different child chain.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+13"/>
+        <location line="-51"/>
         <location line="+4"/>
         <location line="+15"/>
         <source>Verify BMM anchor</source>
@@ -1389,7 +1346,7 @@ Pending BMM anchors: %9/%10 records, %11/%12 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+31"/>
+        <location line="+32"/>
         <source>The node returned an invalid child activation result.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1463,7 +1420,7 @@ Active child tip: %2</source>
     <message>
         <location line="+14"/>
         <location line="+4"/>
-        <location line="+20"/>
+        <location line="+21"/>
         <source>Build child import block</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1490,18 +1447,7 @@ Active child tip: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>Broadcast a main-chain transaction anchoring child block %1?
-
-Imported deposits: %2
-Child block size: %3 bytes
-Security bid (main-chain fee): %4 KNE
-
-Save the proposal returned after broadcast. It is required to submit the child block after the anchor confirms.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+11"/>
+        <location line="+12"/>
         <location line="+19"/>
         <location line="+4"/>
         <location line="+17"/>
@@ -1524,12 +1470,7 @@ Save the proposal returned after broadcast. It is required to submit the child b
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+4"/>
-        <source>The BMM security bid was broadcast as %1. Save this proposal now. After the transaction confirms, choose BMM… → Activate a confirmed proposal and enter the containing main-chain block hash.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+11"/>
+        <location line="+15"/>
         <source>Copy Proposal</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1833,9 +1774,9 @@ Child chain: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1091"/>
-        <location line="+160"/>
-        <location line="+936"/>
+        <location line="-1069"/>
+        <location line="+137"/>
+        <location line="+937"/>
         <source>Child chain:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1923,7 +1864,94 @@ There is no child-to-main withdrawal path.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-379"/>
+        <location line="-1485"/>
+        <source>%1 proposals • %2 pending • %3/%4 candidates • %5/%6 anchors</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+71"/>
+        <source>Local proposals: %1/%2 records, %3/%4 bytes
+Side candidates: %5/%6 records, %7/%8 bytes
+Candidate BMM anchors: %9/%10 records, %11/%12 bytes
+Pending BMM anchors: %13/%14 records, %15/%16 bytes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+160"/>
+        <source>Activate a stored confirmed proposal</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+31"/>
+        <location line="+4"/>
+        <location line="+9"/>
+        <location line="+41"/>
+        <source>List child proposals</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-40"/>
+        <source>The node returned an invalid child proposal list.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>No Stored Child Proposals</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>This child chain has no local block proposal waiting for a BMM anchor.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Select a durable local proposal and enter the active main-chain block containing its confirmed anchor. The node will reconstruct and verify the KBPR proof before validating the stored child block.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+15"/>
+        <source>anchor staged</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>awaiting confirmation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>%1 — %2 — %3 bytes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>The node returned no valid child proposal identifiers.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>Stored proposal:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+259"/>
+        <source>Broadcast a main-chain transaction anchoring child block %1?
+
+Imported deposits: %2
+Child block size: %3 bytes
+Security bid (main-chain fee): %4 KNE
+
+The validated proposal is already stored durably by this node and will remain available after restart.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+70"/>
+        <source>The BMM security bid was broadcast as %1. The child proposal is stored by this node; exporting the JSON below is optional. After confirmation, choose BMM… → Activate a stored confirmed proposal and enter the containing main-chain block hash.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+450"/>
         <location line="+4"/>
         <location line="+10"/>
         <location line="+55"/>
