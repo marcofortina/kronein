@@ -658,6 +658,58 @@ BOOST_AUTO_TEST_CASE(child_submission_rpc_bounds_and_routes_requests)
     BOOST_CHECK_EQUAL(
         child_transaction.find_value("txid").get_str(), coinbase_txid);
     BOOST_CHECK(child_transaction.find_value("bmm_eligible").get_bool());
+
+    const std::string child_proof{CallRPC(
+        "gettxoutproof [\"" + coinbase_txid + "\"] " +
+        child_block.GetHash().GetHex() + " " + chain_id).get_str()};
+    BOOST_CHECK(!child_proof.empty());
+    const auto verified_child_proof{
+        CallRPC("verifytxoutproof " + child_proof + " " + chain_id)};
+    BOOST_REQUIRE_EQUAL(verified_child_proof.size(), 1U);
+    BOOST_CHECK_EQUAL(verified_child_proof[0].get_str(), coinbase_txid);
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("verifytxoutproof " + child_proof),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find(
+                       "Block not found in chain") != std::string_view::npos;
+        });
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("gettxoutproof [\"" + std::string(64, 'f') + "\"] " +
+                child_block.GetHash().GetHex() + " " + chain_id),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find(
+                       "Not all transactions found") !=
+                   std::string_view::npos;
+        });
+    BOOST_CHECK_EXCEPTION(
+        CallRPC("gettxoutproof [\"" + coinbase_txid + "\"] " +
+                definition.genesis_hash.GetHex() + " " + chain_id),
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string_view{error.what()}.find(
+                       "virtual child genesis") !=
+                   std::string_view::npos;
+        });
+    JSONRPCRequest missing_proof_block_request;
+    missing_proof_block_request.context = &m_node;
+    missing_proof_block_request.strMethod = "gettxoutproof";
+    missing_proof_block_request.params = UniValue{UniValue::VOBJ};
+    UniValue proof_txids{UniValue::VARR};
+    proof_txids.push_back(coinbase_txid);
+    missing_proof_block_request.params.pushKV("txids", std::move(proof_txids));
+    missing_proof_block_request.params.pushKV("chain_id", chain_id);
+    BOOST_CHECK_EXCEPTION(
+        tableRPC.execute(missing_proof_block_request),
+        UniValue,
+        [](const UniValue& error) {
+            const UniValue& message{error.find_value("message")};
+            return message.isStr() &&
+                std::string_view{message.get_str()}.find(
+                    "blockhash is required") != std::string_view::npos;
+        });
+
     JSONRPCRequest missing_block_request;
     missing_block_request.context = &m_node;
     missing_block_request.strMethod = "getrawtransaction";
