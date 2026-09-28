@@ -1170,6 +1170,58 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(
             attacker.listunspent(0, 9999999, [], False, {}, chain_id), [])
 
+        child_history = wallet.listtransactions("*", 10, 0, chain_id)
+        pending_send = [
+            entry for entry in child_history
+            if entry["txid"] == signed_child["txid"]]
+        assert_equal(len(pending_send), 1)
+        assert_equal(pending_send[0]["chain_id"], chain_id)
+        assert_equal(pending_send[0]["category"], "send")
+        assert_equal(pending_send[0]["recipient"],
+                     child_destination["recipient"])
+        assert_equal(pending_send[0]["amount"], -child_spend_amount)
+        assert_equal(pending_send[0]["fee"], -child_fee)
+        assert_equal(pending_send[0]["confirmations"], 0)
+        assert_equal(pending_send[0]["trusted"], True)
+        import_history = [
+            entry for entry in child_history
+            if entry["txid"] == child_import["txid"]]
+        assert_equal(len(import_history), 1)
+        assert_equal(import_history[0]["category"], "receive")
+        assert_equal(import_history[0]["amount"], deposit_amount)
+        assert_equal(import_history[0]["label"], "child-receive")
+        assert_equal(import_history[0]["confirmations"], 1)
+        assert_equal(
+            wallet.listtransactions(
+                "child-receive", 10, 0, chain_id),
+            import_history)
+
+        pending_wallet_tx = wallet.gettransaction(
+            signed_child["txid"], False, chain_id)
+        assert_equal(pending_wallet_tx["chain_id"], chain_id)
+        assert_equal(pending_wallet_tx["amount"], -child_spend_amount)
+        assert_equal(pending_wallet_tx["fee"], -child_fee)
+        assert_equal(pending_wallet_tx["confirmations"], 0)
+        assert_equal(pending_wallet_tx["trusted"], True)
+        assert_equal(pending_wallet_tx["lastprocessedblock"], {
+            "hash": child_block["blockhash"],
+            "height": 1,
+        })
+        assert_equal(len(pending_wallet_tx["details"]), 1)
+        assert_equal(pending_wallet_tx["details"][0]["category"], "send")
+
+        pending_attacker_tx = attacker.gettransaction(
+            signed_child["txid"], True, chain_id)
+        assert_equal(pending_attacker_tx["amount"], child_spend_amount)
+        assert "fee" not in pending_attacker_tx
+        assert_equal(pending_attacker_tx["confirmations"], 0)
+        assert_equal(pending_attacker_tx["trusted"], False)
+        assert_equal(len(pending_attacker_tx["details"]), 1)
+        assert_equal(pending_attacker_tx["details"][0]["category"],
+                     "receive")
+        assert_equal(pending_attacker_tx["decoded"]["txid"],
+                     signed_child["txid"])
+
         child_fee_recipient = wallet.getnewchildrecipient(
             chain_id, "child-fees")
         child_wallet_identities = wallet.listchildrecipients(chain_id)
@@ -1233,6 +1285,37 @@ class ChainRegistryTest(BitcoinTestFramework):
             "untrusted_pending": Decimal("0.00000000"),
             "immature": Decimal("0.00000000"),
         })
+        confirmed_wallet_tx = wallet.gettransaction(
+            signed_child["txid"], False, chain_id)
+        assert_equal(confirmed_wallet_tx["amount"], -child_spend_amount)
+        assert_equal(confirmed_wallet_tx["fee"], -child_fee)
+        assert_equal(confirmed_wallet_tx["confirmations"], 1)
+        assert_equal(confirmed_wallet_tx["blockhash"],
+                     spend_block["blockhash"])
+        assert_equal(confirmed_wallet_tx["blockheight"], 2)
+        assert_equal(confirmed_wallet_tx["lastprocessedblock"], {
+            "hash": spend_block["blockhash"],
+            "height": 2,
+        })
+        confirmed_attacker_tx = attacker.gettransaction(
+            signed_child["txid"], False, chain_id)
+        assert_equal(confirmed_attacker_tx["amount"], child_spend_amount)
+        assert_equal(confirmed_attacker_tx["confirmations"], 1)
+        assert_equal(confirmed_attacker_tx["blockhash"],
+                     spend_block["blockhash"])
+
+        confirmed_history = wallet.listtransactions("*", 10, 0, chain_id)
+        assert_equal(
+            [entry for entry in confirmed_history
+             if entry["txid"] == signed_child["txid"]][0]["confirmations"],
+            1)
+        assert_equal(node.unloadchildchain(chain_id)["loaded"], False)
+        assert_raises_rpc_error(
+            -1, "child chain is not loaded",
+            wallet.listtransactions, "*", 10, 0, chain_id)
+        assert_equal(node.loadchildchain(chain_id)["height"], 2)
+        assert_equal(wallet.listtransactions("*", 10, 0, chain_id),
+                     confirmed_history)
 
         successor_address = wallet.getnewaddress()
         update_psbt = wallet.walletcreatechainregistrypsbt("update", {

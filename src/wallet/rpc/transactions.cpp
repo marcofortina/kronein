@@ -4,6 +4,8 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <core_io.h>
+#include <chainregistry/child_template.h>
+#include <consensus/consensus.h>
 #include <key_io.h>
 #include <primitives/deposit.h>
 #include <primitives/transaction_identifier.h>
@@ -12,10 +14,12 @@
 #include <rpc/blockchain.h>
 #include <util/vector.h>
 #include <wallet/receive.h>
+#include <wallet/rpc/child_util.h>
 #include <wallet/rpc/util.h>
 #include <wallet/wallet.h>
 
 #include <algorithm>
+#include <map>
 #include <optional>
 
 using interfaces::FoundBlock;
@@ -283,6 +287,195 @@ static void MaybePushAddress(UniValue & entry, const CTxDestination &dest)
     }
 }
 
+struct ChildRecipientRecord {
+    std::string label;
+    bool change{false};
+};
+
+using ChildRecipientMap = std::map<CScript, ChildRecipientRecord>;
+
+static ChildRecipientMap GetChildRecipientMap(
+    const CWallet& wallet,
+    const chainregistry::ChainId& chain_id)
+{
+    ChildRecipientMap recipients;
+    LOCK(wallet.cs_wallet);
+    for (const auto& [destination, label] :
+         wallet.ListChildRecipients(chain_id)) {
+        const CScript script{GetScriptForDestination(destination)};
+        if (!wallet.IsMine(script)) continue;
+        const auto* address_book{
+            wallet.FindAddressBookEntry(destination, /*allow_change=*/true)};
+        if (!address_book) {
+            throw JSONRPCError(
+                RPC_WALLET_ERROR,
+                "wallet child recipient is missing its address-book record");
+        }
+        recipients.emplace(script, ChildRecipientRecord{
+            .label = label,
+            .change = address_book->IsChange(),
+        });
+    }
+    return recipients;
+}
+
+static void MaybePushChildRecipient(UniValue& entry, const CScript& script)
+{
+    CTxDestination destination;
+    if (!ExtractDestination(script, destination)) return;
+    const auto* recipient{std::get_if<WitnessV1Taproot>(&destination)};
+    if (!recipient) return;
+    entry.pushKV("recipient_type",
+                 chainregistry::REFERENCE_CHILD_P2TR_RECIPIENT);
+    entry.pushKV("recipient", HexStr(*recipient));
+}
+
+struct ChildTransactionAmounts {
+    CAmount credit{0};
+    CAmount debit{0};
+    CAmount fee{0};
+    bool from_wallet{false};
+};
+
+static void AddChildAmount(CAmount& total, CAmount amount)
+{
+    if (amount < 0 || !MoneyRange(amount) || amount > MAX_MONEY - total) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR,
+                           "child wallet transaction amount is invalid");
+    }
+    total += amount;
+}
+
+static ChildTransactionAmounts GetChildTransactionAmounts(
+    const interfaces::ChildWalletTransaction& wallet_tx,
+    const ChildRecipientMap& recipients)
+{
+    ChildTransactionAmounts amounts;
+    for (const CTxOut& spent : wallet_tx.spent_outputs) {
+        if (recipients.contains(spent.scriptPubKey)) {
+            AddChildAmount(amounts.debit, spent.nValue);
+        }
+    }
+    for (const CTxOut& output : wallet_tx.transaction->vout) {
+        if (recipients.contains(output.scriptPubKey)) {
+            AddChildAmount(amounts.credit, output.nValue);
+        }
+    }
+    amounts.from_wallet = amounts.debit > 0;
+    if (amounts.from_wallet) {
+        amounts.fee = amounts.debit - wallet_tx.transaction->GetValueOut();
+        if (amounts.fee < 0 || !MoneyRange(amounts.fee)) {
+            throw JSONRPCError(RPC_INTERNAL_ERROR,
+                               "child wallet transaction fee is invalid");
+        }
+    }
+    return amounts;
+}
+
+static void ChildWalletTxToJSON(
+    const interfaces::ChildWalletTransaction& wallet_tx,
+    bool from_wallet,
+    UniValue& entry)
+{
+    entry.pushKV("confirmations", wallet_tx.confirmations);
+    if (wallet_tx.transaction->IsCoinBase()) {
+        entry.pushKV("generated", true);
+    }
+    if (wallet_tx.mempool) {
+        entry.pushKV("trusted", from_wallet);
+    } else {
+        entry.pushKV("blockhash", wallet_tx.block_hash.GetHex());
+        entry.pushKV("blockheight", wallet_tx.height);
+        entry.pushKV("blockindex", wallet_tx.block_index);
+        entry.pushKV("blocktime", wallet_tx.block_time);
+    }
+    entry.pushKV("txid", wallet_tx.transaction->GetHash().GetHex());
+    entry.pushKV("wtxid", wallet_tx.transaction->GetWitnessHash().GetHex());
+    entry.pushKV("walletconflicts", UniValue{UniValue::VARR});
+    entry.pushKV("mempoolconflicts", UniValue{UniValue::VARR});
+    const int64_t time{wallet_tx.mempool
+                           ? wallet_tx.entry_time
+                           : static_cast<int64_t>(wallet_tx.block_time)};
+    entry.pushKV("time", time);
+    entry.pushKV("timereceived", time);
+}
+
+template <class Vec>
+static void ListChildTransactions(
+    const interfaces::ChildWalletTransaction& wallet_tx,
+    const chainregistry::ChainId& chain_id,
+    const ChildRecipientMap& recipients,
+    Vec& result,
+    const std::optional<std::string>& filter_label,
+    bool verbose)
+{
+    const ChildTransactionAmounts amounts{
+        GetChildTransactionAmounts(wallet_tx, recipients)};
+    for (size_t index{0}; index < wallet_tx.transaction->vout.size();
+         ++index) {
+        const CTxOut& output{wallet_tx.transaction->vout[index]};
+        const auto owned{recipients.find(output.scriptPubKey)};
+        const bool change{amounts.from_wallet && owned != recipients.end() &&
+                          owned->second.change};
+        if (change) continue;
+
+        if (amounts.from_wallet && !filter_label) {
+            UniValue entry{UniValue::VOBJ};
+            MaybePushChildRecipient(entry, output.scriptPubKey);
+            entry.pushKV("chain_id", chain_id.GetHex());
+            entry.pushKV("category", "send");
+            entry.pushKV("amount", ValueFromAmount(-output.nValue));
+            if (owned != recipients.end()) {
+                entry.pushKV("label", owned->second.label);
+            }
+            entry.pushKV("vout", index);
+            entry.pushKV("fee", ValueFromAmount(-amounts.fee));
+            if (verbose) {
+                ChildWalletTxToJSON(
+                    wallet_tx, amounts.from_wallet, entry);
+            }
+            entry.pushKV("abandoned", false);
+            result.push_back(std::move(entry));
+        }
+
+        if (owned == recipients.end() ||
+            (filter_label && owned->second.label != *filter_label)) {
+            continue;
+        }
+        UniValue entry{UniValue::VOBJ};
+        MaybePushChildRecipient(entry, output.scriptPubKey);
+        entry.pushKV("chain_id", chain_id.GetHex());
+        if (wallet_tx.transaction->IsCoinBase()) {
+            entry.pushKV(
+                "category",
+                wallet_tx.confirmations < COINBASE_MATURITY
+                    ? "immature"
+                    : "generate");
+        } else {
+            entry.pushKV("category", "receive");
+        }
+        entry.pushKV("amount", ValueFromAmount(output.nValue));
+        entry.pushKV("label", owned->second.label);
+        entry.pushKV("vout", index);
+        entry.pushKV("abandoned", false);
+        if (verbose) {
+            ChildWalletTxToJSON(
+                wallet_tx, amounts.from_wallet, entry);
+        }
+        result.push_back(std::move(entry));
+    }
+}
+
+static void PushChildLastProcessedBlock(
+    UniValue& entry,
+    const interfaces::ChildWalletHistoryPage& page)
+{
+    UniValue block{UniValue::VOBJ};
+    block.pushKV("hash", page.best_block.GetHex());
+    block.pushKV("height", page.height);
+    entry.pushKV("lastprocessedblock", std::move(block));
+}
+
 /**
  * List transactions based on the given criteria.
  *
@@ -373,6 +566,9 @@ static std::vector<RPCResult> TransactionDescriptionString()
 {
     return{{RPCResult::Type::NUM, "confirmations", "The number of confirmations for the transaction. Negative confirmations means the\n"
                "transaction conflicted that many blocks ago."},
+           {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Selected child-chain identifier; omitted for main-chain results."},
+           {RPCResult::Type::NUM, "recipient_type", /*optional=*/true, "Child recipient namespace; present when the output has a supported child recipient."},
+           {RPCResult::Type::STR_HEX, "recipient", /*optional=*/true, "Canonical child recipient bytes; present instead of a main-chain address for child results."},
            {RPCResult::Type::BOOL, "generated", /*optional=*/true, "Only present if the transaction's only input is a coinbase one."},
            {RPCResult::Type::BOOL, "trusted", /*optional=*/true, "Whether we consider the transaction to be trusted and safe to spend from.\n"
                 "Only present when the transaction has 0 confirmations (or negative confirmations, if conflicted)."},
@@ -549,6 +745,7 @@ RPCHelpMan listtransactions()
                           "with the specified label, or \"*\" to disable filtering and return all transactions."},
                     {"count", RPCArg::Type::NUM, RPCArg::Default{10}, "The number of transactions to return"},
                     {"skip", RPCArg::Type::NUM, RPCArg::Default{0}, "The number of transactions to skip"},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 RPCResult{
                     RPCResult::Type::ARR, "", "",
@@ -610,6 +807,54 @@ RPCHelpMan listtransactions()
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Negative count");
     if (nFrom < 0)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Negative from");
+
+    if (const auto chain_arg{self.MaybeArg<UniValue>("chain_id")}) {
+        const auto chain_id{ParseChildChainId(*chain_arg)};
+        const ChildRecipientMap recipients{
+            GetChildRecipientMap(*pwallet, chain_id)};
+        std::vector<UniValue> ret;
+        std::optional<int> start_height;
+        bool include_mempool{true};
+        std::optional<uint256> best_block;
+        uint32_t best_height{0};
+        const size_t target{static_cast<size_t>(nCount) +
+                            static_cast<size_t>(nFrom)};
+        do {
+            auto page{ScanChildWalletHistory(
+                *pwallet, chain_id, start_height, include_mempool)};
+            if (!best_block) {
+                best_block = page.best_block;
+                best_height = page.height;
+            } else if (*best_block != page.best_block ||
+                       best_height != page.height) {
+                throw JSONRPCError(
+                    RPC_MISC_ERROR,
+                    "child chain changed while wallet history was scanned; retry");
+            }
+            for (const auto& wallet_tx : page.transactions) {
+                ListChildTransactions(
+                    wallet_tx, chain_id, recipients, ret, filter_label,
+                    /*verbose=*/true);
+                if (ret.size() >= target) break;
+            }
+            if (ret.size() >= target || !page.next_height ||
+                recipients.empty()) {
+                break;
+            }
+            start_height = page.next_height;
+            include_mempool = false;
+        } while (true);
+
+        if (nFrom > static_cast<int>(ret.size())) nFrom = ret.size();
+        if (nFrom + nCount > static_cast<int>(ret.size())) {
+            nCount = ret.size() - nFrom;
+        }
+        auto txs_rev_it{std::make_move_iterator(ret.rend())};
+        UniValue result{UniValue::VARR};
+        result.push_backV(txs_rev_it - nFrom - nCount,
+                          txs_rev_it - nFrom);
+        return result;
+    }
 
     std::vector<UniValue> ret;
     {
@@ -783,11 +1028,12 @@ RPCHelpMan gettransaction()
 {
     return RPCHelpMan{
         "gettransaction",
-        "Get detailed information about in-wallet transaction <txid>\n",
+        "Get detailed information about in-wallet transaction <txid>. When chain_id is omitted, the main-chain wallet is queried as before.\n",
                 {
                     {"txid", RPCArg::Type::STR, RPCArg::Optional::NO, "The transaction id"},
                     {"verbose", RPCArg::Type::BOOL, RPCArg::Default{false},
                             "Whether to include a `decoded` field containing the decoded transaction (equivalent to RPC decoderawtransaction)"},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain"},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", Cat(Cat<std::vector<RPCResult>>(
@@ -803,6 +1049,9 @@ RPCHelpMan gettransaction()
                             {RPCResult::Type::OBJ, "", "",
                             {
                                 {RPCResult::Type::STR, "address", /*optional=*/true, "The Kronein address involved in the transaction."},
+                                {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Selected child-chain identifier; omitted for main-chain results."},
+                                {RPCResult::Type::NUM, "recipient_type", /*optional=*/true, "Child recipient namespace."},
+                                {RPCResult::Type::STR_HEX, "recipient", /*optional=*/true, "Canonical child recipient bytes."},
                                 {RPCResult::Type::STR, "category", "The transaction category.\n"
                                     "\"send\"                  Transactions sent.\n"
                                     "\"receive\"               Non-coinbase transactions received.\n"
@@ -843,11 +1092,93 @@ RPCHelpMan gettransaction()
     // the user could have gotten from another RPC command prior to now
     pwallet->BlockUntilSyncedToCurrentChain();
 
-    LOCK(pwallet->cs_wallet);
-
     Txid hash{Txid::FromUint256(ParseHashV(request.params[0], "txid"))};
 
     bool verbose = request.params[1].isNull() ? false : request.params[1].get_bool();
+
+    if (const auto chain_arg{self.MaybeArg<UniValue>("chain_id")}) {
+        const auto chain_id{ParseChildChainId(*chain_arg)};
+        const ChildRecipientMap recipients{
+            GetChildRecipientMap(*pwallet, chain_id)};
+        std::optional<interfaces::ChildWalletTransaction> found;
+        std::optional<interfaces::ChildWalletHistoryPage> first_page;
+        std::optional<int> start_height;
+        bool include_mempool{true};
+        do {
+            auto page{ScanChildWalletHistory(
+                *pwallet, chain_id, start_height, include_mempool)};
+            if (!first_page) {
+                first_page = page;
+            } else if (first_page->best_block != page.best_block ||
+                       first_page->height != page.height) {
+                throw JSONRPCError(
+                    RPC_MISC_ERROR,
+                    "child chain changed while wallet history was scanned; retry");
+            }
+            for (auto& wallet_tx : page.transactions) {
+                if (wallet_tx.transaction->GetHash() == hash) {
+                    found = std::move(wallet_tx);
+                    break;
+                }
+            }
+            if (found || !page.next_height || recipients.empty()) break;
+            start_height = page.next_height;
+            include_mempool = false;
+        } while (true);
+        if (!found) {
+            throw JSONRPCError(
+                RPC_INVALID_ADDRESS_OR_KEY,
+                "Invalid or non-wallet child transaction id");
+        }
+
+        const ChildTransactionAmounts amounts{
+            GetChildTransactionAmounts(*found, recipients)};
+        CAmount credit{amounts.credit};
+        if (found->transaction->IsCoinBase() &&
+            found->confirmations < COINBASE_MATURITY) {
+            credit = 0;
+        }
+        UniValue entry{UniValue::VOBJ};
+        entry.pushKV("chain_id", chain_id.GetHex());
+        entry.pushKV(
+            "amount",
+            ValueFromAmount(credit - amounts.debit + amounts.fee));
+        if (amounts.from_wallet) {
+            entry.pushKV("fee", ValueFromAmount(-amounts.fee));
+        }
+        ChildWalletTxToJSON(
+            *found, amounts.from_wallet, entry);
+
+        UniValue details{UniValue::VARR};
+        ListChildTransactions(
+            *found, chain_id, recipients, details,
+            /*filter_label=*/std::nullopt,
+            /*verbose=*/false);
+        entry.pushKV("details", std::move(details));
+        entry.pushKV("hex", EncodeHexTx(*found->transaction));
+
+        if (verbose) {
+            UniValue decoded{UniValue::VOBJ};
+            TxToUniv(
+                *found->transaction,
+                /*block_hash=*/uint256(),
+                /*entry=*/decoded,
+                /*include_hex=*/false,
+                /*txundo=*/nullptr,
+                /*verbosity=*/TxVerbosity::SHOW_DETAILS,
+                /*is_change_func=*/[&recipients](const CTxOut& output) {
+                    const auto owned{recipients.find(output.scriptPubKey)};
+                    return owned != recipients.end() &&
+                           owned->second.change;
+                });
+            entry.pushKV("decoded", std::move(decoded));
+        }
+        Assume(first_page);
+        PushChildLastProcessedBlock(entry, *first_page);
+        return entry;
+    }
+
+    LOCK(pwallet->cs_wallet);
 
     UniValue entry(UniValue::VOBJ);
     auto it = pwallet->mapWallet.find(hash);

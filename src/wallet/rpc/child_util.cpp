@@ -29,17 +29,8 @@ interfaces::ChildWalletScan ScanChildWallet(
     const CWallet& wallet,
     const chainregistry::ChainId& chain_id)
 {
-    std::set<CScript> scripts;
-    {
-        LOCK(wallet.cs_wallet);
-        for (const auto& [destination, _] :
-             wallet.ListChildRecipients(chain_id)) {
-            const CScript script{GetScriptForDestination(destination)};
-            if (wallet.IsMine(script)) scripts.insert(script);
-        }
-    }
-
-    auto scan{wallet.chain().scanChildWalletUTXOs(chain_id, scripts)};
+    auto scan{wallet.chain().scanChildWalletUTXOs(
+        chain_id, ChildWalletScripts(wallet, chain_id))};
     switch (scan.error) {
     case interfaces::ChildWalletScanError::NONE:
         return scan;
@@ -57,6 +48,52 @@ interfaces::ChildWalletScan ScanChildWallet(
     }
     throw JSONRPCError(RPC_INTERNAL_ERROR,
                        "unhandled child wallet scan error");
+}
+
+std::set<CScript> ChildWalletScripts(
+    const CWallet& wallet,
+    const chainregistry::ChainId& chain_id)
+{
+    std::set<CScript> scripts;
+    {
+        LOCK(wallet.cs_wallet);
+        for (const auto& [destination, _] :
+             wallet.ListChildRecipients(chain_id)) {
+            const CScript script{GetScriptForDestination(destination)};
+            if (wallet.IsMine(script)) scripts.insert(script);
+        }
+    }
+    return scripts;
+}
+
+interfaces::ChildWalletHistoryPage ScanChildWalletHistory(
+    const CWallet& wallet,
+    const chainregistry::ChainId& chain_id,
+    std::optional<int> start_height,
+    bool include_mempool)
+{
+    auto scan{wallet.chain().scanChildWalletHistory(
+        chain_id,
+        ChildWalletScripts(wallet, chain_id),
+        start_height,
+        include_mempool)};
+    switch (scan.error) {
+    case interfaces::ChildWalletScanError::NONE:
+        return scan;
+    case interfaces::ChildWalletScanError::NULL_CHAIN_ID:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "chain_id must not be null");
+    case interfaces::ChildWalletScanError::UNKNOWN_CHAIN:
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "child chain is not configured locally");
+    case interfaces::ChildWalletScanError::CHAIN_NOT_LOADED:
+        throw JSONRPCError(RPC_MISC_ERROR, "child chain is not loaded");
+    case interfaces::ChildWalletScanError::DATA_UNAVAILABLE:
+        throw JSONRPCError(RPC_INTERNAL_ERROR,
+                           "child wallet history data is unavailable");
+    }
+    throw JSONRPCError(RPC_INTERNAL_ERROR,
+                       "unhandled child wallet history error");
 }
 
 } // namespace wallet
