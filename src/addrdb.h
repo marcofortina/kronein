@@ -6,10 +6,12 @@
 #ifndef BITCOIN_ADDRDB_H
 #define BITCOIN_ADDRDB_H
 
+#include <kernel/messagestartchars.h>
 #include <net_types.h>
 #include <util/fs.h>
 #include <util/result.h>
 
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -23,6 +25,9 @@ class NetGroupManager;
 void ReadFromStream(AddrMan& addr, DataStream& ssPeers);
 
 bool DumpPeerAddresses(const ArgsManager& args, const AddrMan& addr);
+bool DumpPeerAddresses(const fs::path& path,
+                       const MessageStartChars& message_start,
+                       const AddrMan& addr);
 
 /** Access to the banlist database (banlist.json) */
 class CBanDB
@@ -49,6 +54,12 @@ public:
 
 /** Returns an error string on failure */
 util::Result<std::unique_ptr<AddrMan>> LoadAddrman(const NetGroupManager& netgroupman, const ArgsManager& args);
+util::Result<std::unique_ptr<AddrMan>> LoadAddrman(
+    const NetGroupManager& netgroupman,
+    const fs::path& path,
+    const MessageStartChars& message_start,
+    int32_t consistency_check_ratio = 0,
+    bool deterministic = false);
 
 /**
  * Dump the anchor IP address database (anchors.dat)
@@ -57,6 +68,9 @@ util::Result<std::unique_ptr<AddrMan>> LoadAddrman(const NetGroupManager& netgro
  * tried to re-connect to on startup.
  */
 void DumpAnchors(const fs::path& anchors_db_path, const std::vector<CAddress>& anchors);
+void DumpAnchors(const fs::path& anchors_db_path,
+                 const MessageStartChars& message_start,
+                 const std::vector<CAddress>& anchors);
 
 /**
  * Read the anchor IP address database (anchors.dat)
@@ -65,5 +79,7 @@ void DumpAnchors(const fs::path& anchors_db_path, const std::vector<CAddress>& a
  * an unclean shutdown and thus potential exploitation of the anchor peer policy.
  */
 std::vector<CAddress> ReadAnchors(const fs::path& anchors_db_path);
+std::vector<CAddress> ReadAnchors(const fs::path& anchors_db_path,
+                                 const MessageStartChars& message_start);
 
 #endif // BITCOIN_ADDRDB_H

@@ -48,6 +48,36 @@ static CService ResolveService(const std::string& ip, uint16_t port = 0)
 
 BOOST_FIXTURE_TEST_SUITE(addrman_tests, BasicTestingSetup)
 
+BOOST_AUTO_TEST_CASE(peer_store_is_bound_to_network_magic)
+{
+    const fs::path path{m_args.GetDataDirBase() / "isolated-peers.dat"};
+    constexpr MessageStartChars CHILD_MAGIC{0x4b, 0x52, 0x56, 0x01};
+    constexpr MessageStartChars OTHER_MAGIC{0x4b, 0x52, 0x56, 0x02};
+    AddrMan addrman{EMPTY_NETGROUPMAN, DETERMINISTIC, GetCheckRatio(m_node)};
+    const CNetAddr source{ResolveIP("252.2.2.2")};
+    BOOST_REQUIRE(addrman.Add(
+        {CAddress{ResolveService("250.1.1.1", 19843), NODE_NONE}},
+        source));
+
+    BOOST_REQUIRE(DumpPeerAddresses(path, CHILD_MAGIC, addrman));
+    auto loaded{LoadAddrman(
+        EMPTY_NETGROUPMAN,
+        path,
+        CHILD_MAGIC,
+        GetCheckRatio(m_node),
+        DETERMINISTIC)};
+    BOOST_REQUIRE(loaded);
+    BOOST_CHECK_EQUAL((*loaded)->Size(), 1U);
+
+    const auto wrong_network{LoadAddrman(
+        EMPTY_NETGROUPMAN,
+        path,
+        OTHER_MAGIC,
+        GetCheckRatio(m_node),
+        DETERMINISTIC)};
+    BOOST_CHECK(!wrong_network);
+}
+
 BOOST_AUTO_TEST_CASE(addrman_simple)
 {
     auto addrman = std::make_unique<AddrMan>(EMPTY_NETGROUPMAN, DETERMINISTIC, GetCheckRatio(m_node));

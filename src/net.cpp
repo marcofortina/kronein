@@ -2048,7 +2048,13 @@ void CConnman::DumpAddresses()
 {
     const auto start{SteadyClock::now()};
 
-    DumpPeerAddresses(::gArgs, addrman);
+    if (m_addrman_path && m_addrman_message_start) {
+        DumpPeerAddresses(*m_addrman_path,
+                          *m_addrman_message_start,
+                          addrman);
+    } else {
+        DumpPeerAddresses(::gArgs, addrman);
+    }
 
     LogDebug(BCLog::NET, "Flushed %d addresses to peers.dat  %dms\n",
              addrman.get().Size(), Ticks<std::chrono::milliseconds>(SteadyClock::now() - start));
@@ -3136,7 +3142,11 @@ bool CConnman::Start(CScheduler& scheduler, const Options& connOptions)
 
     if (m_use_addrman_outgoing && m_persist_addrman) {
         // Load addresses from anchors.dat
-        m_anchors = ReadAnchors(gArgs.GetDataDirNet() / ANCHORS_DATABASE_FILENAME);
+        const fs::path anchors_path{m_anchors_path.value_or(
+            gArgs.GetDataDirNet() / ANCHORS_DATABASE_FILENAME)};
+        m_anchors = m_addrman_message_start
+            ? ReadAnchors(anchors_path, *m_addrman_message_start)
+            : ReadAnchors(anchors_path);
         if (m_anchors.size() > MAX_BLOCK_RELAY_ONLY_ANCHORS) {
             m_anchors.resize(MAX_BLOCK_RELAY_ONLY_ANCHORS);
         }
@@ -3297,7 +3307,15 @@ void CConnman::StopNodes()
             if (anchors_to_dump.size() > MAX_BLOCK_RELAY_ONLY_ANCHORS) {
                 anchors_to_dump.resize(MAX_BLOCK_RELAY_ONLY_ANCHORS);
             }
-            DumpAnchors(gArgs.GetDataDirNet() / ANCHORS_DATABASE_FILENAME, anchors_to_dump);
+            const fs::path anchors_path{m_anchors_path.value_or(
+                gArgs.GetDataDirNet() / ANCHORS_DATABASE_FILENAME)};
+            if (m_addrman_message_start) {
+                DumpAnchors(anchors_path,
+                            *m_addrman_message_start,
+                            anchors_to_dump);
+            } else {
+                DumpAnchors(anchors_path, anchors_to_dump);
+            }
         }
     }
 

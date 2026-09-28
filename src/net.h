@@ -30,6 +30,7 @@
 #include <sync.h>
 #include <uint256.h>
 #include <util/check.h>
+#include <util/fs.h>
 #include <util/sock.h>
 #include <util/threadinterrupt.h>
 
@@ -943,6 +944,9 @@ public:
         bool m_schedule_maintenance{true};
         bool m_persist_addrman{true};
         bool m_interrupt_socks5{true};
+        std::optional<fs::path> m_addrman_path;
+        std::optional<fs::path> m_anchors_path;
+        std::optional<MessageStartChars> m_addrman_message_start;
     };
 
     void Init(const Options& connOptions) EXCLUSIVE_LOCKS_REQUIRED(!m_added_nodes_mutex, !m_total_bytes_sent_mutex)
@@ -984,6 +988,11 @@ public:
         m_schedule_maintenance = connOptions.m_schedule_maintenance;
         m_persist_addrman = connOptions.m_persist_addrman;
         m_interrupt_socks5 = connOptions.m_interrupt_socks5;
+        m_addrman_path = connOptions.m_addrman_path;
+        m_anchors_path = connOptions.m_anchors_path;
+        m_addrman_message_start = connOptions.m_addrman_message_start;
+        assert(m_addrman_path.has_value() ==
+               m_addrman_message_start.has_value());
     }
 
     // test only
@@ -1528,6 +1537,9 @@ private:
     bool m_schedule_maintenance{true};
     bool m_persist_addrman{true};
     bool m_interrupt_socks5{true};
+    std::optional<fs::path> m_addrman_path;
+    std::optional<fs::path> m_anchors_path;
+    std::optional<MessageStartChars> m_addrman_message_start;
     CClientUIInterface* m_client_interface;
     NetEventsInterface* m_msgproc;
     /** Pointer to this node's banman. May be nullptr - check existence before dereferencing. */
