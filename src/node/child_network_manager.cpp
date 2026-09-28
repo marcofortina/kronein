@@ -402,6 +402,8 @@ struct ChildNetworkManager::Network {
             .network_active = connman.GetNetworkActive(),
             .connections = connman.GetNodeCount(ConnectionDirection::Both),
             .handshaken = events->HandshakenPeerCount(),
+            .inbound_netgroup_rejections =
+                events->InboundNetgroupRejections(),
             .known_addresses = events->KnownAddressCount(),
             .rate_limited_requests = events->RateLimitedRequests(),
             .discovery = config.discovery,

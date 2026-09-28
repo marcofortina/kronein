@@ -903,6 +903,11 @@ void PushChildNetworkStats(UniValue& object,
     object.pushKV("network_active", stats.network_active);
     object.pushKV("connections", stats.connections);
     object.pushKV("handshaken_peers", stats.handshaken);
+    object.pushKV(
+        "max_inbound_per_netgroup", node::MAX_CHILD_INBOUND_PER_NETGROUP);
+    object.pushKV(
+        "inbound_netgroup_rejections",
+        stats.inbound_netgroup_rejections);
     object.pushKV("known_addresses", stats.known_addresses);
     object.pushKV("max_known_addresses", node::MAX_CHILD_KNOWN_ADDRESSES);
     object.pushKV(
@@ -1440,6 +1445,8 @@ RPCHelpMan listchildchainruntimes()
                     {RPCResult::Type::BOOL, "network_active", "Whether new child-network connections are enabled"},
                     {RPCResult::Type::NUM, "connections", "Current child-network connection count"},
                     {RPCResult::Type::NUM, "handshaken_peers", "Authenticated peers serving this exact child chain"},
+                    {RPCResult::Type::NUM, "max_inbound_per_netgroup", "Maximum authenticated inbound peers accepted from one deterministic network group"},
+                    {RPCResult::Type::NUM, "inbound_netgroup_rejections", "Authenticated inbound peers rejected because their network group was full"},
                     {RPCResult::Type::NUM, "known_addresses", "Routable endpoints in this child's isolated peer store"},
                     {RPCResult::Type::NUM, "max_known_addresses", "Maximum routable endpoints retained in this child's isolated peer store"},
                     {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
@@ -1631,6 +1638,8 @@ RPCHelpMan loadchildchain()
             {RPCResult::Type::BOOL, "network_active", "Whether new child-network connections are enabled"},
             {RPCResult::Type::NUM, "connections", "Current child-network connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Authenticated peers serving this exact child chain"},
+            {RPCResult::Type::NUM, "max_inbound_per_netgroup", "Maximum authenticated inbound peers accepted from one deterministic network group"},
+            {RPCResult::Type::NUM, "inbound_netgroup_rejections", "Authenticated inbound peers rejected because their network group was full"},
             {RPCResult::Type::NUM, "known_addresses", "Routable endpoints in this child's isolated peer store"},
             {RPCResult::Type::NUM, "max_known_addresses", "Maximum routable endpoints retained in this child's isolated peer store"},
             {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
@@ -1827,6 +1836,8 @@ RPCHelpMan getchildnetworkinfo()
             {RPCResult::Type::BOOL, "network_active", "Whether new child-network connections are enabled"},
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
+            {RPCResult::Type::NUM, "max_inbound_per_netgroup", "Maximum authenticated inbound peers accepted from one deterministic network group"},
+            {RPCResult::Type::NUM, "inbound_netgroup_rejections", "Authenticated inbound peers rejected because their network group was full"},
             {RPCResult::Type::NUM, "known_addresses", "Routable endpoints in this child's isolated peer store"},
             {RPCResult::Type::NUM, "max_known_addresses", "Maximum routable endpoints retained in this child's isolated peer store"},
             {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
@@ -1890,6 +1901,8 @@ RPCHelpMan addchildnode()
             {RPCResult::Type::BOOL, "network_active", "Whether new child-network connections are enabled"},
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
+            {RPCResult::Type::NUM, "max_inbound_per_netgroup", "Maximum authenticated inbound peers accepted from one deterministic network group"},
+            {RPCResult::Type::NUM, "inbound_netgroup_rejections", "Authenticated inbound peers rejected because their network group was full"},
             {RPCResult::Type::NUM, "known_addresses", "Routable endpoints in this child's isolated peer store"},
             {RPCResult::Type::NUM, "max_known_addresses", "Maximum routable endpoints retained in this child's isolated peer store"},
             {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
@@ -1938,6 +1951,8 @@ RPCHelpMan removechildnode()
             {RPCResult::Type::BOOL, "network_active", "Whether new child-network connections are enabled"},
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
+            {RPCResult::Type::NUM, "max_inbound_per_netgroup", "Maximum authenticated inbound peers accepted from one deterministic network group"},
+            {RPCResult::Type::NUM, "inbound_netgroup_rejections", "Authenticated inbound peers rejected because their network group was full"},
             {RPCResult::Type::NUM, "known_addresses", "Routable endpoints in this child's isolated peer store"},
             {RPCResult::Type::NUM, "max_known_addresses", "Maximum routable endpoints retained in this child's isolated peer store"},
             {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
@@ -1986,6 +2001,8 @@ RPCHelpMan setchildnetworkactive()
             {RPCResult::Type::BOOL, "network_active", "Whether new child-network connections are enabled"},
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
+            {RPCResult::Type::NUM, "max_inbound_per_netgroup", "Maximum authenticated inbound peers accepted from one deterministic network group"},
+            {RPCResult::Type::NUM, "inbound_netgroup_rejections", "Authenticated inbound peers rejected because their network group was full"},
             {RPCResult::Type::NUM, "known_addresses", "Routable endpoints in this child's isolated peer store"},
             {RPCResult::Type::NUM, "max_known_addresses", "Maximum routable endpoints retained in this child's isolated peer store"},
             {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
@@ -2037,6 +2054,8 @@ RPCHelpMan setchildnetworkbinds()
             {RPCResult::Type::BOOL, "network_active", "Whether new child-network connections are enabled"},
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
+            {RPCResult::Type::NUM, "max_inbound_per_netgroup", "Maximum authenticated inbound peers accepted from one deterministic network group"},
+            {RPCResult::Type::NUM, "inbound_netgroup_rejections", "Authenticated inbound peers rejected because their network group was full"},
             {RPCResult::Type::NUM, "known_addresses", "Routable endpoints in this child's isolated peer store"},
             {RPCResult::Type::NUM, "max_known_addresses", "Maximum routable endpoints retained in this child's isolated peer store"},
             {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},
@@ -2095,6 +2114,8 @@ RPCHelpMan setchildnetworkdiscovery()
             {RPCResult::Type::BOOL, "network_active", "Whether new child-network connections are enabled"},
             {RPCResult::Type::NUM, "connections", "Current connection count"},
             {RPCResult::Type::NUM, "handshaken_peers", "Peers authenticated for this exact child chain"},
+            {RPCResult::Type::NUM, "max_inbound_per_netgroup", "Maximum authenticated inbound peers accepted from one deterministic network group"},
+            {RPCResult::Type::NUM, "inbound_netgroup_rejections", "Authenticated inbound peers rejected because their network group was full"},
             {RPCResult::Type::NUM, "known_addresses", "Routable endpoints in this child's isolated peer store"},
             {RPCResult::Type::NUM, "max_known_addresses", "Maximum routable endpoints retained in this child's isolated peer store"},
             {RPCResult::Type::NUM, "rate_limited_block_requests", "Block requests rejected by this child stack's per-peer rate limit"},

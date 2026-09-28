@@ -16,6 +16,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <memory>
+
 namespace {
 
 const COutPoint REGISTRATION_ANCHOR{
@@ -240,6 +242,96 @@ BOOST_AUTO_TEST_CASE(rejects_child_connections_to_self)
 
     events.FinalizeNode(inbound);
     connman.ClearTestNodes();
+}
+
+BOOST_AUTO_TEST_CASE(limits_authenticated_inbound_peers_per_netgroup)
+{
+    const auto definition{Definition()};
+    node::ChainManager manager{
+        Params().GetConsensus(),
+        Params().GenesisBlock(),
+        m_args.GetDataDirBase() / "child_net_inbound_netgroup",
+        1 << 20};
+    BOOST_REQUIRE(manager.RegisterChain(definition).IsValid());
+    BOOST_REQUIRE(manager.LoadChain(
+        definition.chain_id,
+        Params().GenesisBlock().nTime,
+        /*wipe_data=*/true,
+        /*sync=*/true).IsValid());
+
+    NetGroupManager netgroup{NetGroupManager::NoAsmap()};
+    AddrMan addrman{
+        netgroup, /*deterministic=*/true,
+        /*consistency_check_ratio=*/0};
+    ConnmanTestMsg connman{
+        1, 2, addrman, netgroup, Params()};
+    node::ChildBandwidthLimiter bandwidth{
+        node::DEFAULT_CHILD_UPLOAD_TARGET_BYTES};
+    node::ChildNetEvents events{
+        connman,
+        addrman,
+        manager,
+        bandwidth,
+        definition,
+        /*discovery=*/false,
+        node::MAX_CHILD_KNOWN_ADDRESSES,
+        /*max_inbound_per_netgroup=*/1};
+    connman.SetMsgProc(&events);
+
+    constexpr uint64_t NETGROUP{77};
+    const auto make_peer{[=](NodeId id, uint64_t nonce) {
+        return std::make_unique<CNode>(
+            id,
+            /*sock=*/nullptr,
+            CAddress{},
+            /*nKeyedNetGroupIn=*/NETGROUP,
+            /*nLocalHostNonceIn=*/nonce,
+            CService{},
+            /*addrNameIn=*/"",
+            ConnectionType::INBOUND,
+            /*inbound_onion=*/false,
+            /*network_key=*/0);
+    }};
+    auto first{make_peer(20, 200)};
+    auto second{make_peer(21, 210)};
+    auto replacement{make_peer(22, 220)};
+    const auto authenticate{[&](CNode& peer, uint64_t nonce) {
+        events.InitializeNode(peer, NODE_NONE);
+        connman.FlushSendBuffer(peer);
+        BOOST_REQUIRE(connman.ReceiveMsgFrom(
+            peer,
+            NetMsg::Make(
+                std::string{chainregistry::ChildNetMsgType::HELLO},
+                chainregistry::ChildNetHello{
+                    .nonce = nonce,
+                    .chain_id = definition.chain_id,
+                    .genesis_hash = definition.genesis_hash,
+                })));
+        LOCK(NetEventsInterface::g_msgproc_mutex);
+        connman.ProcessMessagesOnce(peer);
+    }};
+
+    authenticate(*first, 201);
+    BOOST_REQUIRE(first->fSuccessfullyConnected);
+    BOOST_CHECK(!first->fDisconnect);
+    BOOST_CHECK_EQUAL(events.HandshakenPeerCount(), 1U);
+
+    authenticate(*second, 211);
+    BOOST_CHECK(!second->fSuccessfullyConnected);
+    BOOST_CHECK(second->fDisconnect);
+    BOOST_CHECK_EQUAL(events.HandshakenPeerCount(), 1U);
+    BOOST_CHECK_EQUAL(events.InboundNetgroupRejections(), 1U);
+
+    events.FinalizeNode(*first);
+    BOOST_CHECK_EQUAL(events.HandshakenPeerCount(), 0U);
+    authenticate(*replacement, 221);
+    BOOST_CHECK(replacement->fSuccessfullyConnected);
+    BOOST_CHECK(!replacement->fDisconnect);
+    BOOST_CHECK_EQUAL(events.HandshakenPeerCount(), 1U);
+
+    events.FinalizeNode(*second);
+    events.FinalizeNode(*replacement);
+    BOOST_CHECK_EQUAL(events.PeerCount(), 0U);
 }
 
 BOOST_AUTO_TEST_CASE(relays_bounded_addresses_only_after_handshake)

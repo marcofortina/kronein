@@ -67,13 +67,15 @@ ChildNetEvents::ChildNetEvents(
     ChildBandwidthLimiter& bandwidth,
     chainregistry::ReferenceChildDefinition definition,
     bool discovery,
-    size_t max_known_addresses)
+    size_t max_known_addresses,
+    size_t max_inbound_per_netgroup)
     : m_connman{connman},
       m_addrman{addrman},
       m_processor{manager, std::move(definition)},
       m_bandwidth{bandwidth},
       m_discovery{discovery},
-      m_max_known_addresses{max_known_addresses}
+      m_max_known_addresses{max_known_addresses},
+      m_max_inbound_per_netgroup{max_inbound_per_netgroup}
 {
 }
 
@@ -138,7 +140,9 @@ void ChildNetEvents::InitializeNode(
 {
     LOCK(m_mutex);
     CNode& mutable_node{const_cast<CNode&>(node)};
-    m_address_relay.emplace(node.GetId(), AddressRelayState{});
+    m_address_relay.emplace(
+        node.GetId(),
+        AddressRelayState{.keyed_netgroup = node.nKeyedNetGroup});
     ApplyResult(
         mutable_node,
         m_processor.Connected(node.GetId(), node.GetLocalNonce()));
@@ -152,6 +156,19 @@ void ChildNetEvents::FinalizeNode(const CNode& node)
     }
     m_processor.Disconnected(node.GetId());
     m_timeout_strikes.erase(node.GetId());
+    const auto relay{m_address_relay.find(node.GetId())};
+    if (relay != m_address_relay.end() &&
+        relay->second.inbound_admitted) {
+        const auto netgroup{
+            m_inbound_netgroups.find(relay->second.keyed_netgroup)};
+        if (netgroup != m_inbound_netgroups.end()) {
+            if (netgroup->second > 1) {
+                --netgroup->second;
+            } else {
+                m_inbound_netgroups.erase(netgroup);
+            }
+        }
+    }
     m_address_relay.erase(node.GetId());
 }
 
@@ -183,9 +200,33 @@ ChildNetProcessorResult ChildNetEvents::ProcessMessage(
         }
         auto result{m_processor.ReceiveHello(peer, hello)};
         if (result.IsValid()) {
+            auto relay{m_address_relay.find(peer)};
+            if (node.IsInboundConn()) {
+                if (relay == m_address_relay.end()) {
+                    result.error = ChildNetProcessorError::UNKNOWN_PEER;
+                    result.disconnect = true;
+                    result.outbound.clear();
+                    return result;
+                }
+                const auto netgroup{m_inbound_netgroups.find(
+                    relay->second.keyed_netgroup)};
+                const size_t admitted{netgroup == m_inbound_netgroups.end()
+                    ? 0
+                    : netgroup->second};
+                if (admitted >= m_max_inbound_per_netgroup) {
+                    m_processor.Disconnected(peer);
+                    ++m_inbound_netgroup_rejections;
+                    result.error =
+                        ChildNetProcessorError::INBOUND_NETGROUP_LIMIT;
+                    result.disconnect = true;
+                    result.outbound.clear();
+                    return result;
+                }
+                ++m_inbound_netgroups[relay->second.keyed_netgroup];
+                relay->second.inbound_admitted = true;
+            }
             node.fSuccessfullyConnected = true;
             if (!node.IsInboundConn()) m_addrman.Good(node.addr);
-            auto relay{m_address_relay.find(peer)};
             if (m_discovery && !node.IsInboundConn() &&
                 relay != m_address_relay.end() &&
                 !relay->second.requested) {
@@ -433,6 +474,12 @@ uint64_t ChildNetEvents::RateLimitedRequests() const
 {
     LOCK(m_mutex);
     return m_rate_limited_requests;
+}
+
+uint64_t ChildNetEvents::InboundNetgroupRejections() const
+{
+    LOCK(m_mutex);
+    return m_inbound_netgroup_rejections;
 }
 
 size_t ChildNetEvents::KnownAddressCount() const

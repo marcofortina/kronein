@@ -111,6 +111,7 @@ struct ChildNetworkStats {
     bool network_active{false};
     size_t connections{0};
     size_t handshaken{0};
+    uint64_t inbound_netgroup_rejections{0};
     size_t known_addresses{0};
     uint64_t rate_limited_requests{0};
     bool discovery{false};

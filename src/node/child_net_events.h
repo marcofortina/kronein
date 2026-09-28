@@ -23,6 +23,7 @@ class ChildBandwidthLimiter;
 
 inline constexpr uint8_t MAX_CHILD_BLOCK_TIMEOUT_STRIKES{3};
 inline constexpr size_t MAX_CHILD_KNOWN_ADDRESSES{4'096};
+inline constexpr size_t MAX_CHILD_INBOUND_PER_NETGROUP{2};
 inline constexpr ChildRequestTime CHILD_NET_POLL_INTERVAL{
     std::chrono::milliseconds{100}};
 
@@ -40,6 +41,8 @@ private:
         bool requested{false};
         bool received{false};
         bool served{false};
+        bool inbound_admitted{false};
+        uint64_t keyed_netgroup{0};
     };
 
     CConnman& m_connman;
@@ -51,9 +54,12 @@ private:
     std::map<ChildPeerId, uint8_t> m_timeout_strikes GUARDED_BY(m_mutex);
     std::map<ChildPeerId, AddressRelayState> m_address_relay
         GUARDED_BY(m_mutex);
+    std::map<uint64_t, size_t> m_inbound_netgroups GUARDED_BY(m_mutex);
     uint64_t m_rate_limited_requests GUARDED_BY(m_mutex){0};
+    uint64_t m_inbound_netgroup_rejections GUARDED_BY(m_mutex){0};
     const bool m_discovery;
     const size_t m_max_known_addresses;
+    const size_t m_max_inbound_per_netgroup;
 
     void PushOutbound(CNode& current,
                       ChildNetOutbound&& outbound);
@@ -71,7 +77,8 @@ public:
         ChildBandwidthLimiter& bandwidth,
         chainregistry::ReferenceChildDefinition definition,
         bool discovery,
-        size_t max_known_addresses = MAX_CHILD_KNOWN_ADDRESSES);
+        size_t max_known_addresses = MAX_CHILD_KNOWN_ADDRESSES,
+        size_t max_inbound_per_netgroup = MAX_CHILD_INBOUND_PER_NETGROUP);
 
     void InitializeNode(const CNode& node,
                         ServiceFlags our_services) override;
@@ -88,6 +95,7 @@ public:
     size_t PeerCount() const;
     size_t HandshakenPeerCount() const;
     uint64_t RateLimitedRequests() const;
+    uint64_t InboundNetgroupRejections() const;
     size_t KnownAddressCount() const;
 };
 
