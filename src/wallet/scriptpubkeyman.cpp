@@ -409,6 +409,13 @@ std::unique_ptr<FlatSigningProvider> DescriptorScriptPubKeyMan::GetSigningProvid
     return GetSigningProvider(index, include_private);
 }
 
+std::unique_ptr<SigningProvider>
+DescriptorScriptPubKeyMan::GetSigningProviderForTransaction(
+    const CScript& script, bool include_private) const
+{
+    return GetSigningProvider(script, include_private);
+}
+
 std::unique_ptr<FlatSigningProvider> DescriptorScriptPubKeyMan::GetSigningProvider(const CPubKey& pubkey) const
 {
     LOCK(cs_desc_man);

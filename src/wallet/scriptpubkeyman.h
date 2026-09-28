@@ -130,6 +130,16 @@ public:
 
     virtual std::unique_ptr<SigningProvider> GetSolvingProvider(const CScript& script) const { return nullptr; }
 
+    /**
+     * Return wallet signing material for a script. Private keys are included
+     * only when explicitly requested and available.
+     */
+    virtual std::unique_ptr<SigningProvider> GetSigningProviderForTransaction(
+        const CScript& script, bool include_private) const
+    {
+        return include_private ? nullptr : GetSolvingProvider(script);
+    }
+
     /** Whether this ScriptPubKeyMan can provide a SigningProvider (via GetSolvingProvider) that, combined with
       * sigdata, can produce solving data.
       */
@@ -260,6 +270,9 @@ public:
     bool CanGetAddresses(bool internal = false) const override;
 
     std::unique_ptr<SigningProvider> GetSolvingProvider(const CScript& script) const override;
+
+    std::unique_ptr<SigningProvider> GetSigningProviderForTransaction(
+        const CScript& script, bool include_private) const override;
 
     bool CanProvide(const CScript& script, SignatureData& sigdata) override;
 
