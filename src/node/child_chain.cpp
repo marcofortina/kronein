@@ -288,12 +288,14 @@ bool ReferenceChildRuntime::ActivateSelectedHead(
             result)) {
         return false;
     }
+    std::vector<uint256> pruned_candidates;
     if (!m_db->WriteChildReorganization(
             main_headers,
             candidate_imports,
             disconnected,
             connected,
-            sync)) {
+            sync,
+            &pruned_candidates)) {
         result.error =
             ReferenceChildRuntimeError::CHILD_REORGANIZATION_PERSIST_FAILED;
         return false;
@@ -312,11 +314,23 @@ bool ReferenceChildRuntime::ActivateSelectedHead(
         result.error = ReferenceChildRuntimeError::FAILED_RUNTIME;
         return false;
     }
-    m_tip = selected_tip;
     result.disconnected_child_blocks.reserve(disconnected_index.size());
     for (const CBlockIndex* entry : disconnected_index) {
         result.disconnected_child_blocks.push_back(entry->GetBlockHash());
     }
+    m_tip = selected_tip;
+    for (const uint256& hash : pruned_candidates) {
+        if (hash == m_tip->GetBlockHash() ||
+            m_child_index.erase(hash) != 1) {
+            m_failed = true;
+            result.error = ReferenceChildRuntimeError::FAILED_RUNTIME;
+            return false;
+        }
+    }
+    result.pruned_child_candidates.insert(
+        result.pruned_child_candidates.end(),
+        pruned_candidates.begin(),
+        pruned_candidates.end());
     result.selected_child_head = m_tip->GetBlockHash();
     result.reorganization_required = false;
     return true;

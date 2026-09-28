@@ -295,7 +295,8 @@ public:
         const chainregistry::DepositImportState& imports,
         std::span<const ChildChainDBDisconnect> disconnected_blocks,
         std::span<const ChildChainDBConnect> connected_blocks,
-        bool sync = false);
+        bool sync = false,
+        std::vector<uint256>* pruned_candidates = nullptr);
 
     std::optional<Coin> GetCoin(const COutPoint& outpoint) const override;
     bool HaveCoin(const COutPoint& outpoint) const override;

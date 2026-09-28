@@ -374,12 +374,25 @@ struct CandidatePruningPlan {
     std::map<uint256, std::vector<CandidateAnchorKey>> anchor_keys;
 };
 
+struct CandidatePruningChange {
+    uint256 block_hash;
+    bool prunable{false};
+    uint64_t side_candidate_bytes{0};
+    uint64_t added_anchor_count{0};
+    uint64_t added_anchor_bytes{0};
+    uint64_t removed_anchor_count{0};
+    uint64_t removed_anchor_bytes{0};
+    std::vector<CandidateAnchorKey> added_anchor_keys;
+    std::vector<CandidateAnchorKey> removed_anchor_keys;
+};
+
 std::optional<CandidatePruningPlan> PlanCandidatePruning(
     const CDBWrapper& db,
     const ChildChainDBState& state,
     const std::vector<chainregistry::ChildForkCandidate>& current_candidates,
     const uint256& child_genesis_hash,
-    std::optional<chainregistry::ChildForkPruneCandidate> added_candidate)
+    std::optional<chainregistry::ChildForkPruneCandidate> added_candidate,
+    std::span<const CandidatePruningChange> changes = {})
 {
     std::map<uint256, chainregistry::ChildForkPruneCandidate> candidates;
     for (const auto& candidate : current_candidates) {
@@ -464,6 +477,55 @@ std::optional<CandidatePruningPlan> PlanCandidatePruning(
     }
     for (const auto& [hash, candidate] : candidates) {
         if (candidate.prunable && candidate.candidate_anchor_count == 0) {
+            return std::nullopt;
+        }
+    }
+
+    std::set<uint256> changed;
+    for (const auto& change : changes) {
+        const auto candidate{candidates.find(change.block_hash)};
+        if (candidate == candidates.end() ||
+            !changed.insert(change.block_hash).second ||
+            (change.prunable && change.side_candidate_bytes == 0) ||
+            (!change.prunable && change.side_candidate_bytes != 0) ||
+            change.removed_anchor_count >
+                candidate->second.candidate_anchor_count ||
+            change.removed_anchor_bytes >
+                candidate->second.candidate_anchor_bytes ||
+            change.added_anchor_count >
+                std::numeric_limits<uint64_t>::max() -
+                    (candidate->second.candidate_anchor_count -
+                     change.removed_anchor_count) ||
+            change.added_anchor_bytes >
+                std::numeric_limits<uint64_t>::max() -
+                    (candidate->second.candidate_anchor_bytes -
+                     change.removed_anchor_bytes)) {
+            return std::nullopt;
+        }
+        candidate->second.prunable = change.prunable;
+        candidate->second.side_candidate_bytes =
+            change.side_candidate_bytes;
+        candidate->second.candidate_anchor_count =
+            candidate->second.candidate_anchor_count -
+            change.removed_anchor_count + change.added_anchor_count;
+        candidate->second.candidate_anchor_bytes =
+            candidate->second.candidate_anchor_bytes -
+            change.removed_anchor_bytes + change.added_anchor_bytes;
+
+        auto& keys{plan.anchor_keys[change.block_hash]};
+        for (const CandidateAnchorKey& key : change.removed_anchor_keys) {
+            const auto found{std::find(keys.begin(), keys.end(), key)};
+            if (found == keys.end()) return std::nullopt;
+            keys.erase(found);
+        }
+        for (const CandidateAnchorKey& key : change.added_anchor_keys) {
+            if (std::find(keys.begin(), keys.end(), key) != keys.end()) {
+                return std::nullopt;
+            }
+            keys.push_back(key);
+        }
+        if (candidate->second.prunable &&
+            candidate->second.candidate_anchor_count == 0) {
             return std::nullopt;
         }
     }
@@ -2341,7 +2403,8 @@ bool ChildChainDB::WriteChildReorganization(
     const chainregistry::DepositImportState& imports,
     std::span<const ChildChainDBDisconnect> disconnected_blocks,
     std::span<const ChildChainDBConnect> connected_blocks,
-    bool sync)
+    bool sync,
+    std::vector<uint256>* pruned_candidates)
 {
     ChildChainDBState state;
     if ((disconnected_blocks.empty() && connected_blocks.empty()) ||
@@ -2559,18 +2622,6 @@ bool ChildChainDB::WriteChildReorganization(
         promoted_bytes > state.side_candidate_bytes ||
         promoted.size() > state.candidate_anchor_count ||
         promoted_anchor_bytes > state.candidate_anchor_bytes ||
-        demoted.size() >
-            MAX_CHILD_SIDE_CANDIDATES -
-                (state.side_candidate_count - promoted.size()) ||
-        demoted_bytes >
-            MAX_CHILD_SIDE_CANDIDATE_BYTES -
-                (state.side_candidate_bytes - promoted_bytes) ||
-        demoted.size() >
-            MAX_CHILD_CANDIDATE_BMM_ANCHORS -
-                (state.candidate_anchor_count - promoted.size()) ||
-        demoted_anchor_bytes >
-            MAX_CHILD_CANDIDATE_BMM_BYTES -
-                (state.candidate_anchor_bytes - promoted_anchor_bytes) ||
         disconnected_imports.size() > state.import_count ||
         imports.Size() !=
             state.import_count - disconnected_imports.size() +
@@ -2588,18 +2639,51 @@ bool ChildChainDB::WriteChildReorganization(
         return false;
     }
 
+    std::vector<CandidatePruningChange> pruning_changes;
+    pruning_changes.reserve(demoted.size() + promoted.size());
+    for (const auto& entry : demoted) {
+        pruning_changes.push_back({
+            .block_hash = entry.hash,
+            .prunable = true,
+            .side_candidate_bytes = entry.candidate.serialized_size,
+            .added_anchor_count = 1,
+            .added_anchor_bytes = entry.candidate_anchor.serialized_size,
+            .added_anchor_keys = {entry.candidate_anchor_key},
+            .removed_anchor_keys = {},
+        });
+    }
+    for (const auto& entry : promoted) {
+        pruning_changes.push_back({
+            .block_hash = entry.hash,
+            .prunable = false,
+            .side_candidate_bytes = 0,
+            .removed_anchor_count = 1,
+            .removed_anchor_bytes = entry.candidate_anchor.serialized_size,
+            .added_anchor_keys = {},
+            .removed_anchor_keys = {entry.candidate_anchor_key},
+        });
+    }
+    const auto current_candidates{ReadForkCandidates(main_headers)};
+    if (!current_candidates) return false;
+    const auto pruning{PlanCandidatePruning(
+        m_db,
+        state,
+        *current_candidates,
+        m_child_genesis_hash,
+        std::nullopt,
+        pruning_changes)};
+    if (!pruning || pruning->selection.fork_choice.head != expected_parent) {
+        return false;
+    }
+
     state.child_tip = expected_parent;
     state.child_height = expected_height;
     state.anchor_count = expected_height;
-    state.side_candidate_count =
-        state.side_candidate_count - promoted.size() + demoted.size();
-    state.side_candidate_bytes =
-        state.side_candidate_bytes - promoted_bytes + demoted_bytes;
+    state.side_candidate_count = pruning->selection.side_candidate_count;
+    state.side_candidate_bytes = pruning->selection.side_candidate_bytes;
     state.candidate_anchor_count =
-        state.candidate_anchor_count - promoted.size() + demoted.size();
-    state.candidate_anchor_bytes =
-        state.candidate_anchor_bytes - promoted_anchor_bytes +
-        demoted_anchor_bytes;
+        pruning->selection.candidate_anchor_count;
+    state.candidate_anchor_bytes = pruning->selection.candidate_anchor_bytes;
     state.import_count = imports.Size();
     const bool subtract_coins{coin_transition.count_delta < 0};
     const uint64_t coin_magnitude{subtract_coins
@@ -2610,6 +2694,17 @@ bool ChildChainDB::WriteChildReorganization(
         : state.coin_count + coin_magnitude;
 
     CDBBatch batch{m_db};
+    const std::set<uint256> pruned{
+        pruning->selection.pruned.begin(),
+        pruning->selection.pruned.end()};
+    for (const uint256& hash : pruned) {
+        batch.Erase(CandidateKey{DB_SIDE_CANDIDATE, hash});
+        const auto anchor_keys{pruning->anchor_keys.find(hash)};
+        if (anchor_keys == pruning->anchor_keys.end()) return false;
+        for (const CandidateAnchorKey& key : anchor_keys->second) {
+            batch.Erase(key);
+        }
+    }
     for (const auto& deposit_id : disconnected_imports) {
         batch.Erase(ImportKey{DB_IMPORT, deposit_id});
     }
@@ -2627,9 +2722,11 @@ bool ChildChainDB::WriteChildReorganization(
         batch.Erase(BlockKey{DB_BLOCK, entry.hash});
         batch.Erase(UndoKey{DB_UNDO, entry.hash});
         batch.Erase(AnchorKey{DB_BMM_ANCHOR, entry.hash});
-        batch.Write(
-            CandidateKey{DB_SIDE_CANDIDATE, entry.hash}, entry.candidate);
-        batch.Write(entry.candidate_anchor_key, entry.candidate_anchor);
+        if (!pruned.contains(entry.hash)) {
+            batch.Write(
+                CandidateKey{DB_SIDE_CANDIDATE, entry.hash}, entry.candidate);
+            batch.Write(entry.candidate_anchor_key, entry.candidate_anchor);
+        }
     }
     for (const auto& entry : promoted) {
         batch.Erase(CandidateKey{DB_SIDE_CANDIDATE, entry.hash});
@@ -2643,6 +2740,9 @@ bool ChildChainDB::WriteChildReorganization(
     }
     batch.Write(DB_STATE, state);
     m_db.WriteBatch(batch, sync);
+    if (pruned_candidates) {
+        *pruned_candidates = pruning->selection.pruned;
+    }
     return true;
 }
 
