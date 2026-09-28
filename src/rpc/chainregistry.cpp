@@ -753,6 +753,41 @@ void EnsureRegistryMatchesDefinition(
                        "unknown child BMM anchor catch-up error");
 }
 
+[[noreturn]] void ThrowChildDepositProposalError(
+    node::ChildDepositProposalError error)
+{
+    switch (error) {
+    case node::ChildDepositProposalError::CHILD_STATE_UNAVAILABLE:
+        throw JSONRPCError(
+            RPC_DATABASE_ERROR,
+            "consistent child proposer state is unavailable");
+    case node::ChildDepositProposalError::DEPOSIT_INDEX_UNAVAILABLE:
+        throw JSONRPCError(
+            RPC_DATABASE_ERROR,
+            "active main-chain child deposit index is unavailable");
+    case node::ChildDepositProposalError::DEPOSIT_INDEX_INCONSISTENT:
+        throw JSONRPCError(
+            RPC_DATABASE_ERROR,
+            "active main-chain child deposit index is inconsistent");
+    case node::ChildDepositProposalError::PROOF_BUILD_FAILED:
+        throw JSONRPCError(
+            RPC_DATABASE_ERROR,
+            "failed to rebuild an indexed child deposit proof");
+    case node::ChildDepositProposalError::IMPORT_AUTHENTICATION_FAILED:
+        throw JSONRPCError(
+            RPC_VERIFY_REJECTED,
+            "indexed child deposit was rejected by the child light client");
+    case node::ChildDepositProposalError::PROPOSAL_BUILD_FAILED:
+        throw JSONRPCError(
+            RPC_VERIFY_REJECTED,
+            "failed to build or persist the automatic child proposal");
+    case node::ChildDepositProposalError::NONE:
+        break;
+    }
+    throw JSONRPCError(RPC_INTERNAL_ERROR,
+                       "unknown automatic child proposer error");
+}
+
 node::ChildNetworkConfig ParseChildNetworkConfig(const UniValue& options)
 {
     node::ChildNetworkConfig config;
@@ -1500,6 +1535,16 @@ RPCHelpMan loadchildchain()
             {RPCResult::Type::NUM, "historical_proposals_activated", "Durable local proposals activated by historical anchors"},
             {RPCResult::Type::NUM, "historical_proposal_activation_failures", "Local proposals found but rejected during historical activation"},
             {RPCResult::Type::NUM, "historical_anchor_stage_failures", "Historical proofs rejected by the child runtime, normally because of a concurrent main-chain change"},
+            {RPCResult::Type::BOOL, "deposit_index_complete", "Whether the bounded automatic proposer scan reached the end of this child's deposit index"},
+            {RPCResult::Type::NUM, "deposit_index_lookups", "Indexed deposits examined by the automatic proposer"},
+            {RPCResult::Type::NUM, "deposits_indexed", "Deposits returned by the bounded index page"},
+            {RPCResult::Type::NUM, "deposits_immature", "Indexed deposits skipped because they have not reached child maturity"},
+            {RPCResult::Type::NUM, "deposits_already_imported", "Indexed deposits already consumed by this child"},
+            {RPCResult::Type::NUM, "deposit_block_data_unavailable", "Mature deposits whose main block is pruned or unreadable"},
+            {RPCResult::Type::NUM, "deposit_proofs_built", "Mature unconsumed deposits authenticated for a proposal"},
+            {RPCResult::Type::BOOL, "deposit_proposal_pending", "Whether an existing durable proposal prevented a competing candidate"},
+            {RPCResult::Type::BOOL, "deposit_proposal_stored", "Whether this load created a durable import proposal"},
+            {RPCResult::Type::STR_HEX, "deposit_proposal_hash", /*optional=*/true, "New automatic child proposal hash"},
             {RPCResult::Type::BOOL, "network_running", "Whether the isolated child network is running"},
             {RPCResult::Type::BOOL, "network_already_running", "Whether the network was running before this call"},
             {RPCResult::Type::BOOL, "network_active", "Whether new child-network connections are enabled"},
@@ -1578,6 +1623,13 @@ RPCHelpMan loadchildchain()
         if (!loaded.already_loaded) manager.UnloadChain(chain_id);
         ThrowChildAnchorCatchUpError(catch_up.error);
     }
+    const auto deposit_proposal{
+        Assert(node_context.child_chain_notifications)
+            ->BuildDepositProposal(chain_id)};
+    if (!deposit_proposal.IsValid()) {
+        if (!loaded.already_loaded) manager.UnloadChain(chain_id);
+        ThrowChildDepositProposalError(deposit_proposal.error);
+    }
     const bool network_already_running{networks.IsRunning(chain_id)};
     if (!network_already_running) {
         const auto started{networks.Start(
@@ -1618,6 +1670,23 @@ RPCHelpMan loadchildchain()
                   catch_up.activation_failures);
     result.pushKV("historical_anchor_stage_failures",
                   catch_up.stage_failures);
+    result.pushKV("deposit_index_complete", deposit_proposal.index_complete);
+    result.pushKV("deposit_index_lookups", deposit_proposal.index_lookups);
+    result.pushKV("deposits_indexed", deposit_proposal.indexed);
+    result.pushKV("deposits_immature", deposit_proposal.immature);
+    result.pushKV("deposits_already_imported",
+                  deposit_proposal.already_imported);
+    result.pushKV("deposit_block_data_unavailable",
+                  deposit_proposal.block_data_unavailable);
+    result.pushKV("deposit_proofs_built", deposit_proposal.proofs_built);
+    result.pushKV("deposit_proposal_pending",
+                  deposit_proposal.proposal_pending);
+    result.pushKV("deposit_proposal_stored",
+                  deposit_proposal.proposal_stored);
+    if (deposit_proposal.proposal_stored) {
+        result.pushKV("deposit_proposal_hash",
+                      deposit_proposal.proposal_hash.GetHex());
+    }
     result.pushKV("network_already_running", network_already_running);
     PushChildNetworkStats(result, networks.GetStats(chain_id));
     return result;
@@ -2514,6 +2583,10 @@ RPCHelpMan createchildimportblock()
     case node::ChainManagerImportBlockBuildError::TOO_MANY_PROOFS:
         throw JSONRPCError(RPC_INVALID_PARAMETER,
                            "too many deposit proofs");
+    case node::ChainManagerImportBlockBuildError::PROPOSAL_PENDING:
+        throw JSONRPCError(
+            RPC_VERIFY_ERROR,
+            "a local child proposal already extends the active tip");
     case node::ChainManagerImportBlockBuildError::TIME_OUT_OF_RANGE:
         throw JSONRPCError(RPC_MISC_ERROR,
                            "candidate child block time is out of range");

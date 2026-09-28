@@ -110,6 +110,7 @@ enum class ChainManagerImportBlockBuildError : uint8_t {
     CHAIN_NOT_LOADED,
     EMPTY_PROOFS,
     TOO_MANY_PROOFS,
+    PROPOSAL_PENDING,
     TIME_OUT_OF_RANGE,
     IMPORT_REJECTED,
     DUPLICATE_DEPOSIT,
@@ -483,7 +484,8 @@ public:
         const chainregistry::ChainId& chain_id,
         std::span<const chainregistry::DepositProof> proofs,
         int64_t current_time,
-        bool sync = false);
+        bool sync = false,
+        bool require_empty_proposal_queue = false);
     /** Feed a header already connected by the local main chainstate. */
     ChainManagerMainUpdate AddMainHeader(
         const CBlockHeader& header,

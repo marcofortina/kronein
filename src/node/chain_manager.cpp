@@ -476,7 +476,8 @@ ChainManagerImportBlockBuildResult ChainManager::BuildImportBlock(
     const chainregistry::ChainId& chain_id,
     std::span<const chainregistry::DepositProof> proofs,
     int64_t current_time,
-    bool sync)
+    bool sync,
+    bool require_empty_proposal_queue)
 {
     LOCK(m_mutex);
     ChainManagerImportBlockBuildResult result;
@@ -500,6 +501,13 @@ ChainManagerImportBlockBuildResult ChainManager::BuildImportBlock(
     if (proofs.size() > MAX_CHILD_IMPORTS_PER_BLOCK) {
         result.error = ChainManagerImportBlockBuildError::TOO_MANY_PROOFS;
         return result;
+    }
+    if (require_empty_proposal_queue) {
+        const auto proposals{runtime->second->GetLocalProposals()};
+        if (!proposals || !proposals->empty()) {
+            result.error = ChainManagerImportBlockBuildError::PROPOSAL_PENDING;
+            return result;
+        }
     }
 
     const CBlockIndex* parent{runtime->second->Tip()};

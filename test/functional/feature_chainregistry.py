@@ -625,6 +625,7 @@ class ChainRegistryTest(BitcoinTestFramework):
             node.createchildimporttransaction, chain_id, deposit_proof["proof"][:-2])
         mature_deposit_tip = self.generatetoaddress(
             node, 143, wallet.getnewaddress())[-1]
+        node.syncwithvalidationinterfacequeue()
         child_import = node.createchildimporttransaction(
             chain_id, deposit_proof["proof"])
         assert_equal(child_import["chain_id"], chain_id)
@@ -645,6 +646,24 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(len(decoded_import["vin"][0]["txinwitness"]), 1)
         assert_equal(len(decoded_import["vout"]), 1)
         assert_equal(decoded_import["vout"][0]["value"], deposit_amount)
+
+        self.log.info("Automatically propose mature indexed child deposits")
+        automatic_proposals = node.listchildproposals(chain_id)
+        assert_equal(automatic_proposals["proposal_count"], 1)
+        automatic_hash = automatic_proposals["proposals"][0]["blockhash"]
+        automatic_block = node.getchildproposal(chain_id, automatic_hash)
+        decoded_automatic_block = CBlock()
+        decoded_automatic_block.deserialize(
+            BytesIO(bytes.fromhex(automatic_block["block"])))
+        assert_equal(decoded_automatic_block.hash_hex, automatic_hash)
+        assert_equal(len(decoded_automatic_block.vtx), 2)
+        assert_equal(decoded_automatic_block.vtx[1].txid_hex,
+                     child_import["txid"])
+        assert_equal(node.getchildbmmstatus(chain_id)["health"],
+                     "awaiting_anchor")
+        assert_equal(node.removechildproposal(
+            chain_id, automatic_hash)["removed"], True)
+        assert_equal(node.listchildproposals(chain_id)["proposal_count"], 0)
 
         assert_raises_rpc_error(
             -8, "deposit_proofs must contain at least one proof",
@@ -761,6 +780,12 @@ class ChainRegistryTest(BitcoinTestFramework):
         self.sync_blocks()
         peer_preparation = peer_node.loadchildchain(chain_id)
         assert_equal(peer_preparation["height"], 0)
+        assert_equal(peer_preparation["deposit_index_complete"], True)
+        assert_equal(peer_preparation["deposit_index_lookups"], 1)
+        assert_equal(peer_preparation["deposit_proofs_built"], 1)
+        assert_equal(peer_preparation["deposit_proposal_stored"], True)
+        peer_node.removechildproposal(
+            chain_id, peer_preparation["deposit_proposal_hash"])
         peer_proposal = peer_node.storechildproposal(chain_id, child_block["block"])
         assert_equal(peer_proposal["stored"], True)
         assert_equal(peer_proposal["blockhash"], child_block["blockhash"])

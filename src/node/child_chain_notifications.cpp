@@ -16,6 +16,7 @@
 
 #include <map>
 #include <set>
+#include <utility>
 #include <vector>
 
 namespace node {
@@ -184,6 +185,206 @@ ChildAnchorCatchUpResult ChildChainNotifications::CatchUpBmmAnchors(
     return result;
 }
 
+ChildDepositProposalResult ChildChainNotifications::BuildDepositProposal(
+    const chainregistry::ChainId& chain_id,
+    std::optional<chainregistry::DepositId> start_after)
+{
+    ChildDepositProposalResult result;
+    const auto definition{m_manager.Definition(chain_id)};
+    const auto child_state{m_manager.GetBmmStatusView(chain_id)};
+    if (!definition || !child_state.IsValid()) {
+        result.error = ChildDepositProposalError::CHILD_STATE_UNAVAILABLE;
+        return result;
+    }
+    if (child_state.entry.safe_halt) {
+        result.safe_halt = true;
+        return result;
+    }
+    if (!child_state.proposals.empty()) {
+        result.proposal_pending = true;
+        return result;
+    }
+
+    struct Candidate {
+        DepositIndexEntry entry;
+        const CBlockIndex* block_index;
+        bool have_block_data;
+    };
+    std::vector<Candidate> candidates;
+    {
+        LOCK(cs_main);
+        const Chainstate& chainstate{m_chainman.ActiveChainstate()};
+        const auto indexed{chainstate.ChainRegistryState()
+                               .FindDepositsForChild(
+                                   chain_id,
+                                   MAX_CHILD_DEPOSIT_PROPOSER_LOOKUPS,
+                                   start_after)};
+        if (!indexed) {
+            result.error =
+                ChildDepositProposalError::DEPOSIT_INDEX_UNAVAILABLE;
+            return result;
+        }
+        result.index_complete = indexed->complete;
+        result.index_lookups = indexed->lookups;
+        result.continuation = indexed->continuation;
+        result.indexed = indexed->deposits.size();
+        candidates.reserve(indexed->deposits.size());
+        for (const auto& entry : indexed->deposits) {
+            const CBlockIndex* block_index{
+                m_chainman.m_blockman.LookupBlockIndex(entry.block_hash)};
+            if (!block_index ||
+                block_index->nHeight != static_cast<int>(entry.block_height) ||
+                !chainstate.m_chain.Contains(block_index)) {
+                result.error =
+                    ChildDepositProposalError::DEPOSIT_INDEX_INCONSISTENT;
+                return result;
+            }
+            const int confirmations{
+                chainstate.m_chain.Height() - block_index->nHeight + 1};
+            if (confirmations < static_cast<int>(
+                                    definition->parameters.deposit_maturity)) {
+                ++result.immature;
+                continue;
+            }
+            candidates.push_back({
+                .entry = entry,
+                .block_index = block_index,
+                .have_block_data = static_cast<bool>(
+                    block_index->nStatus & BLOCK_HAVE_DATA),
+            });
+        }
+    }
+
+    const uint256 main_genesis_hash{
+        m_chainman.GetConsensus().hashGenesisBlock};
+    std::map<uint256, CBlock> blocks;
+    std::vector<chainregistry::DepositProof> proofs;
+    std::vector<DepositIndexEntry> selected;
+    proofs.reserve(candidates.size());
+    selected.reserve(candidates.size());
+    for (const auto& candidate : candidates) {
+        if (!candidate.have_block_data) {
+            ++result.block_data_unavailable;
+            continue;
+        }
+        auto [block, inserted]{blocks.try_emplace(candidate.entry.block_hash)};
+        if (inserted && !m_chainman.m_blockman.ReadBlock(
+                            block->second, *candidate.block_index)) {
+            blocks.erase(block);
+            ++result.block_data_unavailable;
+            continue;
+        }
+        const auto built{BuildDepositProof(
+            block->second, candidate.entry, main_genesis_hash)};
+        if (!built.IsValid()) {
+            result.error = ChildDepositProposalError::PROOF_BUILD_FAILED;
+            LogError(
+                "Failed to build automatic deposit proof %s for child %s (build error %u, validation error %u)\n",
+                candidate.entry.deposit_id.GetHex(),
+                chain_id.GetHex(),
+                static_cast<unsigned>(built.error),
+                static_cast<unsigned>(built.validation.error));
+            return result;
+        }
+        const auto imported{
+            m_manager.BuildImportTransaction(chain_id, built.proof)};
+        if (imported.error == ChainManagerImportBuildError::ALREADY_IMPORTED) {
+            ++result.already_imported;
+            continue;
+        }
+        if (!imported.IsValid()) {
+            if (imported.error == ChainManagerImportBuildError::SAFE_HALT) {
+                result.safe_halt = true;
+                return result;
+            }
+            result.error =
+                ChildDepositProposalError::IMPORT_AUTHENTICATION_FAILED;
+            return result;
+        }
+        proofs.push_back(built.proof);
+        selected.push_back(candidate.entry);
+    }
+    result.proofs_built = proofs.size();
+    if (proofs.empty()) return result;
+
+    {
+        LOCK(cs_main);
+        const Chainstate& chainstate{m_chainman.ActiveChainstate()};
+        for (const auto& entry : selected) {
+            const auto current{
+                chainstate.ChainRegistryState().FindDeposit(entry.deposit_id)};
+            const CBlockIndex* block_index{
+                m_chainman.m_blockman.LookupBlockIndex(entry.block_hash)};
+            if (!current || *current != entry || !block_index ||
+                block_index->nHeight != static_cast<int>(entry.block_height) ||
+                !chainstate.m_chain.Contains(block_index) ||
+                chainstate.m_chain.Height() - block_index->nHeight + 1 <
+                    static_cast<int>(definition->parameters.deposit_maturity)) {
+                result.error =
+                    ChildDepositProposalError::DEPOSIT_INDEX_INCONSISTENT;
+                return result;
+            }
+        }
+    }
+
+    const auto proposed{m_manager.BuildImportBlock(
+        chain_id,
+        proofs,
+        Now<NodeSeconds>().time_since_epoch().count(),
+        /*sync=*/false,
+        /*require_empty_proposal_queue=*/true)};
+    if (proposed.error ==
+        ChainManagerImportBlockBuildError::PROPOSAL_PENDING) {
+        result.proposal_pending = true;
+        return result;
+    }
+    if (!proposed.IsValid() || !proposed.build.block) {
+        result.error = ChildDepositProposalError::PROPOSAL_BUILD_FAILED;
+        return result;
+    }
+    result.proposal_stored = true;
+    result.proposal_hash = proposed.build.block->GetHash();
+    return result;
+}
+
+void ChildChainNotifications::ProcessDepositProposals()
+{
+    for (const auto& entry : m_manager.List()) {
+        if (!entry.loaded) continue;
+        std::optional<chainregistry::DepositId> start_after;
+        {
+            LOCK(m_proposer_mutex);
+            const auto cursor{m_deposit_cursors.find(entry.chain_id)};
+            if (cursor != m_deposit_cursors.end()) {
+                start_after = cursor->second;
+            }
+        }
+        const auto proposed{BuildDepositProposal(entry.chain_id, start_after)};
+        if (!proposed.IsValid()) {
+            LogWarning(
+                "Automatic child proposer failed for chain %s (error %u)\n",
+                entry.chain_id.GetHex(),
+                static_cast<unsigned>(proposed.error));
+            continue;
+        }
+        if (!proposed.proposal_pending && !proposed.safe_halt) {
+            LOCK(m_proposer_mutex);
+            if (proposed.continuation) {
+                m_deposit_cursors[entry.chain_id] = *proposed.continuation;
+            } else if (proposed.index_complete) {
+                m_deposit_cursors.erase(entry.chain_id);
+            }
+        }
+        if (proposed.proposal_stored) {
+            LogInfo(
+                "Stored automatic child proposal %s for chain %s from %u authenticated deposits\n",
+                proposed.proposal_hash.GetHex(),
+                entry.chain_id.GetHex(),
+                proposed.proofs_built);
+        }
+    }
+}
+
 void ChildChainNotifications::HandleUnloaded(
     const ChainManagerRuntimeEvent& event)
 {
@@ -211,6 +412,7 @@ void ChildChainNotifications::BlockConnected(
         /*sync=*/false)};
     for (const auto& event : update.unloaded) HandleUnloaded(event);
     ProcessBmmAnchors(*block, index);
+    ProcessDepositProposals();
 }
 
 void ChildChainNotifications::ProcessBmmAnchors(
