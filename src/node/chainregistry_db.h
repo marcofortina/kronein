@@ -18,7 +18,7 @@
 
 namespace node {
 
-inline constexpr uint8_t CHAIN_REGISTRY_DB_VERSION{3};
+inline constexpr uint8_t CHAIN_REGISTRY_DB_VERSION{4};
 inline constexpr uint8_t DEPOSIT_INDEX_ENTRY_VERSION{1};
 inline constexpr uint8_t BMM_ANCHOR_INDEX_ENTRY_VERSION{1};
 
@@ -61,6 +61,12 @@ struct BmmAnchorIndexEntry {
     }
 
     friend bool operator==(const BmmAnchorIndexEntry&, const BmmAnchorIndexEntry&) = default;
+};
+
+struct BmmAnchorLookupResult {
+    std::vector<BmmAnchorIndexEntry> anchors;
+    uint64_t lookups{0};
+    bool complete{true};
 };
 
 struct DepositIndexEntry {
@@ -159,6 +165,10 @@ enum class ChainRegistryDBLoadError : uint8_t {
     INVALID_ANCHOR,
     INVALID_ANCHOR_HISTORY_RANGE,
     ANCHOR_COUNT_MISMATCH,
+    ANCHOR_CHILD_KEY_DECODE_FAILED,
+    ANCHOR_CHILD_VALUE_DECODE_FAILED,
+    ANCHOR_CHILD_INDEX_MISMATCH,
+    ANCHOR_CHILD_COUNT_MISMATCH,
 };
 
 struct ChainRegistryDBLoadResult {
@@ -216,6 +226,10 @@ public:
     bool ReadRecord(const chainregistry::ChainId& chain_id, chainregistry::ChainRecord& record) const;
     std::optional<DepositIndexEntry> ReadDeposit(const chainregistry::DepositId& deposit_id) const;
     std::optional<BmmAnchorIndexEntry> ReadAnchor(const BmmAnchorId& anchor_id) const;
+    std::optional<BmmAnchorLookupResult> ReadAnchorsForChildBlocks(
+        const chainregistry::ChainId& chain_id,
+        std::span<const uint256> child_block_hashes,
+        uint64_t lookup_limit) const;
 };
 
 } // namespace node

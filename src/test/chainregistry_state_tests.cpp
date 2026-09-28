@@ -340,6 +340,19 @@ BOOST_AUTO_TEST_CASE(indexes_bmm_anchor_across_restart_and_reorg)
         BOOST_CHECK(stored->anchor.child_block_hash == child_block_hash);
         BOOST_CHECK(stored->transaction_id == anchored.vtx[1]->GetHash());
         BOOST_CHECK_EQUAL(stored->transaction_index, 1U);
+        const std::array target_hashes{child_block_hash};
+        const auto lookup{state.FindAnchorsForChildBlocks(
+            record.chain_id, target_hashes, /*lookup_limit=*/10)};
+        BOOST_REQUIRE(lookup);
+        BOOST_CHECK(lookup->complete);
+        BOOST_REQUIRE_EQUAL(lookup->anchors.size(), 1U);
+        BOOST_CHECK(lookup->anchors.front() == *stored);
+        BOOST_CHECK_EQUAL(lookup->lookups, 1U);
+        const auto bounded_lookup{state.FindAnchorsForChildBlocks(
+            record.chain_id, target_hashes, /*lookup_limit=*/0)};
+        BOOST_REQUIRE(bounded_lookup);
+        BOOST_CHECK(!bounded_lookup->complete);
+        BOOST_CHECK(bounded_lookup->anchors.empty());
         const auto built{
             node::BuildBmmAnchorProof(anchored, *stored, genesis_hash)};
         BOOST_REQUIRE(built.IsValid());

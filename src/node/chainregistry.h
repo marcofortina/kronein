@@ -120,6 +120,10 @@ public:
     const ChainRegistryDBState& State() const { return m_state; }
     std::optional<DepositIndexEntry> FindDeposit(const chainregistry::DepositId& deposit_id) const;
     std::optional<BmmAnchorIndexEntry> FindAnchor(const BmmAnchorId& anchor_id) const;
+    std::optional<BmmAnchorLookupResult> FindAnchorsForChildBlocks(
+        const chainregistry::ChainId& chain_id,
+        std::span<const uint256> child_block_hashes,
+        uint64_t lookup_limit) const;
 };
 
 } // namespace node

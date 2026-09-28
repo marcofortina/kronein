@@ -422,6 +422,14 @@ BOOST_AUTO_TEST_CASE(bmm_anchor_index_connect_load_disconnect)
         const auto stored{db.ReadAnchor(anchor.id)};
         BOOST_REQUIRE(stored.has_value());
         BOOST_CHECK(*stored == anchor);
+        const std::array child_hashes{anchor.anchor.child_block_hash};
+        const auto lookup{db.ReadAnchorsForChildBlocks(
+            record.chain_id, child_hashes, /*lookup_limit=*/1)};
+        BOOST_REQUIRE(lookup);
+        BOOST_CHECK(lookup->complete);
+        BOOST_CHECK_EQUAL(lookup->lookups, 1U);
+        BOOST_REQUIRE_EQUAL(lookup->anchors.size(), 1U);
+        BOOST_CHECK(lookup->anchors.front() == anchor);
     }
 
     {
@@ -443,6 +451,13 @@ BOOST_AUTO_TEST_CASE(bmm_anchor_index_connect_load_disconnect)
         BOOST_REQUIRE(db.WriteDisconnectedBlock(
             loaded, parent_state, block_hash, undo, /*sync=*/true));
         BOOST_CHECK(!db.ReadAnchor(anchor.id).has_value());
+        const std::array child_hashes{anchor.anchor.child_block_hash};
+        const auto lookup{db.ReadAnchorsForChildBlocks(
+            record.chain_id, child_hashes, /*lookup_limit=*/1)};
+        BOOST_REQUIRE(lookup);
+        BOOST_CHECK(lookup->complete);
+        BOOST_CHECK_EQUAL(lookup->lookups, 0U);
+        BOOST_CHECK(lookup->anchors.empty());
     }
 
     {
@@ -458,6 +473,72 @@ BOOST_AUTO_TEST_CASE(bmm_anchor_index_connect_load_disconnect)
         BOOST_CHECK(loaded_state == parent_state);
         BOOST_CHECK_EQUAL(loaded_state.anchor_count, 0U);
     }
+}
+
+BOOST_AUTO_TEST_CASE(bmm_anchor_child_lookup_is_bounded)
+{
+    const fs::path path{
+        m_args.GetDataDirBase() / "chainregistry_anchor_lookup_db"};
+    constexpr uint256 parent_hash{
+        "5151515151515151515151515151515151515151515151515151515151515151"};
+    constexpr uint256 block_one{
+        "6161616161616161616161616161616161616161616161616161616161616161"};
+    constexpr uint256 block_two{
+        "7171717171717171717171717171717171717171717171717171717171717171"};
+
+    const auto record{Record(6, 16, 50)};
+    chainregistry::ChainRegistry registry;
+    BOOST_REQUIRE(registry.LoadRecords({record}).IsValid());
+    const auto anchor_one{Anchor(registry, record, block_one, 100)};
+    const auto anchor_two{Anchor(registry, record, block_two, 101)};
+    const node::ChainRegistryDBUndo undo_one{
+        .registry = {},
+        .deposits = {},
+        .anchors = {anchor_one.id},
+    };
+    const node::ChainRegistryDBUndo undo_two{
+        .registry = {},
+        .deposits = {},
+        .anchors = {anchor_two.id},
+    };
+    const auto parent_state{
+        node::MakeChainRegistryDBState(parent_hash, 99, registry)};
+    const auto state_one{node::MakeChainRegistryDBState(
+        block_one, 100, registry, 0, 0, 0, 1)};
+    const auto state_two{node::MakeChainRegistryDBState(
+        block_two, 101, registry, 0, 0, 0, 2)};
+
+    node::ChainRegistryDB db{{
+                                 .path = path,
+                                 .cache_bytes = 1 << 20,
+                                 .wipe_data = true,
+                                 .obfuscate = true,
+                             },
+                             MAIN_GENESIS};
+    BOOST_REQUIRE(db.WriteInitialState(registry, parent_state, /*sync=*/true));
+    BOOST_REQUIRE(db.WriteConnectedBlock(
+        registry, state_one, block_one, undo_one, {}, {&anchor_one, 1},
+        /*sync=*/true));
+    BOOST_REQUIRE(db.WriteConnectedBlock(
+        registry, state_two, block_two, undo_two, {}, {&anchor_two, 1},
+        /*sync=*/true));
+
+    const std::array child_hashes{anchor_one.anchor.child_block_hash};
+    const auto bounded{db.ReadAnchorsForChildBlocks(
+        record.chain_id, child_hashes, /*lookup_limit=*/1)};
+    BOOST_REQUIRE(bounded);
+    BOOST_CHECK(!bounded->complete);
+    BOOST_CHECK_EQUAL(bounded->lookups, 1U);
+    BOOST_REQUIRE_EQUAL(bounded->anchors.size(), 1U);
+
+    const auto complete{db.ReadAnchorsForChildBlocks(
+        record.chain_id, child_hashes, /*lookup_limit=*/2)};
+    BOOST_REQUIRE(complete);
+    BOOST_CHECK(complete->complete);
+    BOOST_CHECK_EQUAL(complete->lookups, 2U);
+    BOOST_REQUIRE_EQUAL(complete->anchors.size(), 2U);
+    BOOST_CHECK_EQUAL(complete->anchors[0].block_height, 101U);
+    BOOST_CHECK_EQUAL(complete->anchors[1].block_height, 100U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

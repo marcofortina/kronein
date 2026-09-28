@@ -4,6 +4,7 @@
 
 #include <node/chainregistry_db.h>
 
+#include <algorithm>
 #include <limits>
 #include <memory>
 #include <set>
@@ -18,11 +19,36 @@ constexpr uint8_t DB_REGISTRY_STATE{'S'};
 constexpr uint8_t DB_REGISTRY_UNDO{'U'};
 constexpr uint8_t DB_DEPOSIT{'D'};
 constexpr uint8_t DB_BMM_ANCHOR{'A'};
+constexpr uint8_t DB_BMM_ANCHOR_BY_CHILD{'B'};
+
+struct BmmAnchorByChildId {
+    chainregistry::ChainId chain_id;
+    uint256 child_block_hash;
+    uint256 main_block_hash;
+
+    SERIALIZE_METHODS(BmmAnchorByChildId, obj)
+    {
+        READWRITE(obj.chain_id, obj.child_block_hash, obj.main_block_hash);
+    }
+
+    friend bool operator==(const BmmAnchorByChildId&,
+                           const BmmAnchorByChildId&) = default;
+};
 
 using RecordKey = std::pair<uint8_t, chainregistry::ChainId>;
 using UndoKey = std::pair<uint8_t, uint256>;
 using DepositKey = std::pair<uint8_t, chainregistry::DepositId>;
 using AnchorKey = std::pair<uint8_t, BmmAnchorId>;
+using AnchorByChildKey = std::pair<uint8_t, BmmAnchorByChildId>;
+
+BmmAnchorByChildId AnchorByChildId(const BmmAnchorIndexEntry& anchor)
+{
+    return {
+        .chain_id = anchor.id.chain_id,
+        .child_block_hash = anchor.anchor.child_block_hash,
+        .main_block_hash = anchor.id.main_block_hash,
+    };
+}
 
 ChainRegistryDBLoadResult LoadError(ChainRegistryDBLoadError error,
                                     chainregistry::RegistryLoadResult registry_result = {})
@@ -131,7 +157,8 @@ ChainRegistryDBLoadResult ChainRegistryDB::Load(chainregistry::ChainRegistry& re
         if (HasKeyWithPrefix(m_db, DB_REGISTRY_RECORD) ||
             HasKeyWithPrefix(m_db, DB_REGISTRY_UNDO) ||
             HasKeyWithPrefix(m_db, DB_DEPOSIT) ||
-            HasKeyWithPrefix(m_db, DB_BMM_ANCHOR)) {
+            HasKeyWithPrefix(m_db, DB_BMM_ANCHOR) ||
+            HasKeyWithPrefix(m_db, DB_BMM_ANCHOR_BY_CHILD)) {
             return LoadError(ChainRegistryDBLoadError::ORPHANED_DATA);
         }
         const auto registry_result{registry.LoadRecords({})};
@@ -257,6 +284,42 @@ ChainRegistryDBLoadResult ChainRegistryDB::Load(chainregistry::ChainRegistry& re
         return LoadError(ChainRegistryDBLoadError::ANCHOR_COUNT_MISMATCH);
     }
 
+    uint64_t child_anchor_count{0};
+    cursor.reset(const_cast<CDBWrapper&>(m_db).NewIterator());
+    cursor->Seek(AnchorByChildKey{DB_BMM_ANCHOR_BY_CHILD, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) {
+            return LoadError(
+                ChainRegistryDBLoadError::ANCHOR_CHILD_KEY_DECODE_FAILED);
+        }
+        if (prefix != DB_BMM_ANCHOR_BY_CHILD) break;
+
+        AnchorByChildKey key;
+        if (!cursor->GetKey(key)) {
+            return LoadError(
+                ChainRegistryDBLoadError::ANCHOR_CHILD_KEY_DECODE_FAILED);
+        }
+        BmmAnchorId anchor_id;
+        if (!cursor->GetValue(anchor_id)) {
+            return LoadError(
+                ChainRegistryDBLoadError::ANCHOR_CHILD_VALUE_DECODE_FAILED);
+        }
+        const auto anchor{ReadAnchor(anchor_id)};
+        if (!anchor || anchor_id.chain_id != key.second.chain_id ||
+            anchor_id.main_block_hash != key.second.main_block_hash ||
+            anchor->anchor.child_block_hash != key.second.child_block_hash) {
+            return LoadError(
+                ChainRegistryDBLoadError::ANCHOR_CHILD_INDEX_MISMATCH);
+        }
+        ++child_anchor_count;
+        cursor->Next();
+    }
+    if (stored_state.anchor_count != child_anchor_count) {
+        return LoadError(
+            ChainRegistryDBLoadError::ANCHOR_CHILD_COUNT_MISMATCH);
+    }
+
     registry = std::move(loaded_registry);
     state = stored_state;
     ChainRegistryDBLoadResult result;
@@ -271,7 +334,8 @@ bool ChainRegistryDB::WriteInitialState(const chainregistry::ChainRegistry& regi
     if (!IsConsistent(registry, state) || state.deposit_count != 0 ||
         state.anchor_count != 0 || m_db.Exists(DB_REGISTRY_STATE) ||
         HasKeyWithPrefix(m_db, DB_DEPOSIT) ||
-        HasKeyWithPrefix(m_db, DB_BMM_ANCHOR)) return false;
+        HasKeyWithPrefix(m_db, DB_BMM_ANCHOR) ||
+        HasKeyWithPrefix(m_db, DB_BMM_ANCHOR_BY_CHILD)) return false;
 
     CDBBatch batch{m_db};
     for (const auto& [chain_id, record] : registry.Records()) {
@@ -324,7 +388,9 @@ bool ChainRegistryDB::WriteConnectedBlock(const chainregistry::ChainRegistry& re
             anchors[index].block_height != state.height ||
             undo.anchors[index] != anchors[index].id ||
             !unique_anchor_chains.insert(anchors[index].id.chain_id).second ||
-            m_db.Exists(AnchorKey{DB_BMM_ANCHOR, anchors[index].id})) return false;
+            m_db.Exists(AnchorKey{DB_BMM_ANCHOR, anchors[index].id}) ||
+            m_db.Exists(AnchorByChildKey{
+                DB_BMM_ANCHOR_BY_CHILD, AnchorByChildId(anchors[index])})) return false;
     }
 
     CDBBatch batch{m_db};
@@ -334,6 +400,9 @@ bool ChainRegistryDB::WriteConnectedBlock(const chainregistry::ChainRegistry& re
     }
     for (const auto& anchor : anchors) {
         batch.Write(AnchorKey{DB_BMM_ANCHOR, anchor.id}, anchor);
+        batch.Write(AnchorByChildKey{
+                        DB_BMM_ANCHOR_BY_CHILD, AnchorByChildId(anchor)},
+                    anchor.id);
     }
     batch.Write(UndoKey{DB_REGISTRY_UNDO, block_hash}, undo);
     batch.Write(DB_REGISTRY_STATE, state);
@@ -376,7 +445,9 @@ bool ChainRegistryDB::WriteDisconnectedBlock(const chainregistry::ChainRegistry&
     for (const auto& anchor_id : undo.anchors) {
         const auto anchor{ReadAnchor(anchor_id)};
         if (!unique_anchor_chains.insert(anchor_id.chain_id).second || !anchor ||
-            anchor->id.main_block_hash != disconnected_block_hash) return false;
+            anchor->id.main_block_hash != disconnected_block_hash ||
+            !m_db.Exists(AnchorByChildKey{
+                DB_BMM_ANCHOR_BY_CHILD, AnchorByChildId(*anchor)})) return false;
     }
 
     CDBBatch batch{m_db};
@@ -385,7 +456,11 @@ bool ChainRegistryDB::WriteDisconnectedBlock(const chainregistry::ChainRegistry&
         batch.Erase(DepositKey{DB_DEPOSIT, deposit_id});
     }
     for (const auto& anchor_id : undo.anchors) {
+        const auto anchor{ReadAnchor(anchor_id)};
+        if (!anchor) return false;
         batch.Erase(AnchorKey{DB_BMM_ANCHOR, anchor_id});
+        batch.Erase(AnchorByChildKey{
+            DB_BMM_ANCHOR_BY_CHILD, AnchorByChildId(*anchor)});
     }
     batch.Erase(UndoKey{DB_REGISTRY_UNDO, disconnected_block_hash});
     batch.Write(DB_REGISTRY_STATE, parent_state);
@@ -426,6 +501,76 @@ std::optional<BmmAnchorIndexEntry> ChainRegistryDB::ReadAnchor(
         return std::nullopt;
     }
     return anchor;
+}
+
+std::optional<BmmAnchorLookupResult>
+ChainRegistryDB::ReadAnchorsForChildBlocks(
+    const chainregistry::ChainId& chain_id,
+    std::span<const uint256> child_block_hashes,
+    uint64_t lookup_limit) const
+{
+    BmmAnchorLookupResult result;
+    if (chain_id.IsNull() || child_block_hashes.empty()) return result;
+
+    std::set<uint256> targets;
+    for (const uint256& hash : child_block_hashes) {
+        if (!hash.IsNull()) targets.insert(hash);
+    }
+    if (targets.empty()) return result;
+    if (lookup_limit == 0) {
+        result.complete = false;
+        return result;
+    }
+
+    std::unique_ptr<CDBIterator> cursor;
+    bool limit_reached{false};
+    for (const uint256& child_block_hash : targets) {
+        cursor.reset(const_cast<CDBWrapper&>(m_db).NewIterator());
+        cursor->Seek(AnchorByChildKey{
+            DB_BMM_ANCHOR_BY_CHILD,
+            {chain_id, child_block_hash, {}}});
+        while (cursor->Valid()) {
+            uint8_t prefix;
+            if (!cursor->GetKey(prefix)) return std::nullopt;
+            if (prefix != DB_BMM_ANCHOR_BY_CHILD) break;
+            AnchorByChildKey key;
+            if (!cursor->GetKey(key)) return std::nullopt;
+            if (key.second.chain_id != chain_id ||
+                key.second.child_block_hash != child_block_hash) {
+                break;
+            }
+            if (result.lookups == lookup_limit) {
+                result.complete = false;
+                limit_reached = true;
+                break;
+            }
+            ++result.lookups;
+            BmmAnchorId anchor_id;
+            if (!cursor->GetValue(anchor_id) ||
+                anchor_id.chain_id != chain_id ||
+                anchor_id.main_block_hash != key.second.main_block_hash) {
+                return std::nullopt;
+            }
+            const auto anchor{ReadAnchor(anchor_id)};
+            if (!anchor || !IsValidAnchor(*anchor) ||
+                anchor->anchor.child_block_hash != child_block_hash) {
+                return std::nullopt;
+            }
+            result.anchors.push_back(*anchor);
+            cursor->Next();
+        }
+        if (limit_reached) break;
+    }
+    std::ranges::sort(result.anchors, [](const auto& left, const auto& right) {
+        if (left.anchor.child_block_hash != right.anchor.child_block_hash) {
+            return left.anchor.child_block_hash < right.anchor.child_block_hash;
+        }
+        if (left.block_height != right.block_height) {
+            return left.block_height > right.block_height;
+        }
+        return left.id.main_block_hash < right.id.main_block_hash;
+    });
+    return result;
 }
 
 bool ChainRegistryDB::ReadRecord(const chainregistry::ChainId& chain_id, chainregistry::ChainRecord& record) const

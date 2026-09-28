@@ -496,4 +496,15 @@ std::optional<BmmAnchorIndexEntry> ChainRegistryState::FindAnchor(
     return m_db->ReadAnchor(anchor_id);
 }
 
+std::optional<BmmAnchorLookupResult>
+ChainRegistryState::FindAnchorsForChildBlocks(
+    const chainregistry::ChainId& chain_id,
+    std::span<const uint256> child_block_hashes,
+    uint64_t lookup_limit) const
+{
+    if (!m_initialized || !m_db) return std::nullopt;
+    return m_db->ReadAnchorsForChildBlocks(
+        chain_id, child_block_hashes, lookup_limit);
+}
+
 } // namespace node
