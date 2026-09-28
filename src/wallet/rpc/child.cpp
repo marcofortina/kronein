@@ -609,6 +609,51 @@ ProcessedChildPSBT ProcessChildPSBT(
 
 } // namespace
 
+ChildWalletProcessResult ProcessChildWalletPSBT(
+    CWallet& wallet,
+    std::string_view encoded_psbt,
+    CAmount maximum_fee,
+    bool sign,
+    std::optional<int> sighash_type,
+    bool bip32_derivs,
+    bool finalize,
+    std::optional<chainregistry::ChainId> expected_chain_id)
+{
+    auto decoded{DecodeBase64PSBT(std::string{encoded_psbt})};
+    if (!decoded) {
+        throw JSONRPCError(
+            RPC_DESERIALIZATION_ERROR,
+            strprintf("child PSBT decode failed: %s",
+                      util::ErrorString(decoded).original));
+    }
+    if (expected_chain_id) {
+        const auto identity{
+            chainregistry::ExtractChildPSBTIdentity(*decoded)};
+        if (identity.IsValid() &&
+            identity.identity->chain_id != *expected_chain_id) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "child PSBT chain_id does not match the requested chain_id");
+        }
+    }
+    auto processed{ProcessChildPSBT(
+        wallet,
+        std::move(*decoded),
+        maximum_fee,
+        sign,
+        sighash_type,
+        bip32_derivs,
+        finalize)};
+    return {
+        .psbt = EncodePSBT(processed.psbt),
+        .chain_id = processed.identity.chain_id,
+        .genesis_hash = processed.identity.genesis_hash,
+        .fee = processed.fee,
+        .complete = processed.complete,
+        .transaction = std::move(processed.transaction),
+    };
+}
+
 static ChildWalletSendResult SignFundedChildPSBT(
     CWallet& wallet,
     FundedChildPSBT funded)
@@ -968,14 +1013,6 @@ RPCHelpMan walletprocesschildpsbt()
     CWallet& wallet{*wallet_ptr};
     wallet.BlockUntilSyncedToCurrentChain();
 
-    auto decoded{DecodeBase64PSBT(
-        std::string{self.Arg<std::string_view>("psbt")})};
-    if (!decoded) {
-        throw JSONRPCError(
-            RPC_DESERIALIZATION_ERROR,
-            strprintf("child PSBT decode failed: %s",
-                      util::ErrorString(decoded).original));
-    }
     const CAmount maximum_fee{
         AmountFromValue(self.Arg<UniValue>("max_fee"))};
     const bool sign{self.Arg<bool>("sign")};
@@ -983,18 +1020,19 @@ RPCHelpMan walletprocesschildpsbt()
     const bool finalize{self.Arg<bool>("finalize")};
     const std::optional<int> sighash_type{
         ParseSighashString(self.Arg<UniValue>("sighashtype"))};
-    auto processed{ProcessChildPSBT(wallet,
-                                    std::move(*decoded),
-                                    maximum_fee,
-                                    sign,
-                                    sighash_type,
-                                    bip32_derivs,
-                                    finalize)};
+    auto processed{ProcessChildWalletPSBT(
+        wallet,
+        self.Arg<std::string_view>("psbt"),
+        maximum_fee,
+        sign,
+        sighash_type,
+        bip32_derivs,
+        finalize)};
 
     UniValue result{UniValue::VOBJ};
-    result.pushKV("psbt", EncodePSBT(processed.psbt));
-    result.pushKV("chain_id", processed.identity.chain_id.GetHex());
-    result.pushKV("genesis_hash", processed.identity.genesis_hash.GetHex());
+    result.pushKV("psbt", processed.psbt);
+    result.pushKV("chain_id", processed.chain_id.GetHex());
+    result.pushKV("genesis_hash", processed.genesis_hash.GetHex());
     result.pushKV("fee", ValueFromAmount(processed.fee));
     result.pushKV("complete", processed.complete);
     if (processed.transaction) {

@@ -12,6 +12,7 @@
 
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace wallet {
@@ -42,6 +43,15 @@ struct ChildWalletFundResult {
     std::vector<COutPoint> inputs;
 };
 
+struct ChildWalletProcessResult {
+    std::string psbt;
+    chainregistry::ChainId chain_id;
+    uint256 genesis_hash;
+    CAmount fee{0};
+    bool complete{false};
+    std::optional<CTransaction> transaction;
+};
+
 ChildWalletFundResult CreateFundedChildPayments(
     CWallet& wallet,
     const chainregistry::ChainId& chain_id,
@@ -49,6 +59,16 @@ ChildWalletFundResult CreateFundedChildPayments(
     CAmount fee,
     int minconf = 1,
     bool bip32_derivs = true);
+
+ChildWalletProcessResult ProcessChildWalletPSBT(
+    CWallet& wallet,
+    std::string_view encoded_psbt,
+    CAmount maximum_fee,
+    bool sign = true,
+    std::optional<int> sighash_type = std::nullopt,
+    bool bip32_derivs = true,
+    bool finalize = true,
+    std::optional<chainregistry::ChainId> expected_chain_id = std::nullopt);
 
 ChildWalletSendResult CreateSignedChildPayments(
     CWallet& wallet,

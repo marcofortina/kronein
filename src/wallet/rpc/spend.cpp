@@ -2066,6 +2066,8 @@ RPCHelpMan walletprocesspsbt()
             "       \"SINGLE|ANYONECANPAY\""},
                     {"bip32derivs", RPCArg::Type::BOOL, RPCArg::Default{true}, "Include BIP 32 derivation paths for public keys if we know them"},
                     {"finalize", RPCArg::Type::BOOL, RPCArg::Default{true}, "Also finalize inputs if possible"},
+                    {"child_max_fee", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "Maximum absolute child-chain fee authorized by the caller. Required with chain_id and invalid without it."},
+                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Full, non-null child-chain identifier; omit for the main chain."},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
@@ -2080,13 +2082,56 @@ RPCHelpMan walletprocesspsbt()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    const std::shared_ptr<const CWallet> pwallet = GetWalletForJSONRPCRequest(request);
+    const std::shared_ptr<CWallet> pwallet = GetWalletForJSONRPCRequest(request);
     if (!pwallet) return UniValue::VNULL;
 
-    const CWallet& wallet{*pwallet};
+    CWallet& wallet{*pwallet};
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
     wallet.BlockUntilSyncedToCurrentChain();
+
+    const auto chain_arg{self.MaybeArg<UniValue>("chain_id")};
+    const auto child_max_fee_arg{
+        self.MaybeArg<UniValue>("child_max_fee")};
+    if (chain_arg) {
+        if (!child_max_fee_arg) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "child_max_fee is required when chain_id is specified");
+        }
+        const chainregistry::ChainId chain_id{
+            ParseChildChainId(*chain_arg)};
+        std::optional<int> sighash_type{
+            ParseSighashString(request.params[2])};
+        if (!sighash_type) sighash_type = SIGHASH_DEFAULT;
+        auto processed{ProcessChildWalletPSBT(
+            wallet,
+            request.params[0].get_str(),
+            AmountFromValue(*child_max_fee_arg),
+            request.params[1].isNull()
+                ? true
+                : request.params[1].get_bool(),
+            sighash_type,
+            request.params[3].isNull()
+                ? true
+                : request.params[3].get_bool(),
+            request.params[4].isNull()
+                ? true
+                : request.params[4].get_bool(),
+            chain_id)};
+        UniValue result{UniValue::VOBJ};
+        result.pushKV("psbt", processed.psbt);
+        result.pushKV("complete", processed.complete);
+        if (processed.transaction) {
+            result.pushKV("hex", EncodeHexTx(*processed.transaction));
+        }
+        return result;
+    }
+    if (child_max_fee_arg) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "child_max_fee is only valid when chain_id is specified");
+    }
 
     // Unserialize the transaction
     util::Result<PartiallySignedTransaction> psbt_res = DecodeBase64PSBT(request.params[0].get_str());

@@ -1985,8 +1985,10 @@ class ChainRegistryTest(BitcoinTestFramework):
             child_fee=child_send_fee,
             chain_id=chain_id)
         assert_equal(compatible_funded["fee"], child_send_fee)
-        compatible_processed = wallet.walletprocesschildpsbt(
-            compatible_funded["psbt"], child_send_fee)
+        compatible_processed = wallet.walletprocesspsbt(
+            compatible_funded["psbt"],
+            child_max_fee=child_send_fee,
+            chain_id=chain_id)
         assert_equal(compatible_processed["complete"], True)
         assert_equal(node.testmempoolaccept(
             [compatible_processed["hex"]], 0, chain_id)[0]["allowed"], True)
