@@ -782,6 +782,7 @@ public:
     bool EraseAddressReceiveRequest(WalletBatch& batch, const CTxDestination& dest, const std::string& id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     void LoadAddressChildChain(const CTxDestination& dest, const chainregistry::ChainId& chain_id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool LoadChildScriptPubKeyMan(const chainregistry::ChainId& chain_id, bool internal, const uint256& id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool SetChildScriptPubKeyMan(const chainregistry::ChainId& chain_id, bool internal, const uint256& id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool SetAddressChildChain(WalletBatch& batch, const CTxDestination& dest, const chainregistry::ChainId& chain_id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     std::vector<std::pair<CTxDestination, std::string>> ListChildRecipients(const chainregistry::ChainId& chain_id) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 

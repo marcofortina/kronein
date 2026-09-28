@@ -7,6 +7,7 @@
 from decimal import Decimal
 from io import BytesIO
 
+from test_framework.address import address_to_scriptpubkey
 from test_framework.messages import CBlock
 from test_framework.psbt import PSBT, PSBT_OUT_SCRIPT
 from test_framework.test_framework import BitcoinTestFramework
@@ -937,6 +938,51 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(child_change_identity["label"], "")
         assert_equal(child_change_identity["scriptPubKey"],
                      "5120" + child_change_identity["recipient"])
+
+        self.log.info("Restore child descriptor contexts in another wallet")
+        exported_child_descriptors = [
+            descriptor
+            for descriptor in wallet.listdescriptors(True)["descriptors"]
+            if descriptor.get("chain_id") == chain_id
+        ]
+        node.createwallet("child_restore")
+        restored_wallet = node.get_wallet_rpc("child_restore")
+        missing_role = dict(exported_child_descriptors[0])
+        missing_role.pop("internal")
+        rejected_import = restored_wallet.importdescriptors([missing_role])
+        assert_equal(rejected_import[0]["success"], False)
+        assert "explicit internal role" in rejected_import[0]["error"]["message"]
+        restored_import = restored_wallet.importdescriptors(
+            exported_child_descriptors)
+        assert all(result["success"] for result in restored_import), restored_import
+        restored_child_descriptors = [
+            descriptor
+            for descriptor in restored_wallet.listdescriptors()["descriptors"]
+            if descriptor.get("chain_id") == chain_id
+        ]
+        assert_equal(len(restored_child_descriptors), 2)
+        for restored_descriptor in restored_child_descriptors:
+            source_descriptor = next(
+                descriptor for descriptor in child_descriptors
+                if descriptor["internal"] == restored_descriptor["internal"]
+            )
+            for field in ("desc", "timestamp", "active", "internal",
+                          "chain_id", "next_index"):
+                assert_equal(restored_descriptor[field],
+                             source_descriptor[field])
+        restored_receive = next(
+            descriptor for descriptor in restored_child_descriptors
+            if not descriptor["internal"])
+        expected_address = node.deriveaddresses(
+            restored_receive["desc"],
+            [restored_receive["next_index"], restored_receive["next_index"]],
+        )[0]
+        restored_identity = restored_wallet.getnewchildrecipient(
+            chain_id, "restored-child")
+        assert_equal(
+            restored_identity["scriptPubKey"],
+            address_to_scriptpubkey(expected_address).hex(),
+        )
 
         unsigned_child = wallet.walletprocesschildpsbt(
             child_psbt["psbt"], child_fee, False)

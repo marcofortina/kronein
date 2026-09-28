@@ -2393,11 +2393,9 @@ CWallet::GetOrCreateChildScriptPubKeyMan(
     if (!manager) return util::Error{util::ErrorString(manager)};
 
     const uint256 id{manager->get().GetID()};
-    WalletBatch batch{GetDatabase()};
-    if (!batch.WriteChildScriptPubKeyMan(chain_id, internal, id)) {
+    if (!SetChildScriptPubKeyMan(chain_id, internal, id)) {
         return util::Error{_("Could not persist the child-chain descriptor role")};
     }
-    m_child_spk_managers.emplace(role, id);
     return manager;
 }
 
@@ -2748,9 +2746,40 @@ bool CWallet::LoadChildScriptPubKeyMan(
         !dynamic_cast<DescriptorScriptPubKeyMan*>(GetScriptPubKeyMan(id))) {
         return false;
     }
-    const auto [it, inserted]{m_child_spk_managers.emplace(
-        std::make_pair(chain_id, internal), id)};
-    return inserted || it->second == id;
+    const auto context{std::make_pair(chain_id, internal)};
+    if (const auto it{m_child_spk_managers.find(context)};
+        it != m_child_spk_managers.end()) {
+        return it->second == id;
+    }
+    for (const auto& [other_context, descriptor_id] : m_child_spk_managers) {
+        if (other_context != context && descriptor_id == id) return false;
+    }
+    m_child_spk_managers.emplace(context, id);
+    return true;
+}
+
+bool CWallet::SetChildScriptPubKeyMan(
+    const chainregistry::ChainId& chain_id,
+    bool internal,
+    const uint256& id)
+{
+    AssertLockHeld(cs_wallet);
+    if (chain_id.IsNull() || id.IsNull() ||
+        !dynamic_cast<DescriptorScriptPubKeyMan*>(GetScriptPubKeyMan(id))) {
+        return false;
+    }
+    const auto context{std::make_pair(chain_id, internal)};
+    if (const auto it{m_child_spk_managers.find(context)};
+        it != m_child_spk_managers.end()) {
+        return it->second == id;
+    }
+    for (const auto& [other_context, descriptor_id] : m_child_spk_managers) {
+        if (other_context != context && descriptor_id == id) return false;
+    }
+    WalletBatch batch{GetDatabase()};
+    if (!batch.WriteChildScriptPubKeyMan(chain_id, internal, id)) return false;
+    m_child_spk_managers.emplace(context, id);
+    return true;
 }
 
 bool CWallet::SetAddressChildChain(

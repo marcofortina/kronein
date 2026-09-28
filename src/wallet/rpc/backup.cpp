@@ -151,6 +151,16 @@ static UniValue ProcessDescriptorImport(CWallet& wallet, const UniValue& data, c
         const std::string& descriptor = data["desc"].get_str();
         const bool active = data.exists("active") ? data["active"].get_bool() : false;
         const std::string label{LabelFromValue(data["label"])};
+        std::optional<chainregistry::ChainId> child_chain;
+        if (data.exists("chain_id")) {
+            child_chain = chainregistry::ChainId::FromHex(
+                data["chain_id"].get_str());
+            if (!child_chain || child_chain->IsNull()) {
+                throw JSONRPCError(
+                    RPC_INVALID_PARAMETER,
+                    "chain_id must be exactly 32 non-null bytes encoded as hexadecimal");
+            }
+        }
 
         // Parse descriptor string
         FlatSigningProvider keys;
@@ -165,6 +175,28 @@ static UniValue ProcessDescriptorImport(CWallet& wallet, const UniValue& data, c
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Cannot have multipath descriptor while also specifying \'internal\'");
             }
             internal = data["internal"].get_bool();
+        }
+        if (child_chain) {
+            if (parsed_descs.size() != 1) {
+                throw JSONRPCError(
+                    RPC_INVALID_PARAMETER,
+                    "Child descriptors cannot be multipath");
+            }
+            if (!internal.has_value()) {
+                throw JSONRPCError(
+                    RPC_INVALID_PARAMETER,
+                    "Child descriptors require an explicit internal role");
+            }
+            if (active) {
+                throw JSONRPCError(
+                    RPC_INVALID_PARAMETER,
+                    "Child descriptors cannot be active main-wallet descriptors");
+            }
+            if (!parsed_descs.front()->IsRange()) {
+                throw JSONRPCError(
+                    RPC_INVALID_PARAMETER,
+                    "Child descriptors must be ranged");
+            }
         }
 
         // Range check
@@ -187,8 +219,9 @@ static UniValue ProcessDescriptorImport(CWallet& wallet, const UniValue& data, c
 
             if (data.exists("next_index")) {
                 next_index = data["next_index"].getInt<int64_t>();
-                // bound checks
-                if (next_index < range_start || next_index >= range_end) {
+                // An exported cursor may equal the exclusive range end. The
+                // descriptor manager will extend its cache during TopUp().
+                if (next_index < range_start || next_index > range_end) {
                     throw JSONRPCError(RPC_INVALID_PARAMETER, "next_index is out of range");
                 }
             }
@@ -232,6 +265,16 @@ static UniValue ProcessDescriptorImport(CWallet& wallet, const UniValue& data, c
             std::vector<CScript> scripts;
             if (!parsed_desc->Expand(0, keys, scripts, expand_keys)) {
                 throw JSONRPCError(RPC_WALLET_ERROR, "Cannot expand descriptor. Probably because of hardened derivations without private keys provided");
+            }
+            if (child_chain) {
+                for (const CScript& script : scripts) {
+                    std::vector<std::vector<unsigned char>> solutions;
+                    if (Solver(script, solutions) != TxoutType::WITNESS_V1_TAPROOT) {
+                        throw JSONRPCError(
+                            RPC_INVALID_PARAMETER,
+                            "Child descriptors must derive Taproot outputs");
+                    }
+                }
             }
             parsed_desc->ExpandPrivate(0, keys, expand_keys);
 
@@ -277,6 +320,13 @@ static UniValue ProcessDescriptorImport(CWallet& wallet, const UniValue& data, c
             } else {
                 wallet.DeactivateScriptPubKeyMan(spk_manager.GetID(), desc_internal);
             }
+            if (child_chain && !wallet.SetChildScriptPubKeyMan(
+                                   *child_chain, desc_internal,
+                                   spk_manager.GetID())) {
+                throw JSONRPCError(
+                    RPC_WALLET_ERROR,
+                    "Could not persist child descriptor context");
+            }
         }
 
         result.pushKV("success", UniValue(true));
@@ -314,6 +364,7 @@ RPCHelpMan importdescriptors()
                                         RPCArgOptions{.type_str={"timestamp | \"now\"", "integer / string"}}
                                     },
                                     {"internal", RPCArg::Type::BOOL, RPCArg::Default{false}, "Whether matching outputs should be treated as not incoming payments (e.g. change)"},
+                                    {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Associate this ranged inactive descriptor with one exact child chain. Requires an explicit internal role"},
                                     {"label", RPCArg::Type::STR, RPCArg::Default{""}, "Label to assign to the address, only allowed with internal=false. Disabled for ranged descriptors"},
                                 },
                             },
@@ -385,7 +436,8 @@ RPCHelpMan importdescriptors()
             }
 
             // If we know the chain tip, and at least one request was successful then allow rescan
-            if (!rescan && result["success"].get_bool()) {
+            if (!rescan && result["success"].get_bool() &&
+                !request.exists("chain_id")) {
                 rescan = true;
             }
         }
@@ -415,7 +467,9 @@ RPCHelpMan importdescriptors()
                 // range, or if the import result already has an error set, let
                 // the result stand unmodified. Otherwise replace the result
                 // with an error message.
-                if (scanned_time <= GetImportTimestamp(request, now) || results.at(i).exists("error")) {
+                if (request.exists("chain_id") ||
+                    scanned_time <= GetImportTimestamp(request, now) ||
+                    results.at(i).exists("error")) {
                     response.push_back(results.at(i));
                 } else {
                     std::string error_msg{strprintf("Rescan failed for descriptor with timestamp %d. There "
