@@ -316,6 +316,12 @@ void ChildChainDialog::refresh()
             const QString connections{NumberField(chain, "connections")};
             const QString handshaken{NumberField(chain, "handshaken_peers")};
             const QString known_addresses{NumberField(chain, "known_addresses")};
+            const QString max_known_addresses{
+                NumberField(chain, "max_known_addresses")};
+            const QString known_address_usage{max_known_addresses.isEmpty()
+                ? known_addresses
+                : QStringLiteral("%1/%2")
+                      .arg(known_addresses, max_known_addresses)};
             const QString rate_limited{
                 NumberField(chain, "rate_limited_block_requests")};
             const QStringList added_nodes{StringArrayField(chain, "added_nodes")};
@@ -348,7 +354,7 @@ void ChildChainDialog::refresh()
                 : !network_active
                     ? tr("Paused")
                     : tr("%1 connected • %2 authenticated • %3 known")
-                          .arg(connections, handshaken, known_addresses)};
+                          .arg(connections, handshaken, known_address_usage)};
 
             const int row{m_table->rowCount()};
             m_table->insertRow(row);
@@ -364,7 +370,8 @@ void ChildChainDialog::refresh()
             status_item->setData(BINDS_ROLE, binds);
             status_item->setData(DISCOVERY_ROLE, discovery);
             status_item->setData(BOOTSTRAP_NODES_ROLE, bootstrap_nodes);
-            status_item->setData(KNOWN_ADDRESSES_ROLE, known_addresses);
+            status_item->setData(
+                KNOWN_ADDRESSES_ROLE, known_address_usage);
             status_item->setData(
                 RATE_LIMITED_REQUESTS_ROLE, rate_limited);
             status_item->setData(SUPPORTED_ROLE, BoolField(chain, "supported"));
@@ -393,7 +400,7 @@ void ChildChainDialog::refresh()
                 QStringLiteral("\n\n") + discovery_tooltip +
                 QStringLiteral("\n\n") +
                 tr("Known isolated peer-store addresses: %1")
-                    .arg(known_addresses) +
+                    .arg(known_address_usage) +
                 QStringLiteral("\n") +
                 tr("Rate-limited block requests: %1").arg(rate_limited));
             m_table->setItem(row, NETWORK, network_item);
