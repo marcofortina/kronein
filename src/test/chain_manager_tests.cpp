@@ -5,6 +5,7 @@
 #include <node/chain_manager.h>
 
 #include <chainparams.h>
+#include <consensus/merkle.h>
 #include <dbwrapper.h>
 #include <pow.h>
 #include <primitives/chainregistry.h>
@@ -59,6 +60,16 @@ CBlockHeader MineHeader(const CBlockIndex& parent,
     return header;
 }
 
+CBlock ChildBlock(
+    const CBlockIndex& parent,
+    const chainregistry::ReferenceChildDefinition& definition)
+{
+    auto built{chainregistry::BuildReferenceChildBlock(
+        parent, parent.nTime + 1, definition, {}, std::nullopt)};
+    BOOST_REQUIRE(built.IsValid());
+    return std::move(*built.block);
+}
+
 chainregistry::ChainRecord Record(
     const chainregistry::ReferenceChildDefinition& definition,
     chainregistry::ChainStatus status = chainregistry::ChainStatus::ACTIVE)
@@ -74,6 +85,64 @@ chainregistry::ChainRecord Record(
         .registered_height = 1,
         .updated_height = 1,
         .retired_height = status == chainregistry::ChainStatus::RETIRED ? 2U : 0U,
+    };
+}
+
+chainregistry::BmmAnchorProof MakeBmmProof(
+    CBlock& main_block,
+    const CBlockIndex& parent,
+    const Consensus::Params& params,
+    const chainregistry::ReferenceChildDefinition& definition,
+    const uint256& child_block_hash)
+{
+    const chainregistry::ChainRecord record{Record(definition)};
+    chainregistry::ChainRegistry registry;
+    BOOST_REQUIRE(registry.LoadRecords({record}).IsValid());
+
+    CMutableTransaction coinbase;
+    coinbase.vin.emplace_back(COutPoint{});
+    coinbase.vout.emplace_back(
+        0, chainregistry::BuildRegistryCommitment(registry.ComputeRoot()));
+    CMutableTransaction proposal;
+    proposal.vin.emplace_back(COutPoint{
+        Txid::FromUint256(child_block_hash), 0});
+    proposal.vout.emplace_back(
+        0,
+        chainregistry::BuildBmmAnchorScript({
+            .chain_id = definition.chain_id,
+            .child_block_hash = child_block_hash,
+        }));
+
+    main_block.nVersion = CBlockHeader::CURRENT_VERSION;
+    main_block.hashPrevBlock = parent.GetBlockHash();
+    main_block.nTime = parent.nTime + 1;
+    main_block.nBits = GetNextWorkRequired(&parent, &main_block, params);
+    main_block.vtx = {
+        MakeTransactionRef(coinbase), MakeTransactionRef(proposal)};
+    main_block.hashMerkleRoot = BlockMerkleRoot(main_block);
+    const auto seed{
+        GetRandomXSeed(&parent, parent.nHeight + 1, params)};
+    BOOST_REQUIRE(seed.has_value());
+    uint64_t max_tries{1'000'000};
+    BOOST_REQUIRE(MineProofOfWork(
+        main_block,
+        *seed,
+        params,
+        max_tries,
+        /*threads=*/1,
+        /*use_full_memory=*/false));
+
+    return {
+        .main_genesis_hash = params.hashGenesisBlock,
+        .block_height = static_cast<uint32_t>(parent.nHeight + 1),
+        .block_header = main_block,
+        .anchor_transaction = proposal,
+        .transaction_index = 1,
+        .transaction_merkle_branch = TransactionMerklePath(main_block, 1),
+        .coinbase_transaction = coinbase,
+        .coinbase_merkle_branch = TransactionMerklePath(main_block, 0),
+        .chain_record = record,
+        .registry_proof = *registry.GetInclusionProof(definition.chain_id),
     };
 }
 
@@ -360,6 +429,211 @@ BOOST_AUTO_TEST_CASE(catalog_is_opt_in_and_uses_isolated_paths)
     BOOST_CHECK_EQUAL(manager.LoadedCount(), 0U);
     BOOST_REQUIRE(manager.ForgetChain(second.chain_id).IsValid());
     BOOST_CHECK_EQUAL(manager.RegisteredCount(), 1U);
+}
+
+BOOST_AUTO_TEST_CASE(isolates_concurrent_child_block_submission)
+{
+    const auto first{Definition(3)};
+    const auto second{Definition(4)};
+    const auto& params{Params().GetConsensus()};
+    const fs::path root{
+        m_args.GetDataDirBase() / "chains_concurrent_submission"};
+    std::vector<CBlockHeader> main_headers;
+    uint256 first_tip;
+    uint256 second_tip;
+
+    {
+        node::ChainManager manager{
+            params, Params().GenesisBlock(), root, 1 << 20};
+        BOOST_REQUIRE(manager.RegisterChain(first).IsValid());
+        BOOST_REQUIRE(manager.RegisterChain(second).IsValid());
+        BOOST_REQUIRE(manager.LoadChain(
+            first.chain_id,
+            Params().GenesisBlock().nTime,
+            /*wipe_data=*/true,
+            /*sync=*/true).IsValid());
+        BOOST_REQUIRE(manager.LoadChain(
+            second.chain_id,
+            Params().GenesisBlock().nTime,
+            /*wipe_data=*/true,
+            /*sync=*/true).IsValid());
+
+        auto* first_runtime{manager.Get(first.chain_id)};
+        auto* second_runtime{manager.Get(second.chain_id)};
+        BOOST_REQUIRE(first_runtime);
+        BOOST_REQUIRE(second_runtime);
+        const CBlock first_block{ChildBlock(*first_runtime->Tip(), first)};
+        const CBlock second_block{ChildBlock(*second_runtime->Tip(), second)};
+
+        CBlock first_main_block;
+        const auto first_proof{MakeBmmProof(
+            first_main_block,
+            *first_runtime->MainHeaders()->Tip(),
+            params,
+            first,
+            first_block.GetHash())};
+        const auto first_header_update{manager.AddMainHeader(
+            first_main_block, first_main_block.nTime, /*sync=*/true)};
+        BOOST_REQUIRE(first_header_update.unloaded.empty());
+        BOOST_REQUIRE_EQUAL(first_header_update.advanced.size(), 2U);
+        main_headers.push_back(first_main_block);
+
+        CBlock second_main_block;
+        const auto second_proof{MakeBmmProof(
+            second_main_block,
+            *first_runtime->MainHeaders()->Tip(),
+            params,
+            second,
+            second_block.GetHash())};
+        const auto second_header_update{manager.AddMainHeader(
+            second_main_block, second_main_block.nTime, /*sync=*/true)};
+        BOOST_REQUIRE(second_header_update.unloaded.empty());
+        BOOST_REQUIRE_EQUAL(second_header_update.advanced.size(), 2U);
+        main_headers.push_back(second_main_block);
+
+        const auto second_before{
+            manager.GetBmmStatusView(second.chain_id)};
+        BOOST_REQUIRE(second_before.IsValid());
+        const auto first_connected{manager.SubmitBlock(
+            first.chain_id,
+            first_block,
+            first_proof,
+            second_main_block.nTime,
+            /*sync=*/true)};
+        BOOST_REQUIRE_MESSAGE(
+            first_connected.IsValid(),
+            static_cast<int>(first_connected.runtime.error));
+
+        const auto first_view{manager.GetChainView(first.chain_id)};
+        const auto second_after_first{
+            manager.GetBmmStatusView(second.chain_id)};
+        BOOST_REQUIRE(first_view.IsValid());
+        BOOST_REQUIRE(second_after_first.IsValid());
+        BOOST_CHECK_EQUAL(first_view.entry.height, 1U);
+        BOOST_CHECK(first_view.entry.tip == first_block.GetHash());
+        BOOST_CHECK_EQUAL(second_after_first.entry.height, 0U);
+        BOOST_CHECK(second_after_first.entry.tip == second.genesis_hash);
+        BOOST_CHECK_EQUAL(
+            second_after_first.entry.anchor_count,
+            second_before.entry.anchor_count);
+        BOOST_CHECK_EQUAL(
+            second_after_first.entry.pending_anchor_count,
+            second_before.entry.pending_anchor_count);
+        BOOST_CHECK_EQUAL(
+            second_after_first.entry.local_proposal_count,
+            second_before.entry.local_proposal_count);
+        BOOST_CHECK_EQUAL(
+            second_after_first.entry.side_candidate_count,
+            second_before.entry.side_candidate_count);
+        BOOST_CHECK_EQUAL(
+            second_after_first.entry.candidate_anchor_count,
+            second_before.entry.candidate_anchor_count);
+        BOOST_CHECK(
+            second_after_first.entry.main_tip == second_before.entry.main_tip);
+
+        const auto second_connected{manager.SubmitBlock(
+            second.chain_id,
+            second_block,
+            second_proof,
+            second_main_block.nTime,
+            /*sync=*/true)};
+        BOOST_REQUIRE_MESSAGE(
+            second_connected.IsValid(),
+            static_cast<int>(second_connected.runtime.error));
+
+        first_runtime = manager.Get(first.chain_id);
+        second_runtime = manager.Get(second.chain_id);
+        BOOST_REQUIRE(first_runtime);
+        BOOST_REQUIRE(second_runtime);
+        const CBlock next_first_block{
+            ChildBlock(*first_runtime->Tip(), first)};
+        const CBlock next_second_block{
+            ChildBlock(*second_runtime->Tip(), second)};
+
+        CBlock next_first_main_block;
+        const auto next_first_proof{MakeBmmProof(
+            next_first_main_block,
+            *first_runtime->MainHeaders()->Tip(),
+            params,
+            first,
+            next_first_block.GetHash())};
+        BOOST_REQUIRE(manager.AddMainHeader(
+            next_first_main_block,
+            next_first_main_block.nTime,
+            /*sync=*/true).unloaded.empty());
+        main_headers.push_back(next_first_main_block);
+        CBlock next_second_main_block;
+        const auto next_second_proof{MakeBmmProof(
+            next_second_main_block,
+            *first_runtime->MainHeaders()->Tip(),
+            params,
+            second,
+            next_second_block.GetHash())};
+        BOOST_REQUIRE(manager.AddMainHeader(
+            next_second_main_block,
+            next_second_main_block.nTime,
+            /*sync=*/true).unloaded.empty());
+        main_headers.push_back(next_second_main_block);
+
+        auto first_submission{std::async(std::launch::async, [&] {
+            return manager.SubmitBlock(
+                first.chain_id,
+                next_first_block,
+                next_first_proof,
+                next_second_main_block.nTime,
+                /*sync=*/true);
+        })};
+        auto second_submission{std::async(std::launch::async, [&] {
+            return manager.SubmitBlock(
+                second.chain_id,
+                next_second_block,
+                next_second_proof,
+                next_second_main_block.nTime,
+                /*sync=*/true);
+        })};
+        BOOST_REQUIRE(first_submission.get().IsValid());
+        BOOST_REQUIRE(second_submission.get().IsValid());
+
+        const auto final_first{manager.GetChainView(first.chain_id)};
+        const auto final_second{manager.GetChainView(second.chain_id)};
+        BOOST_REQUIRE(final_first.IsValid());
+        BOOST_REQUIRE(final_second.IsValid());
+        BOOST_CHECK_EQUAL(final_first.entry.height, 2U);
+        BOOST_CHECK_EQUAL(final_second.entry.height, 2U);
+        first_tip = final_first.entry.tip;
+        second_tip = final_second.entry.tip;
+        BOOST_CHECK(first_tip == next_first_block.GetHash());
+        BOOST_CHECK(second_tip == next_second_block.GetHash());
+        BOOST_CHECK(first_tip != second_tip);
+    }
+
+    node::ChainManager restarted{
+        params, Params().GenesisBlock(), root, 1 << 20};
+    BOOST_REQUIRE(restarted.IsCatalogReady());
+    const auto reopened_first{restarted.LoadChain(
+        first.chain_id,
+        Params().GenesisBlock().nTime + 4,
+        /*wipe_data=*/false,
+        /*sync=*/true,
+        main_headers)};
+    const auto reopened_second{restarted.LoadChain(
+        second.chain_id,
+        Params().GenesisBlock().nTime + 4,
+        /*wipe_data=*/false,
+        /*sync=*/true,
+        main_headers)};
+    BOOST_REQUIRE(reopened_first.IsValid());
+    BOOST_REQUIRE(reopened_second.IsValid());
+    BOOST_CHECK(reopened_first.runtime.loaded_existing);
+    BOOST_CHECK(reopened_second.runtime.loaded_existing);
+    const auto persisted_first{restarted.GetChainView(first.chain_id)};
+    const auto persisted_second{restarted.GetChainView(second.chain_id)};
+    BOOST_REQUIRE(persisted_first.IsValid());
+    BOOST_REQUIRE(persisted_second.IsValid());
+    BOOST_CHECK_EQUAL(persisted_first.entry.height, 2U);
+    BOOST_CHECK_EQUAL(persisted_second.entry.height, 2U);
+    BOOST_CHECK(persisted_first.entry.tip == first_tip);
+    BOOST_CHECK(persisted_second.entry.tip == second_tip);
 }
 
 BOOST_AUTO_TEST_CASE(reopens_only_an_explicitly_selected_chain)
