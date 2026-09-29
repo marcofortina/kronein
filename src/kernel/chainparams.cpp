@@ -148,7 +148,7 @@ public:
 
         bech32_hrp = "kne";
 
-        vFixedSeeds.assign(chainparams_seed_main, chainparams_seed_main + sizeof(chainparams_seed_main));
+        vFixedSeeds.assign(chainparams_seed_main.begin(), chainparams_seed_main.end());
 
         fDefaultConsistencyChecks = false;
         m_is_mockable_chain = false;
@@ -211,7 +211,7 @@ public:
 
         bech32_hrp = "tkne";
 
-        vFixedSeeds.assign(chainparams_seed_testnet4, chainparams_seed_testnet4 + sizeof(chainparams_seed_testnet4));
+        vFixedSeeds.assign(chainparams_seed_testnet4.begin(), chainparams_seed_testnet4.end());
 
         fDefaultConsistencyChecks = false;
         m_is_mockable_chain = false;
