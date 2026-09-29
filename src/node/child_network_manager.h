@@ -2,14 +2,14 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_NODE_CHILD_NETWORK_MANAGER_H
-#define KRONEIN_NODE_CHILD_NETWORK_MANAGER_H
+#ifndef BITCOIN_NODE_CHILD_NETWORK_MANAGER_H
+#define BITCOIN_NODE_CHILD_NETWORK_MANAGER_H
 
+#include <node/child_bandwidth.h>
 #include <primitives/chainregistry.h>
 #include <primitives/transaction.h>
 #include <sync.h>
 
-#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <map>
@@ -33,38 +33,6 @@ inline constexpr int MAX_CHILD_AUTOMATIC_CONNECTIONS{4};
 inline constexpr int MAX_CHILD_INBOUND_CONNECTIONS{8};
 inline constexpr uint64_t DEFAULT_CHILD_UPLOAD_TARGET_BYTES{8ULL << 30};
 inline constexpr std::string_view DEFAULT_CHILD_UPLOAD_TARGET{"8G"};
-inline constexpr std::chrono::seconds CHILD_UPLOAD_TIMEFRAME{
-    std::chrono::hours{24}};
-
-struct ChildBandwidthStats {
-    uint64_t target{0};
-    uint64_t bytes_sent{0};
-    uint64_t bytes_left{0};
-    std::chrono::seconds timeframe{0};
-    std::chrono::seconds time_left{0};
-    bool target_reached{false};
-};
-
-/** Process-wide block-serving budget shared by every child network. */
-class ChildBandwidthLimiter
-{
-private:
-    const uint64_t m_target;
-    mutable Mutex m_mutex;
-    mutable bool m_cycle_started GUARDED_BY(m_mutex){false};
-    mutable std::chrono::seconds m_cycle_start GUARDED_BY(m_mutex){0};
-    mutable uint64_t m_bytes_sent GUARDED_BY(m_mutex){0};
-
-    void RefreshCycle(std::chrono::seconds now) const
-        EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
-
-public:
-    explicit ChildBandwidthLimiter(uint64_t target) : m_target{target} {}
-
-    bool TryReserve(uint64_t bytes, std::chrono::seconds now);
-    ChildBandwidthStats GetStats(std::chrono::seconds now) const;
-};
-
 struct ChildNetworkConfig {
     std::vector<std::string> connect;
     std::vector<std::string> bind;
@@ -152,40 +120,51 @@ public:
                         CScheduler& scheduler,
                         uint64_t max_upload_target =
                             DEFAULT_CHILD_UPLOAD_TARGET_BYTES);
-    ~ChildNetworkManager();
+    ~ChildNetworkManager() EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
     ChildNetworkResult Start(const chainregistry::ChainId& chain_id,
-                             std::optional<ChildNetworkConfig> config = std::nullopt);
-    ChildNetworkResult Stop(const chainregistry::ChainId& chain_id);
+                             std::optional<ChildNetworkConfig> config = std::nullopt)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+    ChildNetworkResult Stop(const chainregistry::ChainId& chain_id)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChildNetworkResult AddNode(const chainregistry::ChainId& chain_id,
-                               const std::string& endpoint);
+                               const std::string& endpoint)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChildNetworkResult RemoveNode(const chainregistry::ChainId& chain_id,
-                                  const std::string& endpoint);
+                                  const std::string& endpoint)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChildNetworkResult SetBindEndpoints(
         const chainregistry::ChainId& chain_id,
-        std::vector<std::string> endpoints);
+        std::vector<std::string> endpoints)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChildNetworkResult SetDiscovery(
         const chainregistry::ChainId& chain_id,
         bool enabled,
-        std::vector<std::string> bootstrap);
+        std::vector<std::string> bootstrap)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChildNetworkResult SetNetworkActive(
         const chainregistry::ChainId& chain_id,
-        bool active);
+        bool active) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChildNetworkResult RelayTransaction(
         const chainregistry::ChainId& chain_id,
-        const CTransactionRef& transaction);
-    void Interrupt();
-    void StopAll();
+        const CTransactionRef& transaction)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+    void Interrupt() EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+    void StopAll() EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
-    bool IsRunning(const chainregistry::ChainId& chain_id) const;
+    bool IsRunning(const chainregistry::ChainId& chain_id) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChildNetworkInfo GetInfo(
-        const chainregistry::ChainId& chain_id) const;
+        const chainregistry::ChainId& chain_id) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChildNetworkStats GetStats(
-        const chainregistry::ChainId& chain_id) const;
-    std::vector<ChildNetworkStats> List() const;
+        const chainregistry::ChainId& chain_id) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+    std::vector<ChildNetworkStats> List() const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChildBandwidthStats GetBandwidthStats() const;
 };
 
 } // namespace node
 
-#endif // KRONEIN_NODE_CHILD_NETWORK_MANAGER_H
+#endif // BITCOIN_NODE_CHILD_NETWORK_MANAGER_H

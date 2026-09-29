@@ -2,10 +2,11 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_NODE_CHILD_NET_EVENTS_H
-#define KRONEIN_NODE_CHILD_NET_EVENTS_H
+#ifndef BITCOIN_NODE_CHILD_NET_EVENTS_H
+#define BITCOIN_NODE_CHILD_NET_EVENTS_H
 
 #include <net.h>
+#include <node/child_bandwidth.h>
 #include <node/child_net_processor.h>
 #include <sync.h>
 
@@ -18,8 +19,6 @@
 class CTransaction;
 
 namespace node {
-
-class ChildBandwidthLimiter;
 
 inline constexpr uint8_t MAX_CHILD_BLOCK_TIMEOUT_STRIKES{3};
 inline constexpr size_t MAX_CHILD_KNOWN_ADDRESSES{4'096};
@@ -67,7 +66,7 @@ private:
                      ChildNetProcessorResult&& result);
     ChildNetProcessorResult ProcessMessage(
         CNode& node,
-        CNetMessage& message);
+        CNetMessage& message) EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
 
 public:
     ChildNetEvents(
@@ -81,24 +80,30 @@ public:
         size_t max_inbound_per_netgroup = MAX_CHILD_INBOUND_PER_NETGROUP);
 
     void InitializeNode(const CNode& node,
-                        ServiceFlags our_services) override;
-    void FinalizeNode(const CNode& node) override;
+                        ServiceFlags our_services) override
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+    void FinalizeNode(const CNode& node) override
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     bool HasAllDesirableServiceFlags(ServiceFlags services) const override;
     bool ProcessMessages(CNode& node,
                          std::atomic<bool>& interrupt) override
-        EXCLUSIVE_LOCKS_REQUIRED(g_msgproc_mutex);
+        EXCLUSIVE_LOCKS_REQUIRED(g_msgproc_mutex, !m_mutex);
     bool SendMessages(CNode& node) override
-        EXCLUSIVE_LOCKS_REQUIRED(g_msgproc_mutex);
+        EXCLUSIVE_LOCKS_REQUIRED(g_msgproc_mutex, !m_mutex);
 
-    size_t RelayTransaction(const CTransactionRef& transaction);
+    size_t RelayTransaction(const CTransactionRef& transaction)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
-    size_t PeerCount() const;
-    size_t HandshakenPeerCount() const;
-    uint64_t RateLimitedRequests() const;
-    uint64_t InboundNetgroupRejections() const;
+    size_t PeerCount() const EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+    size_t HandshakenPeerCount() const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+    uint64_t RateLimitedRequests() const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+    uint64_t InboundNetgroupRejections() const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     size_t KnownAddressCount() const;
 };
 
 } // namespace node
 
-#endif // KRONEIN_NODE_CHILD_NET_EVENTS_H
+#endif // BITCOIN_NODE_CHILD_NET_EVENTS_H

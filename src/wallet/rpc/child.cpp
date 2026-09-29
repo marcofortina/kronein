@@ -21,6 +21,8 @@
 #include <util/strencodings.h>
 #include <wallet/external_signer_scriptpubkeyman.h>
 #include <wallet/rpc/child.h>
+
+#include <wallet/child_autobid.h>
 #include <wallet/rpc/child_util.h>
 #include <wallet/rpc/util.h>
 #include <wallet/scriptpubkeyman.h>

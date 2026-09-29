@@ -30,7 +30,7 @@
 #include <util/string.h>
 #include <util/time.h>
 #include <util/ui_change_type.h>
-#include <wallet/child_autobid.h>
+#include <wallet/child_autobid_policy.h>
 #include <wallet/crypter.h>
 #include <wallet/db.h>
 #include <wallet/scriptpubkeyman.h>
@@ -70,6 +70,7 @@ class Wallet;
 namespace wallet {
 class CWallet;
 class WalletBatch;
+struct ChildAutoBidResult;
 enum class DBErrors : int;
 } // namespace wallet
 struct CBlockLocator;

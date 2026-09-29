@@ -12,6 +12,7 @@
 #include <util/fs.h>
 #include <util/string.h>
 #include <util/translation.h>
+#include <wallet/child_autobid.h>
 #include <wallet/context.h>
 #include <wallet/spend.h>
 #include <wallet/wallet.h>

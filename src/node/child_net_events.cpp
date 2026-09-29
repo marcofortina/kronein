@@ -7,7 +7,6 @@
 #include <addrman.h>
 #include <chainregistry/child_net.h>
 #include <netmessagemaker.h>
-#include <node/child_network_manager.h>
 #include <util/time.h>
 
 #include <algorithm>

@@ -63,7 +63,6 @@ add_library(bitcoin_consensus STATIC EXCLUDE_FROM_ALL
   arith_uint256.cpp
   consensus/bmm.cpp
   consensus/chainregistry.cpp
-  consensus/deposit.cpp
   consensus/deposit_proof.cpp
   consensus/merkle.cpp
   consensus/tx_check.cpp
@@ -227,6 +226,7 @@ add_library(bitcoin_node STATIC EXCLUDE_FROM_ALL
   node/blockstorage.cpp
   node/caches.cpp
   node/chain_manager.cpp
+  node/child_bandwidth.cpp
   node/child_block_download.cpp
   node/child_net_processor.cpp
   node/child_net_events.cpp
