@@ -172,7 +172,9 @@ private:
 class RPCTestingSetup : public TestingSetup
 {
 public:
-    RPCTestingSetup()
+    // Child-anchor RPC coverage mines a real RandomX header. Keep the generic
+    // RPC fixture on regtest so this remains deterministic and fast.
+    RPCTestingSetup() : TestingSetup{ChainType::REGTEST}
     {
         m_node.child_chainman = std::make_unique<node::ChainManager>(
             Params().GetConsensus(),
@@ -1110,9 +1112,9 @@ BOOST_AUTO_TEST_CASE(rpc_rawsign)
       "\"vout\":1,\"scriptPubKey\":\"5120debedc17b3df2badbcdd86d5feb4562b86fe182e5998abd8bcd4f122c6155b1b\","
       "\"amount\":11}]";
     r = CallRPC(std::string("createrawtransaction ")+prevout+" "+
-      "[{\"kne1pm6ldc9anmu46m0xasm2ladzk9wr0uxpwtxv2hk9u6ncj93s4tvds5qs6re\":10}]");
+      "[{\"rkne1pm6ldc9anmu46m0xasm2ladzk9wr0uxpwtxv2hk9u6ncj93s4tvds9kguey\":10}]");
     std::string notsigned = r.get_str();
-    std::string privkey1 = "\"Th2KhzYvqWjD3zLhGwqvMUKS5u9oZg6JaKCdnZF1cbGs9NZwXGWY\"";
+    std::string privkey1 = "\"d1Z3jAFbsCSsSbB67iiBWSH7mGouA3B6q9Sr3B4yYjkhtE3mY5BU\"";
     r = CallRPC(std::string("signrawtransactionwithkey ")+notsigned+" [] "+prevout);
     BOOST_CHECK(r.get_obj().find_value("complete").get_bool() == false);
     r = CallRPC(std::string("signrawtransactionwithkey ")+notsigned+" ["+privkey1+"] "+prevout);
