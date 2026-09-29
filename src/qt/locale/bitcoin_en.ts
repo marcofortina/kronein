@@ -927,7 +927,7 @@
 <context>
     <name>ChildChainDialog</name>
     <message>
-        <location filename="../childchaindialog.cpp" line="+101"/>
+        <location filename="../childchaindialog.cpp" line="+102"/>
         <source>Available</source>
         <translation type="unfinished"></translation>
     </message>
@@ -968,12 +968,12 @@
     </message>
     <message>
         <location line="+11"/>
-        <location line="+2394"/>
+        <location line="+2649"/>
         <source>Status</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-2393"/>
+        <location line="-2648"/>
         <source>Chain ID</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1009,12 +1009,12 @@
     </message>
     <message>
         <location line="+16"/>
-        <location line="+354"/>
+        <location line="+360"/>
         <source>Select a child chain to manage its local runtime.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-349"/>
+        <location line="-355"/>
         <source>Refresh</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1055,25 +1055,25 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+340"/>
-        <location line="+57"/>
+        <location line="+346"/>
+        <location line="+58"/>
         <source>Pause Network</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-353"/>
+        <location line="-356"/>
         <source>Forget…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-139"/>
-        <location line="+228"/>
+        <location line="-143"/>
+        <location line="+233"/>
         <source>Failed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-229"/>
-        <location line="+229"/>
+        <location line="-234"/>
+        <location line="+234"/>
         <source>Safe halt</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1098,18 +1098,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+245"/>
+        <location line="+247"/>
         <source>Chain ID: %1
 State: %2 • registry: %3 • local configuration: %4 • network: %5 • explicit peers: %6 • listen endpoints: %7 • discovery: %8 (%9 bootstrap, %10 known) • rate-limited block requests: %11</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-214"/>
+        <location line="-216"/>
         <source>No explicit child peers configured</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-273"/>
+        <location line="-278"/>
         <source>Confirmed</source>
         <translation type="unfinished">Confirmed</translation>
     </message>
@@ -1144,7 +1144,7 @@ State: %2 • registry: %3 • local configuration: %4 • network: %5 • expli
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+6"/>
         <source>Deposits…</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1164,7 +1164,7 @@ State: %2 • registry: %3 • local configuration: %4 • network: %5 • expli
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+173"/>
+        <location line="+177"/>
         <source>Explicit child peers:
 %1</source>
         <translation type="unfinished"></translation>
@@ -1261,7 +1261,7 @@ Candidate BMM anchors: %11/%12 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+99"/>
+        <location line="+101"/>
         <source>Resume Network</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1362,7 +1362,7 @@ Candidate BMM anchors: %11/%12 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-840"/>
+        <location line="-847"/>
         <source>Idle</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1473,6 +1473,11 @@ Candidate BMM anchors: %11/%12 bytes</source>
     </message>
     <message>
         <location line="+61"/>
+        <source>Registry PSBT…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Balance…</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1503,6 +1508,11 @@ Candidate BMM anchors: %11/%12 bytes</source>
     </message>
     <message>
         <location line="+7"/>
+        <source>Review and sign a cooperative buyer/dealer registration PSBT.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
         <source>Scan the loaded child UTXO set for recipients owned by the selected wallet.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1532,7 +1542,7 @@ Candidate BMM anchors: %11/%12 bytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+379"/>
+        <location line="+382"/>
         <source>
 WARNING: This child runtime has failed. Spending, migration, and BMM actions are disabled; inspect diagnostics and unload it safely.</source>
         <translation type="unfinished"></translation>
@@ -1990,7 +2000,7 @@ Detail: %1</source>
     <message>
         <location line="+28"/>
         <location line="+4"/>
-        <location line="+17"/>
+        <location line="+23"/>
         <source>Create registry operation</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2000,7 +2010,7 @@ Detail: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+6"/>
         <source>Confirm Child Registration</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2015,17 +2025,7 @@ Detail: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+2"/>
-        <source>Register child chain %1?
-
-Registration permanently burns %2 KNE.
-Main-chain fee: %3 KNE
-
-The burn is not refundable, even if the child chain is never operated.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+5"/>
+        <location line="+7"/>
         <source>Permanently retire child chain %1?
 
 New deposits and anchors will stop after confirmation on the main chain. Protocol v1 has no operation that reactivates a retired chain.
@@ -2042,24 +2042,36 @@ Main-chain fee: %2 KNE</source>
     </message>
     <message>
         <location line="+8"/>
-        <location line="+17"/>
+        <location line="+21"/>
         <location line="+4"/>
-        <location line="+19"/>
+        <location line="+24"/>
+        <location line="+8"/>
         <source>Submit registry operation</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-7"/>
+        <location line="+155"/>
         <source>The wallet returned an invalid registry result.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="-139"/>
+        <source>Your wallet signed the buyer inputs. Send this unchanged PSBT and the agreed terms to the selected dealer. The dealer can verify and sign it with Registry PSBT…; either party can then submit the returned PSBT.
+
+Dealer payment: %1 KNE
+Chain ID: %2
+Manifest hash: %3</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+30"/>
+        <location line="+120"/>
         <source>Registration Submitted</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-119"/>
         <source>Retirement Submitted</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2077,7 +2089,42 @@ Child chain: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+23"/>
+        <location line="+20"/>
+        <source>Paste the unchanged registration PSBT received from the buyer or dealer. Enter the independently agreed chain ID, manifest hash, and price. Your wallet will verify those terms together with the active dealer, successor controls, fee, and transaction structure before signing.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+14"/>
+        <location line="+2"/>
+        <source>64 hexadecimal characters</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Expected chain ID:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Expected manifest hash:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+19"/>
+        <source>Provide a Base64 PSBT, the exact positive dealer payment, and the expected 32-byte chain ID and manifest hash.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+78"/>
+        <source>Your wallet added every signature it controls. Return this unchanged PSBT to the other party together with the agreed terms.
+
+Dealer payment: %1 KNE
+Chain ID: %2
+Manifest hash: %3</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+42"/>
         <location line="+4"/>
         <location line="+6"/>
         <source>List registration anchors</source>
@@ -2094,12 +2141,7 @@ Child chain: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+3"/>
-        <source>Registration consumes the selected confirmed wallet output and permanently burns the protocol registration amount.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+20"/>
+        <location line="+23"/>
         <source>%1:%2 — %3 KNE</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2119,12 +2161,12 @@ Child chain: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+12"/>
+        <location line="+36"/>
         <source>Registration anchor:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+4"/>
         <source>Metadata hash:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2149,19 +2191,19 @@ Child chain: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="+12"/>
         <location line="+64"/>
         <location line="+4"/>
         <location line="+11"/>
         <location line="+15"/>
         <location line="+6"/>
         <location line="+10"/>
-        <location line="+24"/>
+        <location line="+29"/>
         <source>Create child registration</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-54"/>
+        <location line="-59"/>
         <location line="+15"/>
         <location line="+6"/>
         <source>The node returned an invalid reference-child definition.</source>
@@ -2173,7 +2215,7 @@ Child chain: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+20"/>
+        <location line="+25"/>
         <source>Save this canonical manifest. After the registration confirms, use Add Manifest… to configure the child locally.
 
 %1</source>
@@ -2195,8 +2237,8 @@ Child chain: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-161"/>
-        <location line="+171"/>
+        <location line="-174"/>
+        <location line="+184"/>
         <source>Invalid Metadata Hash</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2254,10 +2296,10 @@ Child chain: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-2102"/>
+        <location line="-2350"/>
         <location line="+193"/>
         <location line="+204"/>
-        <location line="+928"/>
+        <location line="+1176"/>
         <location line="+830"/>
         <source>Child chain:</source>
         <translation type="unfinished"></translation>
@@ -2344,19 +2386,19 @@ There is no child-to-main withdrawal path.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1575"/>
-        <location line="+162"/>
-        <location line="+1368"/>
+        <location line="-1819"/>
+        <location line="+401"/>
+        <location line="+1373"/>
         <source>The selected wallet is no longer available.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-2785"/>
+        <location line="-3035"/>
         <source>%1 proposals • %2 pending • %3/%4 candidates • %5/%6 anchors</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+284"/>
+        <location line="+286"/>
         <source>Activate a stored confirmed proposal</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2430,7 +2472,7 @@ The validated proposal is already stored durably by this node and will remain av
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+503"/>
+        <location line="+751"/>
         <location line="+4"/>
         <location line="+21"/>
         <source>Read child balance</source>
@@ -2807,12 +2849,12 @@ Transaction: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1978"/>
+        <location line="-2228"/>
         <source>(limit reached)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+302"/>
+        <location line="+304"/>
         <source>%1 — %2 anchor(s), main heights %3–%4</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2827,7 +2869,145 @@ Transaction: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+759"/>
+        <location line="+304"/>
+        <source>Buy and register child chain %1?
+
+Dealer payment: %2 KNE
+Main-chain fee: %3 KNE
+
+Registration is atomic: it is valid only if the authorized dealer is paid and co-signs the transaction.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+73"/>
+        <location line="+169"/>
+        <source>The wallet returned no partially signed PSBT.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-165"/>
+        <source>Dealer Signature Required</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+18"/>
+        <location line="+169"/>
+        <source>Copy PSBT</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-134"/>
+        <source>Review Cooperative Registry PSBT</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Base64 registry PSBT</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+12"/>
+        <source>Exact dealer payment:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Verify and Sign</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+14"/>
+        <source>Invalid Registry PSBT</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <location line="+19"/>
+        <location line="+4"/>
+        <location line="+20"/>
+        <location line="+7"/>
+        <location line="+15"/>
+        <source>Submit registry PSBT</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-64"/>
+        <source>The selected wallet changed before signing.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+50"/>
+        <source>The wallet broadcast no transaction identifier.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>The fully signed registration was broadcast.
+
+Transaction: %1
+Child chain: %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+14"/>
+        <source>Additional Signature Required</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+65"/>
+        <source>Registration is a cooperative purchase from an authorized dealer. It consumes the selected confirmed wallet output, pays the agreed price to the dealer, and requires both buyer and dealer signatures. No registration value is burned.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message numerus="yes">
+        <location line="+53"/>
+        <source>%1…%2 — %n license(s)</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>No Authorized Dealer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>No active dealer currently has a child-chain license available.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Dealer-provided successor Taproot address</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Authorized dealer:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Dealer successor address:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Dealer price:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+26"/>
+        <source>Invalid Dealer Terms</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Enter the dealer-provided Taproot successor address and a positive agreed price.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+291"/>
         <location line="+4"/>
         <location line="+13"/>
         <location line="+56"/>
