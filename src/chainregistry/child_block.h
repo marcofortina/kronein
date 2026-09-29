@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_CHAINREGISTRY_CHILD_BLOCK_H
-#define KRONEIN_CHAINREGISTRY_CHILD_BLOCK_H
+#ifndef BITCOIN_CHAINREGISTRY_CHILD_BLOCK_H
+#define BITCOIN_CHAINREGISTRY_CHILD_BLOCK_H
 
 #include <chainregistry/child_import.h>
 #include <chainregistry/deposit_import.h>
@@ -201,4 +201,4 @@ ReferenceChildBlockResult DisconnectReferenceChildBlock(
 
 } // namespace chainregistry
 
-#endif // KRONEIN_CHAINREGISTRY_CHILD_BLOCK_H
+#endif // BITCOIN_CHAINREGISTRY_CHILD_BLOCK_H

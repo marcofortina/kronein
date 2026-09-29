@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_CHAINREGISTRY_CHILD_FORK_CHOICE_H
-#define KRONEIN_CHAINREGISTRY_CHILD_FORK_CHOICE_H
+#ifndef BITCOIN_CHAINREGISTRY_CHILD_FORK_CHOICE_H
+#define BITCOIN_CHAINREGISTRY_CHILD_FORK_CHOICE_H
 
 #include <arith_uint256.h>
 #include <uint256.h>
@@ -134,4 +134,4 @@ ChildForkPruneResult SelectChildForkPruning(
 
 } // namespace chainregistry
 
-#endif // KRONEIN_CHAINREGISTRY_CHILD_FORK_CHOICE_H
+#endif // BITCOIN_CHAINREGISTRY_CHILD_FORK_CHOICE_H

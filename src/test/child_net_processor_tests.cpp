@@ -206,9 +206,7 @@ chainregistry::ChildBlockHashes BlockRequest(
 
 } // namespace
 
-BOOST_FIXTURE_TEST_SUITE(
-    child_net_processor_tests,
-    ChildNetProcessorSetup)
+BOOST_FIXTURE_TEST_SUITE(child_net_processor_tests, ChildNetProcessorSetup)
 
 BOOST_AUTO_TEST_CASE(requires_full_child_handshake)
 {

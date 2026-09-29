@@ -62,17 +62,6 @@ static inline std::vector<COutPoint> random_outpoints(size_t num_outpoints) {
     return outpoints;
 }
 
-static inline std::vector<CPubKey> random_keys(size_t num_keys) {
-    std::vector<CPubKey> keys;
-    keys.reserve(num_keys);
-    for (size_t i{0}; i < num_keys; ++i) {
-        CKey key;
-        key.MakeNewKey(true);
-        keys.emplace_back(key.GetPubKey());
-    }
-    return keys;
-}
-
 // Creates a placeholder tx (not valid) with 25 outputs. Specify the version and the inputs.
 static inline CTransactionRef make_tx(const std::vector<COutPoint>& inputs)
 {

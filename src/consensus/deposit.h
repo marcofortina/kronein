@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_CONSENSUS_DEPOSIT_H
-#define KRONEIN_CONSENSUS_DEPOSIT_H
+#ifndef BITCOIN_CONSENSUS_DEPOSIT_H
+#define BITCOIN_CONSENSUS_DEPOSIT_H
 
 #include <consensus/amount.h>
 #include <primitives/chainregistry.h>
@@ -74,4 +74,4 @@ BlockDepositsResult ValidateBlockDeposits(
 
 } // namespace chainregistry
 
-#endif // KRONEIN_CONSENSUS_DEPOSIT_H
+#endif // BITCOIN_CONSENSUS_DEPOSIT_H

@@ -596,13 +596,13 @@ UniValue coinbaseTxToJSON(const CTransaction& coinbase_tx);
 UniValue childBlockToJSON(const node::ChainManagerBlockView& view,
                           TxVerbosity verbosity)
 {
-    Assume(view.block.block);
+    CHECK_NONFATAL(view.block.block);
     const CBlock& block{*view.block.block};
     UniValue result{childBlockHeaderToJSON(view)};
     result.pushKV("strippedsize", ::GetSerializeSize(TX_BASE(block)));
     result.pushKV("size", ::GetSerializeSize(TX_WITH_WITNESS(block)));
     result.pushKV("weight", ::GetBlockWeight(block));
-    Assume(!block.vtx.empty());
+    CHECK_NONFATAL(!block.vtx.empty());
     result.pushKV("coinbase_tx", coinbaseTxToJSON(*block.vtx[0]));
 
     UniValue transactions{UniValue::VARR};
@@ -1209,7 +1209,7 @@ static RPCHelpMan getblockheader()
                     RPC_MISC_ERROR,
                     "The child genesis is a virtual descriptor and has no serialized block header");
             }
-            Assume(view.block.block);
+            CHECK_NONFATAL(view.block.block);
             DataStream stream;
             stream << static_cast<const CBlockHeader&>(*view.block.block);
             return HexStr(stream);
@@ -1433,7 +1433,7 @@ static RPCHelpMan getblock()
                 RPC_MISC_ERROR,
                 "The child genesis is a virtual descriptor and has no serialized block");
         }
-        Assume(view.block.block);
+        CHECK_NONFATAL(view.block.block);
         if (verbosity <= 0) {
             DataStream stream;
             stream << TX_WITH_WITNESS(*view.block.block);
@@ -2399,7 +2399,7 @@ static RPCHelpMan getchaintxstats()
             request.context,
             *chain_id,
             final_view.block.height - blockcount)};
-        Assume(past_chain_view.block_hash);
+        CHECK_NONFATAL(past_chain_view.block_hash);
         const auto past_view{GetLoadedChildBlockView(
             request.context, *chain_id, *past_chain_view.block_hash)};
         const int64_t time_diff{
@@ -2635,7 +2635,7 @@ static RPCHelpMan getblockstats()
         if (request.params[0].isNum()) {
             const auto chain_view{GetLoadedChildChainView(
                 request.context, *chain_id, request.params[0].getInt<int>())};
-            Assume(chain_view.block_hash);
+            CHECK_NONFATAL(chain_view.block_hash);
             requested_hash = *chain_view.block_hash;
         } else {
             requested_hash = ParseHashV(request.params[0], "hash_or_height");
@@ -2887,7 +2887,7 @@ bool FindScriptPubKey(std::atomic<int>& scan_progress, const std::atomic<bool>& 
 /** RAII object to prevent concurrency issue when scanning the txout set */
 static std::atomic<int> g_scan_progress;
 static std::atomic<bool> g_should_abort_scan;
-static Mutex g_scan_mutex;
+static GlobalMutex g_scan_mutex;
 static bool g_scan_in_progress GUARDED_BY(g_scan_mutex){false};
 static std::optional<chainregistry::ChainId> g_scan_child_chain
     GUARDED_BY(g_scan_mutex);
@@ -3182,7 +3182,7 @@ static RPCHelpMan scantxoutset()
 static std::atomic<int> g_scanfilter_progress;
 static std::atomic<int> g_scanfilter_progress_height;
 static std::atomic<bool> g_scanfilter_should_abort_scan;
-static Mutex g_scanfilter_mutex;
+static GlobalMutex g_scanfilter_mutex;
 static bool g_scanfilter_in_progress GUARDED_BY(g_scanfilter_mutex){false};
 static std::optional<chainregistry::ChainId> g_scanfilter_child_chain
     GUARDED_BY(g_scanfilter_mutex);
@@ -3620,7 +3620,7 @@ static RPCHelpMan getdescriptoractivity()
     }
 
     using BlockLocation = std::pair<uint256, int>;
-    const auto AddSpend = [&activity](
+    const auto AddSpend = [](
             const CScript& spk,
             const CAmount val,
             const CTransactionRef& tx,
@@ -3647,7 +3647,7 @@ static RPCHelpMan getdescriptoractivity()
         return event;
     };
 
-    const auto AddReceive = [&activity](const CTxOut& txout, const std::optional<BlockLocation>& location, int vout, const CTransactionRef& tx) {
+    const auto AddReceive = [](const CTxOut& txout, const std::optional<BlockLocation>& location, int vout, const CTransactionRef& tx) {
         UniValue event(UniValue::VOBJ);
         UniValue spkUv(UniValue::VOBJ);
         ScriptToUniv(txout.scriptPubKey, /*out=*/spkUv, /*include_hex=*/true, /*include_address=*/true);
@@ -3699,8 +3699,8 @@ static RPCHelpMan getdescriptoractivity()
 
     if (child_blocks) {
         for (const auto& child_block : child_blocks->blocks) {
-            Assume(child_block.block);
-            Assume(child_block.undo);
+            CHECK_NONFATAL(child_block.block);
+            CHECK_NONFATAL(child_block.undo);
             ScanBlockActivity(
                 *child_block.block,
                 child_block.undo->coins,
@@ -5117,12 +5117,12 @@ static RPCHelpMan getchildchain()
         result.pushKV("chain", ChainRegistryRecordToUniv(*record));
         if (include_proof) {
             const auto proof{registry.GetInclusionProof(chain_id)};
-            Assume(proof.has_value());
+            CHECK_NONFATAL(proof.has_value());
             result.pushKV("inclusion_proof", ChainRegistryInclusionProofToUniv(*proof));
         }
     } else if (include_proof) {
         const auto proof{registry.GetNonInclusionProof(chain_id)};
-        Assume(proof.has_value());
+        CHECK_NONFATAL(proof.has_value());
         result.pushKV("non_inclusion_proof", ChainRegistryNonInclusionProofToUniv(*proof));
     }
     return result;

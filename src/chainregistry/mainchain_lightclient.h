@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_CHAINREGISTRY_MAINCHAIN_LIGHTCLIENT_H
-#define KRONEIN_CHAINREGISTRY_MAINCHAIN_LIGHTCLIENT_H
+#ifndef BITCOIN_CHAINREGISTRY_MAINCHAIN_LIGHTCLIENT_H
+#define BITCOIN_CHAINREGISTRY_MAINCHAIN_LIGHTCLIENT_H
 
 #include <arith_uint256.h>
 #include <chain.h>
@@ -35,7 +35,17 @@ struct MainHeaderRecord {
         READWRITE(obj.version, obj.height, obj.header);
     }
 
-    friend bool operator==(const MainHeaderRecord&, const MainHeaderRecord&) = default;
+    friend bool operator==(const MainHeaderRecord& lhs, const MainHeaderRecord& rhs)
+    {
+        return lhs.version == rhs.version &&
+               lhs.height == rhs.height &&
+               lhs.header.nVersion == rhs.header.nVersion &&
+               lhs.header.hashPrevBlock == rhs.header.hashPrevBlock &&
+               lhs.header.hashMerkleRoot == rhs.header.hashMerkleRoot &&
+               lhs.header.nTime == rhs.header.nTime &&
+               lhs.header.nBits == rhs.header.nBits &&
+               lhs.header.nNonce == rhs.header.nNonce;
+    }
 };
 
 enum class MainHeaderError : uint8_t {
@@ -214,4 +224,4 @@ public:
 
 } // namespace chainregistry
 
-#endif // KRONEIN_CHAINREGISTRY_MAINCHAIN_LIGHTCLIENT_H
+#endif // BITCOIN_CHAINREGISTRY_MAINCHAIN_LIGHTCLIENT_H

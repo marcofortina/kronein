@@ -9,6 +9,7 @@
 #include <node/chain_manager.h>
 #include <scheduler.h>
 #include <test/util/setup_common.h>
+#include <tinyformat.h>
 #include <util/chaintype.h>
 #include <util/readwritefile.h>
 
@@ -46,17 +47,14 @@ std::vector<std::string> Endpoints(size_t count, uint16_t first_port)
     std::vector<std::string> endpoints;
     endpoints.reserve(count);
     for (size_t index{0}; index < count; ++index) {
-        endpoints.push_back(
-            "127.0.0.1:" + std::to_string(first_port + index));
+        endpoints.push_back(strprintf("127.0.0.1:%u", first_port + index));
     }
     return endpoints;
 }
 
 } // namespace
 
-BOOST_FIXTURE_TEST_SUITE(
-    child_network_manager_tests,
-    ChildNetworkManagerSetup)
+BOOST_FIXTURE_TEST_SUITE(child_network_manager_tests, ChildNetworkManagerSetup)
 
 BOOST_AUTO_TEST_CASE(enforces_process_wide_child_upload_budget)
 {

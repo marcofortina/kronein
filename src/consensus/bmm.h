@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_CONSENSUS_BMM_H
-#define KRONEIN_CONSENSUS_BMM_H
+#ifndef BITCOIN_CONSENSUS_BMM_H
+#define BITCOIN_CONSENSUS_BMM_H
 
 #include <consensus/chainregistry.h>
 #include <primitives/block.h>
@@ -176,4 +176,4 @@ BmmBlockValidationResult ValidateBlockBmmAnchors(
 
 } // namespace chainregistry
 
-#endif // KRONEIN_CONSENSUS_BMM_H
+#endif // BITCOIN_CONSENSUS_BMM_H

@@ -131,7 +131,7 @@ BOOST_AUTO_TEST_CASE(canonical_import_reuses_native_transaction_rules)
     BOOST_CHECK_EQUAL(transaction.GetHash().GetHex(),
                       "c25edea4695f5a4d9370cf64f227babbca995bdfd105cb94fca19c258cf6d8c4");
     BOOST_CHECK_EQUAL(transaction.GetWitnessHash().GetHex(),
-                      "1981c0d9ab79ec2eaa759604a16eb3ed41ba6dd9bacf4227ed8bc7b1d31fe280");
+                      "4e6aab76912a3cf78b6a2a61072db14a3a40542fcd49427811bd60b31ec182e0");
 
     TxValidationState state;
     BOOST_CHECK(CheckTransaction(transaction, state));

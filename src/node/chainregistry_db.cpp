@@ -32,8 +32,6 @@ struct BmmAnchorByChildId {
         READWRITE(obj.chain_id, obj.child_block_hash, obj.main_block_hash);
     }
 
-    friend bool operator==(const BmmAnchorByChildId&,
-                           const BmmAnchorByChildId&) = default;
 };
 
 struct DepositByChildId {
@@ -45,8 +43,6 @@ struct DepositByChildId {
         READWRITE(obj.chain_id, obj.deposit_id);
     }
 
-    friend bool operator==(const DepositByChildId&,
-                           const DepositByChildId&) = default;
 };
 
 using RecordKey = std::pair<uint8_t, chainregistry::ChainId>;

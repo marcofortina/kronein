@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_CHAINREGISTRY_CHILD_IMPORT_H
-#define KRONEIN_CHAINREGISTRY_CHILD_IMPORT_H
+#ifndef BITCOIN_CHAINREGISTRY_CHILD_IMPORT_H
+#define BITCOIN_CHAINREGISTRY_CHILD_IMPORT_H
 
 #include <chainregistry/child_template.h>
 #include <consensus/deposit_proof.h>
@@ -78,4 +78,4 @@ ChildImportResult ParseReferenceChildImportTransaction(
 
 } // namespace chainregistry
 
-#endif // KRONEIN_CHAINREGISTRY_CHILD_IMPORT_H
+#endif // BITCOIN_CHAINREGISTRY_CHILD_IMPORT_H

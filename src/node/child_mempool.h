@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_NODE_CHILD_MEMPOOL_H
-#define KRONEIN_NODE_CHILD_MEMPOOL_H
+#ifndef BITCOIN_NODE_CHILD_MEMPOOL_H
+#define BITCOIN_NODE_CHILD_MEMPOOL_H
 
 #include <consensus/amount.h>
 #include <primitives/transaction.h>
@@ -74,4 +74,4 @@ public:
 
 } // namespace node
 
-#endif // KRONEIN_NODE_CHILD_MEMPOOL_H
+#endif // BITCOIN_NODE_CHILD_MEMPOOL_H

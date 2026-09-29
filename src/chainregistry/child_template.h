@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_CHAINREGISTRY_CHILD_TEMPLATE_H
-#define KRONEIN_CHAINREGISTRY_CHILD_TEMPLATE_H
+#ifndef BITCOIN_CHAINREGISTRY_CHILD_TEMPLATE_H
+#define BITCOIN_CHAINREGISTRY_CHILD_TEMPLATE_H
 
 #include <primitives/chainregistry.h>
 #include <primitives/transaction.h>
@@ -157,4 +157,4 @@ bool IsValidReferenceChildRecipient(uint16_t recipient_type,
 
 } // namespace chainregistry
 
-#endif // KRONEIN_CHAINREGISTRY_CHILD_TEMPLATE_H
+#endif // BITCOIN_CHAINREGISTRY_CHILD_TEMPLATE_H

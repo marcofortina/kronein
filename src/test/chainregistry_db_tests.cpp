@@ -19,6 +19,8 @@ constexpr uint256 MAIN_GENESIS{
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
 constexpr uint256 OTHER_GENESIS{
     "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"};
+constexpr uint256 DEFAULT_CHILD_BLOCK_HASH{
+    "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"};
 
 chainregistry::ChainRecord Record(unsigned char id_byte,
                                   unsigned char control_byte,
@@ -78,8 +80,8 @@ node::BmmAnchorIndexEntry Anchor(const chainregistry::ChainRegistry& registry,
                                  const chainregistry::ChainRecord& record,
                                  const uint256& block_hash,
                                  uint32_t block_height,
-                                 const uint256& child_block_hash = uint256{
-                                     "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"})
+                                 const uint256& child_block_hash =
+                                     DEFAULT_CHILD_BLOCK_HASH)
 {
     const auto proof{registry.GetInclusionProof(record.chain_id)};
     BOOST_REQUIRE(proof.has_value());

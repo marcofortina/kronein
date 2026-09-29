@@ -1448,7 +1448,7 @@ RPCHelpMan gettransaction()
                 });
             entry.pushKV("decoded", std::move(decoded));
         }
-        Assume(first_page);
+        CHECK_NONFATAL(first_page);
         PushChildLastProcessedBlock(entry, *first_page);
         return entry;
     }

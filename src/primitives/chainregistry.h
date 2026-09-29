@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_PRIMITIVES_CHAINREGISTRY_H
-#define KRONEIN_PRIMITIVES_CHAINREGISTRY_H
+#ifndef BITCOIN_PRIMITIVES_CHAINREGISTRY_H
+#define BITCOIN_PRIMITIVES_CHAINREGISTRY_H
 
 #include <attributes.h>
 #include <consensus/amount.h>
@@ -318,4 +318,4 @@ DepositId DeriveDepositId(const uint256& main_genesis_hash, const COutPoint& bur
 
 } // namespace chainregistry
 
-#endif // KRONEIN_PRIMITIVES_CHAINREGISTRY_H
+#endif // BITCOIN_PRIMITIVES_CHAINREGISTRY_H

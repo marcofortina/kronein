@@ -22,6 +22,7 @@ fn get_pathspecs_exclude_whitespace() -> Vec<String> {
             "contrib/init/kroneind.openrc",
             "contrib/macdeploy/macdeployqtplus",
             "src/crypto/sha256_sse4.cpp",
+            "src/crypto/randomx/upstream",
             "src/qt/res/src/*.svg",
             "test/functional/test_framework/crypto/ellswift_decode_test_vectors.csv",
             "test/functional/test_framework/crypto/xswiftec_inv_test_vectors.csv",

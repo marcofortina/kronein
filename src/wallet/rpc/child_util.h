@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_WALLET_RPC_CHILD_UTIL_H
-#define KRONEIN_WALLET_RPC_CHILD_UTIL_H
+#ifndef BITCOIN_WALLET_RPC_CHILD_UTIL_H
+#define BITCOIN_WALLET_RPC_CHILD_UTIL_H
 
 #include <addresstype.h>
 #include <interfaces/chain.h>
@@ -72,4 +72,4 @@ interfaces::ChildWalletHistoryPage ScanChildWalletHistory(
 
 } // namespace wallet
 
-#endif // KRONEIN_WALLET_RPC_CHILD_UTIL_H
+#endif // BITCOIN_WALLET_RPC_CHILD_UTIL_H

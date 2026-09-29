@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_NODE_CHILD_CHAIN_DB_H
-#define KRONEIN_NODE_CHILD_CHAIN_DB_H
+#ifndef BITCOIN_NODE_CHILD_CHAIN_DB_H
+#define BITCOIN_NODE_CHILD_CHAIN_DB_H
 
 #include <chainregistry/child_block.h>
 #include <chainregistry/child_fork_choice.h>
@@ -51,9 +51,6 @@ struct ChildBmmAnchorRecord {
     {
         READWRITE(obj.version, obj.child_block_hash, obj.proof);
     }
-
-    friend bool operator==(const ChildBmmAnchorRecord&,
-                           const ChildBmmAnchorRecord&) = default;
 };
 
 /** A validated BIP157 basic filter and its branch-specific filter header. */
@@ -405,4 +402,4 @@ public:
 
 } // namespace node
 
-#endif // KRONEIN_NODE_CHILD_CHAIN_DB_H
+#endif // BITCOIN_NODE_CHILD_CHAIN_DB_H

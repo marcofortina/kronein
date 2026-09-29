@@ -74,7 +74,6 @@ class MultichainDevnetTest(BitcoinTestFramework):
         }
 
     def fund_child(self, wallet, child, amount, label):
-        node = self.nodes[0]
         identity = wallet.getnewchildrecipient(child["chain_id"], label)
         funded = wallet.walletcreatefundchainpsbt(
             child["chain_id"], 1, identity["recipient"], amount,

@@ -507,8 +507,8 @@ std::vector<unsigned char> OpReturnData(const CScript& script)
     auto cursor{script.begin()};
     opcodetype opcode;
     std::vector<unsigned char> data;
-    Assume(script.GetOp(cursor, opcode) && opcode == OP_RETURN);
-    Assume(script.GetOp(cursor, opcode, data) && cursor == script.end());
+    CHECK_NONFATAL(script.GetOp(cursor, opcode) && opcode == OP_RETURN);
+    CHECK_NONFATAL(script.GetOp(cursor, opcode, data) && cursor == script.end());
     return data;
 }
 
@@ -602,7 +602,7 @@ ActiveMainHeaders GetActiveMainHeaders(ChainstateManager& chainman)
     result.tip = active.Tip()->GetBlockHash();
     result.headers.reserve(active.Height());
     for (int height{1}; height <= active.Height(); ++height) {
-        result.headers.push_back(Assert(active[height])->GetBlockHeader());
+        result.headers.push_back(CHECK_NONFATAL(active[height])->GetBlockHeader());
     }
     return result;
 }
@@ -1435,7 +1435,7 @@ RPCHelpMan addchildchain()
     const auto entry{std::find_if(entries.begin(), entries.end(), [&](const auto& candidate) {
         return candidate.chain_id == validated.definition->chain_id;
     })};
-    Assume(entry != entries.end());
+    CHECK_NONFATAL(entry != entries.end());
     UniValue result{UniValue::VOBJ};
     result.pushKV("chain_id", entry->chain_id.GetHex());
     result.pushKV("manifest_hash", entry->manifest_hash.GetHex());
@@ -1824,14 +1824,14 @@ RPCHelpMan loadchildchain()
         throw;
     }
     node::NodeContext& node_context{EnsureAnyNodeContext(request.context)};
-    const auto catch_up{Assert(node_context.child_chain_notifications)
+    const auto catch_up{CHECK_NONFATAL(node_context.child_chain_notifications)
                             ->CatchUpBmmAnchors(chain_id)};
     if (!catch_up.IsValid()) {
         if (!loaded.already_loaded) manager.UnloadChain(chain_id);
         ThrowChildAnchorCatchUpError(catch_up.error);
     }
     const auto deposit_proposal{
-        Assert(node_context.child_chain_notifications)
+        CHECK_NONFATAL(node_context.child_chain_notifications)
             ->BuildDepositProposal(chain_id)};
     if (!deposit_proposal.IsValid()) {
         if (!loaded.already_loaded) manager.UnloadChain(chain_id);
@@ -1853,7 +1853,7 @@ RPCHelpMan loadchildchain()
     const auto entry{std::find_if(entries.begin(), entries.end(), [&](const auto& candidate) {
         return candidate.chain_id == chain_id;
     })};
-    Assume(entry != entries.end() && entry->loaded);
+    CHECK_NONFATAL(entry != entries.end() && entry->loaded);
     UniValue result{UniValue::VOBJ};
     result.pushKV("chain_id", entry->chain_id.GetHex());
     result.pushKV("loaded", entry->loaded);
@@ -2314,9 +2314,9 @@ RPCHelpMan submitchildanchor()
         Now<NodeSeconds>().time_since_epoch().count(),
         /*sync=*/true)};
     if (!submitted.IsValid()) ThrowChainManagerError(submitted);
-    Assume(submitted.runtime.bmm_anchor.proof.anchor);
+    CHECK_NONFATAL(submitted.runtime.bmm_anchor.proof.anchor);
     const auto view{manager.GetChainView(chain_id)};
-    Assume(view.IsValid());
+    CHECK_NONFATAL(view.IsValid());
 
     UniValue disconnected{UniValue::VARR};
     for (const auto& hash : submitted.runtime.disconnected_child_blocks) {
@@ -2655,7 +2655,7 @@ RPCHelpMan submitchildblock()
               /*sync=*/true)};
     if (!submitted.IsValid()) ThrowChainManagerError(submitted);
     const auto view{manager.GetChainView(chain_id)};
-    Assume(view.IsValid());
+    CHECK_NONFATAL(view.IsValid());
 
     UniValue disconnected{UniValue::VARR};
     for (const auto& hash : submitted.runtime.disconnected_child_blocks) {
@@ -2750,9 +2750,9 @@ RPCHelpMan createchildimporttransaction()
                       static_cast<unsigned>(built.import.proof_error)));
     }
 
-    Assume(built.authenticated.proof.fund);
-    Assume(built.import.transaction);
-    Assume(built.import.deposit_id);
+    CHECK_NONFATAL(built.authenticated.proof.fund);
+    CHECK_NONFATAL(built.import.transaction);
+    CHECK_NONFATAL(built.import.deposit_id);
     const auto& fund{*built.authenticated.proof.fund};
     const CTransaction transaction{*built.import.transaction};
     UniValue result{UniValue::VOBJ};
@@ -2856,8 +2856,8 @@ RPCHelpMan createchildimportblock()
         throw JSONRPCError(RPC_MISC_ERROR,
                            "candidate child block time is out of range");
     case node::ChainManagerImportBlockBuildError::IMPORT_REJECTED: {
-        Assume(built.failed_proof);
-        Assume(*built.failed_proof < built.imports.size());
+        CHECK_NONFATAL(built.failed_proof);
+        CHECK_NONFATAL(*built.failed_proof < built.imports.size());
         const auto& imported{built.imports[*built.failed_proof]};
         const std::string reason{
             imported.error == node::ChainManagerImportBuildError::PROOF_REJECTED
@@ -2875,7 +2875,7 @@ RPCHelpMan createchildimportblock()
         throw JSONRPCError(
             RPC_INVALID_PARAMETER,
             strprintf("deposit proof %u duplicates an earlier deposit",
-                      *Assert(built.failed_proof)));
+                      *CHECK_NONFATAL(built.failed_proof)));
     case node::ChainManagerImportBlockBuildError::BUILD_FAILED:
         throw JSONRPCError(
             RPC_VERIFY_REJECTED,
@@ -2898,7 +2898,7 @@ RPCHelpMan createchildimportblock()
                            "child chain is in SAFE_HALT");
     }
 
-    Assume(built.build.block);
+    CHECK_NONFATAL(built.build.block);
     const CBlock& block{*built.build.block};
     DataStream encoded;
     encoded << TX_WITH_WITNESS(block);
@@ -2909,8 +2909,8 @@ RPCHelpMan createchildimportblock()
     }
     UniValue deposits{UniValue::VARR};
     for (const auto& imported : built.imports) {
-        Assume(imported.import.deposit_id);
-        Assume(imported.authenticated.proof.fund);
+        CHECK_NONFATAL(imported.import.deposit_id);
+        CHECK_NONFATAL(imported.authenticated.proof.fund);
         const auto& fund{*imported.authenticated.proof.fund};
         UniValue deposit{UniValue::VOBJ};
         deposit.pushKV("deposit_id", imported.import.deposit_id->GetHex());
@@ -3078,7 +3078,7 @@ RPCHelpMan createchildblock()
                            "child chain is in SAFE_HALT");
     }
 
-    Assume(built.build.block);
+    CHECK_NONFATAL(built.build.block);
     const CBlock& block{*built.build.block};
     DataStream encoded;
     encoded << TX_WITH_WITNESS(block);
@@ -3090,7 +3090,7 @@ RPCHelpMan createchildblock()
     std::optional<std::string> effective_fee_recipient{fee_recipient};
     if (!effective_fee_recipient && claimed_fees > 0) {
         const auto definition{manager.Definition(chain_id)};
-        Assume(definition);
+        CHECK_NONFATAL(definition);
         effective_fee_recipient = HexStr(
             definition->manifest.default_fee_recipient.recipient);
     }
@@ -3275,7 +3275,7 @@ RPCHelpMan getchildproposal()
     const auto view{EnsureAnyChildChainman(request.context).GetProposalsView(
         chain_id, block_hash)};
     if (!view.IsValid()) ThrowProposalsViewError(view.error);
-    Assume(view.proposals.size() == 1);
+    CHECK_NONFATAL(view.proposals.size() == 1);
     const auto& proposal{view.proposals.front()};
     DataStream encoded;
     encoded << TX_WITH_WITNESS(proposal.block);
@@ -3366,7 +3366,7 @@ RPCHelpMan submitchildproposal()
         /*sync=*/true)};
     if (!submitted.IsValid()) ThrowChainManagerError(submitted);
     const auto view{manager.GetChainView(chain_id)};
-    Assume(view.IsValid());
+    CHECK_NONFATAL(view.IsValid());
     UniValue result{UniValue::VOBJ};
     result.pushKV("chain_id", chain_id.GetHex());
     result.pushKV("blockhash", block_hash.GetHex());

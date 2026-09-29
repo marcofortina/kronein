@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_NODE_CHAINREGISTRY_H
-#define KRONEIN_NODE_CHAINREGISTRY_H
+#ifndef BITCOIN_NODE_CHAINREGISTRY_H
+#define BITCOIN_NODE_CHAINREGISTRY_H
 
 #include <consensus/chainregistry.h>
 #include <consensus/deposit_proof.h>
@@ -158,4 +158,4 @@ public:
 
 } // namespace node
 
-#endif // KRONEIN_NODE_CHAINREGISTRY_H
+#endif // BITCOIN_NODE_CHAINREGISTRY_H

@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_CHAINREGISTRY_CHILD_SIGHASH_H
-#define KRONEIN_CHAINREGISTRY_CHILD_SIGHASH_H
+#ifndef BITCOIN_CHAINREGISTRY_CHILD_SIGHASH_H
+#define BITCOIN_CHAINREGISTRY_CHILD_SIGHASH_H
 
 #include <primitives/chainregistry.h>
 #include <script/interpreter.h>
@@ -15,7 +15,7 @@
 
 class CTransaction;
 struct CMutableTransaction;
-class PrecomputedTransactionData;
+struct PrecomputedTransactionData;
 class XOnlyPubKey;
 
 namespace chainregistry {
@@ -73,4 +73,4 @@ public:
 
 } // namespace chainregistry
 
-#endif // KRONEIN_CHAINREGISTRY_CHILD_SIGHASH_H
+#endif // BITCOIN_CHAINREGISTRY_CHILD_SIGHASH_H

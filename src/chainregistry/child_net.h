@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_CHAINREGISTRY_CHILD_NET_H
-#define KRONEIN_CHAINREGISTRY_CHILD_NET_H
+#ifndef BITCOIN_CHAINREGISTRY_CHILD_NET_H
+#define BITCOIN_CHAINREGISTRY_CHILD_NET_H
 
 #include <kernel/messagestartchars.h>
 #include <netaddress.h>
@@ -207,4 +207,4 @@ ChildNetValidationError ValidateChildAddresses(
 
 } // namespace chainregistry
 
-#endif // KRONEIN_CHAINREGISTRY_CHILD_NET_H
+#endif // BITCOIN_CHAINREGISTRY_CHILD_NET_H

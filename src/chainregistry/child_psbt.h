@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_CHAINREGISTRY_CHILD_PSBT_H
-#define KRONEIN_CHAINREGISTRY_CHILD_PSBT_H
+#ifndef BITCOIN_CHAINREGISTRY_CHILD_PSBT_H
+#define BITCOIN_CHAINREGISTRY_CHILD_PSBT_H
 
 #include <chainregistry/child_template.h>
 #include <primitives/chainregistry.h>
@@ -13,7 +13,7 @@
 #include <optional>
 #include <string_view>
 
-struct PartiallySignedTransaction;
+class PartiallySignedTransaction;
 
 namespace chainregistry {
 
@@ -77,4 +77,4 @@ ChildPSBTIdentityError VerifyChildPSBTIdentity(
 
 } // namespace chainregistry
 
-#endif // KRONEIN_CHAINREGISTRY_CHILD_PSBT_H
+#endif // BITCOIN_CHAINREGISTRY_CHILD_PSBT_H

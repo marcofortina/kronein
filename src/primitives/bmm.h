@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_PRIMITIVES_BMM_H
-#define KRONEIN_PRIMITIVES_BMM_H
+#ifndef BITCOIN_PRIMITIVES_BMM_H
+#define BITCOIN_PRIMITIVES_BMM_H
 
 #include <primitives/chainregistry.h>
 #include <script/script.h>
@@ -93,4 +93,4 @@ TxBmmAnchorResult ExtractTransactionBmmAnchor(const CTransaction& tx);
 
 } // namespace chainregistry
 
-#endif // KRONEIN_PRIMITIVES_BMM_H
+#endif // BITCOIN_PRIMITIVES_BMM_H

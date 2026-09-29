@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_CHAINREGISTRY_CHILD_SIGN_H
-#define KRONEIN_CHAINREGISTRY_CHILD_SIGN_H
+#ifndef BITCOIN_CHAINREGISTRY_CHILD_SIGN_H
+#define BITCOIN_CHAINREGISTRY_CHILD_SIGN_H
 
 #include <chainregistry/child_sighash.h>
 #include <primitives/chainregistry.h>
@@ -89,4 +89,4 @@ public:
 
 } // namespace chainregistry
 
-#endif // KRONEIN_CHAINREGISTRY_CHILD_SIGN_H
+#endif // BITCOIN_CHAINREGISTRY_CHILD_SIGN_H

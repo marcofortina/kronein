@@ -63,7 +63,8 @@ bool SerializeFileDB(const std::string& prefix,
     std::string tmpfn = strprintf("%s.%04x", prefix, randv);
 
     // open temp output file
-    fs::path pathTmp = path.parent_path() / fs::u8path(tmpfn);
+    fs::path pathTmp{path.parent_path()};
+    pathTmp /= fs::u8path(tmpfn);
     FILE *file = fsbridge::fopen(pathTmp, "wb");
     AutoFile fileout{file};
     if (fileout.IsNull()) {

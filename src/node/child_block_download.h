@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_NODE_CHILD_BLOCK_DOWNLOAD_H
-#define KRONEIN_NODE_CHILD_BLOCK_DOWNLOAD_H
+#ifndef BITCOIN_NODE_CHILD_BLOCK_DOWNLOAD_H
+#define BITCOIN_NODE_CHILD_BLOCK_DOWNLOAD_H
 
 #include <uint256.h>
 
@@ -118,4 +118,4 @@ public:
 
 } // namespace node
 
-#endif // KRONEIN_NODE_CHILD_BLOCK_DOWNLOAD_H
+#endif // BITCOIN_NODE_CHILD_BLOCK_DOWNLOAD_H

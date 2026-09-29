@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_NODE_CHILD_NET_PROCESSOR_H
-#define KRONEIN_NODE_CHILD_NET_PROCESSOR_H
+#ifndef BITCOIN_NODE_CHILD_NET_PROCESSOR_H
+#define BITCOIN_NODE_CHILD_NET_PROCESSOR_H
 
 #include <chainregistry/child_net.h>
 #include <chainregistry/child_template.h>
@@ -190,4 +190,4 @@ public:
 
 } // namespace node
 
-#endif // KRONEIN_NODE_CHILD_NET_PROCESSOR_H
+#endif // BITCOIN_NODE_CHILD_NET_PROCESSOR_H
