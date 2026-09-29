@@ -34,6 +34,7 @@ struct ChainSpecHashTag {};
 struct ManifestHashTag {};
 struct MetadataHashTag {};
 struct DepositIdTag {};
+struct DealerIdTag {};
 } // namespace detail
 
 /** A strongly typed 256-bit protocol identifier. */
@@ -95,16 +96,22 @@ using ManifestHash = Identifier<detail::ManifestHashTag>;
 using MetadataHash = Identifier<detail::MetadataHashTag>;
 /** Stable identity of a main-chain burn output. */
 using DepositId = Identifier<detail::DepositIdTag>;
+/** Stable identity of an authorized child-chain dealer. */
+using DealerId = Identifier<detail::DealerIdTag>;
 
 inline constexpr std::string_view CHAIN_SPEC_HASH_TAG{"Kronein/ChainSpec/v1"};
 inline constexpr std::string_view MANIFEST_HASH_TAG{"Kronein/ChainManifest/v1"};
 inline constexpr std::string_view CHAIN_ID_TAG{"Kronein/ChainId/v1"};
 inline constexpr std::string_view DEPOSIT_ID_TAG{"Kronein/DepositId/v1"};
+inline constexpr std::string_view DEALER_ID_TAG{"Kronein/DealerId/v1"};
+inline constexpr std::string_view DEALER_AUTHORITY_TAG{"Kronein/DealerAuthority/v1"};
 
 inline constexpr uint16_t PROTOCOL_VERSION{1};
 inline constexpr size_t MAX_CONSENSUS_PARAMETERS_SIZE{1024};
 inline constexpr size_t MAX_FEE_RECIPIENT_SIZE{64};
-inline constexpr size_t MAX_REGISTRY_DATA_SIZE{1200};
+inline constexpr size_t MAX_REGISTRY_DATA_SIZE{1400};
+inline constexpr size_t DEALER_CONTROL_KEY_SIZE{32};
+inline constexpr size_t DEALER_AUTHORITY_SIGNATURE_SIZE{64};
 inline constexpr std::array<unsigned char, 4> REGISTRY_MAGIC{'K', 'R', 'E', 'G'};
 inline constexpr uint8_t REGISTRY_ENVELOPE_VERSION{1};
 
@@ -183,17 +190,28 @@ enum class OperationType : uint8_t {
     REGISTER = 1,
     UPDATE = 2,
     RETIRE = 3,
+    AUTHORIZE_DEALER = 4,
+    UPDATE_DEALER = 5,
+    REVOKE_DEALER = 6,
 };
 
 /** Registration consumes vin[anchor_input] as its unique pre-existing anchor. */
 struct RegisterChain {
     uint32_t anchor_input{std::numeric_limits<uint32_t>::max()};
     uint32_t control_output{std::numeric_limits<uint32_t>::max()};
+    DealerId dealer_id;
+    uint32_t dealer_control_output{std::numeric_limits<uint32_t>::max()};
+    uint32_t dealer_payment_output{std::numeric_limits<uint32_t>::max()};
     ChainManifest manifest;
 
     SERIALIZE_METHODS(RegisterChain, obj)
     {
-        READWRITE(obj.anchor_input, obj.control_output, obj.manifest);
+        READWRITE(obj.anchor_input,
+                  obj.control_output,
+                  obj.dealer_id,
+                  obj.dealer_control_output,
+                  obj.dealer_payment_output,
+                  obj.manifest);
     }
 
     friend bool operator==(const RegisterChain&, const RegisterChain&) = default;
@@ -222,7 +240,70 @@ struct RetireChain {
     friend bool operator==(const RetireChain&, const RetireChain&) = default;
 };
 
-using RegistryOperation = std::variant<RegisterChain, UpdateChain, RetireChain>;
+/** Create an authorized dealer with a bounded initial license allocation. */
+struct AuthorizeDealer {
+    uint64_t authority_sequence{0};
+    uint256 authorization_nonce;
+    std::array<unsigned char, DEALER_CONTROL_KEY_SIZE> control_key{};
+    uint32_t control_output{std::numeric_limits<uint32_t>::max()};
+    std::vector<unsigned char> payout_script;
+    uint32_t initial_licenses{0};
+    std::array<unsigned char, DEALER_AUTHORITY_SIGNATURE_SIZE> authority_signature{};
+
+    SERIALIZE_METHODS(AuthorizeDealer, obj)
+    {
+        READWRITE(obj.authority_sequence,
+                  obj.authorization_nonce,
+                  obj.control_key,
+                  obj.control_output,
+                  obj.payout_script,
+                  obj.initial_licenses,
+                  obj.authority_signature);
+    }
+
+    friend bool operator==(const AuthorizeDealer&, const AuthorizeDealer&) = default;
+};
+
+/** Replenish a dealer and optionally replace its payout script. */
+struct UpdateDealer {
+    uint64_t authority_sequence{0};
+    DealerId dealer_id;
+    uint32_t added_licenses{0};
+    std::vector<unsigned char> payout_script;
+    std::array<unsigned char, DEALER_AUTHORITY_SIGNATURE_SIZE> authority_signature{};
+
+    SERIALIZE_METHODS(UpdateDealer, obj)
+    {
+        READWRITE(obj.authority_sequence,
+                  obj.dealer_id,
+                  obj.added_licenses,
+                  obj.payout_script,
+                  obj.authority_signature);
+    }
+
+    friend bool operator==(const UpdateDealer&, const UpdateDealer&) = default;
+};
+
+/** Permanently prevent a dealer from selling more child-chain licenses. */
+struct RevokeDealer {
+    uint64_t authority_sequence{0};
+    DealerId dealer_id;
+    std::array<unsigned char, DEALER_AUTHORITY_SIGNATURE_SIZE> authority_signature{};
+
+    SERIALIZE_METHODS(RevokeDealer, obj)
+    {
+        READWRITE(obj.authority_sequence, obj.dealer_id, obj.authority_signature);
+    }
+
+    friend bool operator==(const RevokeDealer&, const RevokeDealer&) = default;
+};
+
+using RegistryOperation = std::variant<RegisterChain,
+                                       UpdateChain,
+                                       RetireChain,
+                                       AuthorizeDealer,
+                                       UpdateDealer,
+                                       RevokeDealer>;
 
 enum class OperationValidationError : uint8_t {
     NONE,
@@ -230,6 +311,15 @@ enum class OperationValidationError : uint8_t {
     INVALID_CONTROL_OUTPUT,
     INVALID_MANIFEST,
     NULL_CHAIN_ID,
+    NULL_DEALER_ID,
+    INVALID_DEALER_CONTROL_OUTPUT,
+    INVALID_DEALER_PAYMENT_OUTPUT,
+    INVALID_AUTHORITY_SEQUENCE,
+    NULL_AUTHORIZATION_NONCE,
+    INVALID_DEALER_CONTROL_KEY,
+    INVALID_PAYOUT_SCRIPT,
+    INVALID_LICENSE_COUNT,
+    INVALID_AUTHORITY_SIGNATURE,
 };
 
 enum class OperationParseError : uint8_t {
@@ -261,7 +351,8 @@ enum class TxOperationError : uint8_t {
     INVALID_CONTROL_OUTPUT,
     CONTROL_OUTPUT_COLLISION,
     CONTROL_OUTPUT_NOT_P2TR,
-    INSUFFICIENT_REGISTRATION_BURN,
+    OUTPUT_COLLISION,
+    INVALID_DEALER_PAYMENT,
     UNEXPECTED_OPERATION_VALUE,
 };
 
@@ -301,7 +392,7 @@ OperationParseResult ParseOperationScript(const CScript& script);
  * State-dependent authorization and uniqueness checks are performed by the
  * registry state transition code.
  */
-TxOperationResult ExtractTransactionOperation(const CTransaction& tx, CAmount minimum_registration_burn);
+TxOperationResult ExtractTransactionOperation(const CTransaction& tx);
 
 /**
  * Derive a child-chain identity from the main network, registration outpoint,
@@ -315,6 +406,14 @@ ChainId DeriveChainId(const uint256& main_genesis_hash,
 
 /** Derive the identity consumed by a one-way child-chain import. */
 DepositId DeriveDepositId(const uint256& main_genesis_hash, const COutPoint& burn_outpoint);
+
+DealerId DeriveDealerId(const uint256& main_genesis_hash,
+                        const uint256& authorization_nonce,
+                        std::span<const unsigned char, DEALER_CONTROL_KEY_SIZE> control_key);
+
+/** Domain-separated digest signed by the configured dealer authority. */
+std::optional<uint256> ComputeDealerAuthorityHash(const uint256& main_genesis_hash,
+                                                 const RegistryOperation& operation);
 
 } // namespace chainregistry
 

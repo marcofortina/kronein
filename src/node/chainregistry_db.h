@@ -18,7 +18,7 @@
 
 namespace node {
 
-inline constexpr uint8_t CHAIN_REGISTRY_DB_VERSION{7};
+inline constexpr uint8_t CHAIN_REGISTRY_DB_VERSION{8};
 inline constexpr uint8_t DEPOSIT_INDEX_ENTRY_VERSION{1};
 inline constexpr uint8_t BMM_ANCHOR_INDEX_ENTRY_VERSION{1};
 
@@ -127,6 +127,8 @@ struct ChainRegistryDBState {
     uint32_t height{0};
     uint256 registry_root;
     uint64_t record_count{0};
+    uint64_t dealer_count{0};
+    uint64_t authority_sequence{0};
     /** First height for which this database has complete deposit history. */
     uint32_t deposit_history_start_height{0};
     uint64_t deposit_count{0};
@@ -141,6 +143,8 @@ struct ChainRegistryDBState {
                   obj.height,
                   obj.registry_root,
                   obj.record_count,
+                  obj.dealer_count,
+                  obj.authority_sequence,
                   obj.deposit_history_start_height,
                   obj.deposit_count,
                   obj.anchor_history_start_height,
@@ -160,6 +164,10 @@ enum class ChainRegistryDBLoadError : uint8_t {
     RECORD_DECODE_FAILED,
     INVALID_RECORDS,
     RECORD_COUNT_MISMATCH,
+    DEALER_KEY_DECODE_FAILED,
+    DEALER_KEY_MISMATCH,
+    DEALER_DECODE_FAILED,
+    DEALER_COUNT_MISMATCH,
     ROOT_MISMATCH,
     DEPOSIT_KEY_DECODE_FAILED,
     DEPOSIT_KEY_MISMATCH,

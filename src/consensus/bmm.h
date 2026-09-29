@@ -21,7 +21,7 @@
 namespace chainregistry {
 
 inline constexpr std::array<uint8_t, 4> BMM_PROOF_MAGIC{'K', 'B', 'P', 'R'};
-inline constexpr uint8_t BMM_PROOF_VERSION{1};
+inline constexpr uint8_t BMM_PROOF_VERSION{2};
 inline constexpr uint64_t MAX_BMM_PROOF_MERKLE_BRANCH{32};
 
 /**
@@ -66,6 +66,10 @@ struct BmmAnchorProof {
         stream << registry_proof.leaf_index;
         WriteCompactSize(stream, registry_proof.siblings.size());
         for (const auto& hash : registry_proof.siblings) stream << hash;
+        if (version >= 2) {
+            stream << registry_proof.dealer_root;
+            stream << registry_proof.authority_sequence;
+        }
     }
 
     template <typename Stream>
@@ -98,6 +102,10 @@ struct BmmAnchorProof {
         stream >> registry_proof.leaf_count;
         stream >> registry_proof.leaf_index;
         read_branch(registry_proof.siblings);
+        if (version >= 2) {
+            stream >> registry_proof.dealer_root;
+            stream >> registry_proof.authority_sequence;
+        }
     }
 };
 

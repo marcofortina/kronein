@@ -22,8 +22,8 @@
 #include <vector>
 
 namespace wallet {
-/** Return the successor control output created by a registry transaction. */
-std::optional<uint32_t> GetChainRegistryControlOutput(const CTransaction& tx);
+/** Whether an output is reserved as a chain or dealer registry control. */
+bool IsChainRegistryControlOutput(const CTransaction& tx, uint32_t output_index);
 
 /** Get the marginal bytes if spending the specified output from this transaction.
  * Use CoinControl to determine whether to expect signature grinding when calculating the size of the input spend. */

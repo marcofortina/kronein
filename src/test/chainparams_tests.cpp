@@ -111,10 +111,12 @@ BOOST_AUTO_TEST_CASE(randomx_genesis_proofs)
 
 BOOST_AUTO_TEST_CASE(regtest_chain_registry_options)
 {
+    std::array<unsigned char, 32> dealer_authority_key{};
+    dealer_authority_key.fill(3);
     CChainParams::RegTestOptions options;
     options.chain_registry = Consensus::Params::ChainRegistryParams{
         .activation_height = 42,
-        .minimum_registration_burn = 3 * COIN,
+        .dealer_authority_key = dealer_authority_key,
         .maximum_operations = 17,
         .deposit_activation_height = 50,
         .minimum_deposit_amount = COIN / 100,
@@ -127,7 +129,7 @@ BOOST_AUTO_TEST_CASE(regtest_chain_registry_options)
     BOOST_CHECK(registry.Enabled());
     BOOST_CHECK(!registry.IsActive(41));
     BOOST_CHECK(registry.IsActive(42));
-    BOOST_CHECK_EQUAL(registry.minimum_registration_burn, 3 * COIN);
+    BOOST_CHECK(registry.dealer_authority_key == dealer_authority_key);
     BOOST_CHECK_EQUAL(registry.maximum_operations, 17U);
     BOOST_CHECK(registry.DepositsEnabled());
     BOOST_CHECK(!registry.DepositsActive(49));

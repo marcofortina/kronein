@@ -40,13 +40,37 @@ chainregistry::ChainRecord Record(unsigned char id_byte,
     };
 }
 
+chainregistry::DealerRecord Dealer(unsigned char id_byte,
+                                   unsigned char control_byte,
+                                   uint32_t height)
+{
+    std::array<unsigned char, 32> id{};
+    id.fill(id_byte);
+    std::array<unsigned char, 32> control{};
+    control.fill(control_byte);
+    std::vector<unsigned char> payout_key(32, id_byte);
+    return {
+        .record_version = chainregistry::DEALER_RECORD_VERSION,
+        .dealer_id = chainregistry::DealerId::FromUint256(uint256{std::span{id}}),
+        .control_outpoint = COutPoint{Txid::FromUint256(uint256{std::span{control}}), 0},
+        .payout_script = CScript{} << OP_1 << payout_key,
+        .remaining_licenses = 5,
+        .status = chainregistry::DealerStatus::ACTIVE,
+        .authorized_height = height,
+        .updated_height = height,
+    };
+}
+
 std::pair<node::RegistrySnapshot, CBlock> Snapshot()
 {
     node::RegistrySnapshot snapshot;
     snapshot.records = {Record(1, 11, 100), Record(2, 22, 101)};
+    snapshot.dealers = {Dealer(3, 33, 100), Dealer(4, 44, 101)};
+    snapshot.authority_sequence = 7;
 
     chainregistry::ChainRegistry registry;
-    BOOST_REQUIRE(registry.LoadRecords(snapshot.records).IsValid());
+    BOOST_REQUIRE(registry.LoadState(
+        snapshot.records, snapshot.dealers, snapshot.authority_sequence).IsValid());
     snapshot.registry_root = registry.ComputeRoot();
 
     CMutableTransaction coinbase;
@@ -81,6 +105,8 @@ BOOST_AUTO_TEST_CASE(authenticated_registry_snapshot)
     auto result{node::ValidateRegistrySnapshot(snapshot, block)};
     BOOST_REQUIRE(result);
     BOOST_CHECK_EQUAL(result->Size(), 2U);
+    BOOST_CHECK_EQUAL(result->DealerSize(), 2U);
+    BOOST_CHECK_EQUAL(result->AuthoritySequence(), 7U);
     BOOST_CHECK(result->ComputeRoot() == snapshot.registry_root);
 
     DataStream stream;
@@ -112,6 +138,18 @@ BOOST_AUTO_TEST_CASE(rejects_tampered_registry_snapshot)
 
     tampered = snapshot;
     std::swap(tampered.records[0], tampered.records[1]);
+    BOOST_CHECK(!node::ValidateRegistrySnapshot(tampered, block));
+
+    tampered = snapshot;
+    ++tampered.authority_sequence;
+    BOOST_CHECK(!node::ValidateRegistrySnapshot(tampered, block));
+
+    tampered = snapshot;
+    tampered.dealers[0].remaining_licenses++;
+    BOOST_CHECK(!node::ValidateRegistrySnapshot(tampered, block));
+
+    tampered = snapshot;
+    std::swap(tampered.dealers[0], tampered.dealers[1]);
     BOOST_CHECK(!node::ValidateRegistrySnapshot(tampered, block));
 
     tampered = snapshot;

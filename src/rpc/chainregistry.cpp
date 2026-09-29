@@ -30,12 +30,14 @@
 #include <validation.h>
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <initializer_list>
 #include <ios>
 #include <limits>
 #include <map>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -56,6 +58,30 @@ uint32_t ParseUint32(const UniValue& value, std::string_view name, bool allow_ma
     return static_cast<uint32_t>(parsed);
 }
 
+uint64_t ParseUint64(const UniValue& value, std::string_view name)
+{
+    try {
+        return value.getInt<uint64_t>();
+    } catch (const std::runtime_error&) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           strprintf("%s must be an unsigned 64-bit integer", name));
+    }
+}
+
+template <size_t Size>
+std::array<unsigned char, Size> ParseFixedHex(const UniValue& value,
+                                              std::string_view name)
+{
+    const std::vector<unsigned char> bytes{ParseHexV(value, name)};
+    if (bytes.size() != Size) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           strprintf("%s must be exactly %u bytes", name, Size));
+    }
+    std::array<unsigned char, Size> result;
+    std::copy(bytes.begin(), bytes.end(), result.begin());
+    return result;
+}
+
 chainregistry::ChainId ParseChainId(const UniValue& value)
 {
     const auto chain_id{chainregistry::ChainId::FromHex(value.get_str())};
@@ -66,6 +92,16 @@ chainregistry::ChainId ParseChainId(const UniValue& value)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "chain_id must not be null");
     }
     return *chain_id;
+}
+
+chainregistry::DealerId ParseDealerId(const UniValue& value)
+{
+    const auto dealer_id{chainregistry::DealerId::FromHex(value.get_str())};
+    if (!dealer_id || dealer_id->IsNull()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "dealer_id must be exactly 32 non-null bytes encoded as hexadecimal");
+    }
+    return *dealer_id;
 }
 
 std::string DepositSafeHaltReasonName(
@@ -530,6 +566,9 @@ UniValue OperationToUniv(const chainregistry::RegistryOperation& operation)
             result.pushKV("operation", "register");
             result.pushKV("anchor_input", payload.anchor_input);
             result.pushKV("control_output", payload.control_output);
+            result.pushKV("dealer_id", payload.dealer_id.GetHex());
+            result.pushKV("dealer_control_output", payload.dealer_control_output);
+            result.pushKV("dealer_payment_output", payload.dealer_payment_output);
             result.pushKV("manifest", ManifestToUniv(payload.manifest));
             result.pushKV("chain_spec_hash", chainregistry::ComputeChainSpecHash(payload.manifest.spec).GetHex());
             result.pushKV("manifest_hash", chainregistry::ComputeManifestHash(payload.manifest).GetHex());
@@ -538,12 +577,51 @@ UniValue OperationToUniv(const chainregistry::RegistryOperation& operation)
             result.pushKV("chain_id", payload.chain_id.GetHex());
             result.pushKV("control_output", payload.control_output);
             result.pushKV("metadata_hash", payload.metadata_hash.GetHex());
-        } else {
+        } else if constexpr (std::is_same_v<Payload, chainregistry::RetireChain>) {
             result.pushKV("operation", "retire");
             result.pushKV("chain_id", payload.chain_id.GetHex());
+        } else if constexpr (std::is_same_v<Payload, chainregistry::AuthorizeDealer>) {
+            result.pushKV("operation", "authorize_dealer");
+            result.pushKV("authority_sequence", payload.authority_sequence);
+            result.pushKV("authorization_nonce", payload.authorization_nonce.GetHex());
+            result.pushKV("control_key", HexStr(payload.control_key));
+            result.pushKV("control_output", payload.control_output);
+            result.pushKV("payout_script", HexStr(payload.payout_script));
+            result.pushKV("initial_licenses", payload.initial_licenses);
+            result.pushKV("authority_signature", HexStr(payload.authority_signature));
+        } else if constexpr (std::is_same_v<Payload, chainregistry::UpdateDealer>) {
+            result.pushKV("operation", "update_dealer");
+            result.pushKV("authority_sequence", payload.authority_sequence);
+            result.pushKV("dealer_id", payload.dealer_id.GetHex());
+            result.pushKV("added_licenses", payload.added_licenses);
+            result.pushKV("payout_script", HexStr(payload.payout_script));
+            result.pushKV("authority_signature", HexStr(payload.authority_signature));
+        } else {
+            result.pushKV("operation", "revoke_dealer");
+            result.pushKV("authority_sequence", payload.authority_sequence);
+            result.pushKV("dealer_id", payload.dealer_id.GetHex());
+            result.pushKV("authority_signature", HexStr(payload.authority_signature));
         }
         return result;
     }, operation);
+}
+
+std::string DealerStatusName(chainregistry::DealerStatus status)
+{
+    return status == chainregistry::DealerStatus::ACTIVE ? "active" : "revoked";
+}
+
+UniValue DealerToUniv(const chainregistry::DealerRecord& dealer)
+{
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("dealer_id", dealer.dealer_id.GetHex());
+    result.pushKV("status", DealerStatusName(dealer.status));
+    result.pushKV("control_outpoint", OutPointToUniv(dealer.control_outpoint));
+    result.pushKV("payout_script", HexStr(dealer.payout_script));
+    result.pushKV("remaining_licenses", dealer.remaining_licenses);
+    result.pushKV("authorized_height", dealer.authorized_height);
+    result.pushKV("updated_height", dealer.updated_height);
+    return result;
 }
 
 std::vector<RPCArg> ChainSpecArgs()
@@ -586,6 +664,8 @@ struct MainRegistrySnapshot {
     uint32_t height{0};
     uint256 root;
     std::map<chainregistry::ChainId, chainregistry::ChainRecord> records;
+    std::map<chainregistry::DealerId, chainregistry::DealerRecord> dealers;
+    uint64_t authority_sequence{0};
 };
 
 struct ActiveMainHeaders {
@@ -617,6 +697,8 @@ MainRegistrySnapshot GetMainRegistrySnapshot(ChainstateManager& chainman)
         .height = registry_state.State().height,
         .root = registry_state.State().registry_root,
         .records = registry_state.Registry().Records(),
+        .dealers = registry_state.Registry().Dealers(),
+        .authority_sequence = registry_state.Registry().AuthoritySequence(),
     };
 }
 
@@ -1209,13 +1291,17 @@ RPCHelpMan createchainregistryoperation()
 {
     return RPCHelpMan{
         "createchainregistryoperation",
-        "Create a canonical KREG script for a register, update, or retire operation.\n"
-        "The caller must place the script in exactly one transaction output. For register, anchor_input must spend registration_anchor and the operation output value must meet the consensus burn minimum.\n",
+        "Create a canonical KREG script for a chain or dealer operation.\n"
+        "Dealer administration uses a strictly increasing authority sequence. Omit authority_signature to obtain the exact BIP340 authority_hash, then call again with its 64-byte signature.\n"
+        "REGISTER burns no value: it atomically spends and renews the dealer control output while paying the dealer payout script.\n",
         {
-            {"operation", RPCArg::Type::STR, RPCArg::Optional::NO, "Operation type: register, update, or retire"},
+            {"operation", RPCArg::Type::STR, RPCArg::Optional::NO, "Operation type: register, update, retire, authorize_dealer, update_dealer, or revoke_dealer"},
             {"parameters", RPCArg::Type::OBJ, RPCArg::Optional::NO, "Fields required by the selected operation", {
                 {"anchor_input", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "REGISTER: input index consuming registration_anchor"},
                 {"control_output", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "REGISTER/UPDATE: P2TR successor output index"},
+                {"dealer_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "REGISTER: authorized dealer identifier"},
+                {"dealer_control_output", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "REGISTER: dealer successor output index"},
+                {"dealer_payment_output", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "REGISTER: dealer payment output index"},
                 {"registration_anchor", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "REGISTER: pre-existing anchor UTXO", OutPointArgs()},
                 {"spec", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "REGISTER: immutable chain specification", ChainSpecArgs()},
                 {"child_genesis_hash", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "REGISTER: derived child genesis hash"},
@@ -1223,21 +1309,40 @@ RPCHelpMan createchainregistryoperation()
                 {"default_fee_recipient_type", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "REGISTER: non-zero template-namespaced fee recipient type"},
                 {"default_fee_recipient", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "REGISTER: immutable template-namespaced recipient payload for child transaction fees"},
                 {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "UPDATE/RETIRE: registered child-chain identifier"},
+                {"authority_sequence", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "Dealer administration: next authority sequence"},
+                {"authorization_nonce", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "AUTHORIZE_DEALER: unique non-null 32-byte nonce"},
+                {"dealer_control_key", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "AUTHORIZE_DEALER: 32-byte x-only P2TR control key"},
+                {"payout_script", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "AUTHORIZE/UPDATE_DEALER: P2TR sale payout script"},
+                {"initial_licenses", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "AUTHORIZE_DEALER: initial sale quota"},
+                {"added_licenses", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "UPDATE_DEALER: licenses added to the remaining quota"},
+                {"authority_signature", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Dealer administration: optional 64-byte BIP340 signature"},
             }},
         },
         RPCResult{RPCResult::Type::OBJ, "", "", {
             {RPCResult::Type::STR, "operation", "Operation type"},
             {RPCResult::Type::NUM, "anchor_input", /*optional=*/true, "REGISTER anchor input index"},
             {RPCResult::Type::NUM, "control_output", /*optional=*/true, "REGISTER/UPDATE successor output index"},
+            {RPCResult::Type::NUM, "dealer_control_output", /*optional=*/true, "REGISTER dealer successor output index"},
+            {RPCResult::Type::NUM, "dealer_payment_output", /*optional=*/true, "REGISTER dealer payment output index"},
             {RPCResult::Type::OBJ, "manifest", /*optional=*/true, "REGISTER manifest", CHAIN_MANIFEST_RESULT},
             {RPCResult::Type::STR_HEX, "metadata_hash", /*optional=*/true, "UPDATE metadata hash"},
+            {RPCResult::Type::NUM, "authority_sequence", /*optional=*/true, "Dealer administration sequence"},
+            {RPCResult::Type::STR_HEX, "authorization_nonce", /*optional=*/true, "AUTHORIZE_DEALER nonce"},
+            {RPCResult::Type::STR_HEX, "control_key", /*optional=*/true, "AUTHORIZE_DEALER x-only control key"},
+            {RPCResult::Type::STR_HEX, "payout_script", /*optional=*/true, "Dealer payout script"},
+            {RPCResult::Type::NUM, "initial_licenses", /*optional=*/true, "AUTHORIZE_DEALER initial quota"},
+            {RPCResult::Type::NUM, "added_licenses", /*optional=*/true, "UPDATE_DEALER quota increment"},
+            {RPCResult::Type::STR_HEX, "authority_signature", /*optional=*/true, "Dealer authority BIP340 signature"},
             {RPCResult::Type::STR_HEX, "script", "Canonical scriptPubKey"},
             {RPCResult::Type::STR_HEX, "data", "Raw KREG envelope, suitable for a createrawtransaction data output"},
-            {RPCResult::Type::STR_HEX, "chain_id", "Affected or derived child-chain identifier"},
+            {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Affected or derived child-chain identifier"},
             {RPCResult::Type::STR_HEX, "chain_spec_hash", /*optional=*/true, "REGISTER: tagged specification hash"},
             {RPCResult::Type::STR_HEX, "manifest_hash", /*optional=*/true, "REGISTER: tagged manifest hash"},
             {RPCResult::Type::STR_HEX, "manifest_hex", /*optional=*/true, "REGISTER: canonical serialized manifest"},
             {RPCResult::Type::STR_HEX, "main_genesis_hash", /*optional=*/true, "REGISTER: main-network genesis domain"},
+            {RPCResult::Type::STR_HEX, "dealer_id", /*optional=*/true, "Dealer identifier"},
+            {RPCResult::Type::STR_HEX, "authority_hash", /*optional=*/true, "Dealer administration digest to sign"},
+            {RPCResult::Type::BOOL, "authority_signature_present", /*optional=*/true, "Whether the returned script contains a signature"},
         }},
         RPCExamples{
             HelpExampleCli("createchainregistryoperation", "\"retire\" '{\"chain_id\":\"1111111111111111111111111111111111111111111111111111111111111111\"}'")
@@ -1250,6 +1355,9 @@ RPCHelpMan createchainregistryoperation()
                     {
                         {"anchor_input", UniValueType{UniValue::VNUM}},
                         {"control_output", UniValueType{UniValue::VNUM}},
+                        {"dealer_id", UniValueType{UniValue::VSTR}},
+                        {"dealer_control_output", UniValueType{UniValue::VNUM}},
+                        {"dealer_payment_output", UniValueType{UniValue::VNUM}},
                         {"registration_anchor", UniValueType{UniValue::VOBJ}},
                         {"spec", UniValueType{UniValue::VOBJ}},
                         {"child_genesis_hash", UniValueType{UniValue::VSTR}},
@@ -1257,17 +1365,42 @@ RPCHelpMan createchainregistryoperation()
                         {"default_fee_recipient_type", UniValueType{UniValue::VNUM}},
                         {"default_fee_recipient", UniValueType{UniValue::VSTR}},
                         {"chain_id", UniValueType{UniValue::VSTR}},
+                        {"authority_sequence", UniValueType{UniValue::VNUM}},
+                        {"authorization_nonce", UniValueType{UniValue::VSTR}},
+                        {"dealer_control_key", UniValueType{UniValue::VSTR}},
+                        {"payout_script", UniValueType{UniValue::VSTR}},
+                        {"initial_licenses", UniValueType{UniValue::VNUM}},
+                        {"added_licenses", UniValueType{UniValue::VNUM}},
+                        {"authority_signature", UniValueType{UniValue::VSTR}},
                     },
                     /*fAllowNull=*/true,
                     /*fStrict=*/true);
 
     std::optional<COutPoint> registration_anchor;
     chainregistry::RegistryOperation operation;
+    const auto require_parameters = [&](std::initializer_list<std::string_view> required) {
+        for (const std::string_view key : required) {
+            if (!parameters.exists(std::string{key})) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER,
+                                   strprintf("%s requires %s", operation_name, key));
+            }
+        }
+    };
+    const uint256& main_genesis_hash{
+        EnsureAnyChainman(request.context).GetConsensus().hashGenesisBlock};
+    const auto parse_authority_signature = [&] {
+        std::array<unsigned char, chainregistry::DEALER_AUTHORITY_SIGNATURE_SIZE> signature{};
+        if (parameters.exists("authority_signature")) {
+            signature = ParseFixedHex<chainregistry::DEALER_AUTHORITY_SIGNATURE_SIZE>(
+                parameters.find_value("authority_signature"), "authority_signature");
+        }
+        return signature;
+    };
     if (operation_name == "register") {
         CheckOperationParameters(parameters,
-                                 {"anchor_input", "control_output", "registration_anchor", "spec",
+                                 {"anchor_input", "control_output", "dealer_id", "dealer_control_output", "dealer_payment_output", "registration_anchor", "spec",
                                   "child_genesis_hash", "metadata_hash", "default_fee_recipient_type", "default_fee_recipient"});
-        for (const std::string_view key : {"anchor_input", "control_output", "registration_anchor", "spec", "child_genesis_hash", "metadata_hash", "default_fee_recipient_type", "default_fee_recipient"}) {
+        for (const std::string_view key : {"anchor_input", "control_output", "dealer_id", "dealer_control_output", "dealer_payment_output", "registration_anchor", "spec", "child_genesis_hash", "metadata_hash", "default_fee_recipient_type", "default_fee_recipient"}) {
             if (!parameters.exists(std::string{key})) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("register requires %s", key));
             }
@@ -1276,6 +1409,9 @@ RPCHelpMan createchainregistryoperation()
         operation = chainregistry::RegisterChain{
             .anchor_input = ParseUint32(parameters.find_value("anchor_input"), "anchor_input", /*allow_max=*/false),
             .control_output = ParseUint32(parameters.find_value("control_output"), "control_output", /*allow_max=*/false),
+            .dealer_id = ParseDealerId(parameters.find_value("dealer_id")),
+            .dealer_control_output = ParseUint32(parameters.find_value("dealer_control_output"), "dealer_control_output", /*allow_max=*/false),
+            .dealer_payment_output = ParseUint32(parameters.find_value("dealer_payment_output"), "dealer_payment_output", /*allow_max=*/false),
             .manifest = ParseManifest(parameters),
         };
     } else if (operation_name == "update") {
@@ -1296,8 +1432,69 @@ RPCHelpMan createchainregistryoperation()
             throw JSONRPCError(RPC_INVALID_PARAMETER, "retire requires chain_id");
         }
         operation = chainregistry::RetireChain{.chain_id = ParseChainId(parameters.find_value("chain_id"))};
+    } else if (operation_name == "authorize_dealer") {
+        CheckOperationParameters(parameters, {"authority_sequence", "authorization_nonce", "dealer_control_key", "control_output", "payout_script", "initial_licenses", "authority_signature"});
+        require_parameters({"authority_sequence", "authorization_nonce", "dealer_control_key", "control_output", "payout_script", "initial_licenses"});
+        const auto control_key{ParseFixedHex<chainregistry::DEALER_CONTROL_KEY_SIZE>(
+            parameters.find_value("dealer_control_key"), "dealer_control_key")};
+        if (!XOnlyPubKey{control_key}.IsFullyValid()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               "dealer_control_key is not a valid x-only public key");
+        }
+        const auto payout_script{ParseHexV(parameters.find_value("payout_script"), "payout_script")};
+        if (!CScript{payout_script.begin(), payout_script.end()}.IsPayToTaproot()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "payout_script must be P2TR");
+        }
+        const uint32_t licenses{ParseUint32(
+            parameters.find_value("initial_licenses"), "initial_licenses")};
+        if (licenses == 0) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               "initial_licenses must be positive");
+        }
+        operation = chainregistry::AuthorizeDealer{
+            .authority_sequence = ParseUint64(parameters.find_value("authority_sequence"), "authority_sequence"),
+            .authorization_nonce = ParseNonNullHash(parameters.find_value("authorization_nonce"), "authorization_nonce"),
+            .control_key = control_key,
+            .control_output = ParseUint32(parameters.find_value("control_output"), "control_output", /*allow_max=*/false),
+            .payout_script = payout_script,
+            .initial_licenses = licenses,
+            .authority_signature = parse_authority_signature(),
+        };
+    } else if (operation_name == "update_dealer") {
+        CheckOperationParameters(parameters, {"authority_sequence", "dealer_id", "added_licenses", "payout_script", "authority_signature"});
+        require_parameters({"authority_sequence", "dealer_id", "added_licenses"});
+        std::vector<unsigned char> payout_script;
+        if (parameters.exists("payout_script")) {
+            payout_script = ParseHexV(parameters.find_value("payout_script"), "payout_script");
+            if (!payout_script.empty() &&
+                !CScript{payout_script.begin(), payout_script.end()}.IsPayToTaproot()) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER,
+                                   "payout_script must be empty or P2TR");
+            }
+        }
+        const uint32_t added{ParseUint32(
+            parameters.find_value("added_licenses"), "added_licenses")};
+        if (added == 0 && payout_script.empty()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               "update_dealer must add licenses or rotate payout_script");
+        }
+        operation = chainregistry::UpdateDealer{
+            .authority_sequence = ParseUint64(parameters.find_value("authority_sequence"), "authority_sequence"),
+            .dealer_id = ParseDealerId(parameters.find_value("dealer_id")),
+            .added_licenses = added,
+            .payout_script = std::move(payout_script),
+            .authority_signature = parse_authority_signature(),
+        };
+    } else if (operation_name == "revoke_dealer") {
+        CheckOperationParameters(parameters, {"authority_sequence", "dealer_id", "authority_signature"});
+        require_parameters({"authority_sequence", "dealer_id"});
+        operation = chainregistry::RevokeDealer{
+            .authority_sequence = ParseUint64(parameters.find_value("authority_sequence"), "authority_sequence"),
+            .dealer_id = ParseDealerId(parameters.find_value("dealer_id")),
+            .authority_signature = parse_authority_signature(),
+        };
     } else {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "operation must be register, update, or retire");
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "unknown chain registry operation");
     }
 
     const CScript script{chainregistry::BuildOperationScript(operation)};
@@ -1306,10 +1503,73 @@ RPCHelpMan createchainregistryoperation()
     result.pushKV("data", HexStr(OpReturnData(script)));
     if (const auto* registration{std::get_if<chainregistry::RegisterChain>(&operation)}) {
         const auto spec_hash{chainregistry::ComputeChainSpecHash(registration->manifest.spec)};
-        const uint256& main_genesis_hash{EnsureAnyChainman(request.context).GetConsensus().hashGenesisBlock};
         result.pushKV("chain_id", chainregistry::DeriveChainId(main_genesis_hash, *registration_anchor, spec_hash).GetHex());
         result.pushKV("manifest_hex", SerializeHex(registration->manifest));
         result.pushKV("main_genesis_hash", main_genesis_hash.GetHex());
+    }
+    if (const auto authority_hash{chainregistry::ComputeDealerAuthorityHash(
+            main_genesis_hash, operation)}) {
+        const auto snapshot{GetMainRegistrySnapshot(
+            EnsureAnyChainman(request.context))};
+        const uint64_t operation_sequence{std::visit([](const auto& payload) {
+            using Payload = std::decay_t<decltype(payload)>;
+            if constexpr (std::is_same_v<Payload, chainregistry::AuthorizeDealer> ||
+                          std::is_same_v<Payload, chainregistry::UpdateDealer> ||
+                          std::is_same_v<Payload, chainregistry::RevokeDealer>) {
+                return payload.authority_sequence;
+            }
+            return uint64_t{0};
+        }, operation)};
+        if (snapshot.authority_sequence == std::numeric_limits<uint64_t>::max() ||
+            operation_sequence != snapshot.authority_sequence + 1) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                strprintf("authority_sequence must be exactly %u",
+                          snapshot.authority_sequence +
+                              (snapshot.authority_sequence != std::numeric_limits<uint64_t>::max())));
+        }
+        // A BIP340 message is an opaque byte string, not a display-encoded
+        // block/transaction identifier. Return the exact bytes callers sign.
+        result.pushKV("authority_hash", HexStr(
+            std::span{authority_hash->begin(), authority_hash->size()}));
+        const bool signature_present{std::visit([](const auto& payload) {
+            using Payload = std::decay_t<decltype(payload)>;
+            if constexpr (std::is_same_v<Payload, chainregistry::AuthorizeDealer> ||
+                          std::is_same_v<Payload, chainregistry::UpdateDealer> ||
+                          std::is_same_v<Payload, chainregistry::RevokeDealer>) {
+                return std::ranges::any_of(
+                    payload.authority_signature,
+                    [](unsigned char byte) { return byte != 0; });
+            }
+            return false;
+        }, operation)};
+        result.pushKV("authority_signature_present", signature_present);
+        if (signature_present) {
+            const XOnlyPubKey authority_key{
+                EnsureAnyChainman(request.context).GetConsensus().chain_registry.dealer_authority_key};
+            const bool signature_valid{std::visit([&](const auto& payload) {
+                using Payload = std::decay_t<decltype(payload)>;
+                if constexpr (std::is_same_v<Payload, chainregistry::AuthorizeDealer> ||
+                              std::is_same_v<Payload, chainregistry::UpdateDealer> ||
+                              std::is_same_v<Payload, chainregistry::RevokeDealer>) {
+                    return authority_key.VerifySchnorr(
+                        *authority_hash, payload.authority_signature);
+                }
+                return false;
+            }, operation)};
+            if (!signature_valid) {
+                throw JSONRPCError(
+                    RPC_INVALID_PARAMETER,
+                    "authority_signature does not verify for this network and payload");
+            }
+        }
+        if (const auto* authorization{
+                std::get_if<chainregistry::AuthorizeDealer>(&operation)}) {
+            result.pushKV("dealer_id", chainregistry::DeriveDealerId(
+                main_genesis_hash,
+                authorization->authorization_nonce,
+                authorization->control_key).GetHex());
+        }
     }
     return result;
 }
@@ -1329,11 +1589,21 @@ RPCHelpMan decodechainregistryoperation()
             {RPCResult::Type::STR, "operation", "Operation type"},
             {RPCResult::Type::NUM, "anchor_input", /*optional=*/true, "REGISTER anchor input index"},
             {RPCResult::Type::NUM, "control_output", /*optional=*/true, "REGISTER/UPDATE successor output index"},
+            {RPCResult::Type::STR_HEX, "dealer_id", /*optional=*/true, "REGISTER or dealer administration identifier"},
+            {RPCResult::Type::NUM, "dealer_control_output", /*optional=*/true, "REGISTER dealer successor output index"},
+            {RPCResult::Type::NUM, "dealer_payment_output", /*optional=*/true, "REGISTER dealer payment output index"},
             {RPCResult::Type::OBJ, "manifest", /*optional=*/true, "REGISTER manifest", CHAIN_MANIFEST_RESULT},
             {RPCResult::Type::STR_HEX, "chain_spec_hash", /*optional=*/true, "REGISTER specification hash"},
             {RPCResult::Type::STR_HEX, "manifest_hash", /*optional=*/true, "REGISTER manifest hash"},
             {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Affected chain ID, or derived REGISTER ID when an anchor is supplied"},
             {RPCResult::Type::STR_HEX, "metadata_hash", /*optional=*/true, "UPDATE metadata hash"},
+            {RPCResult::Type::NUM, "authority_sequence", /*optional=*/true, "Dealer administration sequence"},
+            {RPCResult::Type::STR_HEX, "authorization_nonce", /*optional=*/true, "AUTHORIZE_DEALER nonce"},
+            {RPCResult::Type::STR_HEX, "control_key", /*optional=*/true, "AUTHORIZE_DEALER x-only control key"},
+            {RPCResult::Type::STR_HEX, "payout_script", /*optional=*/true, "Dealer payout script"},
+            {RPCResult::Type::NUM, "initial_licenses", /*optional=*/true, "AUTHORIZE_DEALER initial quota"},
+            {RPCResult::Type::NUM, "added_licenses", /*optional=*/true, "UPDATE_DEALER quota increment"},
+            {RPCResult::Type::STR_HEX, "authority_signature", /*optional=*/true, "Dealer authority BIP340 signature"},
             {RPCResult::Type::STR_HEX, "script", "Canonical scriptPubKey"},
             {RPCResult::Type::STR_HEX, "data", "Raw KREG envelope"},
         }},
@@ -1364,6 +1634,98 @@ RPCHelpMan decodechainregistryoperation()
                                           chainregistry::ComputeChainSpecHash(registration->manifest.spec)).GetHex());
         }
     }
+    return result;
+}
+    };
+}
+
+RPCHelpMan getchaindealer()
+{
+    return RPCHelpMan{
+        "getchaindealer",
+        "Return one dealer record from the active main-chain registry.\n",
+        {
+            {"dealer_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Authorized dealer identifier"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Dealer record and committed registry tip", {
+            {RPCResult::Type::STR_HEX, "dealer_id", "Dealer identifier"},
+            {RPCResult::Type::STR, "status", "active or revoked"},
+            {RPCResult::Type::OBJ, "control_outpoint", "Current sale-control UTXO", {
+                {RPCResult::Type::STR_HEX, "txid", "Transaction id"},
+                {RPCResult::Type::NUM, "vout", "Output index"},
+            }},
+            {RPCResult::Type::STR_HEX, "payout_script", "P2TR script receiving sale proceeds"},
+            {RPCResult::Type::NUM, "remaining_licenses", "Remaining child-chain sales"},
+            {RPCResult::Type::NUM, "authorized_height", "Authorization height"},
+            {RPCResult::Type::NUM, "updated_height", "Last update or sale height"},
+            {RPCResult::Type::STR_HEX, "bestblockhash", "Main-chain registry tip"},
+            {RPCResult::Type::NUM, "height", "Main-chain registry height"},
+            {RPCResult::Type::STR_HEX, "registry_root", "Committed registry state root"},
+            {RPCResult::Type::NUM, "authority_sequence", "Last consumed authority sequence"},
+        }},
+        RPCExamples{HelpExampleCli("getchaindealer", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"")},
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const auto dealer_id{ParseDealerId(self.Arg<UniValue>("dealer_id"))};
+    const auto snapshot{GetMainRegistrySnapshot(EnsureAnyChainman(request.context))};
+    const auto dealer{snapshot.dealers.find(dealer_id)};
+    if (dealer == snapshot.dealers.end()) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "dealer_id is not registered");
+    }
+    UniValue result{DealerToUniv(dealer->second)};
+    result.pushKV("bestblockhash", snapshot.best_block.GetHex());
+    result.pushKV("height", snapshot.height);
+    result.pushKV("registry_root", snapshot.root.GetHex());
+    result.pushKV("authority_sequence", snapshot.authority_sequence);
+    return result;
+}
+    };
+}
+
+RPCHelpMan listchaindealers()
+{
+    return RPCHelpMan{
+        "listchaindealers",
+        "List dealer records from the active main-chain registry. Revoked dealers remain visible for auditability.\n",
+        {
+            {"include_revoked", RPCArg::Type::BOOL, RPCArg::Default{true}, "Include revoked dealer records"},
+        },
+        RPCResult{RPCResult::Type::OBJ, "", "Committed dealer registry view", {
+            {RPCResult::Type::STR_HEX, "bestblockhash", "Main-chain registry tip"},
+            {RPCResult::Type::NUM, "height", "Main-chain registry height"},
+            {RPCResult::Type::STR_HEX, "registry_root", "Committed registry state root"},
+            {RPCResult::Type::NUM, "authority_sequence", "Last consumed authority sequence"},
+            {RPCResult::Type::ARR, "dealers", "Dealer records", {
+                {RPCResult::Type::OBJ, "", "Dealer record", {
+                    {RPCResult::Type::STR_HEX, "dealer_id", "Dealer identifier"},
+                    {RPCResult::Type::STR, "status", "active or revoked"},
+                    {RPCResult::Type::OBJ, "control_outpoint", "Current or last control UTXO", {
+                        {RPCResult::Type::STR_HEX, "txid", "Transaction id"},
+                        {RPCResult::Type::NUM, "vout", "Output index"},
+                    }},
+                    {RPCResult::Type::STR_HEX, "payout_script", "Sale payout script"},
+                    {RPCResult::Type::NUM, "remaining_licenses", "Remaining child-chain sales"},
+                    {RPCResult::Type::NUM, "authorized_height", "Authorization height"},
+                    {RPCResult::Type::NUM, "updated_height", "Last update height"},
+                }},
+            }},
+        }},
+        RPCExamples{HelpExampleCli("listchaindealers", "true")},
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const bool include_revoked{self.Arg<bool>("include_revoked")};
+    const auto snapshot{GetMainRegistrySnapshot(EnsureAnyChainman(request.context))};
+    UniValue dealers{UniValue::VARR};
+    for (const auto& [dealer_id, dealer] : snapshot.dealers) {
+        if (!include_revoked && dealer.status == chainregistry::DealerStatus::REVOKED) continue;
+        dealers.push_back(DealerToUniv(dealer));
+    }
+    UniValue result{UniValue::VOBJ};
+    result.pushKV("bestblockhash", snapshot.best_block.GetHex());
+    result.pushKV("height", snapshot.height);
+    result.pushKV("registry_root", snapshot.root.GetHex());
+    result.pushKV("authority_sequence", snapshot.authority_sequence);
+    result.pushKV("dealers", std::move(dealers));
     return result;
 }
     };
@@ -2692,7 +3054,7 @@ RPCHelpMan createchildimporttransaction()
         "Build a canonical child IMPORT transaction from a KDPR proof. The exact child must be loaded; its local main-header light client authenticates the proof, active branch and configured maturity before any transaction is returned. This RPC does not submit a child block.\n",
         {
             {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null destination child-chain identifier"},
-            {"deposit_proof", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Canonical serialized KDPR v1 proof"},
+            {"deposit_proof", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Canonical serialized KDPR v2 proof"},
         },
         RPCResult{RPCResult::Type::OBJ, "", "Authenticated child IMPORT transaction", {
             {RPCResult::Type::STR_HEX, "chain_id", "Destination child-chain identifier"},
@@ -2781,8 +3143,8 @@ RPCHelpMan createchildimportblock()
         "Build and contextually validate an import-only block extending the active tip of one loaded child chain. Every KDPR proof is authenticated against the child light client's active main-header chain and maturity policy. The returned block has no independent PoW or subsidy and must be committed by a main-chain BMM anchor before submission.\n",
         {
             {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null destination child-chain identifier"},
-            {"deposit_proofs", RPCArg::Type::ARR, RPCArg::Optional::NO, "One or more canonical serialized KDPR v1 proofs", {
-                {"", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Canonical serialized KDPR v1 proof"},
+            {"deposit_proofs", RPCArg::Type::ARR, RPCArg::Optional::NO, "One or more canonical serialized KDPR v2 proofs", {
+                {"", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Canonical serialized KDPR v2 proof"},
             }},
         },
         RPCResult{RPCResult::Type::OBJ, "", "Validated child block awaiting BMM anchoring", {
@@ -3426,6 +3788,8 @@ void RegisterChainRegistryRPCCommands(CRPCTable& table)
         {"util", &decodefundchainoutput},
         {"util", &createchainregistryoperation},
         {"util", &decodechainregistryoperation},
+        {"blockchain", &getchaindealer},
+        {"blockchain", &listchaindealers},
         {"control", &addchildchain},
         {"control", &listchildchainruntimes},
         {"control", &loadchildchain},

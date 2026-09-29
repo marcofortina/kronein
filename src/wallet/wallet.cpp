@@ -2043,7 +2043,11 @@ void CWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::ve
 
     // Notify that old coins are spent
     for (const CTxIn& txin : tx->vin) {
-        CWalletTx &coin = mapWallet.at(txin.prevout.hash);
+        const auto coin_it{mapWallet.find(txin.prevout.hash)};
+        // A cooperative PSBT can contain inputs owned by another wallet. Such
+        // inputs are deliberately absent from this wallet's transaction map.
+        if (coin_it == mapWallet.end()) continue;
+        CWalletTx& coin{coin_it->second};
         coin.MarkDirty();
         NotifyTransactionChanged(coin.GetHash(), CT_UPDATED);
     }

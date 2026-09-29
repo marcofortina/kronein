@@ -47,7 +47,7 @@ std::optional<CTxOut> AddRegistryCommitment(CBlock& block, Chainstate& chainstat
     const auto result{candidate.ApplyBlock(block,
                                            static_cast<uint32_t>(height),
                                            chainstate.m_chainman.GetConsensus().hashGenesisBlock,
-                                           params.minimum_registration_burn,
+                                           XOnlyPubKey{params.dealer_authority_key},
                                            params.maximum_operations,
                                            chainregistry::CommitmentRequirement::OPTIONAL)};
     if (!result.IsValid()) {
@@ -339,7 +339,7 @@ bool BlockAssembler::TestChunkTransactions(const std::vector<CTxMemPoolEntryRef>
             transaction,
             static_cast<uint32_t>(nHeight),
             consensus.hashGenesisBlock,
-            params.minimum_registration_burn)};
+            XOnlyPubKey{params.dealer_authority_key})};
         if (!transition.IsValid()) return false;
         if (transition.HasOperation() && ++operation_count > params.maximum_operations) {
             return false;

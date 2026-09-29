@@ -19,6 +19,13 @@
 
 namespace {
 
+std::array<unsigned char, 32> DealerAuthorityKey()
+{
+    std::array<unsigned char, 32> key{};
+    key.fill(3);
+    return key;
+}
+
 CBlock Block(const uint256& previous, const CScript& commitment = {})
 {
     CMutableTransaction coinbase;
@@ -90,7 +97,7 @@ BOOST_AUTO_TEST_CASE(connect_disconnect_and_reload)
     constexpr uint256 genesis_hash{"0101010101010101010101010101010101010101010101010101010101010101"};
     const Consensus::Params::ChainRegistryParams registry_params{
         .activation_height = 2,
-        .minimum_registration_burn = 1,
+        .dealer_authority_key = DealerAuthorityKey(),
         .maximum_operations = 4,
     };
     const fs::path path{m_args.GetDataDirBase() / "chainregistry_state"};
@@ -152,7 +159,7 @@ BOOST_AUTO_TEST_CASE(initialization_guards)
     constexpr uint256 genesis_hash{"0202020202020202020202020202020202020202020202020202020202020202"};
     const Consensus::Params::ChainRegistryParams registry_params{
         .activation_height = 1,
-        .minimum_registration_burn = 1,
+        .dealer_authority_key = DealerAuthorityKey(),
         .maximum_operations = 1,
     };
     const fs::path path{m_args.GetDataDirBase() / "chainregistry_state_guards"};
@@ -177,7 +184,7 @@ BOOST_AUTO_TEST_CASE(initialize_from_authenticated_snapshot)
     constexpr uint256 snapshot_tip{"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"};
     const Consensus::Params::ChainRegistryParams registry_params{
         .activation_height = 1,
-        .minimum_registration_burn = 1,
+        .dealer_authority_key = DealerAuthorityKey(),
         .maximum_operations = 4,
     };
     const fs::path path{m_args.GetDataDirBase() / "chainregistry_state_snapshot"};
@@ -219,7 +226,7 @@ BOOST_AUTO_TEST_CASE(indexes_snapshot_descendant_deposit_and_reverts_it)
     constexpr uint256 snapshot_tip{"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"};
     const Consensus::Params::ChainRegistryParams registry_params{
         .activation_height = 1,
-        .minimum_registration_burn = 1,
+        .dealer_authority_key = DealerAuthorityKey(),
         .maximum_operations = 4,
         .deposit_activation_height = 101,
         .minimum_deposit_amount = 1'000,
@@ -320,7 +327,7 @@ BOOST_AUTO_TEST_CASE(indexes_bmm_anchor_across_restart_and_reorg)
         "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"};
     const Consensus::Params::ChainRegistryParams registry_params{
         .activation_height = 1,
-        .minimum_registration_burn = 1,
+        .dealer_authority_key = DealerAuthorityKey(),
         .maximum_operations = 4,
         .bmm_activation_height = 101,
         .maximum_bmm_anchors = 1,

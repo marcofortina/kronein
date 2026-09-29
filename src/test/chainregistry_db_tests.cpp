@@ -45,6 +45,25 @@ chainregistry::ChainRecord Record(unsigned char id_byte,
     };
 }
 
+chainregistry::DealerRecord Dealer(unsigned char id_byte,
+                                   unsigned char control_byte,
+                                   uint32_t height)
+{
+    std::array<unsigned char, 32> id{};
+    id.fill(id_byte);
+    std::array<unsigned char, 32> control{};
+    control.fill(control_byte);
+    return {
+        .dealer_id = chainregistry::DealerId::FromUint256(uint256{std::span{id}}),
+        .control_outpoint = COutPoint{Txid::FromUint256(uint256{std::span{control}}), 1},
+        .payout_script = CScript{} << OP_1 << std::vector<unsigned char>(32, id_byte),
+        .remaining_licenses = 3,
+        .status = chainregistry::DealerStatus::ACTIVE,
+        .authorized_height = height,
+        .updated_height = height,
+    };
+}
+
 node::DepositIndexEntry Deposit(const chainregistry::ChainRegistry& registry,
                                 const chainregistry::ChainRecord& record,
                                 const uint256& block_hash,
@@ -125,14 +144,26 @@ BOOST_AUTO_TEST_CASE(registry_db_connect_load_disconnect)
     updated.updated_height = 101;
 
     const chainregistry::RegistryBlockUndo register_undo{{chainregistry::RegistryUndo{
+        .has_chain = true,
         .chain_id = original.chain_id,
-        .had_previous = false,
-        .previous = {},
+        .chain_had_previous = false,
+        .previous_chain = {},
+        .has_dealer = false,
+        .dealer_id = {},
+        .dealer_had_previous = false,
+        .previous_dealer = {},
+        .previous_authority_sequence = 0,
     }}};
     const chainregistry::RegistryBlockUndo update_undo{{chainregistry::RegistryUndo{
+        .has_chain = true,
         .chain_id = original.chain_id,
-        .had_previous = true,
-        .previous = original,
+        .chain_had_previous = true,
+        .previous_chain = original,
+        .has_dealer = false,
+        .dealer_id = {},
+        .dealer_had_previous = false,
+        .previous_dealer = {},
+        .previous_authority_sequence = 0,
     }}};
     const node::ChainRegistryDBUndo register_db_undo{
         .parent_block = block_zero,
@@ -254,6 +285,96 @@ BOOST_AUTO_TEST_CASE(registry_db_connect_load_disconnect)
         BOOST_REQUIRE(db.Load(reloaded, reloaded_state).IsValid());
         BOOST_CHECK(reloaded_state == state_one);
         BOOST_CHECK_EQUAL(reloaded.ComputeRoot().GetHex(), state_one.registry_root.GetHex());
+    }
+}
+
+BOOST_AUTO_TEST_CASE(dealer_state_persists_and_reverts)
+{
+    const fs::path path{m_args.GetDataDirBase() / "chainregistry_dealer_db"};
+    constexpr uint256 parent_hash{
+        "5151515151515151515151515151515151515151515151515151515151515151"};
+    constexpr uint256 block_hash{
+        "5252525252525252525252525252525252525252525252525252525252525252"};
+    const auto original{Dealer(7, 8, 100)};
+    auto updated{original};
+    updated.remaining_licenses = 5;
+    updated.payout_script = CScript{} << OP_1 << std::vector<unsigned char>(32, 9);
+    updated.updated_height = 101;
+
+    chainregistry::ChainRegistry registry;
+    BOOST_REQUIRE(registry.LoadState({}, {original}, 1).IsValid());
+    const auto parent_state{
+        node::MakeChainRegistryDBState(parent_hash, 100, registry)};
+    const chainregistry::RegistryBlockUndo registry_undo{{
+        chainregistry::RegistryUndo{
+            .has_chain = false,
+            .chain_id = {},
+            .chain_had_previous = false,
+            .previous_chain = {},
+            .has_dealer = true,
+            .dealer_id = original.dealer_id,
+            .dealer_had_previous = true,
+            .previous_dealer = original,
+            .previous_authority_sequence = 1,
+        },
+    }};
+    const node::ChainRegistryDBUndo db_undo{
+        .parent_block = parent_hash,
+        .registry = registry_undo,
+        .deposits = {},
+        .anchors = {},
+    };
+
+    {
+        node::ChainRegistryDB db{{
+                                     .path = path,
+                                     .cache_bytes = 1 << 20,
+                                     .wipe_data = true,
+                                     .obfuscate = true,
+                                 },
+                                 MAIN_GENESIS};
+        BOOST_REQUIRE(db.WriteInitialState(registry, parent_state, /*sync=*/true));
+        BOOST_REQUIRE(registry.LoadState({}, {updated}, 2).IsValid());
+        const auto connected_state{
+            node::MakeChainRegistryDBState(block_hash, 101, registry)};
+        BOOST_REQUIRE(db.WriteConnectedBlock(
+            registry, connected_state, block_hash, db_undo, {}, {}, /*sync=*/true));
+    }
+
+    {
+        node::ChainRegistryDB db{{
+                                     .path = path,
+                                     .cache_bytes = 1 << 20,
+                                     .obfuscate = true,
+                                 },
+                                 MAIN_GENESIS};
+        chainregistry::ChainRegistry loaded;
+        node::ChainRegistryDBState loaded_state;
+        BOOST_REQUIRE(db.Load(loaded, loaded_state).IsValid());
+        BOOST_CHECK_EQUAL(loaded.DealerSize(), 1U);
+        BOOST_CHECK_EQUAL(loaded.AuthoritySequence(), 2U);
+        BOOST_REQUIRE(loaded.FindDealer(original.dealer_id) != nullptr);
+        BOOST_CHECK(*loaded.FindDealer(original.dealer_id) == updated);
+        BOOST_REQUIRE(loaded.UndoBlock(registry_undo));
+        BOOST_CHECK_EQUAL(loaded.AuthoritySequence(), 1U);
+        BOOST_CHECK(*loaded.FindDealer(original.dealer_id) == original);
+        BOOST_REQUIRE(db.WriteDisconnectedBlock(
+            loaded, parent_state, block_hash, db_undo, /*sync=*/true));
+    }
+
+    {
+        node::ChainRegistryDB db{{
+                                     .path = path,
+                                     .cache_bytes = 1 << 20,
+                                     .obfuscate = true,
+                                 },
+                                 MAIN_GENESIS};
+        chainregistry::ChainRegistry loaded;
+        node::ChainRegistryDBState loaded_state;
+        BOOST_REQUIRE(db.Load(loaded, loaded_state).IsValid());
+        BOOST_CHECK(loaded_state == parent_state);
+        BOOST_REQUIRE(loaded.FindDealer(original.dealer_id) != nullptr);
+        BOOST_CHECK(*loaded.FindDealer(original.dealer_id) == original);
     }
 }
 

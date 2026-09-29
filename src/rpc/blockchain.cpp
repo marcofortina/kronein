@@ -4203,6 +4203,11 @@ PrepareUTXOSnapshot(
             for (const auto& entry : registry_state.Registry().Records()) {
                 snapshot.records.push_back(entry.second);
             }
+            snapshot.dealers.reserve(registry_state.Registry().DealerSize());
+            for (const auto& entry : registry_state.Registry().Dealers()) {
+                snapshot.dealers.push_back(entry.second);
+            }
+            snapshot.authority_sequence = registry_state.Registry().AuthoritySequence();
             snapshot.coinbase = CMutableTransaction{*block.vtx.front()};
             snapshot.coinbase_merkle_branch = TransactionMerklePath(block, /*position=*/0);
             registry_snapshot = std::move(snapshot);
@@ -4504,6 +4509,8 @@ static UniValue ChainRegistryInclusionProofToUniv(const chainregistry::RegistryI
     result.pushKV("leaf_count", proof.leaf_count);
     result.pushKV("leaf_index", proof.leaf_index);
     result.pushKV("siblings", std::move(siblings));
+    result.pushKV("dealer_root", proof.dealer_root.GetHex());
+    result.pushKV("authority_sequence", proof.authority_sequence);
     return result;
 }
 
@@ -4597,6 +4604,8 @@ static UniValue ChainRegistryNonInclusionProofToUniv(const chainregistry::Regist
 {
     UniValue result{UniValue::VOBJ};
     result.pushKV("leaf_count", proof.leaf_count);
+    result.pushKV("dealer_root", proof.dealer_root.GetHex());
+    result.pushKV("authority_sequence", proof.authority_sequence);
     if (proof.has_left) result.pushKV("left", ChainRegistryProofEntryToUniv(proof.left));
     if (proof.has_right) result.pushKV("right", ChainRegistryProofEntryToUniv(proof.right));
     return result;
@@ -4624,6 +4633,8 @@ static const std::vector<RPCResult> CHAIN_REGISTRY_INCLUSION_PROOF_RESULT{
     {RPCResult::Type::ARR, "siblings", "Sibling hashes from leaf to root", {
         {RPCResult::Type::STR_HEX, "", "Sibling hash"},
     }},
+    {RPCResult::Type::STR_HEX, "dealer_root", "Root committing to the authorized dealer set"},
+    {RPCResult::Type::NUM, "authority_sequence", "Dealer-authority sequence committed by the registry root"},
 };
 
 static RPCHelpMan getchainregistryinfo()
@@ -4637,7 +4648,7 @@ static RPCHelpMan getchainregistryinfo()
             {RPCResult::Type::BOOL, "active", "Whether registry consensus is active at the current tip"},
             {RPCResult::Type::BOOL, "active_for_next_block", "Whether registry consensus applies to the next block"},
             {RPCResult::Type::NUM, "activation_height", "Activation height, or -1 when disabled"},
-            {RPCResult::Type::STR_AMOUNT, "minimum_registration_burn", "Minimum registration burn in KNE"},
+            {RPCResult::Type::STR_HEX, "dealer_authority_key", "BIP340 x-only dealer authority key"},
             {RPCResult::Type::NUM, "maximum_operations", "Maximum registry transitions per block"},
             {RPCResult::Type::BOOL, "bmm_enabled", "Whether child-chain BMM anchor consensus is configured"},
             {RPCResult::Type::BOOL, "bmm_active", "Whether child-chain BMM anchors are active at the current tip"},
@@ -4654,6 +4665,8 @@ static RPCHelpMan getchainregistryinfo()
             {RPCResult::Type::NUM, "height", "Block height paired with this registry state"},
             {RPCResult::Type::STR_HEX, "root", "Count-committed deterministic registry root"},
             {RPCResult::Type::NUM, "size", "Number of registered child-chain records"},
+            {RPCResult::Type::NUM, "dealer_count", "Number of authorized dealer records, including revoked dealers"},
+            {RPCResult::Type::NUM, "authority_sequence", "Last consumed dealer-authority sequence"},
             {RPCResult::Type::NUM, "deposit_history_start_height", "First height covered completely by the persistent deposit index"},
             {RPCResult::Type::BOOL, "deposit_history_complete", "Whether the deposit index covers the chain from genesis"},
             {RPCResult::Type::NUM, "deposit_count", "Number of indexed deposits in the covered active-chain history"},
@@ -4680,7 +4693,7 @@ static RPCHelpMan getchainregistryinfo()
     result.pushKV("active", params.IsActive(height));
     result.pushKV("active_for_next_block", params.IsActive(height + 1));
     result.pushKV("activation_height", params.activation_height);
-    result.pushKV("minimum_registration_burn", ValueFromAmount(params.minimum_registration_burn));
+    result.pushKV("dealer_authority_key", HexStr(params.dealer_authority_key));
     result.pushKV("maximum_operations", params.maximum_operations);
     result.pushKV("bmm_enabled", params.BmmEnabled());
     result.pushKV("bmm_active", params.BmmActive(height));
@@ -4697,6 +4710,8 @@ static RPCHelpMan getchainregistryinfo()
     result.pushKV("height", state.height);
     result.pushKV("root", state.registry_root.GetHex());
     result.pushKV("size", state.record_count);
+    result.pushKV("dealer_count", state.dealer_count);
+    result.pushKV("authority_sequence", state.authority_sequence);
     result.pushKV("deposit_history_start_height", state.deposit_history_start_height);
     result.pushKV("deposit_history_complete", state.deposit_history_start_height == 0);
     result.pushKV("deposit_count", state.deposit_count);
@@ -4787,13 +4802,13 @@ static RPCHelpMan getdepositproof()
 {
     return RPCHelpMan{
         "getdepositproof",
-        "Build and independently validate a canonical KDPR v1 proof for a consensus-validated one-way child deposit. The child must separately authenticate the returned block header in the main-chain header chain and apply its confirmation policy.\n",
+        "Build and independently validate a canonical KDPR v2 proof for a consensus-validated one-way child deposit. The child must separately authenticate the returned block header in the main-chain header chain and apply its confirmation policy.\n",
         {
             {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Funding transaction id"},
             {"vout", RPCArg::Type::NUM, RPCArg::Optional::NO, "Funding output index"},
         },
         RPCResult{RPCResult::Type::OBJ, "", "", {
-            {RPCResult::Type::STR_HEX, "proof", "Canonical serialized KDPR v1 package"},
+            {RPCResult::Type::STR_HEX, "proof", "Canonical serialized KDPR v2 package"},
             {RPCResult::Type::NUM, "proof_version", "KDPR format version"},
             {RPCResult::Type::STR_HEX, "main_genesis_hash", "Main-network identity bound into the proof"},
             {RPCResult::Type::OBJ, "deposit", "Indexed deposit metadata", DEPOSIT_INDEX_ENTRY_RESULT},
@@ -4872,13 +4887,13 @@ static RPCHelpMan getbmmanchorproof()
 {
     return RPCHelpMan{
         "getbmmanchorproof",
-        "Build and independently validate a canonical KBPR v1 proof for one consensus-validated BMM anchor in an active main-chain block. The loaded child runtime can consume this proof through submitchildanchor or submitchildblock.\n",
+        "Build and independently validate a canonical KBPR v2 proof for one consensus-validated BMM anchor in an active main-chain block. The loaded child runtime can consume this proof through submitchildanchor or submitchildblock.\n",
         {
             {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Exact non-null child-chain identifier"},
             {"main_block_hash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Active main-chain block containing the KBMM anchor"},
         },
         RPCResult{RPCResult::Type::OBJ, "", "", {
-            {RPCResult::Type::STR_HEX, "proof", "Canonical serialized KBPR v1 package"},
+            {RPCResult::Type::STR_HEX, "proof", "Canonical serialized KBPR v2 package"},
             {RPCResult::Type::NUM, "proof_version", "KBPR format version"},
             {RPCResult::Type::STR_HEX, "main_genesis_hash", "Main-network identity bound into the proof"},
             {RPCResult::Type::STR_HEX, "main_block_hash", "Containing active main-chain block"},
@@ -5081,6 +5096,8 @@ static RPCHelpMan getchildchain()
             {RPCResult::Type::OBJ, "inclusion_proof", /*optional=*/true, "Merkle inclusion proof", CHAIN_REGISTRY_INCLUSION_PROOF_RESULT},
             {RPCResult::Type::OBJ, "non_inclusion_proof", /*optional=*/true, "Boundary proof showing the chain_id is absent", {
                 {RPCResult::Type::NUM, "leaf_count", "Number of leaves committed by the registry root"},
+                {RPCResult::Type::STR_HEX, "dealer_root", "Root committing to the authorized dealer set"},
+                {RPCResult::Type::NUM, "authority_sequence", "Dealer-authority sequence committed by the registry root"},
                 {RPCResult::Type::OBJ, "left", /*optional=*/true, "Immediate lower neighboring record and proof", {
                     {RPCResult::Type::OBJ, "record", "Neighbor record", CHAIN_REGISTRY_RECORD_RESULT},
                     {RPCResult::Type::OBJ, "proof", "Neighbor inclusion proof", CHAIN_REGISTRY_INCLUSION_PROOF_RESULT},

@@ -24,6 +24,28 @@ constexpr chainregistry::ChainId UNKNOWN_CHAIN{
     "3333333333333333333333333333333333333333333333333333333333333333"};
 constexpr uint256 MAIN_GENESIS{
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
+constexpr chainregistry::DealerId DEALER_ID{
+    "9999999999999999999999999999999999999999999999999999999999999999"};
+const COutPoint DEALER_CONTROL{
+    Txid{"9999999999999999999999999999999999999999999999999999999999999998"}, 0};
+
+CScript TaprootScript(unsigned char byte)
+{
+    return CScript{} << OP_1 << std::vector<unsigned char>(32, byte);
+}
+
+chainregistry::DealerRecord Dealer()
+{
+    return {
+        .dealer_id = DEALER_ID,
+        .control_outpoint = DEALER_CONTROL,
+        .payout_script = TaprootScript(4),
+        .remaining_licenses = 1,
+        .status = chainregistry::DealerStatus::ACTIVE,
+        .authorized_height = 1,
+        .updated_height = 1,
+    };
+}
 
 chainregistry::ChainRecord Record(const chainregistry::ChainId& chain_id,
                                   const Txid& control_txid,
@@ -225,25 +247,34 @@ BOOST_AUTO_TEST_CASE(registry_block_validation_uses_final_registry_state)
 
     CMutableTransaction registration;
     registration.vin.emplace_back(anchor);
-    registration.vout.emplace_back(1'000, chainregistry::BuildOperationScript(
+    registration.vin.emplace_back(DEALER_CONTROL);
+    registration.vout.emplace_back(0, chainregistry::BuildOperationScript(
         chainregistry::RegisterChain{
             .anchor_input = 0,
             .control_output = 1,
+            .dealer_id = DEALER_ID,
+            .dealer_control_output = 2,
+            .dealer_payment_output = 3,
             .manifest = manifest,
         }));
-    registration.vout.emplace_back(0, CScript{} << OP_1 << std::vector<unsigned char>(32, 1));
+    registration.vout.emplace_back(0, TaprootScript(1));
+    registration.vout.emplace_back(1'000, TaprootScript(3));
+    registration.vout.emplace_back(1'000, TaprootScript(4));
 
     chainregistry::ChainRegistry expected;
-    BOOST_REQUIRE(expected.ApplyTransaction(CTransaction{registration}, 50, MAIN_GENESIS, 1'000).IsValid());
+    BOOST_REQUIRE(expected.LoadState({}, {Dealer()}, 0).IsValid());
+    BOOST_REQUIRE(expected.ApplyTransaction(
+        CTransaction{registration}, 50, MAIN_GENESIS, XOnlyPubKey::NUMS_H).IsValid());
     CBlock register_and_fund{Block({Coinbase(expected.ComputeRoot()), registration,
                                     FundingTx(chain_id, 2'000)})};
 
     chainregistry::ChainRegistry registry;
+    BOOST_REQUIRE(registry.LoadState({}, {Dealer()}, 0).IsValid());
     const auto registered{registry.ApplyBlock(
         register_and_fund,
         50,
         MAIN_GENESIS,
-        1'000,
+        XOnlyPubKey::NUMS_H,
         4,
         chainregistry::CommitmentRequirement::REQUIRED,
         chainregistry::DepositValidationParams{.minimum_amount = 1'000, .maximum_deposits = 4})};
@@ -258,7 +289,8 @@ BOOST_AUTO_TEST_CASE(registry_block_validation_uses_final_registry_state)
     retirement.vout.emplace_back(0, chainregistry::BuildOperationScript(
         chainregistry::RetireChain{.chain_id = chain_id}));
     chainregistry::ChainRegistry retired_state{registry};
-    BOOST_REQUIRE(retired_state.ApplyTransaction(CTransaction{retirement}, 51, MAIN_GENESIS, 1'000).IsValid());
+    BOOST_REQUIRE(retired_state.ApplyTransaction(
+        CTransaction{retirement}, 51, MAIN_GENESIS, XOnlyPubKey::NUMS_H).IsValid());
     const CBlock retire_and_fund{Block({Coinbase(retired_state.ComputeRoot()),
                                        FundingTx(chain_id, 2'000), retirement})};
 
@@ -267,7 +299,7 @@ BOOST_AUTO_TEST_CASE(registry_block_validation_uses_final_registry_state)
         retire_and_fund,
         51,
         MAIN_GENESIS,
-        1'000,
+        XOnlyPubKey::NUMS_H,
         4,
         chainregistry::CommitmentRequirement::REQUIRED,
         chainregistry::DepositValidationParams{.minimum_amount = 1'000, .maximum_deposits = 4})};

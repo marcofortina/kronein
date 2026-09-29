@@ -49,7 +49,7 @@ struct RegistryMempoolSetup : public TestChain100Setup {
     RegistryMempoolSetup()
         : TestChain100Setup{ChainType::REGTEST, TestOpts{.extra_args = {
               "-chainregistryactivationheight=101",
-              "-chainregistryminregistrationburn=1",
+              "-chaindealerauthoritykey=79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
               "-chainregistrymaxoperations=4",
               "-chaindepositactivationheight=101",
               "-chaindepositminimumamount=0.01",
@@ -59,6 +59,71 @@ struct RegistryMempoolSetup : public TestChain100Setup {
           }}}
     {
     }
+
+    struct AuthorizedDealer {
+        CTransactionRef transaction;
+        chainregistry::DealerId dealer_id;
+        COutPoint control_outpoint;
+        CScript payout_script;
+    };
+
+    AuthorizedDealer AuthorizeDealer()
+    {
+        std::array<unsigned char, 32> secret{};
+        secret.back() = 1;
+        CKey authority_key;
+        authority_key.Set(secret.begin(), secret.end(), true);
+
+        const XOnlyPubKey dealer_control_key{coinbaseKey.GetPubKey()};
+        const CScript payout_script{TaprootScript(coinbaseKey)};
+        chainregistry::AuthorizeDealer authorization{
+            .authority_sequence = 1,
+            .authorization_nonce = uint256{
+                "1111111111111111111111111111111111111111111111111111111111111111"},
+            .control_output = 1,
+            .payout_script = std::vector<unsigned char>{
+                payout_script.begin(), payout_script.end()},
+            .initial_licenses = 1,
+        };
+        std::copy(dealer_control_key.begin(), dealer_control_key.end(),
+                  authorization.control_key.begin());
+        const auto authority_hash{chainregistry::ComputeDealerAuthorityHash(
+            Params().GetConsensus().hashGenesisBlock, authorization)};
+        BOOST_REQUIRE(authority_hash.has_value());
+        BOOST_REQUIRE(authority_key.SignSchnorr(
+            *authority_hash, authorization.authority_signature, nullptr, uint256{}));
+
+        const COutPoint funding{m_coinbase_txns[0]->GetHash(), 0};
+        const CMutableTransaction transaction{CreateValidTransaction(
+            {m_coinbase_txns[0]},
+            {funding},
+            /*input_height=*/1,
+            {coinbaseKey},
+            {
+                {0, chainregistry::BuildOperationScript(authorization)},
+                {COIN, TaprootScript(coinbaseKey)},
+                {48 * COIN, TaprootScript(coinbaseKey)},
+            },
+            std::nullopt,
+            std::nullopt).first};
+        const CTransactionRef transaction_ref{MakeTransactionRef(transaction)};
+        {
+            LOCK(cs_main);
+            const auto result{m_node.chainman->ProcessTransaction(transaction_ref)};
+            BOOST_REQUIRE_MESSAGE(
+                result.m_result_type == MempoolAcceptResult::ResultType::VALID,
+                result.m_state.ToString());
+        }
+        return {
+            .transaction = transaction_ref,
+            .dealer_id = chainregistry::DeriveDealerId(
+                Params().GetConsensus().hashGenesisBlock,
+                authorization.authorization_nonce,
+                authorization.control_key),
+            .control_outpoint = COutPoint{transaction.GetHash(), 1},
+            .payout_script = payout_script,
+        };
+    }
 };
 
 } // namespace
@@ -67,23 +132,30 @@ BOOST_FIXTURE_TEST_SUITE(chainregistry_mempool_tests, RegistryMempoolSetup)
 
 BOOST_AUTO_TEST_CASE(validate_unconfirmed_registry_transition_chain)
 {
+    const auto dealer{AuthorizeDealer()};
     CKey control_key;
     control_key.MakeNewKey(true);
     const chainregistry::ChainManifest manifest{TestManifest()};
     const chainregistry::RegisterChain registration{
         .anchor_input = 0,
         .control_output = 1,
+        .dealer_id = dealer.dealer_id,
+        .dealer_control_output = 2,
+        .dealer_payment_output = 3,
         .manifest = manifest,
     };
 
-    const COutPoint anchor{m_coinbase_txns[0]->GetHash(), 0};
+    const COutPoint anchor{dealer.transaction->GetHash(), 2};
     const std::vector<CTxOut> registration_outputs{
-        {COIN, chainregistry::BuildOperationScript(registration)},
+        {0, chainregistry::BuildOperationScript(registration)},
         {5 * COIN, TaprootScript(control_key)},
-        {43 * COIN, TaprootScript(coinbaseKey)},
+        {COIN, TaprootScript(coinbaseKey)},
+        {COIN, dealer.payout_script},
+        {41 * COIN, TaprootScript(coinbaseKey)},
     };
     const CMutableTransaction registration_tx{CreateValidTransaction(
-        {m_coinbase_txns[0]}, {anchor}, /*input_height=*/1, {coinbaseKey},
+        {dealer.transaction}, {anchor, dealer.control_outpoint},
+        /*input_height=*/101, {coinbaseKey, coinbaseKey},
         registration_outputs, std::nullopt, std::nullopt).first};
 
     {
@@ -153,7 +225,7 @@ BOOST_AUTO_TEST_CASE(validate_unconfirmed_registry_transition_chain)
         const auto result{m_node.chainman->ProcessTransaction(MakeTransactionRef(update_tx))};
         BOOST_REQUIRE(result.m_result_type == MempoolAcceptResult::ResultType::VALID);
     }
-    BOOST_CHECK_EQUAL(m_node.mempool->size(), 2U);
+    BOOST_CHECK_EQUAL(m_node.mempool->size(), 3U);
 
     node::BlockAssembler::Options options;
     options.coinbase_output_script = TaprootScript(coinbaseKey);
@@ -166,9 +238,14 @@ BOOST_AUTO_TEST_CASE(validate_unconfirmed_registry_transition_chain)
 
     chainregistry::ChainRegistry expected;
     BOOST_REQUIRE(expected.ApplyTransaction(
-        CTransaction{registration_tx}, 101, Params().GetConsensus().hashGenesisBlock, COIN).IsValid());
+        *dealer.transaction, 101, Params().GetConsensus().hashGenesisBlock,
+        XOnlyPubKey{Params().GetConsensus().chain_registry.dealer_authority_key}).IsValid());
     BOOST_REQUIRE(expected.ApplyTransaction(
-        CTransaction{update_tx}, 101, Params().GetConsensus().hashGenesisBlock, COIN).IsValid());
+        CTransaction{registration_tx}, 101, Params().GetConsensus().hashGenesisBlock,
+        XOnlyPubKey{Params().GetConsensus().chain_registry.dealer_authority_key}).IsValid());
+    BOOST_REQUIRE(expected.ApplyTransaction(
+        CTransaction{update_tx}, 101, Params().GetConsensus().hashGenesisBlock,
+        XOnlyPubKey{Params().GetConsensus().chain_registry.dealer_authority_key}).IsValid());
     BOOST_CHECK(*commitment.root == expected.ComputeRoot());
 
     block->hashMerkleRoot = BlockMerkleRoot(*block);
@@ -182,23 +259,29 @@ BOOST_AUTO_TEST_CASE(validate_unconfirmed_registry_transition_chain)
 
 BOOST_AUTO_TEST_CASE(validate_deposit_against_unconfirmed_registration)
 {
+    const auto dealer{AuthorizeDealer()};
     CKey control_key;
     control_key.MakeNewKey(true);
     const chainregistry::ChainManifest manifest{TestManifest()};
-    const COutPoint anchor{m_coinbase_txns[0]->GetHash(), 0};
+    const COutPoint anchor{dealer.transaction->GetHash(), 2};
     const CMutableTransaction registration_tx{CreateValidTransaction(
-        {m_coinbase_txns[0]},
-        {anchor},
-        /*input_height=*/1,
-        {coinbaseKey},
+        {dealer.transaction},
+        {anchor, dealer.control_outpoint},
+        /*input_height=*/101,
+        {coinbaseKey, coinbaseKey},
         {
-            {COIN, chainregistry::BuildOperationScript(chainregistry::RegisterChain{
+            {0, chainregistry::BuildOperationScript(chainregistry::RegisterChain{
                        .anchor_input = 0,
                        .control_output = 1,
+                       .dealer_id = dealer.dealer_id,
+                       .dealer_control_output = 2,
+                       .dealer_payment_output = 3,
                        .manifest = manifest,
                    })},
             {5 * COIN, TaprootScript(control_key)},
-            {43 * COIN, TaprootScript(coinbaseKey)},
+            {COIN, TaprootScript(coinbaseKey)},
+            {COIN, dealer.payout_script},
+            {41 * COIN, TaprootScript(coinbaseKey)},
         },
         std::nullopt,
         std::nullopt).first};
@@ -219,12 +302,12 @@ BOOST_AUTO_TEST_CASE(validate_deposit_against_unconfirmed_registration)
     };
     const CMutableTransaction fund_tx{CreateValidTransaction(
         {MakeTransactionRef(registration_tx)},
-        {COutPoint{registration_tx.GetHash(), 2}},
+        {COutPoint{registration_tx.GetHash(), 4}},
         /*input_height=*/101,
         {coinbaseKey},
         {
             {COIN / 100, chainregistry::BuildFundScript(fund)},
-            {42 * COIN, TaprootScript(coinbaseKey)},
+            {40 * COIN, TaprootScript(coinbaseKey)},
         },
         std::nullopt,
         std::nullopt).first};
@@ -244,7 +327,7 @@ BOOST_AUTO_TEST_CASE(validate_deposit_against_unconfirmed_registration)
         {coinbaseKey},
         {
             {COIN, chainregistry::BuildFundScript(unknown_fund)},
-            {40 * COIN, TaprootScript(coinbaseKey)},
+            {38 * COIN, TaprootScript(coinbaseKey)},
         },
         std::nullopt,
         std::nullopt).first};
@@ -272,22 +355,28 @@ BOOST_AUTO_TEST_CASE(validate_deposit_against_unconfirmed_registration)
 
 BOOST_AUTO_TEST_CASE(validate_and_select_competing_bmm_proposals)
 {
+    const auto dealer{AuthorizeDealer()};
     CKey control_key;
     control_key.MakeNewKey(true);
     const chainregistry::ChainManifest manifest{TestManifest()};
-    const COutPoint registration_anchor{m_coinbase_txns[0]->GetHash(), 0};
+    const COutPoint registration_anchor{dealer.transaction->GetHash(), 2};
     const CMutableTransaction registration_tx{CreateValidTransaction(
-        {m_coinbase_txns[0]},
-        {registration_anchor},
-        /*input_height=*/1,
-        {coinbaseKey},
+        {dealer.transaction},
+        {registration_anchor, dealer.control_outpoint},
+        /*input_height=*/101,
+        {coinbaseKey, coinbaseKey},
         {
-            {COIN, chainregistry::BuildOperationScript(chainregistry::RegisterChain{
+            {0, chainregistry::BuildOperationScript(chainregistry::RegisterChain{
                        .anchor_input = 0,
                        .control_output = 1,
+                       .dealer_id = dealer.dealer_id,
+                       .dealer_control_output = 2,
+                       .dealer_payment_output = 3,
                        .manifest = manifest,
                    })},
             {5 * COIN, TaprootScript(control_key)},
+            {COIN, TaprootScript(coinbaseKey)},
+            {COIN, dealer.payout_script},
             {8 * COIN, TaprootScript(coinbaseKey)},
             {8 * COIN, TaprootScript(coinbaseKey)},
             {8 * COIN, TaprootScript(coinbaseKey)},
@@ -339,9 +428,9 @@ BOOST_AUTO_TEST_CASE(validate_and_select_competing_bmm_proposals)
     constexpr uint256 child_two{
         "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"};
     const CMutableTransaction proposal_one{
-        proposal(2, 7 * COIN, chain_id, child_one)};
+        proposal(4, 7 * COIN, chain_id, child_one)};
     const CMutableTransaction proposal_two{
-        proposal(3, 6 * COIN, chain_id, child_two)};
+        proposal(5, 6 * COIN, chain_id, child_two)};
     {
         LOCK(cs_main);
         const auto first{m_node.chainman->ProcessTransaction(
@@ -355,7 +444,7 @@ BOOST_AUTO_TEST_CASE(validate_and_select_competing_bmm_proposals)
     constexpr chainregistry::ChainId unknown_chain{
         "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
     const CMutableTransaction unknown_proposal{
-        proposal(4, 7 * COIN, unknown_chain, child_one)};
+        proposal(6, 7 * COIN, unknown_chain, child_one)};
     {
         LOCK(cs_main);
         const auto result{m_node.chainman->ProcessTransaction(
@@ -367,7 +456,7 @@ BOOST_AUTO_TEST_CASE(validate_and_select_competing_bmm_proposals)
     const std::vector<unsigned char> malformed_data{'K', 'B', 'M', 'M', 1};
     const CMutableTransaction malformed_proposal{CreateValidTransaction(
         {MakeTransactionRef(registration_tx)},
-        {COutPoint{registration_tx.GetHash(), 5}},
+        {COutPoint{registration_tx.GetHash(), 7}},
         /*input_height=*/101,
         {coinbaseKey},
         {

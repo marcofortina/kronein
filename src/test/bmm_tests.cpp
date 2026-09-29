@@ -221,7 +221,7 @@ BOOST_AUTO_TEST_CASE(proof_rejects_wrong_domains_and_tampering)
     constexpr chainregistry::ChainId OTHER_CHILD{
         "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"};
 
-    proof.version = 2;
+    proof.version = 3;
     auto result{chainregistry::ValidateBmmAnchorProofStructure(
         proof, MAIN_GENESIS, CHILD_CHAIN)};
     BOOST_CHECK(result.error ==

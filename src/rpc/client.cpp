@@ -207,7 +207,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "walletcreatechainregistrypsbt", 2, "solving_data" },
     { "walletcreatechainregistrypsbt", 2, "max_tx_weight" },
     { "walletcreatechainregistrypsbt", 3, "bip32derivs" },
-    { "walletsubmitchainregistrypsbt", 1, "max_registration_burn" },
+    { "walletsubmitchainregistrypsbt", 1, "expected_dealer_payment" },
     { "walletprocesspsbt", 0, "psbt", ParamFormat::STRING },
     { "walletprocesspsbt", 1, "sign" },
     { "walletprocesspsbt", 2, "sighashtype", ParamFormat::STRING },

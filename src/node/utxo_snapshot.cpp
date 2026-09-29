@@ -40,14 +40,21 @@ util::Result<chainregistry::ChainRegistry> ValidateRegistrySnapshot(
             return util::Error{Untranslated("Child chain registry snapshot records are not canonically ordered")};
         }
     }
+    for (size_t index{1}; index < snapshot.dealers.size(); ++index) {
+        if (!(snapshot.dealers[index - 1].dealer_id < snapshot.dealers[index].dealer_id)) {
+            return util::Error{Untranslated("Child chain registry snapshot dealers are not canonically ordered")};
+        }
+    }
 
     chainregistry::ChainRegistry registry;
-    const auto load_result{registry.LoadRecords(snapshot.records)};
+    const auto load_result{registry.LoadState(
+        snapshot.records, snapshot.dealers, snapshot.authority_sequence)};
     if (!load_result.IsValid()) {
         return util::Error{Untranslated(strprintf(
-            "Invalid child chain registry snapshot records (load error %u, record error %u)",
+            "Invalid child chain registry snapshot state (load error %u, record error %u, dealer error %u)",
             static_cast<unsigned>(load_result.error),
-            static_cast<unsigned>(load_result.record_error)))};
+            static_cast<unsigned>(load_result.record_error),
+            static_cast<unsigned>(load_result.dealer_record_error)))};
     }
     if (registry.ComputeRoot() != snapshot.registry_root) {
         return util::Error{Untranslated("Child chain registry snapshot root does not match its records")};

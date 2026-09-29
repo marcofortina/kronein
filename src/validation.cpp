@@ -777,8 +777,7 @@ bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
     const auto& params{m_active_chainstate.m_chainman.GetConsensus().chain_registry};
     if (!params.Enabled()) return true;
 
-    const auto current_operation{
-        chainregistry::ExtractTransactionOperation(*ws.m_ptx, params.minimum_registration_burn)};
+    const auto current_operation{chainregistry::ExtractTransactionOperation(*ws.m_ptx)};
     const auto current_funds{chainregistry::ExtractTransactionFunds(*ws.m_ptx)};
     const auto current_anchor{chainregistry::ExtractTransactionBmmAnchor(*ws.m_ptx)};
     const int next_height{m_active_chainstate.m_chain.Height() + 1};
@@ -805,9 +804,11 @@ bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
     chainregistry::ChainRegistry candidate{
         m_active_chainstate.ChainRegistryState().Registry()};
 
-    // Rebuild only the relevant mempool overlay. Every registry update must
-    // spend its predecessor's control output, so all unconfirmed transitions
-    // needed by this subpackage are transaction ancestors.
+    // Rebuild the input-dependent mempool overlay. Child updates and dealer
+    // sales spend their predecessor control output, so every unconfirmed
+    // transition needed by this subpackage is a transaction ancestor.
+    // Authority operations have no protocol input and are deliberately
+    // serialized against the confirmed authority sequence.
     std::set<Txid> visited;
     std::set<Txid> visiting;
     std::vector<const CTransaction*> ordered_ancestors;
@@ -846,7 +847,7 @@ bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
             tx,
             static_cast<uint32_t>(next_height),
             m_active_chainstate.m_chainman.GetConsensus().hashGenesisBlock,
-            params.minimum_registration_burn)};
+            XOnlyPubKey{params.dealer_authority_key})};
         if (result.IsValid()) return true;
         return ws.m_state.Invalid(
             TxValidationResult::TX_CONSENSUS,

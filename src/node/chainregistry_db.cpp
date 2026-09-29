@@ -15,6 +15,7 @@ namespace node {
 namespace {
 
 constexpr uint8_t DB_REGISTRY_RECORD{'R'};
+constexpr uint8_t DB_DEALER_RECORD{'L'};
 constexpr uint8_t DB_REGISTRY_STATE{'S'};
 constexpr uint8_t DB_REGISTRY_UNDO{'U'};
 constexpr uint8_t DB_DEPOSIT{'D'};
@@ -46,6 +47,7 @@ struct DepositByChildId {
 };
 
 using RecordKey = std::pair<uint8_t, chainregistry::ChainId>;
+using DealerKey = std::pair<uint8_t, chainregistry::DealerId>;
 using UndoKey = std::pair<uint8_t, uint256>;
 using DepositKey = std::pair<uint8_t, chainregistry::DepositId>;
 using DepositByChildKey = std::pair<uint8_t, DepositByChildId>;
@@ -83,6 +85,8 @@ bool IsConsistent(const chainregistry::ChainRegistry& registry,
 {
     return state.version == CHAIN_REGISTRY_DB_VERSION &&
            state.record_count == registry.Size() &&
+           state.dealer_count == registry.DealerSize() &&
+           state.authority_sequence == registry.AuthoritySequence() &&
            state.registry_root == registry.ComputeRoot() &&
            state.deposit_history_start_height <= static_cast<uint64_t>(state.height) + 1 &&
            state.anchor_history_start_height <= static_cast<uint64_t>(state.height) + 1;
@@ -133,11 +137,21 @@ void WriteChangedRecords(CDBBatch& batch,
                          const chainregistry::RegistryBlockUndo& undo)
 {
     for (const auto& operation : undo.operations) {
-        const RecordKey key{DB_REGISTRY_RECORD, operation.chain_id};
-        if (const auto* record{registry.Find(operation.chain_id)}) {
-            batch.Write(key, *record);
-        } else {
-            batch.Erase(key);
+        if (operation.has_chain) {
+            const RecordKey key{DB_REGISTRY_RECORD, operation.chain_id};
+            if (const auto* record{registry.Find(operation.chain_id)}) {
+                batch.Write(key, *record);
+            } else {
+                batch.Erase(key);
+            }
+        }
+        if (operation.has_dealer) {
+            const DealerKey key{DB_DEALER_RECORD, operation.dealer_id};
+            if (const auto* dealer{registry.FindDealer(operation.dealer_id)}) {
+                batch.Write(key, *dealer);
+            } else {
+                batch.Erase(key);
+            }
         }
     }
 }
@@ -158,6 +172,8 @@ ChainRegistryDBState MakeChainRegistryDBState(const uint256& best_block,
         .height = height,
         .registry_root = registry.ComputeRoot(),
         .record_count = registry.Size(),
+        .dealer_count = registry.DealerSize(),
+        .authority_sequence = registry.AuthoritySequence(),
         .deposit_history_start_height = deposit_history_start_height,
         .deposit_count = deposit_count,
         .anchor_history_start_height = anchor_history_start_height,
@@ -174,13 +190,14 @@ ChainRegistryDBLoadResult ChainRegistryDB::Load(chainregistry::ChainRegistry& re
             return LoadError(ChainRegistryDBLoadError::STATE_DECODE_FAILED);
         }
         if (HasKeyWithPrefix(m_db, DB_REGISTRY_RECORD) ||
+            HasKeyWithPrefix(m_db, DB_DEALER_RECORD) ||
             HasKeyWithPrefix(m_db, DB_REGISTRY_UNDO) ||
             HasKeyWithPrefix(m_db, DB_DEPOSIT) ||
             HasKeyWithPrefix(m_db, DB_BMM_ANCHOR) ||
             HasKeyWithPrefix(m_db, DB_BMM_ANCHOR_BY_CHILD)) {
             return LoadError(ChainRegistryDBLoadError::ORPHANED_DATA);
         }
-        const auto registry_result{registry.LoadRecords({})};
+        const auto registry_result{registry.LoadState({}, {}, 0)};
         state = MakeChainRegistryDBState({}, 0, registry);
         return {
             .registry_result = registry_result,
@@ -217,13 +234,41 @@ ChainRegistryDBLoadResult ChainRegistryDB::Load(chainregistry::ChainRegistry& re
         cursor->Next();
     }
 
+    std::vector<chainregistry::DealerRecord> dealers;
+    cursor.reset(const_cast<CDBWrapper&>(m_db).NewIterator());
+    cursor->Seek(DealerKey{DB_DEALER_RECORD, {}});
+    while (cursor->Valid()) {
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) {
+            return LoadError(ChainRegistryDBLoadError::DEALER_KEY_DECODE_FAILED);
+        }
+        if (prefix != DB_DEALER_RECORD) break;
+        DealerKey key;
+        if (!cursor->GetKey(key)) {
+            return LoadError(ChainRegistryDBLoadError::DEALER_KEY_DECODE_FAILED);
+        }
+        chainregistry::DealerRecord dealer;
+        if (!cursor->GetValue(dealer)) {
+            return LoadError(ChainRegistryDBLoadError::DEALER_DECODE_FAILED);
+        }
+        if (dealer.dealer_id != key.second) {
+            return LoadError(ChainRegistryDBLoadError::DEALER_KEY_MISMATCH);
+        }
+        dealers.push_back(std::move(dealer));
+        cursor->Next();
+    }
+
     chainregistry::ChainRegistry loaded_registry;
-    auto registry_result{loaded_registry.LoadRecords(std::move(records))};
+    auto registry_result{loaded_registry.LoadState(
+        std::move(records), std::move(dealers), stored_state.authority_sequence)};
     if (!registry_result.IsValid()) {
         return LoadError(ChainRegistryDBLoadError::INVALID_RECORDS, std::move(registry_result));
     }
     if (stored_state.record_count != loaded_registry.Size()) {
         return LoadError(ChainRegistryDBLoadError::RECORD_COUNT_MISMATCH);
+    }
+    if (stored_state.dealer_count != loaded_registry.DealerSize()) {
+        return LoadError(ChainRegistryDBLoadError::DEALER_COUNT_MISMATCH);
     }
     if (stored_state.registry_root != loaded_registry.ComputeRoot()) {
         return LoadError(ChainRegistryDBLoadError::ROOT_MISMATCH);
@@ -387,6 +432,9 @@ bool ChainRegistryDB::WriteInitialState(const chainregistry::ChainRegistry& regi
 {
     if (!IsConsistent(registry, state) || state.deposit_count != 0 ||
         state.anchor_count != 0 || m_db.Exists(DB_REGISTRY_STATE) ||
+        HasKeyWithPrefix(m_db, DB_REGISTRY_RECORD) ||
+        HasKeyWithPrefix(m_db, DB_DEALER_RECORD) ||
+        HasKeyWithPrefix(m_db, DB_REGISTRY_UNDO) ||
         HasKeyWithPrefix(m_db, DB_DEPOSIT) ||
         HasKeyWithPrefix(m_db, DB_DEPOSIT_BY_CHILD) ||
         HasKeyWithPrefix(m_db, DB_BMM_ANCHOR) ||
@@ -395,6 +443,9 @@ bool ChainRegistryDB::WriteInitialState(const chainregistry::ChainRegistry& regi
     CDBBatch batch{m_db};
     for (const auto& [chain_id, record] : registry.Records()) {
         batch.Write(RecordKey{DB_REGISTRY_RECORD, chain_id}, record);
+    }
+    for (const auto& [dealer_id, dealer] : registry.Dealers()) {
+        batch.Write(DealerKey{DB_DEALER_RECORD, dealer_id}, dealer);
     }
     batch.Write(DB_REGISTRY_STATE, state);
     m_db.WriteBatch(batch, sync);

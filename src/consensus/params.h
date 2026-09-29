@@ -24,8 +24,8 @@ struct Params {
     struct ChainRegistryParams {
         /** Negative means the registry consensus rules are disabled. */
         int activation_height{-1};
-        /** Minimum value permanently burned by a registration output. */
-        CAmount minimum_registration_burn{0};
+        /** BIP340 x-only key authorizing dealer lifecycle operations. */
+        std::array<unsigned char, 32> dealer_authority_key{};
         /** Maximum number of registry state transitions accepted per block. */
         uint32_t maximum_operations{0};
         /** Negative means one-way deposit consensus rules are disabled. */
@@ -42,7 +42,7 @@ struct Params {
         bool Enabled() const
         {
             return activation_height >= 0 &&
-                   minimum_registration_burn > 0 &&
+                   dealer_authority_key != decltype(dealer_authority_key){} &&
                    maximum_operations > 0;
         }
         bool IsActive(int height) const { return Enabled() && height >= activation_height; }

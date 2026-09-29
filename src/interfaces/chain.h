@@ -52,7 +52,7 @@ class Wallet;
 struct ChainRegistrySnapshot {
     bool enabled{false};
     bool active_for_next_block{false};
-    CAmount minimum_registration_burn{0};
+    uint64_t authority_sequence{0};
     bool bmm_enabled{false};
     bool bmm_active_for_next_block{false};
     uint32_t maximum_bmm_anchors{0};
@@ -64,6 +64,7 @@ struct ChainRegistrySnapshot {
     uint256 registry_root;
     uint32_t height{0};
     std::optional<chainregistry::ChainRecord> record;
+    std::optional<chainregistry::DealerRecord> dealer;
 };
 
 enum class ChildWalletScanError : uint8_t {
@@ -273,7 +274,8 @@ public:
     //! Return a verified registry view at the active tip and optionally the
     //! exact child-chain record requested by the caller.
     virtual ChainRegistrySnapshot getChainRegistrySnapshot(
-        std::optional<chainregistry::ChainId> chain_id = std::nullopt) = 0;
+        std::optional<chainregistry::ChainId> chain_id = std::nullopt,
+        std::optional<chainregistry::DealerId> dealer_id = std::nullopt) = 0;
 
     //! Scan one loaded child's UTXO set and mempool for wallet-supplied scripts.
     virtual ChildWalletScan scanChildWalletUTXOs(

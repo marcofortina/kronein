@@ -6,6 +6,7 @@
 
 #include <hash.h>
 #include <primitives/transaction.h>
+#include <pubkey.h>
 #include <streams.h>
 
 #include <algorithm>
@@ -80,6 +81,9 @@ OperationType GetOperationType(const RegistryOperation& operation)
         if constexpr (std::is_same_v<Payload, RegisterChain>) return OperationType::REGISTER;
         if constexpr (std::is_same_v<Payload, UpdateChain>) return OperationType::UPDATE;
         if constexpr (std::is_same_v<Payload, RetireChain>) return OperationType::RETIRE;
+        if constexpr (std::is_same_v<Payload, AuthorizeDealer>) return OperationType::AUTHORIZE_DEALER;
+        if constexpr (std::is_same_v<Payload, UpdateDealer>) return OperationType::UPDATE_DEALER;
+        if constexpr (std::is_same_v<Payload, RevokeDealer>) return OperationType::REVOKE_DEALER;
     }, operation);
 }
 
@@ -94,6 +98,13 @@ OperationValidationError ValidateOperation(const RegistryOperation& operation)
             if (payload.control_output == std::numeric_limits<uint32_t>::max()) {
                 return OperationValidationError::INVALID_CONTROL_OUTPUT;
             }
+            if (payload.dealer_id.IsNull()) return OperationValidationError::NULL_DEALER_ID;
+            if (payload.dealer_control_output == std::numeric_limits<uint32_t>::max()) {
+                return OperationValidationError::INVALID_DEALER_CONTROL_OUTPUT;
+            }
+            if (payload.dealer_payment_output == std::numeric_limits<uint32_t>::max()) {
+                return OperationValidationError::INVALID_DEALER_PAYMENT_OUTPUT;
+            }
             if (ValidateManifest(payload.manifest) != ManifestValidationError::NONE) {
                 return OperationValidationError::INVALID_MANIFEST;
             }
@@ -104,6 +115,52 @@ OperationValidationError ValidateOperation(const RegistryOperation& operation)
             }
         } else if constexpr (std::is_same_v<Payload, RetireChain>) {
             if (payload.chain_id.IsNull()) return OperationValidationError::NULL_CHAIN_ID;
+        } else if constexpr (std::is_same_v<Payload, AuthorizeDealer>) {
+            if (payload.authority_sequence == 0) {
+                return OperationValidationError::INVALID_AUTHORITY_SEQUENCE;
+            }
+            if (payload.authorization_nonce.IsNull()) {
+                return OperationValidationError::NULL_AUTHORIZATION_NONCE;
+            }
+            if (!XOnlyPubKey{payload.control_key}.IsFullyValid()) {
+                return OperationValidationError::INVALID_DEALER_CONTROL_KEY;
+            }
+            if (payload.control_output == std::numeric_limits<uint32_t>::max()) {
+                return OperationValidationError::INVALID_DEALER_CONTROL_OUTPUT;
+            }
+            if (payload.payout_script.empty() ||
+                !CScript{payload.payout_script.begin(), payload.payout_script.end()}.IsPayToTaproot()) {
+                return OperationValidationError::INVALID_PAYOUT_SCRIPT;
+            }
+            if (payload.initial_licenses == 0) {
+                return OperationValidationError::INVALID_LICENSE_COUNT;
+            }
+            if (std::ranges::all_of(payload.authority_signature, [](unsigned char value) { return value == 0; })) {
+                return OperationValidationError::INVALID_AUTHORITY_SIGNATURE;
+            }
+        } else if constexpr (std::is_same_v<Payload, UpdateDealer>) {
+            if (payload.authority_sequence == 0) {
+                return OperationValidationError::INVALID_AUTHORITY_SEQUENCE;
+            }
+            if (payload.dealer_id.IsNull()) return OperationValidationError::NULL_DEALER_ID;
+            if (payload.added_licenses == 0 && payload.payout_script.empty()) {
+                return OperationValidationError::INVALID_LICENSE_COUNT;
+            }
+            if (!payload.payout_script.empty() &&
+                !CScript{payload.payout_script.begin(), payload.payout_script.end()}.IsPayToTaproot()) {
+                return OperationValidationError::INVALID_PAYOUT_SCRIPT;
+            }
+            if (std::ranges::all_of(payload.authority_signature, [](unsigned char value) { return value == 0; })) {
+                return OperationValidationError::INVALID_AUTHORITY_SIGNATURE;
+            }
+        } else if constexpr (std::is_same_v<Payload, RevokeDealer>) {
+            if (payload.authority_sequence == 0) {
+                return OperationValidationError::INVALID_AUTHORITY_SEQUENCE;
+            }
+            if (payload.dealer_id.IsNull()) return OperationValidationError::NULL_DEALER_ID;
+            if (std::ranges::all_of(payload.authority_signature, [](unsigned char value) { return value == 0; })) {
+                return OperationValidationError::INVALID_AUTHORITY_SIGNATURE;
+            }
         }
         return OperationValidationError::NONE;
     }, operation);
@@ -172,6 +229,24 @@ OperationParseResult ParseOperationScript(const CScript& script)
             operation = std::move(payload);
             break;
         }
+        case OperationType::AUTHORIZE_DEALER: {
+            AuthorizeDealer payload;
+            reader >> payload;
+            operation = std::move(payload);
+            break;
+        }
+        case OperationType::UPDATE_DEALER: {
+            UpdateDealer payload;
+            reader >> payload;
+            operation = std::move(payload);
+            break;
+        }
+        case OperationType::REVOKE_DEALER: {
+            RevokeDealer payload;
+            reader >> payload;
+            operation = std::move(payload);
+            break;
+        }
         default:
             return {OperationParseError::UNKNOWN_OPERATION_TYPE, std::nullopt};
         }
@@ -185,7 +260,7 @@ OperationParseResult ParseOperationScript(const CScript& script)
     }
 }
 
-TxOperationResult ExtractTransactionOperation(const CTransaction& tx, CAmount minimum_registration_burn)
+TxOperationResult ExtractTransactionOperation(const CTransaction& tx)
 {
     std::optional<TransactionOperation> found;
     for (size_t output_index{0}; output_index < tx.vout.size(); ++output_index) {
@@ -224,8 +299,21 @@ TxOperationResult ExtractTransactionOperation(const CTransaction& tx, CAmount mi
                 control_error != TxOperationError::NONE) {
                 return control_error;
             }
-            if (registry_output.nValue < minimum_registration_burn) {
-                return TxOperationError::INSUFFICIENT_REGISTRATION_BURN;
+            if (const auto control_error{validate_control_output(payload.dealer_control_output)};
+                control_error != TxOperationError::NONE) {
+                return control_error;
+            }
+            if (payload.dealer_payment_output >= tx.vout.size()) {
+                return TxOperationError::INVALID_DEALER_PAYMENT;
+            }
+            if (payload.control_output == payload.dealer_control_output ||
+                payload.control_output == payload.dealer_payment_output ||
+                payload.dealer_control_output == payload.dealer_payment_output ||
+                payload.dealer_payment_output == found->registry_output) {
+                return TxOperationError::OUTPUT_COLLISION;
+            }
+            if (tx.vout[payload.dealer_payment_output].nValue <= 0) {
+                return TxOperationError::INVALID_DEALER_PAYMENT;
             }
         } else if constexpr (std::is_same_v<Payload, UpdateChain>) {
             if (const auto control_error{validate_control_output(payload.control_output)};
@@ -235,7 +323,18 @@ TxOperationResult ExtractTransactionOperation(const CTransaction& tx, CAmount mi
             if (registry_output.nValue != 0) return TxOperationError::UNEXPECTED_OPERATION_VALUE;
         } else if constexpr (std::is_same_v<Payload, RetireChain>) {
             if (registry_output.nValue != 0) return TxOperationError::UNEXPECTED_OPERATION_VALUE;
+        } else if constexpr (std::is_same_v<Payload, AuthorizeDealer>) {
+            if (const auto control_error{validate_control_output(payload.control_output)};
+                control_error != TxOperationError::NONE) {
+                return control_error;
+            }
+            const CScript expected_script{CScript{} << OP_1 << std::vector<unsigned char>{
+                payload.control_key.begin(), payload.control_key.end()}};
+            if (tx.vout[payload.control_output].scriptPubKey != expected_script) {
+                return TxOperationError::CONTROL_OUTPUT_NOT_P2TR;
+            }
         }
+        if (registry_output.nValue != 0) return TxOperationError::UNEXPECTED_OPERATION_VALUE;
         return TxOperationError::NONE;
     }, found->operation)};
 
@@ -257,6 +356,47 @@ DepositId DeriveDepositId(const uint256& main_genesis_hash, const COutPoint& bur
     auto hasher{TaggedHash(std::string{DEPOSIT_ID_TAG})};
     hasher << main_genesis_hash << burn_outpoint;
     return DepositId::FromUint256(hasher.GetSHA256());
+}
+
+DealerId DeriveDealerId(const uint256& main_genesis_hash,
+                        const uint256& authorization_nonce,
+                        std::span<const unsigned char, DEALER_CONTROL_KEY_SIZE> control_key)
+{
+    auto hasher{TaggedHash(std::string{DEALER_ID_TAG})};
+    hasher << main_genesis_hash << authorization_nonce;
+    hasher.write(std::as_bytes(control_key));
+    return DealerId::FromUint256(hasher.GetSHA256());
+}
+
+std::optional<uint256> ComputeDealerAuthorityHash(const uint256& main_genesis_hash,
+                                                 const RegistryOperation& operation)
+{
+    auto hasher{TaggedHash(std::string{DEALER_AUTHORITY_TAG})};
+    hasher << main_genesis_hash << static_cast<uint8_t>(GetOperationType(operation));
+    const bool is_admin{std::visit([&](const auto& payload) {
+        using Payload = std::decay_t<decltype(payload)>;
+        if constexpr (std::is_same_v<Payload, AuthorizeDealer>) {
+            hasher << payload.authority_sequence
+                   << payload.authorization_nonce
+                   << payload.control_key
+                   << payload.control_output
+                   << payload.payout_script
+                   << payload.initial_licenses;
+            return true;
+        } else if constexpr (std::is_same_v<Payload, UpdateDealer>) {
+            hasher << payload.authority_sequence
+                   << payload.dealer_id
+                   << payload.added_licenses
+                   << payload.payout_script;
+            return true;
+        } else if constexpr (std::is_same_v<Payload, RevokeDealer>) {
+            hasher << payload.authority_sequence << payload.dealer_id;
+            return true;
+        }
+        return false;
+    }, operation)};
+    if (!is_admin) return std::nullopt;
+    return hasher.GetSHA256();
 }
 
 } // namespace chainregistry

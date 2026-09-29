@@ -361,6 +361,16 @@ static chainregistry::ChainId ParseRegistryChainId(const UniValue& value)
     return *chain_id;
 }
 
+static chainregistry::DealerId ParseRegistryDealerId(const UniValue& value)
+{
+    const auto dealer_id{chainregistry::DealerId::FromHex(value.get_str())};
+    if (!dealer_id || dealer_id->IsNull()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "dealer_id must be exactly 32 non-null bytes encoded as hexadecimal");
+    }
+    return *dealer_id;
+}
+
 static chainregistry::MetadataHash ParseRegistryMetadataHash(const UniValue& value)
 {
     const auto metadata_hash{chainregistry::MetadataHash::FromHex(value.get_str())};
@@ -482,7 +492,7 @@ static bool IsWalletChainRegistryControl(const CWallet& wallet,
 {
     const CWalletTx* wallet_tx{wallet.GetWalletTx(outpoint.hash)};
     return wallet_tx &&
-           GetChainRegistryControlOutput(*wallet_tx->tx) == outpoint.n;
+           IsChainRegistryControlOutput(*wallet_tx->tx, outpoint.n);
 }
 
 static chainregistry::ChainSpec ParseRegistryChainSpec(const UniValue& value)
@@ -3335,7 +3345,7 @@ RPCHelpMan walletcreatechainregistrypsbt()
     return RPCHelpMan{
         "walletcreatechainregistrypsbt",
         "Create and fund a PSBT containing one canonical child-chain registry operation.\n"
-        "The authority input is fixed at vin[0], the KREG output at vout[0], and a REGISTER/UPDATE successor Taproot control at vout[1].\n"
+        "The buyer authority input is fixed at vin[0]. REGISTER also fixes the dealer control input at vin[1], pays the dealer atomically, and rotates both controls.\n"
         "Change, when present, is appended after protocol outputs. The RPC does not sign or broadcast.\n",
         {
             {"operation", RPCArg::Type::STR, RPCArg::Optional::NO, "Operation type: register, update, or retire"},
@@ -3357,7 +3367,9 @@ RPCHelpMan walletcreatechainregistrypsbt()
                 {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "UPDATE/RETIRE: exact non-null child-chain identifier"},
                 {"control_address", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "REGISTER/UPDATE: successor Taproot address"},
                 {"control_amount", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "REGISTER/UPDATE: successor value; defaults to the dust threshold"},
-                {"registration_burn", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "REGISTER: amount permanently burned; defaults to the consensus minimum"},
+                {"dealer_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "REGISTER: authorized dealer identifier"},
+                {"dealer_control_address", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "REGISTER: dealer successor Taproot address"},
+                {"dealer_payment", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "REGISTER: positive sale price paid to the dealer"},
             }},
             {"options", RPCArg::Type::OBJ_NAMED_PARAMS, RPCArg::Optional::OMITTED, "Funding options. Protocol input/output ordering cannot be overridden.", FundTxDoc(), RPCArgOptions{.oneline_description="options"}},
             {"bip32derivs", RPCArg::Type::BOOL, RPCArg::Default{true}, "Include known BIP32 derivation paths"},
@@ -3368,7 +3380,8 @@ RPCHelpMan walletcreatechainregistrypsbt()
             {RPCResult::Type::NUM, "changepos", "Change output position, or -1"},
             {RPCResult::Type::STR, "operation", "Registry operation type"},
             {RPCResult::Type::STR_HEX, "chain_id", "Affected or derived child-chain identifier"},
-            {RPCResult::Type::STR_AMOUNT, "registration_burn", "Value permanently destroyed by REGISTER, otherwise zero"},
+            {RPCResult::Type::STR_HEX, "manifest_hash", /*optional=*/true, "REGISTER manifest commitment"},
+            {RPCResult::Type::STR_AMOUNT, "dealer_payment", "Value paid atomically to the dealer, otherwise zero"},
             {RPCResult::Type::OBJ, "authority_outpoint", "UTXO fixed at vin[0]", {
                 {RPCResult::Type::STR_HEX, "txid", "Transaction id"},
                 {RPCResult::Type::NUM, "vout", "Output index"},
@@ -3401,7 +3414,9 @@ RPCHelpMan walletcreatechainregistrypsbt()
                      {"chain_id", UniValueType{UniValue::VSTR}},
                      {"control_address", UniValueType{UniValue::VSTR}},
                      {"control_amount", UniValueType()},
-                     {"registration_burn", UniValueType()}},
+                     {"dealer_id", UniValueType{UniValue::VSTR}},
+                     {"dealer_control_address", UniValueType{UniValue::VSTR}},
+                     {"dealer_payment", UniValueType()}},
                     /*fAllowNull=*/true,
                     /*fStrict=*/true);
 
@@ -3424,15 +3439,19 @@ RPCHelpMan walletcreatechainregistrypsbt()
     }};
 
     std::optional<chainregistry::ChainId> requested_chain_id;
+    std::optional<chainregistry::DealerId> requested_dealer_id;
     if (operation_name == "update" || operation_name == "retire") {
         if (!parameters.exists("chain_id")) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("%s requires chain_id", operation_name));
         }
         requested_chain_id = ParseRegistryChainId(parameters.find_value("chain_id"));
     }
+    if (operation_name == "register" && parameters.exists("dealer_id")) {
+        requested_dealer_id = ParseRegistryDealerId(parameters.find_value("dealer_id"));
+    }
 
     const interfaces::ChainRegistrySnapshot registry_snapshot{
-        wallet.chain().getChainRegistrySnapshot(requested_chain_id)};
+        wallet.chain().getChainRegistrySnapshot(requested_chain_id, requested_dealer_id)};
     if (!registry_snapshot.enabled) {
         throw JSONRPCError(RPC_MISC_ERROR, "child-chain registry is disabled on this network");
     }
@@ -3445,17 +3464,50 @@ RPCHelpMan walletcreatechainregistrypsbt()
     chainregistry::RegistryOperation operation;
     CAmount operation_amount{0};
     std::optional<CTxDestination> control_destination;
+    std::optional<CTxDestination> dealer_control_destination;
+    std::optional<COutPoint> dealer_control_outpoint;
+    CAmount dealer_control_amount{0};
+    CAmount dealer_payment{0};
     CAmount control_amount{0};
 
     if (operation_name == "register") {
         require_parameters(
-            {"registration_anchor", "spec", "child_genesis_hash", "metadata_hash", "default_fee_recipient_type", "default_fee_recipient", "control_address"},
-            {"registration_anchor", "spec", "child_genesis_hash", "metadata_hash", "default_fee_recipient_type", "default_fee_recipient", "control_address", "control_amount", "registration_burn"});
+            {"registration_anchor", "spec", "child_genesis_hash", "metadata_hash", "default_fee_recipient_type", "default_fee_recipient", "control_address", "dealer_id", "dealer_control_address", "dealer_payment"},
+            {"registration_anchor", "spec", "child_genesis_hash", "metadata_hash", "default_fee_recipient_type", "default_fee_recipient", "control_address", "control_amount", "dealer_id", "dealer_control_address", "dealer_payment"});
+        if (!registry_snapshot.dealer) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "dealer_id is not authorized");
+        }
+        if (registry_snapshot.dealer->status != chainregistry::DealerStatus::ACTIVE) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "dealer is revoked");
+        }
+        if (registry_snapshot.dealer->remaining_licenses == 0) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "dealer has no remaining child-chain licenses");
+        }
         authority_outpoint = ParseRegistryOutPoint(parameters.find_value("registration_anchor"), "registration_anchor");
+        dealer_control_outpoint = registry_snapshot.dealer->control_outpoint;
+        dealer_payment = AmountFromValue(parameters.find_value("dealer_payment"));
+        if (dealer_payment <= 0) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "dealer_payment must be positive");
+        }
+        dealer_control_destination = DecodeDestination(parameters.find_value("dealer_control_address").get_str());
+        if (!IsValidDestination(*dealer_control_destination) ||
+            !GetScriptForDestination(*dealer_control_destination).IsPayToTaproot()) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                               "dealer_control_address must be a valid Taproot address");
+        }
+        std::map<COutPoint, Coin> dealer_coin{{*dealer_control_outpoint, {}}};
+        wallet.chain().findCoins(dealer_coin);
+        if (dealer_coin.begin()->second.IsSpent()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "current dealer control output is unavailable");
+        }
+        dealer_control_amount = dealer_coin.begin()->second.out.nValue;
         const auto spec{ParseRegistryChainSpec(parameters.find_value("spec"))};
         operation = chainregistry::RegisterChain{
             .anchor_input = 0,
             .control_output = 1,
+            .dealer_id = *requested_dealer_id,
+            .dealer_control_output = 2,
+            .dealer_payment_output = 3,
             .manifest = chainregistry::ChainManifest{
                 .spec = spec,
                 .child_genesis_hash = ParseRegistryHash(parameters, "child_genesis_hash"),
@@ -3465,14 +3517,6 @@ RPCHelpMan walletcreatechainregistrypsbt()
                     parameters.find_value("default_fee_recipient")),
             },
         };
-        operation_amount = parameters.exists("registration_burn")
-                               ? AmountFromValue(parameters.find_value("registration_burn"))
-                               : registry_snapshot.minimum_registration_burn;
-        if (operation_amount < registry_snapshot.minimum_registration_burn) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER,
-                               strprintf("registration_burn must be at least %s KNE",
-                                         FormatMoney(registry_snapshot.minimum_registration_burn)));
-        }
         control_destination = ParseRegistryControlDestination(parameters);
         control_amount = RegistryControlAmount(wallet, parameters, *control_destination);
         chain_id = chainregistry::DeriveChainId(
@@ -3530,6 +3574,12 @@ RPCHelpMan walletcreatechainregistrypsbt()
     if (control_destination) {
         recipients.push_back(CRecipient{*control_destination, control_amount, false});
     }
+    if (operation_name == "register") {
+        recipients.push_back(CRecipient{*dealer_control_destination, dealer_control_amount, false});
+        recipients.push_back(CRecipient{CNoDestination{registry_snapshot.dealer->payout_script},
+                                        dealer_payment,
+                                        false});
+    }
 
     UniValue options{request.params[2].isNull() ? UniValue::VOBJ : request.params[2].get_obj()};
     for (const std::string_view forbidden : {"change_position", "subtract_fee_from_outputs", "inputs", "input_weights"}) {
@@ -3543,10 +3593,12 @@ RPCHelpMan walletcreatechainregistrypsbt()
 
     CMutableTransaction raw_tx;
     raw_tx.vin.emplace_back(authority_outpoint);
+    if (dealer_control_outpoint) raw_tx.vin.emplace_back(*dealer_control_outpoint);
     CCoinControl coin_control;
     coin_control.m_allow_other_inputs = true;
     coin_control.m_allow_chain_registry_control_input = true;
     coin_control.Select(authority_outpoint).SetPosition(0);
+    if (dealer_control_outpoint) coin_control.Select(*dealer_control_outpoint).SetPosition(1);
     auto tx_result{FundTransaction(wallet, raw_tx, recipients, options, coin_control,
                                    /*override_min_fee=*/true)};
 
@@ -3554,7 +3606,15 @@ RPCHelpMan walletcreatechainregistrypsbt()
         tx_result.tx->vout.empty() || tx_result.tx->vout[0].scriptPubKey != operation_script ||
         (control_destination &&
          (tx_result.tx->vout.size() < 2 ||
-          tx_result.tx->vout[1].scriptPubKey != GetScriptForDestination(*control_destination)))) {
+          tx_result.tx->vout[1].scriptPubKey != GetScriptForDestination(*control_destination))) ||
+        (operation_name == "register" &&
+         (tx_result.tx->vin.size() < 2 ||
+          tx_result.tx->vin[1].prevout != *dealer_control_outpoint ||
+          tx_result.tx->vout.size() < 4 ||
+          tx_result.tx->vout[2].scriptPubKey != GetScriptForDestination(*dealer_control_destination) ||
+          tx_result.tx->vout[2].nValue != dealer_control_amount ||
+          tx_result.tx->vout[3].scriptPubKey != registry_snapshot.dealer->payout_script ||
+          tx_result.tx->vout[3].nValue != dealer_payment))) {
         throw JSONRPCError(RPC_INTERNAL_ERROR, "wallet changed reserved registry input/output positions");
     }
 
@@ -3577,7 +3637,12 @@ RPCHelpMan walletcreatechainregistrypsbt()
     result.pushKV("changepos", tx_result.change_pos ? static_cast<int>(*tx_result.change_pos) : -1);
     result.pushKV("operation", operation_name);
     result.pushKV("chain_id", chain_id.GetHex());
-    result.pushKV("registration_burn", ValueFromAmount(operation_amount));
+    if (const auto* registration{
+            std::get_if<chainregistry::RegisterChain>(&operation)}) {
+        result.pushKV("manifest_hash",
+                      chainregistry::ComputeManifestHash(registration->manifest).GetHex());
+    }
+    result.pushKV("dealer_payment", ValueFromAmount(dealer_payment));
     result.pushKV("authority_outpoint", std::move(authority));
     result.pushKV("operation_vout", 0);
     if (control_destination) result.pushKV("control_vout", 1);
@@ -3594,20 +3659,25 @@ RPCHelpMan walletsubmitchainregistrypsbt()
     return RPCHelpMan{
         "walletsubmitchainregistrypsbt",
         "Validate, sign, finalize, and broadcast a funded child-chain registry PSBT.\n"
-        "Only the canonical KREG output may destroy value. REGISTER burns are capped by max_registration_burn, which defaults to the consensus minimum.\n"
-        "Registry authority is revalidated at submit time, and REGISTER/UPDATE successor controls must remain owned by this wallet.\n" +
+        "REGISTER pays an authorized dealer atomically and never burns registration value. A partially signed cooperative buyer/dealer PSBT is returned until every input is complete.\n"
+        "Registry authority and dealer state are revalidated at submit time. Every REGISTER signer must independently provide the expected chain_id and manifest_hash.\n" +
         HELP_REQUIRING_PASSPHRASE,
         {
             {"psbt", RPCArg::Type::STR, RPCArg::Optional::NO, "Base64-encoded registry PSBT"},
-            {"max_registration_burn", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "Maximum REGISTER burn authorized by the caller; defaults to the consensus minimum"},
+            {"expected_dealer_payment", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "Exact REGISTER dealer payment authorized by this signer; required for REGISTER"},
+            {"expected_chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Exact REGISTER chain identifier authorized by this signer; required for REGISTER"},
+            {"expected_manifest_hash", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Exact REGISTER manifest commitment authorized by this signer; required for REGISTER"},
         },
         RPCResult{RPCResult::Type::OBJ, "", "Submitted registry transaction", {
-            {RPCResult::Type::STR_HEX, "txid", "Transaction identifier"},
-            {RPCResult::Type::STR_HEX, "hex", "Final network transaction"},
+            {RPCResult::Type::BOOL, "complete", "Whether every input was signed and the transaction was broadcast"},
+            {RPCResult::Type::STR_HEX, "txid", /*optional=*/true, "Transaction identifier when complete"},
+            {RPCResult::Type::STR_HEX, "hex", /*optional=*/true, "Final network transaction when complete"},
+            {RPCResult::Type::STR, "psbt", /*optional=*/true, "Partially signed PSBT when another party must sign"},
             {RPCResult::Type::STR, "operation", "Registry operation type"},
             {RPCResult::Type::STR_HEX, "chain_id", "Affected or derived child-chain identifier"},
+            {RPCResult::Type::STR_HEX, "manifest_hash", /*optional=*/true, "REGISTER manifest commitment"},
             {RPCResult::Type::STR_AMOUNT, "fee", "Transaction fee in KNE"},
-            {RPCResult::Type::STR_AMOUNT, "registration_burn", "Value destroyed by REGISTER, otherwise zero"},
+            {RPCResult::Type::STR_AMOUNT, "dealer_payment", "Value paid to the dealer by REGISTER, otherwise zero"},
         }},
         RPCExamples{
             HelpExampleCli("walletsubmitchainregistrypsbt", "\"cHNidP8...\"")
@@ -3640,22 +3710,12 @@ RPCHelpMan walletsubmitchainregistrypsbt()
     }
 
     const CTransaction tx_template{*unsigned_tx};
-    const auto extracted{chainregistry::ExtractTransactionOperation(
-        tx_template, initial_snapshot.minimum_registration_burn)};
+    const auto extracted{chainregistry::ExtractTransactionOperation(tx_template)};
     if (!extracted.IsValid() || !extracted.operation) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "PSBT does not contain one valid chain registry operation");
     }
 
-    const CAmount maximum_burn{request.params[1].isNull()
-                                   ? initial_snapshot.minimum_registration_burn
-                                   : AmountFromValue(request.params[1])};
     const uint32_t registry_output{extracted.operation->registry_output};
-    const CAmount registration_burn{tx_template.vout[registry_output].nValue};
-    if (registration_burn > maximum_burn) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER,
-                           strprintf("registration burn %s KNE exceeds authorized maximum %s KNE",
-                                     FormatMoney(registration_burn), FormatMoney(maximum_burn)));
-    }
     for (size_t index{0}; index < tx_template.vout.size(); ++index) {
         if (index != registry_output && tx_template.vout[index].scriptPubKey.IsUnspendable()) {
             throw JSONRPCError(RPC_INVALID_PARAMETER,
@@ -3667,12 +3727,22 @@ RPCHelpMan walletsubmitchainregistrypsbt()
     chainregistry::ChainId chain_id;
     std::optional<uint32_t> successor_control_output;
     std::optional<COutPoint> registration_anchor;
+    std::optional<COutPoint> current_chain_control;
+    std::optional<chainregistry::DealerId> dealer_id;
+    std::optional<COutPoint> current_dealer_control;
+    std::optional<uint32_t> dealer_successor_output;
+    std::optional<uint32_t> dealer_payment_output;
+    std::optional<chainregistry::ManifestHash> manifest_hash;
     std::visit([&](const auto& payload) {
         using Payload = std::decay_t<decltype(payload)>;
         if constexpr (std::is_same_v<Payload, chainregistry::RegisterChain>) {
             operation_name = "register";
             successor_control_output = payload.control_output;
             registration_anchor = tx_template.vin[payload.anchor_input].prevout;
+            dealer_id = payload.dealer_id;
+            dealer_successor_output = payload.dealer_control_output;
+            dealer_payment_output = payload.dealer_payment_output;
+            manifest_hash = chainregistry::ComputeManifestHash(payload.manifest);
             chain_id = chainregistry::DeriveChainId(
                 initial_snapshot.main_genesis_hash,
                 tx_template.vin[payload.anchor_input].prevout,
@@ -3681,13 +3751,61 @@ RPCHelpMan walletsubmitchainregistrypsbt()
             operation_name = "update";
             successor_control_output = payload.control_output;
             chain_id = payload.chain_id;
-        } else {
+        } else if constexpr (std::is_same_v<Payload, chainregistry::RetireChain>) {
             operation_name = "retire";
             chain_id = payload.chain_id;
+        } else {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               "dealer administration operations are not wallet sale PSBTs");
         }
     }, extracted.operation->operation);
 
     if (operation_name == "register") {
+        const interfaces::ChainRegistrySnapshot dealer_snapshot{
+            wallet.chain().getChainRegistrySnapshot(std::nullopt, dealer_id)};
+        if (!dealer_snapshot.dealer ||
+            dealer_snapshot.dealer->status != chainregistry::DealerStatus::ACTIVE ||
+            dealer_snapshot.dealer->remaining_licenses == 0) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "dealer is not active or has no licenses");
+        }
+        const auto dealer_inputs{std::ranges::count_if(tx_template.vin, [&](const CTxIn& input) {
+            return input.prevout == dealer_snapshot.dealer->control_outpoint;
+        })};
+        current_dealer_control = dealer_snapshot.dealer->control_outpoint;
+        if (dealer_inputs != 1 ||
+            tx_template.vout[*dealer_payment_output].scriptPubKey != dealer_snapshot.dealer->payout_script) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               "PSBT does not spend and pay the current dealer atomically");
+        }
+        const CAmount payment{tx_template.vout[*dealer_payment_output].nValue};
+        if (request.params[1].isNull() || request.params[2].isNull() ||
+            request.params[3].isNull()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               "expected_dealer_payment, expected_chain_id, and expected_manifest_hash are required for REGISTER");
+        }
+        const CAmount expected_payment{AmountFromValue(request.params[1])};
+        if (payment != expected_payment) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               strprintf("dealer payment %s KNE does not match authorized amount %s KNE",
+                                         FormatMoney(payment), FormatMoney(expected_payment)));
+        }
+        const chainregistry::ChainId expected_chain_id{
+            ParseRegistryChainId(request.params[2])};
+        if (chain_id != expected_chain_id) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               "REGISTER chain_id does not match the authorized value");
+        }
+        const auto expected_manifest_hash{
+            chainregistry::ManifestHash::FromHex(request.params[3].get_str())};
+        if (!expected_manifest_hash || expected_manifest_hash->IsNull()) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "expected_manifest_hash must be exactly 32 non-null bytes encoded as hexadecimal");
+        }
+        if (*manifest_hash != *expected_manifest_hash) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               "REGISTER manifest_hash does not match the authorized value");
+        }
         if (WITH_LOCK(wallet.cs_wallet,
                       return IsWalletChainRegistryControl(wallet, *registration_anchor))) {
             throw JSONRPCError(
@@ -3714,45 +3832,44 @@ RPCHelpMan walletsubmitchainregistrypsbt()
                 RPC_INVALID_PARAMETER,
                 "PSBT vin[0] is not the current child-chain control outpoint");
         }
+        current_chain_control = snapshot.record->control_outpoint;
     }
-    if (successor_control_output &&
-        !WITH_LOCK(wallet.cs_wallet,
-                   return wallet.IsMine(tx_template.vout[*successor_control_output]))) {
+    const auto signer_chain_control{
+        registration_anchor ? registration_anchor : current_chain_control};
+    const bool owns_chain_control{signer_chain_control && WITH_LOCK(
+        wallet.cs_wallet, return wallet.IsMine(*signer_chain_control))};
+    if (successor_control_output && owns_chain_control &&
+        !WITH_LOCK(wallet.cs_wallet, return wallet.IsMine(tx_template.vout[*successor_control_output]))) {
         throw JSONRPCError(
             RPC_INVALID_PARAMETER,
             "PSBT successor control output is not owned by this wallet");
     }
+    const bool owns_dealer_control{current_dealer_control && WITH_LOCK(
+        wallet.cs_wallet, return wallet.IsMine(*current_dealer_control))};
+    if (dealer_successor_output && owns_dealer_control &&
+        !WITH_LOCK(wallet.cs_wallet,
+                   return wallet.IsMine(tx_template.vout[*dealer_successor_output]))) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "PSBT dealer successor control output is not owned by this wallet");
+    }
 
-    CAmount input_value{0};
-    {
-        LOCK(wallet.cs_wallet);
-        for (const auto& input : tx_template.vin) {
-            const CWalletTx* wallet_tx{wallet.GetWalletTx(input.prevout.hash)};
-            if (!wallet_tx || input.prevout.n >= wallet_tx->tx->vout.size() ||
-                !wallet.IsMine(wallet_tx->tx->vout[input.prevout.n])) {
-                throw JSONRPCError(
-                    RPC_INVALID_PARAMETER,
-                    strprintf("PSBT input %s:%d is not owned by this wallet",
-                              input.prevout.hash.ToString(), input.prevout.n));
-            }
-            const CAmount value{wallet_tx->tx->vout[input.prevout.n].nValue};
-            if (!MoneyRange(value) || !MoneyRange(input_value + value)) {
-                throw JSONRPCError(RPC_DESERIALIZATION_ERROR,
-                                   "PSBT input value is out of range");
-            }
-            input_value += value;
+    std::map<COutPoint, Coin> input_coins;
+    for (const auto& input : tx_template.vin) {
+        if (!input_coins.emplace(input.prevout, Coin{}).second) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "PSBT contains a duplicate input");
         }
     }
-
-    EnsureWalletIsUnlocked(wallet);
-    bool complete{false};
-    if (const auto error{wallet.FillPSBT(
-            psbt, {.sign = true, .finalize = true, .bip32_derivs = false}, complete)}) {
-        throw JSONRPCPSBTError(*error);
-    }
-    if (!complete) {
-        throw JSONRPCError(RPC_WALLET_ERROR,
-                           "wallet could not sign and finalize every registry transaction input");
+    wallet.chain().findCoins(input_coins);
+    CAmount input_value{0};
+    for (const auto& [outpoint, coin] : input_coins) {
+        if (coin.IsSpent() || !MoneyRange(coin.out.nValue) ||
+            !MoneyRange(input_value + coin.out.nValue)) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               strprintf("PSBT input %s:%d is unavailable",
+                                         outpoint.hash.ToString(), outpoint.n));
+        }
+        input_value += coin.out.nValue;
     }
 
     CAmount output_value{0};
@@ -3762,6 +3879,14 @@ RPCHelpMan walletsubmitchainregistrypsbt()
         }
         output_value += output.nValue;
     }
+    if (dealer_successor_output && owns_dealer_control) {
+        const Coin& control_coin{input_coins.at(*current_dealer_control)};
+        if (tx_template.vout[*dealer_successor_output].nValue != control_coin.out.nValue) {
+            throw JSONRPCError(
+                RPC_INVALID_PARAMETER,
+                "PSBT does not preserve the dealer control output value");
+        }
+    }
     const CAmount fee{input_value - output_value};
     if (fee < 0) {
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "PSBT transaction fee is negative");
@@ -3769,6 +3894,27 @@ RPCHelpMan walletsubmitchainregistrypsbt()
     if (fee > wallet.m_default_max_tx_fee) {
         throw JSONRPCError(RPC_WALLET_ERROR,
                            TransactionErrorString(TransactionError::MAX_FEE_EXCEEDED).original);
+    }
+
+    EnsureWalletIsUnlocked(wallet);
+    bool complete{false};
+    if (const auto error{wallet.FillPSBT(
+            psbt, {.sign = true, .finalize = true, .bip32_derivs = false}, complete)}) {
+        throw JSONRPCPSBTError(*error);
+    }
+    if (!complete) {
+        DataStream stream;
+        stream << psbt;
+        UniValue result{UniValue::VOBJ};
+        result.pushKV("complete", false);
+        result.pushKV("psbt", EncodeBase64(stream.str()));
+        result.pushKV("operation", operation_name);
+        result.pushKV("chain_id", chain_id.GetHex());
+        if (manifest_hash) result.pushKV("manifest_hash", manifest_hash->GetHex());
+        result.pushKV("fee", ValueFromAmount(fee));
+        result.pushKV("dealer_payment", ValueFromAmount(
+            dealer_payment_output ? tx_template.vout[*dealer_payment_output].nValue : 0));
+        return result;
     }
 
     CMutableTransaction final_tx;
@@ -3788,12 +3934,15 @@ RPCHelpMan walletsubmitchainregistrypsbt()
     wallet.CommitTransaction(tx, {}, /*orderForm=*/{});
 
     UniValue result{UniValue::VOBJ};
+    result.pushKV("complete", true);
     result.pushKV("txid", tx->GetHash().GetHex());
     result.pushKV("hex", hex);
     result.pushKV("operation", operation_name);
     result.pushKV("chain_id", chain_id.GetHex());
+    if (manifest_hash) result.pushKV("manifest_hash", manifest_hash->GetHex());
     result.pushKV("fee", ValueFromAmount(fee));
-    result.pushKV("registration_burn", ValueFromAmount(registration_burn));
+    result.pushKV("dealer_payment", ValueFromAmount(
+        dealer_payment_output ? tx_template.vout[*dealer_payment_output].nValue : 0));
     return result;
 },
     };

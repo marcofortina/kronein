@@ -34,8 +34,9 @@ static constexpr std::array<uint8_t, 5> SNAPSHOT_REGISTRY_MAGIC_BYTES = {'k', 'r
 class Chainstate;
 
 namespace node {
-inline constexpr uint8_t REGISTRY_SNAPSHOT_VERSION{2};
+inline constexpr uint8_t REGISTRY_SNAPSHOT_VERSION{3};
 inline constexpr uint64_t MAX_REGISTRY_SNAPSHOT_RECORDS{1'000'000};
+inline constexpr uint64_t MAX_REGISTRY_SNAPSHOT_DEALERS{1'000'000};
 inline constexpr uint64_t MAX_REGISTRY_SNAPSHOT_MERKLE_BRANCH{32};
 
 /**
@@ -48,6 +49,8 @@ struct RegistrySnapshot {
     uint256 base_blockhash;
     uint256 registry_root;
     std::vector<chainregistry::ChainRecord> records;
+    std::vector<chainregistry::DealerRecord> dealers;
+    uint64_t authority_sequence{0};
     CMutableTransaction coinbase;
     std::vector<uint256> coinbase_merkle_branch;
 
@@ -56,6 +59,9 @@ struct RegistrySnapshot {
     {
         if (records.size() > MAX_REGISTRY_SNAPSHOT_RECORDS) {
             throw std::ios_base::failure("Child chain registry snapshot has too many records.");
+        }
+        if (dealers.size() > MAX_REGISTRY_SNAPSHOT_DEALERS) {
+            throw std::ios_base::failure("Child chain registry snapshot has too many dealers.");
         }
         if (coinbase_merkle_branch.size() > MAX_REGISTRY_SNAPSHOT_MERKLE_BRANCH) {
             throw std::ios_base::failure("Child chain registry snapshot Merkle branch is too long.");
@@ -66,6 +72,9 @@ struct RegistrySnapshot {
         stream << registry_root;
         WriteCompactSize(stream, records.size());
         for (const auto& record : records) stream << record;
+        WriteCompactSize(stream, dealers.size());
+        for (const auto& dealer : dealers) stream << dealer;
+        stream << authority_sequence;
         stream << TX_WITH_WITNESS(coinbase);
         WriteCompactSize(stream, coinbase_merkle_branch.size());
         for (const auto& hash : coinbase_merkle_branch) stream << hash;
@@ -89,6 +98,14 @@ struct RegistrySnapshot {
         }
         records.resize(record_count);
         for (auto& record : records) stream >> record;
+
+        const uint64_t dealer_count{ReadCompactSize(stream)};
+        if (dealer_count > MAX_REGISTRY_SNAPSHOT_DEALERS) {
+            throw std::ios_base::failure("Child chain registry snapshot has too many dealers.");
+        }
+        dealers.resize(dealer_count);
+        for (auto& dealer : dealers) stream >> dealer;
+        stream >> authority_sequence;
 
         stream >> TX_WITH_WITNESS(coinbase);
         const uint64_t branch_size{ReadCompactSize(stream)};

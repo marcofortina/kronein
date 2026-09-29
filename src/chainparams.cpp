@@ -7,11 +7,13 @@
 
 #include <chainparamsbase.h>
 #include <common/args.h>
+#include <pubkey.h>
 #include <tinyformat.h>
 #include <util/chaintype.h>
 #include <util/moneystr.h>
 #include <util/strencodings.h>
 
+#include <algorithm>
 #include <cassert>
 #include <limits>
 #include <stdexcept>
@@ -40,20 +42,20 @@ void ReadRegTestArgs(const ArgsManager& args, CChainParams::RegTestOptions& opti
     if (HasTestOption(args, "bip94")) options.enforce_bip94 = true;
 
     const bool has_activation{args.IsArgSet("-chainregistryactivationheight")};
-    const bool has_burn{args.IsArgSet("-chainregistryminregistrationburn")};
+    const bool has_authority{args.IsArgSet("-chaindealerauthoritykey")};
     const bool has_max_operations{args.IsArgSet("-chainregistrymaxoperations")};
     const bool has_deposit_activation{args.IsArgSet("-chaindepositactivationheight")};
     const bool has_deposit_minimum{args.IsArgSet("-chaindepositminimumamount")};
     const bool has_max_deposits{args.IsArgSet("-chaindepositmaxperblock")};
     const bool has_bmm_activation{args.IsArgSet("-chainbmmactivationheight")};
     const bool has_max_bmm_anchors{args.IsArgSet("-chainbmmmaxanchorsperblock")};
-    const bool has_registry_options{has_activation || has_burn || has_max_operations};
+    const bool has_registry_options{has_activation || has_authority || has_max_operations};
     const bool has_deposit_options{has_deposit_activation || has_deposit_minimum || has_max_deposits};
     const bool has_bmm_options{has_bmm_activation || has_max_bmm_anchors};
     if (!has_registry_options && !has_deposit_options && !has_bmm_options) return;
-    if (!has_activation || !has_burn || !has_max_operations) {
+    if (!has_activation || !has_authority || !has_max_operations) {
         throw std::runtime_error("The regtest chain registry requires -chainregistryactivationheight, "
-                                 "-chainregistryminregistrationburn, and -chainregistrymaxoperations together.");
+                                 "-chaindealerauthoritykey, and -chainregistrymaxoperations together.");
     }
     if (has_deposit_options && (!has_deposit_activation || !has_deposit_minimum || !has_max_deposits)) {
         throw std::runtime_error("Regtest child-chain deposits require -chaindepositactivationheight, "
@@ -69,9 +71,10 @@ void ReadRegTestArgs(const ArgsManager& args, CChainParams::RegTestOptions& opti
         throw std::runtime_error("-chainregistryactivationheight must be between 1 and INT_MAX.");
     }
 
-    const auto minimum_burn{ParseMoney(*args.GetArg("-chainregistryminregistrationburn"))};
-    if (!minimum_burn || *minimum_burn <= 0) {
-        throw std::runtime_error("-chainregistryminregistrationburn must be a positive KNE amount.");
+    const auto authority_key{TryParseHex<uint8_t>(*args.GetArg("-chaindealerauthoritykey"))};
+    if (!authority_key || authority_key->size() != 32 ||
+        !XOnlyPubKey{*authority_key}.IsFullyValid()) {
+        throw std::runtime_error("-chaindealerauthoritykey must be a valid 32-byte x-only public key.");
     }
 
     const auto maximum_operations{args.GetIntArg("-chainregistrymaxoperations")};
@@ -81,9 +84,9 @@ void ReadRegTestArgs(const ArgsManager& args, CChainParams::RegTestOptions& opti
 
     Consensus::Params::ChainRegistryParams registry{
         .activation_height = static_cast<int>(*activation_height),
-        .minimum_registration_burn = *minimum_burn,
         .maximum_operations = static_cast<uint32_t>(*maximum_operations),
     };
+    std::copy(authority_key->begin(), authority_key->end(), registry.dealer_authority_key.begin());
 
     if (has_deposit_options) {
         const auto deposit_activation_height{args.GetIntArg("-chaindepositactivationheight")};

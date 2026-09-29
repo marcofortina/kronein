@@ -3,6 +3,7 @@
 // file COPYING or https://opensource.org/license/mit/.
 
 #include <consensus/chainregistry.h>
+#include <key.h>
 #include <primitives/block.h>
 #include <primitives/chainregistry.h>
 
@@ -41,11 +42,70 @@ chainregistry::ChainManifest ValidManifest()
     };
 }
 
-chainregistry::RegistryOperation ValidRegistration(uint32_t anchor_input = 0, uint32_t control_output = 1)
+chainregistry::DealerId TestDealerId(unsigned char byte = 1)
+{
+    std::array<unsigned char, 32> data{};
+    data.fill(byte);
+    return chainregistry::DealerId::FromUint256(uint256{std::span{data}});
+}
+
+COutPoint TestDealerControl(unsigned char byte = 1)
+{
+    std::array<unsigned char, 32> data{};
+    data.fill(static_cast<unsigned char>(0x80U + byte));
+    return COutPoint{Txid::FromUint256(uint256{std::span{data}}), 0};
+}
+
+const CKey& TestAuthorityPrivateKey()
+{
+    static const CKey key{[] {
+        std::array<unsigned char, 32> secret{};
+        secret.back() = 1;
+        CKey result;
+        result.Set(secret.begin(), secret.end(), true);
+        return result;
+    }()};
+    return key;
+}
+
+const XOnlyPubKey& TestAuthorityKey()
+{
+    static const XOnlyPubKey key{TestAuthorityPrivateKey().GetPubKey()};
+    return key;
+}
+
+template <typename Operation>
+Operation SignAdminOperation(Operation operation, const uint256& main_genesis)
+{
+    chainregistry::RegistryOperation variant{operation};
+    const auto digest{chainregistry::ComputeDealerAuthorityHash(main_genesis, variant)};
+    BOOST_REQUIRE(digest.has_value());
+    BOOST_REQUIRE(TestAuthorityPrivateKey().SignSchnorr(
+        *digest, operation.authority_signature, nullptr, uint256{}));
+    return operation;
+}
+
+CMutableTransaction OperationTx(const chainregistry::RegistryOperation& operation,
+                                std::optional<CScript> control = std::nullopt)
+{
+    CMutableTransaction tx;
+    tx.vin.emplace_back(COutPoint{
+        Txid{"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}, 0});
+    tx.vout.emplace_back(0, chainregistry::BuildOperationScript(operation));
+    if (control) tx.vout.emplace_back(0, *control);
+    return tx;
+}
+
+chainregistry::RegistryOperation ValidRegistration(uint32_t anchor_input = 0,
+                                                   uint32_t control_output = 1,
+                                                   unsigned char dealer_byte = 1)
 {
     return chainregistry::RegisterChain{
         .anchor_input = anchor_input,
         .control_output = control_output,
+        .dealer_id = TestDealerId(dealer_byte),
+        .dealer_control_output = 2,
+        .dealer_payment_output = 3,
         .manifest = ValidManifest(),
     };
 }
@@ -55,26 +115,53 @@ CScript TaprootScript(unsigned char byte = 1)
     return CScript{} << OP_1 << std::vector<unsigned char>(32, byte);
 }
 
-CMutableTransaction ValidRegistrationTx(CAmount burn = 1'000)
+CMutableTransaction ValidRegistrationTx(CAmount operation_value = 0)
 {
     CMutableTransaction tx;
     tx.vin.emplace_back(COutPoint{
         Txid{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}, 0});
-    tx.vout.emplace_back(burn, chainregistry::BuildOperationScript(ValidRegistration()));
+    tx.vin.emplace_back(TestDealerControl());
+    tx.vout.emplace_back(operation_value, chainregistry::BuildOperationScript(ValidRegistration()));
     tx.vout.emplace_back(0, TaprootScript());
+    tx.vout.emplace_back(0, TaprootScript(0x41));
+    tx.vout.emplace_back(1'000, TaprootScript(0x81));
     return tx;
 }
 
 CMutableTransaction RegistrationTx(const Txid& anchor_txid,
                                    uint32_t anchor_vout,
                                    unsigned char control_byte,
-                                   CAmount burn = 1'000)
+                                   CAmount operation_value = 0)
 {
     CMutableTransaction tx;
     tx.vin.emplace_back(COutPoint{anchor_txid, anchor_vout});
-    tx.vout.emplace_back(burn, chainregistry::BuildOperationScript(ValidRegistration()));
+    tx.vin.emplace_back(TestDealerControl(control_byte));
+    tx.vout.emplace_back(operation_value,
+                         chainregistry::BuildOperationScript(
+                             ValidRegistration(0, 1, control_byte)));
     tx.vout.emplace_back(0, TaprootScript(control_byte));
+    tx.vout.emplace_back(0, TaprootScript(static_cast<unsigned char>(0x40U + control_byte)));
+    tx.vout.emplace_back(1'000, TaprootScript(static_cast<unsigned char>(0x80U + control_byte)));
     return tx;
+}
+
+void SeedDealers(chainregistry::ChainRegistry& registry, unsigned count = 32)
+{
+    std::vector<chainregistry::DealerRecord> dealers;
+    dealers.reserve(count);
+    for (unsigned index{1}; index <= count; ++index) {
+        const auto byte{static_cast<unsigned char>(index)};
+        dealers.push_back(chainregistry::DealerRecord{
+            .dealer_id = TestDealerId(byte),
+            .control_outpoint = TestDealerControl(byte),
+            .payout_script = TaprootScript(static_cast<unsigned char>(0x80U + byte)),
+            .remaining_licenses = 1,
+            .status = chainregistry::DealerStatus::ACTIVE,
+            .authorized_height = 1,
+            .updated_height = 1,
+        });
+    }
+    BOOST_REQUIRE(registry.LoadState({}, std::move(dealers), 0).IsValid());
 }
 
 CMutableTransaction UpdateTx(const chainregistry::ChainRecord& record,
@@ -121,7 +208,11 @@ CBlock RegistryBlock(const CMutableTransaction& coinbase, std::vector<CMutableTr
 
 } // namespace
 
-BOOST_AUTO_TEST_SUITE(chainregistry_tests)
+struct ChainRegistryTestingSetup {
+    ECC_Context ecc_context;
+};
+
+BOOST_FIXTURE_TEST_SUITE(chainregistry_tests, ChainRegistryTestingSetup)
 
 BOOST_AUTO_TEST_CASE(identifier_serialization)
 {
@@ -254,6 +345,9 @@ BOOST_AUTO_TEST_CASE(operation_script_vectors_and_roundtrip)
     const chainregistry::RegistryOperation registration{chainregistry::RegisterChain{
         .anchor_input = 0,
         .control_output = 1,
+        .dealer_id = TestDealerId(),
+        .dealer_control_output = 2,
+        .dealer_payment_output = 3,
         .manifest = ValidManifest(),
     }};
     const chainregistry::RegistryOperation update{chainregistry::UpdateChain{
@@ -264,10 +358,37 @@ BOOST_AUTO_TEST_CASE(operation_script_vectors_and_roundtrip)
     const chainregistry::RegistryOperation retirement{chainregistry::RetireChain{
         .chain_id = chainregistry::ChainId{"5555555555555555555555555555555555555555555555555555555555555555"},
     }};
+    chainregistry::AuthorizeDealer authorization{
+        .authority_sequence = 1,
+        .authorization_nonce = uint256{
+            "6666666666666666666666666666666666666666666666666666666666666666"},
+        .control_output = 1,
+        .payout_script = ParseHex(
+            "51207777777777777777777777777777777777777777777777777777777777777777"),
+        .initial_licenses = 5,
+    };
+    const auto authority_key{ParseHex(
+        "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798")};
+    std::copy(authority_key.begin(), authority_key.end(), authorization.control_key.begin());
+    authorization.authority_signature.fill(0x88);
+    chainregistry::UpdateDealer dealer_update{
+        .authority_sequence = 2,
+        .dealer_id = TestDealerId(),
+        .added_licenses = 3,
+        .payout_script = {},
+    };
+    dealer_update.authority_signature.fill(0x99);
+    chainregistry::RevokeDealer dealer_revocation{
+        .authority_sequence = 3,
+        .dealer_id = TestDealerId(),
+    };
+    dealer_revocation.authority_signature.fill(0xaa);
 
     const std::vector<std::pair<chainregistry::RegistryOperation, std::string_view>> vectors{
         {registration,
-         "6a4c804b524547010100000000010000000100010000000200000003aabbcc01"
+         "6a4ca84b52454701010000000001000000"
+         "0101010101010101010101010101010101010101010101010101010101010101"
+         "02000000030000000100010000000200000003aabbcc01"
          "1111111111111111111111111111111111111111111111111111111111111111"
          "2222222222222222222222222222222222222222222222222222222222222222"
          "010020"
@@ -277,6 +398,25 @@ BOOST_AUTO_TEST_CASE(operation_script_vectors_and_roundtrip)
          "020000004444444444444444444444444444444444444444444444444444444444444444"},
         {retirement,
          "6a264b52454701035555555555555555555555555555555555555555555555555555555555555555"},
+        {authorization,
+         "6a4cb94b52454701040100000000000000"
+         "6666666666666666666666666666666666666666666666666666666666666666"
+         "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+         "010000002251207777777777777777777777777777777777777777777777777777777777777777"
+         "05000000"
+         "8888888888888888888888888888888888888888888888888888888888888888"
+         "8888888888888888888888888888888888888888888888888888888888888888"},
+        {dealer_update,
+         "6a4c734b52454701050200000000000000"
+         "0101010101010101010101010101010101010101010101010101010101010101"
+         "0300000000"
+         "9999999999999999999999999999999999999999999999999999999999999999"
+         "9999999999999999999999999999999999999999999999999999999999999999"},
+        {dealer_revocation,
+         "6a4c6e4b52454701060300000000000000"
+         "0101010101010101010101010101010101010101010101010101010101010101"
+         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
     };
 
     for (const auto& [operation, expected_hex] : vectors) {
@@ -295,6 +435,9 @@ BOOST_AUTO_TEST_CASE(operation_validation)
     chainregistry::RegistryOperation operation{chainregistry::RegisterChain{
         .anchor_input = std::numeric_limits<uint32_t>::max(),
         .control_output = 0,
+        .dealer_id = TestDealerId(),
+        .dealer_control_output = 1,
+        .dealer_payment_output = 2,
         .manifest = ValidManifest(),
     }};
     BOOST_CHECK(chainregistry::ValidateOperation(operation) == chainregistry::OperationValidationError::INVALID_ANCHOR_INPUT);
@@ -354,12 +497,12 @@ BOOST_AUTO_TEST_CASE(transaction_operation_extraction)
 {
     CMutableTransaction plain_tx;
     plain_tx.vout.emplace_back(0, CScript{} << OP_RETURN << ParseHex("abcd"));
-    auto result{chainregistry::ExtractTransactionOperation(CTransaction{plain_tx}, 1'000)};
+    auto result{chainregistry::ExtractTransactionOperation(CTransaction{plain_tx})};
     BOOST_CHECK(result.IsValid());
     BOOST_CHECK(!result.operation.has_value());
 
     const CMutableTransaction registration_tx{ValidRegistrationTx()};
-    result = chainregistry::ExtractTransactionOperation(CTransaction{registration_tx}, 1'000);
+    result = chainregistry::ExtractTransactionOperation(CTransaction{registration_tx});
     BOOST_REQUIRE(result.IsValid());
     BOOST_REQUIRE(result.operation.has_value());
     BOOST_CHECK_EQUAL(result.operation->registry_output, 0U);
@@ -372,7 +515,7 @@ BOOST_AUTO_TEST_CASE(transaction_operation_extraction)
         .metadata_hash = chainregistry::MetadataHash{"4444444444444444444444444444444444444444444444444444444444444444"},
     }));
     update_tx.vout.emplace_back(0, TaprootScript(2));
-    result = chainregistry::ExtractTransactionOperation(CTransaction{update_tx}, 1'000);
+    result = chainregistry::ExtractTransactionOperation(CTransaction{update_tx});
     BOOST_REQUIRE(result.IsValid());
     BOOST_REQUIRE(result.operation.has_value());
     BOOST_CHECK(std::holds_alternative<chainregistry::UpdateChain>(result.operation->operation));
@@ -381,7 +524,7 @@ BOOST_AUTO_TEST_CASE(transaction_operation_extraction)
     retire_tx.vout.emplace_back(0, chainregistry::BuildOperationScript(chainregistry::RetireChain{
         .chain_id = chainregistry::ChainId{"5555555555555555555555555555555555555555555555555555555555555555"},
     }));
-    result = chainregistry::ExtractTransactionOperation(CTransaction{retire_tx}, 1'000);
+    result = chainregistry::ExtractTransactionOperation(CTransaction{retire_tx});
     BOOST_REQUIRE(result.IsValid());
     BOOST_REQUIRE(result.operation.has_value());
     BOOST_CHECK(std::holds_alternative<chainregistry::RetireChain>(result.operation->operation));
@@ -391,37 +534,61 @@ BOOST_AUTO_TEST_CASE(transaction_operation_rejects_invalid_context)
 {
     CMutableTransaction tx{ValidRegistrationTx()};
     tx.vout[0].nValue = 999;
-    auto result{chainregistry::ExtractTransactionOperation(CTransaction{tx}, 1'000)};
-    BOOST_CHECK(result.error == chainregistry::TxOperationError::INSUFFICIENT_REGISTRATION_BURN);
+    auto result{chainregistry::ExtractTransactionOperation(CTransaction{tx})};
+    BOOST_CHECK(result.error == chainregistry::TxOperationError::UNEXPECTED_OPERATION_VALUE);
 
     tx = ValidRegistrationTx();
-    tx.vout[0].scriptPubKey = chainregistry::BuildOperationScript(ValidRegistration(1, 1));
-    result = chainregistry::ExtractTransactionOperation(CTransaction{tx}, 1'000);
+    tx.vout[0].scriptPubKey = chainregistry::BuildOperationScript(ValidRegistration(2, 1));
+    result = chainregistry::ExtractTransactionOperation(CTransaction{tx});
     BOOST_CHECK(result.error == chainregistry::TxOperationError::INVALID_ANCHOR_INPUT);
 
     tx = ValidRegistrationTx();
     tx.vin[0].prevout.SetNull();
-    result = chainregistry::ExtractTransactionOperation(CTransaction{tx}, 1'000);
+    result = chainregistry::ExtractTransactionOperation(CTransaction{tx});
     BOOST_CHECK(result.error == chainregistry::TxOperationError::NULL_ANCHOR_PREVOUT);
 
     tx = ValidRegistrationTx();
-    tx.vout[0].scriptPubKey = chainregistry::BuildOperationScript(ValidRegistration(0, 2));
-    result = chainregistry::ExtractTransactionOperation(CTransaction{tx}, 1'000);
+    tx.vout[0].scriptPubKey = chainregistry::BuildOperationScript(ValidRegistration(0, 4));
+    result = chainregistry::ExtractTransactionOperation(CTransaction{tx});
     BOOST_CHECK(result.error == chainregistry::TxOperationError::INVALID_CONTROL_OUTPUT);
 
     tx = ValidRegistrationTx();
     tx.vout[0].scriptPubKey = chainregistry::BuildOperationScript(ValidRegistration(0, 0));
-    result = chainregistry::ExtractTransactionOperation(CTransaction{tx}, 1'000);
+    result = chainregistry::ExtractTransactionOperation(CTransaction{tx});
     BOOST_CHECK(result.error == chainregistry::TxOperationError::CONTROL_OUTPUT_COLLISION);
 
     tx = ValidRegistrationTx();
     tx.vout[1].scriptPubKey = CScript{} << OP_RETURN;
-    result = chainregistry::ExtractTransactionOperation(CTransaction{tx}, 1'000);
+    result = chainregistry::ExtractTransactionOperation(CTransaction{tx});
     BOOST_CHECK(result.error == chainregistry::TxOperationError::CONTROL_OUTPUT_NOT_P2TR);
 
     tx = ValidRegistrationTx();
+    tx.vout[2].scriptPubKey = CScript{} << OP_RETURN;
+    result = chainregistry::ExtractTransactionOperation(CTransaction{tx});
+    BOOST_CHECK(result.error == chainregistry::TxOperationError::CONTROL_OUTPUT_NOT_P2TR);
+
+    tx = ValidRegistrationTx();
+    tx.vout[3].nValue = 0;
+    result = chainregistry::ExtractTransactionOperation(CTransaction{tx});
+    BOOST_CHECK(result.error == chainregistry::TxOperationError::INVALID_DEALER_PAYMENT);
+
+    tx = ValidRegistrationTx();
+    auto registration{std::get<chainregistry::RegisterChain>(ValidRegistration())};
+    registration.dealer_payment_output = registration.dealer_control_output;
+    tx.vout[0].scriptPubKey = chainregistry::BuildOperationScript(registration);
+    result = chainregistry::ExtractTransactionOperation(CTransaction{tx});
+    BOOST_CHECK(result.error == chainregistry::TxOperationError::OUTPUT_COLLISION);
+
+    tx = ValidRegistrationTx();
+    registration = std::get<chainregistry::RegisterChain>(ValidRegistration());
+    registration.dealer_payment_output = static_cast<uint32_t>(tx.vout.size());
+    tx.vout[0].scriptPubKey = chainregistry::BuildOperationScript(registration);
+    result = chainregistry::ExtractTransactionOperation(CTransaction{tx});
+    BOOST_CHECK(result.error == chainregistry::TxOperationError::INVALID_DEALER_PAYMENT);
+
+    tx = ValidRegistrationTx();
     tx.vout[0].scriptPubKey = CScript{} << OP_RETURN << ParseHex("4b524547");
-    result = chainregistry::ExtractTransactionOperation(CTransaction{tx}, 1'000);
+    result = chainregistry::ExtractTransactionOperation(CTransaction{tx});
     BOOST_CHECK(result.error == chainregistry::TxOperationError::INVALID_ENVELOPE);
     BOOST_CHECK(result.parse_error == chainregistry::OperationParseError::INVALID_PAYLOAD);
 }
@@ -434,7 +601,7 @@ BOOST_AUTO_TEST_CASE(transaction_operation_rejects_multiple_and_unexpected_value
         .chain_id = chainregistry::ChainId{"5555555555555555555555555555555555555555555555555555555555555555"},
     })};
     tx.vout.emplace_back(0, TaprootScript());
-    auto result{chainregistry::ExtractTransactionOperation(CTransaction{tx}, 1'000)};
+    auto result{chainregistry::ExtractTransactionOperation(CTransaction{tx})};
     BOOST_CHECK(result.error == chainregistry::TxOperationError::MULTIPLE_OPERATIONS);
 
     CMutableTransaction update_tx;
@@ -444,14 +611,14 @@ BOOST_AUTO_TEST_CASE(transaction_operation_rejects_multiple_and_unexpected_value
         .metadata_hash = chainregistry::MetadataHash{"4444444444444444444444444444444444444444444444444444444444444444"},
     }));
     update_tx.vout.emplace_back(0, TaprootScript());
-    result = chainregistry::ExtractTransactionOperation(CTransaction{update_tx}, 1'000);
+    result = chainregistry::ExtractTransactionOperation(CTransaction{update_tx});
     BOOST_CHECK(result.error == chainregistry::TxOperationError::UNEXPECTED_OPERATION_VALUE);
 
     CMutableTransaction retire_tx;
     retire_tx.vout.emplace_back(1, chainregistry::BuildOperationScript(chainregistry::RetireChain{
         .chain_id = chainregistry::ChainId{"5555555555555555555555555555555555555555555555555555555555555555"},
     }));
-    result = chainregistry::ExtractTransactionOperation(CTransaction{retire_tx}, 1'000);
+    result = chainregistry::ExtractTransactionOperation(CTransaction{retire_tx});
     BOOST_CHECK(result.error == chainregistry::TxOperationError::UNEXPECTED_OPERATION_VALUE);
 }
 
@@ -490,12 +657,18 @@ BOOST_AUTO_TEST_CASE(registry_record_hash_vectors)
 
     chainregistry::ChainRegistry registry;
     BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(),
-                      "06f412b26ee35c9eac2ac70cdd41f979c213c70cba8b5bf02e6c54ffe4e7d459");
+                      "a50abeda09f86c49411f03598c9f3786d93807d11ed4a0d9695f0a88e5172421");
 
     const chainregistry::RegistryUndo undo{
+        .has_chain = true,
         .chain_id = record.chain_id,
-        .had_previous = true,
-        .previous = record,
+        .chain_had_previous = true,
+        .previous_chain = record,
+        .has_dealer = false,
+        .dealer_id = {},
+        .dealer_had_previous = false,
+        .previous_dealer = {},
+        .previous_authority_sequence = 0,
     };
     DataStream undo_stream;
     undo_stream << undo;
@@ -511,7 +684,7 @@ BOOST_AUTO_TEST_CASE(registry_commitment_vectors_and_roundtrip)
     const CScript script{chainregistry::BuildRegistryCommitment(root)};
     BOOST_CHECK_EQUAL(
         HexStr(script),
-        "6a254b52525401"
+        "6a254b52525402"
         "1111111111111111111111111111111111111111111111111111111111111111");
     BOOST_CHECK(script.IsUnspendable());
 
@@ -534,15 +707,15 @@ BOOST_AUTO_TEST_CASE(registry_commitment_rejects_invalid_encodings)
 {
     constexpr uint256 root{"1111111111111111111111111111111111111111111111111111111111111111"};
     const auto canonical_data{ParseHex(
-        "4b52525401"
+        "4b52525402"
         "1111111111111111111111111111111111111111111111111111111111111111")};
 
     BOOST_CHECK(chainregistry::ParseRegistryCommitment(CScript{}).error == chainregistry::CommitmentParseError::NOT_COMMITMENT);
     BOOST_CHECK(chainregistry::ParseRegistryCommitment(CScript{} << OP_RETURN << ParseHex("abcd")).error == chainregistry::CommitmentParseError::NOT_COMMITMENT);
-    BOOST_CHECK(chainregistry::ParseRegistryCommitment(CScript{} << OP_RETURN << ParseHex("4b52525401")).error == chainregistry::CommitmentParseError::INVALID_LENGTH);
+    BOOST_CHECK(chainregistry::ParseRegistryCommitment(CScript{} << OP_RETURN << ParseHex("4b52525402")).error == chainregistry::CommitmentParseError::INVALID_LENGTH);
 
     auto bad_version{canonical_data};
-    bad_version[4] = 2;
+    bad_version[4] = 1;
     BOOST_CHECK(chainregistry::ParseRegistryCommitment(CScript{} << OP_RETURN << bad_version).error == chainregistry::CommitmentParseError::UNSUPPORTED_VERSION);
 
     const auto malformed{CScript{} << OP_RETURN << canonical_data << OP_0};
@@ -567,7 +740,7 @@ BOOST_AUTO_TEST_CASE(registry_commitment_rejects_invalid_encodings)
     BOOST_CHECK(extracted.error == chainregistry::CommitmentTxError::MULTIPLE_COMMITMENTS);
 
     CMutableTransaction invalid_tx;
-    invalid_tx.vout.emplace_back(0, CScript{} << OP_RETURN << ParseHex("4b52525401"));
+    invalid_tx.vout.emplace_back(0, CScript{} << OP_RETURN << ParseHex("4b52525402"));
     extracted = chainregistry::ExtractRegistryCommitment(CTransaction{invalid_tx});
     BOOST_CHECK(extracted.error == chainregistry::CommitmentTxError::INVALID_COMMITMENT);
     BOOST_CHECK(extracted.parse_error == chainregistry::CommitmentParseError::INVALID_LENGTH);
@@ -580,8 +753,9 @@ BOOST_AUTO_TEST_CASE(registry_lifecycle_and_undo)
         Txid{"0101010101010101010101010101010101010101010101010101010101010101"}, 7, 1)};
 
     chainregistry::ChainRegistry registry;
+    SeedDealers(registry);
     const uint256 empty_root{registry.ComputeRoot()};
-    auto result{registry.ApplyTransaction(CTransaction{registration_tx}, 100, main_genesis, 1'000)};
+    auto result{registry.ApplyTransaction(CTransaction{registration_tx}, 100, main_genesis, TestAuthorityKey())};
     BOOST_REQUIRE(result.IsValid());
     BOOST_REQUIRE(result.HasOperation());
     BOOST_REQUIRE(result.undo.has_value());
@@ -602,7 +776,7 @@ BOOST_AUTO_TEST_CASE(registry_lifecycle_and_undo)
     const chainregistry::RegistryUndo registration_undo{*result.undo};
     const auto metadata{chainregistry::MetadataHash{"abababababababababababababababababababababababababababababababab"}};
     const CMutableTransaction update_tx{UpdateTx(*record, metadata, 2)};
-    result = registry.ApplyTransaction(CTransaction{update_tx}, 101, main_genesis, 1'000);
+    result = registry.ApplyTransaction(CTransaction{update_tx}, 101, main_genesis, TestAuthorityKey());
     BOOST_REQUIRE(result.IsValid());
     BOOST_REQUIRE(result.undo.has_value());
     const chainregistry::RegistryUndo update_undo{*result.undo};
@@ -614,7 +788,7 @@ BOOST_AUTO_TEST_CASE(registry_lifecycle_and_undo)
     BOOST_CHECK(registry.ComputeRoot() != registered_root);
 
     const CMutableTransaction retire_tx{RetireTx(*record)};
-    result = registry.ApplyTransaction(CTransaction{retire_tx}, 102, main_genesis, 1'000);
+    result = registry.ApplyTransaction(CTransaction{retire_tx}, 102, main_genesis, TestAuthorityKey());
     BOOST_REQUIRE(result.IsValid());
     BOOST_REQUIRE(result.undo.has_value());
     const chainregistry::RegistryUndo retire_undo{*result.undo};
@@ -624,7 +798,7 @@ BOOST_AUTO_TEST_CASE(registry_lifecycle_and_undo)
     BOOST_CHECK_EQUAL(record->retired_height, 102U);
 
     const CMutableTransaction update_after_retire{UpdateTx(*record, metadata, 3)};
-    const auto retired_result{registry.ApplyTransaction(CTransaction{update_after_retire}, 103, main_genesis, 1'000)};
+    const auto retired_result{registry.ApplyTransaction(CTransaction{update_after_retire}, 103, main_genesis, TestAuthorityKey())};
     BOOST_CHECK(retired_result.error == chainregistry::RegistryError::RETIRED_CHAIN);
 
     BOOST_REQUIRE(registry.Undo(retire_undo));
@@ -635,13 +809,166 @@ BOOST_AUTO_TEST_CASE(registry_lifecycle_and_undo)
     BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(), empty_root.GetHex());
 }
 
+BOOST_AUTO_TEST_CASE(dealer_authorization_sale_update_revoke_and_undo)
+{
+    constexpr uint256 main_genesis{
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
+    std::array<unsigned char, 32> dealer_secret{};
+    dealer_secret.back() = 2;
+    CKey dealer_key;
+    dealer_key.Set(dealer_secret.begin(), dealer_secret.end(), true);
+    const XOnlyPubKey dealer_xonly{dealer_key.GetPubKey()};
+    const CScript dealer_control_script{CScript{} << OP_1 << std::vector<unsigned char>{
+        dealer_xonly.begin(), dealer_xonly.end()}};
+    const CScript initial_payout{TaprootScript(0x51)};
+    const CScript rotated_payout{TaprootScript(0x52)};
+
+    chainregistry::AuthorizeDealer authorization{
+        .authority_sequence = 1,
+        .authorization_nonce = uint256{
+            "0101010101010101010101010101010101010101010101010101010101010101"},
+        .control_output = 1,
+        .payout_script = {initial_payout.begin(), initial_payout.end()},
+        .initial_licenses = 2,
+    };
+    std::copy(dealer_xonly.begin(), dealer_xonly.end(), authorization.control_key.begin());
+    const auto authority_digest{chainregistry::ComputeDealerAuthorityHash(
+        main_genesis, chainregistry::RegistryOperation{authorization})};
+    BOOST_REQUIRE(authority_digest.has_value());
+    BOOST_CHECK_EQUAL(
+        HexStr(std::span{authority_digest->begin(), authority_digest->size()}),
+        "89e5dce42b40f48d453febd6bcd431aa1e76f7c499fc37f74a2acbe6329f901f");
+    auto authorization_with_signature{authorization};
+    authorization_with_signature.authority_signature.fill(0x42);
+    BOOST_CHECK(chainregistry::ComputeDealerAuthorityHash(
+                    main_genesis,
+                    chainregistry::RegistryOperation{authorization_with_signature}) ==
+                authority_digest);
+    authorization = SignAdminOperation(authorization, main_genesis);
+    const CMutableTransaction authorization_tx{OperationTx(
+        authorization, dealer_control_script)};
+
+    chainregistry::ChainRegistry registry;
+    const uint256 empty_root{registry.ComputeRoot()};
+    const auto authorized{registry.ApplyTransaction(
+        CTransaction{authorization_tx}, 10, main_genesis, TestAuthorityKey())};
+    BOOST_REQUIRE(authorized.IsValid());
+    BOOST_REQUIRE(authorized.dealer_id.has_value());
+    BOOST_REQUIRE(authorized.undo.has_value());
+    BOOST_CHECK_EQUAL(registry.AuthoritySequence(), 1U);
+    const chainregistry::DealerId dealer_id{*authorized.dealer_id};
+    const auto* dealer{registry.FindDealer(dealer_id)};
+    BOOST_REQUIRE(dealer);
+    BOOST_CHECK_EQUAL(dealer->remaining_licenses, 2U);
+    BOOST_CHECK(dealer->payout_script == initial_payout);
+    BOOST_CHECK(dealer->control_outpoint == COutPoint(authorization_tx.GetHash(), 1));
+
+    auto replay_tx{authorization_tx};
+    replay_tx.vin[0].prevout.n = 1;
+    const auto replayed{registry.ApplyTransaction(
+        CTransaction{replay_tx}, 11, main_genesis, TestAuthorityKey())};
+    BOOST_CHECK(replayed.error == chainregistry::RegistryError::INVALID_AUTHORITY_SEQUENCE);
+
+    auto bad_signature{authorization};
+    bad_signature.authority_sequence = 2;
+    bad_signature.authority_signature[0] ^= 1;
+    const auto invalid_signature{registry.ApplyTransaction(
+        CTransaction{OperationTx(bad_signature, dealer_control_script)},
+        11, main_genesis, TestAuthorityKey())};
+    BOOST_CHECK(invalid_signature.error == chainregistry::RegistryError::INVALID_AUTHORITY_SIGNATURE);
+
+    auto update{SignAdminOperation(chainregistry::UpdateDealer{
+        .authority_sequence = 2,
+        .dealer_id = dealer_id,
+        .added_licenses = 3,
+        .payout_script = {rotated_payout.begin(), rotated_payout.end()},
+    }, main_genesis)};
+    const auto updated{registry.ApplyTransaction(
+        CTransaction{OperationTx(update)}, 12, main_genesis, TestAuthorityKey())};
+    BOOST_REQUIRE(updated.IsValid());
+    BOOST_REQUIRE(updated.undo.has_value());
+    dealer = registry.FindDealer(dealer_id);
+    BOOST_REQUIRE(dealer);
+    BOOST_CHECK_EQUAL(dealer->remaining_licenses, 5U);
+    BOOST_CHECK(dealer->payout_script == rotated_payout);
+    BOOST_CHECK_EQUAL(registry.AuthoritySequence(), 2U);
+
+    CMutableTransaction sale{RegistrationTx(
+        Txid{"0202020202020202020202020202020202020202020202020202020202020202"},
+        0, 7)};
+    auto sale_operation{std::get<chainregistry::RegisterChain>(
+        chainregistry::ExtractTransactionOperation(CTransaction{sale}).operation->operation)};
+    sale_operation.dealer_id = dealer_id;
+    sale.vin[1].prevout = dealer->control_outpoint;
+    sale.vout[0].scriptPubKey = chainregistry::BuildOperationScript(sale_operation);
+    sale.vout[3].scriptPubKey = rotated_payout;
+    const auto sold{registry.ApplyTransaction(
+        CTransaction{sale}, 13, main_genesis, TestAuthorityKey())};
+    BOOST_REQUIRE(sold.IsValid());
+    BOOST_REQUIRE(sold.chain_id.has_value());
+    BOOST_REQUIRE(sold.undo.has_value());
+    dealer = registry.FindDealer(dealer_id);
+    BOOST_REQUIRE(dealer);
+    BOOST_CHECK_EQUAL(dealer->remaining_licenses, 4U);
+    BOOST_CHECK(dealer->control_outpoint == COutPoint(sale.GetHash(), 2));
+
+    const uint256 pre_corrupt_undo_root{registry.ComputeRoot()};
+    auto mismatched_dealer{*dealer};
+    mismatched_dealer.dealer_id = TestDealerId(0x7f);
+    const chainregistry::RegistryUndo corrupt_undo{
+        .has_chain = true,
+        .chain_id = *sold.chain_id,
+        .chain_had_previous = false,
+        .previous_chain = {},
+        .has_dealer = true,
+        .dealer_id = dealer_id,
+        .dealer_had_previous = true,
+        .previous_dealer = mismatched_dealer,
+        .previous_authority_sequence = registry.AuthoritySequence(),
+    };
+    BOOST_CHECK(!registry.Undo(corrupt_undo));
+    BOOST_CHECK(registry.ComputeRoot() == pre_corrupt_undo_root);
+    BOOST_REQUIRE(registry.Find(*sold.chain_id));
+    BOOST_REQUIRE(registry.FindDealer(dealer_id));
+
+    const auto revocation{SignAdminOperation(chainregistry::RevokeDealer{
+        .authority_sequence = 3,
+        .dealer_id = dealer_id,
+    }, main_genesis)};
+    const auto revoked{registry.ApplyTransaction(
+        CTransaction{OperationTx(revocation)}, 14, main_genesis, TestAuthorityKey())};
+    BOOST_REQUIRE(revoked.IsValid());
+    BOOST_REQUIRE(revoked.undo.has_value());
+    dealer = registry.FindDealer(dealer_id);
+    BOOST_REQUIRE(dealer);
+    BOOST_CHECK(dealer->status == chainregistry::DealerStatus::REVOKED);
+    BOOST_CHECK_EQUAL(registry.AuthoritySequence(), 3U);
+
+    CMutableTransaction forbidden_sale{sale};
+    forbidden_sale.vin[0].prevout.n = 1;
+    forbidden_sale.vin[1].prevout = dealer->control_outpoint;
+    const auto forbidden{registry.ApplyTransaction(
+        CTransaction{forbidden_sale}, 15, main_genesis, TestAuthorityKey())};
+    BOOST_CHECK(forbidden.error == chainregistry::RegistryError::REVOKED_DEALER);
+
+    BOOST_REQUIRE(registry.Undo(*revoked.undo));
+    BOOST_REQUIRE(registry.Undo(*sold.undo));
+    BOOST_REQUIRE(registry.Undo(*updated.undo));
+    BOOST_REQUIRE(registry.Undo(*authorized.undo));
+    BOOST_CHECK_EQUAL(registry.DealerSize(), 0U);
+    BOOST_CHECK_EQUAL(registry.Size(), 0U);
+    BOOST_CHECK_EQUAL(registry.AuthoritySequence(), 0U);
+    BOOST_CHECK(registry.ComputeRoot() == empty_root);
+}
+
 BOOST_AUTO_TEST_CASE(registry_rejects_unauthorized_control_spends)
 {
     constexpr uint256 main_genesis{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
     const CMutableTransaction registration_tx{RegistrationTx(
         Txid{"0101010101010101010101010101010101010101010101010101010101010101"}, 7, 1)};
     chainregistry::ChainRegistry registry;
-    const auto registered{registry.ApplyTransaction(CTransaction{registration_tx}, 100, main_genesis, 1'000)};
+    SeedDealers(registry);
+    const auto registered{registry.ApplyTransaction(CTransaction{registration_tx}, 100, main_genesis, TestAuthorityKey())};
     BOOST_REQUIRE(registered.IsValid());
     const chainregistry::ChainRecord* record{registry.Find(*registered.chain_id)};
     BOOST_REQUIRE(record != nullptr);
@@ -650,7 +977,7 @@ BOOST_AUTO_TEST_CASE(registry_rejects_unauthorized_control_spends)
     CMutableTransaction silent_spend;
     silent_spend.vin.emplace_back(record->control_outpoint);
     silent_spend.vout.emplace_back(0, TaprootScript(2));
-    auto result{registry.ApplyTransaction(CTransaction{silent_spend}, 101, main_genesis, 1'000)};
+    auto result{registry.ApplyTransaction(CTransaction{silent_spend}, 101, main_genesis, TestAuthorityKey())};
     BOOST_CHECK(result.error == chainregistry::RegistryError::CONTROL_SPEND_WITHOUT_OPERATION);
     BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(), root.GetHex());
 
@@ -658,14 +985,12 @@ BOOST_AUTO_TEST_CASE(registry_rejects_unauthorized_control_spends)
         chainregistry::MetadataHash{"abababababababababababababababababababababababababababababababab"}, 2)};
     wrong_control.vin[0].prevout = COutPoint{
         Txid{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}, 0};
-    result = registry.ApplyTransaction(CTransaction{wrong_control}, 101, main_genesis, 1'000);
+    result = registry.ApplyTransaction(CTransaction{wrong_control}, 101, main_genesis, TestAuthorityKey());
     BOOST_CHECK(result.error == chainregistry::RegistryError::WRONG_CONTROL_OUTPOINT);
 
-    CMutableTransaction anchor_spend;
-    anchor_spend.vin.emplace_back(record->control_outpoint);
-    anchor_spend.vout.emplace_back(1'000, chainregistry::BuildOperationScript(ValidRegistration()));
-    anchor_spend.vout.emplace_back(0, TaprootScript(3));
-    result = registry.ApplyTransaction(CTransaction{anchor_spend}, 101, main_genesis, 1'000);
+    const CMutableTransaction anchor_spend{RegistrationTx(
+        record->control_outpoint.hash, record->control_outpoint.n, 2)};
+    result = registry.ApplyTransaction(CTransaction{anchor_spend}, 101, main_genesis, TestAuthorityKey());
     BOOST_CHECK(result.error == chainregistry::RegistryError::WRONG_CONTROL_OUTPOINT);
 }
 
@@ -678,15 +1003,17 @@ BOOST_AUTO_TEST_CASE(registry_ordering_and_duplicate_identity)
         Txid{"0202020202020202020202020202020202020202020202020202020202020202"}, 0, 2)};
 
     chainregistry::ChainRegistry first;
-    BOOST_REQUIRE(first.ApplyTransaction(CTransaction{tx_a}, 100, main_genesis, 1'000).IsValid());
-    BOOST_REQUIRE(first.ApplyTransaction(CTransaction{tx_b}, 100, main_genesis, 1'000).IsValid());
+    SeedDealers(first);
+    BOOST_REQUIRE(first.ApplyTransaction(CTransaction{tx_a}, 100, main_genesis, TestAuthorityKey()).IsValid());
+    BOOST_REQUIRE(first.ApplyTransaction(CTransaction{tx_b}, 100, main_genesis, TestAuthorityKey()).IsValid());
 
     chainregistry::ChainRegistry second;
-    BOOST_REQUIRE(second.ApplyTransaction(CTransaction{tx_b}, 100, main_genesis, 1'000).IsValid());
-    BOOST_REQUIRE(second.ApplyTransaction(CTransaction{tx_a}, 100, main_genesis, 1'000).IsValid());
+    SeedDealers(second);
+    BOOST_REQUIRE(second.ApplyTransaction(CTransaction{tx_b}, 100, main_genesis, TestAuthorityKey()).IsValid());
+    BOOST_REQUIRE(second.ApplyTransaction(CTransaction{tx_a}, 100, main_genesis, TestAuthorityKey()).IsValid());
     BOOST_CHECK_EQUAL(first.ComputeRoot().GetHex(), second.ComputeRoot().GetHex());
 
-    const auto duplicate{first.ApplyTransaction(CTransaction{tx_a}, 101, main_genesis, 1'000)};
+    const auto duplicate{first.ApplyTransaction(CTransaction{tx_a}, 101, main_genesis, TestAuthorityKey())};
     BOOST_CHECK(duplicate.error == chainregistry::RegistryError::DUPLICATE_CHAIN_ID);
 }
 
@@ -698,8 +1025,9 @@ BOOST_AUTO_TEST_CASE(registry_rejects_ambiguous_and_unknown_updates)
     const CMutableTransaction tx_b{RegistrationTx(
         Txid{"0202020202020202020202020202020202020202020202020202020202020202"}, 0, 2)};
     chainregistry::ChainRegistry registry;
-    const auto result_a{registry.ApplyTransaction(CTransaction{tx_a}, 100, main_genesis, 1'000)};
-    const auto result_b{registry.ApplyTransaction(CTransaction{tx_b}, 100, main_genesis, 1'000)};
+    SeedDealers(registry);
+    const auto result_a{registry.ApplyTransaction(CTransaction{tx_a}, 100, main_genesis, TestAuthorityKey())};
+    const auto result_b{registry.ApplyTransaction(CTransaction{tx_b}, 100, main_genesis, TestAuthorityKey())};
     BOOST_REQUIRE(result_a.IsValid());
     BOOST_REQUIRE(result_b.IsValid());
     const auto* record_a{registry.Find(*result_a.chain_id)};
@@ -713,7 +1041,7 @@ BOOST_AUTO_TEST_CASE(registry_rejects_ambiguous_and_unknown_updates)
         chainregistry::MetadataHash{"abababababababababababababababababababababababababababababababab"},
         3)};
     multi_control.vin.emplace_back(record_b->control_outpoint);
-    auto result{registry.ApplyTransaction(CTransaction{multi_control}, 101, main_genesis, 1'000)};
+    auto result{registry.ApplyTransaction(CTransaction{multi_control}, 101, main_genesis, TestAuthorityKey())};
     BOOST_CHECK(result.error == chainregistry::RegistryError::MULTIPLE_CONTROL_OUTPOINTS);
 
     CMutableTransaction duplicate_control{UpdateTx(
@@ -721,7 +1049,7 @@ BOOST_AUTO_TEST_CASE(registry_rejects_ambiguous_and_unknown_updates)
         chainregistry::MetadataHash{"abababababababababababababababababababababababababababababababab"},
         3)};
     duplicate_control.vin.emplace_back(record_a->control_outpoint);
-    result = registry.ApplyTransaction(CTransaction{duplicate_control}, 101, main_genesis, 1'000);
+    result = registry.ApplyTransaction(CTransaction{duplicate_control}, 101, main_genesis, TestAuthorityKey());
     BOOST_CHECK(result.error == chainregistry::RegistryError::MULTIPLE_CONTROL_OUTPOINTS);
 
     CMutableTransaction unknown_update;
@@ -731,7 +1059,7 @@ BOOST_AUTO_TEST_CASE(registry_rejects_ambiguous_and_unknown_updates)
         .metadata_hash = chainregistry::MetadataHash{"abababababababababababababababababababababababababababababababab"},
     }));
     unknown_update.vout.emplace_back(0, TaprootScript(4));
-    result = registry.ApplyTransaction(CTransaction{unknown_update}, 101, main_genesis, 1'000);
+    result = registry.ApplyTransaction(CTransaction{unknown_update}, 101, main_genesis, TestAuthorityKey());
     BOOST_CHECK(result.error == chainregistry::RegistryError::UNKNOWN_CHAIN);
     BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(), root.GetHex());
 }
@@ -743,17 +1071,19 @@ BOOST_AUTO_TEST_CASE(registry_block_transition_and_undo)
         Txid{"0101010101010101010101010101010101010101010101010101010101010101"}, 0, 1)};
 
     chainregistry::ChainRegistry preview;
-    BOOST_REQUIRE(preview.ApplyTransaction(CTransaction{registration_tx}, 100, main_genesis, 1'000).IsValid());
+    SeedDealers(preview);
+    BOOST_REQUIRE(preview.ApplyTransaction(CTransaction{registration_tx}, 100, main_genesis, TestAuthorityKey()).IsValid());
     const uint256 expected_root{preview.ComputeRoot()};
 
     const CBlock block{RegistryBlock(CoinbaseTx(expected_root), {registration_tx})};
     chainregistry::ChainRegistry registry;
+    SeedDealers(registry);
     const uint256 empty_root{registry.ComputeRoot()};
     const auto result{registry.ApplyBlock(
         block,
         100,
         main_genesis,
-        1'000,
+        TestAuthorityKey(),
         10,
         chainregistry::CommitmentRequirement::REQUIRED)};
     BOOST_REQUIRE(result.IsValid());
@@ -777,7 +1107,7 @@ BOOST_AUTO_TEST_CASE(registry_block_transition_and_undo)
         optional_block,
         100,
         main_genesis,
-        1'000,
+        TestAuthorityKey(),
         10,
         chainregistry::CommitmentRequirement::OPTIONAL)};
     BOOST_REQUIRE(optional_result.IsValid());
@@ -791,13 +1121,14 @@ BOOST_AUTO_TEST_CASE(registry_block_failures_are_atomic)
     const CMutableTransaction registration_tx{RegistrationTx(
         Txid{"0101010101010101010101010101010101010101010101010101010101010101"}, 0, 1)};
     chainregistry::ChainRegistry registry;
+    SeedDealers(registry);
     const uint256 empty_root{registry.ComputeRoot()};
 
     auto result{registry.ApplyBlock(
         RegistryBlock(CoinbaseTx(), {registration_tx}),
         100,
         main_genesis,
-        1'000,
+        TestAuthorityKey(),
         10,
         chainregistry::CommitmentRequirement::REQUIRED)};
     BOOST_CHECK(result.error == chainregistry::RegistryBlockError::MISSING_COMMITMENT);
@@ -807,7 +1138,7 @@ BOOST_AUTO_TEST_CASE(registry_block_failures_are_atomic)
         RegistryBlock(CoinbaseTx(uint256{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}), {registration_tx}),
         100,
         main_genesis,
-        1'000,
+        TestAuthorityKey(),
         10,
         chainregistry::CommitmentRequirement::REQUIRED);
     BOOST_CHECK(result.error == chainregistry::RegistryBlockError::COMMITMENT_MISMATCH);
@@ -817,7 +1148,7 @@ BOOST_AUTO_TEST_CASE(registry_block_failures_are_atomic)
         RegistryBlock(CoinbaseTx(), {registration_tx}),
         100,
         main_genesis,
-        1'000,
+        TestAuthorityKey(),
         0,
         chainregistry::CommitmentRequirement::OPTIONAL);
     BOOST_CHECK(result.error == chainregistry::RegistryBlockError::TOO_MANY_OPERATIONS);
@@ -827,7 +1158,7 @@ BOOST_AUTO_TEST_CASE(registry_block_failures_are_atomic)
         RegistryBlock(CoinbaseTx(), {registration_tx, registration_tx}),
         100,
         main_genesis,
-        1'000,
+        TestAuthorityKey(),
         10,
         chainregistry::CommitmentRequirement::OPTIONAL);
     BOOST_CHECK(result.error == chainregistry::RegistryBlockError::TRANSACTION_TRANSITION);
@@ -840,7 +1171,7 @@ BOOST_AUTO_TEST_CASE(registry_block_failures_are_atomic)
         RegistryBlock(CoinbaseTx(), {non_coinbase_commitment}),
         100,
         main_genesis,
-        1'000,
+        TestAuthorityKey(),
         10,
         chainregistry::CommitmentRequirement::OPTIONAL);
     BOOST_CHECK(result.error == chainregistry::RegistryBlockError::NON_COINBASE_COMMITMENT);
@@ -853,7 +1184,7 @@ BOOST_AUTO_TEST_CASE(registry_block_failures_are_atomic)
         RegistryBlock(operation_coinbase, {}),
         100,
         main_genesis,
-        1'000,
+        TestAuthorityKey(),
         10,
         chainregistry::CommitmentRequirement::OPTIONAL);
     BOOST_CHECK(result.error == chainregistry::RegistryBlockError::COINBASE_OPERATION);
@@ -864,11 +1195,12 @@ BOOST_AUTO_TEST_CASE(registry_inclusion_and_non_inclusion_proofs)
 {
     constexpr uint256 main_genesis{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
     chainregistry::ChainRegistry registry;
+    SeedDealers(registry);
     for (unsigned char i{1}; i <= 3; ++i) {
         std::array<unsigned char, 32> anchor_bytes{};
         anchor_bytes.fill(i);
         const CMutableTransaction tx{RegistrationTx(Txid::FromUint256(uint256{std::span{anchor_bytes}}), 0, i)};
-        BOOST_REQUIRE(registry.ApplyTransaction(CTransaction{tx}, 100, main_genesis, 1'000).IsValid());
+        BOOST_REQUIRE(registry.ApplyTransaction(CTransaction{tx}, 100, main_genesis, TestAuthorityKey()).IsValid());
     }
     const uint256 root{registry.ComputeRoot()};
 
@@ -939,20 +1271,23 @@ BOOST_AUTO_TEST_CASE(registry_record_validation_and_atomic_loading)
 {
     constexpr uint256 main_genesis{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
     chainregistry::ChainRegistry source;
+    SeedDealers(source);
     const CMutableTransaction tx_a{RegistrationTx(
         Txid{"0101010101010101010101010101010101010101010101010101010101010101"}, 0, 1)};
     const CMutableTransaction tx_b{RegistrationTx(
         Txid{"0202020202020202020202020202020202020202020202020202020202020202"}, 0, 2)};
-    BOOST_REQUIRE(source.ApplyTransaction(CTransaction{tx_a}, 100, main_genesis, 1'000).IsValid());
-    BOOST_REQUIRE(source.ApplyTransaction(CTransaction{tx_b}, 101, main_genesis, 1'000).IsValid());
+    BOOST_REQUIRE(source.ApplyTransaction(CTransaction{tx_a}, 100, main_genesis, TestAuthorityKey()).IsValid());
+    BOOST_REQUIRE(source.ApplyTransaction(CTransaction{tx_b}, 101, main_genesis, TestAuthorityKey()).IsValid());
 
     std::vector<chainregistry::ChainRecord> records;
     for (const auto& entry : source.Records()) records.push_back(entry.second);
+    std::vector<chainregistry::DealerRecord> dealers;
+    for (const auto& entry : source.Dealers()) dealers.push_back(entry.second);
     BOOST_REQUIRE_EQUAL(records.size(), 2U);
     BOOST_CHECK(chainregistry::ValidateChainRecord(records[0]) == chainregistry::RecordValidationError::NONE);
 
     chainregistry::ChainRegistry loaded;
-    BOOST_REQUIRE(loaded.LoadRecords(records).IsValid());
+    BOOST_REQUIRE(loaded.LoadState(records, dealers, source.AuthoritySequence()).IsValid());
     BOOST_CHECK_EQUAL(loaded.ComputeRoot().GetHex(), source.ComputeRoot().GetHex());
     const uint256 loaded_root{loaded.ComputeRoot()};
 
@@ -989,6 +1324,7 @@ BOOST_AUTO_TEST_CASE(registry_root_is_deterministic_across_load_order)
     constexpr uint256 main_genesis{
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
     chainregistry::ChainRegistry source;
+    SeedDealers(source);
     for (uint32_t index{0}; index < 32; ++index) {
         std::array<unsigned char, 32> anchor_bytes;
         anchor_bytes.fill(static_cast<unsigned char>(index + 1));
@@ -1000,7 +1336,7 @@ BOOST_AUTO_TEST_CASE(registry_root_is_deterministic_across_load_order)
             CTransaction{registration},
             100 + index,
             main_genesis,
-            1'000).IsValid());
+            TestAuthorityKey()).IsValid());
     }
 
     std::vector<chainregistry::ChainRecord> records;
@@ -1008,6 +1344,8 @@ BOOST_AUTO_TEST_CASE(registry_root_is_deterministic_across_load_order)
     for (const auto& [_, record] : source.Records()) {
         records.push_back(record);
     }
+    std::vector<chainregistry::DealerRecord> dealers;
+    for (const auto& [_, dealer] : source.Dealers()) dealers.push_back(dealer);
     const uint256 expected_root{source.ComputeRoot()};
 
     for (size_t permutation{0}; permutation < 64; ++permutation) {
@@ -1021,7 +1359,8 @@ BOOST_AUTO_TEST_CASE(registry_root_is_deterministic_across_load_order)
         }
 
         chainregistry::ChainRegistry loaded;
-        BOOST_REQUIRE(loaded.LoadRecords(std::move(shuffled)).IsValid());
+        BOOST_REQUIRE(loaded.LoadState(
+            std::move(shuffled), dealers, source.AuthoritySequence()).IsValid());
         BOOST_CHECK(loaded.ComputeRoot() == expected_root);
         for (const auto& [chain_id, record] : loaded.Records()) {
             const auto proof{loaded.GetInclusionProof(chain_id)};

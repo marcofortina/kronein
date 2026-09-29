@@ -88,7 +88,7 @@ struct RegistryMinerSetup : public TestingSetup {
     RegistryMinerSetup()
         : TestingSetup{ChainType::REGTEST, TestOpts{.extra_args = {
               "-chainregistryactivationheight=1",
-              "-chainregistryminregistrationburn=1",
+              "-chaindealerauthoritykey=79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
               "-chainregistrymaxoperations=4",
           }}}
     {

@@ -11,9 +11,11 @@
 #include <algorithm>
 #include <cstdint>
 #include <iterator>
+#include <limits>
 #include <optional>
 #include <set>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -23,13 +25,15 @@ namespace {
 RegistryTransitionResult TransitionError(RegistryError error,
                                          std::optional<ChainId> chain_id = std::nullopt,
                                          TxOperationError tx_error = TxOperationError::NONE,
-                                         OperationParseError parse_error = OperationParseError::NONE)
+                                         OperationParseError parse_error = OperationParseError::NONE,
+                                         std::optional<DealerId> dealer_id = std::nullopt)
 {
     RegistryTransitionResult result;
     result.error = error;
     result.tx_error = tx_error;
     result.parse_error = parse_error;
     result.chain_id = std::move(chain_id);
+    result.dealer_id = std::move(dealer_id);
     return result;
 }
 
@@ -37,6 +41,28 @@ uint256 FinalizeRegistryRoot(uint64_t leaf_count, const uint256& tree_root)
 {
     auto hasher{TaggedHash(std::string{REGISTRY_ROOT_HASH_TAG})};
     hasher << leaf_count << tree_root;
+    return hasher.GetSHA256();
+}
+
+uint256 ComputeDealerNodeHash(const uint256& left, const uint256& right)
+{
+    auto hasher{TaggedHash(std::string{DEALER_NODE_HASH_TAG})};
+    hasher << left << right;
+    return hasher.GetSHA256();
+}
+
+uint256 ComputeDealerRootFromLeaves(std::vector<uint256> ordered_leaves)
+{
+    const uint64_t dealer_count{ordered_leaves.size()};
+    while (ordered_leaves.size() > 1) {
+        if (ordered_leaves.size() % 2 != 0) ordered_leaves.push_back(ordered_leaves.back());
+        for (size_t i{0}; i < ordered_leaves.size(); i += 2) {
+            ordered_leaves[i / 2] = ComputeDealerNodeHash(ordered_leaves[i], ordered_leaves[i + 1]);
+        }
+        ordered_leaves.resize(ordered_leaves.size() / 2);
+    }
+    auto hasher{TaggedHash(std::string{DEALER_ROOT_HASH_TAG})};
+    hasher << dealer_count << (ordered_leaves.empty() ? uint256{} : ordered_leaves.front());
     return hasher.GetSHA256();
 }
 
@@ -100,6 +126,25 @@ RecordValidationError ValidateChainRecord(const ChainRecord& record)
     return RecordValidationError::NONE;
 }
 
+DealerRecordValidationError ValidateDealerRecord(const DealerRecord& record)
+{
+    if (record.record_version != DEALER_RECORD_VERSION) {
+        return DealerRecordValidationError::UNSUPPORTED_VERSION;
+    }
+    if (record.dealer_id.IsNull()) return DealerRecordValidationError::NULL_DEALER_ID;
+    if (record.control_outpoint.IsNull()) return DealerRecordValidationError::NULL_CONTROL_OUTPOINT;
+    if (!record.payout_script.IsPayToTaproot()) {
+        return DealerRecordValidationError::INVALID_PAYOUT_SCRIPT;
+    }
+    if (record.updated_height < record.authorized_height) {
+        return DealerRecordValidationError::INVALID_HEIGHTS;
+    }
+    if (record.status != DealerStatus::ACTIVE && record.status != DealerStatus::REVOKED) {
+        return DealerRecordValidationError::UNKNOWN_STATUS;
+    }
+    return DealerRecordValidationError::NONE;
+}
+
 uint256 ComputeRegistryNodeHash(const uint256& left, const uint256& right)
 {
     auto hasher{TaggedHash(std::string{REGISTRY_NODE_HASH_TAG})};
@@ -122,6 +167,30 @@ uint256 ComputeRegistryRootFromLeaves(std::vector<uint256> ordered_leaves)
     return FinalizeRegistryRoot(record_count, tree_root);
 }
 
+uint256 ComputeDealerLeafHash(const DealerRecord& record)
+{
+    auto hasher{TaggedHash(std::string{DEALER_LEAF_HASH_TAG})};
+    hasher << record;
+    return hasher.GetSHA256();
+}
+
+uint256 ComputeDealerRoot(const std::map<DealerId, DealerRecord>& dealers)
+{
+    std::vector<uint256> leaves;
+    leaves.reserve(dealers.size());
+    for (const auto& [_, dealer] : dealers) leaves.push_back(ComputeDealerLeafHash(dealer));
+    return ComputeDealerRootFromLeaves(std::move(leaves));
+}
+
+uint256 ComputeRegistryStateRoot(const uint256& chain_root,
+                                 const uint256& dealer_root,
+                                 uint64_t authority_sequence)
+{
+    auto hasher{TaggedHash(std::string{REGISTRY_STATE_HASH_TAG})};
+    hasher << chain_root << dealer_root << authority_sequence;
+    return hasher.GetSHA256();
+}
+
 bool VerifyRegistryInclusion(const ChainRecord& record,
                              const RegistryInclusionProof& proof,
                              const uint256& expected_root)
@@ -142,7 +211,8 @@ bool VerifyRegistryInclusion(const ChainRecord& record,
         index /= 2;
         width = (width + 1) / 2;
     }
-    return FinalizeRegistryRoot(proof.leaf_count, current) == expected_root;
+    const uint256 chain_root{FinalizeRegistryRoot(proof.leaf_count, current)};
+    return ComputeRegistryStateRoot(chain_root, proof.dealer_root, proof.authority_sequence) == expected_root;
 }
 
 bool VerifyRegistryNonInclusion(const ChainId& chain_id,
@@ -151,13 +221,16 @@ bool VerifyRegistryNonInclusion(const ChainId& chain_id,
 {
     if (proof.leaf_count == 0) {
         return !proof.has_left && !proof.has_right &&
-               expected_root == ComputeRegistryRootFromLeaves({});
+               expected_root == ComputeRegistryStateRoot(
+                   ComputeRegistryRootFromLeaves({}), proof.dealer_root, proof.authority_sequence);
     }
     if (!proof.has_left && !proof.has_right) return false;
 
     if (proof.has_left) {
         if (proof.left.proof.leaf_count != proof.leaf_count ||
             !(proof.left.record.chain_id < chain_id) ||
+            proof.left.proof.dealer_root != proof.dealer_root ||
+            proof.left.proof.authority_sequence != proof.authority_sequence ||
             !VerifyRegistryInclusion(proof.left.record, proof.left.proof, expected_root)) {
             return false;
         }
@@ -165,6 +238,8 @@ bool VerifyRegistryNonInclusion(const ChainId& chain_id,
     if (proof.has_right) {
         if (proof.right.proof.leaf_count != proof.leaf_count ||
             !(chain_id < proof.right.record.chain_id) ||
+            proof.right.proof.dealer_root != proof.dealer_root ||
+            proof.right.proof.authority_sequence != proof.authority_sequence ||
             !VerifyRegistryInclusion(proof.right.record, proof.right.proof, expected_root)) {
             return false;
         }
@@ -256,7 +331,20 @@ const ChainRecord* ChainRegistry::Find(const ChainId& chain_id) const
     return it == m_records.end() ? nullptr : &it->second;
 }
 
+const DealerRecord* ChainRegistry::FindDealer(const DealerId& dealer_id) const
+{
+    const auto it{m_dealers.find(dealer_id)};
+    return it == m_dealers.end() ? nullptr : &it->second;
+}
+
 RegistryLoadResult ChainRegistry::LoadRecords(std::vector<ChainRecord> records)
+{
+    return LoadState(std::move(records), {}, 0);
+}
+
+RegistryLoadResult ChainRegistry::LoadState(std::vector<ChainRecord> records,
+                                            std::vector<DealerRecord> dealers,
+                                            uint64_t authority_sequence)
 {
     std::map<ChainId, ChainRecord> loaded_records;
     std::map<COutPoint, ChainId> loaded_controls;
@@ -287,8 +375,47 @@ RegistryLoadResult ChainRegistry::LoadRecords(std::vector<ChainRecord> records)
         }
     }
 
+    std::map<DealerId, DealerRecord> loaded_dealers;
+    std::map<COutPoint, DealerId> loaded_dealer_controls;
+    for (auto& dealer : dealers) {
+        const DealerRecordValidationError dealer_error{ValidateDealerRecord(dealer)};
+        if (dealer_error != DealerRecordValidationError::NONE) {
+            RegistryLoadResult result;
+            result.error = RegistryLoadError::INVALID_DEALER_RECORD;
+            result.dealer_record_error = dealer_error;
+            result.dealer_id = dealer.dealer_id;
+            return result;
+        }
+        const DealerId dealer_id{dealer.dealer_id};
+        const auto [_, inserted]{loaded_dealers.emplace(dealer_id, std::move(dealer))};
+        if (!inserted) {
+            RegistryLoadResult result;
+            result.error = RegistryLoadError::DUPLICATE_DEALER_ID;
+            result.dealer_id = dealer_id;
+            return result;
+        }
+        const DealerRecord& stored{loaded_dealers.at(dealer_id)};
+        if (stored.status == DealerStatus::ACTIVE) {
+            if (!loaded_dealer_controls.emplace(stored.control_outpoint, dealer_id).second) {
+                RegistryLoadResult result;
+                result.error = RegistryLoadError::DUPLICATE_ACTIVE_DEALER_CONTROL;
+                result.dealer_id = dealer_id;
+                return result;
+            }
+            if (loaded_controls.contains(stored.control_outpoint)) {
+                RegistryLoadResult result;
+                result.error = RegistryLoadError::CONTROL_NAMESPACE_COLLISION;
+                result.dealer_id = dealer_id;
+                return result;
+            }
+        }
+    }
+
     m_records = std::move(loaded_records);
     m_control_index = std::move(loaded_controls);
+    m_dealers = std::move(loaded_dealers);
+    m_dealer_control_index = std::move(loaded_dealer_controls);
+    m_authority_sequence = authority_sequence;
     return {};
 }
 
@@ -299,7 +426,9 @@ uint256 ChainRegistry::ComputeRoot() const
     for (const auto& entry : m_records) {
         leaves.push_back(ComputeRegistryLeafHash(entry.second));
     }
-    return ComputeRegistryRootFromLeaves(std::move(leaves));
+    return ComputeRegistryStateRoot(ComputeRegistryRootFromLeaves(std::move(leaves)),
+                                    ComputeDealerRoot(m_dealers),
+                                    m_authority_sequence);
 }
 
 std::optional<RegistryInclusionProof> ChainRegistry::GetInclusionProof(const ChainId& chain_id) const
@@ -316,7 +445,10 @@ std::optional<RegistryInclusionProof> ChainRegistry::GetInclusionProof(const Cha
         leaves.push_back(ComputeRegistryLeafHash(entry.second));
         ++index;
     }
-    return BuildRegistryInclusionProof(std::move(leaves), target_index);
+    RegistryInclusionProof proof{BuildRegistryInclusionProof(std::move(leaves), target_index)};
+    proof.dealer_root = ComputeDealerRoot(m_dealers);
+    proof.authority_sequence = m_authority_sequence;
+    return proof;
 }
 
 std::optional<RegistryNonInclusionProof> ChainRegistry::GetNonInclusionProof(const ChainId& chain_id) const
@@ -326,6 +458,8 @@ std::optional<RegistryNonInclusionProof> ChainRegistry::GetNonInclusionProof(con
 
     RegistryNonInclusionProof proof;
     proof.leaf_count = m_records.size();
+    proof.dealer_root = ComputeDealerRoot(m_dealers);
+    proof.authority_sequence = m_authority_sequence;
     if (right_it != m_records.end()) {
         proof.has_right = true;
         proof.right.record = right_it->second;
@@ -343,9 +477,9 @@ std::optional<RegistryNonInclusionProof> ChainRegistry::GetNonInclusionProof(con
 RegistryTransitionResult ChainRegistry::ApplyTransaction(const CTransaction& tx,
                                                          uint32_t height,
                                                          const uint256& main_genesis_hash,
-                                                         CAmount minimum_registration_burn)
+                                                         const XOnlyPubKey& dealer_authority_key)
 {
-    const auto extracted{ExtractTransactionOperation(tx, minimum_registration_burn)};
+    const auto extracted{ExtractTransactionOperation(tx)};
     if (!extracted.IsValid()) {
         return TransitionError(RegistryError::INVALID_TRANSACTION_OPERATION,
                                std::nullopt,
@@ -354,26 +488,230 @@ RegistryTransitionResult ChainRegistry::ApplyTransaction(const CTransaction& tx,
     }
 
     std::map<ChainId, size_t> spent_controls;
+    std::map<DealerId, size_t> spent_dealer_controls;
     for (const auto& input : tx.vin) {
         if (const auto it{m_control_index.find(input.prevout)}; it != m_control_index.end()) {
             ++spent_controls[it->second];
+        }
+        if (const auto it{m_dealer_control_index.find(input.prevout)};
+            it != m_dealer_control_index.end()) {
+            ++spent_dealer_controls[it->second];
         }
     }
 
     if (!extracted.operation) {
         if (!spent_controls.empty()) return TransitionError(RegistryError::CONTROL_SPEND_WITHOUT_OPERATION);
+        if (!spent_dealer_controls.empty()) {
+            return TransitionError(RegistryError::CONTROL_SPEND_WITHOUT_OPERATION);
+        }
         return {};
     }
 
     const RegistryOperation& operation{extracted.operation->operation};
+
+    if (std::holds_alternative<AuthorizeDealer>(operation) ||
+        std::holds_alternative<UpdateDealer>(operation) ||
+        std::holds_alternative<RevokeDealer>(operation)) {
+        if (!spent_controls.empty() || !spent_dealer_controls.empty()) {
+            return TransitionError(RegistryError::WRONG_CONTROL_OUTPOINT);
+        }
+        if (!dealer_authority_key.IsFullyValid()) {
+            return TransitionError(RegistryError::INVALID_AUTHORITY_KEY);
+        }
+        if (m_authority_sequence == std::numeric_limits<uint64_t>::max()) {
+            return TransitionError(RegistryError::INVALID_AUTHORITY_SEQUENCE);
+        }
+
+        const uint64_t sequence{std::visit([](const auto& payload) -> uint64_t {
+            using Payload = std::decay_t<decltype(payload)>;
+            if constexpr (std::is_same_v<Payload, AuthorizeDealer> ||
+                          std::is_same_v<Payload, UpdateDealer> ||
+                          std::is_same_v<Payload, RevokeDealer>) {
+                return payload.authority_sequence;
+            }
+            return 0;
+        }, operation)};
+        if (sequence != m_authority_sequence + 1) {
+            return TransitionError(RegistryError::INVALID_AUTHORITY_SEQUENCE);
+        }
+        const auto authority_hash{ComputeDealerAuthorityHash(main_genesis_hash, operation)};
+        const auto signature{std::visit([](const auto& payload) -> std::span<const unsigned char> {
+            using Payload = std::decay_t<decltype(payload)>;
+            if constexpr (std::is_same_v<Payload, AuthorizeDealer> ||
+                          std::is_same_v<Payload, UpdateDealer> ||
+                          std::is_same_v<Payload, RevokeDealer>) {
+                return payload.authority_signature;
+            }
+            return {};
+        }, operation)};
+        if (!authority_hash || !dealer_authority_key.VerifySchnorr(*authority_hash, signature)) {
+            return TransitionError(RegistryError::INVALID_AUTHORITY_SIGNATURE);
+        }
+
+        if (const auto* authorization{std::get_if<AuthorizeDealer>(&operation)}) {
+            const DealerId dealer_id{DeriveDealerId(main_genesis_hash,
+                                                    authorization->authorization_nonce,
+                                                    authorization->control_key)};
+            if (m_dealers.contains(dealer_id)) {
+                return TransitionError(RegistryError::DUPLICATE_DEALER_ID,
+                                       std::nullopt,
+                                       TxOperationError::NONE,
+                                       OperationParseError::NONE,
+                                       dealer_id);
+            }
+            const COutPoint control_outpoint{tx.GetHash(), authorization->control_output};
+            if (m_control_index.contains(control_outpoint) ||
+                m_dealer_control_index.contains(control_outpoint)) {
+                return TransitionError(RegistryError::WRONG_DEALER_CONTROL_OUTPOINT);
+            }
+            DealerRecord dealer{
+                .dealer_id = dealer_id,
+                .control_outpoint = control_outpoint,
+                .payout_script = CScript{authorization->payout_script.begin(), authorization->payout_script.end()},
+                .remaining_licenses = authorization->initial_licenses,
+                .status = DealerStatus::ACTIVE,
+                .authorized_height = height,
+                .updated_height = height,
+            };
+            m_dealer_control_index.emplace(control_outpoint, dealer_id);
+            m_dealers.emplace(dealer_id, dealer);
+            const uint64_t previous_sequence{m_authority_sequence++};
+            return {
+                .chain_id = std::nullopt,
+                .dealer_id = dealer_id,
+                .applied = true,
+                .undo = RegistryUndo{
+                    .has_chain = false,
+                    .chain_id = {},
+                    .chain_had_previous = false,
+                    .previous_chain = {},
+                    .has_dealer = true,
+                    .dealer_id = dealer_id,
+                    .dealer_had_previous = false,
+                    .previous_dealer = {},
+                    .previous_authority_sequence = previous_sequence,
+                },
+            };
+        }
+
+        const DealerId& dealer_id{std::get_if<UpdateDealer>(&operation)
+                                      ? std::get<UpdateDealer>(operation).dealer_id
+                                      : std::get<RevokeDealer>(operation).dealer_id};
+        const auto dealer_it{m_dealers.find(dealer_id)};
+        if (dealer_it == m_dealers.end()) {
+            return TransitionError(RegistryError::UNKNOWN_DEALER,
+                                   std::nullopt,
+                                   TxOperationError::NONE,
+                                   OperationParseError::NONE,
+                                   dealer_id);
+        }
+        if (dealer_it->second.status == DealerStatus::REVOKED) {
+            return TransitionError(RegistryError::REVOKED_DEALER,
+                                   std::nullopt,
+                                   TxOperationError::NONE,
+                                   OperationParseError::NONE,
+                                   dealer_id);
+        }
+        const DealerRecord previous{dealer_it->second};
+        const uint64_t previous_sequence{m_authority_sequence};
+        if (const auto* update{std::get_if<UpdateDealer>(&operation)}) {
+            if (update->added_licenses > std::numeric_limits<uint32_t>::max() -
+                                             dealer_it->second.remaining_licenses) {
+                return TransitionError(RegistryError::LICENSE_COUNT_OVERFLOW,
+                                       std::nullopt,
+                                       TxOperationError::NONE,
+                                       OperationParseError::NONE,
+                                       dealer_id);
+            }
+            dealer_it->second.remaining_licenses += update->added_licenses;
+            if (!update->payout_script.empty()) {
+                dealer_it->second.payout_script =
+                    CScript{update->payout_script.begin(), update->payout_script.end()};
+            }
+            dealer_it->second.updated_height = height;
+        } else {
+            m_dealer_control_index.erase(dealer_it->second.control_outpoint);
+            dealer_it->second.status = DealerStatus::REVOKED;
+            dealer_it->second.updated_height = height;
+        }
+        m_authority_sequence = sequence;
+        return {
+            .chain_id = std::nullopt,
+            .dealer_id = dealer_id,
+            .applied = true,
+            .undo = RegistryUndo{
+                .has_chain = false,
+                .chain_id = {},
+                .chain_had_previous = false,
+                .previous_chain = {},
+                .has_dealer = true,
+                .dealer_id = dealer_id,
+                .dealer_had_previous = true,
+                .previous_dealer = previous,
+                .previous_authority_sequence = previous_sequence,
+            },
+        };
+    }
+
     if (const auto* registration{std::get_if<RegisterChain>(&operation)}) {
         if (!spent_controls.empty()) return TransitionError(RegistryError::WRONG_CONTROL_OUTPOINT);
-
         const COutPoint& anchor{tx.vin[registration->anchor_input].prevout};
         const ChainSpecHash spec_hash{ComputeChainSpecHash(registration->manifest.spec)};
         const ChainId chain_id{DeriveChainId(main_genesis_hash, anchor, spec_hash)};
         if (m_records.contains(chain_id)) {
             return TransitionError(RegistryError::DUPLICATE_CHAIN_ID, chain_id);
+        }
+        if (spent_dealer_controls.size() > 1 ||
+            (spent_dealer_controls.size() == 1 && spent_dealer_controls.begin()->second > 1)) {
+            return TransitionError(RegistryError::MULTIPLE_DEALER_CONTROL_OUTPOINTS,
+                                   std::nullopt,
+                                   TxOperationError::NONE,
+                                   OperationParseError::NONE,
+                                   registration->dealer_id);
+        }
+        const auto dealer_it{m_dealers.find(registration->dealer_id)};
+        if (dealer_it == m_dealers.end()) {
+            return TransitionError(RegistryError::UNAUTHORIZED_DEALER,
+                                   std::nullopt,
+                                   TxOperationError::NONE,
+                                   OperationParseError::NONE,
+                                   registration->dealer_id);
+        }
+        if (dealer_it->second.status != DealerStatus::ACTIVE) {
+            return TransitionError(RegistryError::REVOKED_DEALER,
+                                   std::nullopt,
+                                   TxOperationError::NONE,
+                                   OperationParseError::NONE,
+                                   registration->dealer_id);
+        }
+        if (dealer_it->second.remaining_licenses == 0) {
+            return TransitionError(RegistryError::DEALER_LICENSES_EXHAUSTED,
+                                   std::nullopt,
+                                   TxOperationError::NONE,
+                                   OperationParseError::NONE,
+                                   registration->dealer_id);
+        }
+        if (spent_dealer_controls.size() != 1 ||
+            spent_dealer_controls.begin()->first != registration->dealer_id) {
+            return TransitionError(RegistryError::WRONG_DEALER_CONTROL_OUTPOINT,
+                                   std::nullopt,
+                                   TxOperationError::NONE,
+                                   OperationParseError::NONE,
+                                   registration->dealer_id);
+        }
+        if (tx.vin[registration->anchor_input].prevout == dealer_it->second.control_outpoint) {
+            return TransitionError(RegistryError::WRONG_DEALER_CONTROL_OUTPOINT,
+                                   std::nullopt,
+                                   TxOperationError::NONE,
+                                   OperationParseError::NONE,
+                                   registration->dealer_id);
+        }
+        if (tx.vout[registration->dealer_payment_output].scriptPubKey != dealer_it->second.payout_script) {
+            return TransitionError(RegistryError::WRONG_DEALER_PAYMENT,
+                                   std::nullopt,
+                                   TxOperationError::NONE,
+                                   OperationParseError::NONE,
+                                   registration->dealer_id);
         }
 
         ChainRecord record{
@@ -389,12 +727,35 @@ RegistryTransitionResult ChainRegistry::ApplyTransaction(const CTransaction& tx,
             .updated_height = height,
             .retired_height = 0,
         };
+        const DealerRecord previous_dealer{dealer_it->second};
+        m_dealer_control_index.erase(dealer_it->second.control_outpoint);
+        dealer_it->second.control_outpoint =
+            COutPoint{tx.GetHash(), registration->dealer_control_output};
+        --dealer_it->second.remaining_licenses;
+        dealer_it->second.updated_height = height;
+        m_dealer_control_index.emplace(dealer_it->second.control_outpoint, registration->dealer_id);
         m_control_index.emplace(record.control_outpoint, chain_id);
         m_records.emplace(chain_id, record);
         return {
             .chain_id = chain_id,
-            .undo = RegistryUndo{.chain_id = chain_id, .had_previous = false, .previous = {}},
+            .dealer_id = registration->dealer_id,
+            .applied = true,
+            .undo = RegistryUndo{
+                .has_chain = true,
+                .chain_id = chain_id,
+                .chain_had_previous = false,
+                .previous_chain = {},
+                .has_dealer = true,
+                .dealer_id = registration->dealer_id,
+                .dealer_had_previous = true,
+                .previous_dealer = previous_dealer,
+                .previous_authority_sequence = m_authority_sequence,
+            },
         };
+    }
+
+    if (!spent_dealer_controls.empty()) {
+        return TransitionError(RegistryError::WRONG_DEALER_CONTROL_OUTPOINT);
     }
 
     const ChainId& chain_id{std::get_if<UpdateChain>(&operation)
@@ -416,9 +777,15 @@ RegistryTransitionResult ChainRegistry::ApplyTransaction(const CTransaction& tx,
     }
 
     const RegistryUndo undo{
+        .has_chain = true,
         .chain_id = chain_id,
-        .had_previous = true,
-        .previous = record_it->second,
+        .chain_had_previous = true,
+        .previous_chain = record_it->second,
+        .has_dealer = false,
+        .dealer_id = {},
+        .dealer_had_previous = false,
+        .previous_dealer = {},
+        .previous_authority_sequence = m_authority_sequence,
     };
     m_control_index.erase(record_it->second.control_outpoint);
 
@@ -433,39 +800,72 @@ RegistryTransitionResult ChainRegistry::ApplyTransaction(const CTransaction& tx,
         record_it->second.retired_height = height;
     }
 
-    return {.chain_id = chain_id, .undo = undo};
+    return {
+        .chain_id = chain_id,
+        .dealer_id = std::nullopt,
+        .applied = true,
+        .undo = undo,
+    };
 }
 
 bool ChainRegistry::Undo(const RegistryUndo& undo)
 {
-    const auto current{m_records.find(undo.chain_id)};
-    if (current == m_records.end()) return false;
-    if (undo.had_previous && undo.previous.chain_id != undo.chain_id) return false;
-    if (undo.had_previous && undo.previous.status == ChainStatus::ACTIVE) {
-        const auto existing{m_control_index.find(undo.previous.control_outpoint)};
-        if (existing != m_control_index.end() && existing->second != undo.chain_id) return false;
-    }
-    if (current->second.status == ChainStatus::ACTIVE) {
-        m_control_index.erase(current->second.control_outpoint);
-    }
+    if (!undo.has_chain && !undo.has_dealer) return false;
 
-    if (!undo.had_previous) {
-        m_records.erase(current);
-        return true;
+    // Undo data is persisted and may be corrupted. Apply it to a candidate so
+    // a failed consistency check can never leave the live registry half
+    // reverted.
+    ChainRegistry candidate{*this};
+    if (undo.has_chain) {
+        const auto current{candidate.m_records.find(undo.chain_id)};
+        if (current == candidate.m_records.end()) return false;
+        if (undo.chain_had_previous && undo.previous_chain.chain_id != undo.chain_id) return false;
+        if (current->second.status == ChainStatus::ACTIVE) {
+            candidate.m_control_index.erase(current->second.control_outpoint);
+        }
+        if (!undo.chain_had_previous) {
+            candidate.m_records.erase(current);
+        } else {
+            current->second = undo.previous_chain;
+            if (undo.previous_chain.status == ChainStatus::ACTIVE &&
+                (candidate.m_dealer_control_index.contains(undo.previous_chain.control_outpoint) ||
+                 !candidate.m_control_index.emplace(
+                     undo.previous_chain.control_outpoint, undo.chain_id).second)) {
+                return false;
+            }
+        }
     }
-    current->second = undo.previous;
-    if (undo.previous.status == ChainStatus::ACTIVE) {
-        const auto [_, inserted]{m_control_index.emplace(undo.previous.control_outpoint, undo.chain_id)};
-        if (!inserted) return false;
+    if (undo.has_dealer) {
+        const auto current{candidate.m_dealers.find(undo.dealer_id)};
+        if (current == candidate.m_dealers.end()) return false;
+        if (undo.dealer_had_previous && undo.previous_dealer.dealer_id != undo.dealer_id) return false;
+        if (current->second.status == DealerStatus::ACTIVE) {
+            candidate.m_dealer_control_index.erase(current->second.control_outpoint);
+        }
+        if (!undo.dealer_had_previous) {
+            candidate.m_dealers.erase(current);
+        } else {
+            current->second = undo.previous_dealer;
+            if (undo.previous_dealer.status == DealerStatus::ACTIVE &&
+                (candidate.m_control_index.contains(undo.previous_dealer.control_outpoint) ||
+                 !candidate.m_dealer_control_index.emplace(
+                     undo.previous_dealer.control_outpoint, undo.dealer_id).second)) {
+                return false;
+            }
+        }
     }
+    candidate.m_authority_sequence = undo.previous_authority_sequence;
+    *this = std::move(candidate);
     return true;
 }
 
 bool ChainRegistry::UndoBlock(const RegistryBlockUndo& undo)
 {
+    ChainRegistry candidate{*this};
     for (auto it{undo.operations.rbegin()}; it != undo.operations.rend(); ++it) {
-        if (!Undo(*it)) return false;
+        if (!candidate.Undo(*it)) return false;
     }
+    *this = std::move(candidate);
     return true;
 }
 
@@ -544,7 +944,7 @@ BlockDepositsResult ValidateBlockDeposits(
 RegistryBlockResult ChainRegistry::ApplyBlock(const CBlock& block,
                                               uint32_t height,
                                               const uint256& main_genesis_hash,
-                                              CAmount minimum_registration_burn,
+                                              const XOnlyPubKey& dealer_authority_key,
                                               size_t maximum_operations,
                                               CommitmentRequirement commitment_requirement,
                                               std::optional<DepositValidationParams> deposit_params)
@@ -560,7 +960,7 @@ RegistryBlockResult ChainRegistry::ApplyBlock(const CBlock& block,
         return result;
     }
 
-    const auto coinbase_operation{ExtractTransactionOperation(*block.vtx.front(), minimum_registration_burn)};
+    const auto coinbase_operation{ExtractTransactionOperation(*block.vtx.front())};
     if (!coinbase_operation.IsValid() || coinbase_operation.operation) {
         result.error = RegistryBlockError::COINBASE_OPERATION;
         result.transition.error = RegistryError::INVALID_TRANSACTION_OPERATION;
@@ -596,7 +996,8 @@ RegistryBlockResult ChainRegistry::ApplyBlock(const CBlock& block,
             return result;
         }
 
-        auto transition{ApplyTransaction(*block.vtx[tx_index], height, main_genesis_hash, minimum_registration_burn)};
+        auto transition{ApplyTransaction(
+            *block.vtx[tx_index], height, main_genesis_hash, dealer_authority_key)};
         if (!transition.IsValid()) {
             result.error = RegistryBlockError::TRANSACTION_TRANSITION;
             result.tx_index = tx_index;

@@ -608,7 +608,8 @@ public:
         return height >= 0 ? std::optional{height} : std::nullopt;
     }
     ChainRegistrySnapshot getChainRegistrySnapshot(
-        std::optional<chainregistry::ChainId> chain_id) override
+        std::optional<chainregistry::ChainId> chain_id,
+        std::optional<chainregistry::DealerId> dealer_id) override
     {
         LOCK(::cs_main);
         const auto& consensus{chainman().GetConsensus()};
@@ -619,7 +620,7 @@ public:
         ChainRegistrySnapshot snapshot{
             .enabled = consensus.chain_registry.Enabled(),
             .active_for_next_block = consensus.chain_registry.IsActive(chainstate.m_chain.Height() + 1),
-            .minimum_registration_burn = consensus.chain_registry.minimum_registration_burn,
+            .authority_sequence = registry_state.Registry().AuthoritySequence(),
             .bmm_enabled = consensus.chain_registry.BmmEnabled(),
             .bmm_active_for_next_block = consensus.chain_registry.BmmActive(chainstate.m_chain.Height() + 1),
             .maximum_bmm_anchors = consensus.chain_registry.maximum_bmm_anchors,
@@ -631,10 +632,16 @@ public:
             .registry_root = state.registry_root,
             .height = state.height,
             .record = std::nullopt,
+            .dealer = std::nullopt,
         };
         if (chain_id) {
             if (const auto* record{registry_state.Registry().Find(*chain_id)}) {
                 snapshot.record = *record;
+            }
+        }
+        if (dealer_id) {
+            if (const auto* dealer{registry_state.Registry().FindDealer(*dealer_id)}) {
+                snapshot.dealer = *dealer;
             }
         }
         return snapshot;
