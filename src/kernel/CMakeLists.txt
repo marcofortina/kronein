@@ -22,6 +22,9 @@ add_library(bitcoinkernel
   ../chain.cpp
   ../coins.cpp
   ../compressor.cpp
+  ../consensus/bmm.cpp
+  ../consensus/chainregistry.cpp
+  ../consensus/deposit_proof.cpp
   ../consensus/merkle.cpp
   ../consensus/tx_check.cpp
   ../consensus/tx_verify.cpp
@@ -31,6 +34,8 @@ add_library(bitcoinkernel
   ../logging.cpp
   ../node/blockstorage.cpp
   ../node/chainstate.cpp
+  ../node/chainregistry.cpp
+  ../node/chainregistry_db.cpp
   ../node/utxo_snapshot.cpp
   ../policy/ephemeral_policy.cpp
   ../policy/feerate.cpp
@@ -39,6 +44,9 @@ add_library(bitcoinkernel
   ../policy/rbf.cpp
   ../pow.cpp
   ../primitives/block.cpp
+  ../primitives/bmm.cpp
+  ../primitives/chainregistry.cpp
+  ../primitives/deposit.cpp
   ../primitives/transaction.cpp
   ../pubkey.cpp
   ../random.cpp
