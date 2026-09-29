@@ -371,6 +371,33 @@ static chainregistry::MetadataHash ParseRegistryMetadataHash(const UniValue& val
     return *metadata_hash;
 }
 
+static chainregistry::DefaultFeeRecipient ParseRegistryDefaultFeeRecipient(
+    const UniValue& type_value,
+    const UniValue& recipient_value)
+{
+    const uint32_t recipient_type{ParseRegistryUint32(
+        type_value, "default_fee_recipient_type")};
+    if (recipient_type == 0 ||
+        recipient_type > std::numeric_limits<uint16_t>::max()) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "default_fee_recipient_type must be between 1 and 65535");
+    }
+    std::vector<unsigned char> recipient{
+        ParseHexV(recipient_value, "default_fee_recipient")};
+    if (recipient.empty() ||
+        recipient.size() > chainregistry::MAX_FEE_RECIPIENT_SIZE) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("default_fee_recipient must contain between 1 and %u bytes",
+                      static_cast<unsigned>(chainregistry::MAX_FEE_RECIPIENT_SIZE)));
+    }
+    return {
+        .recipient_type = static_cast<uint16_t>(recipient_type),
+        .recipient = std::move(recipient),
+    };
+}
+
 static uint256 ParseChildBlockHash(const UniValue& value)
 {
     const uint256 hash{ParseHashV(value, "child_block_hash")};
@@ -3325,6 +3352,8 @@ RPCHelpMan walletcreatechainregistrypsbt()
                 }},
                 {"child_genesis_hash", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "REGISTER: non-null child genesis hash"},
                 {"metadata_hash", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "REGISTER/UPDATE: non-null external metadata commitment"},
+                {"default_fee_recipient_type", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "REGISTER: non-zero template-namespaced fee recipient type"},
+                {"default_fee_recipient", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "REGISTER: immutable template-namespaced recipient payload receiving child fees when the producer omits one"},
                 {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "UPDATE/RETIRE: exact non-null child-chain identifier"},
                 {"control_address", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "REGISTER/UPDATE: successor Taproot address"},
                 {"control_amount", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "REGISTER/UPDATE: successor value; defaults to the dust threshold"},
@@ -3367,6 +3396,8 @@ RPCHelpMan walletcreatechainregistrypsbt()
                      {"spec", UniValueType{UniValue::VOBJ}},
                      {"child_genesis_hash", UniValueType{UniValue::VSTR}},
                      {"metadata_hash", UniValueType{UniValue::VSTR}},
+                     {"default_fee_recipient_type", UniValueType{UniValue::VNUM}},
+                     {"default_fee_recipient", UniValueType{UniValue::VSTR}},
                      {"chain_id", UniValueType{UniValue::VSTR}},
                      {"control_address", UniValueType{UniValue::VSTR}},
                      {"control_amount", UniValueType()},
@@ -3418,8 +3449,8 @@ RPCHelpMan walletcreatechainregistrypsbt()
 
     if (operation_name == "register") {
         require_parameters(
-            {"registration_anchor", "spec", "child_genesis_hash", "metadata_hash", "control_address"},
-            {"registration_anchor", "spec", "child_genesis_hash", "metadata_hash", "control_address", "control_amount", "registration_burn"});
+            {"registration_anchor", "spec", "child_genesis_hash", "metadata_hash", "default_fee_recipient_type", "default_fee_recipient", "control_address"},
+            {"registration_anchor", "spec", "child_genesis_hash", "metadata_hash", "default_fee_recipient_type", "default_fee_recipient", "control_address", "control_amount", "registration_burn"});
         authority_outpoint = ParseRegistryOutPoint(parameters.find_value("registration_anchor"), "registration_anchor");
         const auto spec{ParseRegistryChainSpec(parameters.find_value("spec"))};
         operation = chainregistry::RegisterChain{
@@ -3429,6 +3460,9 @@ RPCHelpMan walletcreatechainregistrypsbt()
                 .spec = spec,
                 .child_genesis_hash = ParseRegistryHash(parameters, "child_genesis_hash"),
                 .initial_metadata_hash = ParseRegistryMetadataHash(parameters.find_value("metadata_hash")),
+                .default_fee_recipient = ParseRegistryDefaultFeeRecipient(
+                    parameters.find_value("default_fee_recipient_type"),
+                    parameters.find_value("default_fee_recipient")),
             },
         };
         operation_amount = parameters.exists("registration_burn")

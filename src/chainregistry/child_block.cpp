@@ -65,8 +65,17 @@ bool CheckWitnessCommitment(const CBlock& block)
         block.vtx.front()->vin.empty()) {
         return false;
     }
+    const CTransaction& coinbase{*block.vtx.front()};
+    if (commitment_index != static_cast<int>(coinbase.vout.size()) - 1 ||
+        coinbase.vout.size() > 2 ||
+        coinbase.vout[commitment_index].nValue != 0 ||
+        (coinbase.vout.size() == 2 &&
+         (coinbase.vout.front().nValue < 0 ||
+          !coinbase.vout.front().scriptPubKey.IsPayToTaproot()))) {
+        return false;
+    }
     const auto& witness_stack{
-        block.vtx.front()->vin.front().scriptWitness.stack};
+        coinbase.vin.front().scriptWitness.stack};
     if (witness_stack.size() != 1 || witness_stack.front().size() != 32) {
         return false;
     }
@@ -126,7 +135,8 @@ ReferenceChildBlockBuildResult BuildReferenceChildBlock(
     }
     if (coinbase_output &&
         (!MoneyRange(coinbase_output->nValue) ||
-         coinbase_output->nValue == 0)) {
+         coinbase_output->nValue == 0 ||
+         !coinbase_output->scriptPubKey.IsPayToTaproot())) {
         return BuildError(
             ReferenceChildBlockBuildError::INVALID_COINBASE_OUTPUT);
     }
@@ -205,7 +215,8 @@ ReferenceChildBlockResult ConnectReferenceChildBlock(
     const ReferenceChildDefinition& definition,
     const MainHeaderChain& main_headers,
     CCoinsViewCache& coins,
-    DepositImportState& imports)
+    DepositImportState& imports,
+    ReferenceChildFeeClaimPolicy fee_claim_policy)
 {
     if (!IsValidDefinition(definition)) {
         return BlockError(ReferenceChildBlockError::INVALID_DEFINITION);
@@ -442,6 +453,11 @@ ReferenceChildBlockResult ConnectReferenceChildBlock(
     if (block.vtx.front()->GetValueOut() > total_fees) {
         return BlockError(
             ReferenceChildBlockError::COINBASE_PAYS_TOO_MUCH, 0);
+    }
+    if (block.vtx.front()->GetValueOut() < total_fees &&
+        fee_claim_policy == ReferenceChildFeeClaimPolicy::ENFORCE) {
+        return BlockError(
+            ReferenceChildBlockError::COINBASE_LEAVES_FEES_UNCLAIMED, 0);
     }
 
     ReferenceChildBlockUndo undo{

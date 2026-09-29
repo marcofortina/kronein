@@ -22,6 +22,7 @@
 #include <util/check.h>
 #include <util/fs.h>
 #include <util/signalinterrupt.h>
+#include <util/strencodings.h>
 #include <util/string.h>
 #include <util/vector.h>
 
@@ -47,6 +48,14 @@ extern const std::function<std::vector<const char*>()> G_TEST_COMMAND_LINE_ARGUM
 extern const std::function<std::string()> G_TEST_GET_FULL_NAME;
 
 static constexpr CAmount CENT{1000000};
+
+/** Stable valid x-only key used as the registered fee recipient in child tests. */
+inline const XOnlyPubKey& TestChildFeeRecipient()
+{
+    static const XOnlyPubKey key{ParseHex(
+        "50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0")};
+    return key;
+}
 
 /** Register common test args. Shared across binaries that rely on the test framework. */
 void SetupCommonTestArgs(ArgsManager& argsman);

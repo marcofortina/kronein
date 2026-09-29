@@ -55,7 +55,8 @@ chainregistry::ReferenceChildDefinition Definition()
         Params().GetConsensus().hashGenesisBlock,
         REGISTRATION_ANCHOR,
         chainregistry::MakeReferenceChildSpec({}),
-        METADATA_HASH)};
+        METADATA_HASH,
+        TestChildFeeRecipient())};
     BOOST_REQUIRE(result.IsValid());
     return *result.definition;
 }
@@ -441,6 +442,35 @@ BOOST_AUTO_TEST_CASE(applies_domain_separated_spends_and_fees)
         49'000,
         key,
         state.definition.chain_id))};
+    const CBlock underclaimed{
+        ChildBlock(state.genesis, 0, pubkey, {spend})};
+    const auto underclaimed_result{chainregistry::ConnectReferenceChildBlock(
+        underclaimed,
+        state.genesis,
+        underclaimed.nTime,
+        state.definition,
+        main_headers,
+        state.coins,
+        state.imports)};
+    BOOST_CHECK(
+        underclaimed_result.error ==
+        chainregistry::ReferenceChildBlockError::COINBASE_LEAVES_FEES_UNCLAIMED);
+    CCoinsViewCache candidate_coins{&state.coins, /*deterministic=*/true};
+    auto candidate_imports{state.imports};
+    const auto evaluated{chainregistry::ConnectReferenceChildBlock(
+        underclaimed,
+        state.genesis,
+        underclaimed.nTime,
+        state.definition,
+        main_headers,
+        candidate_coins,
+        candidate_imports,
+        chainregistry::ReferenceChildFeeClaimPolicy::
+            ALLOW_UNCLAIMED_FOR_FEE_DISCOVERY)};
+    BOOST_REQUIRE(evaluated.IsValid());
+    BOOST_CHECK_EQUAL(evaluated.total_fees, 1'000);
+    BOOST_CHECK(state.coins.HaveCoin(seeded));
+
     const CBlock block{ChildBlock(state.genesis, 1'000, pubkey, {spend})};
     const auto connected{chainregistry::ConnectReferenceChildBlock(
         block,

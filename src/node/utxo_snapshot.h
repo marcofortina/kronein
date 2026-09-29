@@ -34,7 +34,7 @@ static constexpr std::array<uint8_t, 5> SNAPSHOT_REGISTRY_MAGIC_BYTES = {'k', 'r
 class Chainstate;
 
 namespace node {
-inline constexpr uint8_t REGISTRY_SNAPSHOT_VERSION{1};
+inline constexpr uint8_t REGISTRY_SNAPSHOT_VERSION{2};
 inline constexpr uint64_t MAX_REGISTRY_SNAPSHOT_RECORDS{1'000'000};
 inline constexpr uint64_t MAX_REGISTRY_SNAPSHOT_MERKLE_BRANCH{32};
 

@@ -102,7 +102,8 @@ ReferenceChildResult BuildReferenceChildDefinition(
     const uint256& main_genesis_hash,
     const COutPoint& registration_anchor,
     const ChainSpec& spec,
-    const MetadataHash& initial_metadata_hash)
+    const MetadataHash& initial_metadata_hash,
+    std::span<const unsigned char> default_fee_recipient)
 {
     if (main_genesis_hash.IsNull()) {
         return DefinitionError(ReferenceChildError::NULL_MAIN_GENESIS);
@@ -112,6 +113,10 @@ ReferenceChildResult BuildReferenceChildDefinition(
     }
     if (initial_metadata_hash.IsNull()) {
         return DefinitionError(ReferenceChildError::NULL_METADATA_HASH);
+    }
+    if (!IsValidReferenceChildRecipient(
+            REFERENCE_CHILD_P2TR_RECIPIENT, default_fee_recipient)) {
+        return DefinitionError(ReferenceChildError::INVALID_FEE_RECIPIENT);
     }
     if (spec.protocol_version != PROTOCOL_VERSION ||
         spec.template_id != REFERENCE_CHILD_TEMPLATE_ID ||
@@ -139,6 +144,11 @@ ReferenceChildResult BuildReferenceChildDefinition(
         .spec = spec,
         .child_genesis_hash = genesis_hash,
         .initial_metadata_hash = initial_metadata_hash,
+        .default_fee_recipient = {
+            .recipient_type = REFERENCE_CHILD_P2TR_RECIPIENT,
+            .recipient = {default_fee_recipient.begin(),
+                          default_fee_recipient.end()},
+        },
     };
 
     ReferenceChildResult result;
@@ -168,8 +178,13 @@ ReferenceChildResult ValidateReferenceChildManifest(
     auto result{BuildReferenceChildDefinition(main_genesis_hash,
                                               registration_anchor,
                                               manifest.spec,
-                                              manifest.initial_metadata_hash)};
+                                              manifest.initial_metadata_hash,
+                                              manifest.default_fee_recipient.recipient)};
     if (!result.IsValid()) return result;
+    if (manifest.default_fee_recipient.recipient_type !=
+        REFERENCE_CHILD_P2TR_RECIPIENT) {
+        return DefinitionError(ReferenceChildError::INVALID_FEE_RECIPIENT);
+    }
     if (result.definition->genesis_hash != manifest.child_genesis_hash) {
         return DefinitionError(ReferenceChildError::GENESIS_MISMATCH);
     }

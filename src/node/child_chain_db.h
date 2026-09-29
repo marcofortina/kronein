@@ -23,7 +23,7 @@
 
 namespace node {
 
-inline constexpr uint8_t CHILD_CHAIN_DB_VERSION{6};
+inline constexpr uint8_t CHILD_CHAIN_DB_VERSION{7};
 inline constexpr uint8_t CHILD_BMM_ANCHOR_RECORD_VERSION{1};
 inline constexpr uint8_t CHILD_BLOCK_FILTER_RECORD_VERSION{1};
 inline constexpr uint8_t CHILD_PENDING_BMM_ANCHOR_RECORD_VERSION{1};

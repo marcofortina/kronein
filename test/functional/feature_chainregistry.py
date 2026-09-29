@@ -36,6 +36,16 @@ from test_framework.util import (
 
 
 class ChainRegistryTest(BitcoinTestFramework):
+    REFERENCE_SPEC = {
+        "template_id": 1,
+        "template_version": 1,
+        "consensus_parameters": "0100093d0090000000",
+        "anchoring_policy": "bmm_v1",
+    }
+    VALID_P2TR_RECIPIENT = (
+        "50929b74c1a04954b78b4b6035e97a5e"
+        "078a5a0f28ec96d547bfee9ace803ac0")
+
     def mock_signer_path(self):
         path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                             "mocks", "signer.py")
@@ -56,7 +66,10 @@ class ChainRegistryTest(BitcoinTestFramework):
         ]
         node_args = registry_args.copy()
         if self.is_external_signer_compiled():
-            node_args.append(f"-signer={self.mock_signer_path()}")
+            node_args.extend([
+                f"-signer={self.mock_signer_path()}",
+                "-keypool=2",
+            ])
         self.extra_args = [node_args, registry_args.copy()]
 
     def skip_test_if_missing_module(self):
@@ -106,6 +119,8 @@ class ChainRegistryTest(BitcoinTestFramework):
             "spec": spec,
             "child_genesis_hash": "02" * 32,
             "metadata_hash": "03" * 32,
+            "default_fee_recipient_type": 1,
+            "default_fee_recipient": self.VALID_P2TR_RECIPIENT,
         })
         assert_equal(registration["operation"], "register")
         assert_equal(registration["chain_id"], derived["chain_id"])
@@ -227,8 +242,18 @@ class ChainRegistryTest(BitcoinTestFramework):
         anchor_utxo = wallet.listunspent(1)[0]
         registration_anchor = {"txid": anchor_utxo["txid"], "vout": anchor_utxo["vout"]}
         control_address = wallet.getnewaddress()
+        future_chain_id = node.derivechildchainid(
+            registration_anchor, self.REFERENCE_SPEC)["chain_id"]
+        default_fee_recipient = wallet.getnewchildrecipient(
+            future_chain_id, "registration-fees", True)
         reference_child = node.createreferencechildmanifest(
-            registration_anchor, "22" * 32)
+            registration_anchor,
+            "22" * 32,
+            default_fee_recipient["recipient"])
+        assert_equal(reference_child["chain_id"], future_chain_id)
+        assert_equal(reference_child["manifest"]["default_fee_recipient_type"], 1)
+        assert_equal(reference_child["manifest"]["default_fee_recipient"],
+                     default_fee_recipient["recipient"])
         wallet_spec = {
             "template_id": reference_child["manifest"]["spec"]["template_id"],
             "template_version": reference_child["manifest"]["spec"]["template_version"],
@@ -240,6 +265,8 @@ class ChainRegistryTest(BitcoinTestFramework):
             "spec": wallet_spec,
             "child_genesis_hash": reference_child["genesis_hash"],
             "metadata_hash": "22" * 32,
+            "default_fee_recipient_type": 1,
+            "default_fee_recipient": default_fee_recipient["recipient"],
             "control_address": control_address,
         }, {"fee_rate": 1})
         assert_equal(registration_psbt["operation"], "register")
@@ -393,8 +420,9 @@ class ChainRegistryTest(BitcoinTestFramework):
         wallet.setlabel(child_recipient, "child-receive", chain_id)
         listed_identities = wallet.listchildrecipients(chain_id)
         assert_equal(listed_identities["chain_id"], chain_id)
-        assert_equal(listed_identities["recipient_count"], 1)
-        assert_equal(listed_identities["recipients"], [child_identity])
+        assert_equal(listed_identities["recipient_count"], 2)
+        assert child_identity in listed_identities["recipients"]
+        assert default_fee_recipient in listed_identities["recipients"]
         assert_raises_rpc_error(
             -8, "chain_id must be exactly 32 non-null bytes",
             wallet.getbalances, "00" * 32)
@@ -424,7 +452,8 @@ class ChainRegistryTest(BitcoinTestFramework):
             0,
             {"add_inputs": False, "fee_rate": 1})
         control_reference = node.createreferencechildmanifest(
-            control_outpoint, "23" * 32)
+            control_outpoint, "23" * 32,
+            default_fee_recipient["recipient"])
         assert_raises_rpc_error(
             -8, "registration_anchor is reserved as a child-chain registry control output",
             wallet.walletcreatechainregistrypsbt,
@@ -439,6 +468,8 @@ class ChainRegistryTest(BitcoinTestFramework):
                 },
                 "child_genesis_hash": control_reference["genesis_hash"],
                 "metadata_hash": "23" * 32,
+                "default_fee_recipient_type": 1,
+                "default_fee_recipient": default_fee_recipient["recipient"],
                 "control_address": wallet.getnewaddress(),
             },
             {"fee_rate": 1})
@@ -1189,11 +1220,12 @@ class ChainRegistryTest(BitcoinTestFramework):
                      {False, True})
         assert all(not descriptor["active"] for descriptor in child_descriptors)
         child_wallet_identities = wallet.listchildrecipients(chain_id)
-        assert_equal(child_wallet_identities["recipient_count"], 2)
+        assert_equal(child_wallet_identities["recipient_count"], 3)
         assert child_identity in child_wallet_identities["recipients"]
         child_change_identity = next(
             identity for identity in child_wallet_identities["recipients"]
-            if identity != child_identity)
+            if wallet.getaddressinfo(
+                identity["recipient"], chain_id)["ischange"])
         assert_equal(child_change_identity["chain_id"], chain_id)
         assert_equal(child_change_identity["recipient_type"], 1)
         assert_equal(child_change_identity["label"], "")
@@ -1391,9 +1423,13 @@ class ChainRegistryTest(BitcoinTestFramework):
                 external_wallet.getnewchildrecipient, chain_id)
             with open(os.path.join(node.cwd, "mock_child_descriptors"), "w") as f:
                 json.dump(signer_child_descriptors, f)
+            external_default_recipient = external_wallet.getnewchildrecipient(
+                chain_id)
+            assert_equal(external_default_recipient["recipient"],
+                         default_fee_recipient["recipient"])
             external_recipient = external_wallet.getnewchildrecipient(chain_id)
             assert_equal(external_recipient["recipient"], child_identity["recipient"])
-            external_wallet.recoverchildwallet(chain_id, 0, 1)
+            external_wallet.recoverchildwallet(chain_id, 0, 2)
             with open(os.path.join(node.cwd, "mock_psbt"), "w") as f:
                 f.write(main_domain_psbt["psbt"])
             assert_raises_rpc_error(
@@ -1738,15 +1774,9 @@ class ChainRegistryTest(BitcoinTestFramework):
              pending_since_block["transactions"]],
             [signed_child["txid"]])
 
-        child_fee_recipient = wallet.getnewchildrecipient(
-            chain_id, "child-fees")
         child_wallet_identities = wallet.listchildrecipients(chain_id)
         assert_equal(child_wallet_identities["recipient_count"], 3)
-        assert child_fee_recipient in child_wallet_identities["recipients"]
-        spend_block = node.createchildblock(
-            chain_id,
-            None,
-            child_fee_recipient["recipient"])
+        spend_block = node.createchildblock(chain_id)
         assert_equal(spend_block["chain_id"], chain_id)
         assert_equal(spend_block["previousblockhash"], child_block["blockhash"])
         assert_equal(spend_block["height"], 2)
@@ -1754,7 +1784,9 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(spend_block["fees"], child_fee)
         assert_equal(spend_block["claimed_fees"], child_fee)
         assert_equal(spend_block["fee_recipient"],
-                     child_fee_recipient["recipient"])
+                     default_fee_recipient["recipient"])
+        assert_equal(spend_block["fee_recipient_source"],
+                     "manifest-default")
         assert_equal(spend_block["proposal_stored"], True)
         assert_equal(spend_block["contextually_valid"], True)
         assert_equal(node.listchildproposals(chain_id)["proposal_count"], 1)
@@ -2190,7 +2222,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         child_sweep = attacker.sendall(
             recipients=[
                 {generic_recipient: child_sweep_fixed},
-                child_fee_recipient["recipient"],
+                default_fee_recipient["recipient"],
             ],
             child_fee=child_send_fee,
             chain_id=chain_id)

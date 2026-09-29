@@ -121,6 +121,7 @@ enum class ReferenceChildError : uint8_t {
     UNSUPPORTED_TEMPLATE,
     INVALID_PARAMETERS,
     INVALID_MANIFEST,
+    INVALID_FEE_RECIPIENT,
     GENESIS_MISMATCH,
 };
 
@@ -141,7 +142,8 @@ ReferenceChildResult BuildReferenceChildDefinition(
     const uint256& main_genesis_hash,
     const COutPoint& registration_anchor,
     const ChainSpec& spec,
-    const MetadataHash& initial_metadata_hash);
+    const MetadataHash& initial_metadata_hash,
+    std::span<const unsigned char> default_fee_recipient);
 
 /** Recompute and verify every derived field in an externally supplied manifest. */
 ReferenceChildResult ValidateReferenceChildManifest(

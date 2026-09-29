@@ -3,6 +3,7 @@
 // file COPYING or https://opensource.org/license/mit/.
 
 #include <chainregistry/child_template.h>
+#include <test/util/setup_common.h>
 #include <util/strencodings.h>
 
 #include <boost/test/unit_test.hpp>
@@ -65,9 +66,11 @@ BOOST_AUTO_TEST_CASE(genesis_and_identity_are_deterministic)
 {
     const auto spec{chainregistry::MakeReferenceChildSpec({})};
     const auto first{chainregistry::BuildReferenceChildDefinition(
-        MAIN_GENESIS, REGISTRATION_ANCHOR, spec, METADATA_HASH)};
+        MAIN_GENESIS, REGISTRATION_ANCHOR, spec, METADATA_HASH,
+        TestChildFeeRecipient())};
     const auto second{chainregistry::BuildReferenceChildDefinition(
-        MAIN_GENESIS, REGISTRATION_ANCHOR, spec, METADATA_HASH)};
+        MAIN_GENESIS, REGISTRATION_ANCHOR, spec, METADATA_HASH,
+        TestChildFeeRecipient())};
     BOOST_REQUIRE(first.IsValid());
     BOOST_REQUIRE(second.IsValid());
     BOOST_CHECK(*first.definition == *second.definition);
@@ -82,7 +85,7 @@ BOOST_AUTO_TEST_CASE(genesis_and_identity_are_deterministic)
     BOOST_CHECK_EQUAL(first.definition->genesis_hash.GetHex(),
                       "3f5d529fa3d5cdf81c5b97bc4a12aa193c17c40b3c1702739a7186f8a684409c");
     BOOST_CHECK_EQUAL(first.definition->manifest_hash.GetHex(),
-                      "dcc1175363c84667ce09b77a56ff80ceaf754466a7adbd914bc47172b17adcd2");
+                      "7a2a7b98acdf8a4c0e9cd81a8d631415ea328b881138cc33f93b65773e13b7d1");
     BOOST_CHECK(first.definition->manifest.child_genesis_hash ==
                 first.definition->genesis_hash);
     BOOST_CHECK(first.definition->manifest_hash ==
@@ -96,7 +99,8 @@ BOOST_AUTO_TEST_CASE(genesis_and_identity_are_deterministic)
     COutPoint other_anchor{REGISTRATION_ANCHOR};
     ++other_anchor.n;
     const auto other{chainregistry::BuildReferenceChildDefinition(
-        MAIN_GENESIS, other_anchor, spec, METADATA_HASH)};
+        MAIN_GENESIS, other_anchor, spec, METADATA_HASH,
+        TestChildFeeRecipient())};
     BOOST_REQUIRE(other.IsValid());
     BOOST_CHECK(other.definition->chain_id != first.definition->chain_id);
     BOOST_CHECK(other.definition->genesis_hash != first.definition->genesis_hash);
@@ -108,7 +112,8 @@ BOOST_AUTO_TEST_CASE(manifest_cannot_claim_another_genesis)
         MAIN_GENESIS,
         REGISTRATION_ANCHOR,
         chainregistry::MakeReferenceChildSpec({}),
-        METADATA_HASH)};
+        METADATA_HASH,
+        TestChildFeeRecipient())};
     BOOST_REQUIRE(built.IsValid());
 
     auto manifest{built.definition->manifest};
@@ -123,28 +128,37 @@ BOOST_AUTO_TEST_CASE(rejects_unsupported_or_ambiguous_definitions)
     auto spec{chainregistry::MakeReferenceChildSpec({})};
     ++spec.template_version;
     BOOST_CHECK(chainregistry::BuildReferenceChildDefinition(
-                    MAIN_GENESIS, REGISTRATION_ANCHOR, spec, METADATA_HASH).error ==
+                    MAIN_GENESIS, REGISTRATION_ANCHOR, spec, METADATA_HASH,
+                    TestChildFeeRecipient())
+                    .error ==
                 chainregistry::ReferenceChildError::UNSUPPORTED_TEMPLATE);
 
     spec = chainregistry::MakeReferenceChildSpec({});
     spec.consensus_parameters.push_back(0);
     const auto parameters_error{chainregistry::BuildReferenceChildDefinition(
-        MAIN_GENESIS, REGISTRATION_ANCHOR, spec, METADATA_HASH)};
+        MAIN_GENESIS, REGISTRATION_ANCHOR, spec, METADATA_HASH,
+        TestChildFeeRecipient())};
     BOOST_CHECK(parameters_error.error == chainregistry::ReferenceChildError::INVALID_PARAMETERS);
     BOOST_CHECK(parameters_error.parameters_error ==
                 chainregistry::ReferenceChildParametersError::TRAILING_DATA);
 
     BOOST_CHECK(chainregistry::BuildReferenceChildDefinition(
-                    {}, REGISTRATION_ANCHOR, chainregistry::MakeReferenceChildSpec({}), METADATA_HASH).error ==
+                    {}, REGISTRATION_ANCHOR, chainregistry::MakeReferenceChildSpec({}), METADATA_HASH,
+                    TestChildFeeRecipient())
+                    .error ==
                 chainregistry::ReferenceChildError::NULL_MAIN_GENESIS);
     BOOST_CHECK(chainregistry::BuildReferenceChildDefinition(
-                    MAIN_GENESIS, {}, chainregistry::MakeReferenceChildSpec({}), METADATA_HASH).error ==
+                    MAIN_GENESIS, {}, chainregistry::MakeReferenceChildSpec({}), METADATA_HASH,
+                    TestChildFeeRecipient())
+                    .error ==
                 chainregistry::ReferenceChildError::NULL_REGISTRATION_ANCHOR);
     BOOST_CHECK(chainregistry::BuildReferenceChildDefinition(
                     MAIN_GENESIS,
                     REGISTRATION_ANCHOR,
                     chainregistry::MakeReferenceChildSpec({}),
-                    {}).error == chainregistry::ReferenceChildError::NULL_METADATA_HASH);
+                    {},
+                    TestChildFeeRecipient())
+                    .error == chainregistry::ReferenceChildError::NULL_METADATA_HASH);
 }
 
 BOOST_AUTO_TEST_CASE(recipient_namespace_is_strict)
@@ -164,6 +178,29 @@ BOOST_AUTO_TEST_CASE(recipient_namespace_is_strict)
     BOOST_CHECK(!chainregistry::IsValidReferenceChildRecipient(
         chainregistry::REFERENCE_CHILD_P2TR_RECIPIENT,
         std::span<const unsigned char>{valid_key}.first(31)));
+
+    const auto invalid_definition{chainregistry::BuildReferenceChildDefinition(
+        MAIN_GENESIS,
+        REGISTRATION_ANCHOR,
+        chainregistry::MakeReferenceChildSpec({}),
+        METADATA_HASH,
+        invalid_key)};
+    BOOST_CHECK(invalid_definition.error ==
+                chainregistry::ReferenceChildError::INVALID_FEE_RECIPIENT);
+
+    const auto valid_definition{chainregistry::BuildReferenceChildDefinition(
+        MAIN_GENESIS,
+        REGISTRATION_ANCHOR,
+        chainregistry::MakeReferenceChildSpec({}),
+        METADATA_HASH,
+        valid_key)};
+    BOOST_REQUIRE(valid_definition.IsValid());
+    auto wrong_namespace{valid_definition.definition->manifest};
+    wrong_namespace.default_fee_recipient.recipient_type = 2;
+    BOOST_CHECK(chainregistry::ValidateReferenceChildManifest(
+                    MAIN_GENESIS, REGISTRATION_ANCHOR, wrong_namespace)
+                    .error ==
+                chainregistry::ReferenceChildError::INVALID_FEE_RECIPIENT);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

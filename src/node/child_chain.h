@@ -205,6 +205,10 @@ private:
         int64_t current_time,
         bool sync,
         ReferenceChildRuntimeResult& result);
+    chainregistry::ReferenceChildBlockResult ValidateTipBlockWithFeeClaimPolicy(
+        const CBlock& block,
+        int64_t current_time,
+        chainregistry::ReferenceChildFeeClaimPolicy fee_claim_policy) const;
     ReferenceChildMempoolAcceptResult AcceptMempoolTransaction(
         ChildMempool& mempool,
         CTransactionRef transaction,
@@ -269,6 +273,10 @@ public:
         bool sync = false);
     /** Contextually validate a block extending the active tip without persistence. */
     chainregistry::ReferenceChildBlockResult ValidateTipBlock(
+        const CBlock& block,
+        int64_t current_time) const;
+    /** Validate transactions on ephemeral state while discovering their fees. */
+    chainregistry::ReferenceChildBlockResult EvaluateTipBlockFees(
         const CBlock& block,
         int64_t current_time) const;
     ReferenceChildMempoolAcceptResult SubmitTransaction(

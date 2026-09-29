@@ -142,10 +142,11 @@ RPCHelpMan getnewchildrecipient()
 {
     return RPCHelpMan{
         "getnewchildrecipient",
-        "Derive and persist a new wallet-owned P2TR receiving key for one exact child chain. The result is the canonical recipient tuple used by FUND_CHAIN; it is not a main-chain address and must always be used together with the returned chain_id.\n",
+        "Derive and persist a new wallet-owned P2TR receiving key for one exact child chain. The result is the canonical recipient tuple used by FUND_CHAIN; it is not a main-chain address and must always be used together with the returned chain_id. Set for_registration only while preparing an unconfirmed REGISTER whose chain_id was derived from its exact anchor and specification.\n",
         {
             {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Exact non-null registered child-chain identifier"},
             {"label", RPCArg::Type::STR, RPCArg::Default{""}, "Wallet label associated with the receiving key"},
+            {"for_registration", RPCArg::Type::BOOL, RPCArg::Default{false}, "Allow derivation before this exact chain_id is present in the active registry"},
         },
         RPCResult{RPCResult::Type::OBJ, "", "Wallet-owned child recipient", {
             {RPCResult::Type::STR_HEX, "chain_id", "Exact child-chain identifier"},
@@ -164,7 +165,9 @@ RPCHelpMan getnewchildrecipient()
     wallet->BlockUntilSyncedToCurrentChain();
 
     const auto chain_id{ParseChildChainId(self.Arg<UniValue>("chain_id"))};
-    EnsureActiveReferenceChild(*wallet, chain_id);
+    if (!self.Arg<bool>("for_registration")) {
+        EnsureActiveReferenceChild(*wallet, chain_id);
+    }
     const std::string label{LabelFromValue(self.Arg<UniValue>("label"))};
 
     const auto destination{wallet->GetNewChildDestination(chain_id, label)};

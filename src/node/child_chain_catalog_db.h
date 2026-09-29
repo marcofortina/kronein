@@ -15,8 +15,8 @@
 
 namespace node {
 
-inline constexpr uint8_t CHILD_CHAIN_CATALOG_DB_VERSION{1};
-inline constexpr uint8_t CHILD_CHAIN_CATALOG_ENTRY_VERSION{1};
+inline constexpr uint8_t CHILD_CHAIN_CATALOG_DB_VERSION{2};
+inline constexpr uint8_t CHILD_CHAIN_CATALOG_ENTRY_VERSION{2};
 
 struct ChildChainCatalogEntry {
     uint8_t version{CHILD_CHAIN_CATALOG_ENTRY_VERSION};

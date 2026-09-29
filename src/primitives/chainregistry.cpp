@@ -63,6 +63,13 @@ ManifestValidationError ValidateManifest(const ChainManifest& manifest)
     }
     if (manifest.child_genesis_hash.IsNull()) return ManifestValidationError::NULL_GENESIS;
     if (manifest.initial_metadata_hash.IsNull()) return ManifestValidationError::NULL_METADATA_HASH;
+    if (manifest.default_fee_recipient.recipient_type == 0) {
+        return ManifestValidationError::INVALID_FEE_RECIPIENT_TYPE;
+    }
+    if (manifest.default_fee_recipient.recipient.empty() ||
+        manifest.default_fee_recipient.recipient.size() > MAX_FEE_RECIPIENT_SIZE) {
+        return ManifestValidationError::INVALID_FEE_RECIPIENT_SIZE;
+    }
     return ManifestValidationError::NONE;
 }
 

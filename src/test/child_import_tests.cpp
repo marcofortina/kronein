@@ -38,7 +38,8 @@ chainregistry::ReferenceChildDefinition Definition(
         MAIN_GENESIS,
         REGISTRATION_ANCHOR,
         chainregistry::MakeReferenceChildSpec(parameters),
-        METADATA_HASH)};
+        METADATA_HASH,
+        RECIPIENT)};
     BOOST_REQUIRE(result.IsValid());
     return *result.definition;
 }
@@ -248,7 +249,8 @@ BOOST_AUTO_TEST_CASE(rejects_another_network_or_manifest)
         MAIN_GENESIS,
         REGISTRATION_ANCHOR,
         definition.manifest.spec,
-        other_metadata)};
+        other_metadata,
+        RECIPIENT)};
     BOOST_REQUIRE(other_result.IsValid());
     BOOST_CHECK(other_result.definition->chain_id == definition.chain_id);
     BOOST_CHECK(other_result.definition->manifest_hash != definition.manifest_hash);

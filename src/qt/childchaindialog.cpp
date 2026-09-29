@@ -11,6 +11,7 @@
 #include <qt/bitcoinamountfield.h>
 #include <qt/walletmodel.h>
 #include <rpc/util.h>
+#include <util/strencodings.h>
 #endif
 #include <qt/guiutil.h>
 #include <univalue.h>
@@ -1745,16 +1746,54 @@ void ChildChainDialog::registerChildChain()
         "txid", anchor->currentData(Qt::UserRole).toString().toStdString());
     registration_anchor.pushKV(
         "vout", anchor->currentData(Qt::UserRole + 1).toInt());
-    UniValue manifest_params{UniValue::VARR};
-    manifest_params.push_back(registration_anchor);
-    manifest_params.push_back(metadata_commitment.toStdString());
-    manifest_params.push_back(max_block_weight->value());
-    manifest_params.push_back(deposit_maturity->value());
-
     UniValue definition;
     UniValue control_address;
+    UniValue registered_fee_recipient;
     QApplication::setOverrideCursor(Qt::WaitCursor);
     try {
+        const chainregistry::ReferenceChildParameters reference_parameters{
+            .max_block_weight =
+                static_cast<uint32_t>(max_block_weight->value()),
+            .deposit_maturity =
+                static_cast<uint32_t>(deposit_maturity->value()),
+        };
+        const chainregistry::ChainSpec child_spec{
+            chainregistry::MakeReferenceChildSpec(reference_parameters)};
+        UniValue spec_value{UniValue::VOBJ};
+        spec_value.pushKV("template_id", child_spec.template_id);
+        spec_value.pushKV("template_version", child_spec.template_version);
+        spec_value.pushKV(
+            "consensus_parameters", HexStr(child_spec.consensus_parameters));
+        spec_value.pushKV("anchoring_policy", "bmm_v1");
+        UniValue derive_params{UniValue::VARR};
+        derive_params.push_back(registration_anchor);
+        derive_params.push_back(std::move(spec_value));
+        const UniValue derived{m_node.executeRpc(
+            "derivechildchainid", derive_params, "")};
+        const UniValue& derived_chain_id{derived.find_value("chain_id")};
+        if (!derived_chain_id.isStr()) {
+            throw std::runtime_error("derivechildchainid returned no chain_id");
+        }
+
+        UniValue recipient_params{UniValue::VARR};
+        recipient_params.push_back(derived_chain_id);
+        recipient_params.push_back("registration-fees");
+        recipient_params.push_back(true);
+        registered_fee_recipient = m_node.executeRpc(
+            "getnewchildrecipient", recipient_params, wallet_uri);
+        const UniValue& fee_recipient{
+            registered_fee_recipient.find_value("recipient")};
+        if (!fee_recipient.isStr()) {
+            throw std::runtime_error(
+                "getnewchildrecipient returned no recipient");
+        }
+
+        UniValue manifest_params{UniValue::VARR};
+        manifest_params.push_back(registration_anchor);
+        manifest_params.push_back(metadata_commitment.toStdString());
+        manifest_params.push_back(fee_recipient);
+        manifest_params.push_back(max_block_weight->value());
+        manifest_params.push_back(deposit_maturity->value());
         definition = m_node.executeRpc(
             "createreferencechildmanifest", manifest_params, "");
         control_address = m_node.executeRpc(
@@ -1776,6 +1815,21 @@ void ChildChainDialog::registerChildChain()
     const UniValue& manifest{definition.find_value("manifest")};
     if (!chain_value.isStr() || !genesis_hash.isStr() ||
         !manifest.isObject() || !control_address.isStr()) {
+        showRpcError(tr("Create child registration"),
+                     tr("The node returned an invalid reference-child definition."));
+        return;
+    }
+    const UniValue& default_fee_recipient{
+        manifest.find_value("default_fee_recipient")};
+    const UniValue& default_fee_recipient_type{
+        manifest.find_value("default_fee_recipient_type")};
+    const UniValue& registered_recipient{
+        registered_fee_recipient.find_value("recipient")};
+    if (!default_fee_recipient_type.isNum() ||
+        default_fee_recipient_type.getInt<int>() !=
+            chainregistry::REFERENCE_CHILD_P2TR_RECIPIENT ||
+        !default_fee_recipient.isStr() || !registered_recipient.isStr() ||
+        default_fee_recipient.get_str() != registered_recipient.get_str()) {
         showRpcError(tr("Create child registration"),
                      tr("The node returned an invalid reference-child definition."));
         return;
@@ -1804,6 +1858,9 @@ void ChildChainDialog::registerChildChain()
     parameters.pushKV("spec", std::move(wallet_spec));
     parameters.pushKV("child_genesis_hash", genesis_hash);
     parameters.pushKV("metadata_hash", metadata_commitment.toStdString());
+    parameters.pushKV("default_fee_recipient_type",
+                      default_fee_recipient_type);
+    parameters.pushKV("default_fee_recipient", default_fee_recipient);
     parameters.pushKV("control_address", control_address);
 
     UniValue local_definition{UniValue::VOBJ};

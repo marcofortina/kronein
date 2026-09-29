@@ -1091,9 +1091,10 @@ ReferenceChildRuntimeResult ReferenceChildRuntime::ConnectBlock(
 }
 
 chainregistry::ReferenceChildBlockResult
-ReferenceChildRuntime::ValidateTipBlock(
+ReferenceChildRuntime::ValidateTipBlockWithFeeClaimPolicy(
     const CBlock& block,
-    int64_t current_time) const
+    int64_t current_time,
+    chainregistry::ReferenceChildFeeClaimPolicy fee_claim_policy) const
 {
     if (!Usable() || !m_db || !m_tip || !m_main_headers) {
         chainregistry::ReferenceChildBlockResult result;
@@ -1110,7 +1111,31 @@ ReferenceChildRuntime::ValidateTipBlock(
         m_definition,
         *m_main_headers,
         candidate_coins,
-        candidate_imports);
+        candidate_imports,
+        fee_claim_policy);
+}
+
+chainregistry::ReferenceChildBlockResult
+ReferenceChildRuntime::ValidateTipBlock(
+    const CBlock& block,
+    int64_t current_time) const
+{
+    return ValidateTipBlockWithFeeClaimPolicy(
+        block,
+        current_time,
+        chainregistry::ReferenceChildFeeClaimPolicy::ENFORCE);
+}
+
+chainregistry::ReferenceChildBlockResult
+ReferenceChildRuntime::EvaluateTipBlockFees(
+    const CBlock& block,
+    int64_t current_time) const
+{
+    return ValidateTipBlockWithFeeClaimPolicy(
+        block,
+        current_time,
+        chainregistry::ReferenceChildFeeClaimPolicy::
+            ALLOW_UNCLAIMED_FOR_FEE_DISCOVERY);
 }
 
 ReferenceChildMempoolAcceptResult
@@ -1172,7 +1197,7 @@ ReferenceChildRuntime::AcceptMempoolTransaction(
         result.error = ReferenceChildMempoolAcceptError::BUILD_FAILED;
         return result;
     }
-    result.validation = ValidateTipBlock(*result.build.block, current_time);
+    result.validation = EvaluateTipBlockFees(*result.build.block, current_time);
     if (!result.validation.IsValid() ||
         result.validation.total_fees < mempool.TotalFees()) {
         result.error = ReferenceChildMempoolAcceptError::CONTEXT_REJECTED;

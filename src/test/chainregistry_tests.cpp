@@ -34,6 +34,10 @@ chainregistry::ChainManifest ValidManifest()
         .spec = std::move(spec),
         .child_genesis_hash = uint256{"1111111111111111111111111111111111111111111111111111111111111111"},
         .initial_metadata_hash = chainregistry::MetadataHash{"2222222222222222222222222222222222222222222222222222222222222222"},
+        .default_fee_recipient = {
+            .recipient_type = 1,
+            .recipient = ParseHex("50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0"),
+        },
     };
 }
 
@@ -202,9 +206,11 @@ BOOST_AUTO_TEST_CASE(chain_spec_and_manifest_vectors)
         HexStr(manifest_stream),
         "0100010000000200000003aabbcc01"
         "1111111111111111111111111111111111111111111111111111111111111111"
-        "2222222222222222222222222222222222222222222222222222222222222222");
+        "2222222222222222222222222222222222222222222222222222222222222222"
+        "010020"
+        "50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0");
     BOOST_CHECK_EQUAL(chainregistry::ComputeManifestHash(manifest).GetHex(),
-                      "26a669a5688af69900bf6ce34d43d62b376dfdb9dfa1fcc505d385aae723ba9b");
+                      "d20e2bbc2b6025668c0142b3d82fb4fb1d9f4dfda9316271c18893b245ef12f0");
 }
 
 BOOST_AUTO_TEST_CASE(manifest_validation)
@@ -232,6 +238,15 @@ BOOST_AUTO_TEST_CASE(manifest_validation)
     manifest = ValidManifest();
     manifest.initial_metadata_hash = {};
     BOOST_CHECK(chainregistry::ValidateManifest(manifest) == chainregistry::ManifestValidationError::NULL_METADATA_HASH);
+    manifest = ValidManifest();
+    manifest.default_fee_recipient.recipient_type = 0;
+    BOOST_CHECK(chainregistry::ValidateManifest(manifest) == chainregistry::ManifestValidationError::INVALID_FEE_RECIPIENT_TYPE);
+    manifest = ValidManifest();
+    manifest.default_fee_recipient.recipient.clear();
+    BOOST_CHECK(chainregistry::ValidateManifest(manifest) == chainregistry::ManifestValidationError::INVALID_FEE_RECIPIENT_SIZE);
+    manifest.default_fee_recipient.recipient.resize(
+        chainregistry::MAX_FEE_RECIPIENT_SIZE + 1);
+    BOOST_CHECK(chainregistry::ValidateManifest(manifest) == chainregistry::ManifestValidationError::INVALID_FEE_RECIPIENT_SIZE);
 }
 
 BOOST_AUTO_TEST_CASE(operation_script_vectors_and_roundtrip)
@@ -252,9 +267,11 @@ BOOST_AUTO_TEST_CASE(operation_script_vectors_and_roundtrip)
 
     const std::vector<std::pair<chainregistry::RegistryOperation, std::string_view>> vectors{
         {registration,
-         "6a4c5d4b524547010100000000010000000100010000000200000003aabbcc01"
+         "6a4c804b524547010100000000010000000100010000000200000003aabbcc01"
          "1111111111111111111111111111111111111111111111111111111111111111"
-         "2222222222222222222222222222222222222222222222222222222222222222"},
+         "2222222222222222222222222222222222222222222222222222222222222222"
+         "010020"
+         "50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0"},
         {update,
          "6a4a4b52454701023333333333333333333333333333333333333333333333333333333333333333"
          "020000004444444444444444444444444444444444444444444444444444444444444444"},

@@ -109,6 +109,10 @@ chainregistry::ChainManifest Manifest()
             "6666666666666666666666666666666666666666666666666666666666666666"},
         .initial_metadata_hash = chainregistry::MetadataHash{
             "7777777777777777777777777777777777777777777777777777777777777777"},
+        .default_fee_recipient = {
+            .recipient_type = 1,
+            .recipient = std::vector<unsigned char>(32, 2),
+        },
     };
 }
 

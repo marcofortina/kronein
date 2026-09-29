@@ -253,6 +253,49 @@ ParseChildFeeRecipient(const UniValue* value)
     };
 }
 
+std::vector<unsigned char> ParseReferenceChildFeeRecipient(
+    const UniValue& value,
+    std::string_view name)
+{
+    const std::vector<unsigned char> recipient{ParseHexV(value, name)};
+    if (!chainregistry::IsValidReferenceChildRecipient(
+            chainregistry::REFERENCE_CHILD_P2TR_RECIPIENT, recipient)) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("%s must be a valid 32-byte reference-child P2TR output key",
+                      name));
+    }
+    return recipient;
+}
+
+chainregistry::DefaultFeeRecipient ParseDefaultFeeRecipient(
+    const UniValue& parameters)
+{
+    const uint32_t recipient_type{ParseUint32(
+        parameters.find_value("default_fee_recipient_type"),
+        "default_fee_recipient_type")};
+    if (recipient_type == 0 ||
+        recipient_type > std::numeric_limits<uint16_t>::max()) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            "default_fee_recipient_type must be between 1 and 65535");
+    }
+    std::vector<unsigned char> recipient{ParseHexV(
+        parameters.find_value("default_fee_recipient"),
+        "default_fee_recipient")};
+    if (recipient.empty() ||
+        recipient.size() > chainregistry::MAX_FEE_RECIPIENT_SIZE) {
+        throw JSONRPCError(
+            RPC_INVALID_PARAMETER,
+            strprintf("default_fee_recipient must contain between 1 and %u bytes",
+                      static_cast<unsigned>(chainregistry::MAX_FEE_RECIPIENT_SIZE)));
+    }
+    return {
+        .recipient_type = static_cast<uint16_t>(recipient_type),
+        .recipient = std::move(recipient),
+    };
+}
+
 std::string_view AuthenticatedDepositErrorName(
     chainregistry::AuthenticatedDepositError error)
 {
@@ -411,6 +454,7 @@ chainregistry::ChainManifest ParseManifest(const UniValue& parameters)
         .spec = spec,
         .child_genesis_hash = child_genesis_hash,
         .initial_metadata_hash = ParseMetadataHash(parameters.find_value("metadata_hash")),
+        .default_fee_recipient = ParseDefaultFeeRecipient(parameters),
     };
 }
 
@@ -439,6 +483,10 @@ UniValue ManifestToUniv(const chainregistry::ChainManifest& manifest)
     result.pushKV("spec", ChainSpecToUniv(manifest.spec));
     result.pushKV("child_genesis_hash", manifest.child_genesis_hash.GetHex());
     result.pushKV("metadata_hash", manifest.initial_metadata_hash.GetHex());
+    result.pushKV("default_fee_recipient_type",
+                  manifest.default_fee_recipient.recipient_type);
+    result.pushKV("default_fee_recipient",
+                  HexStr(manifest.default_fee_recipient.recipient));
     return result;
 }
 
@@ -525,6 +573,8 @@ const std::vector<RPCResult> CHAIN_MANIFEST_RESULT{
     {RPCResult::Type::OBJ, "spec", "Immutable child-chain specification", CHAIN_SPEC_RESULT},
     {RPCResult::Type::STR_HEX, "child_genesis_hash", "Derived child genesis hash"},
     {RPCResult::Type::STR_HEX, "metadata_hash", "Initial metadata commitment"},
+    {RPCResult::Type::NUM, "default_fee_recipient_type", "Template-namespaced immutable fee recipient type"},
+    {RPCResult::Type::STR_HEX, "default_fee_recipient", "Template-namespaced immutable fee recipient payload"},
 };
 
 struct MainRegistrySnapshot {
@@ -991,6 +1041,7 @@ RPCHelpMan createreferencechildmanifest()
         {
             {"registration_anchor", RPCArg::Type::OBJ, RPCArg::Optional::NO, "Pre-existing UTXO that REGISTER will consume", OutPointArgs()},
             {"metadata_hash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Initial external metadata commitment"},
+            {"default_fee_recipient", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Valid 32-byte P2TR output key used when a block producer omits its own fee recipient"},
             {"max_block_weight", RPCArg::Type::NUM, RPCArg::Default{chainregistry::MAX_CHILD_BLOCK_WEIGHT}, "Child block weight limit"},
             {"deposit_maturity", RPCArg::Type::NUM, RPCArg::Default{chainregistry::DEFAULT_DEPOSIT_MATURITY}, "Required main-chain confirmations before import"},
         },
@@ -1008,7 +1059,7 @@ RPCHelpMan createreferencechildmanifest()
             {RPCResult::Type::STR_HEX, "manifest_hex", "Canonical serialized manifest"},
         }},
         RPCExamples{
-            HelpExampleCli("createreferencechildmanifest", "'{\"txid\":\"0000000000000000000000000000000000000000000000000000000000000001\",\"vout\":0}' \"1111111111111111111111111111111111111111111111111111111111111111\"")
+            HelpExampleCli("createreferencechildmanifest", "'{\"txid\":\"0000000000000000000000000000000000000000000000000000000000000001\",\"vout\":0}' \"1111111111111111111111111111111111111111111111111111111111111111\" \"50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0\"")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -1026,7 +1077,10 @@ RPCHelpMan createreferencechildmanifest()
         main_genesis_hash,
         anchor,
         chainregistry::MakeReferenceChildSpec(parameters),
-        ParseMetadataHash(self.Arg<UniValue>("metadata_hash")))};
+        ParseMetadataHash(self.Arg<UniValue>("metadata_hash")),
+        ParseReferenceChildFeeRecipient(
+            self.Arg<UniValue>("default_fee_recipient"),
+            "default_fee_recipient"))};
     if (!definition.IsValid() || !definition.definition) {
         throw JSONRPCError(
             RPC_INVALID_PARAMETER,
@@ -1162,6 +1216,8 @@ RPCHelpMan createchainregistryoperation()
                 {"spec", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "REGISTER: immutable chain specification", ChainSpecArgs()},
                 {"child_genesis_hash", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "REGISTER: derived child genesis hash"},
                 {"metadata_hash", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "REGISTER/UPDATE: metadata commitment"},
+                {"default_fee_recipient_type", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "REGISTER: non-zero template-namespaced fee recipient type"},
+                {"default_fee_recipient", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "REGISTER: immutable template-namespaced recipient payload for child transaction fees"},
                 {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "UPDATE/RETIRE: registered child-chain identifier"},
             }},
         },
@@ -1194,6 +1250,8 @@ RPCHelpMan createchainregistryoperation()
                         {"spec", UniValueType{UniValue::VOBJ}},
                         {"child_genesis_hash", UniValueType{UniValue::VSTR}},
                         {"metadata_hash", UniValueType{UniValue::VSTR}},
+                        {"default_fee_recipient_type", UniValueType{UniValue::VNUM}},
+                        {"default_fee_recipient", UniValueType{UniValue::VSTR}},
                         {"chain_id", UniValueType{UniValue::VSTR}},
                     },
                     /*fAllowNull=*/true,
@@ -1204,8 +1262,8 @@ RPCHelpMan createchainregistryoperation()
     if (operation_name == "register") {
         CheckOperationParameters(parameters,
                                  {"anchor_input", "control_output", "registration_anchor", "spec",
-                                  "child_genesis_hash", "metadata_hash"});
-        for (const std::string_view key : {"anchor_input", "control_output", "registration_anchor", "spec", "child_genesis_hash", "metadata_hash"}) {
+                                  "child_genesis_hash", "metadata_hash", "default_fee_recipient_type", "default_fee_recipient"});
+        for (const std::string_view key : {"anchor_input", "control_output", "registration_anchor", "spec", "child_genesis_hash", "metadata_hash", "default_fee_recipient_type", "default_fee_recipient"}) {
             if (!parameters.exists(std::string{key})) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("register requires %s", key));
             }
@@ -1318,6 +1376,8 @@ RPCHelpMan addchildchain()
                 {"spec", RPCArg::Type::OBJ, RPCArg::Optional::NO, "Immutable consensus specification", ChainSpecArgs()},
                 {"child_genesis_hash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Derived child genesis hash"},
                 {"metadata_hash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Initial metadata commitment"},
+                {"default_fee_recipient_type", RPCArg::Type::NUM, RPCArg::Optional::NO, "Template-namespaced immutable fee recipient type; reference child v1 uses 1"},
+                {"default_fee_recipient", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Immutable default P2TR output key for child transaction fees"},
             }},
         },
         RPCResult{RPCResult::Type::OBJ, "", "Locally configured child chain", {
@@ -1329,7 +1389,7 @@ RPCHelpMan addchildchain()
             {RPCResult::Type::STR, "registry_status", "Current main-chain registry status"},
         }},
         RPCExamples{
-            HelpExampleCli("addchildchain", "'{\"txid\":\"...\",\"vout\":0}' '{\"spec\":{...},\"child_genesis_hash\":\"...\",\"metadata_hash\":\"...\"}'")
+            HelpExampleCli("addchildchain", "'{\"txid\":\"...\",\"vout\":0}' '{\"spec\":{...},\"child_genesis_hash\":\"...\",\"metadata_hash\":\"...\",\"default_fee_recipient_type\":1,\"default_fee_recipient\":\"...\"}'")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -1343,6 +1403,8 @@ RPCHelpMan addchildchain()
                         {"spec", UniValueType{UniValue::VOBJ}},
                         {"child_genesis_hash", UniValueType{UniValue::VSTR}},
                         {"metadata_hash", UniValueType{UniValue::VSTR}},
+                        {"default_fee_recipient_type", UniValueType{UniValue::VNUM}},
+                        {"default_fee_recipient", UniValueType{UniValue::VSTR}},
                     },
                     /*fAllowNull=*/false,
                     /*fStrict=*/true);
@@ -2839,7 +2901,7 @@ RPCHelpMan createchildblock()
 {
     return RPCHelpMan{
         "createchildblock",
-        "Build, contextually validate, and durably store a block of finalized transactions extending the active tip of one loaded child chain. Omit transactions to select the current child mempool in admission order. Explicit transactions are validated against the child UTXO set and signature domain. An optional P2TR fee recipient claims the block's transaction fees; otherwise the fees remain unclaimed. The block still requires a main-chain BMM anchor before activation.\n",
+        "Build, contextually validate, and durably store a block of finalized transactions extending the active tip of one loaded child chain. Omit transactions to select the current child mempool in admission order. Explicit transactions are validated against the child UTXO set and signature domain. All fees are claimed by the explicit P2TR fee recipient or, when omitted, by the immutable default recipient in the registration manifest. The block still requires a main-chain BMM anchor before activation.\n",
         {
             {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Full, non-null child-chain identifier"},
             {"transactions", RPCArg::Type::ARR, RPCArg::Optional::OMITTED, "One or more finalized serialized child transactions including witness data; omit to use the child mempool", {
@@ -2858,8 +2920,9 @@ RPCHelpMan createchildblock()
             {RPCResult::Type::NUM, "size", "Serialized block size including witness"},
             {RPCResult::Type::NUM, "weight", "Child block weight"},
             {RPCResult::Type::NUM, "fees", "Total transaction fees"},
-            {RPCResult::Type::NUM, "claimed_fees", "Fees assigned to the optional coinbase output, or zero"},
+            {RPCResult::Type::NUM, "claimed_fees", "All transaction fees assigned to the zero-subsidy coinbase"},
             {RPCResult::Type::STR_HEX, "fee_recipient", /*optional=*/true, "P2TR output key receiving claimed fees"},
+            {RPCResult::Type::STR, "fee_recipient_source", /*optional=*/true, "explicit or manifest-default"},
             {RPCResult::Type::ARR, "transactions", "Transaction ids in block order, excluding coinbase", {
                 {RPCResult::Type::STR_HEX, "", "Transaction id"},
             }},
@@ -2970,6 +3033,13 @@ RPCHelpMan createchildblock()
         transaction_ids.push_back(block.vtx[index]->GetHash().GetHex());
     }
     const CAmount claimed_fees{block.vtx.front()->GetValueOut()};
+    std::optional<std::string> effective_fee_recipient{fee_recipient};
+    if (!effective_fee_recipient && claimed_fees > 0) {
+        const auto definition{manager.Definition(chain_id)};
+        Assume(definition);
+        effective_fee_recipient = HexStr(
+            definition->manifest.default_fee_recipient.recipient);
+    }
     const CScript anchor_script{chainregistry::BuildBmmAnchorScript({
         .chain_id = chain_id,
         .child_block_hash = block.GetHash(),
@@ -2987,7 +3057,11 @@ RPCHelpMan createchildblock()
     result.pushKV("weight", GetBlockWeight(block));
     result.pushKV("fees", ValueFromAmount(built.validation.total_fees));
     result.pushKV("claimed_fees", ValueFromAmount(claimed_fees));
-    if (fee_recipient) result.pushKV("fee_recipient", *fee_recipient);
+    if (effective_fee_recipient) {
+        result.pushKV("fee_recipient", *effective_fee_recipient);
+        result.pushKV("fee_recipient_source",
+                      fee_recipient ? "explicit" : "manifest-default");
+    }
     result.pushKV("transactions", std::move(transaction_ids));
     result.pushKV("bmm_anchor_script", HexStr(anchor_script));
     result.pushKV("requires_bmm_anchor", true);

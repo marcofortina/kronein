@@ -18,7 +18,7 @@
 
 namespace node {
 
-inline constexpr uint8_t CHAIN_REGISTRY_DB_VERSION{6};
+inline constexpr uint8_t CHAIN_REGISTRY_DB_VERSION{7};
 inline constexpr uint8_t DEPOSIT_INDEX_ENTRY_VERSION{1};
 inline constexpr uint8_t BMM_ANCHOR_INDEX_ENTRY_VERSION{1};
 

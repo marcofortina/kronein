@@ -33,6 +33,10 @@ chainregistry::ChainManifest TestManifest()
         .spec = std::move(spec),
         .child_genesis_hash = uint256{"1111111111111111111111111111111111111111111111111111111111111111"},
         .initial_metadata_hash = chainregistry::MetadataHash{"2222222222222222222222222222222222222222222222222222222222222222"},
+        .default_fee_recipient = {
+            .recipient_type = 1,
+            .recipient = std::vector<unsigned char>(32, 2),
+        },
     };
 }
 

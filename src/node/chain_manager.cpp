@@ -4,9 +4,11 @@
 
 #include <node/chain_manager.h>
 
+#include <addresstype.h>
 #include <chainregistry/child_import.h>
 #include <consensus/consensus.h>
 #include <dbwrapper.h>
+#include <pubkey.h>
 
 #include <algorithm>
 #include <limits>
@@ -149,16 +151,20 @@ ProposalBuildResult BuildAndStoreProposal(
         result.error = ProposalBuildError::BUILD_FAILED;
         return result;
     }
-    result.validation = runtime.ValidateTipBlock(
+    result.validation = runtime.EvaluateTipBlockFees(
         *result.build.block, current_time);
     if (!result.validation.IsValid()) {
         result.error = ProposalBuildError::CONTEXT_REJECTED;
         return result;
     }
 
-    if (fee_recipient_script && result.validation.total_fees > 0) {
+    if (result.validation.total_fees > 0) {
+        const CScript recipient_script{fee_recipient_script.value_or(
+            GetScriptForDestination(WitnessV1Taproot{XOnlyPubKey{
+                runtime.Definition()
+                    .manifest.default_fee_recipient.recipient}}))};
         result.build = build_block(CTxOut{
-            result.validation.total_fees, *fee_recipient_script});
+            result.validation.total_fees, recipient_script});
         if (!result.build.IsValid()) {
             result.error = ProposalBuildError::BUILD_FAILED;
             return result;

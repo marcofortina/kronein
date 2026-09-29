@@ -103,6 +103,7 @@ inline constexpr std::string_view DEPOSIT_ID_TAG{"Kronein/DepositId/v1"};
 
 inline constexpr uint16_t PROTOCOL_VERSION{1};
 inline constexpr size_t MAX_CONSENSUS_PARAMETERS_SIZE{1024};
+inline constexpr size_t MAX_FEE_RECIPIENT_SIZE{64};
 inline constexpr size_t MAX_REGISTRY_DATA_SIZE{1200};
 inline constexpr std::array<unsigned char, 4> REGISTRY_MAGIC{'K', 'R', 'E', 'G'};
 inline constexpr uint8_t REGISTRY_ENVELOPE_VERSION{1};
@@ -134,15 +135,32 @@ struct ChainSpec {
     friend bool operator==(const ChainSpec&, const ChainSpec&) = default;
 };
 
+/** Template-namespaced destination used when a child block producer omits one. */
+struct DefaultFeeRecipient {
+    uint16_t recipient_type{0};
+    std::vector<unsigned char> recipient;
+
+    SERIALIZE_METHODS(DefaultFeeRecipient, obj)
+    {
+        READWRITE(obj.recipient_type, obj.recipient);
+    }
+
+    friend bool operator==(const DefaultFeeRecipient&, const DefaultFeeRecipient&) = default;
+};
+
 /** Final registration manifest created after ChainId and genesis derivation. */
 struct ChainManifest {
     ChainSpec spec;
     uint256 child_genesis_hash;
     MetadataHash initial_metadata_hash;
+    DefaultFeeRecipient default_fee_recipient;
 
     SERIALIZE_METHODS(ChainManifest, obj)
     {
-        READWRITE(obj.spec, obj.child_genesis_hash, obj.initial_metadata_hash);
+        READWRITE(obj.spec,
+                  obj.child_genesis_hash,
+                  obj.initial_metadata_hash,
+                  obj.default_fee_recipient);
     }
 
     friend bool operator==(const ChainManifest&, const ChainManifest&) = default;
@@ -157,6 +175,8 @@ enum class ManifestValidationError : uint8_t {
     UNKNOWN_ANCHORING_POLICY,
     NULL_GENESIS,
     NULL_METADATA_HASH,
+    INVALID_FEE_RECIPIENT_TYPE,
+    INVALID_FEE_RECIPIENT_SIZE,
 };
 
 enum class OperationType : uint8_t {

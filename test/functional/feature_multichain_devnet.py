@@ -11,6 +11,13 @@ from test_framework.util import assert_equal, assert_raises_rpc_error, child_por
 
 
 class MultichainDevnetTest(BitcoinTestFramework):
+    REFERENCE_SPEC = {
+        "template_id": 1,
+        "template_version": 1,
+        "consensus_parameters": "0100093d0090000000",
+        "anchoring_policy": "bmm_v1",
+    }
+
     def set_test_params(self):
         self.num_nodes = 2
         self.setup_clean_chain = True
@@ -34,7 +41,13 @@ class MultichainDevnetTest(BitcoinTestFramework):
         anchor_coin = wallet.listunspent(1)[0]
         anchor = {"txid": anchor_coin["txid"], "vout": anchor_coin["vout"]}
         metadata_hash = metadata_byte * 32
-        reference = node.createreferencechildmanifest(anchor, metadata_hash)
+        chain_id = node.derivechildchainid(
+            anchor, self.REFERENCE_SPEC)["chain_id"]
+        fee_recipient = wallet.getnewchildrecipient(
+            chain_id, "registration-fees", True)
+        reference = node.createreferencechildmanifest(
+            anchor, metadata_hash, fee_recipient["recipient"])
+        assert_equal(reference["chain_id"], chain_id)
         spec = reference["manifest"]["spec"]
         registration = wallet.walletcreatechainregistrypsbt("register", {
             "registration_anchor": anchor,
@@ -46,6 +59,8 @@ class MultichainDevnetTest(BitcoinTestFramework):
             },
             "child_genesis_hash": reference["genesis_hash"],
             "metadata_hash": metadata_hash,
+            "default_fee_recipient_type": 1,
+            "default_fee_recipient": fee_recipient["recipient"],
             "control_address": wallet.getnewaddress(),
         }, {"fee_rate": 1})
         submitted = wallet.walletsubmitchainregistrypsbt(registration["psbt"])

@@ -58,8 +58,8 @@ struct ReferenceChildBlockBuildResult {
  *
  * Transactions exclude the coinbase. An optional positive coinbase output is
  * used to collect already-computed transaction fees; child chains have no
- * independent subsidy. Contextual UTXO, IMPORT and fee validation remains the
- * responsibility of ConnectReferenceChildBlock.
+ * independent subsidy. Contextual validation requires the output value to
+ * equal all ordinary transaction fees exactly. IMPORT transactions pay no fee.
  */
 ReferenceChildBlockBuildResult BuildReferenceChildBlock(
     const CBlockIndex& parent,
@@ -147,6 +147,7 @@ enum class ReferenceChildBlockError : uint8_t {
     SCRIPT_REJECTED,
     FEE_OUT_OF_RANGE,
     COINBASE_PAYS_TOO_MUCH,
+    COINBASE_LEAVES_FEES_UNCLAIMED,
     INVALID_UNDO,
     UTXO_MISMATCH,
 };
@@ -168,6 +169,12 @@ struct ReferenceChildBlockResult {
     }
 };
 
+/** Whether validation must enforce the final zero-subsidy fee claim. */
+enum class ReferenceChildFeeClaimPolicy : uint8_t {
+    ENFORCE,
+    ALLOW_UNCLAIMED_FOR_FEE_DISCOVERY,
+};
+
 /**
  * Validate and atomically connect one candidate reference-child block.
  *
@@ -181,7 +188,9 @@ ReferenceChildBlockResult ConnectReferenceChildBlock(
     const ReferenceChildDefinition& definition,
     const MainHeaderChain& main_headers,
     CCoinsViewCache& coins,
-    DepositImportState& imports);
+    DepositImportState& imports,
+    ReferenceChildFeeClaimPolicy fee_claim_policy =
+        ReferenceChildFeeClaimPolicy::ENFORCE);
 
 /** Atomically reverse a previously connected reference-child block. */
 ReferenceChildBlockResult DisconnectReferenceChildBlock(

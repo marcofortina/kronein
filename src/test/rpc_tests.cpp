@@ -46,7 +46,8 @@ static chainregistry::ReferenceChildDefinition RpcChildDefinition()
         COutPoint{Txid::FromUint256(uint256{1}), 0},
         chainregistry::MakeReferenceChildSpec({}),
         chainregistry::MetadataHash{
-            "4444444444444444444444444444444444444444444444444444444444444444"})};
+            "4444444444444444444444444444444444444444444444444444444444444444"},
+        TestChildFeeRecipient())};
     BOOST_REQUIRE(result.IsValid());
     return *result.definition;
 }

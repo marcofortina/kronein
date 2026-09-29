@@ -39,7 +39,8 @@ chainregistry::ReferenceChildDefinition Definition()
         Params().GetConsensus().hashGenesisBlock,
         REGISTRATION_ANCHOR,
         chainregistry::MakeReferenceChildSpec({}),
-        METADATA_HASH)};
+        METADATA_HASH,
+        TestChildFeeRecipient())};
     BOOST_REQUIRE(result.IsValid());
     return *result.definition;
 }
