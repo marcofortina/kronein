@@ -11,6 +11,11 @@ import os
 import sys
 
 from test_framework.address import address_to_scriptpubkey
+from test_framework.chainregistry import (
+    DEALER_AUTHORITY_KEY,
+    authorize_dealer,
+    submit_dealer_admin_operation,
+)
 from test_framework.messages import (
     COIN,
     CBlock,
@@ -56,7 +61,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         self.setup_clean_chain = True
         registry_args = [
             "-chainregistryactivationheight=1",
-            "-chainregistryminregistrationburn=1",
+            f"-chaindealerauthoritykey={DEALER_AUTHORITY_KEY}",
             "-chainregistrymaxoperations=4",
             "-chaindepositactivationheight=1",
             "-chaindepositminimumamount=0.01",
@@ -115,6 +120,9 @@ class ChainRegistryTest(BitcoinTestFramework):
         registration = node.createchainregistryoperation("register", {
             "anchor_input": 0,
             "control_output": 1,
+            "dealer_id": "04" * 32,
+            "dealer_control_output": 2,
+            "dealer_payment_output": 3,
             "registration_anchor": anchor,
             "spec": spec,
             "child_genesis_hash": "02" * 32,
@@ -171,7 +179,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(info["active"], False)
         assert_equal(info["active_for_next_block"], True)
         assert_equal(info["activation_height"], 1)
-        assert_equal(info["minimum_registration_burn"], Decimal("1.00000000"))
+        assert_equal(info["dealer_authority_key"], DEALER_AUTHORITY_KEY)
         assert_equal(info["maximum_operations"], 4)
         assert_equal(info["deposits_enabled"], True)
         assert_equal(info["deposits_active"], False)
@@ -221,7 +229,9 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(missing["found"], False)
         assert "chain" not in missing
         assert "inclusion_proof" not in missing
-        assert_equal(missing["non_inclusion_proof"], {"leaf_count": 0})
+        assert_equal(missing["non_inclusion_proof"]["leaf_count"], 0)
+        assert_equal(missing["non_inclusion_proof"]["authority_sequence"], 0)
+        assert_equal(len(missing["non_inclusion_proof"]["dealer_root"]), 64)
 
         self.log.info("Reject malformed identifiers and invalid pagination bounds")
         assert_raises_rpc_error(-8, "chain_id must be exactly 32 non-null bytes", node.getchildchain, "01")
@@ -236,7 +246,98 @@ class ChainRegistryTest(BitcoinTestFramework):
         wallet = node.get_wallet_rpc("registry")
         node.createwallet("registry_attacker")
         attacker = node.get_wallet_rpc("registry_attacker")
+        node.createwallet("registry_dealer")
+        dealer = node.get_wallet_rpc("registry_dealer")
+        node.createwallet("registry_revoked_dealer")
+        revoked_dealer_wallet = node.get_wallet_rpc("registry_revoked_dealer")
         self.generatetoaddress(node, 101, wallet.getnewaddress())
+
+        self.log.info("Authorize a bounded dealer through a BIP340 authority operation")
+        authorized_dealer = authorize_dealer(
+            node,
+            wallet,
+            dealer,
+            nonce="44" * 32,
+            licenses=2,
+        )
+        self.generatetoaddress(node, 1, wallet.getnewaddress())
+        self.sync_blocks()
+        dealer_record = node.getchaindealer(authorized_dealer["dealer_id"])
+        assert_equal(dealer_record["status"], "active")
+        assert_equal(dealer_record["remaining_licenses"], 2)
+        assert_equal(dealer_record["payout_script"], authorized_dealer["payout_script"])
+        assert_raises_rpc_error(
+            -4, "reserved as a child-chain registry control output",
+            dealer.walletcreatefundedpsbt,
+            [{"txid": authorized_dealer["txid"], "vout": 1}],
+            [{dealer.getnewaddress(): Decimal("0.00001000")}],
+            0,
+            {"add_inputs": False, "fee_rate": 1})
+        assert_equal(node.listchaindealers(False)["dealers"], [
+            {key: dealer_record[key] for key in (
+                "dealer_id", "status", "control_outpoint", "payout_script",
+                "remaining_licenses", "authorized_height", "updated_height")}
+        ])
+
+        self.log.info("Update and revoke a second dealer through sequenced authority RPCs")
+        revoked_dealer = authorize_dealer(
+            node,
+            wallet,
+            revoked_dealer_wallet,
+            nonce="45" * 32,
+            licenses=1,
+        )
+        self.generatetoaddress(node, 1, wallet.getnewaddress())
+        self.sync_blocks()
+        next_sequence = node.listchaindealers()["authority_sequence"] + 1
+        rotated_payout = revoked_dealer_wallet.getnewaddress("rotated-payout")
+        rotated_payout_script = revoked_dealer_wallet.getaddressinfo(
+            rotated_payout)["scriptPubKey"]
+        assert_raises_rpc_error(
+            -8, "authority_sequence must be exactly",
+            node.createchainregistryoperation,
+            "update_dealer",
+            {
+                "authority_sequence": next_sequence + 1,
+                "dealer_id": revoked_dealer["dealer_id"],
+                "added_licenses": 2,
+            })
+        assert_raises_rpc_error(
+            -8, "authority_signature does not verify",
+            node.createchainregistryoperation,
+            "update_dealer",
+            {
+                "authority_sequence": next_sequence,
+                "dealer_id": revoked_dealer["dealer_id"],
+                "added_licenses": 2,
+                "authority_signature": "01" * 64,
+            })
+        submit_dealer_admin_operation(
+            node,
+            wallet,
+            "update_dealer",
+            {
+                "dealer_id": revoked_dealer["dealer_id"],
+                "added_licenses": 2,
+                "payout_script": rotated_payout_script,
+            })
+        self.generatetoaddress(node, 1, wallet.getnewaddress())
+        self.sync_blocks()
+        updated_dealer = node.getchaindealer(revoked_dealer["dealer_id"])
+        assert_equal(updated_dealer["remaining_licenses"], 3)
+        assert_equal(updated_dealer["payout_script"], rotated_payout_script)
+
+        submit_dealer_admin_operation(
+            node,
+            wallet,
+            "revoke_dealer",
+            {"dealer_id": revoked_dealer["dealer_id"]})
+        self.generatetoaddress(node, 1, wallet.getnewaddress())
+        self.sync_blocks()
+        assert_equal(node.getchaindealer(revoked_dealer["dealer_id"])["status"],
+                     "revoked")
+        assert_equal(len(node.listchaindealers()["dealers"]), 2)
+        assert_equal(len(node.listchaindealers(False)["dealers"]), 1)
         pre_registration = node.getchainregistryinfo()
 
         anchor_utxo = wallet.listunspent(1)[0]
@@ -268,13 +369,22 @@ class ChainRegistryTest(BitcoinTestFramework):
             "default_fee_recipient_type": 1,
             "default_fee_recipient": default_fee_recipient["recipient"],
             "control_address": control_address,
+            "dealer_id": authorized_dealer["dealer_id"],
+            "dealer_control_address": dealer.getnewaddress(
+                "dealer-successor"),
+            "dealer_payment": Decimal("0.25000000"),
         }, {"fee_rate": 1})
         assert_equal(registration_psbt["operation"], "register")
-        assert_equal(registration_psbt["registration_burn"], Decimal("1.00000000"))
+        assert_equal(registration_psbt["dealer_payment"], Decimal("0.25000000"))
+        assert_equal(len(registration_psbt["manifest_hash"]), 64)
         assert_equal(registration_psbt["authority_outpoint"], registration_anchor)
         assert_equal(registration_psbt["operation_vout"], 0)
         assert_equal(registration_psbt["control_vout"], 1)
         assert_equal(registration_psbt["registry_bestblockhash"], node.getbestblockhash())
+        assert_raises_rpc_error(
+            -8, "expected_dealer_payment, expected_chain_id, and expected_manifest_hash are required",
+            wallet.walletsubmitchainregistrypsbt,
+            registration_psbt["psbt"], Decimal("0.25000000"))
 
         attacker_control_address = attacker.getnewaddress()
         attacker_control_script = bytes.fromhex(
@@ -284,21 +394,46 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_raises_rpc_error(
             -8, "successor control output is not owned by this wallet",
             wallet.walletsubmitchainregistrypsbt,
-            redirected_registration.to_base64())
+            redirected_registration.to_base64(), Decimal("0.25000000"),
+            registration_psbt["chain_id"], registration_psbt["manifest_hash"])
 
-        assert_raises_rpc_error(-8, "exceeds authorized maximum",
+        assert_raises_rpc_error(-8, "does not match authorized amount",
                                 wallet.walletsubmitchainregistrypsbt,
-                                registration_psbt["psbt"], Decimal("0.50000000"))
-        submitted_registration = wallet.walletsubmitchainregistrypsbt(registration_psbt["psbt"])
+                                registration_psbt["psbt"], Decimal("0.50000000"),
+                                registration_psbt["chain_id"],
+                                registration_psbt["manifest_hash"])
+        assert_raises_rpc_error(
+            -8, "chain_id does not match", wallet.walletsubmitchainregistrypsbt,
+            registration_psbt["psbt"], Decimal("0.25000000"), "33" * 32,
+            registration_psbt["manifest_hash"])
+        assert_raises_rpc_error(
+            -8, "manifest_hash does not match",
+            wallet.walletsubmitchainregistrypsbt,
+            registration_psbt["psbt"], Decimal("0.25000000"),
+            registration_psbt["chain_id"], "33" * 32)
+        buyer_signed = wallet.walletsubmitchainregistrypsbt(
+            registration_psbt["psbt"], Decimal("0.25000000"),
+            registration_psbt["chain_id"], registration_psbt["manifest_hash"])
+        assert_equal(buyer_signed["complete"], False)
+        assert_equal(buyer_signed["dealer_payment"], Decimal("0.25000000"))
+        assert_equal(buyer_signed["manifest_hash"], registration_psbt["manifest_hash"])
+        submitted_registration = dealer.walletsubmitchainregistrypsbt(
+            buyer_signed["psbt"], Decimal("0.25000000"),
+            registration_psbt["chain_id"], registration_psbt["manifest_hash"])
+        assert_equal(submitted_registration["complete"], True)
         assert_equal(submitted_registration["operation"], "register")
         assert_equal(submitted_registration["chain_id"], registration_psbt["chain_id"])
-        assert_equal(submitted_registration["registration_burn"], Decimal("1.00000000"))
+        assert_equal(submitted_registration["manifest_hash"], registration_psbt["manifest_hash"])
+        assert_equal(submitted_registration["dealer_payment"], Decimal("0.25000000"))
         decoded_registration_tx = node.decoderawtransaction(submitted_registration["hex"])
         assert_equal(decoded_registration_tx["vin"][0]["txid"], registration_anchor["txid"])
         assert_equal(decoded_registration_tx["vin"][0]["vout"], registration_anchor["vout"])
-        assert_equal(decoded_registration_tx["vout"][0]["value"], Decimal("1.00000000"))
+        assert_equal(decoded_registration_tx["vout"][0]["value"], Decimal("0.00000000"))
         assert_equal(decoded_registration_tx["vout"][0]["scriptPubKey"]["type"], "nulldata")
         assert_equal(decoded_registration_tx["vout"][1]["scriptPubKey"]["address"], control_address)
+        assert_equal(decoded_registration_tx["vout"][3]["value"], Decimal("0.25000000"))
+        assert_equal(decoded_registration_tx["vout"][3]["scriptPubKey"]["hex"],
+                     authorized_dealer["payout_script"])
         registration_txid = submitted_registration["txid"]
         assert_equal(registration_txid, decoded_registration_tx["txid"])
         registration_block = self.generatetoaddress(node, 1, wallet.getnewaddress())[0]
@@ -314,7 +449,23 @@ class ChainRegistryTest(BitcoinTestFramework):
             "vout": 1,
         })
         assert "inclusion_proof" in registered
+        assert_equal(registered["inclusion_proof"]["authority_sequence"],
+                     node.getchainregistryinfo()["authority_sequence"])
+        assert_equal(len(registered["inclusion_proof"]["dealer_root"]), 64)
         registered_info = node.getchainregistryinfo()
+        sold_dealer = node.getchaindealer(authorized_dealer["dealer_id"])
+        assert_equal(sold_dealer["remaining_licenses"], 1)
+        assert_equal(sold_dealer["control_outpoint"], {
+            "txid": registration_txid,
+            "vout": 2,
+        })
+        assert_raises_rpc_error(
+            -4, "reserved as a child-chain registry control output",
+            dealer.walletcreatefundedpsbt,
+            [sold_dealer["control_outpoint"]],
+            [{dealer.getnewaddress(): Decimal("0.00001000")}],
+            0,
+            {"add_inputs": False, "fee_rate": 1})
 
         self.log.info("Persist explicit wallet limits for automatic BMM bids")
         disabled_autobid = {"chain_id": chain_id, "enabled": False}
@@ -471,6 +622,10 @@ class ChainRegistryTest(BitcoinTestFramework):
                 "default_fee_recipient_type": 1,
                 "default_fee_recipient": default_fee_recipient["recipient"],
                 "control_address": wallet.getnewaddress(),
+                "dealer_id": authorized_dealer["dealer_id"],
+                "dealer_control_address": dealer.getnewaddress(
+                    "dealer-unused-successor"),
+                "dealer_payment": Decimal("0.25000000"),
             },
             {"fee_rate": 1})
         funding_probe = wallet.walletcreatefundchainpsbt(
@@ -837,12 +992,12 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(deposit_status["deposit"]["chain_record"], registered["chain"])
 
         deposit_proof = node.getdepositproof(deposit_txid, 0)
-        assert_equal(deposit_proof["proof_version"], 1)
+        assert_equal(deposit_proof["proof_version"], 2)
         assert_equal(deposit_proof["main_genesis_hash"], node.getblockhash(0))
         assert_equal(deposit_proof["deposit"], deposit_status["deposit"])
         assert len(deposit_proof["funding_transaction"]) > 20
         assert_equal(len(deposit_proof["block_header"]), 160)
-        assert deposit_proof["proof"].startswith("4b44505201")
+        assert deposit_proof["proof"].startswith("4b44505202")
         assert_equal(node.getchainregistryinfo()["deposit_count"], 1)
 
         self.log.info("Authenticate a mature deposit and build its canonical child IMPORT")
@@ -1504,8 +1659,8 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(registry_with_anchor["bmm_active"], True)
         assert_equal(registry_with_anchor["bmm_anchor_count"], 1)
         anchor_proof = node.getbmmanchorproof(chain_id, anchor_block)
-        assert anchor_proof["proof"].startswith("4b42505201")
-        assert_equal(anchor_proof["proof_version"], 1)
+        assert anchor_proof["proof"].startswith("4b42505202")
+        assert_equal(anchor_proof["proof_version"], 2)
         assert_equal(anchor_proof["main_genesis_hash"], node.getblockhash(0))
         assert_equal(anchor_proof["main_block_hash"], anchor_block)
         assert_equal(anchor_proof["confirmations"], 1)
@@ -2265,7 +2420,7 @@ class ChainRegistryTest(BitcoinTestFramework):
             "txid": registration_txid,
             "vout": 1,
         })
-        assert_equal(update_psbt["registration_burn"], Decimal("0.00000000"))
+        assert_equal(update_psbt["dealer_payment"], Decimal("0.00000000"))
         redirected_update = PSBT.from_base64(update_psbt["psbt"])
         redirected_update.o[1].map[PSBT_OUT_SCRIPT] = attacker_control_script
         assert_raises_rpc_error(
@@ -2274,7 +2429,7 @@ class ChainRegistryTest(BitcoinTestFramework):
             redirected_update.to_base64())
         submitted_update = wallet.walletsubmitchainregistrypsbt(update_psbt["psbt"])
         assert_equal(submitted_update["operation"], "update")
-        assert_equal(submitted_update["registration_burn"], Decimal("0.00000000"))
+        assert_equal(submitted_update["dealer_payment"], Decimal("0.00000000"))
         decoded_update_tx = node.decoderawtransaction(submitted_update["hex"])
         assert_equal(decoded_update_tx["vin"][0]["txid"], registration_txid)
         assert_equal(decoded_update_tx["vin"][0]["vout"], 1)
@@ -2312,7 +2467,7 @@ class ChainRegistryTest(BitcoinTestFramework):
             "chain_id": chain_id,
         }, {"fee_rate": 1})
         assert "control_vout" not in retirement_psbt
-        assert_equal(retirement_psbt["registration_burn"], Decimal("0.00000000"))
+        assert_equal(retirement_psbt["dealer_payment"], Decimal("0.00000000"))
         assert_equal(retirement_psbt["authority_outpoint"], {"txid": update_txid, "vout": 1})
         submitted_retirement = wallet.walletsubmitchainregistrypsbt(retirement_psbt["psbt"])
         assert_equal(submitted_retirement["operation"], "retire")
@@ -2410,7 +2565,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         self.log.info("Rebuild the registry through chainstate and full reindex")
         registry_args = [
             "-chainregistryactivationheight=1",
-            "-chainregistryminregistrationburn=1",
+            f"-chaindealerauthoritykey={DEALER_AUTHORITY_KEY}",
             "-chainregistrymaxoperations=4",
             "-chaindepositactivationheight=1",
             "-chaindepositminimumamount=0.01",

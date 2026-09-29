@@ -6,6 +6,10 @@
 
 from decimal import Decimal
 
+from test_framework.chainregistry import (
+    DEALER_AUTHORITY_KEY,
+    authorize_dealer,
+)
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import assert_equal, assert_raises_rpc_error, child_port
 
@@ -23,7 +27,7 @@ class MultichainDevnetTest(BitcoinTestFramework):
         self.setup_clean_chain = True
         node_args = [
             "-chainregistryactivationheight=1",
-            "-chainregistryminregistrationburn=1",
+            f"-chaindealerauthoritykey={DEALER_AUTHORITY_KEY}",
             "-chainregistrymaxoperations=4",
             "-chaindepositactivationheight=1",
             "-chaindepositminimumamount=0.01",
@@ -62,8 +66,14 @@ class MultichainDevnetTest(BitcoinTestFramework):
             "default_fee_recipient_type": 1,
             "default_fee_recipient": fee_recipient["recipient"],
             "control_address": wallet.getnewaddress(),
+            "dealer_id": self.dealer_id,
+            "dealer_control_address": wallet.getnewaddress(
+                "devnet-dealer-successor"),
+            "dealer_payment": Decimal("0.10000000"),
         }, {"fee_rate": 1})
-        submitted = wallet.walletsubmitchainregistrypsbt(registration["psbt"])
+        submitted = wallet.walletsubmitchainregistrypsbt(
+            registration["psbt"], Decimal("0.10000000"),
+            registration["chain_id"], registration["manifest_hash"])
         self.generatetoaddress(
             node, 1, wallet.getnewaddress(), sync_fun=lambda: None)
         assert_equal(submitted["chain_id"], registration["chain_id"])
@@ -111,6 +121,17 @@ class MultichainDevnetTest(BitcoinTestFramework):
         self.generatetoaddress(node, 101, wallet.getnewaddress())
         self.sync_blocks()
         self.generatetoaddress(fork_node, 101, fork_wallet.getnewaddress())
+        self.sync_blocks()
+
+        dealer = authorize_dealer(
+            node,
+            wallet,
+            wallet,
+            nonce="55" * 32,
+            licenses=2,
+        )
+        self.dealer_id = dealer["dealer_id"]
+        self.generatetoaddress(node, 1, wallet.getnewaddress())
         self.sync_blocks()
 
         self.log.info("Register two distinct reference child chains")
