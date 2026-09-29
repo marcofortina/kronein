@@ -424,11 +424,16 @@ void ChildChainDialog::refresh()
             }
             if (loaded) {
                 const QString storage_tooltip{
-                    tr("Local proposals: %1/%2 records, %3/%4 bytes\n"
-                       "Side candidates: %5/%6 records, %7/%8 bytes\n"
-                       "Candidate BMM anchors: %9/%10 records, %11/%12 bytes\n"
-                       "Pending BMM anchors: %13/%14 records, %15/%16 bytes")
-                        .arg(local_proposals,
+                    tr("Mempool: %1/%2 transactions, %3/%4 bytes\n"
+                       "Local proposals: %5/%6 records, %7/%8 bytes\n"
+                       "Side candidates: %9/%10 records, %11/%12 bytes\n"
+                       "Candidate BMM anchors: %13/%14 records, %15/%16 bytes\n"
+                       "Pending BMM anchors: %17/%18 records, %19/%20 bytes")
+                        .arg(NumberField(chain, "mempool_transactions"),
+                             NumberField(chain, "mempool_transaction_limit"),
+                             NumberField(chain, "mempool_bytes"),
+                             NumberField(chain, "mempool_bytes_limit"),
+                             local_proposals,
                              local_proposal_limit,
                              NumberField(chain, "local_proposal_bytes"),
                              NumberField(chain, "local_proposal_bytes_limit"),
@@ -472,6 +477,25 @@ void ChildChainDialog::refresh()
                      NumberField(result, "loaded"),
                      NumberField(result, "max_loaded"),
                      upload_summary));
+        m_registry_summary->setToolTip(
+            tr("Aggregate bounded child resources:\n"
+               "Mempool: %1/%2 transactions, %3/%4 bytes\n"
+               "Pending BMM anchors: %5/%6 bytes\n"
+               "Local proposals: %7/%8 bytes\n"
+               "Side candidates: %9/%10 bytes\n"
+               "Candidate BMM anchors: %11/%12 bytes")
+                .arg(NumberField(result, "aggregate_mempool_transactions"),
+                     NumberField(result, "aggregate_mempool_transaction_limit"),
+                     NumberField(result, "aggregate_mempool_bytes"),
+                     NumberField(result, "aggregate_mempool_bytes_limit"),
+                     NumberField(result, "aggregate_pending_bmm_anchor_bytes"),
+                     NumberField(result, "aggregate_pending_bmm_anchor_bytes_limit"),
+                     NumberField(result, "aggregate_local_proposal_bytes"),
+                     NumberField(result, "aggregate_local_proposal_bytes_limit"),
+                     NumberField(result, "aggregate_side_candidate_bytes"),
+                     NumberField(result, "aggregate_side_candidate_bytes_limit"),
+                     NumberField(result, "aggregate_candidate_bmm_anchor_bytes"),
+                     NumberField(result, "aggregate_candidate_bmm_anchor_bytes_limit")));
         if (m_table->rowCount() > 0 && m_table->selectedItems().isEmpty()) {
             m_table->selectRow(0);
         }

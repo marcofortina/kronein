@@ -1218,6 +1218,15 @@ Bootstrap endpoints:
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../childchaindialog.cpp" line="429"/>
+        <source>Mempool: %1/%2 transactions, %3/%4 bytes
+Local proposals: %5/%6 records, %7/%8 bytes
+Side candidates: %9/%10 records, %11/%12 bytes
+Candidate BMM anchors: %13/%14 records, %15/%16 bytes
+Pending BMM anchors: %17/%18 records, %19/%20 bytes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <location line="+13"/>
         <source>%1 (unlimited)</source>
         <translation type="unfinished"></translation>
@@ -1234,6 +1243,16 @@ Bootstrap endpoints:
             <numerusform></numerusform>
             <numerusform></numerusform>
         </translation>
+    </message>
+    <message>
+        <location filename="../childchaindialog.cpp" line="482"/>
+        <source>Aggregate bounded child resources:
+Mempool: %1/%2 transactions, %3/%4 bytes
+Pending BMM anchors: %5/%6 bytes
+Local proposals: %7/%8 bytes
+Side candidates: %9/%10 bytes
+Candidate BMM anchors: %11/%12 bytes</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+10"/>

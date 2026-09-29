@@ -248,6 +248,19 @@ class MultichainDevnetTest(BitcoinTestFramework):
         assert_equal(node.getrawmempool(
             False, False, children[1]["chain_id"]),
             [halt_signed["txid"]])
+        resources = node.listchildchainruntimes()
+        assert_equal(resources["aggregate_mempool_transactions"], 1)
+        assert resources["aggregate_mempool_bytes"] > 0
+        assert resources["aggregate_mempool_bytes"] <= resources["aggregate_mempool_bytes_limit"]
+        child_resources = {
+            entry["chain_id"]: entry for entry in resources["chains"]
+        }
+        assert_equal(
+            child_resources[children[0]["chain_id"]]["mempool_transactions"],
+            0)
+        assert_equal(
+            child_resources[children[1]["chain_id"]]["mempool_transactions"],
+            1)
         halt_proposal = node.createchildblock(
             children[1]["chain_id"], [halt_signed["hex"]])
         assert_equal(halt_proposal["proposal_stored"], True)
@@ -351,6 +364,9 @@ class MultichainDevnetTest(BitcoinTestFramework):
         assert_equal({key: after_anchor[key] for key in protected_counts},
                      protected_counts)
         assert_equal(node.getblockcount(children[1]["chain_id"]), 1)
+        resources = node.listchildchainruntimes()
+        assert_equal(resources["aggregate_mempool_transactions"], 0)
+        assert_equal(resources["aggregate_mempool_bytes"], 0)
 
 
 if __name__ == "__main__":

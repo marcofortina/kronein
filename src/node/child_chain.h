@@ -306,6 +306,8 @@ public:
     const chainregistry::DepositImportState& Imports() const { return m_imports; }
     const ChildChainDBState& State() const { return m_state; }
     const CBlockIndex* Tip() const { return m_tip; }
+    size_t MempoolSize() const { return m_mempool.Size(); }
+    size_t MempoolBytes() const { return m_mempool.TotalBytes(); }
     std::optional<uint256> GetBlockHash(int height) const;
     std::optional<ReferenceChildBlockView> GetBlockView(
         const uint256& block_hash) const;

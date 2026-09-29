@@ -253,6 +253,8 @@ struct ChainManagerEntry {
     uint64_t side_candidate_bytes{0};
     uint64_t candidate_anchor_count{0};
     uint64_t candidate_anchor_bytes{0};
+    uint64_t mempool_transaction_count{0};
+    uint64_t mempool_bytes{0};
 };
 
 enum class ChainManagerViewError : uint8_t {

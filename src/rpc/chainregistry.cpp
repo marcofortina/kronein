@@ -335,6 +335,10 @@ void PushChildStorageStats(UniValue& object,
     object.pushKV("candidate_bmm_anchor_bytes", entry.candidate_anchor_bytes);
     object.pushKV("candidate_bmm_anchor_limit", node::MAX_CHILD_CANDIDATE_BMM_ANCHORS);
     object.pushKV("candidate_bmm_anchor_bytes_limit", node::MAX_CHILD_CANDIDATE_BMM_BYTES);
+    object.pushKV("mempool_transactions", entry.mempool_transaction_count);
+    object.pushKV("mempool_bytes", entry.mempool_bytes);
+    object.pushKV("mempool_transaction_limit", node::MAX_CHILD_MEMPOOL_TRANSACTIONS);
+    object.pushKV("mempool_bytes_limit", node::MAX_CHILD_MEMPOOL_BYTES);
 }
 
 CBlock ParseChildBlock(const UniValue& value)
@@ -1463,6 +1467,18 @@ RPCHelpMan listchildchainruntimes()
             {RPCResult::Type::NUM, "aggregate_upload_timeframe", "Upload target cycle length in seconds"},
             {RPCResult::Type::NUM, "aggregate_upload_time_left", "Seconds remaining in the current cycle"},
             {RPCResult::Type::BOOL, "aggregate_upload_target_reached", "Whether child block serving is currently exhausted"},
+            {RPCResult::Type::NUM, "aggregate_mempool_transactions", "Transactions held across all loaded child mempools"},
+            {RPCResult::Type::NUM, "aggregate_mempool_transaction_limit", "Maximum transactions across the maximum number of loaded child mempools"},
+            {RPCResult::Type::NUM, "aggregate_mempool_bytes", "Serialized transaction bytes held across all loaded child mempools"},
+            {RPCResult::Type::NUM, "aggregate_mempool_bytes_limit", "Maximum serialized transaction bytes across the maximum number of loaded child mempools"},
+            {RPCResult::Type::NUM, "aggregate_pending_bmm_anchor_bytes", "Serialized pending BMM proof bytes across all loaded children"},
+            {RPCResult::Type::NUM, "aggregate_pending_bmm_anchor_bytes_limit", "Maximum pending BMM proof bytes across the maximum number of loaded children"},
+            {RPCResult::Type::NUM, "aggregate_local_proposal_bytes", "Serialized local proposal bytes across all loaded children"},
+            {RPCResult::Type::NUM, "aggregate_local_proposal_bytes_limit", "Maximum local proposal bytes across the maximum number of loaded children"},
+            {RPCResult::Type::NUM, "aggregate_side_candidate_bytes", "Serialized side-candidate bytes across all loaded children"},
+            {RPCResult::Type::NUM, "aggregate_side_candidate_bytes_limit", "Maximum side-candidate bytes across the maximum number of loaded children"},
+            {RPCResult::Type::NUM, "aggregate_candidate_bmm_anchor_bytes", "Serialized candidate BMM proof bytes across all loaded children"},
+            {RPCResult::Type::NUM, "aggregate_candidate_bmm_anchor_bytes_limit", "Maximum candidate BMM proof bytes across the maximum number of loaded children"},
             {RPCResult::Type::ARR, "chains", "Known child chains", {
                 {RPCResult::Type::OBJ, "", "One child-chain view", {
                     {RPCResult::Type::STR_HEX, "chain_id", "Full child-chain identifier"},
@@ -1502,6 +1518,10 @@ RPCHelpMan listchildchainruntimes()
                     {RPCResult::Type::NUM, "candidate_bmm_anchor_bytes", /*optional=*/true, "Serialized bytes used by non-canonical candidate anchors"},
                     {RPCResult::Type::NUM, "candidate_bmm_anchor_limit", /*optional=*/true, "Maximum BMM anchors retained for non-canonical candidates"},
                     {RPCResult::Type::NUM, "candidate_bmm_anchor_bytes_limit", /*optional=*/true, "Maximum serialized bytes for non-canonical candidate anchors"},
+                    {RPCResult::Type::NUM, "mempool_transactions", /*optional=*/true, "Transactions held by this child mempool"},
+                    {RPCResult::Type::NUM, "mempool_bytes", /*optional=*/true, "Serialized transaction bytes held by this child mempool"},
+                    {RPCResult::Type::NUM, "mempool_transaction_limit", /*optional=*/true, "Maximum transactions in this child mempool"},
+                    {RPCResult::Type::NUM, "mempool_bytes_limit", /*optional=*/true, "Maximum serialized bytes in this child mempool"},
                     {RPCResult::Type::STR, "data_path", /*optional=*/true, "Local chain directory"},
                     {RPCResult::Type::BOOL, "network_running", "Whether the isolated child network stack is running"},
                     {RPCResult::Type::BOOL, "network_active", "Whether new child-network connections are enabled"},
@@ -1537,8 +1557,24 @@ RPCHelpMan listchildchainruntimes()
         EnsureAnyChildNetworkman(request.context)};
     const auto registry{GetMainRegistrySnapshot(chainman)};
     const auto local_entries{manager.List()};
+    uint64_t aggregate_mempool_transactions{0};
+    uint64_t aggregate_mempool_bytes{0};
+    uint64_t aggregate_pending_anchor_bytes{0};
+    uint64_t aggregate_local_proposal_bytes{0};
+    uint64_t aggregate_side_candidate_bytes{0};
+    uint64_t aggregate_candidate_anchor_bytes{0};
     std::map<chainregistry::ChainId, node::ChainManagerEntry> local;
-    for (const auto& entry : local_entries) local.emplace(entry.chain_id, entry);
+    for (const auto& entry : local_entries) {
+        if (entry.loaded) {
+            aggregate_mempool_transactions += entry.mempool_transaction_count;
+            aggregate_mempool_bytes += entry.mempool_bytes;
+            aggregate_pending_anchor_bytes += entry.pending_anchor_bytes;
+            aggregate_local_proposal_bytes += entry.local_proposal_bytes;
+            aggregate_side_candidate_bytes += entry.side_candidate_bytes;
+            aggregate_candidate_anchor_bytes += entry.candidate_anchor_bytes;
+        }
+        local.emplace(entry.chain_id, entry);
+    }
 
     UniValue chains{UniValue::VARR};
     for (const auto& [chain_id, record] : registry.records) {
@@ -1639,6 +1675,24 @@ RPCHelpMan listchildchainruntimes()
     result.pushKV("loaded", manager.LoadedCount());
     result.pushKV("max_loaded", node::MAX_LOADED_CHILD_CHAINS);
     PushChildBandwidthStats(result, networks.GetBandwidthStats());
+    result.pushKV("aggregate_mempool_transactions", aggregate_mempool_transactions);
+    result.pushKV("aggregate_mempool_transaction_limit",
+                  node::MAX_LOADED_CHILD_CHAINS * node::MAX_CHILD_MEMPOOL_TRANSACTIONS);
+    result.pushKV("aggregate_mempool_bytes", aggregate_mempool_bytes);
+    result.pushKV("aggregate_mempool_bytes_limit",
+                  node::MAX_LOADED_CHILD_CHAINS * node::MAX_CHILD_MEMPOOL_BYTES);
+    result.pushKV("aggregate_pending_bmm_anchor_bytes", aggregate_pending_anchor_bytes);
+    result.pushKV("aggregate_pending_bmm_anchor_bytes_limit",
+                  node::MAX_LOADED_CHILD_CHAINS * node::MAX_CHILD_PENDING_BMM_BYTES);
+    result.pushKV("aggregate_local_proposal_bytes", aggregate_local_proposal_bytes);
+    result.pushKV("aggregate_local_proposal_bytes_limit",
+                  node::MAX_LOADED_CHILD_CHAINS * node::MAX_CHILD_LOCAL_PROPOSAL_BYTES);
+    result.pushKV("aggregate_side_candidate_bytes", aggregate_side_candidate_bytes);
+    result.pushKV("aggregate_side_candidate_bytes_limit",
+                  node::MAX_LOADED_CHILD_CHAINS * node::MAX_CHILD_SIDE_CANDIDATE_BYTES);
+    result.pushKV("aggregate_candidate_bmm_anchor_bytes", aggregate_candidate_anchor_bytes);
+    result.pushKV("aggregate_candidate_bmm_anchor_bytes_limit",
+                  node::MAX_LOADED_CHILD_CHAINS * node::MAX_CHILD_CANDIDATE_BMM_BYTES);
     result.pushKV("chains", std::move(chains));
     return result;
 }

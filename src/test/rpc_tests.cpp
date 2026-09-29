@@ -230,6 +230,18 @@ BOOST_AUTO_TEST_CASE(child_chain_lifecycle_rpc)
     BOOST_CHECK(result.isObject());
     BOOST_CHECK(result.find_value("chains").isArray());
     BOOST_CHECK_EQUAL(result.find_value("chains").size(), 0U);
+    BOOST_CHECK_EQUAL(result.find_value("aggregate_mempool_transactions").getInt<uint64_t>(), 0U);
+    BOOST_CHECK_EQUAL(result.find_value("aggregate_mempool_bytes").getInt<uint64_t>(), 0U);
+    BOOST_CHECK_EQUAL(result.find_value("aggregate_pending_bmm_anchor_bytes").getInt<uint64_t>(), 0U);
+    BOOST_CHECK_EQUAL(result.find_value("aggregate_local_proposal_bytes").getInt<uint64_t>(), 0U);
+    BOOST_CHECK_EQUAL(result.find_value("aggregate_side_candidate_bytes").getInt<uint64_t>(), 0U);
+    BOOST_CHECK_EQUAL(result.find_value("aggregate_candidate_bmm_anchor_bytes").getInt<uint64_t>(), 0U);
+    BOOST_CHECK_EQUAL(
+        result.find_value("aggregate_mempool_transaction_limit").getInt<uint64_t>(),
+        node::MAX_LOADED_CHILD_CHAINS * node::MAX_CHILD_MEMPOOL_TRANSACTIONS);
+    BOOST_CHECK_EQUAL(
+        result.find_value("aggregate_mempool_bytes_limit").getInt<uint64_t>(),
+        node::MAX_LOADED_CHILD_CHAINS * node::MAX_CHILD_MEMPOOL_BYTES);
 
     const std::string null_id(64, '0');
     BOOST_CHECK_EXCEPTION(
@@ -320,6 +332,12 @@ BOOST_AUTO_TEST_CASE(blockchain_rpc_routes_explicit_child_chain)
     BOOST_CHECK_EQUAL(runtime.find_value("chain_id").get_str(), chain_id);
     BOOST_CHECK_EQUAL(runtime.find_value("side_candidate_count").getInt<int>(), 0);
     BOOST_CHECK_EQUAL(runtime.find_value("candidate_bmm_anchor_count").getInt<int>(), 0);
+    BOOST_CHECK_EQUAL(runtime.find_value("mempool_transactions").getInt<int>(), 0);
+    BOOST_CHECK_EQUAL(runtime.find_value("mempool_bytes").getInt<int>(), 0);
+    BOOST_CHECK_EQUAL(runtime.find_value("mempool_transaction_limit").getInt<uint64_t>(),
+                      node::MAX_CHILD_MEMPOOL_TRANSACTIONS);
+    BOOST_CHECK_EQUAL(runtime.find_value("mempool_bytes_limit").getInt<uint64_t>(),
+                      node::MAX_CHILD_MEMPOOL_BYTES);
     const auto child_tips{CallRPC("getchaintips " + chain_id)};
     BOOST_REQUIRE_EQUAL(child_tips.size(), 1U);
     BOOST_CHECK_EQUAL(child_tips[0].find_value("chain_id").get_str(),

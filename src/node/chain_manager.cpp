@@ -1957,6 +1957,8 @@ std::vector<ChainManagerEntry> ChainManager::List() const
             entry.side_candidate_bytes = loaded->second->State().side_candidate_bytes;
             entry.candidate_anchor_count = loaded->second->State().candidate_anchor_count;
             entry.candidate_anchor_bytes = loaded->second->State().candidate_anchor_bytes;
+            entry.mempool_transaction_count = loaded->second->MempoolSize();
+            entry.mempool_bytes = loaded->second->MempoolBytes();
         }
         result.push_back(std::move(entry));
     }

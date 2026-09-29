@@ -1030,6 +1030,14 @@ Bootstrap endpoints:
         <source xml:space="preserve">Pending block data: %1 distinct blocks</source>
         <context-group purpose="location"><context context-type="linenumber">448</context></context-group>
       </trans-unit>
+      <trans-unit id="_msg235a">
+        <source xml:space="preserve">Mempool: %1/%2 transactions, %3/%4 bytes
+Local proposals: %5/%6 records, %7/%8 bytes
+Side candidates: %9/%10 records, %11/%12 bytes
+Candidate BMM anchors: %13/%14 records, %15/%16 bytes
+Pending BMM anchors: %17/%18 records, %19/%20 bytes</source>
+        <context-group purpose="location"><context context-type="linenumber">429</context></context-group>
+      </trans-unit>
       <trans-unit id="_msg236">
         <source xml:space="preserve">%1 (unlimited)</source>
         <context-group purpose="location"><context context-type="linenumber">461</context></context-group>
@@ -1047,6 +1055,15 @@ Bootstrap endpoints:
           <source xml:space="preserve">Main-chain registry at height %1 • root %2 • %3/%4 child runtime(s) loaded • child block upload %5 • %n registered child chain(s)</source>
         </trans-unit>
       </group>
+      <trans-unit id="_msg238a">
+        <source xml:space="preserve">Aggregate bounded child resources:
+Mempool: %1/%2 transactions, %3/%4 bytes
+Pending BMM anchors: %5/%6 bytes
+Local proposals: %7/%8 bytes
+Side candidates: %9/%10 bytes
+Candidate BMM anchors: %11/%12 bytes</source>
+        <context-group purpose="location"><context context-type="linenumber">482</context></context-group>
+      </trans-unit>
       <trans-unit id="_msg239">
         <source xml:space="preserve">Refresh child chains</source>
         <context-group purpose="location"><context context-type="linenumber">478</context></context-group>
