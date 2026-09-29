@@ -2579,7 +2579,8 @@ util::Result<ChildRecoveryResult> CWallet::ApplyChildRecoveryScripts(
     const std::set<CScript>& change_used)
 {
     LOCK(cs_wallet);
-    const auto get_manager = [&](bool internal) {
+    const auto get_manager = [&](bool internal)
+        EXCLUSIVE_LOCKS_REQUIRED(cs_wallet) {
         const auto mapping{m_child_spk_managers.find(
             std::make_pair(chain_id, internal))};
         if (mapping == m_child_spk_managers.end()) {
@@ -2602,7 +2603,8 @@ util::Result<ChildRecoveryResult> CWallet::ApplyChildRecoveryScripts(
     WalletBatch batch{GetDatabase()};
     const auto apply = [&](DescriptorScriptPubKeyMan& manager,
                            const std::set<CScript>& scripts,
-                           bool internal) -> util::Result<void> {
+                           bool internal) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet)
+                           -> util::Result<void> {
         for (const CScript& script : scripts) {
             if (!manager.IsMine(script)) {
                 return util::Error{_("Child recovery script has the wrong descriptor role")};

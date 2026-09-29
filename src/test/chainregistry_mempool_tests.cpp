@@ -386,24 +386,30 @@ BOOST_AUTO_TEST_CASE(validate_and_select_competing_bmm_proposals)
 
     auto anchor_block{std::make_shared<CBlock>(node::BlockAssembler{
         m_node.chainman->ActiveChainstate(), m_node.mempool.get(), options}.CreateNewBlock()->block)};
-    const auto anchors{chainregistry::ValidateBlockBmmAnchors(
-        *anchor_block,
-        m_node.chainman->ActiveChainstate().ChainRegistryState().Registry(),
-        1)};
-    BOOST_REQUIRE(anchors.IsValid());
-    BOOST_REQUIRE_EQUAL(anchors.anchors.size(), 1U);
-    BOOST_CHECK(anchors.anchors.front().anchor.chain_id == chain_id);
-    BOOST_CHECK(anchors.anchors.front().anchor.child_block_hash == child_two);
+    {
+        LOCK(cs_main);
+        const auto anchors{chainregistry::ValidateBlockBmmAnchors(
+            *anchor_block,
+            m_node.chainman->ActiveChainstate().ChainRegistryState().Registry(),
+            1)};
+        BOOST_REQUIRE(anchors.IsValid());
+        BOOST_REQUIRE_EQUAL(anchors.anchors.size(), 1U);
+        BOOST_CHECK(anchors.anchors.front().anchor.chain_id == chain_id);
+        BOOST_CHECK(anchors.anchors.front().anchor.child_block_hash == child_two);
+    }
 
     anchor_block->hashMerkleRoot = BlockMerkleRoot(*anchor_block);
     BOOST_REQUIRE(!MineBlock(m_node, anchor_block).IsNull());
     const uint256 anchor_block_hash{anchor_block->GetHash()};
-    const auto indexed{m_node.chainman->ActiveChainstate().ChainRegistryState().FindAnchor({
-        .chain_id = chain_id,
-        .main_block_hash = anchor_block_hash,
-    })};
-    BOOST_REQUIRE(indexed.has_value());
-    BOOST_CHECK(indexed->anchor.child_block_hash == child_two);
+    {
+        LOCK(cs_main);
+        const auto indexed{m_node.chainman->ActiveChainstate().ChainRegistryState().FindAnchor({
+            .chain_id = chain_id,
+            .main_block_hash = anchor_block_hash,
+        })};
+        BOOST_REQUIRE(indexed.has_value());
+        BOOST_CHECK(indexed->anchor.child_block_hash == child_two);
+    }
 
     const CMutableTransaction retirement{CreateValidTransaction(
         {MakeTransactionRef(registration_tx)},
@@ -429,18 +435,24 @@ BOOST_AUTO_TEST_CASE(validate_and_select_competing_bmm_proposals)
         [&retirement](const CTransactionRef& tx) {
             return tx->GetHash() == retirement.GetHash();
         }));
-    const auto retirement_anchors{chainregistry::ValidateBlockBmmAnchors(
-        *retirement_block,
-        m_node.chainman->ActiveChainstate().ChainRegistryState().Registry(),
-        1)};
-    BOOST_REQUIRE(retirement_anchors.IsValid());
-    BOOST_CHECK(retirement_anchors.anchors.empty());
+    {
+        LOCK(cs_main);
+        const auto retirement_anchors{chainregistry::ValidateBlockBmmAnchors(
+            *retirement_block,
+            m_node.chainman->ActiveChainstate().ChainRegistryState().Registry(),
+            1)};
+        BOOST_REQUIRE(retirement_anchors.IsValid());
+        BOOST_CHECK(retirement_anchors.anchors.empty());
+    }
 
     retirement_block->hashMerkleRoot = BlockMerkleRoot(*retirement_block);
     BOOST_REQUIRE(!MineBlock(m_node, retirement_block).IsNull());
-    const auto* retired{m_node.chainman->ActiveChainstate().ChainRegistryState().Registry().Find(chain_id)};
-    BOOST_REQUIRE(retired);
-    BOOST_CHECK(retired->status == chainregistry::ChainStatus::RETIRED);
+    {
+        LOCK(cs_main);
+        const auto* retired{m_node.chainman->ActiveChainstate().ChainRegistryState().Registry().Find(chain_id)};
+        BOOST_REQUIRE(retired);
+        BOOST_CHECK(retired->status == chainregistry::ChainStatus::RETIRED);
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

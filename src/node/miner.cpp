@@ -38,6 +38,7 @@ namespace node {
 namespace {
 
 std::optional<CTxOut> AddRegistryCommitment(CBlock& block, Chainstate& chainstate, int height)
+    EXCLUSIVE_LOCKS_REQUIRED(::cs_main)
 {
     const auto& params{chainstate.m_chainman.GetConsensus().chain_registry};
     if (!params.IsActive(height)) return std::nullopt;

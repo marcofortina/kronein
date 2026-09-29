@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_NODE_CHAIN_MANAGER_H
-#define KRONEIN_NODE_CHAIN_MANAGER_H
+#ifndef BITCOIN_NODE_CHAIN_MANAGER_H
+#define BITCOIN_NODE_CHAIN_MANAGER_H
 
 #include <chainregistry/child_template.h>
 #include <consensus/chainregistry.h>
@@ -571,56 +571,62 @@ public:
     ChildChainCatalogLoadError CatalogError() const { return m_catalog_error; }
 
     ChainManagerResult RegisterChain(
-        const chainregistry::ReferenceChildDefinition& definition);
-    ChainManagerResult ForgetChain(const chainregistry::ChainId& chain_id);
+        const chainregistry::ReferenceChildDefinition& definition)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+    ChainManagerResult ForgetChain(const chainregistry::ChainId& chain_id)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerResult LoadChain(const chainregistry::ChainId& chain_id,
                                  int64_t current_time,
                                  bool wipe_data = false,
                                  bool sync = false,
-                                 std::span<const CBlockHeader> main_headers = {});
-    ChainManagerResult UnloadChain(const chainregistry::ChainId& chain_id);
+                                 std::span<const CBlockHeader> main_headers = {})
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+    ChainManagerResult UnloadChain(const chainregistry::ChainId& chain_id)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerResult StageBmmAnchor(
         const chainregistry::ChainId& chain_id,
         const chainregistry::BmmAnchorProof& anchor_proof,
         int64_t current_time,
-        bool sync = false);
+        bool sync = false) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerResult SubmitBlock(
         const chainregistry::ChainId& chain_id,
         const CBlock& block,
         const chainregistry::BmmAnchorProof& anchor_proof,
         int64_t current_time,
-        bool sync = false);
+        bool sync = false) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerResult SubmitBlockData(
         const chainregistry::ChainId& chain_id,
         const CBlock& block,
         int64_t current_time,
-        bool sync = false);
+        bool sync = false) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerResult StoreProposal(
         const chainregistry::ChainId& chain_id,
         const CBlock& block,
         int64_t current_time,
-        bool sync = false);
+        bool sync = false) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerResult SubmitProposal(
         const chainregistry::ChainId& chain_id,
         const uint256& block_hash,
         const std::optional<chainregistry::BmmAnchorProof>& anchor_proof,
         int64_t current_time,
-        bool sync = false);
+        bool sync = false) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerResult RemoveProposal(
         const chainregistry::ChainId& chain_id,
         const uint256& block_hash,
-        bool sync = false);
+        bool sync = false) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     /** Build an IMPORT only after child-side light-client authentication. */
     ChainManagerImportBuildResult BuildImportTransaction(
         const chainregistry::ChainId& chain_id,
-        const chainregistry::DepositProof& proof) const;
+        const chainregistry::DepositProof& proof) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     /** Build and contextually validate an import-only active-tip block. */
     ChainManagerImportBlockBuildResult BuildImportBlock(
         const chainregistry::ChainId& chain_id,
         std::span<const chainregistry::DepositProof> proofs,
         int64_t current_time,
         bool sync = false,
-        bool require_empty_proposal_queue = false);
+        bool require_empty_proposal_queue = false)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     /** Build, contextually validate, and persist an active-tip transaction block. */
     ChainManagerTransactionBlockBuildResult BuildTransactionBlock(
         const chainregistry::ChainId& chain_id,
@@ -628,97 +634,119 @@ public:
         const std::optional<CScript>& fee_recipient_script,
         int64_t current_time,
         bool sync = false,
-        bool require_empty_proposal_queue = false);
+        bool require_empty_proposal_queue = false)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     /** Admit a finalized transaction to one isolated child mempool. */
     ChainManagerMempoolAcceptResult SubmitTransaction(
         const chainregistry::ChainId& chain_id,
         CTransactionRef transaction,
         int64_t current_time,
-        std::optional<CAmount> max_fee = std::nullopt);
+        std::optional<CAmount> max_fee = std::nullopt)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     /** Test an ordered package without changing the isolated child mempool. */
     ChainManagerMempoolPackageResult TestTransactions(
         const chainregistry::ChainId& chain_id,
         std::span<const CTransactionRef> transactions,
-        int64_t current_time) const;
+        int64_t current_time) const EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     /** Atomically admit an ordered package to one isolated child mempool. */
     ChainManagerMempoolPackageResult SubmitTransactions(
         const chainregistry::ChainId& chain_id,
         std::span<const CTransactionRef> transactions,
         std::span<const std::optional<CAmount>> max_fees,
-        int64_t current_time);
+        int64_t current_time) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerMempoolView GetMempool(
-        const chainregistry::ChainId& chain_id) const;
+        const chainregistry::ChainId& chain_id) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     /** Feed a header already connected by the local main chainstate. */
     ChainManagerMainUpdate AddMainHeader(
         const CBlockHeader& header,
         int64_t current_time,
-        bool sync = false);
+        bool sync = false) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerMainUpdate SynchronizeMainChain(
         std::span<const CBlockHeader> active_headers,
         const uint256& active_tip,
         int64_t current_time,
-        bool sync = false);
+        bool sync = false) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerMainUpdate ReconcileRegistry(
         const std::map<chainregistry::ChainId,
-                       chainregistry::ChainRecord>& records);
+                       chainregistry::ChainRecord>& records)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
-    ReferenceChildRuntime* Get(const chainregistry::ChainId& chain_id);
+    ReferenceChildRuntime* Get(const chainregistry::ChainId& chain_id)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     const ReferenceChildRuntime* Get(
-        const chainregistry::ChainId& chain_id) const;
-    bool IsRegistered(const chainregistry::ChainId& chain_id) const;
-    bool IsLoaded(const chainregistry::ChainId& chain_id) const;
+        const chainregistry::ChainId& chain_id) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+    bool IsRegistered(const chainregistry::ChainId& chain_id) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+    bool IsLoaded(const chainregistry::ChainId& chain_id) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     std::optional<chainregistry::ReferenceChildDefinition> Definition(
-        const chainregistry::ChainId& chain_id) const;
+        const chainregistry::ChainId& chain_id) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     fs::path DataPath(const chainregistry::ChainId& chain_id) const;
     ChainManagerView GetChainView(
         const chainregistry::ChainId& chain_id,
-        std::optional<int> height = std::nullopt) const;
+        std::optional<int> height = std::nullopt) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerWaitResult WaitForTipChanged(
         const chainregistry::ChainId& chain_id,
         std::optional<uint256> current_tip,
-        std::optional<std::chrono::milliseconds> timeout = std::nullopt);
-    void InterruptWaits();
+        std::optional<std::chrono::milliseconds> timeout = std::nullopt)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+    void InterruptWaits() EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerBlockView GetBlockView(
         const chainregistry::ChainId& chain_id,
-        const uint256& block_hash) const;
+        const uint256& block_hash) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerBlockView GetBlockViewByHeight(
         const chainregistry::ChainId& chain_id,
-        int height) const;
+        int height) const EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerBlockView GetTipBlockView(
-        const chainregistry::ChainId& chain_id) const;
+        const chainregistry::ChainId& chain_id) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerActiveBlocksView GetActiveBlockViews(
         const chainregistry::ChainId& chain_id,
-        std::span<const uint256> block_hashes) const;
+        std::span<const uint256> block_hashes) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerCoinView GetCoinView(
         const chainregistry::ChainId& chain_id,
         const COutPoint& outpoint,
-        bool include_mempool = false) const;
+        bool include_mempool = false) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerTipsView GetChainTipsView(
-        const chainregistry::ChainId& chain_id) const;
+        const chainregistry::ChainId& chain_id) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerPendingBlocksView GetPendingBlocksView(
-        const chainregistry::ChainId& chain_id) const;
+        const chainregistry::ChainId& chain_id) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerProposalsView GetProposalsView(
         const chainregistry::ChainId& chain_id,
-        std::optional<uint256> block_hash = std::nullopt) const;
+        std::optional<uint256> block_hash = std::nullopt) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerBmmStatusView GetBmmStatusView(
-        const chainregistry::ChainId& chain_id) const;
+        const chainregistry::ChainId& chain_id) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerUTXOStatsView GetUTXOStatsView(
         const chainregistry::ChainId& chain_id,
         kernel::CoinStatsHashType hash_type,
-        const std::function<void()>& interruption_point = {}) const;
+        const std::function<void()>& interruption_point = {}) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerUTXOScanView ScanUTXOSet(
         const chainregistry::ChainId& chain_id,
         const std::set<CScript>& needles,
         std::atomic<int>& progress,
         const std::atomic<bool>& should_abort,
         const std::function<void()>& interruption_point = {},
-        bool include_mempool = false) const;
+        bool include_mempool = false) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerWalletHistoryView ScanWalletHistory(
         const chainregistry::ChainId& chain_id,
         const std::set<CScript>& scripts,
         std::optional<int> start_height = std::nullopt,
         size_t max_blocks = MAX_CHILD_WALLET_HISTORY_BLOCKS_PER_SCAN,
-        bool include_mempool = true) const;
+        bool include_mempool = true) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerBlockFilterScanView ScanBlockFilters(
         const chainregistry::ChainId& chain_id,
         int start_height,
@@ -728,15 +756,17 @@ public:
         std::atomic<int>& progress,
         std::atomic<int>& progress_height,
         const std::atomic<bool>& should_abort,
-        const std::function<void()>& interruption_point = {}) const;
+        const std::function<void()>& interruption_point = {}) const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     ChainManagerVerifyResult VerifyChain(
         const chainregistry::ChainId& chain_id,
-        int64_t current_time) const;
-    std::vector<ChainManagerEntry> List() const;
-    size_t RegisteredCount() const;
-    size_t LoadedCount() const;
+        int64_t current_time) const EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+    std::vector<ChainManagerEntry> List() const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+    size_t RegisteredCount() const EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+    size_t LoadedCount() const EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 };
 
 } // namespace node
 
-#endif // KRONEIN_NODE_CHAIN_MANAGER_H
+#endif // BITCOIN_NODE_CHAIN_MANAGER_H

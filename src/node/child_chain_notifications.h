@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
-#ifndef KRONEIN_NODE_CHILD_CHAIN_NOTIFICATIONS_H
-#define KRONEIN_NODE_CHILD_CHAIN_NOTIFICATIONS_H
+#ifndef BITCOIN_NODE_CHILD_CHAIN_NOTIFICATIONS_H
+#define BITCOIN_NODE_CHILD_CHAIN_NOTIFICATIONS_H
 
 #include <consensus/chainregistry.h>
 #include <sync.h>
@@ -96,13 +96,15 @@ private:
         m_deposit_cursors GUARDED_BY(m_proposer_mutex);
     void HandleUnloaded(const ChainManagerRuntimeEvent& event);
     void ProcessBmmAnchors(const CBlock& block, const CBlockIndex* index);
-    void ProcessDepositProposals();
+    void ProcessDepositProposals()
+        EXCLUSIVE_LOCKS_REQUIRED(!m_proposer_mutex);
     void Synchronize();
 
 protected:
     void BlockConnected(const kernel::ChainstateRole& role,
                         const std::shared_ptr<const CBlock>& block,
-                        const CBlockIndex* index) override;
+                        const CBlockIndex* index) override
+        EXCLUSIVE_LOCKS_REQUIRED(!m_proposer_mutex);
     void BlockDisconnected(const std::shared_ptr<const CBlock>& block,
                            const CBlockIndex* index) override;
     void UpdatedBlockTip(const CBlockIndex* index,
@@ -130,4 +132,4 @@ public:
 
 } // namespace node
 
-#endif // KRONEIN_NODE_CHILD_CHAIN_NOTIFICATIONS_H
+#endif // BITCOIN_NODE_CHILD_CHAIN_NOTIFICATIONS_H

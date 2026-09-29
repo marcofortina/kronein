@@ -812,7 +812,8 @@ bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
     std::set<Txid> visiting;
     std::vector<const CTransaction*> ordered_ancestors;
     const auto& removals{m_subpackage.m_changeset->GetRemovals()};
-    const auto visit_ancestors = [&](const auto& self, const CTransaction& tx) -> bool {
+    const auto visit_ancestors = [&](const auto& self, const CTransaction& tx)
+        EXCLUSIVE_LOCKS_REQUIRED(cs_main, m_pool.cs) -> bool {
         for (const CTxIn& input : tx.vin) {
             const auto parent{m_pool.GetIter(input.prevout.hash)};
             if (!parent) continue;

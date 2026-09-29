@@ -501,7 +501,8 @@ static DBErrors LoadChildScriptPubKeyMans(CWallet* pwallet, DatabaseBatch& batch
     AssertLockHeld(pwallet->cs_wallet);
 
     LoadResult result = LoadRecords(pwallet, batch, DBKeys::CHILDSPK,
-        [] (CWallet* pwallet, DataStream& key, DataStream& value, std::string& err) {
+        [] (CWallet* pwallet, DataStream& key, DataStream& value, std::string& err)
+            EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet) {
         chainregistry::ChainId chain_id;
         bool internal;
         uint256 id;
@@ -524,7 +525,8 @@ static DBErrors LoadChildAutoBidPolicies(CWallet* pwallet, DatabaseBatch& batch)
     AssertLockHeld(pwallet->cs_wallet);
 
     LoadResult result = LoadRecords(pwallet, batch, DBKeys::CHILDAUTOBID,
-        [] (CWallet* pwallet, DataStream& key, DataStream& value, std::string& err) {
+        [] (CWallet* pwallet, DataStream& key, DataStream& value, std::string& err)
+            EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet) {
         chainregistry::ChainId chain_id;
         ChildAutoBidPolicy policy;
         key >> chain_id;

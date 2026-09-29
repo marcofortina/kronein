@@ -39,8 +39,11 @@ BOOST_AUTO_TEST_CASE(create_native_block_template)
     BOOST_REQUIRE(IsNativeOutputScript(block.vtx[0]->vout[0].scriptPubKey));
     BOOST_REQUIRE(block.vtx[0]->HasWitness());
 
-    const BlockValidationState state{TestBlockValidity(m_node.chainman->ActiveChainstate(), block, /*check_pow=*/false, /*check_merkle_root=*/false)};
-    BOOST_CHECK(state.IsValid());
+    {
+        LOCK(cs_main);
+        const BlockValidationState state{TestBlockValidity(m_node.chainman->ActiveChainstate(), block, /*check_pow=*/false, /*check_merkle_root=*/false)};
+        BOOST_CHECK(state.IsValid());
+    }
 }
 
 BOOST_AUTO_TEST_CASE(reject_non_native_coinbase_output)
@@ -94,7 +97,7 @@ struct RegistryMinerSetup : public TestingSetup {
 
 } // namespace
 
-BOOST_FIXTURE_TEST_SUITE(chainregistry_miner_tests, RegistryMinerSetup)
+BOOST_FIXTURE_TEST_SUITE(miner_tests_chainregistry, RegistryMinerSetup)
 
 BOOST_AUTO_TEST_CASE(create_active_registry_commitment)
 {
@@ -119,18 +122,24 @@ BOOST_AUTO_TEST_CASE(create_active_registry_commitment)
     }
     BOOST_CHECK_EQUAL(block_template->m_coinbase_tx.required_outputs.size(), 2U);
 
-    const BlockValidationState valid{TestBlockValidity(
-        m_node.chainman->ActiveChainstate(), block, /*check_pow=*/false, /*check_merkle_root=*/false)};
-    BOOST_CHECK(valid.IsValid());
+    {
+        LOCK(cs_main);
+        const BlockValidationState valid{TestBlockValidity(
+            m_node.chainman->ActiveChainstate(), block, /*check_pow=*/false, /*check_merkle_root=*/false)};
+        BOOST_CHECK(valid.IsValid());
+    }
 
     CBlock missing{block};
     CMutableTransaction coinbase{*missing.vtx[0]};
     coinbase.vout.erase(coinbase.vout.begin() + *commitment.output_index);
     missing.vtx[0] = MakeTransactionRef(std::move(coinbase));
-    const BlockValidationState invalid{TestBlockValidity(
-        m_node.chainman->ActiveChainstate(), missing, /*check_pow=*/false, /*check_merkle_root=*/false)};
-    BOOST_CHECK(invalid.IsInvalid());
-    BOOST_CHECK_EQUAL(invalid.GetRejectReason(), "bad-chain-registry");
+    {
+        LOCK(cs_main);
+        const BlockValidationState invalid{TestBlockValidity(
+            m_node.chainman->ActiveChainstate(), missing, /*check_pow=*/false, /*check_merkle_root=*/false)};
+        BOOST_CHECK(invalid.IsInvalid());
+        BOOST_CHECK_EQUAL(invalid.GetRejectReason(), "bad-chain-registry");
+    }
 
     auto processed{std::make_shared<CBlock>(block)};
     processed->hashMerkleRoot = BlockMerkleRoot(*processed);
