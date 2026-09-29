@@ -176,6 +176,34 @@ class MultichainDevnetTest(BitcoinTestFramework):
             assert_equal(node.getchildbmmstatus(child["chain_id"])["health"],
                          "awaiting_anchor")
 
+        self.log.info("Reject corrupt and cross-chain child data without affecting sibling runtimes or main")
+        first_proposal = node.getchildproposal(
+            children[0]["chain_id"], proposals[0])
+        replacement = "00" if first_proposal["block"][-2:] != "00" else "01"
+        corrupt_block = first_proposal["block"][:-2] + replacement
+        assert_raises_rpc_error(
+            -26, "child runtime rejected request",
+            node.storechildproposal,
+            children[0]["chain_id"], corrupt_block)
+        assert_raises_rpc_error(
+            -26, "child runtime rejected request",
+            node.storechildproposal,
+            children[1]["chain_id"], first_proposal["block"])
+        for child, proposal in zip(children, proposals):
+            listed = node.listchildproposals(child["chain_id"])
+            assert_equal(listed["proposal_count"], 1)
+            assert_equal(listed["proposals"][0]["blockhash"], proposal)
+
+        main_height = node.getblockcount()
+        self.generatetoaddress(
+            node, 1, wallet.getnewaddress(), sync_fun=lambda: None)
+        node.syncwithvalidationinterfacequeue()
+        assert_equal(node.getblockcount(), main_height + 1)
+        for child in children:
+            status = node.getchildbmmstatus(child["chain_id"])
+            assert_equal(status["health"], "awaiting_anchor")
+            assert_equal(status["safe_halt"], False)
+
         fork_anchor = fork_wallet.walletcreatechildanchorpsbt(
             children[1]["chain_id"], proposals[1], {"fee_rate": 1})
         fork_submitted = fork_wallet.walletsubmitchildanchorpsbt(
