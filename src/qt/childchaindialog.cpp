@@ -216,6 +216,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     m_bmm_button = actions->addButton(tr("BMM…"), QDialogButtonBox::ActionRole);
 #ifdef ENABLE_WALLET
     m_register_button = actions->addButton(tr("Register…"), QDialogButtonBox::ActionRole);
+    m_registry_psbt_button = actions->addButton(tr("Registry PSBT…"), QDialogButtonBox::ActionRole);
     m_balance_button = actions->addButton(tr("Balance…"), QDialogButtonBox::ActionRole);
     m_receive_button = actions->addButton(tr("Receive…"), QDialogButtonBox::ActionRole);
     m_send_button = actions->addButton(tr("Send…"), QDialogButtonBox::ActionRole);
@@ -227,6 +228,9 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     m_update_button = actions->addButton(tr("Update Metadata…"), QDialogButtonBox::ActionRole);
     m_retire_button = actions->addButton(tr("Retire…"), QDialogButtonBox::DestructiveRole);
     m_register_button->setObjectName(QStringLiteral("childChainRegisterButton"));
+    m_registry_psbt_button->setObjectName(QStringLiteral("childChainRegistryPsbtButton"));
+    m_registry_psbt_button->setToolTip(
+        tr("Review and sign a cooperative buyer/dealer registration PSBT."));
     m_balance_button->setObjectName(QStringLiteral("childChainBalanceButton"));
     m_balance_button->setToolTip(
         tr("Scan the loaded child UTXO set for recipients owned by the selected wallet."));
@@ -278,6 +282,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     connect(m_bmm_button, &QPushButton::clicked, this, &ChildChainDialog::manageBmm);
 #ifdef ENABLE_WALLET
     connect(m_register_button, &QPushButton::clicked, this, &ChildChainDialog::registerChildChain);
+    connect(m_registry_psbt_button, &QPushButton::clicked, this, &ChildChainDialog::submitRegistryPsbt);
     connect(m_balance_button, &QPushButton::clicked, this, &ChildChainDialog::showBalance);
     connect(m_receive_button, &QPushButton::clicked, this, &ChildChainDialog::receiveSelected);
     connect(m_send_button, &QPushButton::clicked, this, &ChildChainDialog::sendSelected);
@@ -541,6 +546,7 @@ void ChildChainDialog::updateSelection()
         m_bmm_button->setEnabled(false);
 #ifdef ENABLE_WALLET
         m_register_button->setEnabled(m_wallet_model);
+        m_registry_psbt_button->setEnabled(m_wallet_model);
         m_balance_button->setEnabled(false);
         m_receive_button->setEnabled(false);
         m_send_button->setEnabled(false);
@@ -589,6 +595,7 @@ void ChildChainDialog::updateSelection()
     m_bmm_button->setEnabled(loaded && supported && operational);
 #ifdef ENABLE_WALLET
     m_register_button->setEnabled(m_wallet_model);
+    m_registry_psbt_button->setEnabled(m_wallet_model);
     m_balance_button->setEnabled(m_wallet_model && loaded && supported);
     m_receive_button->setEnabled(
         m_wallet_model && loaded && supported && operational);
@@ -1570,32 +1577,36 @@ void ChildChainDialog::submitRegistryOperation(const char* operation,
     QApplication::restoreOverrideCursor();
 
     const QString operation_name{QString::fromLatin1(operation)};
+    const bool registering{operation_name == QStringLiteral("register")};
+    const bool retiring{operation_name == QStringLiteral("retire")};
     const UniValue& created_operation{created.find_value("operation")};
     const UniValue& created_chain{created.find_value("chain_id")};
+    const UniValue& created_manifest_hash{created.find_value("manifest_hash")};
     const UniValue& psbt{created.find_value("psbt")};
     const UniValue& fee{created.find_value("fee")};
-    const UniValue& proposed_burn{created.find_value("registration_burn")};
+    const UniValue& proposed_dealer_payment{created.find_value("dealer_payment")};
     if (!created_operation.isStr() ||
         QString::fromStdString(created_operation.get_str()) != operation_name ||
         !created_chain.isStr() ||
         QString::fromStdString(created_chain.get_str()) != chain_id ||
-        !psbt.isStr() || !fee.isNum() || !proposed_burn.isNum()) {
+        (registering && (!created_manifest_hash.isStr() ||
+                         !QRegularExpression{QStringLiteral("^[0-9A-Fa-f]{64}$")}
+                              .match(QString::fromStdString(created_manifest_hash.get_str())).hasMatch())) ||
+        !psbt.isStr() || !fee.isNum() || !proposed_dealer_payment.isNum()) {
         showRpcError(tr("Create registry operation"),
                      tr("The wallet returned an invalid registry proposal."));
         return;
     }
 
-    const bool registering{operation_name == QStringLiteral("register")};
-    const bool retiring{operation_name == QStringLiteral("retire")};
     QMessageBox confirmation{
         QMessageBox::Warning,
         registering ? tr("Confirm Child Registration")
                     : retiring ? tr("Confirm Permanent Retirement")
                                : tr("Confirm Metadata Update"),
         registering
-            ? tr("Register child chain %1?\n\nRegistration permanently burns %2 KNE.\nMain-chain fee: %3 KNE\n\nThe burn is not refundable, even if the child chain is never operated.")
+            ? tr("Buy and register child chain %1?\n\nDealer payment: %2 KNE\nMain-chain fee: %3 KNE\n\nRegistration is atomic: it is valid only if the authorized dealer is paid and co-signs the transaction.")
                   .arg(chain_id,
-                       QString::fromStdString(proposed_burn.getValStr()),
+                       QString::fromStdString(proposed_dealer_payment.getValStr()),
                        QString::fromStdString(fee.getValStr()))
             : retiring
             ? tr("Permanently retire child chain %1?\n\nNew deposits and anchors will stop after confirmation on the main chain. Protocol v1 has no operation that reactivates a retired chain.\n\nMain-chain fee: %2 KNE")
@@ -1617,7 +1628,11 @@ void ChildChainDialog::submitRegistryOperation(const char* operation,
 
     UniValue submit_params{UniValue::VARR};
     submit_params.push_back(psbt.get_str());
-    if (registering) submit_params.push_back(proposed_burn);
+    if (registering) {
+        submit_params.push_back(proposed_dealer_payment);
+        submit_params.push_back(created_chain);
+        submit_params.push_back(created_manifest_hash);
+    }
     UniValue submitted;
     QApplication::setOverrideCursor(Qt::WaitCursor);
     try {
@@ -1637,19 +1652,64 @@ void ChildChainDialog::submitRegistryOperation(const char* operation,
 
     const UniValue& submitted_operation{submitted.find_value("operation")};
     const UniValue& submitted_chain{submitted.find_value("chain_id")};
+    const UniValue& submitted_manifest_hash{submitted.find_value("manifest_hash")};
+    const UniValue& complete{submitted.find_value("complete")};
     const UniValue& txid{submitted.find_value("txid")};
     const UniValue& submitted_fee{submitted.find_value("fee")};
-    const UniValue& registration_burn{submitted.find_value("registration_burn")};
+    const UniValue& dealer_payment{submitted.find_value("dealer_payment")};
     if (!submitted_operation.isStr() ||
         QString::fromStdString(submitted_operation.get_str()) != operation_name ||
         !submitted_chain.isStr() ||
         QString::fromStdString(submitted_chain.get_str()) != chain_id ||
-        !txid.isStr() || !submitted_fee.isNum() ||
+        (registering && (!submitted_manifest_hash.isStr() ||
+                         submitted_manifest_hash.get_str() != created_manifest_hash.get_str())) ||
+        !complete.isBool() || !submitted_fee.isNum() ||
         submitted_fee.getValStr() != fee.getValStr() ||
-        !registration_burn.isNum() ||
-        registration_burn.getValStr() != proposed_burn.getValStr()) {
+        !dealer_payment.isNum() ||
+        dealer_payment.getValStr() != proposed_dealer_payment.getValStr() ||
+        (complete.get_bool() && !txid.isStr())) {
         showRpcError(tr("Submit registry operation"),
                      tr("The wallet returned an invalid registry result."));
+        return;
+    }
+
+    if (!complete.get_bool()) {
+        const UniValue& partial_psbt{submitted.find_value("psbt")};
+        if (!partial_psbt.isStr()) {
+            showRpcError(tr("Submit registry operation"),
+                         tr("The wallet returned no partially signed PSBT."));
+            return;
+        }
+        QDialog transfer{this};
+        transfer.setWindowTitle(tr("Dealer Signature Required"));
+        transfer.setMinimumSize(760, 360);
+        auto* transfer_layout = new QVBoxLayout{&transfer};
+        auto* summary = new QLabel{
+            tr("Your wallet signed the buyer inputs. Send this unchanged PSBT and the agreed terms to the selected dealer. The dealer can verify and sign it with Registry PSBT…; either party can then submit the returned PSBT.\n\nDealer payment: %1 KNE\nChain ID: %2\nManifest hash: %3")
+                .arg(QString::fromStdString(dealer_payment.getValStr()),
+                     chain_id,
+                     QString::fromStdString(created_manifest_hash.get_str())),
+            &transfer};
+        summary->setWordWrap(true);
+        transfer_layout->addWidget(summary);
+        auto* text = new QPlainTextEdit{
+            QString::fromStdString(partial_psbt.get_str()), &transfer};
+        text->setReadOnly(true);
+        text->setLineWrapMode(QPlainTextEdit::NoWrap);
+        transfer_layout->addWidget(text, 1);
+        auto* transfer_buttons = new QDialogButtonBox{&transfer};
+        auto* copy = transfer_buttons->addButton(
+            tr("Copy PSBT"), QDialogButtonBox::ActionRole);
+        transfer_buttons->addButton(QDialogButtonBox::Close);
+        connect(copy, &QPushButton::clicked, &transfer,
+                [partial_psbt] {
+                    GUIUtil::setClipboard(QString::fromStdString(partial_psbt.get_str()));
+                });
+        connect(transfer_buttons, &QDialogButtonBox::rejected,
+                &transfer, &QDialog::reject);
+        transfer_layout->addWidget(transfer_buttons);
+        if (!result_details.isEmpty()) text->setToolTip(result_details);
+        transfer.exec();
         return;
     }
 
@@ -1667,6 +1727,157 @@ void ChildChainDialog::submitRegistryOperation(const char* operation,
     refresh();
 }
 
+void ChildChainDialog::submitRegistryPsbt()
+{
+    if (!m_wallet_model) return;
+    const QPointer<WalletModel> wallet_model{m_wallet_model};
+    const std::string wallet_uri{walletUri()};
+
+    QDialog input_dialog{this};
+    input_dialog.setWindowTitle(tr("Review Cooperative Registry PSBT"));
+    input_dialog.setMinimumSize(760, 360);
+    auto* layout = new QVBoxLayout{&input_dialog};
+    auto* warning = new QLabel{
+        tr("Paste the unchanged registration PSBT received from the buyer or dealer. Enter the independently agreed chain ID, manifest hash, and price. Your wallet will verify those terms together with the active dealer, successor controls, fee, and transaction structure before signing."),
+        &input_dialog};
+    warning->setWordWrap(true);
+    layout->addWidget(warning);
+    auto* psbt = new QPlainTextEdit{&input_dialog};
+    psbt->setPlaceholderText(tr("Base64 registry PSBT"));
+    psbt->setLineWrapMode(QPlainTextEdit::NoWrap);
+    layout->addWidget(psbt, 1);
+    auto* form = new QFormLayout;
+    auto* expected_payment = new BitcoinAmountField{&input_dialog};
+    expected_payment->SetAllowEmpty(false);
+    expected_payment->SetMinValue(1);
+    expected_payment->SetMaxValue(MAX_MONEY);
+    auto* expected_chain_id = new QLineEdit{&input_dialog};
+    expected_chain_id->setPlaceholderText(tr("64 hexadecimal characters"));
+    auto* expected_manifest_hash = new QLineEdit{&input_dialog};
+    expected_manifest_hash->setPlaceholderText(tr("64 hexadecimal characters"));
+    form->addRow(tr("Exact dealer payment:"), expected_payment);
+    form->addRow(tr("Expected chain ID:"), expected_chain_id);
+    form->addRow(tr("Expected manifest hash:"), expected_manifest_hash);
+    layout->addLayout(form);
+    auto* buttons = new QDialogButtonBox{
+        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &input_dialog};
+    buttons->button(QDialogButtonBox::Ok)->setText(tr("Verify and Sign"));
+    connect(buttons, &QDialogButtonBox::accepted, &input_dialog, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &input_dialog, &QDialog::reject);
+    layout->addWidget(buttons);
+    if (input_dialog.exec() != QDialog::Accepted) return;
+    const QString encoded{psbt->toPlainText().trimmed()};
+    const QString expected_chain{expected_chain_id->text().trimmed()};
+    const QString expected_manifest{expected_manifest_hash->text().trimmed()};
+    const QRegularExpression hash_pattern{QStringLiteral("^[0-9A-Fa-f]{64}$")};
+    if (encoded.isEmpty() || !expected_payment->validate() ||
+        expected_payment->value() <= 0 ||
+        !hash_pattern.match(expected_chain).hasMatch() ||
+        !hash_pattern.match(expected_manifest).hasMatch()) {
+        QMessageBox::warning(
+            this, tr("Invalid Registry PSBT"),
+            tr("Provide a Base64 PSBT, the exact positive dealer payment, and the expected 32-byte chain ID and manifest hash."));
+        return;
+    }
+    if (!wallet_model || m_wallet_model != wallet_model) {
+        showRpcError(tr("Submit registry PSBT"),
+                     tr("The selected wallet changed before signing."));
+        return;
+    }
+    WalletModel::UnlockContext unlock_context{wallet_model->requestUnlock()};
+    if (!unlock_context.isValid()) return;
+
+    UniValue params{UniValue::VARR};
+    params.push_back(encoded.toStdString());
+    params.push_back(ValueFromAmount(expected_payment->value()));
+    params.push_back(expected_chain.toStdString());
+    params.push_back(expected_manifest.toStdString());
+    UniValue submitted;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    try {
+        submitted = m_node.executeRpc(
+            "walletsubmitchainregistrypsbt", params, wallet_uri);
+    } catch (UniValue& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Submit registry PSBT"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        QApplication::restoreOverrideCursor();
+        showRpcError(tr("Submit registry PSBT"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    QApplication::restoreOverrideCursor();
+
+    const UniValue& complete{submitted.find_value("complete")};
+    const UniValue& operation{submitted.find_value("operation")};
+    const UniValue& chain_id{submitted.find_value("chain_id")};
+    const UniValue& manifest_hash{submitted.find_value("manifest_hash")};
+    const UniValue& payment{submitted.find_value("dealer_payment")};
+    if (!complete.isBool() || !operation.isStr() ||
+        operation.get_str() != "register" || !chain_id.isStr() ||
+        QString::fromStdString(chain_id.get_str()).compare(
+            expected_chain, Qt::CaseInsensitive) != 0 ||
+        !manifest_hash.isStr() ||
+        QString::fromStdString(manifest_hash.get_str()).compare(
+            expected_manifest, Qt::CaseInsensitive) != 0 ||
+        !payment.isNum() ||
+        payment.getValStr() != ValueFromAmount(expected_payment->value()).getValStr()) {
+        showRpcError(tr("Submit registry PSBT"),
+                     tr("The wallet returned an invalid registry result."));
+        return;
+    }
+    if (complete.get_bool()) {
+        const UniValue& txid{submitted.find_value("txid")};
+        if (!txid.isStr()) {
+            showRpcError(tr("Submit registry PSBT"),
+                         tr("The wallet broadcast no transaction identifier."));
+            return;
+        }
+        QMessageBox::information(
+            this, tr("Registration Submitted"),
+            tr("The fully signed registration was broadcast.\n\nTransaction: %1\nChild chain: %2")
+                .arg(QString::fromStdString(txid.get_str()),
+                     QString::fromStdString(chain_id.get_str())));
+        refresh();
+        return;
+    }
+
+    const UniValue& partial{submitted.find_value("psbt")};
+    if (!partial.isStr()) {
+        showRpcError(tr("Submit registry PSBT"),
+                     tr("The wallet returned no partially signed PSBT."));
+        return;
+    }
+    QDialog transfer{this};
+    transfer.setWindowTitle(tr("Additional Signature Required"));
+    transfer.setMinimumSize(760, 360);
+    auto* transfer_layout = new QVBoxLayout{&transfer};
+        auto* summary = new QLabel{
+        tr("Your wallet added every signature it controls. Return this unchanged PSBT to the other party together with the agreed terms.\n\nDealer payment: %1 KNE\nChain ID: %2\nManifest hash: %3")
+            .arg(QString::fromStdString(payment.getValStr()),
+                 QString::fromStdString(chain_id.get_str()),
+                 QString::fromStdString(manifest_hash.get_str())),
+        &transfer};
+    summary->setWordWrap(true);
+    transfer_layout->addWidget(summary);
+    auto* text = new QPlainTextEdit{
+        QString::fromStdString(partial.get_str()), &transfer};
+    text->setReadOnly(true);
+    text->setLineWrapMode(QPlainTextEdit::NoWrap);
+    transfer_layout->addWidget(text, 1);
+    auto* transfer_buttons = new QDialogButtonBox{&transfer};
+    auto* copy = transfer_buttons->addButton(
+        tr("Copy PSBT"), QDialogButtonBox::ActionRole);
+    transfer_buttons->addButton(QDialogButtonBox::Close);
+    connect(copy, &QPushButton::clicked, &transfer,
+            [partial] { GUIUtil::setClipboard(QString::fromStdString(partial.get_str())); });
+    connect(transfer_buttons, &QDialogButtonBox::rejected,
+            &transfer, &QDialog::reject);
+    transfer_layout->addWidget(transfer_buttons);
+    transfer.exec();
+}
+
 void ChildChainDialog::registerChildChain()
 {
     if (!m_wallet_model) return;
@@ -1676,9 +1887,13 @@ void ChildChainDialog::registerChildChain()
     UniValue list_params{UniValue::VARR};
     list_params.push_back(1);
     UniValue unspent;
+    UniValue dealers;
     QApplication::setOverrideCursor(Qt::WaitCursor);
     try {
         unspent = m_node.executeRpc("listunspent", list_params, wallet_uri);
+        UniValue dealer_params{UniValue::VARR};
+        dealer_params.push_back(false);
+        dealers = m_node.executeRpc("listchaindealers", dealer_params, "");
     } catch (UniValue& error) {
         QApplication::restoreOverrideCursor();
         showRpcError(tr("List registration anchors"), RpcErrorMessage(error));
@@ -1690,7 +1905,7 @@ void ChildChainDialog::registerChildChain()
         return;
     }
     QApplication::restoreOverrideCursor();
-    if (!unspent.isArray()) {
+    if (!unspent.isArray() || !dealers.find_value("dealers").isArray()) {
         showRpcError(tr("List registration anchors"),
                      tr("The wallet returned an invalid unspent-output list."));
         return;
@@ -1700,7 +1915,7 @@ void ChildChainDialog::registerChildChain()
     input_dialog.setWindowTitle(tr("Register Reference Child Chain"));
     auto* layout = new QVBoxLayout{&input_dialog};
     auto* warning = new QLabel{
-        tr("Registration consumes the selected confirmed wallet output and permanently burns the protocol registration amount."),
+        tr("Registration is a cooperative purchase from an authorized dealer. It consumes the selected confirmed wallet output, pays the agreed price to the dealer, and requires both buyer and dealer signatures. No registration value is burned."),
         &input_dialog};
     warning->setWordWrap(true);
     layout->addWidget(warning);
@@ -1747,7 +1962,34 @@ void ChildChainDialog::registerChildChain()
         chainregistry::MIN_DEPOSIT_MATURITY,
         chainregistry::MAX_DEPOSIT_MATURITY);
     deposit_maturity->setValue(chainregistry::DEFAULT_DEPOSIT_MATURITY);
+    auto* dealer = new QComboBox{&input_dialog};
+    for (const UniValue& record : dealers.find_value("dealers").getValues()) {
+        const QString dealer_id{StringField(record, "dealer_id")};
+        const uint64_t licenses{UnsignedField(record, "remaining_licenses")};
+        if (dealer_id.isEmpty() || licenses == 0) continue;
+        dealer->addItem(
+            tr("%1…%2 — %n license(s)", nullptr, static_cast<int>(std::min<uint64_t>(licenses, std::numeric_limits<int>::max())))
+                .arg(dealer_id.left(12), dealer_id.right(12)),
+            dealer_id);
+    }
+    if (dealer->count() == 0) {
+        QMessageBox::warning(
+            this,
+            tr("No Authorized Dealer"),
+            tr("No active dealer currently has a child-chain license available."));
+        return;
+    }
+    auto* dealer_control_address = new QLineEdit{&input_dialog};
+    dealer_control_address->setPlaceholderText(
+        tr("Dealer-provided successor Taproot address"));
+    auto* dealer_payment = new BitcoinAmountField{&input_dialog};
+    dealer_payment->SetAllowEmpty(false);
+    dealer_payment->SetMinValue(1);
+    dealer_payment->SetMaxValue(MAX_MONEY);
     form->addRow(tr("Registration anchor:"), anchor);
+    form->addRow(tr("Authorized dealer:"), dealer);
+    form->addRow(tr("Dealer successor address:"), dealer_control_address);
+    form->addRow(tr("Dealer price:"), dealer_payment);
     form->addRow(tr("Metadata hash:"), metadata_hash);
     form->addRow(tr("Maximum block weight:"), max_block_weight);
     form->addRow(tr("Deposit maturity:"), deposit_maturity);
@@ -1767,6 +2009,14 @@ void ChildChainDialog::registerChildChain()
             this,
             tr("Invalid Metadata Hash"),
             tr("Enter exactly 32 non-zero bytes (64 hexadecimal characters)."));
+        return;
+    }
+    if (dealer_control_address->text().trimmed().isEmpty() ||
+        !dealer_payment->validate() || dealer_payment->value() <= 0) {
+        QMessageBox::warning(
+            this,
+            tr("Invalid Dealer Terms"),
+            tr("Enter the dealer-provided Taproot successor address and a positive agreed price."));
         return;
     }
     if (!wallet_model) {
@@ -1896,6 +2146,11 @@ void ChildChainDialog::registerChildChain()
                       default_fee_recipient_type);
     parameters.pushKV("default_fee_recipient", default_fee_recipient);
     parameters.pushKV("control_address", control_address);
+    parameters.pushKV("dealer_id",
+                      dealer->currentData(Qt::UserRole).toString().toStdString());
+    parameters.pushKV("dealer_control_address",
+                      dealer_control_address->text().trimmed().toStdString());
+    parameters.pushKV("dealer_payment", ValueFromAmount(dealer_payment->value()));
 
     UniValue local_definition{UniValue::VOBJ};
     local_definition.pushKV("registration_anchor", std::move(registration_anchor));

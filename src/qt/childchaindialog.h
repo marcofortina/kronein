@@ -52,6 +52,7 @@ private Q_SLOTS:
     void manageBmm();
 #ifdef ENABLE_WALLET
     void registerChildChain();
+    void submitRegistryPsbt();
     void showBalance();
     void receiveSelected();
     void sendSelected();
@@ -131,6 +132,7 @@ private:
 #ifdef ENABLE_WALLET
     QPointer<WalletModel> m_wallet_model;
     QPushButton* m_register_button{nullptr};
+    QPushButton* m_registry_psbt_button{nullptr};
     QPushButton* m_balance_button{nullptr};
     QPushButton* m_receive_button{nullptr};
     QPushButton* m_send_button{nullptr};
