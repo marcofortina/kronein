@@ -5,6 +5,7 @@
 
 #include <qt/test/apptests.h>
 
+#include <bitcoin-build-config.h> // IWYU pragma: keep
 #include <chainparams.h>
 #include <key.h>
 #include <logging.h>
@@ -115,6 +116,7 @@ void AppTests::guiTests(BitcoinGUI* window)
     QPushButton* send_button = child_chains->findChild<QPushButton*>("childChainSendButton");
     QPushButton* activity_button = child_chains->findChild<QPushButton*>("childChainActivityButton");
     QPushButton* deposits_button = child_chains->findChild<QPushButton*>("childChainDepositsButton");
+    QPushButton* recover_button = child_chains->findChild<QPushButton*>("childChainRecoverButton");
     QPushButton* auto_bid_button = child_chains->findChild<QPushButton*>("childChainAutoBidButton");
     QPushButton* migrate_button = child_chains->findChild<QPushButton*>("childChainMigrateButton");
     QPushButton* update_button = child_chains->findChild<QPushButton*>("childChainUpdateButton");
@@ -133,6 +135,7 @@ void AppTests::guiTests(BitcoinGUI* window)
     QVERIFY(send_button);
     QVERIFY(activity_button);
     QVERIFY(deposits_button);
+    QVERIFY(recover_button);
     QVERIFY(auto_bid_button);
     QVERIFY(migrate_button);
     QVERIFY(update_button);
@@ -152,6 +155,7 @@ void AppTests::guiTests(BitcoinGUI* window)
     QVERIFY(!send_button->isEnabled());
     QVERIFY(!activity_button->isEnabled());
     QVERIFY(!deposits_button->isEnabled());
+    QVERIFY(!recover_button->isEnabled());
     QVERIFY(!migrate_button->isEnabled());
     QVERIFY(!update_button->isEnabled());
     QVERIFY(!retire_button->isEnabled());

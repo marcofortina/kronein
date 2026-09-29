@@ -4,6 +4,7 @@
 
 #include <qt/childchaindialog.h>
 
+#include <bitcoin-build-config.h> // IWYU pragma: keep
 #include <core_io.h>
 #include <interfaces/node.h>
 #ifdef ENABLE_WALLET
@@ -30,6 +31,7 @@
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QPlainTextEdit>
+#include <QProgressDialog>
 #include <QPushButton>
 #include <QRegularExpression>
 #include <QRegularExpressionValidator>
@@ -47,6 +49,7 @@
 #include <cstdint>
 #include <exception>
 #include <limits>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 
@@ -218,6 +221,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     m_send_button = actions->addButton(tr("Send…"), QDialogButtonBox::ActionRole);
     m_activity_button = actions->addButton(tr("Activity…"), QDialogButtonBox::ActionRole);
     m_deposits_button = actions->addButton(tr("Deposits…"), QDialogButtonBox::ActionRole);
+    m_recover_button = actions->addButton(tr("Recover…"), QDialogButtonBox::ActionRole);
     m_auto_bid_button = actions->addButton(tr("Auto Bid…"), QDialogButtonBox::ActionRole);
     m_migrate_button = actions->addButton(tr("Migrate…"), QDialogButtonBox::ActionRole);
     m_update_button = actions->addButton(tr("Update Metadata…"), QDialogButtonBox::ActionRole);
@@ -236,6 +240,9 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     m_activity_button->setToolTip(
         tr("Show confirmed and pending wallet activity on the loaded child chain."));
     m_deposits_button->setObjectName(QStringLiteral("childChainDepositsButton"));
+    m_recover_button->setObjectName(QStringLiteral("childChainRecoverButton"));
+    m_recover_button->setToolTip(
+        tr("Recover wallet keys observed in the selected child-chain history."));
     m_auto_bid_button->setObjectName(QStringLiteral("childChainAutoBidButton"));
     m_auto_bid_button->setToolTip(
         tr("Configure explicit wallet limits for automatic main-chain BMM security bids."));
@@ -276,6 +283,7 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     connect(m_send_button, &QPushButton::clicked, this, &ChildChainDialog::sendSelected);
     connect(m_activity_button, &QPushButton::clicked, this, &ChildChainDialog::showActivity);
     connect(m_deposits_button, &QPushButton::clicked, this, &ChildChainDialog::showDeposits);
+    connect(m_recover_button, &QPushButton::clicked, this, &ChildChainDialog::recoverSelected);
     connect(m_auto_bid_button, &QPushButton::clicked, this, &ChildChainDialog::manageAutoBid);
     connect(m_migrate_button, &QPushButton::clicked, this, &ChildChainDialog::migrateSelected);
     connect(m_update_button, &QPushButton::clicked, this, &ChildChainDialog::updateSelected);
@@ -538,6 +546,7 @@ void ChildChainDialog::updateSelection()
         m_send_button->setEnabled(false);
         m_activity_button->setEnabled(false);
         m_deposits_button->setEnabled(false);
+        m_recover_button->setEnabled(false);
         m_auto_bid_button->setEnabled(false);
         m_migrate_button->setEnabled(false);
         m_update_button->setEnabled(false);
@@ -587,6 +596,7 @@ void ChildChainDialog::updateSelection()
         m_wallet_model && loaded && supported && operational);
     m_activity_button->setEnabled(m_wallet_model && loaded && supported);
     m_deposits_button->setEnabled(m_wallet_model);
+    m_recover_button->setEnabled(m_wallet_model && loaded && supported);
     const bool active_registry_record{
         m_wallet_model && registry_found &&
         (state == QStringLiteral("available") ||
@@ -2783,6 +2793,184 @@ void ChildChainDialog::showDeposits()
     if (table->rowCount() > 0) table->selectRow(0);
     update_export_button();
     dialog.exec();
+}
+
+void ChildChainDialog::recoverSelected()
+{
+    const QString chain_id{selectedChainId()};
+    if (chain_id.isEmpty() || !m_wallet_model) return;
+    const QPointer<WalletModel> wallet_model{m_wallet_model};
+    const std::string wallet_uri{walletUri()};
+
+    QDialog input_dialog{this};
+    input_dialog.setWindowTitle(tr("Recover Child Wallet"));
+    auto* layout = new QVBoxLayout{&input_dialog};
+    auto* explanation = new QLabel{
+        tr("Scan the selected child chain for wallet keys in a bounded derivation window. "
+           "Only keys observed in child transactions are saved. The scan proceeds in "
+           "small pages and can be stopped safely between pages."),
+        &input_dialog};
+    explanation->setWordWrap(true);
+    layout->addWidget(explanation);
+
+    auto* form = new QFormLayout;
+    auto* key_start = new QSpinBox{&input_dialog};
+    key_start->setRange(0, std::numeric_limits<int>::max() - 1);
+    key_start->setValue(0);
+    auto* key_count = new QSpinBox{&input_dialog};
+    key_count->setRange(1, 10'000);
+    key_count->setValue(1'000);
+    auto* start_height = new QSpinBox{&input_dialog};
+    start_height->setRange(-1, std::numeric_limits<int>::max());
+    start_height->setSpecialValueText(tr("Current tip"));
+    start_height->setValue(-1);
+    form->addRow(tr("First key index:"), key_start);
+    form->addRow(tr("Keys per role:"), key_count);
+    form->addRow(tr("Newest child height:"), start_height);
+    layout->addLayout(form);
+
+    auto* buttons = new QDialogButtonBox{
+        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &input_dialog};
+    connect(buttons, &QDialogButtonBox::accepted, &input_dialog, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &input_dialog, &QDialog::reject);
+    layout->addWidget(buttons);
+    if (input_dialog.exec() != QDialog::Accepted) return;
+
+    QProgressDialog progress{
+        tr("Preparing child-wallet recovery…"), tr("Stop after this page"),
+        0, 0, this};
+    progress.setWindowTitle(tr("Recover Child Wallet"));
+    progress.setWindowModality(Qt::WindowModal);
+    progress.setMinimumDuration(0);
+    progress.setAutoClose(false);
+    progress.setAutoReset(false);
+
+    const int first_key{key_start->value()};
+    const int key_window{key_count->value()};
+    std::optional<int> next_height;
+    if (start_height->value() >= 0) next_height = start_height->value();
+    QString best_block;
+    int best_height{-1};
+    uint64_t pages{0};
+    uint64_t matched_transactions{0};
+    int receive_next_index{0};
+    int change_next_index{0};
+    bool complete{false};
+    bool stopped{false};
+
+    try {
+        while (true) {
+            if (progress.wasCanceled()) {
+                stopped = true;
+                break;
+            }
+            if (!wallet_model) {
+                throw std::runtime_error{
+                    "the selected wallet was closed during recovery"};
+            }
+
+            UniValue params{UniValue::VARR};
+            params.push_back(chain_id.toStdString());
+            params.push_back(first_key);
+            params.push_back(key_window);
+            if (next_height) params.push_back(*next_height);
+            const UniValue result{m_node.executeRpc(
+                "recoverchildwallet", params, wallet_uri)};
+
+            const QString page_chain{StringField(result, "chain_id")};
+            const QString page_best_block{StringField(result, "best_block")};
+            const UniValue& page_height_value{result.find_value("height")};
+            const UniValue& scanned_from_value{result.find_value("scanned_from_height")};
+            const UniValue& scanned_to_value{result.find_value("scanned_to_height")};
+            const UniValue& matched_value{result.find_value("matched_transactions")};
+            const UniValue& receive_next_value{result.find_value("receive_next_index")};
+            const UniValue& change_next_value{result.find_value("change_next_index")};
+            const UniValue& complete_value{result.find_value("complete")};
+            const UniValue& next_height_value{result.find_value("next_height")};
+            const bool valid_hash{
+                QRegularExpression{QStringLiteral("^[0-9A-Fa-f]{64}$")}
+                    .match(page_best_block)
+                    .hasMatch()};
+            if (!result.isObject() ||
+                page_chain.compare(chain_id, Qt::CaseInsensitive) != 0 ||
+                !valid_hash || !page_height_value.isNum() ||
+                !scanned_from_value.isNum() || !scanned_to_value.isNum() ||
+                !matched_value.isNum() || !receive_next_value.isNum() ||
+                !change_next_value.isNum() || !complete_value.isBool()) {
+                throw std::runtime_error{
+                    "recoverchildwallet returned an invalid recovery page"};
+            }
+
+            const int page_height{page_height_value.getInt<int>()};
+            if (best_block.isEmpty()) {
+                best_block = page_best_block;
+                best_height = page_height;
+            } else if (best_block != page_best_block || best_height != page_height) {
+                throw std::runtime_error{
+                    "child chain changed during recovery; retry from the current tip"};
+            }
+
+            ++pages;
+            matched_transactions += matched_value.getInt<uint64_t>();
+            receive_next_index = receive_next_value.getInt<int>();
+            change_next_index = change_next_value.getInt<int>();
+            complete = complete_value.get_bool();
+            progress.setLabelText(
+                tr("Scanned child heights %1 through %2 (%3 pages).")
+                    .arg(QString::fromStdString(scanned_from_value.getValStr()),
+                         QString::fromStdString(scanned_to_value.getValStr()),
+                         QString::number(pages)));
+            QApplication::processEvents();
+            if (complete) {
+                next_height.reset();
+                break;
+            }
+            if (!next_height_value.isNum()) {
+                throw std::runtime_error{
+                    "recoverchildwallet omitted the next recovery cursor"};
+            }
+            const int next{next_height_value.getInt<int>()};
+            const int scanned_from{scanned_from_value.getInt<int>()};
+            if (next < 0 || next >= scanned_from ||
+                (next_height && next >= *next_height)) {
+                throw std::runtime_error{
+                    "recoverchildwallet returned a non-progressing recovery cursor"};
+            }
+            next_height = next;
+        }
+    } catch (UniValue& error) {
+        progress.close();
+        showRpcError(tr("Recover child wallet"), RpcErrorMessage(error));
+        return;
+    } catch (const std::exception& error) {
+        progress.close();
+        showRpcError(tr("Recover child wallet"),
+                     QString::fromStdString(error.what()));
+        return;
+    }
+    progress.close();
+
+    const QString cursor_text{
+        next_height ? QString::number(*next_height) : tr("none")};
+    QMessageBox::information(
+        this,
+        complete ? tr("Child Wallet Recovered") : tr("Child Wallet Recovery Stopped"),
+        tr("Child chain: %1\n"
+           "Result: %2\n"
+           "Pages scanned: %3\n"
+           "Matched transactions: %4\n"
+           "Next receive index: %5\n"
+           "Next change index: %6\n"
+           "Resume height: %7\n\n"
+           "Recovery only saved wallet keys actually observed on this child chain.")
+            .arg(chain_id,
+                 complete ? tr("complete") : stopped ? tr("stopped safely")
+                                                       : tr("incomplete"),
+                 QString::number(pages),
+                 QString::number(matched_transactions),
+                 QString::number(receive_next_index),
+                 QString::number(change_next_index),
+                 cursor_text));
 }
 
 void ChildChainDialog::migrateSelected()

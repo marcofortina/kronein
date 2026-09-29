@@ -57,6 +57,7 @@ private Q_SLOTS:
     void sendSelected();
     void showActivity();
     void showDeposits();
+    void recoverSelected();
     void manageAutoBid();
     void migrateSelected();
     void updateSelected();
@@ -135,6 +136,7 @@ private:
     QPushButton* m_send_button{nullptr};
     QPushButton* m_activity_button{nullptr};
     QPushButton* m_deposits_button{nullptr};
+    QPushButton* m_recover_button{nullptr};
     QPushButton* m_auto_bid_button{nullptr};
     QPushButton* m_migrate_button{nullptr};
     QPushButton* m_update_button{nullptr};
