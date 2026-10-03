@@ -23,12 +23,15 @@ def submit_dealer_admin_operation(node, funding_wallet, operation, parameters,
         node.listchaindealers()["authority_sequence"] + 1
     )
     draft = node.createchainregistryoperation(operation, parameters)
-    parameters["authority_signature"] = sign_schnorr(
-        DEALER_AUTHORITY_SECRET,
-        bytes.fromhex(draft["authority_hash"]),
-    ).hex()
+    parameters["authority_signatures"] = [{
+        "key_index": 0,
+        "signature": sign_schnorr(
+            DEALER_AUTHORITY_SECRET,
+            bytes.fromhex(draft["authority_hash"]),
+        ).hex(),
+    }]
     signed_operation = node.createchainregistryoperation(operation, parameters)
-    assert signed_operation["authority_signature_present"]
+    assert signed_operation["authority_complete"]
 
     raw_outputs = [{"data": signed_operation["data"]}, *outputs]
     raw = node.createrawtransaction([], raw_outputs)

@@ -179,7 +179,10 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(info["active"], False)
         assert_equal(info["active_for_next_block"], True)
         assert_equal(info["activation_height"], 1)
-        assert_equal(info["dealer_authority_key"], DEALER_AUTHORITY_KEY)
+        assert_equal(info["dealer_authority_keys"], [DEALER_AUTHORITY_KEY])
+        assert_equal(info["dealer_authority_threshold"], 1)
+        assert_equal(info["dealer_initial_licenses"], 10)
+        assert_equal(info["dealer_max_added_licenses"], 10)
         assert_equal(info["maximum_operations"], 4)
         assert_equal(info["deposits_enabled"], True)
         assert_equal(info["deposits_active"], False)
@@ -258,13 +261,13 @@ class ChainRegistryTest(BitcoinTestFramework):
             wallet,
             dealer,
             nonce="44" * 32,
-            licenses=2,
+            licenses=10,
         )
         self.generatetoaddress(node, 1, wallet.getnewaddress())
         self.sync_blocks()
         dealer_record = node.getchaindealer(authorized_dealer["dealer_id"])
         assert_equal(dealer_record["status"], "active")
-        assert_equal(dealer_record["remaining_licenses"], 2)
+        assert_equal(dealer_record["remaining_licenses"], 10)
         assert_equal(dealer_record["payout_script"], authorized_dealer["payout_script"])
         assert_raises_rpc_error(
             -4, "reserved as a child-chain registry control output",
@@ -285,7 +288,7 @@ class ChainRegistryTest(BitcoinTestFramework):
             wallet,
             revoked_dealer_wallet,
             nonce="45" * 32,
-            licenses=1,
+            licenses=10,
         )
         self.generatetoaddress(node, 1, wallet.getnewaddress())
         self.sync_blocks()
@@ -303,14 +306,14 @@ class ChainRegistryTest(BitcoinTestFramework):
                 "added_licenses": 2,
             })
         assert_raises_rpc_error(
-            -8, "authority_signature does not verify",
+            -8, "authority_signatures do not verify",
             node.createchainregistryoperation,
             "update_dealer",
             {
                 "authority_sequence": next_sequence,
                 "dealer_id": revoked_dealer["dealer_id"],
                 "added_licenses": 2,
-                "authority_signature": "01" * 64,
+                "authority_signatures": [{"key_index": 0, "signature": "01" * 64}],
             })
         submit_dealer_admin_operation(
             node,
@@ -324,7 +327,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         self.generatetoaddress(node, 1, wallet.getnewaddress())
         self.sync_blocks()
         updated_dealer = node.getchaindealer(revoked_dealer["dealer_id"])
-        assert_equal(updated_dealer["remaining_licenses"], 3)
+        assert_equal(updated_dealer["remaining_licenses"], 12)
         assert_equal(updated_dealer["payout_script"], rotated_payout_script)
 
         submit_dealer_admin_operation(
@@ -454,7 +457,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(len(registered["inclusion_proof"]["dealer_root"]), 64)
         registered_info = node.getchainregistryinfo()
         sold_dealer = node.getchaindealer(authorized_dealer["dealer_id"])
-        assert_equal(sold_dealer["remaining_licenses"], 1)
+        assert_equal(sold_dealer["remaining_licenses"], 9)
         assert_equal(sold_dealer["control_outpoint"], {
             "txid": registration_txid,
             "vout": 2,

@@ -128,7 +128,7 @@ class MultichainDevnetTest(BitcoinTestFramework):
             wallet,
             wallet,
             nonce="55" * 32,
-            licenses=2,
+            licenses=10,
         )
         self.dealer_id = dealer["dealer_id"]
         self.generatetoaddress(node, 1, wallet.getnewaddress())

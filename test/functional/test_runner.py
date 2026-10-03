@@ -106,6 +106,7 @@ BASE_SCRIPTS = [
     'feature_taproot.py',
     'feature_block.py',
     'feature_chainregistry.py',
+    'feature_dealer_authority.py',
     'feature_multichain_devnet.py',
     'mempool_ephemeral_dust.py',
     'wallet_conflicts.py',
