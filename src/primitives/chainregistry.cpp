@@ -84,6 +84,7 @@ OperationType GetOperationType(const RegistryOperation& operation)
         if constexpr (std::is_same_v<Payload, AuthorizeDealer>) return OperationType::AUTHORIZE_DEALER;
         if constexpr (std::is_same_v<Payload, UpdateDealer>) return OperationType::UPDATE_DEALER;
         if constexpr (std::is_same_v<Payload, RevokeDealer>) return OperationType::REVOKE_DEALER;
+        if constexpr (std::is_same_v<Payload, RotateAuthority>) return OperationType::ROTATE_AUTHORITY;
     }, operation);
 }
 
@@ -154,11 +155,20 @@ OperationValidationError ValidateOperation(const RegistryOperation& operation)
             if (!payload.authority_signatures.IsWellFormed() || payload.authority_signatures.signers == 0) {
                 return OperationValidationError::INVALID_AUTHORITY_SIGNATURE;
             }
-        } else if constexpr (std::is_same_v<Payload, RevokeDealer>) {
+        } else if constexpr (std::is_same_v<Payload, RevokeDealer> || std::is_same_v<Payload, RotateAuthority>) {
             if (payload.authority_sequence == 0) {
                 return OperationValidationError::INVALID_AUTHORITY_SEQUENCE;
             }
-            if (payload.dealer_id.IsNull()) return OperationValidationError::NULL_DEALER_ID;
+            if constexpr (std::is_same_v<Payload, RevokeDealer>) {
+                if (payload.dealer_id.IsNull()) return OperationValidationError::NULL_DEALER_ID;
+            } else {
+                if (payload.previous_policy_hash.IsNull() || !payload.next_authority.IsValid()) {
+                    return OperationValidationError::INVALID_AUTHORITY_POLICY;
+                }
+                if (!payload.next_authority_signatures.IsWellFormed() || payload.next_authority_signatures.signers == 0) {
+                    return OperationValidationError::INVALID_AUTHORITY_SIGNATURE;
+                }
+            }
             if (!payload.authority_signatures.IsWellFormed() || payload.authority_signatures.signers == 0) {
                 return OperationValidationError::INVALID_AUTHORITY_SIGNATURE;
             }
@@ -209,7 +219,7 @@ OperationParseResult ParseOperationScript(const CScript& script)
         uint8_t operation_type;
         reader >> envelope_version >> operation_type;
         const bool dealer_operation{operation_type >= static_cast<uint8_t>(OperationType::AUTHORIZE_DEALER) &&
-                                    operation_type <= static_cast<uint8_t>(OperationType::REVOKE_DEALER)};
+                                    operation_type <= static_cast<uint8_t>(OperationType::ROTATE_AUTHORITY)};
         const uint8_t expected_version{dealer_operation ? DEALER_ENVELOPE_VERSION : REGISTRY_ENVELOPE_VERSION};
         if (envelope_version != expected_version) {
             return {OperationParseError::UNSUPPORTED_ENVELOPE_VERSION, std::nullopt};
@@ -249,6 +259,12 @@ OperationParseResult ParseOperationScript(const CScript& script)
         }
         case OperationType::REVOKE_DEALER: {
             RevokeDealer payload;
+            reader >> payload;
+            operation = std::move(payload);
+            break;
+        }
+        case OperationType::ROTATE_AUTHORITY: {
+            RotateAuthority payload;
             reader >> payload;
             operation = std::move(payload);
             break;
@@ -397,6 +413,9 @@ std::optional<uint256> ComputeDealerAuthorityHash(const uint256& main_genesis_ha
             return true;
         } else if constexpr (std::is_same_v<Payload, RevokeDealer>) {
             hasher << payload.authority_sequence << payload.dealer_id;
+            return true;
+        } else if constexpr (std::is_same_v<Payload, RotateAuthority>) {
+            hasher << payload.authority_sequence << payload.previous_policy_hash << payload.next_authority;
             return true;
         }
         return false;

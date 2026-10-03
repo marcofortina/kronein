@@ -197,6 +197,7 @@ enum class OperationType : uint8_t {
     AUTHORIZE_DEALER = 4,
     UPDATE_DEALER = 5,
     REVOKE_DEALER = 6,
+    ROTATE_AUTHORITY = 7,
 };
 
 /** Registration consumes vin[anchor_input] as its unique pre-existing anchor. */
@@ -302,12 +303,29 @@ struct RevokeDealer {
     friend bool operator==(const RevokeDealer&, const RevokeDealer&) = default;
 };
 
+/** Delayed handover approved independently by both old and new quorums. */
+struct RotateAuthority {
+    uint64_t authority_sequence{0};
+    uint256 previous_policy_hash;
+    DealerAuthority next_authority;
+    DealerAuthoritySignatures authority_signatures{};
+    DealerAuthoritySignatures next_authority_signatures{};
+
+    SERIALIZE_METHODS(RotateAuthority, obj)
+    {
+        READWRITE(obj.authority_sequence, obj.previous_policy_hash, obj.next_authority,
+                  obj.authority_signatures, obj.next_authority_signatures);
+    }
+    friend bool operator==(const RotateAuthority&, const RotateAuthority&) = default;
+};
+
 using RegistryOperation = std::variant<RegisterChain,
                                        UpdateChain,
                                        RetireChain,
                                        AuthorizeDealer,
                                        UpdateDealer,
-                                       RevokeDealer>;
+                                       RevokeDealer,
+                                       RotateAuthority>;
 
 enum class OperationValidationError : uint8_t {
     NONE,
@@ -324,6 +342,7 @@ enum class OperationValidationError : uint8_t {
     INVALID_PAYOUT_SCRIPT,
     INVALID_LICENSE_COUNT,
     INVALID_AUTHORITY_SIGNATURE,
+    INVALID_AUTHORITY_POLICY,
 };
 
 enum class OperationParseError : uint8_t {

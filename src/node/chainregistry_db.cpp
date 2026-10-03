@@ -87,6 +87,8 @@ bool IsConsistent(const chainregistry::ChainRegistry& registry,
            state.record_count == registry.Size() &&
            state.dealer_count == registry.DealerSize() &&
            state.authority_sequence == registry.AuthoritySequence() &&
+           state.authority_transition == registry.AuthorityTransition() &&
+           state.authority_transition.activation_height <= static_cast<uint64_t>(state.height) + chainregistry::DEALER_AUTHORITY_ROTATION_DELAY &&
            state.registry_root == registry.ComputeRoot() &&
            state.deposit_history_start_height <= static_cast<uint64_t>(state.height) + 1 &&
            state.anchor_history_start_height <= static_cast<uint64_t>(state.height) + 1;
@@ -174,6 +176,7 @@ ChainRegistryDBState MakeChainRegistryDBState(const uint256& best_block,
         .record_count = registry.Size(),
         .dealer_count = registry.DealerSize(),
         .authority_sequence = registry.AuthoritySequence(),
+        .authority_transition = registry.AuthorityTransition(),
         .deposit_history_start_height = deposit_history_start_height,
         .deposit_count = deposit_count,
         .anchor_history_start_height = anchor_history_start_height,
@@ -260,7 +263,7 @@ ChainRegistryDBLoadResult ChainRegistryDB::Load(chainregistry::ChainRegistry& re
 
     chainregistry::ChainRegistry loaded_registry;
     auto registry_result{loaded_registry.LoadState(
-        std::move(records), std::move(dealers), stored_state.authority_sequence)};
+        std::move(records), std::move(dealers), stored_state.authority_sequence, stored_state.authority_transition)};
     if (!registry_result.IsValid()) {
         return LoadError(ChainRegistryDBLoadError::INVALID_RECORDS, std::move(registry_result));
     }

@@ -668,7 +668,7 @@ BOOST_AUTO_TEST_CASE(registry_record_hash_vectors)
 
     chainregistry::ChainRegistry registry;
     BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(),
-                      "a50abeda09f86c49411f03598c9f3786d93807d11ed4a0d9695f0a88e5172421");
+                      "5e3fcaaf90377477d97d5d90766c81f2526f719ce8f88abfb2eb33856ac31c16");
 
     const chainregistry::RegistryUndo undo{
         .has_chain = true,
@@ -695,7 +695,7 @@ BOOST_AUTO_TEST_CASE(registry_commitment_vectors_and_roundtrip)
     const CScript script{chainregistry::BuildRegistryCommitment(root)};
     BOOST_CHECK_EQUAL(
         HexStr(script),
-        "6a254b52525402"
+        "6a254b52525403"
         "1111111111111111111111111111111111111111111111111111111111111111");
     BOOST_CHECK(script.IsUnspendable());
 
@@ -718,12 +718,12 @@ BOOST_AUTO_TEST_CASE(registry_commitment_rejects_invalid_encodings)
 {
     constexpr uint256 root{"1111111111111111111111111111111111111111111111111111111111111111"};
     const auto canonical_data{ParseHex(
-        "4b52525402"
+        "4b52525403"
         "1111111111111111111111111111111111111111111111111111111111111111")};
 
     BOOST_CHECK(chainregistry::ParseRegistryCommitment(CScript{}).error == chainregistry::CommitmentParseError::NOT_COMMITMENT);
     BOOST_CHECK(chainregistry::ParseRegistryCommitment(CScript{} << OP_RETURN << ParseHex("abcd")).error == chainregistry::CommitmentParseError::NOT_COMMITMENT);
-    BOOST_CHECK(chainregistry::ParseRegistryCommitment(CScript{} << OP_RETURN << ParseHex("4b52525402")).error == chainregistry::CommitmentParseError::INVALID_LENGTH);
+    BOOST_CHECK(chainregistry::ParseRegistryCommitment(CScript{} << OP_RETURN << ParseHex("4b52525403")).error == chainregistry::CommitmentParseError::INVALID_LENGTH);
 
     auto bad_version{canonical_data};
     bad_version[4] = 1;
@@ -751,7 +751,7 @@ BOOST_AUTO_TEST_CASE(registry_commitment_rejects_invalid_encodings)
     BOOST_CHECK(extracted.error == chainregistry::CommitmentTxError::MULTIPLE_COMMITMENTS);
 
     CMutableTransaction invalid_tx;
-    invalid_tx.vout.emplace_back(0, CScript{} << OP_RETURN << ParseHex("4b52525402"));
+    invalid_tx.vout.emplace_back(0, CScript{} << OP_RETURN << ParseHex("4b52525403"));
     extracted = chainregistry::ExtractRegistryCommitment(CTransaction{invalid_tx});
     BOOST_CHECK(extracted.error == chainregistry::CommitmentTxError::INVALID_COMMITMENT);
     BOOST_CHECK(extracted.parse_error == chainregistry::CommitmentParseError::INVALID_LENGTH);

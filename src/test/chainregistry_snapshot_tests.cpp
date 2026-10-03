@@ -5,6 +5,7 @@
 #include <node/utxo_snapshot.h>
 
 #include <consensus/merkle.h>
+#include <key.h>
 #include <primitives/block.h>
 #include <streams.h>
 #include <test/util/setup_common.h>
@@ -61,16 +62,29 @@ chainregistry::DealerRecord Dealer(unsigned char id_byte,
     };
 }
 
-std::pair<node::RegistrySnapshot, CBlock> Snapshot()
+std::pair<node::RegistrySnapshot, CBlock> Snapshot(bool with_rotation = false)
 {
     node::RegistrySnapshot snapshot;
     snapshot.records = {Record(1, 11, 100), Record(2, 22, 101)};
     snapshot.dealers = {Dealer(3, 33, 100), Dealer(4, 44, 101)};
     snapshot.authority_sequence = 7;
+    if (with_rotation) {
+        const auto policy = [](unsigned char scalar) {
+            std::array<unsigned char, 32> secret{};
+            secret.back() = scalar;
+            CKey key;
+            key.Set(secret.begin(), secret.end(), true);
+            const XOnlyPubKey public_key{key.GetPubKey()};
+            chainregistry::DealerAuthorityKey bytes;
+            std::copy(public_key.begin(), public_key.end(), bytes.begin());
+            return chainregistry::DealerAuthority{1, {bytes}};
+        };
+        snapshot.authority_transition = {244, policy(1), policy(2)};
+    }
 
     chainregistry::ChainRegistry registry;
     BOOST_REQUIRE(registry.LoadState(
-        snapshot.records, snapshot.dealers, snapshot.authority_sequence).IsValid());
+        snapshot.records, snapshot.dealers, snapshot.authority_sequence, snapshot.authority_transition).IsValid());
     snapshot.registry_root = registry.ComputeRoot();
 
     CMutableTransaction coinbase;
@@ -160,6 +174,29 @@ BOOST_AUTO_TEST_CASE(rejects_tampered_registry_snapshot)
     tampered.coinbase.vin[0].prevout = COutPoint{Txid{
         "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"}, 0};
     BOOST_CHECK(!node::ValidateRegistrySnapshot(tampered, block));
+}
+
+BOOST_AUTO_TEST_CASE(authenticates_pending_authority_handover)
+{
+    const auto [snapshot, block]{Snapshot(true)};
+    DataStream stream;
+    stream << snapshot;
+    node::RegistrySnapshot decoded;
+    stream >> decoded;
+    auto result{node::ValidateRegistrySnapshot(decoded, block)};
+    BOOST_REQUIRE(result);
+    BOOST_CHECK(result->AuthorityTransition() == snapshot.authority_transition);
+    BOOST_CHECK(result->Authority(243, {}) == snapshot.authority_transition.previous);
+    BOOST_CHECK(result->Authority(244, {}) == snapshot.authority_transition.next);
+    for (int mutation{0}; mutation < 4; ++mutation) {
+        auto tampered{snapshot};
+        auto& transition{tampered.authority_transition};
+        if (mutation == 0) ++transition.activation_height;
+        if (mutation == 1) std::swap(transition.previous, transition.next);
+        if (mutation == 2) transition = {};
+        if (mutation == 3) transition.next.threshold = 0;
+        BOOST_CHECK(!node::ValidateRegistrySnapshot(tampered, block));
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

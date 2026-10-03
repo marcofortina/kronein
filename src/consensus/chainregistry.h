@@ -31,11 +31,11 @@ inline constexpr std::string_view REGISTRY_ROOT_HASH_TAG{"Kronein/RegistryRoot/v
 inline constexpr std::string_view DEALER_LEAF_HASH_TAG{"Kronein/DealerLeaf/v1"};
 inline constexpr std::string_view DEALER_NODE_HASH_TAG{"Kronein/DealerNode/v1"};
 inline constexpr std::string_view DEALER_ROOT_HASH_TAG{"Kronein/DealerRoot/v1"};
-inline constexpr std::string_view REGISTRY_STATE_HASH_TAG{"Kronein/RegistryState/v2"};
+inline constexpr std::string_view REGISTRY_STATE_HASH_TAG{"Kronein/RegistryState/v3"};
 inline constexpr uint8_t CHAIN_RECORD_VERSION{1};
 inline constexpr uint8_t DEALER_RECORD_VERSION{1};
 inline constexpr std::array<unsigned char, 4> REGISTRY_COMMITMENT_MAGIC{'K', 'R', 'R', 'T'};
-inline constexpr uint8_t REGISTRY_COMMITMENT_VERSION{2};
+inline constexpr uint8_t REGISTRY_COMMITMENT_VERSION{3};
 
 enum class ChainStatus : uint8_t {
     ACTIVE = 1,
@@ -148,6 +148,7 @@ struct RegistryUndo {
     bool dealer_had_previous{false};
     DealerRecord previous_dealer;
     uint64_t previous_authority_sequence{0};
+    std::optional<DealerAuthorityTransition> previous_authority_transition{};
 
     SERIALIZE_METHODS(RegistryUndo, obj)
     {
@@ -162,6 +163,14 @@ struct RegistryUndo {
             if (obj.dealer_had_previous) READWRITE(obj.previous_dealer);
         }
         READWRITE(obj.previous_authority_sequence);
+        bool has_transition;
+        SER_WRITE(obj, has_transition = obj.previous_authority_transition.has_value());
+        READWRITE(has_transition);
+        SER_READ(obj, obj.previous_authority_transition.reset());
+        if (has_transition) {
+            SER_READ(obj, obj.previous_authority_transition.emplace());
+            READWRITE(*obj.previous_authority_transition);
+        }
     }
 
     friend bool operator==(const RegistryUndo&, const RegistryUndo&) = default;
@@ -185,6 +194,8 @@ enum class RegistryError : uint8_t {
     INVALID_AUTHORITY_KEY,
     INVALID_AUTHORITY_SEQUENCE,
     INVALID_AUTHORITY_SIGNATURE,
+    INVALID_AUTHORITY_ROTATION,
+    AUTHORITY_ROTATION_PENDING,
     DUPLICATE_DEALER_ID,
     UNKNOWN_DEALER,
     LICENSE_COUNT_OVERFLOW,
@@ -199,6 +210,7 @@ enum class RegistryLoadError : uint8_t {
     DUPLICATE_DEALER_ID,
     DUPLICATE_ACTIVE_DEALER_CONTROL,
     CONTROL_NAMESPACE_COLLISION,
+    INVALID_AUTHORITY_TRANSITION,
 };
 
 struct RegistryLoadResult {
@@ -232,7 +244,8 @@ uint256 ComputeDealerLeafHash(const DealerRecord& record);
 uint256 ComputeDealerRoot(const std::map<DealerId, DealerRecord>& dealers);
 uint256 ComputeRegistryStateRoot(const uint256& chain_root,
                                  const uint256& dealer_root,
-                                 uint64_t authority_sequence);
+                                 uint64_t authority_sequence,
+                                 const uint256& authority_state_hash = DealerAuthorityTransition{}.GetHash());
 
 struct RegistryInclusionProof {
     uint64_t leaf_count{0};
@@ -240,6 +253,7 @@ struct RegistryInclusionProof {
     std::vector<uint256> siblings;
     uint256 dealer_root;
     uint64_t authority_sequence{0};
+    uint256 authority_state_hash{DealerAuthorityTransition{}.GetHash()};
 
     SERIALIZE_METHODS(RegistryInclusionProof, obj)
     {
@@ -247,7 +261,8 @@ struct RegistryInclusionProof {
                   obj.leaf_index,
                   obj.siblings,
                   obj.dealer_root,
-                  obj.authority_sequence);
+                  obj.authority_sequence,
+                  obj.authority_state_hash);
     }
 
     friend bool operator==(const RegistryInclusionProof&, const RegistryInclusionProof&) = default;
@@ -266,6 +281,7 @@ struct RegistryNonInclusionProof {
     uint64_t leaf_count{0};
     uint256 dealer_root;
     uint64_t authority_sequence{0};
+    uint256 authority_state_hash{DealerAuthorityTransition{}.GetHash()};
     bool has_left{false};
     RegistryProofEntry left;
     bool has_right{false};
@@ -273,7 +289,7 @@ struct RegistryNonInclusionProof {
 
     SERIALIZE_METHODS(RegistryNonInclusionProof, obj)
     {
-        READWRITE(obj.leaf_count, obj.dealer_root, obj.authority_sequence, obj.has_left);
+        READWRITE(obj.leaf_count, obj.dealer_root, obj.authority_sequence, obj.authority_state_hash, obj.has_left);
         if (obj.has_left) READWRITE(obj.left);
         READWRITE(obj.has_right);
         if (obj.has_right) READWRITE(obj.right);
@@ -376,6 +392,7 @@ private:
     std::map<DealerId, DealerRecord> m_dealers;
     std::map<COutPoint, DealerId> m_dealer_control_index;
     uint64_t m_authority_sequence{0};
+    DealerAuthorityTransition m_authority_transition{};
 
 public:
     const ChainRecord* Find(const ChainId& chain_id) const;
@@ -383,13 +400,19 @@ public:
     size_t Size() const { return m_records.size(); }
     size_t DealerSize() const { return m_dealers.size(); }
     uint64_t AuthoritySequence() const { return m_authority_sequence; }
+    const DealerAuthorityTransition& AuthorityTransition() const { return m_authority_transition; }
+    const DealerAuthority& Authority(uint32_t height, const DealerAuthority& initial) const
+    {
+        return m_authority_transition.Effective(height, initial);
+    }
     const std::map<ChainId, ChainRecord>& Records() const { return m_records; }
     const std::map<DealerId, DealerRecord>& Dealers() const { return m_dealers; }
     /** Atomically replace state with validated records loaded from storage. */
     RegistryLoadResult LoadRecords(std::vector<ChainRecord> records);
     RegistryLoadResult LoadState(std::vector<ChainRecord> records,
                                  std::vector<DealerRecord> dealers,
-                                 uint64_t authority_sequence);
+                                 uint64_t authority_sequence,
+                                 DealerAuthorityTransition authority_transition = {});
 
     /** Root commits to ordered records and their count. */
     uint256 ComputeRoot() const;

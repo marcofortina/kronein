@@ -20,7 +20,7 @@
 namespace chainregistry {
 
 inline constexpr std::array<uint8_t, 4> DEPOSIT_PROOF_MAGIC{'K', 'D', 'P', 'R'};
-inline constexpr uint8_t DEPOSIT_PROOF_VERSION{2};
+inline constexpr uint8_t DEPOSIT_PROOF_VERSION{3};
 inline constexpr uint64_t MAX_DEPOSIT_PROOF_MERKLE_BRANCH{32};
 
 /**
@@ -74,6 +74,7 @@ struct DepositProof {
             stream << registry_proof.dealer_root;
             stream << registry_proof.authority_sequence;
         }
+        if (version >= 3) stream << registry_proof.authority_state_hash;
     }
 
     template <typename Stream>
@@ -111,6 +112,7 @@ struct DepositProof {
             stream >> registry_proof.dealer_root;
             stream >> registry_proof.authority_sequence;
         }
+        if (version >= 3) stream >> registry_proof.authority_state_hash;
     }
 };
 

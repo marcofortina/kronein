@@ -46,6 +46,7 @@ add_library(bitcoinkernel
   ../primitives/block.cpp
   ../primitives/bmm.cpp
   ../primitives/chainregistry.cpp
+  ../primitives/dealerauthority.cpp
   ../primitives/deposit.cpp
   ../primitives/transaction.cpp
   ../pubkey.cpp

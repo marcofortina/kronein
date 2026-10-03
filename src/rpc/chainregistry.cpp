@@ -610,11 +610,21 @@ UniValue OperationToUniv(const chainregistry::RegistryOperation& operation)
             result.pushKV("added_licenses", payload.added_licenses);
             result.pushKV("payout_script", HexStr(payload.payout_script));
             result.pushKV("authority_signatures", AuthoritySignaturesToUniv(payload.authority_signatures));
-        } else {
+        } else if constexpr (std::is_same_v<Payload, chainregistry::RevokeDealer>) {
             result.pushKV("operation", "revoke_dealer");
             result.pushKV("authority_sequence", payload.authority_sequence);
             result.pushKV("dealer_id", payload.dealer_id.GetHex());
             result.pushKV("authority_signatures", AuthoritySignaturesToUniv(payload.authority_signatures));
+        } else if constexpr (std::is_same_v<Payload, chainregistry::RotateAuthority>) {
+            result.pushKV("operation", "rotate_authority");
+            result.pushKV("authority_sequence", payload.authority_sequence);
+            result.pushKV("previous_policy_hash", payload.previous_policy_hash.GetHex());
+            UniValue keys{UniValue::VARR};
+            for (const auto& key : payload.next_authority.keys) keys.push_back(HexStr(key));
+            result.pushKV("next_authority_keys", std::move(keys));
+            result.pushKV("next_authority_threshold", payload.next_authority.threshold);
+            result.pushKV("authority_signatures", AuthoritySignaturesToUniv(payload.authority_signatures));
+            result.pushKV("next_authority_signatures", AuthoritySignaturesToUniv(payload.next_authority_signatures));
         }
         return result;
     }, operation);
@@ -680,6 +690,7 @@ struct MainRegistrySnapshot {
     std::map<chainregistry::ChainId, chainregistry::ChainRecord> records;
     std::map<chainregistry::DealerId, chainregistry::DealerRecord> dealers;
     uint64_t authority_sequence{0};
+    chainregistry::DealerAuthorityTransition authority_transition{};
 };
 
 struct ActiveMainHeaders {
@@ -713,6 +724,7 @@ MainRegistrySnapshot GetMainRegistrySnapshot(ChainstateManager& chainman)
         .records = registry_state.Registry().Records(),
         .dealers = registry_state.Registry().Dealers(),
         .authority_sequence = registry_state.Registry().AuthoritySequence(),
+        .authority_transition = registry_state.Registry().AuthorityTransition(),
     };
 }
 
@@ -1310,7 +1322,7 @@ RPCHelpMan createchainregistryoperation()
         "Partial signatures are verified but their scripts are not valid for broadcast until authority_complete is true.\n"
         "REGISTER burns no value: it atomically spends and renews the dealer control output while paying the dealer payout script.\n",
         {
-            {"operation", RPCArg::Type::STR, RPCArg::Optional::NO, "Operation type: register, update, retire, authorize_dealer, update_dealer, or revoke_dealer"},
+            {"operation", RPCArg::Type::STR, RPCArg::Optional::NO, "Operation type: register, update, retire, authorize_dealer, update_dealer, revoke_dealer, or rotate_authority"},
             {"parameters", RPCArg::Type::OBJ, RPCArg::Optional::NO, "Fields required by the selected operation", {
                 {"anchor_input", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "REGISTER: input index consuming registration_anchor"},
                 {"control_output", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "REGISTER/UPDATE: P2TR successor output index"},
@@ -1325,6 +1337,17 @@ RPCHelpMan createchainregistryoperation()
                 {"default_fee_recipient", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "REGISTER: immutable template-namespaced recipient payload for child transaction fees"},
                 {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "UPDATE/RETIRE: registered child-chain identifier"},
                 {"authority_sequence", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "Dealer administration: next authority sequence"},
+                {"previous_policy_hash", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "ROTATE_AUTHORITY: current authority policy hash"},
+                {"next_authority_threshold", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "ROTATE_AUTHORITY: unchanged quorum threshold"},
+                {"next_authority_keys", RPCArg::Type::ARR, RPCArg::Optional::OMITTED, "ROTATE_AUTHORITY: sorted distinct replacement keys", {
+                    {"", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "32-byte x-only key"},
+                }},
+                {"next_authority_signatures", RPCArg::Type::ARR, RPCArg::Optional::OMITTED, "ROTATE_AUTHORITY: independent signatures from the new quorum on the same authority_hash", {
+                    {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "", {
+                        {"key_index", RPCArg::Type::NUM, RPCArg::Optional::NO, "Index into next_authority_keys"},
+                        {"signature", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "64-byte BIP340 signature"},
+                    }},
+                }},
                 {"authorization_nonce", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "AUTHORIZE_DEALER: unique non-null 32-byte nonce"},
                 {"dealer_control_key", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "AUTHORIZE_DEALER: 32-byte x-only P2TR control key"},
                 {"payout_script", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "AUTHORIZE/UPDATE_DEALER: P2TR sale payout script"},
@@ -1347,6 +1370,17 @@ RPCHelpMan createchainregistryoperation()
             {RPCResult::Type::OBJ, "manifest", /*optional=*/true, "REGISTER manifest", CHAIN_MANIFEST_RESULT},
             {RPCResult::Type::STR_HEX, "metadata_hash", /*optional=*/true, "UPDATE metadata hash"},
             {RPCResult::Type::NUM, "authority_sequence", /*optional=*/true, "Dealer administration sequence"},
+            {RPCResult::Type::STR_HEX, "previous_policy_hash", /*optional=*/true, "ROTATE_AUTHORITY: previous policy"},
+            {RPCResult::Type::NUM, "next_authority_threshold", /*optional=*/true, "ROTATE_AUTHORITY: new threshold"},
+            {RPCResult::Type::ARR, "next_authority_keys", /*optional=*/true, "ROTATE_AUTHORITY: replacement keys", {
+                {RPCResult::Type::STR_HEX, "", "X-only key"},
+            }},
+            {RPCResult::Type::ARR, "next_authority_signatures", /*optional=*/true, "ROTATE_AUTHORITY: new quorum signatures", {
+                {RPCResult::Type::OBJ, "", "", {
+                    {RPCResult::Type::NUM, "key_index", "New key index"},
+                    {RPCResult::Type::STR_HEX, "signature", "BIP340 signature"},
+                }},
+            }},
             {RPCResult::Type::STR_HEX, "authorization_nonce", /*optional=*/true, "AUTHORIZE_DEALER nonce"},
             {RPCResult::Type::STR_HEX, "control_key", /*optional=*/true, "AUTHORIZE_DEALER x-only control key"},
             {RPCResult::Type::STR_HEX, "payout_script", /*optional=*/true, "Dealer payout script"},
@@ -1372,7 +1406,9 @@ RPCHelpMan createchainregistryoperation()
             }},
             {RPCResult::Type::NUM, "authority_threshold", /*optional=*/true, "Required number of distinct signatures"},
             {RPCResult::Type::NUM, "authority_signatures_needed", /*optional=*/true, "Additional signatures required for quorum"},
-            {RPCResult::Type::BOOL, "authority_complete", /*optional=*/true, "Whether all supplied signatures verify and meet the quorum"},
+            {RPCResult::Type::BOOL, "authority_complete", /*optional=*/true, "Whether all required quorums are complete"},
+            {RPCResult::Type::NUM, "next_authority_signatures_needed", /*optional=*/true, "Additional new-quorum signatures needed"},
+            {RPCResult::Type::NUM, "rotation_delay", /*optional=*/true, "Blocks from inclusion to activation"},
         }},
         RPCExamples{
             HelpExampleCli("createchainregistryoperation", "\"retire\" '{\"chain_id\":\"1111111111111111111111111111111111111111111111111111111111111111\"}'")
@@ -1402,6 +1438,10 @@ RPCHelpMan createchainregistryoperation()
                         {"initial_licenses", UniValueType{UniValue::VNUM}},
                         {"added_licenses", UniValueType{UniValue::VNUM}},
                         {"authority_signatures", UniValueType{UniValue::VARR}},
+                        {"previous_policy_hash", UniValueType{UniValue::VSTR}},
+                        {"next_authority_keys", UniValueType{UniValue::VARR}},
+                        {"next_authority_threshold", UniValueType{UniValue::VNUM}},
+                        {"next_authority_signatures", UniValueType{UniValue::VARR}},
                     },
                     /*fAllowNull=*/true,
                     /*fStrict=*/true);
@@ -1418,10 +1458,10 @@ RPCHelpMan createchainregistryoperation()
     };
     const uint256& main_genesis_hash{
         EnsureAnyChainman(request.context).GetConsensus().hashGenesisBlock};
-    const auto parse_authority_signatures = [&] {
+    const auto parse_authority_signatures = [&](const std::string& field = "authority_signatures") {
         chainregistry::DealerAuthoritySignatures bundle;
-        if (!parameters.exists("authority_signatures")) return bundle;
-        const auto& entries{parameters.find_value("authority_signatures").get_array()};
+        if (!parameters.exists(field)) return bundle;
+        const auto& entries{parameters.find_value(field).get_array()};
         if (entries.size() > chainregistry::MAX_DEALER_AUTHORITY_KEYS) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "At most five authority_signatures are allowed");
         }
@@ -1541,6 +1581,24 @@ RPCHelpMan createchainregistryoperation()
             .dealer_id = ParseDealerId(parameters.find_value("dealer_id")),
             .authority_signatures = parse_authority_signatures(),
         };
+    } else if (operation_name == "rotate_authority") {
+        CheckOperationParameters(parameters, {"authority_sequence", "previous_policy_hash", "next_authority_keys", "next_authority_threshold", "authority_signatures", "next_authority_signatures"});
+        require_parameters({"authority_sequence", "previous_policy_hash", "next_authority_keys", "next_authority_threshold"});
+        const auto threshold{ParseUint32(parameters.find_value("next_authority_threshold"), "next_authority_threshold")};
+        const auto& keys{parameters.find_value("next_authority_keys").get_array()};
+        if (threshold == 0 || threshold > keys.size() || keys.size() > chainregistry::MAX_DEALER_AUTHORITY_KEYS) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid next authority threshold or key count");
+        }
+        chainregistry::DealerAuthority next{static_cast<uint8_t>(threshold), {}};
+        for (const auto& key : keys.getValues()) next.keys.push_back(ParseFixedHex<32>(key, "next_authority_keys"));
+        if (!next.IsValid()) throw JSONRPCError(RPC_INVALID_PARAMETER, "Next authority keys must be valid, distinct and sorted");
+        operation = chainregistry::RotateAuthority{
+            .authority_sequence = ParseUint64(parameters.find_value("authority_sequence"), "authority_sequence"),
+            .previous_policy_hash = ParseNonNullHash(parameters.find_value("previous_policy_hash"), "previous_policy_hash"),
+            .next_authority = std::move(next),
+            .authority_signatures = parse_authority_signatures(),
+            .next_authority_signatures = parse_authority_signatures("next_authority_signatures"),
+        };
     } else {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "unknown chain registry operation");
     }
@@ -1563,7 +1621,8 @@ RPCHelpMan createchainregistryoperation()
             using Payload = std::decay_t<decltype(payload)>;
             if constexpr (std::is_same_v<Payload, chainregistry::AuthorizeDealer> ||
                           std::is_same_v<Payload, chainregistry::UpdateDealer> ||
-                          std::is_same_v<Payload, chainregistry::RevokeDealer>) {
+                          std::is_same_v<Payload, chainregistry::RevokeDealer> ||
+                          std::is_same_v<Payload, chainregistry::RotateAuthority>) {
                 return payload.authority_sequence;
             }
             return uint64_t{0};
@@ -1584,12 +1643,15 @@ RPCHelpMan createchainregistryoperation()
             using Payload = std::decay_t<decltype(payload)>;
             if constexpr (std::is_same_v<Payload, chainregistry::AuthorizeDealer> ||
                           std::is_same_v<Payload, chainregistry::UpdateDealer> ||
-                          std::is_same_v<Payload, chainregistry::RevokeDealer>) {
+                          std::is_same_v<Payload, chainregistry::RevokeDealer> ||
+                          std::is_same_v<Payload, chainregistry::RotateAuthority>) {
                 return &payload.authority_signatures;
             }
             return nullptr;
         }, operation)};
-        const auto& authority{EnsureAnyChainman(request.context).GetConsensus().chain_registry.dealer_authority};
+        const auto& initial{EnsureAnyChainman(request.context).GetConsensus().chain_registry.dealer_authority};
+        const auto next_height{snapshot.height + 1};
+        const auto& authority{snapshot.authority_transition.Effective(next_height, initial)};
         if (!signatures || !signatures->Verify(*authority_hash, authority, /*require_quorum=*/false)) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "authority_signatures do not verify for this network and payload");
         }
@@ -1599,7 +1661,27 @@ RPCHelpMan createchainregistryoperation()
         result.pushKV("authority_threshold", authority.threshold);
         const size_t needed{authority.threshold > signatures->signatures.size() ? authority.threshold - signatures->signatures.size() : 0};
         result.pushKV("authority_signatures_needed", needed);
-        result.pushKV("authority_complete", needed == 0);
+        bool complete{needed == 0};
+        if (const auto* rotation{std::get_if<chainregistry::RotateAuthority>(&operation)}) {
+            if (snapshot.authority_transition.Pending(next_height)) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "An authority rotation is already pending");
+            }
+            if (rotation->previous_policy_hash != authority.GetHash() ||
+                rotation->next_authority == authority ||
+                rotation->next_authority.threshold != authority.threshold ||
+                rotation->next_authority.keys.size() != authority.keys.size()) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Rotation must replace the current policy without changing its threshold or key count");
+            }
+            if (!rotation->next_authority_signatures.Verify(*authority_hash, rotation->next_authority, false)) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "next_authority_signatures do not verify for this network and payload");
+            }
+            const size_t new_count{rotation->next_authority_signatures.signatures.size()};
+            const size_t new_needed{authority.threshold > new_count ? authority.threshold - new_count : 0};
+            result.pushKV("next_authority_signatures_needed", new_needed);
+            result.pushKV("rotation_delay", chainregistry::DEALER_AUTHORITY_ROTATION_DELAY);
+            complete &= new_needed == 0;
+        }
+        result.pushKV("authority_complete", complete);
         if (const auto* authorization{
                 std::get_if<chainregistry::AuthorizeDealer>(&operation)}) {
             result.pushKV("dealer_id", chainregistry::DeriveDealerId(
@@ -1635,6 +1717,17 @@ RPCHelpMan decodechainregistryoperation()
             {RPCResult::Type::STR_HEX, "chain_id", /*optional=*/true, "Affected chain ID, or derived REGISTER ID when an anchor is supplied"},
             {RPCResult::Type::STR_HEX, "metadata_hash", /*optional=*/true, "UPDATE metadata hash"},
             {RPCResult::Type::NUM, "authority_sequence", /*optional=*/true, "Dealer administration sequence"},
+            {RPCResult::Type::STR_HEX, "previous_policy_hash", /*optional=*/true, "ROTATE_AUTHORITY: previous policy"},
+            {RPCResult::Type::NUM, "next_authority_threshold", /*optional=*/true, "ROTATE_AUTHORITY: new threshold"},
+            {RPCResult::Type::ARR, "next_authority_keys", /*optional=*/true, "ROTATE_AUTHORITY: replacement keys", {
+                {RPCResult::Type::STR_HEX, "", "X-only key"},
+            }},
+            {RPCResult::Type::ARR, "next_authority_signatures", /*optional=*/true, "ROTATE_AUTHORITY: new quorum signatures", {
+                {RPCResult::Type::OBJ, "", "", {
+                    {RPCResult::Type::NUM, "key_index", "New key index"},
+                    {RPCResult::Type::STR_HEX, "signature", "BIP340 signature"},
+                }},
+            }},
             {RPCResult::Type::STR_HEX, "authorization_nonce", /*optional=*/true, "AUTHORIZE_DEALER nonce"},
             {RPCResult::Type::STR_HEX, "control_key", /*optional=*/true, "AUTHORIZE_DEALER x-only control key"},
             {RPCResult::Type::STR_HEX, "payout_script", /*optional=*/true, "Dealer payout script"},

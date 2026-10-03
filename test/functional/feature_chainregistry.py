@@ -995,12 +995,12 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(deposit_status["deposit"]["chain_record"], registered["chain"])
 
         deposit_proof = node.getdepositproof(deposit_txid, 0)
-        assert_equal(deposit_proof["proof_version"], 2)
+        assert_equal(deposit_proof["proof_version"], 3)
         assert_equal(deposit_proof["main_genesis_hash"], node.getblockhash(0))
         assert_equal(deposit_proof["deposit"], deposit_status["deposit"])
         assert len(deposit_proof["funding_transaction"]) > 20
         assert_equal(len(deposit_proof["block_header"]), 160)
-        assert deposit_proof["proof"].startswith("4b44505202")
+        assert deposit_proof["proof"].startswith("4b44505203")
         assert_equal(node.getchainregistryinfo()["deposit_count"], 1)
 
         self.log.info("Authenticate a mature deposit and build its canonical child IMPORT")
@@ -1662,8 +1662,8 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(registry_with_anchor["bmm_active"], True)
         assert_equal(registry_with_anchor["bmm_anchor_count"], 1)
         anchor_proof = node.getbmmanchorproof(chain_id, anchor_block)
-        assert anchor_proof["proof"].startswith("4b42505202")
-        assert_equal(anchor_proof["proof_version"], 2)
+        assert anchor_proof["proof"].startswith("4b42505203")
+        assert_equal(anchor_proof["proof_version"], 3)
         assert_equal(anchor_proof["main_genesis_hash"], node.getblockhash(0))
         assert_equal(anchor_proof["main_block_hash"], anchor_block)
         assert_equal(anchor_proof["confirmations"], 1)

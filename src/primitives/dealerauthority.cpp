@@ -5,6 +5,7 @@
 #include <primitives/dealerauthority.h>
 
 #include <pubkey.h>
+#include <hash.h>
 
 namespace chainregistry {
 
@@ -17,6 +18,24 @@ bool DealerAuthority::IsValid() const
         if (i > 0 && !(keys[i - 1] < keys[i])) return false;
     }
     return true;
+}
+
+uint256 DealerAuthority::GetHash() const
+{
+    return (TaggedHash("Kronein/DealerAuthorityPolicy/v1") << *this).GetSHA256();
+}
+
+bool DealerAuthorityTransition::IsValid() const
+{
+    if (activation_height == 0) return previous == DealerAuthority{} && next == DealerAuthority{};
+    return activation_height > DEALER_AUTHORITY_ROTATION_DELAY &&
+           previous.IsValid() && next.IsValid() && previous != next &&
+           previous.threshold == next.threshold && previous.keys.size() == next.keys.size();
+}
+
+uint256 DealerAuthorityTransition::GetHash() const
+{
+    return (TaggedHash("Kronein/DealerAuthorityState/v1") << *this).GetSHA256();
 }
 
 bool DealerAuthoritySignatures::Verify(const uint256& digest, const DealerAuthority& authority, bool require_quorum) const

@@ -18,9 +18,9 @@
 
 namespace node {
 
-inline constexpr uint8_t CHAIN_REGISTRY_DB_VERSION{8};
-inline constexpr uint8_t DEPOSIT_INDEX_ENTRY_VERSION{1};
-inline constexpr uint8_t BMM_ANCHOR_INDEX_ENTRY_VERSION{1};
+inline constexpr uint8_t CHAIN_REGISTRY_DB_VERSION{9};
+inline constexpr uint8_t DEPOSIT_INDEX_ENTRY_VERSION{2};
+inline constexpr uint8_t BMM_ANCHOR_INDEX_ENTRY_VERSION{2};
 
 struct BmmAnchorId {
     chainregistry::ChainId chain_id;
@@ -129,6 +129,7 @@ struct ChainRegistryDBState {
     uint64_t record_count{0};
     uint64_t dealer_count{0};
     uint64_t authority_sequence{0};
+    chainregistry::DealerAuthorityTransition authority_transition{};
     /** First height for which this database has complete deposit history. */
     uint32_t deposit_history_start_height{0};
     uint64_t deposit_count{0};
@@ -145,6 +146,7 @@ struct ChainRegistryDBState {
                   obj.record_count,
                   obj.dealer_count,
                   obj.authority_sequence,
+                  obj.authority_transition,
                   obj.deposit_history_start_height,
                   obj.deposit_count,
                   obj.anchor_history_start_height,

@@ -184,10 +184,11 @@ uint256 ComputeDealerRoot(const std::map<DealerId, DealerRecord>& dealers)
 
 uint256 ComputeRegistryStateRoot(const uint256& chain_root,
                                  const uint256& dealer_root,
-                                 uint64_t authority_sequence)
+                                 uint64_t authority_sequence,
+                                 const uint256& authority_state_hash)
 {
     auto hasher{TaggedHash(std::string{REGISTRY_STATE_HASH_TAG})};
-    hasher << chain_root << dealer_root << authority_sequence;
+    hasher << chain_root << dealer_root << authority_sequence << authority_state_hash;
     return hasher.GetSHA256();
 }
 
@@ -212,7 +213,7 @@ bool VerifyRegistryInclusion(const ChainRecord& record,
         width = (width + 1) / 2;
     }
     const uint256 chain_root{FinalizeRegistryRoot(proof.leaf_count, current)};
-    return ComputeRegistryStateRoot(chain_root, proof.dealer_root, proof.authority_sequence) == expected_root;
+    return ComputeRegistryStateRoot(chain_root, proof.dealer_root, proof.authority_sequence, proof.authority_state_hash) == expected_root;
 }
 
 bool VerifyRegistryNonInclusion(const ChainId& chain_id,
@@ -222,7 +223,7 @@ bool VerifyRegistryNonInclusion(const ChainId& chain_id,
     if (proof.leaf_count == 0) {
         return !proof.has_left && !proof.has_right &&
                expected_root == ComputeRegistryStateRoot(
-                   ComputeRegistryRootFromLeaves({}), proof.dealer_root, proof.authority_sequence);
+                   ComputeRegistryRootFromLeaves({}), proof.dealer_root, proof.authority_sequence, proof.authority_state_hash);
     }
     if (!proof.has_left && !proof.has_right) return false;
 
@@ -231,6 +232,7 @@ bool VerifyRegistryNonInclusion(const ChainId& chain_id,
             !(proof.left.record.chain_id < chain_id) ||
             proof.left.proof.dealer_root != proof.dealer_root ||
             proof.left.proof.authority_sequence != proof.authority_sequence ||
+            proof.left.proof.authority_state_hash != proof.authority_state_hash ||
             !VerifyRegistryInclusion(proof.left.record, proof.left.proof, expected_root)) {
             return false;
         }
@@ -240,6 +242,7 @@ bool VerifyRegistryNonInclusion(const ChainId& chain_id,
             !(chain_id < proof.right.record.chain_id) ||
             proof.right.proof.dealer_root != proof.dealer_root ||
             proof.right.proof.authority_sequence != proof.authority_sequence ||
+            proof.right.proof.authority_state_hash != proof.authority_state_hash ||
             !VerifyRegistryInclusion(proof.right.record, proof.right.proof, expected_root)) {
             return false;
         }
@@ -344,8 +347,12 @@ RegistryLoadResult ChainRegistry::LoadRecords(std::vector<ChainRecord> records)
 
 RegistryLoadResult ChainRegistry::LoadState(std::vector<ChainRecord> records,
                                             std::vector<DealerRecord> dealers,
-                                            uint64_t authority_sequence)
+                                            uint64_t authority_sequence,
+                                            DealerAuthorityTransition authority_transition)
 {
+    if (!authority_transition.IsValid() || (authority_transition.activation_height != 0 && authority_sequence == 0)) {
+        return {.error = RegistryLoadError::INVALID_AUTHORITY_TRANSITION, .chain_id = {}, .dealer_id = {}};
+    }
     std::map<ChainId, ChainRecord> loaded_records;
     std::map<COutPoint, ChainId> loaded_controls;
     for (auto& record : records) {
@@ -416,6 +423,7 @@ RegistryLoadResult ChainRegistry::LoadState(std::vector<ChainRecord> records,
     m_dealers = std::move(loaded_dealers);
     m_dealer_control_index = std::move(loaded_dealer_controls);
     m_authority_sequence = authority_sequence;
+    m_authority_transition = std::move(authority_transition);
     return {};
 }
 
@@ -428,7 +436,7 @@ uint256 ChainRegistry::ComputeRoot() const
     }
     return ComputeRegistryStateRoot(ComputeRegistryRootFromLeaves(std::move(leaves)),
                                     ComputeDealerRoot(m_dealers),
-                                    m_authority_sequence);
+                                    m_authority_sequence, m_authority_transition.GetHash());
 }
 
 std::optional<RegistryInclusionProof> ChainRegistry::GetInclusionProof(const ChainId& chain_id) const
@@ -448,6 +456,7 @@ std::optional<RegistryInclusionProof> ChainRegistry::GetInclusionProof(const Cha
     RegistryInclusionProof proof{BuildRegistryInclusionProof(std::move(leaves), target_index)};
     proof.dealer_root = ComputeDealerRoot(m_dealers);
     proof.authority_sequence = m_authority_sequence;
+    proof.authority_state_hash = m_authority_transition.GetHash();
     return proof;
 }
 
@@ -460,6 +469,7 @@ std::optional<RegistryNonInclusionProof> ChainRegistry::GetNonInclusionProof(con
     proof.leaf_count = m_records.size();
     proof.dealer_root = ComputeDealerRoot(m_dealers);
     proof.authority_sequence = m_authority_sequence;
+    proof.authority_state_hash = m_authority_transition.GetHash();
     if (right_it != m_records.end()) {
         proof.has_right = true;
         proof.right.record = right_it->second;
@@ -511,11 +521,13 @@ RegistryTransitionResult ChainRegistry::ApplyTransaction(const CTransaction& tx,
 
     if (std::holds_alternative<AuthorizeDealer>(operation) ||
         std::holds_alternative<UpdateDealer>(operation) ||
-        std::holds_alternative<RevokeDealer>(operation)) {
+        std::holds_alternative<RevokeDealer>(operation) ||
+        std::holds_alternative<RotateAuthority>(operation)) {
         if (!spent_controls.empty() || !spent_dealer_controls.empty()) {
             return TransitionError(RegistryError::WRONG_CONTROL_OUTPOINT);
         }
-        if (!dealer_authority.IsValid()) {
+        const auto& authority{Authority(height, dealer_authority)};
+        if (!authority.IsValid()) {
             return TransitionError(RegistryError::INVALID_AUTHORITY_KEY);
         }
         if (m_authority_sequence == std::numeric_limits<uint64_t>::max()) {
@@ -526,7 +538,8 @@ RegistryTransitionResult ChainRegistry::ApplyTransaction(const CTransaction& tx,
             using Payload = std::decay_t<decltype(payload)>;
             if constexpr (std::is_same_v<Payload, AuthorizeDealer> ||
                           std::is_same_v<Payload, UpdateDealer> ||
-                          std::is_same_v<Payload, RevokeDealer>) {
+                          std::is_same_v<Payload, RevokeDealer> ||
+                          std::is_same_v<Payload, RotateAuthority>) {
                 return payload.authority_sequence;
             }
             return 0;
@@ -539,13 +552,42 @@ RegistryTransitionResult ChainRegistry::ApplyTransaction(const CTransaction& tx,
             using Payload = std::decay_t<decltype(payload)>;
             if constexpr (std::is_same_v<Payload, AuthorizeDealer> ||
                           std::is_same_v<Payload, UpdateDealer> ||
-                          std::is_same_v<Payload, RevokeDealer>) {
+                          std::is_same_v<Payload, RevokeDealer> ||
+                          std::is_same_v<Payload, RotateAuthority>) {
                 return &payload.authority_signatures;
             }
             return {};
         }, operation)};
-        if (!authority_hash || !signatures || !signatures->Verify(*authority_hash, dealer_authority)) {
+        if (!authority_hash || !signatures || !signatures->Verify(*authority_hash, authority)) {
             return TransitionError(RegistryError::INVALID_AUTHORITY_SIGNATURE);
+        }
+
+        if (const auto* rotation{std::get_if<RotateAuthority>(&operation)}) {
+            if (m_authority_transition.Pending(height)) {
+                return TransitionError(RegistryError::AUTHORITY_ROTATION_PENDING);
+            }
+            if (height == 0 || height > std::numeric_limits<uint32_t>::max() - DEALER_AUTHORITY_ROTATION_DELAY ||
+                rotation->previous_policy_hash != authority.GetHash() ||
+                rotation->next_authority == authority ||
+                rotation->next_authority.threshold != authority.threshold ||
+                rotation->next_authority.keys.size() != authority.keys.size()) {
+                return TransitionError(RegistryError::INVALID_AUTHORITY_ROTATION);
+            }
+            if (!rotation->next_authority_signatures.Verify(*authority_hash, rotation->next_authority)) {
+                return TransitionError(RegistryError::INVALID_AUTHORITY_SIGNATURE);
+            }
+            RegistryUndo undo;
+            undo.previous_authority_sequence = m_authority_sequence;
+            undo.previous_authority_transition = m_authority_transition;
+            // Copy the effective policy before replacing its owning transition.
+            DealerAuthorityTransition replacement{
+                .activation_height = height + DEALER_AUTHORITY_ROTATION_DELAY,
+                .previous = authority,
+                .next = rotation->next_authority,
+            };
+            m_authority_transition = std::move(replacement);
+            m_authority_sequence = sequence;
+            return {.chain_id = {}, .dealer_id = {}, .applied = true, .undo = std::move(undo)};
         }
 
         if (const auto* authorization{std::get_if<AuthorizeDealer>(&operation)}) {
@@ -810,7 +852,7 @@ RegistryTransitionResult ChainRegistry::ApplyTransaction(const CTransaction& tx,
 
 bool ChainRegistry::Undo(const RegistryUndo& undo)
 {
-    if (!undo.has_chain && !undo.has_dealer) return false;
+    if (!undo.has_chain && !undo.has_dealer && !undo.previous_authority_transition) return false;
 
     // Undo data is persisted and may be corrupted. Apply it to a candidate so
     // a failed consistency check can never leave the live registry half
@@ -853,6 +895,13 @@ bool ChainRegistry::Undo(const RegistryUndo& undo)
                 return false;
             }
         }
+    }
+    if (undo.previous_authority_transition) {
+        if (undo.has_chain || undo.has_dealer || !undo.previous_authority_transition->IsValid() ||
+            m_authority_transition.activation_height == 0 ||
+            undo.previous_authority_sequence == std::numeric_limits<uint64_t>::max() ||
+            undo.previous_authority_sequence + 1 != m_authority_sequence) return false;
+        candidate.m_authority_transition = *undo.previous_authority_transition;
     }
     candidate.m_authority_sequence = undo.previous_authority_sequence;
     *this = std::move(candidate);

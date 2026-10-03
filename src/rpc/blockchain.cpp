@@ -4208,6 +4208,7 @@ PrepareUTXOSnapshot(
                 snapshot.dealers.push_back(entry.second);
             }
             snapshot.authority_sequence = registry_state.Registry().AuthoritySequence();
+            snapshot.authority_transition = registry_state.Registry().AuthorityTransition();
             snapshot.coinbase = CMutableTransaction{*block.vtx.front()};
             snapshot.coinbase_merkle_branch = TransactionMerklePath(block, /*position=*/0);
             registry_snapshot = std::move(snapshot);
@@ -4511,6 +4512,7 @@ static UniValue ChainRegistryInclusionProofToUniv(const chainregistry::RegistryI
     result.pushKV("siblings", std::move(siblings));
     result.pushKV("dealer_root", proof.dealer_root.GetHex());
     result.pushKV("authority_sequence", proof.authority_sequence);
+    result.pushKV("authority_state_hash", proof.authority_state_hash.GetHex());
     return result;
 }
 
@@ -4606,6 +4608,7 @@ static UniValue ChainRegistryNonInclusionProofToUniv(const chainregistry::Regist
     result.pushKV("leaf_count", proof.leaf_count);
     result.pushKV("dealer_root", proof.dealer_root.GetHex());
     result.pushKV("authority_sequence", proof.authority_sequence);
+    result.pushKV("authority_state_hash", proof.authority_state_hash.GetHex());
     if (proof.has_left) result.pushKV("left", ChainRegistryProofEntryToUniv(proof.left));
     if (proof.has_right) result.pushKV("right", ChainRegistryProofEntryToUniv(proof.right));
     return result;
@@ -4635,6 +4638,7 @@ static const std::vector<RPCResult> CHAIN_REGISTRY_INCLUSION_PROOF_RESULT{
     }},
     {RPCResult::Type::STR_HEX, "dealer_root", "Root committing to the authorized dealer set"},
     {RPCResult::Type::NUM, "authority_sequence", "Dealer-authority sequence committed by the registry root"},
+    {RPCResult::Type::STR_HEX, "authority_state_hash", "Committed delayed authority handover state"},
 };
 
 static RPCHelpMan getchainregistryinfo()
@@ -4652,6 +4656,18 @@ static RPCHelpMan getchainregistryinfo()
                 {RPCResult::Type::STR_HEX, "", "Authority public key"},
             }},
             {RPCResult::Type::NUM, "dealer_authority_threshold", "Required number of distinct authority signatures"},
+            {RPCResult::Type::STR_HEX, "dealer_authority_policy_hash", /*optional=*/true, "Authority policy effective at the current tip"},
+            {RPCResult::Type::ARR, "dealer_authority_next_block_keys", "Keys effective for the next block (may change at the activation boundary)", {
+                {RPCResult::Type::STR_HEX, "", "X-only key"},
+            }},
+            {RPCResult::Type::STR_HEX, "dealer_authority_next_block_policy_hash", /*optional=*/true, "Authority policy effective for the next block"},
+            {RPCResult::Type::BOOL, "dealer_authority_rotation_pending", "Whether a confirmed handover has not yet activated"},
+            {RPCResult::Type::NUM, "dealer_authority_activation_height", "Last handover activation height, or zero if none"},
+            {RPCResult::Type::NUM, "dealer_authority_rotation_delay", "Fixed delay from inclusion to activation"},
+            {RPCResult::Type::STR_HEX, "authority_state_hash", "Committed authority handover state"},
+            {RPCResult::Type::ARR, "dealer_authority_pending_keys", "Replacement keys, empty when no handover is pending", {
+                {RPCResult::Type::STR_HEX, "", "X-only key"},
+            }},
             {RPCResult::Type::NUM, "dealer_initial_licenses", "Required initial allocation per dealer"},
             {RPCResult::Type::NUM, "dealer_max_added_licenses", "Maximum allocation per dealer update"},
             {RPCResult::Type::NUM, "maximum_operations", "Maximum registry transitions per block"},
@@ -4698,10 +4714,26 @@ static RPCHelpMan getchainregistryinfo()
     result.pushKV("active", params.IsActive(height));
     result.pushKV("active_for_next_block", params.IsActive(height + 1));
     result.pushKV("activation_height", params.activation_height);
+    const auto& transition{state.authority_transition};
+    const auto& authority{transition.Effective(std::max(height, 0), params.dealer_authority)};
+    const auto& next_authority{transition.Effective(std::max(height + 1, 0), params.dealer_authority)};
     UniValue authority_keys{UniValue::VARR};
-    for (const auto& key : params.dealer_authority.keys) authority_keys.push_back(HexStr(key));
+    for (const auto& key : authority.keys) authority_keys.push_back(HexStr(key));
     result.pushKV("dealer_authority_keys", std::move(authority_keys));
-    result.pushKV("dealer_authority_threshold", params.dealer_authority.threshold);
+    result.pushKV("dealer_authority_threshold", authority.threshold);
+    if (authority.IsValid()) result.pushKV("dealer_authority_policy_hash", authority.GetHash().GetHex());
+    UniValue next_keys{UniValue::VARR};
+    for (const auto& key : next_authority.keys) next_keys.push_back(HexStr(key));
+    result.pushKV("dealer_authority_next_block_keys", std::move(next_keys));
+    if (next_authority.IsValid()) result.pushKV("dealer_authority_next_block_policy_hash", next_authority.GetHash().GetHex());
+    const bool pending{transition.Pending(std::max(height, 0))};
+    result.pushKV("dealer_authority_rotation_pending", pending);
+    result.pushKV("dealer_authority_activation_height", transition.activation_height);
+    result.pushKV("dealer_authority_rotation_delay", chainregistry::DEALER_AUTHORITY_ROTATION_DELAY);
+    result.pushKV("authority_state_hash", transition.GetHash().GetHex());
+    UniValue pending_keys{UniValue::VARR};
+    if (pending) for (const auto& key : transition.next.keys) pending_keys.push_back(HexStr(key));
+    result.pushKV("dealer_authority_pending_keys", std::move(pending_keys));
     result.pushKV("dealer_initial_licenses", chainregistry::DEALER_INITIAL_LICENSES);
     result.pushKV("dealer_max_added_licenses", chainregistry::DEALER_MAX_ADDED_LICENSES);
     result.pushKV("maximum_operations", params.maximum_operations);
@@ -5108,6 +5140,7 @@ static RPCHelpMan getchildchain()
                 {RPCResult::Type::NUM, "leaf_count", "Number of leaves committed by the registry root"},
                 {RPCResult::Type::STR_HEX, "dealer_root", "Root committing to the authorized dealer set"},
                 {RPCResult::Type::NUM, "authority_sequence", "Dealer-authority sequence committed by the registry root"},
+    {RPCResult::Type::STR_HEX, "authority_state_hash", "Committed delayed authority handover state"},
                 {RPCResult::Type::OBJ, "left", /*optional=*/true, "Immediate lower neighboring record and proof", {
                     {RPCResult::Type::OBJ, "record", "Neighbor record", CHAIN_REGISTRY_RECORD_RESULT},
                     {RPCResult::Type::OBJ, "proof", "Neighbor inclusion proof", CHAIN_REGISTRY_INCLUSION_PROOF_RESULT},

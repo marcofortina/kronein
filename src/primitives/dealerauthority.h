@@ -18,6 +18,7 @@
 namespace chainregistry {
 
 inline constexpr size_t MAX_DEALER_AUTHORITY_KEYS{5};
+inline constexpr uint32_t DEALER_AUTHORITY_ROTATION_DELAY{144};
 using DealerAuthorityKey = std::array<unsigned char, 32>;
 using DealerAuthoritySignature = std::array<unsigned char, 64>;
 
@@ -27,7 +28,69 @@ struct DealerAuthority {
     std::vector<DealerAuthorityKey> keys{};
 
     bool IsValid() const;
+    uint256 GetHash() const;
+
+    template <typename Stream>
+    void Serialize(Stream& stream) const
+    {
+        if (!IsValid()) throw std::ios_base::failure("Invalid dealer authority policy");
+        stream << threshold << static_cast<uint8_t>(keys.size());
+        for (const auto& key : keys) stream << key;
+    }
+
+    template <typename Stream>
+    void Unserialize(Stream& stream)
+    {
+        DealerAuthority decoded;
+        uint8_t count;
+        stream >> decoded.threshold >> count;
+        if (count == 0 || count > MAX_DEALER_AUTHORITY_KEYS ||
+            decoded.threshold == 0 || decoded.threshold > count) {
+            throw std::ios_base::failure("Invalid dealer authority policy size");
+        }
+        decoded.keys.resize(count);
+        for (auto& key : decoded.keys) stream >> key;
+        if (!decoded.IsValid()) throw std::ios_base::failure("Invalid dealer authority keys");
+        *this = std::move(decoded);
+    }
     friend bool operator==(const DealerAuthority&, const DealerAuthority&) = default;
+};
+
+/** Last confirmed authority handover. Height selects the effective policy.
+ * Keeping both policies makes activation and reorgs deterministic without a
+ * synthetic registry operation at the activation boundary. */
+struct DealerAuthorityTransition {
+    uint32_t activation_height{0};
+    DealerAuthority previous{};
+    DealerAuthority next{};
+
+    bool IsValid() const;
+    bool Pending(uint32_t height) const { return activation_height != 0 && height < activation_height; }
+    const DealerAuthority& Effective(uint32_t height, const DealerAuthority& initial) const
+    {
+        if (activation_height == 0) return initial;
+        return Pending(height) ? previous : next;
+    }
+    uint256 GetHash() const;
+
+    template <typename Stream>
+    void Serialize(Stream& stream) const
+    {
+        if (!IsValid()) throw std::ios_base::failure("Invalid dealer authority transition");
+        stream << activation_height;
+        if (activation_height != 0) stream << previous << next;
+    }
+
+    template <typename Stream>
+    void Unserialize(Stream& stream)
+    {
+        DealerAuthorityTransition decoded;
+        stream >> decoded.activation_height;
+        if (decoded.activation_height != 0) stream >> decoded.previous >> decoded.next;
+        if (!decoded.IsValid()) throw std::ios_base::failure("Invalid dealer authority transition");
+        *this = std::move(decoded);
+    }
+    friend bool operator==(const DealerAuthorityTransition&, const DealerAuthorityTransition&) = default;
 };
 
 /** One signature per set bit, in increasing key-index order. No length prefix. */

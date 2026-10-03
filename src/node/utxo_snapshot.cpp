@@ -48,7 +48,7 @@ util::Result<chainregistry::ChainRegistry> ValidateRegistrySnapshot(
 
     chainregistry::ChainRegistry registry;
     const auto load_result{registry.LoadState(
-        snapshot.records, snapshot.dealers, snapshot.authority_sequence)};
+        snapshot.records, snapshot.dealers, snapshot.authority_sequence, snapshot.authority_transition)};
     if (!load_result.IsValid()) {
         return util::Error{Untranslated(strprintf(
             "Invalid child chain registry snapshot state (load error %u, record error %u, dealer error %u)",

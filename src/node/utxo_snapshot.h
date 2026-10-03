@@ -34,7 +34,7 @@ static constexpr std::array<uint8_t, 5> SNAPSHOT_REGISTRY_MAGIC_BYTES = {'k', 'r
 class Chainstate;
 
 namespace node {
-inline constexpr uint8_t REGISTRY_SNAPSHOT_VERSION{3};
+inline constexpr uint8_t REGISTRY_SNAPSHOT_VERSION{4};
 inline constexpr uint64_t MAX_REGISTRY_SNAPSHOT_RECORDS{1'000'000};
 inline constexpr uint64_t MAX_REGISTRY_SNAPSHOT_DEALERS{1'000'000};
 inline constexpr uint64_t MAX_REGISTRY_SNAPSHOT_MERKLE_BRANCH{32};
@@ -51,6 +51,7 @@ struct RegistrySnapshot {
     std::vector<chainregistry::ChainRecord> records;
     std::vector<chainregistry::DealerRecord> dealers;
     uint64_t authority_sequence{0};
+    chainregistry::DealerAuthorityTransition authority_transition{};
     CMutableTransaction coinbase;
     std::vector<uint256> coinbase_merkle_branch;
 
@@ -74,7 +75,7 @@ struct RegistrySnapshot {
         for (const auto& record : records) stream << record;
         WriteCompactSize(stream, dealers.size());
         for (const auto& dealer : dealers) stream << dealer;
-        stream << authority_sequence;
+        stream << authority_sequence << authority_transition;
         stream << TX_WITH_WITNESS(coinbase);
         WriteCompactSize(stream, coinbase_merkle_branch.size());
         for (const auto& hash : coinbase_merkle_branch) stream << hash;
@@ -105,7 +106,7 @@ struct RegistrySnapshot {
         }
         dealers.resize(dealer_count);
         for (auto& dealer : dealers) stream >> dealer;
-        stream >> authority_sequence;
+        stream >> authority_sequence >> authority_transition;
 
         stream >> TX_WITH_WITNESS(coinbase);
         const uint64_t branch_size{ReadCompactSize(stream)};
