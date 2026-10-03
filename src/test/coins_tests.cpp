@@ -298,14 +298,14 @@ BOOST_FIXTURE_TEST_SUITE(coins_tests_dbbase, BasicTestingSetup)
 
 BOOST_AUTO_TEST_CASE(corrupt_coin_is_not_a_missing_utxo)
 {
-    const COutPoint outpoint{Txid{m_rng.rand256()}, 0};
+    const COutPoint outpoint{Txid::FromUint256(m_rng.rand256()), 0};
     for (const bool obfuscate : {false, true}) {
         const auto path = m_args.GetDataDirBase() / (obfuscate ? "corrupt_coin_obfuscated" : "corrupt_coin_plain");
         {
             CDBWrapper db{{.path = path, .cache_bytes = 1 << 20, .obfuscate = obfuscate}};
             // The on-disk coin key is 'C', txid, VARINT(vout); zero is one byte.
             // A lone continuation byte is not a complete serialized Coin.
-            db.Write(std::make_tuple(uint8_t{'C'}, outpoint.hash, uint8_t{0}), uint8_t{0x80});
+            db.Write(std::make_pair(uint8_t{'C'}, std::make_pair(outpoint.hash, uint8_t{0})), uint8_t{0x80});
         }
         CCoinsViewDB view{{.path = path, .cache_bytes = 1 << 20, .obfuscate = obfuscate}, {}};
         BOOST_CHECK(view.HaveCoin(outpoint));
