@@ -53,10 +53,11 @@ chainregistry::ChainRecord ChildRecord()
 CBlockHeader MineHeader(const CBlockIndex& parent,
                         const Consensus::Params& params,
                         uint32_t discriminator,
-                        int64_t block_time = 0)
+                        int64_t block_time = 0,
+                        int32_t version = CBlockHeader::CURRENT_VERSION)
 {
     CBlockHeader header;
-    header.nVersion = 1;
+    header.nVersion = version;
     header.hashPrevBlock = parent.GetBlockHash();
     header.hashMerkleRoot = uint256{static_cast<uint8_t>(discriminator)};
     header.nTime = block_time == 0 ? parent.nTime + 1 : block_time;
@@ -176,6 +177,29 @@ chainregistry::BmmAnchorProof BmmBlock(CBlock& block,
 } // namespace
 
 BOOST_FIXTURE_TEST_SUITE(mainchain_lightclient_tests, MainchainLightClientSetup)
+
+BOOST_AUTO_TEST_CASE(mainchain_version_namespace)
+{
+    const auto& params{Params().GetConsensus()};
+    const auto& genesis{Params().GenesisBlock()};
+    chainregistry::MainHeaderChain chain{params};
+    BOOST_REQUIRE(chain.Initialize(genesis).IsValid());
+    const CBlockIndex* parent{chain.Find(genesis.GetHash())};
+    BOOST_REQUIRE(parent);
+    for (const int32_t version : {1, 0x20000000, 0x20000001, 0x3fffffff}) {
+        BOOST_CHECK(CBlockHeader::IsSupportedMainchainVersion(version));
+        const auto header{MineHeader(*parent, params, 1, 0, version)};
+        BOOST_REQUIRE(chain.AddHeader(header, header.nTime).IsValid());
+        parent = chain.Find(header.GetHash());
+        BOOST_REQUIRE(parent);
+    }
+    for (const int32_t version : {0, 2, 4, 0x1fffffff, 0x40000000, 0x60000000, -1, std::numeric_limits<int32_t>::min()}) {
+        BOOST_CHECK(!CBlockHeader::IsSupportedMainchainVersion(version));
+        auto header{MineHeader(*parent, params, 2)};
+        header.nVersion = version;
+        BOOST_CHECK(chain.AddHeader(header, header.nTime).error == chainregistry::MainHeaderError::INVALID_VERSION);
+    }
+}
 
 BOOST_AUTO_TEST_CASE(rejects_invalid_header_context)
 {

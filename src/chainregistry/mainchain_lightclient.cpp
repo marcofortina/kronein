@@ -146,7 +146,7 @@ MainHeaderResult MainHeaderChain::AddHeaderImpl(
     }
     CBlockIndex* const parent{&parent_it->second};
     const int height{parent->nHeight + 1};
-    if (header.nVersion != CBlockHeader::CURRENT_VERSION) {
+    if (!CBlockHeader::IsSupportedMainchainVersion(header.nVersion)) {
         return HeaderError(MainHeaderError::INVALID_VERSION, hash);
     }
     if (header.nBits != GetNextWorkRequired(parent, &header, m_params)) {

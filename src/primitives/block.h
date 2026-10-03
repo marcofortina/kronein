@@ -28,6 +28,15 @@ class CBlockHeader
 public:
     static constexpr int32_t CURRENT_VERSION{1};
 
+    /** Main-chain version grammar, including the BIP9 signalling namespace.
+     * Accepting signalling bits does not activate any consensus rule. Child
+     * template v1 retains its own exact-version check. */
+    static constexpr bool IsSupportedMainchainVersion(int32_t version)
+    {
+        return version == CURRENT_VERSION ||
+               (static_cast<uint32_t>(version) & 0xe0000000U) == 0x20000000U;
+    }
+
     // header
     int32_t nVersion;
     uint256 hashPrevBlock;

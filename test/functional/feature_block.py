@@ -110,10 +110,17 @@ class NativeBlockTest(BitcoinTestFramework):
         nonempty_scriptsig = self.spend(spend, script_sig=CScript([OP_TRUE]))
         self.submit(self.make_block(transactions=[nonempty_scriptsig]), "bad-txns-scriptsig-not-empty")
 
-        self.log.info("Reject transaction and block versions other than version 1")
+        self.log.info("Reject unsupported transaction versions and block-version namespaces")
         wrong_tx_version = self.spend(spend, version=2)
         self.submit(self.make_block(transactions=[wrong_tx_version]), "bad-tx-version")
         self.submit(self.make_block(version=2), "bad-version(0x00000002)")
+
+        self.log.info("Accept the future versionbits namespace without relaxing current rules")
+        for version in (0x20000000, 0x3fffffff):
+            self.submit(self.make_block(version=version))
+            self.submit(self.make_block(version=version, transactions=[wrong_tx_version]), "bad-tx-version")
+        for version in (0, 0x40000000, 0x60000000):
+            self.submit(self.make_block(version=version), f"bad-version(0x{version:08x})")
 
         self.log.info("Reject a coinbase that creates a non-native output")
         self.submit(self.make_block(coinbase_script=CScript([OP_TRUE])), "bad-txns-non-native-output")
