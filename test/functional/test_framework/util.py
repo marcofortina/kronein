@@ -18,7 +18,6 @@ import platform
 import random
 import re
 import shlex
-import sys
 import time
 import types
 
