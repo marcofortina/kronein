@@ -3113,8 +3113,8 @@ void ChildChainDialog::recoverSelected()
 
     const int first_key{key_start->value()};
     const int key_window{key_count->value()};
-    std::optional<int> next_height;
-    if (start_height->value() >= 0) next_height = start_height->value();
+    // Match the height selector: -1 means no explicit recovery cursor.
+    int next_height{start_height->value()};
     QString best_block;
     int best_height{-1};
     uint64_t pages{0};
@@ -3139,7 +3139,7 @@ void ChildChainDialog::recoverSelected()
             params.push_back(chain_id.toStdString());
             params.push_back(first_key);
             params.push_back(key_window);
-            if (next_height) params.push_back(*next_height);
+            if (next_height >= 0) params.push_back(next_height);
             const UniValue result{m_node.executeRpc(
                 "recoverchildwallet", params, wallet_uri)};
 
@@ -3188,7 +3188,7 @@ void ChildChainDialog::recoverSelected()
                          QString::number(pages)));
             QApplication::processEvents();
             if (complete) {
-                next_height.reset();
+                next_height = -1;
                 break;
             }
             if (!next_height_value.isNum()) {
@@ -3198,7 +3198,7 @@ void ChildChainDialog::recoverSelected()
             const int next{next_height_value.getInt<int>()};
             const int scanned_from{scanned_from_value.getInt<int>()};
             if (next < 0 || next >= scanned_from ||
-                (next_height && next >= *next_height)) {
+                (next_height >= 0 && next >= next_height)) {
                 throw std::runtime_error{
                     "recoverchildwallet returned a non-progressing recovery cursor"};
             }
@@ -3217,7 +3217,7 @@ void ChildChainDialog::recoverSelected()
     progress.close();
 
     const QString cursor_text{
-        next_height ? QString::number(*next_height) : tr("none")};
+        next_height >= 0 ? QString::number(next_height) : tr("none")};
     QMessageBox::information(
         this,
         complete ? tr("Child Wallet Recovered") : tr("Child Wallet Recovery Stopped"),
