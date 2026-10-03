@@ -141,7 +141,9 @@ def ceremony_inputs(util, manifest, network, entropy, source, observed_at):
     if uint32(observed_at) < manifest["not_before_utc"]:
         raise ValueError("Entropy was observed before the precommitted earliest time")
     entry = manifest["networks"][network]
-    if entry["parameters"] != util.info(network):
+    # Python considers True == 1. Compare canonical bytes so the approved
+    # parameter schema cannot silently change booleans into integers.
+    if canonical(entry["parameters"]) != canonical(util.info(network)):
         raise ValueError("Approved manifest parameters differ from this binary")
     if observed_at > entry["time"]:
         raise ValueError("Genesis time precedes the entropy observation")
@@ -189,7 +191,7 @@ def verify_artifact(util, manifest, artifact, entropy):
         raise ValueError("Manifest or entropy commitment mismatch")
     nonce = uint32(artifact["genesis"]["nonce"])
     expected = util.genesis(network, timestamp, entry["time"], entry["parameters"]["initial_bits"], nonce)
-    if expected != artifact["genesis"]:
+    if canonical(expected) != canonical(artifact["genesis"]):
         raise ValueError("Genesis artifact fields or serialization were modified")
     util.call(network, "verify", expected["header"], expected["randomx_seed"])
     return {"valid": True, "network": network, "hash": expected["hash"], "development_only": True}

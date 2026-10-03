@@ -99,6 +99,9 @@ class GenesisCeremonyTest(BitcoinTestFramework):
         changed = deepcopy(manifest)
         changed["networks"]["regtest"]["parameters"]["minimum_deposit"] += 1
         assert_raises(ValueError, module["create_artifact"], util, changed, "regtest", entropy, source, not_before)
+        changed = deepcopy(manifest)
+        changed["networks"]["regtest"]["parameters"]["registry_activation"] = True
+        assert_raises(ValueError, module["create_artifact"], util, changed, "regtest", entropy, source, not_before)
         for observed_at in (not_before - 1, genesis_time + 1, True):
             assert_raises(ValueError, module["create_artifact"], util, manifest, "regtest", entropy, source, observed_at)
         # Target zero is unconditionally invalid, independently of the nonce.
