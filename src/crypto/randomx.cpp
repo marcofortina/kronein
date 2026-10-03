@@ -18,14 +18,14 @@ namespace {
 
 randomx_flags RecommendedFlags()
 {
+    randomx_flags flags{randomx_get_flags() | RANDOMX_FLAG_V2};
 #if defined(__has_feature)
 #if __has_feature(memory_sanitizer)
     // JIT-generated writes cannot update MemorySanitizer's shadow memory.
     // Use the instrumented interpreter, with the same v2 consensus output.
-    return RANDOMX_FLAG_V2;
+    flags = RANDOMX_FLAG_V2;
 #endif
 #endif
-    randomx_flags flags{randomx_get_flags() | RANDOMX_FLAG_V2};
     if ((flags & RANDOMX_FLAG_JIT) != 0) flags |= RANDOMX_FLAG_SECURE;
     return flags;
 }
