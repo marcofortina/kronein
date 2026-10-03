@@ -135,9 +135,11 @@ if [[ "$CI_OS_NAME" == "macos" && "${GOAL}" = "install deploy" ]]; then
 fi
 
 if [ "$RUN_UNIT_TESTS" = "true" ]; then
+  # Stream test progress even if a timeout or runner kill prevents CTest's summary.
   LD_LIBRARY_PATH="${DEPENDS_DIR}/${HOST}/lib" \
   CTEST_OUTPUT_ON_FAILURE=ON \
   ctest --test-dir "${BASE_BUILD_DIR}" \
+    --verbose \
     --stop-on-failure \
     "${MAKEJOBS}" \
     --timeout $(( TEST_RUNNER_TIMEOUT_FACTOR * 60 ))
