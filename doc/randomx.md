@@ -1,7 +1,7 @@
 # RandomX proof of work
 
 Kronein uses the upstream RandomX **v2.0.1** algorithm as its proof-of-work
-function. The vendored upstream revision and the local build-only patch are
+function. The vendored upstream revision and the local integration patches are
 recorded in [`src/crypto/randomx/README.md`](../src/crypto/randomx/README.md).
 
 ## Header and identifiers
@@ -64,6 +64,12 @@ light-verification cache. If full-mode allocation fails, the built-in miner
 falls back to the slower but bit-identical light mode. Failure to allocate even
 the light cache or VM is a local resource error and never makes an invalid
 block valid.
+
+MemorySanitizer builds use the portable interpreter instead of the JIT:
+generated machine code cannot update the sanitizer's shadow memory. The
+interpreter remains instrumented, uses the same RandomX v2 algorithm, and is
+checked against the same reference vector and light/full equivalence tests.
+Normal builds retain the optimized JIT where supported.
 
 ## Mining interface
 
