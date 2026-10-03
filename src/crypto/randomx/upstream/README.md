@@ -3,7 +3,7 @@ RandomX is a proof-of-work (PoW) algorithm that is optimized for general-purpose
 
 ## Overview
 
-RandomX utilizes a virtual machine that executes programs in a special instruction set that consists of integer math, floating point math and branches. These programs can be translated into the CPU's native machine code on the fly (example: [program.asm](doc/program.asm)). At the end, the outputs of the executed programs are consolidated into a 256-bit result using a cryptographic hashing function ([Blake2b](https://blake2.net/)).
+RandomX utilizes a virtual machine that executes programs in a special instruction set that consists of integer math, floating point math and branches. These programs can be translated into the CPU's native machine code on the fly (example: [program.asm](https://github.com/tevador/RandomX/blob/v2.0.1/doc/program.asm)). At the end, the outputs of the executed programs are consolidated into a 256-bit result using a cryptographic hashing function ([Blake2b](https://blake2.net/)).
 
 RandomX can operate in two main modes with different memory requirements:
 
@@ -29,15 +29,15 @@ Between May and August 2019, RandomX was audited by 4 independent security resea
 
 The first audit was generously funded by [Arweave](https://www.arweave.org/), one of the early adopters of RandomX. The remaining three audits were funded by donations from the [Monero community](https://ccs.getmonero.org/proposals/RandomX-audit.html). All four audits were coordinated by [OSTIF](https://ostif.org/).
 
-Final reports from all four audits are available in the [audits](audits/) directory. None of the audits found any critical vulnerabilities, but several changes in the algorithm and the code were made as a direct result of the audits. More details can be found in the [final report by OSTIF](https://ostif.org/four-audits-of-randomx-for-monero-and-arweave-have-been-completed-results/).
+Final reports from all four audits are available in the [audits](https://github.com/tevador/RandomX/tree/v2.0.1/audits/) directory. None of the audits found any critical vulnerabilities, but several changes in the algorithm and the code were made as a direct result of the audits. More details can be found in the [final report by OSTIF](https://ostif.org/four-audits-of-randomx-for-monero-and-arweave-have-been-completed-results/).
 
 ## Build
 
-RandomX is written in C++11 and builds a static library with a C API provided by header file [randomx.h](src/randomx.h). Minimal API usage example is provided in [api-example1.c](src/tests/api-example1.c). The reference code includes a `randomx-benchmark` and `randomx-tests` executables for testing.
+RandomX is written in C++11 and builds a static library with a C API provided by header file [randomx.h](src/randomx.h). Minimal API usage example is provided in [api-example1.c](https://github.com/tevador/RandomX/blob/v2.0.1/src/tests/api-example1.c). The reference code includes a `randomx-benchmark` and `randomx-tests` executables for testing.
 
 ### Linux
 
-Build dependencies: `cmake` (minimum 3.5) and `gcc` (minimum version 4.8, but version 7+ is recommended).
+Build dependencies: `cmake` (minimum 3.10 in this vendored integration) and `gcc` (minimum version 4.8, but version 7+ is recommended).
 
 To build optimized binaries for your machine, run:
 ```
@@ -67,7 +67,7 @@ RandomX was primarily designed as a PoW algorithm for [Monero](https://www.getmo
 
 RandomX was successfully activated on the Monero network on the 30th November 2019.
 
-If you wish to use RandomX as a PoW algorithm for your cryptocurrency, please follow the [configuration guidelines](doc/configuration.md).
+If you wish to use RandomX as a PoW algorithm for your cryptocurrency, please follow the [configuration guidelines](https://github.com/tevador/RandomX/blob/v2.0.1/doc/configuration.md).
 
 **Note**: To achieve ASIC resistance, the key `K` must change and must not be miner-selectable. We recommend to use blockchain data as the key in a similar way to the Monero example above. If blockchain data cannot be used for some reason, use a predefined sequence of keys.
 

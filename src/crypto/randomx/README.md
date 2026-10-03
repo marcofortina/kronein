@@ -12,6 +12,8 @@ The upstream source and its BSD 3-Clause license are retained under
   when RandomX is built as an internal dependency;
 - the CMake policy baseline is 3.10, avoiding deprecated compatibility modes
   under the project's strict CI configuration;
+- documentation links for files omitted from the vendored subset point to the
+  corresponding v2.0.1 upstream files;
 - the x86 static assembly declares a non-executable GNU stack on ELF targets.
 
 Algorithm and API sources are unchanged.

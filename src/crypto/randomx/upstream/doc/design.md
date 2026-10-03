@@ -379,7 +379,7 @@ For `N = 8`, strategy II will perform at less than half the speed of the honest 
 
 ### B. Performance simulation
 
-As discussed in chapter 2.7, RandomX aims to take advantage of the complex design of modern high-performance CPUs. To evaluate the impact of superscalar, out-of-order and speculative execution, we performed a simplified CPU simulation. Source code is available in [perf-simulation.cpp](../src/tests/perf-simulation.cpp).
+As discussed in chapter 2.7, RandomX aims to take advantage of the complex design of modern high-performance CPUs. To evaluate the impact of superscalar, out-of-order and speculative execution, we performed a simplified CPU simulation. Source code is available in [perf-simulation.cpp](https://github.com/tevador/RandomX/blob/v2.0.1/src/tests/perf-simulation.cpp).
 
 #### CPU model
 
@@ -444,7 +444,7 @@ The benefits of superscalar, out-of-order and speculative designs are clearly de
 
 ### C. RandomX runtime distribution
 
-Runtime numbers were measured on AMD Ryzen 7 1700 running at 3.0 GHz using 1 core. Source code to measure program execution and verification times is available in [runtime-distr.cpp](../src/tests/runtime-distr.cpp). Source code to measure the performance of the x86 JIT compiler is available in [jit-performance.cpp](../src/tests/jit-performance.cpp).
+Runtime numbers were measured on AMD Ryzen 7 1700 running at 3.0 GHz using 1 core. Source code to measure program execution and verification times is available in [runtime-distr.cpp](https://github.com/tevador/RandomX/blob/v2.0.1/src/tests/runtime-distr.cpp). Source code to measure the performance of the x86 JIT compiler is available in [jit-performance.cpp](https://github.com/tevador/RandomX/blob/v2.0.1/src/tests/jit-performance.cpp).
 
 #### Fast mode - program execution
 
@@ -471,7 +471,7 @@ The following figure shows the distribution of times to calculate 1 hash result 
 
 The average entropy of the Scratchpad after 8 program executions was approximated using the LZMA compression algorithm:
 
-1. Hash resuls were calculated and the final scratchpads were written to disk as files with '.spad' extension (source code: [scratchpad-entropy.cpp](../src/tests/scratchpad-entropy.cpp))
+1. Hash resuls were calculated and the final scratchpads were written to disk as files with '.spad' extension (source code: [scratchpad-entropy.cpp](https://github.com/tevador/RandomX/blob/v2.0.1/src/tests/scratchpad-entropy.cpp))
 2. The files were compressed using 7-Zip [[29](https://www.7-zip.org/)] in Ultra compression mode: `7z.exe a -t7z -m0=lzma2 -mx=9 scratchpads.7z *.spad`
 
 The size of the resulting archive is approximately 99.98% of the uncompressed size of the scratchpad files. This shows that the Scratchpad retains high entropy during VM execution.
@@ -486,11 +486,11 @@ The following figure shows the sensitivity of SuperscalarHash to changing a sing
 
 This shows that SuperscalaHash has quite low sensitivity to high-order bits and somewhat decreased sensitivity to the lowest-order bits. Sensitivity is highest for bits 3-53 (inclusive).
 
-When calculating a Dataset item, the input of the first SuperscalarHash depends only on the item number. To ensure a good distribution of results, the constants described in section 7.3 of the Specification were chosen to provide unique values of bits 3-53 for *all* item numbers in the range 0-34078718 (the Dataset contains 34078719 items). All initial register values for all Dataset item numbers were checked to make sure bits 3-53 of each register are unique and there are no collisions (source code: [superscalar-init.cpp](../src/tests/superscalar-init.cpp)). While this is not strictly necessary to get unique output from SuperscalarHash, it's a security precaution that mitigates the non-perfect avalanche properties of the randomly generated SuperscalarHash instances.
+When calculating a Dataset item, the input of the first SuperscalarHash depends only on the item number. To ensure a good distribution of results, the constants described in section 7.3 of the Specification were chosen to provide unique values of bits 3-53 for *all* item numbers in the range 0-34078718 (the Dataset contains 34078719 items). All initial register values for all Dataset item numbers were checked to make sure bits 3-53 of each register are unique and there are no collisions (source code: [superscalar-init.cpp](https://github.com/tevador/RandomX/blob/v2.0.1/src/tests/superscalar-init.cpp)). While this is not strictly necessary to get unique output from SuperscalarHash, it's a security precaution that mitigates the non-perfect avalanche properties of the randomly generated SuperscalarHash instances.
 
 ### F. Statistical tests of RNG
 
-Both AesGenerator1R and AesGenerator4R were tested using the TestU01 library [[30](http://simul.iro.umontreal.ca/testu01/tu01.html)] intended for empirical testing of random number generators. The source code is available in [rng-tests.cpp](../src/tests/rng-tests.cpp).
+Both AesGenerator1R and AesGenerator4R were tested using the TestU01 library [[30](http://simul.iro.umontreal.ca/testu01/tu01.html)] intended for empirical testing of random number generators. The source code is available in [rng-tests.cpp](https://github.com/tevador/RandomX/blob/v2.0.1/src/tests/rng-tests.cpp).
 
 The tests sample about 200 MB ("SmallCrush" test), 500 GB ("Crush" test) or 4 TB ("BigCrush" test) of output from each generator. This is considerably more than the amounts generated in RandomX (2176 bytes for AesGenerator4R and 2 MiB for AesGenerator1R), so failures in the tests don't necessarily imply that the generators are not suitable for their use case.
 

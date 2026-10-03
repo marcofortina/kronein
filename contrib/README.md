@@ -35,9 +35,6 @@ Scripts and notes for Mac builds.
 Test and Verify Tools
 ---------------------
 
-### [TestGen](/contrib/testgen) ###
-Utilities to generate test vectors for the data-driven Kronein tests.
-
 ### [Verify-Binaries](/contrib/verify-binaries) ###
 This inherited utility downloads and verifies Bitcoin Core release signatures
 from bitcoin.org. It does not verify Kronein release binaries.
