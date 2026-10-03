@@ -5,6 +5,7 @@
 #include <crypto/hex_base.h>
 #include <crypto/randomx.h>
 #include <util/strencodings.h>
+#include <util/translation.h>
 
 #include <array>
 #include <cstdint>
@@ -12,6 +13,8 @@
 #include <optional>
 #include <string>
 #include <vector>
+
+const TranslateFn G_TRANSLATION_FUN{nullptr};
 
 // Keep the native sanitizer runtime outside the uninstrumented Python process.
 // Each request is two hex lines (key, input); each response is one hash line.
