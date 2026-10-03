@@ -1291,11 +1291,15 @@ BOOST_AUTO_TEST_CASE(transport_test)
         tester.SendMessage(uint8_t(4), msg_data_1); // cmpctblock short id
         tester.SendMessage(0, {}); // Invalidly encoded message
         tester.SendMessage("tx", msg_data_2); // 12-character encoded message type
+        tester.SendMessage(std::string{"t\x7f"}, msg_data_2); // DEL is not printable ASCII.
+        tester.SendMessage("t~", msg_data_2); // Last valid printable ASCII byte.
         ret = tester.Interact();
-        BOOST_REQUIRE(ret && ret->size() == 3);
+        BOOST_REQUIRE(ret && ret->size() == 5);
         BOOST_CHECK((*ret)[0] && (*ret)[0]->m_type == "cmpctblock" && std::ranges::equal((*ret)[0]->m_recv, MakeByteSpan(msg_data_1)));
         BOOST_CHECK(!(*ret)[1]);
         BOOST_CHECK((*ret)[2] && (*ret)[2]->m_type == "tx" && std::ranges::equal((*ret)[2]->m_recv, MakeByteSpan(msg_data_2)));
+        BOOST_CHECK(!(*ret)[3]);
+        BOOST_CHECK((*ret)[4] && (*ret)[4]->m_type == "t~" && std::ranges::equal((*ret)[4]->m_recv, MakeByteSpan(msg_data_2)));
 
         // Then send a message with a bit error, expecting failure. It's possible this failure does
         // not occur immediately (when the length descriptor was modified), but it should come
