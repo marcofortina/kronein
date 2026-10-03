@@ -417,7 +417,7 @@ BOOST_AUTO_TEST_CASE(applies_domain_separated_spends_and_fees)
     state.coins.AddCoin(
         seeded, Coin{seeded_output, 0, /*fCoinBaseIn=*/false}, false);
 
-    const chainregistry::ChainId other_chain{
+    constexpr chainregistry::ChainId other_chain{
         "8888888888888888888888888888888888888888888888888888888888888888"};
     const CTransactionRef wrong_spend{MakeTransactionRef(SignedSpend(
         seeded, seeded_output, 49'000, key, other_chain))};

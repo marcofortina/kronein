@@ -245,7 +245,7 @@ BOOST_AUTO_TEST_CASE(rejects_another_network_or_manifest)
     BOOST_CHECK(result.proof_error ==
                 chainregistry::DepositProofValidationError::WRONG_MAIN_NETWORK);
 
-    const chainregistry::MetadataHash other_metadata{
+    constexpr chainregistry::MetadataHash other_metadata{
         "6666666666666666666666666666666666666666666666666666666666666666"};
     const auto other_result{chainregistry::BuildReferenceChildDefinition(
         MAIN_GENESIS,

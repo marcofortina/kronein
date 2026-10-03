@@ -206,7 +206,7 @@ BOOST_AUTO_TEST_CASE(validate_unconfirmed_registry_transition_chain)
 
     CKey next_control_key;
     next_control_key.MakeNewKey(true);
-    const chainregistry::MetadataHash next_metadata{
+    constexpr chainregistry::MetadataHash next_metadata{
         "3333333333333333333333333333333333333333333333333333333333333333"};
     const CMutableTransaction update_tx{CreateValidTransaction(
         {MakeTransactionRef(registration_tx)},
