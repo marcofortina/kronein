@@ -5,6 +5,7 @@
 
 #include <arith_uint256.h>
 #include <blockencodings.h>
+#include <chain.h>
 #include <net.h>
 #include <net_processing.h>
 #include <netmessagemaker.h>
@@ -22,6 +23,15 @@
 
 namespace {
 constexpr uint32_t FUZZ_MAX_HEADERS_RESULTS{16};
+constexpr uint32_t FUZZ_MAX_MESSAGES{100};
+constexpr uint256 FUZZ_MIN_TARGET{"0000000000000000000342190000000000000000000000000000000000000000"};
+
+arith_uint256 MaxHeaderWork()
+{
+    CBlockHeader header;
+    header.nBits = UintToArith256(FUZZ_MIN_TARGET).GetCompact();
+    return GetBlockProof(CBlockIndex{header});
+}
 
 class HeadersSyncSetup : public TestingSetup
 {
@@ -109,7 +119,7 @@ CBlockHeader ConsumeHeader(FuzzedDataProvider& fuzzed_data_provider, const uint2
     if (fuzzed_data_provider.ConsumeBool()) {
         header.nBits = prev_nbits;
     } else {
-        arith_uint256 lower_target = UintToArith256(uint256{"0000000000000000000342190000000000000000000000000000000000000000"});
+        arith_uint256 lower_target = UintToArith256(FUZZ_MIN_TARGET);
         arith_uint256 upper_target = UintToArith256(uint256{"00000000ffff0000000000000000000000000000000000000000000000000000"});
         arith_uint256 target = ConsumeArithUInt256InRange(fuzzed_data_provider, lower_target, upper_target);
         header.nBits = target.GetCompact();
@@ -153,9 +163,14 @@ void initialize()
         MakeNoLogFileContext<HeadersSyncSetup>(ChainType::MAIN,
                                                {
                                                    .setup_validation_interface = false,
+                                                   // Keep every generated chain below the presync threshold,
+                                                   // independently of the network's current chainwork anchor.
+                                                   .minimum_chain_work = MaxHeaderWork() * (FUZZ_MAX_HEADERS_RESULTS * FUZZ_MAX_MESSAGES + 1) + arith_uint256{1},
                                                }),
     };
     g_testing_setup = setup.get();
+    // The bound also covers headers that inherit the genesis difficulty.
+    assert(GetBlockProof(CBlockIndex{setup->m_node.chainman->GetParams().GenesisBlock()}) <= MaxHeaderWork());
 }
 } // namespace
 
@@ -181,7 +196,7 @@ FUZZ_TARGET(p2p_headers_presync, .init = initialize)
 
     std::vector<CBlockHeader> all_headers;
 
-    LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 100)
+    LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), FUZZ_MAX_MESSAGES)
     {
         auto finalized_block = [&]() {
             CBlock block = ConsumeBlock(fuzzed_data_provider, base.GetHash(), base.nBits);

@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 //
+#include <arith_uint256.h>
 #include <chainparams.h>
 #include <consensus/validation.h>
 #include <kernel/disconnected_transactions.h>
@@ -33,7 +34,20 @@ using node::BlockManager;
 using node::KernelNotifications;
 using node::SnapshotMetadata;
 
+struct HighMinimumWorkSetup : TestingSetup {
+    HighMinimumWorkSetup()
+        : TestingSetup{ChainType::MAIN, {.minimum_chain_work = arith_uint256{1} << 128}} {}
+};
+
 BOOST_FIXTURE_TEST_SUITE(validation_chainstatemanager_tests, TestingSetup)
+
+BOOST_FIXTURE_TEST_CASE(minimum_chain_work_above_uint64, HighMinimumWorkSetup)
+{
+    BOOST_CHECK_EQUAL(m_node.chainman->MinimumChainWork(), arith_uint256{1} << 128);
+    BOOST_CHECK(m_node.chainman->MinimumChainWork() > UintToArith256(Params().GetConsensus().nMinimumChainWork));
+    BOOST_CHECK_EQUAL(WITH_LOCK(m_node.chainman->GetMutex(), return m_node.chainman->ActiveHeight()), 0);
+    BOOST_CHECK(m_node.chainman->IsInitialBlockDownload());
+}
 
 //! Basic tests for ChainstateManager.
 //!

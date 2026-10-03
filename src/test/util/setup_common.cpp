@@ -281,7 +281,7 @@ ChainTestingSetup::ChainTestingSetup(const ChainType chainType, TestOpts opts)
             .chainparams = chainparams,
             .datadir = m_args.GetDataDirNet(),
             .check_block_index = 1,
-            .minimum_chain_work = opts.minimum_chain_work ? std::optional<arith_uint256>{arith_uint256{*opts.minimum_chain_work}} : std::nullopt,
+            .minimum_chain_work = opts.minimum_chain_work,
             .notifications = *m_node.notifications,
             .signals = m_node.validation_signals.get(),
             // Use no worker threads while fuzzing to avoid non-determinism
