@@ -168,7 +168,8 @@ void SeedDealers(chainregistry::ChainRegistry& registry, unsigned count = 32)
             .updated_height = 1,
         });
     }
-    BOOST_REQUIRE(registry.LoadState({}, std::move(dealers), 0).IsValid());
+    const auto loaded{registry.LoadState({}, std::move(dealers), 0)};
+    BOOST_REQUIRE(loaded.IsValid());
 }
 
 CMutableTransaction UpdateTx(const chainregistry::ChainRecord& record,
@@ -1371,8 +1372,9 @@ BOOST_AUTO_TEST_CASE(registry_root_is_deterministic_across_load_order)
         }
 
         chainregistry::ChainRegistry loaded;
-        BOOST_REQUIRE(loaded.LoadState(
-            std::move(shuffled), dealers, source.AuthoritySequence()).IsValid());
+        const auto load_result{loaded.LoadState(
+            std::move(shuffled), dealers, source.AuthoritySequence())};
+        BOOST_REQUIRE(load_result.IsValid());
         BOOST_CHECK(loaded.ComputeRoot() == expected_root);
         for (const auto& [chain_id, record] : loaded.Records()) {
             const auto proof{loaded.GetInclusionProof(chain_id)};

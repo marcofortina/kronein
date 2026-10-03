@@ -1076,8 +1076,8 @@ RPCHelpMan walletcreatechildpsbt()
         RPCTypeCheckObj(object,
                         {{"recipient", UniValueType(UniValue::VSTR)},
                          {"amount", UniValueType()}},
-                        /*allow_null=*/false,
-                        /*strict=*/true);
+                        /*fAllowNull=*/false,
+                        /*fStrict=*/true);
         const CAmount amount{
             AmountFromValue(object.find_value("amount"))};
         child_outputs.emplace_back(

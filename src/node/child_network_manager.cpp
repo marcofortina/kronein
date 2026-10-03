@@ -97,7 +97,7 @@ ParsedBootstrapEndpoints ParseBootstrapEndpoints(
         }
         const auto service{Lookup(
             endpoint,
-            /*default_port=*/0,
+            /*portDefault=*/0,
             /*fAllowLookup=*/false)};
         if (!service || service->GetPort() == 0 ||
             std::find(parsed.services.begin(), parsed.services.end(), *service) !=
@@ -129,7 +129,7 @@ ParsedBindEndpoints ParseBindEndpoints(
         }
         const auto service{Lookup(
             endpoint,
-            /*default_port=*/0,
+            /*portDefault=*/0,
             /*fAllowLookup=*/false)};
         if (!service || service->GetPort() == 0 ||
             std::find(parsed.services.begin(), parsed.services.end(), *service) !=
@@ -586,7 +586,7 @@ ChildNetworkResult ChildNetworkManager::AddNode(
         return NetworkError(ChildNetworkError::NODE_ALREADY_ADDED, endpoint);
     }
     entry->second->config.connect.push_back(endpoint);
-    const auto saved{WriteNetworkConfig(
+    auto saved{WriteNetworkConfig(
         entry->second->network_path /
             fs::PathFromString(CHILD_NETWORK_CONFIG_FILENAME),
         entry->second->config)};
@@ -625,7 +625,7 @@ ChildNetworkResult ChildNetworkManager::RemoveNode(
         endpoint)};
     Assume(configured != entry->second->config.connect.end());
     entry->second->config.connect.erase(configured);
-    const auto saved{WriteNetworkConfig(
+    auto saved{WriteNetworkConfig(
         entry->second->network_path /
             fs::PathFromString(CHILD_NETWORK_CONFIG_FILENAME),
         entry->second->config)};
@@ -668,7 +668,7 @@ ChildNetworkResult ChildNetworkManager::SetNetworkActive(
         previous_network->connman.Stop();
         previous_network->started = false;
 
-        const auto updated{StartLocked(
+        auto updated{StartLocked(
             chain_id, std::move(updated_config))};
         if (updated.IsValid()) return {};
 
@@ -682,7 +682,7 @@ ChildNetworkResult ChildNetworkManager::SetNetworkActive(
         return updated;
     }
 
-    const auto saved{WriteNetworkConfig(
+    auto saved{WriteNetworkConfig(
         entry->second->network_path /
             fs::PathFromString(CHILD_NETWORK_CONFIG_FILENAME),
         updated_config)};
@@ -724,7 +724,7 @@ ChildNetworkResult ChildNetworkManager::SetBindEndpoints(
 
     ChildNetworkConfig updated_config{previous_config};
     updated_config.bind = std::move(endpoints);
-    const auto updated{StartLocked(chain_id, std::move(updated_config))};
+    auto updated{StartLocked(chain_id, std::move(updated_config))};
     if (updated.IsValid()) return {};
 
     const auto restored{StartLocked(chain_id, std::move(previous_config))};
@@ -773,7 +773,7 @@ ChildNetworkResult ChildNetworkManager::SetDiscovery(
     ChildNetworkConfig updated_config{previous_config};
     updated_config.discovery = enabled;
     updated_config.bootstrap = std::move(bootstrap);
-    const auto updated{StartLocked(chain_id, std::move(updated_config))};
+    auto updated{StartLocked(chain_id, std::move(updated_config))};
     if (updated.IsValid()) return {};
 
     const auto restored{StartLocked(chain_id, std::move(previous_config))};

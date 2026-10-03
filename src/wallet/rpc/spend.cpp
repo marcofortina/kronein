@@ -105,7 +105,7 @@ static std::vector<ChildWalletPayment> ParseChildSendPayments(
     const UniValue& subtract_fee_arg)
 {
     const UniValue outputs{NormalizeOutputs(outputs_arg)};
-    const std::vector<std::string> recipients{outputs.getKeys()};
+    const std::vector<std::string>& recipients{outputs.getKeys()};
     const std::set<int> subtract_fee{
         InterpretSubtractFeeFromOutputInstructions(
             subtract_fee_arg, recipients)};
@@ -269,8 +269,8 @@ static void CheckChildFundOptions(const UniValue& options)
             {"replaceable", UniValueType(UniValue::VBOOL)},
             {"max_tx_weight", UniValueType(UniValue::VNUM)},
         },
-        /*allow_null=*/true,
-        /*strict=*/true);
+        /*fAllowNull=*/true,
+        /*fStrict=*/true);
 }
 
 static std::vector<ChildWalletSweepRecipient> ParseChildSweepRecipients(
@@ -997,7 +997,7 @@ RPCHelpMan sendmany()
         std::set<std::string> subtract_fee_from;
         if (!request.params[2].isNull()) {
             for (const UniValue& value : request.params[2].getValues()) {
-                const std::string recipient{value.get_str()};
+                const std::string& recipient{value.get_str()};
                 if (!amounts.exists(recipient)) {
                     throw JSONRPCError(
                         RPC_INVALID_PARAMETER,

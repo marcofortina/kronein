@@ -1451,7 +1451,7 @@ ChainManagerPendingBlocksView ChainManager::GetPendingBlocksView(
         result.error = ChainManagerPendingBlocksViewError::CHAIN_NOT_LOADED;
         return result;
     }
-    const auto blocks{loaded->second->GetPendingBlocks()};
+    auto blocks{loaded->second->GetPendingBlocks()};
     if (!blocks) {
         result.error = ChainManagerPendingBlocksViewError::DATA_UNAVAILABLE;
         return result;

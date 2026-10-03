@@ -18,7 +18,7 @@ static void WriteBlockBench(benchmark::Bench& bench)
 {
     const auto testing_setup{MakeNoLogFileContext<const TestingSetup>(ChainType::REGTEST)};
     auto& blockman{testing_setup->m_node.chainman->m_blockman};
-    const CBlock block{benchmark::GetNativeBenchBlock()};
+    const CBlock& block{benchmark::GetNativeBenchBlock()};
     bench.run([&] {
         const auto pos{blockman.WriteBlock(block, 1)};
         assert(!pos.IsNull());
@@ -29,7 +29,7 @@ static void ReadBlockBench(benchmark::Bench& bench)
 {
     const auto testing_setup{MakeNoLogFileContext<const TestingSetup>(ChainType::REGTEST)};
     auto& blockman{testing_setup->m_node.chainman->m_blockman};
-    const CBlock test_block{benchmark::GetNativeBenchBlock()};
+    const CBlock& test_block{benchmark::GetNativeBenchBlock()};
     const auto& expected_hash{test_block.GetHash()};
     const auto& pos{blockman.WriteBlock(test_block, 1)};
     bench.run([&] {

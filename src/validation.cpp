@@ -4410,7 +4410,7 @@ static bool ContextualCheckBlock(const CBlock& block, BlockValidationState& stat
     // * There must be at least one output whose scriptPubKey is a single 36-byte push, the first 4 bytes of which are
     //   {0xaa, 0x21, 0xa9, 0xed}, and the following 32 bytes are SHA256^2(witness root, witness reserved value). In case there are
     //   multiple, the last one is used.
-    if (!CheckWitnessMalleation(block, /*check_witness_root=*/pindexPrev != nullptr, state)) {
+    if (!CheckWitnessMalleation(block, /*expect_witness_commitment=*/pindexPrev != nullptr, state)) {
         return false;
     }
 

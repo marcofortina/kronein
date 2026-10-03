@@ -140,7 +140,7 @@ std::vector<unsigned char> ParseBoundedHex(const UniValue& value,
                                            std::string_view name,
                                            size_t maximum_size)
 {
-    const std::string encoded{value.get_str()};
+    const std::string& encoded{value.get_str()};
     if (!IsHex(encoded)) {
         throw JSONRPCError(
             RPC_INVALID_PARAMETER,

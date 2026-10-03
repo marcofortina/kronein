@@ -415,7 +415,7 @@ BOOST_AUTO_TEST_CASE(applies_domain_separated_spends_and_fees)
         Txid{"7777777777777777777777777777777777777777777777777777777777777777"},
         0};
     state.coins.AddCoin(
-        seeded, Coin{seeded_output, 0, /*coinbase=*/false}, false);
+        seeded, Coin{seeded_output, 0, /*fCoinBaseIn=*/false}, false);
 
     const chainregistry::ChainId other_chain{
         "8888888888888888888888888888888888888888888888888888888888888888"};
