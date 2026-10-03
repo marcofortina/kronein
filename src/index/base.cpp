@@ -273,6 +273,15 @@ bool BaseIndex::Commit()
     // (this could happen if init is interrupted).
     bool ok = m_best_block_index != nullptr;
     if (ok) {
+        // Persist only an ancestor of the durable chainstate. After an unclean
+        // restart a stateful index cannot rewind across blocks absent on disk.
+        const CBlockIndex* index_tip = m_best_block_index.load();
+        const CBlockIndex* last_flushed = WITH_LOCK(::cs_main, return m_chainstate->GetLastFlushedBlock());
+        if (!last_flushed || last_flushed->GetAncestor(index_tip->nHeight) != index_tip) {
+            LogDebug(BCLog::COINDB, "Deferring index commit ahead of durable chainstate (index height %d, last flush %d)",
+                     index_tip->nHeight, last_flushed ? last_flushed->nHeight : -1);
+            return true; // Not a write failure; a later flush will commit it.
+        }
         CDBBatch batch(GetDB());
         ok = CustomCommit(batch);
         if (ok) {

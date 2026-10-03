@@ -95,12 +95,9 @@ private:
 
     /// Write the current index state (eg. chain block locator and subclass-specific items) to disk.
     ///
-    /// Recommendations for error handling:
-    /// If called on a successor of the previous committed best block in the index, the index can
-    /// continue processing without risk of corruption, though the index state will need to catch up
-    /// from further behind on reboot. If the new state is not a successor of the previous state (due
-    /// to a chain reorganization), the index must halt until Commit succeeds or else it could end up
-    /// getting corrupted.
+    /// Defer writes until the index tip is an ancestor of the last flushed
+    /// chainstate, so an unclean restart can always recover the committed state.
+    /// A deferred write returns true; an actual commit error returns false.
     bool Commit();
 
     /// Loop over disconnected blocks and call CustomRemove.
