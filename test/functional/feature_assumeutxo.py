@@ -733,8 +733,11 @@ class AssumeutxoTest(BitcoinTestFramework):
 
         for reindex_arg in ['-reindex=1', '-reindex-chainstate=1']:
             self.log.info(f"Check that restarting with {reindex_arg} will delete the snapshot chainstate")
+            snapshot_paths = [n2.chain_path / name for name in ("chainstate_snapshot", "chainstate_snapshot_registry")]
+            assert all(path.is_dir() for path in snapshot_paths)
             self.restart_node(2, extra_args=[reindex_arg, *self.extra_args[2]])
             assert_equal(1, len(n2.getchainstates()["chainstates"]))
+            assert all(not path.exists() for path in snapshot_paths)
             for i in range(1, 300):
                 block = n0.getblock(n0.getblockhash(i), 0)
                 n2.submitheader(block)
