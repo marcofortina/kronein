@@ -1232,19 +1232,19 @@ BOOST_AUTO_TEST_CASE(registry_inclusion_and_non_inclusion_proofs)
     BOOST_CHECK(!chainregistry::VerifyRegistryInclusion(first_record, inclusion, root));
 
     chainregistry::ChainRegistry empty;
-    const chainregistry::ChainId absent{"8080808080808080808080808080808080808080808080808080808080808080"};
+    constexpr chainregistry::ChainId absent{"8080808080808080808080808080808080808080808080808080808080808080"};
     const auto empty_proof{empty.GetNonInclusionProof(absent)};
     BOOST_REQUIRE(empty_proof.has_value());
     BOOST_CHECK(chainregistry::VerifyRegistryNonInclusion(absent, *empty_proof, empty.ComputeRoot()));
 
-    const chainregistry::ChainId below{"0000000000000000000000000000000000000000000000000000000000000000"};
+    constexpr chainregistry::ChainId below{"0000000000000000000000000000000000000000000000000000000000000000"};
     const auto below_proof{registry.GetNonInclusionProof(below)};
     BOOST_REQUIRE(below_proof.has_value());
     BOOST_CHECK(!below_proof->has_left);
     BOOST_CHECK(below_proof->has_right);
     BOOST_CHECK(chainregistry::VerifyRegistryNonInclusion(below, *below_proof, root));
 
-    const chainregistry::ChainId above{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
+    constexpr chainregistry::ChainId above{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
     const auto above_proof{registry.GetNonInclusionProof(above)};
     BOOST_REQUIRE(above_proof.has_value());
     BOOST_CHECK(above_proof->has_left);
