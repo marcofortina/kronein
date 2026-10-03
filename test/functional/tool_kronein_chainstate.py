@@ -21,7 +21,7 @@ from test_framework.wallet import MiniWallet
 START_HEIGHT = 199
 # Hardcoded in regtest chainparams
 SNAPSHOT_BASE_BLOCK_HEIGHT = 299
-SNAPSHOT_BASE_BLOCK_HASH = "2d4d7817926b3e937e319f69889c2e748c1c496aa9a707cf6256e8e7011a8b4f"
+SNAPSHOT_BASE_BLOCK_HASH = "97e3851bbd5a4149524ece27eb20c3a1e10efc9eb6c8fc7ce2c8877e2a51fc7e"
 
 
 class BitcoinChainstateTest(BitcoinTestFramework):
@@ -49,6 +49,7 @@ class BitcoinChainstateTest(BitcoinTestFramework):
                 mini_wallet.send_self_transfer(from_node=n0)
             self.generate(n0, nblocks=1, sync_fun=self.no_op)
         assert_equal(n0.getblockcount(), SNAPSHOT_BASE_BLOCK_HEIGHT)
+        self.log.info(f"Native snapshot statistics: {n0.gettxoutsetinfo('muhash')}")
         assert_equal(n0.getbestblockhash(), SNAPSHOT_BASE_BLOCK_HASH)
         return n0.dumptxoutset('utxos.dat', "latest")
 

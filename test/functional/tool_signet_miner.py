@@ -92,7 +92,7 @@ class SignetMinerTest(BitcoinTestFramework):
             f'--cli={shlex.join(rpc_argv)}',
         ]
 
-        template = node.getblocktemplate(dict(rules=["signet","segwit"]))
+        template = node.getblocktemplate(dict(rules=["signet","segwit","chainregistry"]))
         genpsbt = subprocess.run(base_cmd + [
                 'genpsbt',
                 f'--address={node.getnewaddress()}',

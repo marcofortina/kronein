@@ -5,6 +5,7 @@
 #include <test/util/mining.h>
 
 #include <chainparams.h>
+#include <consensus/chainregistry.h>
 #include <consensus/merkle.h>
 #include <consensus/validation.h>
 #include <key_io.h>
@@ -49,6 +50,9 @@ std::vector<std::shared_ptr<CBlock>> CreateBlockChain(size_t total_height, const
         coinbase_tx.vout.resize(1);
         coinbase_tx.vout[0].scriptPubKey = P2TR_DUMMY;
         coinbase_tx.vout[0].nValue = GetBlockSubsidy(height + 1, params.GetConsensus());
+        if (params.GetConsensus().chain_registry.IsActive(height + 1)) {
+            coinbase_tx.vout.emplace_back(0, chainregistry::BuildRegistryCommitment(chainregistry::ChainRegistry{}.ComputeRoot()));
+        }
         // Always include OP_0 as a dummy extraNonce.
         coinbase_tx.vin[0].scriptSig = CScript() << (height + 1) << OP_0;
         block.vtx = {MakeTransactionRef(std::move(coinbase_tx))};

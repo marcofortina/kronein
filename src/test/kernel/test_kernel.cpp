@@ -765,7 +765,8 @@ void chainman_regtest_validation_test(TestDirectory& test_directory)
     auto output_counts = *(block.Transactions() | std::views::transform([](const auto& tx) {
                                return tx.CountOutputs();
                            })).begin();
-    BOOST_CHECK_EQUAL(output_counts, 2);
+    // Reward, registry commitment, and witness commitment.
+    BOOST_CHECK_EQUAL(output_counts, 3);
 
     validation_interface->m_expected_valid_block.emplace(raw_block);
     auto ser_block{block.ToBytes()};

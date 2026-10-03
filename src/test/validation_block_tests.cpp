@@ -5,6 +5,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include <chainparams.h>
+#include <consensus/chainregistry.h>
 #include <consensus/merkle.h>
 #include <consensus/validation.h>
 #include <key_io.h>
@@ -110,6 +111,12 @@ std::shared_ptr<CBlock> MinerTestingSetup::Block(const uint256& prev_hash)
     txCoinbase.vin[0].scriptWitness.SetNull();
     // Always pad with OP_0 as dummy extraNonce (also avoids bad-cb-length error for block <=16)
     const int prev_height{WITH_LOCK(::cs_main, return m_node.chainman->m_blockman.LookupBlockIndex(prev_hash)->nHeight)};
+    if (Params().GetConsensus().chain_registry.IsActive(prev_height + 1)) {
+        // These fork fixtures contain no registry operations, but every
+        // post-activation block must still commit to the empty registry.
+        txCoinbase.vout.emplace_back(0, chainregistry::BuildRegistryCommitment(
+            chainregistry::ChainRegistry{}.ComputeRoot()));
+    }
     txCoinbase.vin[0].scriptSig = CScript{} << prev_height + 1 << OP_0;
     txCoinbase.nLockTime = static_cast<uint32_t>(prev_height);
     pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));

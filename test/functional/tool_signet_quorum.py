@@ -63,7 +63,7 @@ class SignetQuorumTest(BitcoinTestFramework):
         # Retain a handler while invoking tool helpers too: module-level
         # logging would otherwise call basicConfig again after restoration.
         logging.getLogger().handlers = handlers or [logging.NullHandler()]
-        template = node.getblocktemplate({"rules": ["signet", "segwit"]})
+        template = node.getblocktemplate({"rules": ["signet", "segwit", "chainregistry"]})
         block = module["new_block"](template, script)
         draft = module["generate_psbt"](block, challenge, bytes.fromhex(template["randomx"]["seed"]))
 

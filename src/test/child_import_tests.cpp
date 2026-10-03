@@ -130,8 +130,10 @@ BOOST_AUTO_TEST_CASE(canonical_import_reuses_native_transaction_rules)
     BOOST_CHECK_EQUAL(transaction.vout.front().nValue, 50'000);
     BOOST_CHECK_EQUAL(transaction.GetHash().GetHex(),
                       "c25edea4695f5a4d9370cf64f227babbca995bdfd105cb94fca19c258cf6d8c4");
+    // KDPR v3 binds authority state inside the witness. The base transaction
+    // (and deposit identity) stays unchanged across this proof-format update.
     BOOST_CHECK_EQUAL(transaction.GetWitnessHash().GetHex(),
-                      "6de7147210420cd8608e69695438480af1f71a5b9dfc2be9e719d1af1cb0aa1c");
+                      "3af5373ca5485e71810bba38221be156647b801a7ba1850c0cc90acd18d1ebab");
 
     TxValidationState state;
     BOOST_CHECK(CheckTransaction(transaction, state));

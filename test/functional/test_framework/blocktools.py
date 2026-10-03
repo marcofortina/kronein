@@ -30,6 +30,7 @@ from .script import (
     CScriptOp,
     OP_0,
     OP_RETURN,
+    TaggedHash,
 )
 from .script_util import output_key_to_p2tr_script
 from .util import assert_equal
@@ -49,7 +50,7 @@ WITNESS_COMMITMENT_HEADER = b"\xaa\x21\xa9\xed"
 
 NULL_OUTPOINT = COutPoint(0, 0xffffffff)
 
-NORMAL_GBT_REQUEST_PARAMS = {"rules": ["segwit"]}
+NORMAL_GBT_REQUEST_PARAMS = {"rules": ["segwit", "chainregistry"]}
 BLOCK_VERSION = 1
 MIN_BLOCKS_TO_KEEP = 288
 
@@ -58,6 +59,12 @@ REGTEST_RETARGET_PERIOD = 150
 REGTEST_N_BITS = 0x207fffff  # difficulty retargeting is disabled in REGTEST chainparams"
 REGTEST_TARGET = 0x7fffff0000000000000000000000000000000000000000000000000000000000
 NATIVE_DUMMY_KEY = bytes.fromhex("50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0")
+# Independent encoding of the empty native registry state (no dealers/children/rotation).
+EMPTY_REGISTRY_ROOT = TaggedHash("Kronein/RegistryState/v3",
+    TaggedHash("Kronein/RegistryRoot/v1", bytes(40)) +
+    TaggedHash("Kronein/DealerRoot/v1", bytes(40)) +
+    bytes(8) + TaggedHash("Kronein/DealerAuthorityState/v1", bytes(4)))
+EMPTY_REGISTRY_COMMITMENT = CScript([OP_RETURN, b"KRRT" + bytes([3]) + EMPTY_REGISTRY_ROOT])
 assert_equal(uint256_from_compact(REGTEST_N_BITS), REGTEST_TARGET)
 
 DIFF_1_N_BITS = 0x1d00ffff
@@ -154,14 +161,18 @@ def script_BIP34_coinbase_height(height):
     return CScript([CScriptNum(height)])
 
 
-def create_coinbase(height, pubkey=None, *, script_pubkey=None, extra_output_script=None, fees=0, nValue=50, halving_period=REGTEST_RETARGET_PERIOD):
+def create_coinbase(height, pubkey=None, *, script_pubkey=None, extra_output_script=None, fees=0, nValue=50, halving_period=REGTEST_RETARGET_PERIOD, registry_root=EMPTY_REGISTRY_ROOT):
     """Create a coinbase transaction.
 
     If pubkey is passed in, its x-only form is used for a Taproot output;
     otherwise a fixed Taproot output is used.
 
     If extra_output_script is given, make a 0-value output to that
-    script. This is useful to pad block weight/sigops as needed. """
+    script. This is useful to pad block weight/sigops as needed.
+
+    Native blocks commit the registry from height 1. Tests with nonempty state
+    must supply its root; explicit preactivation/invalid blocks may pass None.
+    """
     coinbase = CTransaction()
     coinbase.nLockTime = height - 1
     coinbase.vin.append(CTxIn(NULL_OUTPOINT, script_BIP34_coinbase_height(height), MAX_SEQUENCE_NONFINAL))
@@ -178,6 +189,9 @@ def create_coinbase(height, pubkey=None, *, script_pubkey=None, extra_output_scr
     else:
         coinbaseoutput.scriptPubKey = output_key_to_p2tr_script(NATIVE_DUMMY_KEY)
     coinbase.vout = [coinbaseoutput]
+    if registry_root is not None:
+        assert_equal(len(registry_root), 32)
+        coinbase.vout.append(CTxOut(0, CScript([OP_RETURN, b"KRRT" + bytes([3]) + registry_root])))
     if extra_output_script is not None:
         coinbaseoutput2 = CTxOut()
         coinbaseoutput2.nValue = 0

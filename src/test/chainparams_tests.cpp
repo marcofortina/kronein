@@ -73,10 +73,22 @@ BOOST_AUTO_TEST_CASE(network_identity)
             params->GetConsensus().nMinimumChainWork ==
             ArithToUint256(GetBlockProof(params->GenesisBlock())));
         BOOST_CHECK(params->GetConsensus().defaultAssumeValid.IsNull());
-        BOOST_CHECK(!params->GetConsensus().chain_registry.Enabled());
-        BOOST_CHECK(!params->GetConsensus().chain_registry.IsActive(0));
-        BOOST_CHECK(!params->GetConsensus().chain_registry.DepositsEnabled());
-        BOOST_CHECK(!params->GetConsensus().chain_registry.DepositsActive(0));
+        const auto& registry{params->GetConsensus().chain_registry};
+        BOOST_CHECK(registry.Enabled());
+        BOOST_CHECK(!registry.IsActive(0));
+        BOOST_CHECK(registry.IsActive(1));
+        BOOST_CHECK(registry.DepositsEnabled());
+        BOOST_CHECK(!registry.DepositsActive(0));
+        BOOST_CHECK(registry.DepositsActive(1));
+        BOOST_CHECK(!registry.BmmActive(0));
+        BOOST_CHECK(registry.BmmActive(1));
+        BOOST_CHECK_EQUAL(registry.maximum_operations, 4U);
+        BOOST_CHECK_EQUAL(registry.minimum_deposit_amount, COIN / 1000);
+        BOOST_CHECK_EQUAL(registry.maximum_deposits, 64U);
+        BOOST_CHECK_EQUAL(registry.maximum_bmm_anchors, 64U);
+        const auto threshold{chain_type == ChainType::MAIN ? 4 : chain_type == ChainType::REGTEST ? 1 : 2};
+        BOOST_CHECK_EQUAL(registry.dealer_authority.threshold, threshold);
+        BOOST_CHECK_EQUAL(registry.dealer_authority.keys.size(), chain_type == ChainType::REGTEST ? 1U : threshold + 1U);
     }
     BOOST_CHECK_EQUAL(message_starts.size(), networks.size());
     BOOST_CHECK_EQUAL(p2p_ports.size(), networks.size());

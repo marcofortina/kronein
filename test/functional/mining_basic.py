@@ -85,7 +85,7 @@ class MiningTest(BitcoinTestFramework):
         self.log.info('test native block version')
         block_template = self.nodes[0].getblocktemplate(NORMAL_GBT_REQUEST_PARAMS)
         assert_equal(BLOCK_VERSION, block_template['version'])
-        assert_equal(["csv", "!segwit", "taproot"], block_template['rules'])
+        assert_equal(["csv", "!segwit", "taproot", "!chainregistry"], block_template['rules'])
         # The fresh Kronein genesis is recent, so the chain constructed above
         # extends beyond the wall clock. Keep all peers on the mining clock.
         for node in self.nodes[1:]:
@@ -228,7 +228,7 @@ class MiningTest(BitcoinTestFramework):
         assert_equal(node.getblocktemplate(template_request={
             'data': block.serialize().hex(),
             'mode': 'proposal',
-            'rules': ['segwit'],
+            'rules': ['segwit', 'chainregistry'],
         }), None)
 
         bad_block = copy.deepcopy(block)

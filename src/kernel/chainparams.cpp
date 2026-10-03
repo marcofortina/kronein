@@ -98,6 +98,24 @@ static Consensus::Params::ASERTParams ASERTParameters(const CBlock& genesis, int
     };
 }
 
+/** Approved limits. The explicit authority keys below are public development
+ * fixtures, not production custody. Never launch an economic network with them. */
+static Consensus::Params::ChainRegistryParams RegistryParameters(uint8_t threshold, std::vector<chainregistry::DealerAuthorityKey> keys)
+{
+    Consensus::Params::ChainRegistryParams params{
+        .activation_height = 1,
+        .dealer_authority = {threshold, std::move(keys)},
+        .maximum_operations = 4,
+        .deposit_activation_height = 1,
+        .minimum_deposit_amount = COIN / 1000,
+        .maximum_deposits = 64,
+        .bmm_activation_height = 1,
+        .maximum_bmm_anchors = 64,
+    };
+    assert(params.dealer_authority.IsValid());
+    return params;
+}
+
 /**
  * Main network on which people trade goods and services.
  */
@@ -105,6 +123,14 @@ class CMainParams : public CChainParams {
 public:
     CMainParams() {
         m_chain_type = ChainType::MAIN;
+        // Public fixture scalars 1..5, sorted by x-only public key.
+        consensus.chain_registry = RegistryParameters(4, {
+            "2f8bde4d1a07209355b4a7250a5c5128e88b84bddc619ab7cba8d569b240efe4"_hex_u8,
+            "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"_hex_u8,
+            "c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5"_hex_u8,
+            "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13"_hex_u8,
+            "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9"_hex_u8,
+        });
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
         consensus.nSubsidyHalvingInterval = 210000;
@@ -170,6 +196,12 @@ class CTestNet4Params : public CChainParams {
 public:
     CTestNet4Params() {
         m_chain_type = ChainType::TESTNET4;
+        // Public fixture scalars 11..13; never shared with another network.
+        consensus.chain_registry = RegistryParameters(2, {
+            "774ae7f858a9411e5ef4246b70c65aac5649980be5c17891bbec17895da008cb"_hex_u8,
+            "d01115d548e7561b15c38f004d734633687cf4419620095bc5b0f47070afe85a"_hex_u8,
+            "f28773c2d975288bc7d1d205c3748651b075fbc6610e58cddeeddf8f19405aa8"_hex_u8,
+        });
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
         consensus.nSubsidyHalvingInterval = 210000;
@@ -261,6 +293,12 @@ public:
         }
 
         m_chain_type = ChainType::SIGNET;
+        // Public fixture scalars 21..23, separate from Signet block signers.
+        consensus.chain_registry = RegistryParameters(2, {
+            "2fa2104d6b38d11b0230010559879124e42ab8dfeff5ff29dc9cdadd4ecacc3f"_hex_u8,
+            "352bbf4a4cdd12564f93fa332ce333301d9ad40271f8107181340aef25be59d5"_hex_u8,
+            "421f5fc9a21065445c96fdb91c0c1e2f2431741c72713b4b99ddcb316f31e9fc"_hex_u8,
+        });
         consensus.signet_blocks = true;
         consensus.signet_challenge.assign(bin.begin(), bin.end());
         consensus.nSubsidyHalvingInterval = 210000;
@@ -317,6 +355,10 @@ public:
     explicit CRegTestParams(const RegTestOptions& opts)
     {
         m_chain_type = ChainType::REGTEST;
+        // Public fixture scalar 31. Explicit debug overrides remain regtest-only.
+        consensus.chain_registry = RegistryParameters(1, {
+            "6a245bf6dc698504c89a20cfded60853152b695336c28063b61c65cbd269e6b4"_hex_u8,
+        });
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
         consensus.nSubsidyHalvingInterval = 150;
@@ -360,23 +402,23 @@ public:
         m_assumeutxo_data = {
             {   // For use by unit tests
                 .height = 110,
-                .muhash = AssumeutxoHash{uint256{"f78069a53b677d42236b556d5ca647908c09fbad54b7ee5be5da44d9d227560b"}},
+                .muhash = AssumeutxoHash{uint256{"01f44d834f5c642406f38423657946fecb06c5ba4122621a6ce42f89e7268121"}},
                 .m_chain_tx_count = 111,
-                .blockhash = uint256{"6c3c539ac211222952482af5ef7793ae643a504a46d05d0dcf4d3ddfaf600058"},
+                .blockhash = uint256{"e66c5f1a9faa988e4975789c397ccf78a48f00aa8733701d3ddfc4275a58200d"},
             },
             {
                 // For use by fuzz target src/test/fuzz/utxo_snapshot.cpp
                 .height = 200,
-                .muhash = AssumeutxoHash{uint256{"93e2b3bf0ed8f9e2bfcdfecc0ca97eeefbd97f252c7a06784775921c42ff9de9"}},
+                .muhash = AssumeutxoHash{uint256{"bc6091f37a68f39526c5be0fcc5bc15c616d041a31d6ffb0a888ca2fccdb4eb3"}},
                 .m_chain_tx_count = 201,
-                .blockhash = uint256{"8d88d1645a7582bce4135b98a59212141fb4a0884122717822b1abf3663cc94b"},
+                .blockhash = uint256{"096846783e6fdf5590f5d7a382251b040841991a449ca203224bdcb40be10ece"},
             },
             {
                 // For use by test/functional/feature_assumeutxo.py and test/functional/tool_kronein_chainstate.py
                 .height = 299,
-                .muhash = AssumeutxoHash{uint256{"66debd38e54a51cc4de4f48bd177985ae7dbce80b978754e09ba87cf10262ee5"}},
+                .muhash = AssumeutxoHash{uint256{"0fa1875d6a66526fc4363f7a163b5ecad7754763b32732c6da9dc04cb0f238ae"}},
                 .m_chain_tx_count = 334,
-                .blockhash = uint256{"2d4d7817926b3e937e319f69889c2e748c1c496aa9a707cf6256e8e7011a8b4f"},
+                .blockhash = uint256{"97e3851bbd5a4149524ece27eb20c3a1e10efc9eb6c8fc7ce2c8877e2a51fc7e"},
             },
         };
 

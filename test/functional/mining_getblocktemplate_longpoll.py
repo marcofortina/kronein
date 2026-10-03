@@ -16,14 +16,14 @@ class LongpollThread(threading.Thread):
     def __init__(self, node):
         threading.Thread.__init__(self)
         # query current longpollid
-        template = node.getblocktemplate({'rules': ['segwit']})
+        template = node.getblocktemplate({'rules': ['segwit', 'chainregistry']})
         self.longpollid = template['longpollid']
         # create a new connection to the node, we can't use the same
         # connection from two threads
         self.node = get_rpc_proxy(node.url, 1, timeout=600, coveragedir=node.coverage_dir)
 
     def run(self):
-        self.node.getblocktemplate({'longpollid': self.longpollid, 'rules': ['segwit']})
+        self.node.getblocktemplate({'longpollid': self.longpollid, 'rules': ['segwit', 'chainregistry']})
 
 class GetBlockTemplateLPTest(BitcoinTestFramework):
     def set_test_params(self):
@@ -34,15 +34,15 @@ class GetBlockTemplateLPTest(BitcoinTestFramework):
         self.log.info("Warning: this test will take about 70 seconds in the best case. Be patient.")
         self.log.info("Test that longpollid doesn't change between successive getblocktemplate() invocations if nothing else happens")
         self.generate(self.nodes[0], 10)
-        template = self.nodes[0].getblocktemplate({'rules': ['segwit']})
+        template = self.nodes[0].getblocktemplate({'rules': ['segwit', 'chainregistry']})
         longpollid = template['longpollid']
-        template2 = self.nodes[0].getblocktemplate({'rules': ['segwit']})
+        template2 = self.nodes[0].getblocktemplate({'rules': ['segwit', 'chainregistry']})
         assert template2['longpollid'] == longpollid
         assert_raises_rpc_error(
             -8,
             "Invalid longpollid transaction counter",
             self.nodes[0].getblocktemplate,
-            {'longpollid': longpollid[:64] + 'invalid', 'rules': ['segwit']},
+            {'longpollid': longpollid[:64] + 'invalid', 'rules': ['segwit', 'chainregistry']},
         )
 
         self.log.info("Test that longpoll waits if we do nothing")

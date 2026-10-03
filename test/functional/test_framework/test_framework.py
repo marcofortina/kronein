@@ -892,7 +892,9 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
 
             os.rmdir(cache_path('wallets'))  # Remove empty wallets dir
             for entry in os.listdir(cache_path()):
-                if entry not in ['chainstate', 'blocks', 'indexes']:  # Only indexes, chainstate and blocks folders
+                # The registry is consensus state paired with this UTXO tip,
+                # not an optional index. Cached active chains need both DBs.
+                if entry not in ['chainstate', 'chainstate_registry', 'blocks', 'indexes']:
                     path = cache_path(entry)
                     if os.path.isdir(path):
                         shutil.rmtree(path)

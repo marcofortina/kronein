@@ -81,6 +81,10 @@ BOOST_FIXTURE_TEST_CASE(chainstatemanager, TestChain100Setup)
             cs->ClearBlockIndexCandidates();
         }
         c2.LoadChainTip();
+        BOOST_REQUIRE(c2.InitChainRegistryDBFromSnapshot(
+            1 << 23, /*in_memory=*/true, /*should_wipe=*/false,
+            c1.ChainRegistryState().Registry(),
+            c1.ChainRegistryState().Registry().ComputeRoot()).IsValid());
         for (const auto& cs : manager.m_chainstates) {
             cs->PopulateBlockIndexCandidates();
         }
