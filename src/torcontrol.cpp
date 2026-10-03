@@ -71,6 +71,8 @@ static const float RECONNECT_TIMEOUT_MAX = 600.0;
  * this is belt-and-suspenders sanity limit to prevent memory exhaustion.
  */
 static const int MAX_LINE_LENGTH = 100000;
+/** Bound multiline replies as well as individual lines. */
+static constexpr size_t MAX_LINE_COUNT{1000};
 
 /****** Low-level TorControlConnection ********/
 
@@ -97,6 +99,13 @@ void TorControlConnection::readcb(struct bufferevent *bev, void *ctx)
     {
         std::string s(line, n_read_out);
         free(line);
+        if (s.size() > MAX_LINE_LENGTH || self->message.lines.size() >= MAX_LINE_COUNT) {
+            LogWarning("tor: Disconnecting because Tor control reply limits exceeded");
+            self->message.Clear();
+            self->Disconnect();
+            self->disconnected(*self);
+            return;
+        }
         if (s.size() < 4) // Short line
             continue;
         // <status>(-|+| )<data><CRLF>
@@ -126,7 +135,9 @@ void TorControlConnection::readcb(struct bufferevent *bev, void *ctx)
     //  removed from the buffer. Everything left is an incomplete line.
     if (evbuffer_get_length(input) > MAX_LINE_LENGTH) {
         LogWarning("tor: Disconnecting because MAX_LINE_LENGTH exceeded");
+        self->message.Clear();
         self->Disconnect();
+        self->disconnected(*self);
     }
 }
 
@@ -167,6 +178,8 @@ bool TorControlConnection::Connect(const std::string& tor_control_center, const 
     }
 
     // Create a new socket, set up callbacks and enable notification bits
+    message.Clear();
+    reply_handlers.clear();
     b_conn = bufferevent_socket_new(base, -1, BEV_OPT_CLOSE_ON_FREE);
     if (!b_conn) {
         return false;
