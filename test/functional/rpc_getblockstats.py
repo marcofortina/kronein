@@ -96,7 +96,7 @@ class GetblockstatsTest(BitcoinTestFramework):
         self.sync_all()
 
         for b in blocks:
-            self.nodes[0].submitblock(b)
+            assert_equal(self.nodes[0].submitblock(b), None)
 
 
     def run_test(self):
@@ -167,8 +167,8 @@ class GetblockstatsTest(BitcoinTestFramework):
                                 hash_or_height='bea1a7f1a3fc9781084a7629584cc89c459a9c8e9acd2dc0d7fe1316cc71bc09')
 
         # Invalid number of args
-        assert_raises_rpc_error(-1, 'getblockstats hash_or_height ( stats )', self.nodes[0].getblockstats, '00', 1, 2)
-        assert_raises_rpc_error(-1, 'getblockstats hash_or_height ( stats )', self.nodes[0].getblockstats)
+        assert_raises_rpc_error(-1, 'getblockstats hash_or_height ( stats "chain_id" )', self.nodes[0].getblockstats, '00', [], None, 2)
+        assert_raises_rpc_error(-1, 'getblockstats hash_or_height ( stats "chain_id" )', self.nodes[0].getblockstats)
 
         self.log.info('Test block height 0')
         genesis_stats = self.nodes[0].getblockstats(0)
@@ -180,8 +180,9 @@ class GetblockstatsTest(BitcoinTestFramework):
 
         self.log.info('Test tip including OP_RETURN')
         tip_stats = self.nodes[0].getblockstats(tip)
-        assert_equal(tip_stats["utxo_increase"], 6)
-        assert_equal(tip_stats["utxo_size_inc"], 477)
+        # Registry adds one unspendable output, but no actual UTXO.
+        assert_equal(tip_stats["utxo_increase"], 7)
+        assert_equal(tip_stats["utxo_size_inc"], 566)
         assert_equal(tip_stats["utxo_increase_actual"], 4)
         assert_equal(tip_stats["utxo_size_inc_actual"], 336)
 

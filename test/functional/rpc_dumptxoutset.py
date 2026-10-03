@@ -47,18 +47,19 @@ class DumptxoutsetTest(BitcoinTestFramework):
         assert_equal(out['coins_written'], 100)
         assert_equal(out['base_height'], 100)
         assert_equal(out['path'], str(expected_path))
+        # Native block-1 registry commitments are part of every coinbase txid.
         # Blockhash should be deterministic based on mocked time.
         assert_equal(
             out['base_hash'],
-            '76051ca33151c8c1ae41528a77c0e9545716e3baae763c482224ddfefc3fa455')
+            '939bd85cace06f7a5b6ef65072df8c066d4bb55260176e009a1db3fef5897f54')
 
         # UTXO snapshot hash should be deterministic based on mocked time.
         assert_equal(
             sha256sum_file(str(expected_path)).hex(),
-            'ec09de4f99428d6092d0e1e692f70fc6da32ca631f1ead4587b9eef9ba2cbe33')
+            '0ff44da681e817f88b59f783408772a3f30391706150927db7d09ff8aa6335c6')
 
         assert_equal(
-            out['txoutset_hash'], '0450f356baebee2d998d34776be3f7f49206f88ebef339ad214099b4ee59931a')
+            out['txoutset_hash'], '043673e9acea990106f8a096ce97d6495db0ec3aaaacc2692ab0d4d504c236bc')
         assert_equal(out['nchaintx'], 101)
 
         # Specifying a path to an existing or invalid file will fail.

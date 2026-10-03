@@ -51,7 +51,7 @@ class UTXOSetHashTest(BitcoinTestFramework):
                 for n, tx_out in enumerate(tx.vout):
                     coinbase = 1 if not tx.vin[0].prevout.hash else 0
 
-                    # Skip witness commitment
+                    # Skip the unspendable registry and witness commitments.
                     if (coinbase and n > 0):
                         continue
 
@@ -67,7 +67,7 @@ class UTXOSetHashTest(BitcoinTestFramework):
         assert_equal(finalized[::-1].hex(), node_muhash)
 
         self.log.info("Test deterministic UTXO set hash results")
-        assert_equal(node.gettxoutsetinfo()['muhash'], "4b9382da3f2009432cab0564c4070f5d27aa6687ba5d393bff76ced303ac7c1d")
+        assert_equal(node.gettxoutsetinfo()['muhash'], "9d0ed59c3a24858c1740f72c8361fa530e965f1f9d7f2b0d023d82fe69dc9d94")
 
     def run_test(self):
         self.test_muhash_implementation()
