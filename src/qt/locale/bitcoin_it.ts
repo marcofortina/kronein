@@ -4489,4 +4489,164 @@ Errore di sistema in fase di salvataggio del blocco nel disco: %s</translation>
         <translation type="unfinished">Impossibile scrivere il file delle impostazioni</translation>
     </message>
 </context>
+<context>
+    <name>DealerAuthorityDialog</name>
+    <message>
+        <source>Dealer Authority</source>
+        <translation>Autorità dei dealer</translation>
+    </message>
+    <message>
+        <source>Coordinate authority operations on the main chain. Export the proposal for independent offline verification and signing; paste only public signatures here. Never enter authority private keys. A rotation requires both quorums and activates 144 blocks after inclusion.</source>
+        <translation>Coordina le operazioni dell'autorità sulla catena principale. Esporta la proposta per la verifica e la firma indipendenti offline; incolla qui soltanto le firme pubbliche. Non inserire mai le chiavi private dell'autorità. Una rotazione richiede entrambi i quorum e si attiva 144 blocchi dopo l'inclusione.</translation>
+    </message>
+    <message>
+        <source>Authorize dealer</source>
+        <translation>Autorizza dealer</translation>
+    </message>
+    <message>
+        <source>Update dealer quota or payout</source>
+        <translation>Aggiorna quota o indirizzo di pagamento del dealer</translation>
+    </message>
+    <message>
+        <source>Revoke dealer</source>
+        <translation>Revoca dealer</translation>
+    </message>
+    <message>
+        <source>Rotate authority</source>
+        <translation>Ruota autorità</translation>
+    </message>
+    <message>
+        <source>Operation:</source>
+        <translation>Operazione:</translation>
+    </message>
+    <message>
+        <source>Dealer ID (update/revoke):</source>
+        <translation>ID del dealer (aggiornamento/revoca):</translation>
+    </message>
+    <message>
+        <source>Dealer x-only control key (authorize):</source>
+        <translation>Chiave di controllo x-only del dealer (autorizzazione):</translation>
+    </message>
+    <message>
+        <source>Dealer payout address (authorize/update):</source>
+        <translation>Indirizzo di pagamento del dealer (autorizzazione/aggiornamento):</translation>
+    </message>
+    <message>
+        <source>Licenses (initially 10; add at most 10):</source>
+        <translation>Licenze (inizialmente 10; aggiunta massima 10):</translation>
+    </message>
+    <message>
+        <source>New authority keys (sorted, one per line):</source>
+        <translation>Nuove chiavi dell'autorità (ordinate, una per riga):</translation>
+    </message>
+    <message>
+        <source>Current quorum signatures:</source>
+        <translation>Firme del quorum attuale:</translation>
+    </message>
+    <message>
+        <source>New quorum signatures (rotation only):</source>
+        <translation>Firme del nuovo quorum (solo rotazione):</translation>
+    </message>
+    <message>
+        <source>Refresh</source>
+        <translation>Aggiorna</translation>
+    </message>
+    <message>
+        <source>Prepare Proposal</source>
+        <translation>Prepara proposta</translation>
+    </message>
+    <message>
+        <source>Verify Signatures</source>
+        <translation>Verifica firme</translation>
+    </message>
+    <message>
+        <source>Export Proposal…</source>
+        <translation>Esporta proposta…</translation>
+    </message>
+    <message>
+        <source>Fund and Submit…</source>
+        <translation>Finanzia e invia…</translation>
+    </message>
+    <message>
+        <source>Export Authority Proposal</source>
+        <translation>Esporta proposta dell'autorità</translation>
+    </message>
+    <message>
+        <source>JSON files (*.json)</source>
+        <translation>File JSON (*.json)</translation>
+    </message>
+    <message>
+        <source>Confirm Authority Operation</source>
+        <translation>Conferma operazione dell'autorità</translation>
+    </message>
+    <message>
+        <source>Broadcast %1 on the main chain?
+
+Main-chain fee: %2 KNE
+Dealer control output: %3 KNE
+
+Review the complete proposal below. Revocation permanently disables future sales. Authority rotation requires both quorums and activates after 144 blocks.</source>
+        <translation>Trasmettere %1 sulla catena principale?
+
+Commissione sulla catena principale: %2 KNE
+Output di controllo del dealer: %3 KNE
+
+Controlla la proposta completa qui sotto. La revoca disabilita definitivamente le vendite future. La rotazione dell'autorità richiede entrambi i quorum e si attiva dopo 144 blocchi.</translation>
+    </message>
+    <message>
+        <source>Authority Operation Submitted</source>
+        <translation>Operazione dell'autorità inviata</translation>
+    </message>
+    <message>
+        <source>Signatures must be a JSON array of at most five key_index/signature entries</source>
+        <translation>Le firme devono essere un array JSON con al massimo cinque voci key_index/signature</translation>
+    </message>
+    <message>
+        <source>Registry is not active for the next block</source>
+        <translation>Il registro non è attivo per il prossimo blocco</translation>
+    </message>
+    <message>
+        <source>Authority sequence exhausted</source>
+        <translation>Sequenza dell'autorità esaurita</translation>
+    </message>
+    <message>
+        <source>At most five public keys are allowed</source>
+        <translation>Sono consentite al massimo cinque chiavi pubbliche</translation>
+    </message>
+    <message>
+        <source>Invalid main-chain dealer payout address</source>
+        <translation>Indirizzo di pagamento del dealer non valido per la catena principale</translation>
+    </message>
+    <message>
+        <source>Prepare a proposal first</source>
+        <translation>Prepara prima una proposta</translation>
+    </message>
+    <message>
+        <source>Authority proposal changed</source>
+        <translation>La proposta dell'autorità è cambiata</translation>
+    </message>
+    <message>
+        <source>A wallet and all authority quorums are required</source>
+        <translation>Sono necessari un portafoglio e tutti i quorum dell'autorità</translation>
+    </message>
+    <message>
+        <source>The selected wallet is no longer available</source>
+        <translation>Il portafoglio selezionato non è più disponibile</translation>
+    </message>
+    <message>
+        <source>Authority quorum is incomplete</source>
+        <translation>Il quorum dell'autorità è incompleto</translation>
+    </message>
+    <message>
+        <source>Wallet transaction signatures are incomplete</source>
+        <translation>Le firme del portafoglio sulla transazione sono incomplete</translation>
+    </message>
+</context>
+<context>
+    <name>ChildChainDialog</name>
+    <message>
+        <source>Dealer Authority…</source>
+        <translation>Autorità dei dealer…</translation>
+    </message>
+</context>
 </TS>

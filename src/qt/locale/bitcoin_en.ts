@@ -927,6 +927,10 @@
 <context>
     <name>ChildChainDialog</name>
     <message>
+        <source>Dealer Authority…</source>
+        <translation>Dealer Authority…</translation>
+    </message>
+    <message>
         <location filename="../childchaindialog.cpp" line="+102"/>
         <source>Available</source>
         <translation type="unfinished"></translation>
@@ -8630,6 +8634,159 @@ Please try running the latest software version.
         <location line="+1"/>
         <source>Settings file could not be written</source>
         <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DealerAuthorityDialog</name>
+    <message>
+        <source>Dealer Authority</source>
+        <translation>Dealer Authority</translation>
+    </message>
+    <message>
+        <source>Coordinate authority operations on the main chain. Export the proposal for independent offline verification and signing; paste only public signatures here. Never enter authority private keys. A rotation requires both quorums and activates 144 blocks after inclusion.</source>
+        <translation>Coordinate authority operations on the main chain. Export the proposal for independent offline verification and signing; paste only public signatures here. Never enter authority private keys. A rotation requires both quorums and activates 144 blocks after inclusion.</translation>
+    </message>
+    <message>
+        <source>Authorize dealer</source>
+        <translation>Authorize dealer</translation>
+    </message>
+    <message>
+        <source>Update dealer quota or payout</source>
+        <translation>Update dealer quota or payout</translation>
+    </message>
+    <message>
+        <source>Revoke dealer</source>
+        <translation>Revoke dealer</translation>
+    </message>
+    <message>
+        <source>Rotate authority</source>
+        <translation>Rotate authority</translation>
+    </message>
+    <message>
+        <source>Operation:</source>
+        <translation>Operation:</translation>
+    </message>
+    <message>
+        <source>Dealer ID (update/revoke):</source>
+        <translation>Dealer ID (update/revoke):</translation>
+    </message>
+    <message>
+        <source>Dealer x-only control key (authorize):</source>
+        <translation>Dealer x-only control key (authorize):</translation>
+    </message>
+    <message>
+        <source>Dealer payout address (authorize/update):</source>
+        <translation>Dealer payout address (authorize/update):</translation>
+    </message>
+    <message>
+        <source>Licenses (initially 10; add at most 10):</source>
+        <translation>Licenses (initially 10; add at most 10):</translation>
+    </message>
+    <message>
+        <source>New authority keys (sorted, one per line):</source>
+        <translation>New authority keys (sorted, one per line):</translation>
+    </message>
+    <message>
+        <source>Current quorum signatures:</source>
+        <translation>Current quorum signatures:</translation>
+    </message>
+    <message>
+        <source>New quorum signatures (rotation only):</source>
+        <translation>New quorum signatures (rotation only):</translation>
+    </message>
+    <message>
+        <source>Refresh</source>
+        <translation>Refresh</translation>
+    </message>
+    <message>
+        <source>Prepare Proposal</source>
+        <translation>Prepare Proposal</translation>
+    </message>
+    <message>
+        <source>Verify Signatures</source>
+        <translation>Verify Signatures</translation>
+    </message>
+    <message>
+        <source>Export Proposal…</source>
+        <translation>Export Proposal…</translation>
+    </message>
+    <message>
+        <source>Fund and Submit…</source>
+        <translation>Fund and Submit…</translation>
+    </message>
+    <message>
+        <source>Export Authority Proposal</source>
+        <translation>Export Authority Proposal</translation>
+    </message>
+    <message>
+        <source>JSON files (*.json)</source>
+        <translation>JSON files (*.json)</translation>
+    </message>
+    <message>
+        <source>Confirm Authority Operation</source>
+        <translation>Confirm Authority Operation</translation>
+    </message>
+    <message>
+        <source>Broadcast %1 on the main chain?
+
+Main-chain fee: %2 KNE
+Dealer control output: %3 KNE
+
+Review the complete proposal below. Revocation permanently disables future sales. Authority rotation requires both quorums and activates after 144 blocks.</source>
+        <translation>Broadcast %1 on the main chain?
+
+Main-chain fee: %2 KNE
+Dealer control output: %3 KNE
+
+Review the complete proposal below. Revocation permanently disables future sales. Authority rotation requires both quorums and activates after 144 blocks.</translation>
+    </message>
+    <message>
+        <source>Authority Operation Submitted</source>
+        <translation>Authority Operation Submitted</translation>
+    </message>
+    <message>
+        <source>Signatures must be a JSON array of at most five key_index/signature entries</source>
+        <translation>Signatures must be a JSON array of at most five key_index/signature entries</translation>
+    </message>
+    <message>
+        <source>Registry is not active for the next block</source>
+        <translation>Registry is not active for the next block</translation>
+    </message>
+    <message>
+        <source>Authority sequence exhausted</source>
+        <translation>Authority sequence exhausted</translation>
+    </message>
+    <message>
+        <source>At most five public keys are allowed</source>
+        <translation>At most five public keys are allowed</translation>
+    </message>
+    <message>
+        <source>Invalid main-chain dealer payout address</source>
+        <translation>Invalid main-chain dealer payout address</translation>
+    </message>
+    <message>
+        <source>Prepare a proposal first</source>
+        <translation>Prepare a proposal first</translation>
+    </message>
+    <message>
+        <source>Authority proposal changed</source>
+        <translation>Authority proposal changed</translation>
+    </message>
+    <message>
+        <source>A wallet and all authority quorums are required</source>
+        <translation>A wallet and all authority quorums are required</translation>
+    </message>
+    <message>
+        <source>The selected wallet is no longer available</source>
+        <translation>The selected wallet is no longer available</translation>
+    </message>
+    <message>
+        <source>Authority quorum is incomplete</source>
+        <translation>Authority quorum is incomplete</translation>
+    </message>
+    <message>
+        <source>Wallet transaction signatures are incomplete</source>
+        <translation>Wallet transaction signatures are incomplete</translation>
     </message>
 </context>
 </TS>

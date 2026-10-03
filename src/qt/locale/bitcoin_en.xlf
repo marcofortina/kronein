@@ -795,6 +795,9 @@
   </body></file>
   <file original="../childchaindialog.cpp" datatype="cpp" source-language="en"><body>
     <group restype="x-trolltech-linguist-context" resname="ChildChainDialog">
+      <trans-unit id="_authorityMenu">
+        <source xml:space="preserve">Dealer Authority…</source>
+      </trans-unit>
       <trans-unit id="_msg180">
         <source xml:space="preserve">Available</source>
         <context-group purpose="location"><context context-type="linenumber">102</context></context-group>
@@ -7192,6 +7195,120 @@ Please try running the latest software version.
       <trans-unit id="_msg1591">
         <source xml:space="preserve">Settings file could not be written</source>
         <context-group purpose="location"><context context-type="linenumber">179</context></context-group>
+      </trans-unit>
+    </group>
+  </body></file>
+  <file original="../dealerauthoritydialog.cpp" datatype="cpp" source-language="en"><body>
+    <group restype="x-trolltech-linguist-context" resname="DealerAuthorityDialog">
+      <trans-unit id="_authority1">
+        <source xml:space="preserve">Dealer Authority</source>
+      </trans-unit>
+      <trans-unit id="_authority2">
+        <source xml:space="preserve">Coordinate authority operations on the main chain. Export the proposal for independent offline verification and signing; paste only public signatures here. Never enter authority private keys. A rotation requires both quorums and activates 144 blocks after inclusion.</source>
+      </trans-unit>
+      <trans-unit id="_authority3">
+        <source xml:space="preserve">Authorize dealer</source>
+      </trans-unit>
+      <trans-unit id="_authority4">
+        <source xml:space="preserve">Update dealer quota or payout</source>
+      </trans-unit>
+      <trans-unit id="_authority5">
+        <source xml:space="preserve">Revoke dealer</source>
+      </trans-unit>
+      <trans-unit id="_authority6">
+        <source xml:space="preserve">Rotate authority</source>
+      </trans-unit>
+      <trans-unit id="_authority7">
+        <source xml:space="preserve">Operation:</source>
+      </trans-unit>
+      <trans-unit id="_authority8">
+        <source xml:space="preserve">Dealer ID (update/revoke):</source>
+      </trans-unit>
+      <trans-unit id="_authority9">
+        <source xml:space="preserve">Dealer x-only control key (authorize):</source>
+      </trans-unit>
+      <trans-unit id="_authority10">
+        <source xml:space="preserve">Dealer payout address (authorize/update):</source>
+      </trans-unit>
+      <trans-unit id="_authority11">
+        <source xml:space="preserve">Licenses (initially 10; add at most 10):</source>
+      </trans-unit>
+      <trans-unit id="_authority12">
+        <source xml:space="preserve">New authority keys (sorted, one per line):</source>
+      </trans-unit>
+      <trans-unit id="_authority13">
+        <source xml:space="preserve">Current quorum signatures:</source>
+      </trans-unit>
+      <trans-unit id="_authority14">
+        <source xml:space="preserve">New quorum signatures (rotation only):</source>
+      </trans-unit>
+      <trans-unit id="_authority15">
+        <source xml:space="preserve">Refresh</source>
+      </trans-unit>
+      <trans-unit id="_authority16">
+        <source xml:space="preserve">Prepare Proposal</source>
+      </trans-unit>
+      <trans-unit id="_authority17">
+        <source xml:space="preserve">Verify Signatures</source>
+      </trans-unit>
+      <trans-unit id="_authority18">
+        <source xml:space="preserve">Export Proposal…</source>
+      </trans-unit>
+      <trans-unit id="_authority19">
+        <source xml:space="preserve">Fund and Submit…</source>
+      </trans-unit>
+      <trans-unit id="_authority20">
+        <source xml:space="preserve">Export Authority Proposal</source>
+      </trans-unit>
+      <trans-unit id="_authority21">
+        <source xml:space="preserve">JSON files (*.json)</source>
+      </trans-unit>
+      <trans-unit id="_authority22">
+        <source xml:space="preserve">Confirm Authority Operation</source>
+      </trans-unit>
+      <trans-unit id="_authority23">
+        <source xml:space="preserve">Broadcast %1 on the main chain?
+
+Main-chain fee: %2 KNE
+Dealer control output: %3 KNE
+
+Review the complete proposal below. Revocation permanently disables future sales. Authority rotation requires both quorums and activates after 144 blocks.</source>
+      </trans-unit>
+      <trans-unit id="_authority24">
+        <source xml:space="preserve">Authority Operation Submitted</source>
+      </trans-unit>
+      <trans-unit id="_authority25">
+        <source xml:space="preserve">Signatures must be a JSON array of at most five key_index/signature entries</source>
+      </trans-unit>
+      <trans-unit id="_authority26">
+        <source xml:space="preserve">Registry is not active for the next block</source>
+      </trans-unit>
+      <trans-unit id="_authority27">
+        <source xml:space="preserve">Authority sequence exhausted</source>
+      </trans-unit>
+      <trans-unit id="_authority28">
+        <source xml:space="preserve">At most five public keys are allowed</source>
+      </trans-unit>
+      <trans-unit id="_authority29">
+        <source xml:space="preserve">Invalid main-chain dealer payout address</source>
+      </trans-unit>
+      <trans-unit id="_authority30">
+        <source xml:space="preserve">Prepare a proposal first</source>
+      </trans-unit>
+      <trans-unit id="_authority31">
+        <source xml:space="preserve">Authority proposal changed</source>
+      </trans-unit>
+      <trans-unit id="_authority32">
+        <source xml:space="preserve">A wallet and all authority quorums are required</source>
+      </trans-unit>
+      <trans-unit id="_authority33">
+        <source xml:space="preserve">The selected wallet is no longer available</source>
+      </trans-unit>
+      <trans-unit id="_authority34">
+        <source xml:space="preserve">Authority quorum is incomplete</source>
+      </trans-unit>
+      <trans-unit id="_authority35">
+        <source xml:space="preserve">Wallet transaction signatures are incomplete</source>
       </trans-unit>
     </group>
   </body></file>

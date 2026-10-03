@@ -8,6 +8,7 @@
 #include <bitcoin-build-config.h> // IWYU pragma: keep
 #include <chainparams.h>
 #include <key.h>
+#include <key_io.h>
 #include <logging.h>
 #include <qt/bitcoin.h>
 #include <qt/bitcoingui.h>
@@ -16,12 +17,14 @@
 #include <qt/networkstyle.h>
 #include <qt/rpcconsole.h>
 #include <test/util/setup_common.h>
+#include <util/strencodings.h>
 #include <validation.h>
 
 #include <QAction>
+#include <QComboBox>
 #include <QLineEdit>
-#include <QPushButton>
 #include <QPlainTextEdit>
+#include <QPushButton>
 #include <QRegularExpression>
 #include <QScopedPointer>
 #include <QSignalSpy>
@@ -33,7 +36,73 @@
 #include <QtTest/QtTestWidgets>
 #include <QtTest/QtTestGui>
 
+#include <array>
+#include <span>
+
 namespace {
+//! Exercise public-signature coordination against the real registry RPCs.
+void TestAuthorityProposal(DealerAuthorityDialog& dialog)
+{
+    auto* control{dialog.findChild<QLineEdit*>("dealerAuthorityControl")};
+    auto* payout{dialog.findChild<QLineEdit*>("dealerAuthorityPayout")};
+    auto* operation{dialog.findChild<QComboBox*>("dealerAuthorityOperation")};
+    auto* next_keys{dialog.findChild<QPlainTextEdit*>("dealerAuthorityNextKeys")};
+    auto* signatures{dialog.findChild<QPlainTextEdit*>("dealerAuthoritySignatures")};
+    auto* next_signatures{dialog.findChild<QPlainTextEdit*>("dealerAuthorityNextSignatures")};
+    auto* details{dialog.findChild<QPlainTextEdit*>("dealerAuthorityProposal")};
+    auto* prepare{dialog.findChild<QPushButton*>("dealerAuthorityPrepare")};
+    auto* verify{dialog.findChild<QPushButton*>("dealerAuthorityVerify")};
+    QVERIFY(control && payout && operation && next_keys && signatures && next_signatures && details && prepare && verify);
+    QVERIFY(prepare->isEnabled());
+    std::array<unsigned char, 32> secret{};
+    secret.back() = 31; // Public development-regtest authority fixture.
+    CKey current;
+    current.Set(secret.begin(), secret.end(), true);
+    secret.back() = 32;
+    CKey replacement;
+    replacement.Set(secret.begin(), secret.end(), true);
+    const XOnlyPubKey pubkey{replacement.GetPubKey()};
+    control->setText(QString::fromStdString(HexStr(pubkey)));
+    payout->setText(QString::fromStdString(EncodeDestination(WitnessV1Taproot{pubkey})));
+    prepare->click();
+    UniValue proposal;
+    QVERIFY(proposal.read(details->toPlainText().toStdString()));
+    QVERIFY(!proposal["authority_complete"].get_bool());
+    QCOMPARE(proposal["initial_licenses"].getInt<int>(), 10);
+    const auto sign = [&](QPlainTextEdit* field, const CKey& key) {
+        UniValue draft;
+        QVERIFY(draft.read(details->toPlainText().toStdString()));
+        const auto digest{ParseHex(draft["authority_hash"].get_str())};
+        std::array<unsigned char, 64> signature{};
+        QVERIFY(key.SignSchnorr(uint256{std::span{digest}}, signature, nullptr, uint256{}));
+        field->setPlainText(QString::fromStdString("[{\"key_index\":0,\"signature\":\"" + HexStr(signature) + "\"}]"));
+    };
+    sign(signatures, current);
+    verify->click();
+    QVERIFY(proposal.read(details->toPlainText().toStdString()));
+    QVERIFY(proposal["authority_complete"].get_bool());
+
+    operation->setCurrentIndex(operation->findData(QStringLiteral("rotate_authority")));
+    QVERIFY(details->toPlainText().isEmpty());
+    QVERIFY(!verify->isEnabled());
+    next_keys->setPlainText(QString::fromStdString(HexStr(pubkey)));
+    prepare->click();
+    sign(signatures, current);
+    verify->click();
+    QVERIFY(proposal.read(details->toPlainText().toStdString()));
+    QVERIFY(!proposal["authority_complete"].get_bool());
+    QCOMPARE(proposal["authority_signatures_needed"].getInt<int>(), 0);
+    QCOMPARE(proposal["next_authority_signatures_needed"].getInt<int>(), 1);
+    sign(next_signatures, replacement);
+    verify->click();
+    QVERIFY(proposal.read(details->toPlainText().toStdString()));
+    QVERIFY(proposal["authority_complete"].get_bool());
+    QCOMPARE(proposal["rotation_delay"].getInt<int>(), 144);
+    next_keys->clear();
+    QVERIFY(details->toPlainText().isEmpty());
+    QVERIFY(!verify->isEnabled());
+}
+
 //! Regex find a string group inside of the console output
 QString FindInConsole(const QString& output, const QString& pattern)
 {
@@ -117,6 +186,7 @@ void AppTests::guiTests(BitcoinGUI* window)
     auto* authority_submit{authority->findChild<QPushButton*>("dealerAuthoritySubmit")};
     QVERIFY(authority_submit);
     QVERIFY(!authority_submit->isEnabled());
+    TestAuthorityProposal(*authority);
     authority->close();
     QPushButton* add_peer_button = child_chains->findChild<QPushButton*>("childChainAddPeerButton");
     QPushButton* remove_peer_button = child_chains->findChild<QPushButton*>("childChainRemovePeerButton");

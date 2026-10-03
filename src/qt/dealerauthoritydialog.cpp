@@ -36,7 +36,7 @@ UniValue Signatures(const QPlainTextEdit* input)
     if (text.isEmpty()) return UniValue{UniValue::VARR};
     UniValue result;
     if (text.size() > 4096 || !result.read(text.toStdString()) || !result.isArray()) {
-        throw std::runtime_error{"Signatures must be a JSON array of at most five key_index/signature entries"};
+        throw std::runtime_error{DealerAuthorityDialog::tr("Signatures must be a JSON array of at most five key_index/signature entries").toStdString()};
     }
     return result;
 }
@@ -69,9 +69,11 @@ DealerAuthorityDialog::DealerAuthorityDialog(interfaces::Node& node, QWidget* pa
     m_dealer->setMaxLength(64);
     form->addRow(tr("Dealer ID (update/revoke):"), m_dealer);
     m_control = new QLineEdit{this};
+    m_control->setObjectName(QStringLiteral("dealerAuthorityControl"));
     m_control->setMaxLength(64);
     form->addRow(tr("Dealer x-only control key (authorize):"), m_control);
     m_payout = new QLineEdit{this};
+    m_payout->setObjectName(QStringLiteral("dealerAuthorityPayout"));
     m_payout->setMaxLength(128);
     form->addRow(tr("Dealer payout address (authorize/update):"), m_payout);
     m_licenses = new QSpinBox{this};
@@ -79,6 +81,7 @@ DealerAuthorityDialog::DealerAuthorityDialog(interfaces::Node& node, QWidget* pa
     m_licenses->setValue(10);
     form->addRow(tr("Licenses (initially 10; add at most 10):"), m_licenses);
     m_next_keys = new QPlainTextEdit{this};
+    m_next_keys->setObjectName(QStringLiteral("dealerAuthorityNextKeys"));
     m_next_keys->setMaximumHeight(90);
     form->addRow(tr("New authority keys (sorted, one per line):"), m_next_keys);
     layout->addLayout(form);
@@ -89,6 +92,7 @@ DealerAuthorityDialog::DealerAuthorityDialog(interfaces::Node& node, QWidget* pa
     layout->addWidget(new QLabel{tr("Current quorum signatures:"), this});
     layout->addWidget(m_signatures);
     m_next_signatures = new QPlainTextEdit{this};
+    m_next_signatures->setObjectName(QStringLiteral("dealerAuthorityNextSignatures"));
     m_next_signatures->setMaximumHeight(65);
     layout->addWidget(new QLabel{tr("New quorum signatures (rotation only):"), this});
     layout->addWidget(m_next_signatures);
@@ -99,7 +103,9 @@ DealerAuthorityDialog::DealerAuthorityDialog(interfaces::Node& node, QWidget* pa
     auto* buttons{new QDialogButtonBox{this}};
     auto* refresh_button{buttons->addButton(tr("Refresh"), QDialogButtonBox::ActionRole)};
     m_prepare = buttons->addButton(tr("Prepare Proposal"), QDialogButtonBox::ActionRole);
+    m_prepare->setObjectName(QStringLiteral("dealerAuthorityPrepare"));
     m_verify = buttons->addButton(tr("Verify Signatures"), QDialogButtonBox::ActionRole);
+    m_verify->setObjectName(QStringLiteral("dealerAuthorityVerify"));
     m_export = buttons->addButton(tr("Export Proposal…"), QDialogButtonBox::ActionRole);
     m_submit = buttons->addButton(tr("Fund and Submit…"), QDialogButtonBox::ActionRole);
     m_submit->setObjectName(QStringLiteral("dealerAuthoritySubmit"));
@@ -183,10 +189,10 @@ UniValue DealerAuthorityDialog::build(const UniValue& parameters)
 void DealerAuthorityDialog::prepare()
 {
     refresh();
-    if (!m_info["active_for_next_block"].get_bool()) throw std::runtime_error{"Registry is not active for the next block"};
+    if (!m_info["active_for_next_block"].get_bool()) throw std::runtime_error{DealerAuthorityDialog::tr("Registry is not active for the next block").toStdString()};
     UniValue parameters{UniValue::VOBJ};
     const auto sequence{m_info["authority_sequence"].getInt<uint64_t>()};
-    if (sequence == UINT64_MAX) throw std::runtime_error{"Authority sequence exhausted"};
+    if (sequence == UINT64_MAX) throw std::runtime_error{DealerAuthorityDialog::tr("Authority sequence exhausted").toStdString()};
     parameters.pushKV("authority_sequence", sequence + 1);
     const auto op{operation()};
     if (op == "authorize_dealer") {
@@ -197,7 +203,7 @@ void DealerAuthorityDialog::prepare()
     } else if (op == "rotate_authority") {
         parameters.pushKV("previous_policy_hash", m_info["dealer_authority_next_block_policy_hash"]);
         parameters.pushKV("next_authority_threshold", m_info["dealer_authority_threshold"]);
-        if (m_next_keys->toPlainText().size() > 512) throw std::runtime_error{"At most five public keys are allowed"};
+        if (m_next_keys->toPlainText().size() > 512) throw std::runtime_error{DealerAuthorityDialog::tr("At most five public keys are allowed").toStdString()};
         UniValue keys{UniValue::VARR};
         for (const auto& key : m_next_keys->toPlainText().split(QRegularExpression{QStringLiteral("\\s+")}, Qt::SkipEmptyParts)) keys.push_back(key.toStdString());
         parameters.pushKV("next_authority_keys", std::move(keys));
@@ -209,7 +215,7 @@ void DealerAuthorityDialog::prepare()
         UniValue args{UniValue::VARR};
         args.push_back(m_payout->text().trimmed().toStdString());
         const auto address{call("validateaddress", std::move(args))};
-        if (!address["isvalid"].get_bool()) throw std::runtime_error{"Invalid main-chain dealer payout address"};
+        if (!address["isvalid"].get_bool()) throw std::runtime_error{DealerAuthorityDialog::tr("Invalid main-chain dealer payout address").toStdString()};
         parameters.pushKV("payout_script", address["scriptPubKey"]);
     }
     const auto proposal{build(parameters)};
@@ -224,12 +230,12 @@ void DealerAuthorityDialog::prepare()
 
 void DealerAuthorityDialog::verify()
 {
-    if (!m_parameters.isObject()) throw std::runtime_error{"Prepare a proposal first"};
+    if (!m_parameters.isObject()) throw std::runtime_error{DealerAuthorityDialog::tr("Prepare a proposal first").toStdString()};
     auto parameters{m_parameters};
     parameters.pushKV("authority_signatures", Signatures(m_signatures));
     if (operation() == "rotate_authority") parameters.pushKV("next_authority_signatures", Signatures(m_next_signatures));
     const auto proposal{build(parameters)};
-    if (proposal["authority_hash"].get_str() != m_proposal["authority_hash"].get_str()) throw std::runtime_error{"Authority proposal changed"};
+    if (proposal["authority_hash"].get_str() != m_proposal["authority_hash"].get_str()) throw std::runtime_error{DealerAuthorityDialog::tr("Authority proposal changed").toStdString()};
     m_proposal = proposal;
     m_details->setPlainText(Json(m_proposal));
 #ifdef ENABLE_WALLET
@@ -239,7 +245,7 @@ void DealerAuthorityDialog::verify()
 
 void DealerAuthorityDialog::exportProposal()
 {
-    if (!m_parameters.isObject()) throw std::runtime_error{"Prepare a proposal first"};
+    if (!m_parameters.isObject()) throw std::runtime_error{DealerAuthorityDialog::tr("Prepare a proposal first").toStdString()};
     // Revalidate sequence and policy before exporting, without trusting old UI state.
     verify();
     UniValue document{UniValue::VOBJ};
@@ -269,7 +275,7 @@ void DealerAuthorityDialog::setWalletModel(WalletModel* wallet)
 void DealerAuthorityDialog::submit()
 {
     verify();
-    if (!m_wallet || !m_proposal["authority_complete"].get_bool()) throw std::runtime_error{"A wallet and all authority quorums are required"};
+    if (!m_wallet || !m_proposal["authority_complete"].get_bool()) throw std::runtime_error{DealerAuthorityDialog::tr("A wallet and all authority quorums are required").toStdString()};
     const QPointer<WalletModel> wallet{m_wallet};
     const auto uri{"/wallet/" + QUrl::toPercentEncoding(wallet->getWalletName()).toStdString()};
     UniValue outputs{UniValue::VARR};
@@ -301,9 +307,9 @@ void DealerAuthorityDialog::submit()
     confirmation.setDetailedText(Json(m_proposal));
     confirmation.setDefaultButton(QMessageBox::Cancel);
     if (confirmation.exec() != QMessageBox::Yes) return;
-    if (!wallet) throw std::runtime_error{"The selected wallet is no longer available"};
+    if (!wallet) throw std::runtime_error{DealerAuthorityDialog::tr("The selected wallet is no longer available").toStdString()};
     verify();
-    if (!m_proposal["authority_complete"].get_bool()) throw std::runtime_error{"Authority quorum is incomplete"};
+    if (!m_proposal["authority_complete"].get_bool()) throw std::runtime_error{DealerAuthorityDialog::tr("Authority quorum is incomplete").toStdString()};
     const auto unlock{wallet->requestUnlock()};
     if (!unlock.isValid()) return;
     UniValue sign_args{UniValue::VARR};
@@ -312,7 +318,7 @@ void DealerAuthorityDialog::submit()
     UniValue finalize_args{UniValue::VARR};
     finalize_args.push_back(signed_psbt["psbt"]);
     const auto finalized{call("finalizepsbt", std::move(finalize_args))};
-    if (!finalized["complete"].get_bool()) throw std::runtime_error{"Wallet transaction signatures are incomplete"};
+    if (!finalized["complete"].get_bool()) throw std::runtime_error{DealerAuthorityDialog::tr("Wallet transaction signatures are incomplete").toStdString()};
     UniValue send_args{UniValue::VARR};
     send_args.push_back(finalized["hex"]);
     const auto txid{call("sendrawtransaction", std::move(send_args))};
