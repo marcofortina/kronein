@@ -6,6 +6,7 @@
 #include <chain.h>
 #include <chainparams.h>
 #include <coins.h>
+#include <consensus/chainregistry.h>
 #include <consensus/consensus.h>
 #include <consensus/validation.h>
 #include <kernel/coinstats.h>
@@ -151,6 +152,17 @@ void utxo_snapshot_fuzz(FuzzBufferType buffer)
             WriteCompactSize(outfile, 1);   // number of coins for the hash
             WriteCompactSize(outfile, 999); // index of coin
             outfile << Coin{coinbase->vout[0], /*nHeightIn=*/999, /*fCoinBaseIn=*/0};
+        } else {
+            // Native snapshots require authenticated registry state as well as
+            // coins. This generated chain contains only coinbase transactions
+            // and has no registry operations, so its inclusion branch is empty.
+            const auto& base_block{*g_chain->back()};
+            Assert(base_block.vtx.size() == 1);
+            node::RegistrySnapshot registry;
+            registry.base_blockhash = base_block.GetHash();
+            registry.registry_root = chainregistry::ChainRegistry{}.ComputeRoot();
+            registry.coinbase = CMutableTransaction{*base_block.vtx.front()};
+            outfile << registry;
         }
         assert(outfile.fclose() == 0);
     }

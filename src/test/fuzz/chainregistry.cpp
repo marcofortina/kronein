@@ -13,6 +13,7 @@
 #include <node/child_chain_db.h>
 #include <primitives/bmm.h>
 #include <primitives/chainregistry.h>
+#include <primitives/dealerauthority.h>
 #include <primitives/deposit.h>
 #include <primitives/transaction.h>
 #include <script/script.h>
@@ -50,6 +51,18 @@ void FuzzPersistenceRecord(FuzzedDataProvider& provider)
 }
 
 } // namespace
+
+FUZZ_TARGET(dealer_authority_records)
+{
+    // Decode the same input as each bounded authority record independently.
+    // FuzzPersistenceRecord verifies that accepted encodings round-trip.
+    FuzzedDataProvider policy{buffer.data(), buffer.size()};
+    FuzzPersistenceRecord<chainregistry::DealerAuthority>(policy);
+    FuzzedDataProvider signatures{buffer.data(), buffer.size()};
+    FuzzPersistenceRecord<chainregistry::DealerAuthoritySignatures>(signatures);
+    FuzzedDataProvider transition{buffer.data(), buffer.size()};
+    FuzzPersistenceRecord<chainregistry::DealerAuthorityTransition>(transition);
+}
 
 FUZZ_TARGET(chainregistry_script_parsers)
 {
@@ -95,8 +108,7 @@ FUZZ_TARGET(chainregistry_transaction_parsers)
     if (!mutable_tx) return;
 
     const CTransaction tx{*mutable_tx};
-    (void)chainregistry::ExtractTransactionOperation(
-        tx, ConsumeMoney(provider));
+    (void)chainregistry::ExtractTransactionOperation(tx);
     (void)chainregistry::ExtractTransactionFunds(tx);
     (void)chainregistry::ExtractTransactionBmmAnchor(tx);
 }
