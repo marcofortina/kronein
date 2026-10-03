@@ -18,6 +18,26 @@
 namespace wallet {
 BOOST_FIXTURE_TEST_SUITE(spend_tests, WalletTestingSetup)
 
+BOOST_FIXTURE_TEST_CASE(input_size_uses_matching_outpoint_weight, BasicTestingSetup)
+{
+    const CTxOut output{COIN, GetScriptForDestination(WitnessV1Taproot{XOnlyPubKey::NUMS_H})};
+    const Txid txid{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
+    const COutPoint first{txid, 0};
+    const COutPoint second{txid, 1};
+    const COutPoint unknown{txid, 2};
+    const FlatSigningProvider provider;
+    CCoinControl control;
+    control.SetInputWeight(first, 401);
+    control.SetInputWeight(second, 800);
+    BOOST_CHECK_EQUAL(CalculateMaximumSignedInputSize(output, first, &provider, false, &control), 101);
+    BOOST_CHECK_EQUAL(CalculateMaximumSignedInputSize(output, second, &provider, false, &control), 200);
+    BOOST_CHECK_EQUAL(CalculateMaximumSignedInputSize(output, first, nullptr, false, &control), 101);
+    const auto inferred{CalculateMaximumSignedInputSize(output, unknown, &provider, false, nullptr)};
+    BOOST_REQUIRE_GT(inferred, 0);
+    BOOST_CHECK_EQUAL(CalculateMaximumSignedInputSize(output, unknown, &provider, false, &control), inferred);
+    BOOST_CHECK_EQUAL(CalculateMaximumSignedInputSize(output, unknown, nullptr, false, &control), -1);
+}
+
 static CScript TaprootScript(const CKey& key)
 {
     TaprootBuilder builder;

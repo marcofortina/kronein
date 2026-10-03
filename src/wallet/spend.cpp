@@ -87,8 +87,13 @@ static std::optional<int64_t> MaxInputWeight(const Descriptor& desc) {
     return {};
 }
 
-int CalculateMaximumSignedInputSize(const CTxOut& txout, const COutPoint /*outpoint*/, const SigningProvider* provider, bool /*can_grind_r*/, const CCoinControl* /*coin_control*/)
+int CalculateMaximumSignedInputSize(const CTxOut& txout, const COutPoint outpoint, const SigningProvider* provider, bool /*can_grind_r*/, const CCoinControl* coin_control)
 {
+    if (coin_control) {
+        if (const auto weight{coin_control->GetInputWeight(outpoint)}) {
+            return static_cast<int>(GetVirtualTransactionSize(*weight));
+        }
+    }
     if (!provider) return -1;
 
     if (const auto desc = InferDescriptor(txout.scriptPubKey, *provider)) {
