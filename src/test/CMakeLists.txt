@@ -5,13 +5,13 @@
 
 # Do not use generator expressions in test sources because the
 # SOURCES property is processed to gather test suite macros.
-add_library(randomx_test_bridge SHARED randomx_test_bridge.cpp)
-target_link_libraries(randomx_test_bridge PRIVATE bitcoin_crypto)
+add_executable(randomx_test_bridge randomx_test_bridge.cpp)
+target_link_libraries(randomx_test_bridge PRIVATE core_interface bitcoin_crypto bitcoin_util)
 set_target_properties(randomx_test_bridge PROPERTIES
-  OUTPUT_NAME kronein_randomx_test_bridge
-  LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib"
+  OUTPUT_NAME kronein-randomx-test-bridge
   RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin"
 )
+add_windows_application_manifest(randomx_test_bridge)
 
 add_executable(test_bitcoin
   main.cpp

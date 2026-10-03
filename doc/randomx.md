@@ -71,6 +71,13 @@ interpreter remains instrumented, uses the same RandomX v2 algorithm, and is
 checked against the same reference vector and light/full equivalence tests.
 Normal builds retain the optimized JIT where supported.
 
+Functional tests hash through the persistent `kronein-randomx-test-bridge`
+worker. It links the same native adapter and retains its cache across requests.
+Keeping it in a separate process lets the sanitizer runtime initialize normally;
+an instrumented C++ library cannot safely be loaded into an ordinary Python
+interpreter. Worker errors and sanitizer diagnostics fail the test, and no
+sanitizers are disabled. `KRONEIN_RANDOMX_HELPER` can override its executable path.
+
 ## Mining interface
 
 `getblocktemplate` exposes the consensus inputs needed by an external miner:

@@ -341,14 +341,9 @@ def export_env_build_path(config):
         os.path.join(build_dir, "bin"),
         os.environ["PATH"],
     ])
-    if "KRONEIN_RANDOMX_LIBRARY" not in os.environ:
-        if sys.platform == "win32":
-            library = os.path.join(build_dir, "bin", "kronein_randomx_test_bridge.dll")
-        elif sys.platform == "darwin":
-            library = os.path.join(build_dir, "lib", "libkronein_randomx_test_bridge.dylib")
-        else:
-            library = os.path.join(build_dir, "lib", "libkronein_randomx_test_bridge.so")
-        os.environ["KRONEIN_RANDOMX_LIBRARY"] = library
+    os.environ.setdefault("KRONEIN_RANDOMX_HELPER", os.path.join(
+        build_dir, "bin", "kronein-randomx-test-bridge" + config["environment"]["EXEEXT"],
+    ))
 
 
 def count_bytes(hex_string):

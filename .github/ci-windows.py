@@ -164,6 +164,7 @@ def run_tests(ci_type):
             "BITCOINUTIL": "kronein-util.exe",
             "BITCOINWALLET": "kronein-wallet.exe",
             "BITCOINCHAINSTATE": "kronein-chainstate.exe",
+            "KRONEIN_RANDOMX_HELPER": "kronein-randomx-test-bridge.exe",
         }
         for var, exe in test_envs.items():
             os.environ[var] = str(release_bin / exe)
