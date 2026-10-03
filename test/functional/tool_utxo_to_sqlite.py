@@ -107,6 +107,15 @@ class UtxoToSqliteTest(BitcoinTestFramework):
             muhash_sqlite = calculate_muhash_from_sqlite_utxos(output_filename, txid_format, spk_format)
             muhash_compact_serialized = node.gettxoutsetinfo('muhash')['muhash']
             assert_equal(muhash_sqlite, muhash_compact_serialized)
+            # The main chain is registry-active. Converting the UTXO table
+            # must preserve, not silently drop, its authenticated trailer.
+            with sqlite3.connect(output_filename) as converted:
+                trailer = b"".join(row[0] for row in converted.execute(
+                    "SELECT data FROM registry_snapshot_chunks ORDER BY sequence"))
+            assert trailer.startswith(b"kreg\xff\x04")
+            with open(input_filename, "rb") as snapshot:
+                snapshot.seek(-len(trailer), 2)
+                assert_equal(snapshot.read(), trailer)
             self.log.info('')
 
 

@@ -13,6 +13,11 @@ The created database contains a table `utxos` with the following schema:
 
 If --txid=raw or --txid=rawle is specified, txid will be BLOB instead;
 if --spk=raw, then scriptpubkey will be BLOB instead.
+
+Native registry trailers are preserved verbatim in registry_snapshot_chunks
+(sequence INTEGER PRIMARY KEY, data BLOB), in ascending sequence order.
+This converter does not authenticate the snapshot or interpret registry state;
+use the node's loadtxoutset validation before trusting an imported snapshot.
 """
 import argparse
 import os
@@ -23,10 +28,10 @@ import time
 
 UTXO_DUMP_MAGIC = b'utxo\xff'
 NET_MAGIC_BYTES = {
-    b"\xf9\xbe\xb4\xd9": "Mainnet",
+    b"\xa3\xcf\xcf\xf8": "Mainnet",
     b"\xb4\x09\xbe\x08": "Signet",
-    b"\x1c\x16\x3f\x28": "Testnet4",
-    b"\xfa\xbf\xb5\xda": "Regtest",
+    b"\xe9\x9d\x8b\xa2": "Testnet4",
+    b"\xe0\xf9\xab\xb0": "Regtest",
 }
 
 
@@ -170,12 +175,27 @@ def main():
             elapsed = time.time() - start_time
             print(f"{coin_idx} coins converted [{coin_idx/num_utxos*100:.2f}%], " +
                   f"{elapsed:.3f}s passed since start")
+    trailer_prefix = f.read(6)
+    if trailer_prefix:
+        if trailer_prefix != b'kreg\xff\x04':
+            print("Error: unsupported or truncated native registry trailer.")
+            sys.exit(1)
+        # Keep memory bounded even for a large registry. Preserve the full
+        # opaque trailer, including its format prefix, rather than discarding
+        # consensus data or treating it as another UTXO.
+        con.execute("CREATE TABLE registry_snapshot_chunks(sequence INTEGER PRIMARY KEY, data BLOB)")
+        chunk = trailer_prefix + f.read(65536 - len(trailer_prefix))
+        sequence = 0
+        while chunk:
+            con.execute("INSERT INTO registry_snapshot_chunks VALUES(?, ?)", (sequence, chunk))
+            sequence += 1
+            chunk = f.read(65536)
+        con.commit()
+        print("Registry snapshot trailer preserved verbatim (not authenticated by this converter).")
+    f.close()
     con.close()
 
     print(f"TOTAL: {num_utxos} coins written to {args.outfile}, snapshot height is {max_height}.")
-    if f.read(1) != b'':  # EOF should be reached by now
-        print(f"WARNING: input file {args.infile} has not reached EOF yet!")
-        sys.exit(1)
 
 
 if __name__ == '__main__':
