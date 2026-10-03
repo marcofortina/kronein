@@ -66,7 +66,7 @@ START_HEIGHT = 199
 SNAPSHOT_BASE_HEIGHT = 299
 SNAPSHOT_BASE_BLOCK_HASH = "97e3851bbd5a4149524ece27eb20c3a1e10efc9eb6c8fc7ce2c8877e2a51fc7e"
 SNAPSHOT_BASE_HASH = "0fa1875d6a66526fc4363f7a163b5ecad7754763b32732c6da9dc04cb0f238ae"
-PREVIOUS_SNAPSHOT_HASH = "77fc2879e069d6085489c792276c40e716dc3bf1f277bc7da7acbec91e5cc31c"
+PREVIOUS_SNAPSHOT_HASH = "510b95657c995332b15866d5f109cab1ba3adb44166c293a505bffe25a4882fb"
 FINAL_HEIGHT = 399
 COMPLETE_IDX = {'synced': True, 'best_block_height': FINAL_HEIGHT}
 
@@ -136,18 +136,23 @@ class AssumeutxoTest(BitcoinTestFramework):
 
         self.log.info("  - snapshot file with wrong number of coins")
         valid_num_coins = int.from_bytes(valid_snapshot_contents[41:41 + 8], "little")
-        for off in [-1, +1]:
+        for off, reason in [
+            (-1, "Bad snapshot format or truncated child chain registry state."),
+            (+1, "Mismatch in coins count in snapshot metadata and actual snapshot data."),
+        ]:
             with open(bad_snapshot_path, 'wb') as f:
                 f.write(valid_snapshot_contents[:41])
                 f.write((valid_num_coins + off).to_bytes(8, "little"))
                 f.write(valid_snapshot_contents[41 + 8:])
-            expected_error(msg="Bad snapshot - coins left over after deserializing 298 coins." if off == -1 else "Bad snapshot format or truncated snapshot after deserializing 299 coins.")
+            # With too few coins, the remaining coin is not a valid registry
+            # trailer. With too many, the registry is not a valid extra coin.
+            expected_error(reason)
 
         self.log.info("  - snapshot file with alternated but parsable UTXO data results in different hash")
         cases = [
             # (content, offset, custom_message)
             [b"\xff" * 32, 0, None],  # wrong outpoint hash
-            [(2).to_bytes(1, "little"), 32, "Bad snapshot format or truncated snapshot after deserializing 1 coins."],  # wrong txid coins count
+            [(2).to_bytes(1, "little"), 32, "Bad snapshot data after deserializing 5 coins."],  # wrong txid coins count misaligns native coin records
             [b"\xfd\xff\xff", 32, "Mismatch in coins count in snapshot metadata and actual snapshot data"],  # txid coins count exceeds coins left
             [b"\x01", 33, None],  # wrong outpoint index
             [b"\x80", 34, None],  # another wrong coin code
@@ -170,6 +175,32 @@ class AssumeutxoTest(BitcoinTestFramework):
 
             msg = custom_message if custom_message is not None else f"Bad snapshot content hash: expected {SNAPSHOT_BASE_HASH}, got "
             expected_error(msg)
+
+        self.log.info("  - snapshot file with missing, corrupted or unauthenticated registry state")
+        # This deterministic fixture has exactly one trailer marker. Keep the
+        # UTXOs intact so each rejection exercises the native registry trailer.
+        registry_magic = b"kreg\xff"
+        assert_equal(valid_snapshot_contents.count(registry_magic), 1)
+        registry_offset = valid_snapshot_contents.index(registry_magic)
+        assert_equal(valid_snapshot_contents[registry_offset + 5], 4)
+        registry_cases = [
+            (valid_snapshot_contents[:registry_offset], "Bad snapshot - missing active child chain registry state"),
+            (valid_snapshot_contents[:-1], "Bad snapshot format or truncated child chain registry state"),
+            (valid_snapshot_contents + b"\x00", "Bad snapshot - trailing data after child chain registry state"),
+        ]
+        for offset, replacement, reason in [
+            (0, b"invalid", "Bad snapshot format or truncated child chain registry state"),
+            (5, b"\x03", "Bad child chain registry snapshot: Unsupported child chain registry snapshot version"),
+            (6, b"\x00" * 32, "Bad child chain registry snapshot: Child chain registry snapshot base block does not match"),
+            (38, b"\x00" * 32, "Bad child chain registry snapshot: Child chain registry snapshot root does not match its records"),
+        ]:
+            altered = bytearray(valid_snapshot_contents)
+            altered[registry_offset + offset:registry_offset + offset + len(replacement)] = replacement
+            registry_cases.append((bytes(altered), reason))
+        for content, reason in registry_cases:
+            with open(bad_snapshot_path, "wb") as f:
+                f.write(content)
+            expected_error(reason)
 
     def test_headers_not_synced(self, valid_snapshot_path):
         for node in self.nodes[1:]:
