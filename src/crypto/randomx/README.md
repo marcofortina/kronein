@@ -18,6 +18,8 @@ The upstream source and its BSD 3-Clause license are retained under
   declaration, allowing strict Clang documentation checks;
 - BLAKE2's C/C++ compile-time layout checks explicitly convert their boolean
   conditions to integers, avoiding MSVC C4804 without disabling warnings;
+- MSVC multiplication intrinsics use documented target macros (`_M_X64`,
+  `_M_ARM64`) instead of internal SDK macros, avoiding C4067 with newer SDKs;
 - the x86 static assembly declares a non-executable GNU stack on ELF targets.
 
 The algorithm and API signatures are unchanged.
