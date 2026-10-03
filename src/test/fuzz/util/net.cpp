@@ -7,6 +7,8 @@
 #include <compat/compat.h>
 #include <netaddress.h>
 #include <protocol.h>
+#include <serialize.h>
+#include <streams.h>
 #include <test/fuzz/FuzzedDataProvider.h>
 #include <test/fuzz/util.h>
 #include <test/util/net.h>
@@ -61,6 +63,7 @@ CNetAddr ConsumeNetAddr(FuzzedDataProvider& fuzzed_data_provider, FastRandomCont
     }
 
     DataStream s;
+    s.reserve(sizeof(uint8_t) + GetSizeOfCompactSize(aux.len) + aux.len);
 
     s << static_cast<uint8_t>(aux.bip155);
 
