@@ -5,8 +5,8 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <kernel/chainparams.h>
-#include <kernel/genesis.h>
 
+#include <arith_uint256.h>
 #include <chain.h>
 #include <chainparamsseeds.h>
 #include <consensus/amount.h>
@@ -15,24 +15,27 @@
 #include <crypto/hex_base.h>
 #include <crypto/sha256.h>
 #include <hash.h>
+#include <kernel/genesis.h>
 #include <kernel/messagestartchars.h>
 #include <pow.h>
 #include <primitives/block.h>
+#include <primitives/dealerauthority.h>
 #include <primitives/transaction.h>
-#include <script/interpreter.h>
 #include <script/script.h>
+#include <serialize.h>
+#include <tinyformat.h>
 #include <uint256.h>
 #include <util/chaintype.h>
 #include <util/log.h>
+#include <util/strencodings.h>
 
 #include <algorithm>
 #include <array>
 #include <cassert>
 #include <cstdint>
-#include <iterator>
-#include <map>
 #include <span>
 #include <stdexcept>
+#include <string_view>
 #include <utility>
 #include <vector>
 

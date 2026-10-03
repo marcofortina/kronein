@@ -5,15 +5,19 @@
 #include <node/utxo_snapshot.h>
 
 #include <hash.h>
+#include <primitives/block.h>
+#include <primitives/chainregistry.h>
 #include <streams.h>
 #include <sync.h>
 #include <tinyformat.h>
 #include <uint256.h>
 #include <util/fs.h>
 #include <util/log.h>
+#include <util/translation.h>
 #include <validation.h>
 
 #include <cassert>
+#include <compare>
 #include <cstdio>
 #include <optional>
 #include <span>

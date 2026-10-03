@@ -7,6 +7,8 @@
 
 #include <primitives/chainregistry.h>
 #include <script/script.h>
+#include <serialize.h>
+#include <uint256.h>
 
 #include <array>
 #include <cstddef>

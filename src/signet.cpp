@@ -17,6 +17,7 @@
 #include <util/log.h>
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <exception>
 #include <memory>

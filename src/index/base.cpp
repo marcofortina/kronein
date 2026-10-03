@@ -20,6 +20,7 @@
 #include <tinyformat.h>
 #include <uint256.h>
 #include <undo.h>
+#include <util/check.h>
 #include <util/fs.h>
 #include <util/log.h>
 #include <util/string.h>
@@ -30,7 +31,6 @@
 #include <validation.h>
 #include <validationinterface.h>
 
-#include <cassert>
 #include <compare>
 #include <cstdint>
 #include <memory>

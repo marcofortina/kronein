@@ -4,8 +4,12 @@
 
 #include <primitives/dealerauthority.h>
 
-#include <pubkey.h>
 #include <hash.h>
+#include <pubkey.h>
+
+#include <compare>
+#include <span>
+#include <string>
 
 namespace chainregistry {
 

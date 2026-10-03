@@ -6,7 +6,6 @@
 #define BITCOIN_PRIMITIVES_CHAINREGISTRY_H
 
 #include <attributes.h>
-#include <consensus/amount.h>
 #include <primitives/dealerauthority.h>
 #include <script/script.h>
 #include <serialize.h>

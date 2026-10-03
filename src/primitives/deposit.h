@@ -8,6 +8,7 @@
 #include <consensus/amount.h>
 #include <primitives/chainregistry.h>
 #include <script/script.h>
+#include <serialize.h>
 
 #include <array>
 #include <cstddef>

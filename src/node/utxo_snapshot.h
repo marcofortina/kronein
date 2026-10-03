@@ -10,7 +10,9 @@
 #include <kernel/chainparams.h>
 #include <kernel/cs_main.h>
 #include <kernel/messagestartchars.h>
+#include <primitives/dealerauthority.h>
 #include <primitives/transaction.h>
+#include <serialize.h>
 #include <sync.h>
 #include <tinyformat.h>
 #include <uint256.h>
@@ -26,6 +28,8 @@
 #include <string>
 #include <string_view>
 #include <vector>
+
+class CBlockHeader;
 
 // UTXO set snapshot magic bytes
 static constexpr std::array<uint8_t, 5> SNAPSHOT_MAGIC_BYTES = {'u', 't', 'x', 'o', 0xff};
