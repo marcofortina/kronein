@@ -97,7 +97,6 @@ add_library(bitcoin_common STATIC EXCLUDE_FROM_ALL
   base58.cpp
   bech32.cpp
   chain.cpp
-  chainregistry/child_block.cpp
   chainregistry/child_fork_choice.cpp
   chainregistry/child_import.cpp
   chainregistry/child_net.cpp
@@ -198,6 +197,7 @@ add_library(bitcoin_node STATIC EXCLUDE_FROM_ALL
   bip324.cpp
   blockencodings.cpp
   blockfilter.cpp
+  chainregistry/child_block.cpp
   consensus/tx_verify.cpp
   dbwrapper.cpp
   flatfile.cpp
