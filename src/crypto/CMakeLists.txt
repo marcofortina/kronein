@@ -3,9 +3,15 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://opensource.org/license/mit/.
 
-set(RANDOMX_BUILD_TESTS OFF CACHE BOOL "Build upstream RandomX programs" FORCE)
-set(RANDOMX_INSTALL OFF CACHE BOOL "Install upstream RandomX artifacts" FORCE)
-add_subdirectory(randomx/upstream EXCLUDE_FROM_ALL)
+function(add_randomx)
+  # RandomX is a private dependency, including when the kernel is shared.
+  # Its public C API has no export attributes under REDUCE_EXPORTS.
+  set(BUILD_SHARED_LIBS OFF)
+  set(RANDOMX_BUILD_TESTS OFF CACHE BOOL "Build upstream RandomX programs" FORCE)
+  set(RANDOMX_INSTALL OFF CACHE BOOL "Install upstream RandomX artifacts" FORCE)
+  add_subdirectory(randomx/upstream EXCLUDE_FROM_ALL)
+endfunction()
+add_randomx()
 
 add_library(bitcoin_crypto STATIC EXCLUDE_FROM_ALL
   aes.cpp

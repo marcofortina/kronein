@@ -20,5 +20,9 @@ The upstream source and its BSD 3-Clause license are retained under
 
 The algorithm and API signatures are unchanged.
 
+The parent build embeds RandomX as a private static library, independently
+of `BUILD_SHARED_LIBS`. No additional RandomX shared library needs to be
+installed alongside the executables or the kernel library.
+
 Kronein's C++ ownership, cache reuse, v2 flag selection, and full/light mode
 adapter live in `src/crypto/randomx.{h,cpp}` outside this directory.
