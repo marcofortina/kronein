@@ -121,6 +121,11 @@ void RPCNestedTests::rpcNestedTests()
     QVERIFY_THROWS_EXCEPTION(std::runtime_error, RPCConsole::RPCExecuteCommandLine(m_node, result, "getblockchaininfo() getblockchaininfo()")); //invalid syntax
     RPCConsole::RPCExecuteCommandLine(m_node, result, "getblockchaininfo("); //tolerate non closing brackets if we have no arguments
     RPCConsole::RPCExecuteCommandLine(m_node, result, "getblockchaininfo()()()"); //tolerate non command brackets
+    RPCConsole::RPCExecuteCommandLine(m_node, result, "getblockchaininfo)"); //tolerate a closing bracket after a command
+    for (const std::string command : {")", "()", "(", ","}) {
+        QVERIFY(!RPCConsole::RPCExecuteCommandLine(m_node, result, command));
+        QVERIFY(!RPCConsole::RPCParseCommandLine(nullptr, result, command, false));
+    }
     QVERIFY_THROWS_EXCEPTION(UniValue, RPCConsole::RPCExecuteCommandLine(m_node, result, "getblockchaininfo(True)")); //invalid argument
     QVERIFY_THROWS_EXCEPTION(UniValue, RPCConsole::RPCExecuteCommandLine(m_node, result, "a(getblockchaininfo(True))")); //method not found
     QVERIFY_THROWS_EXCEPTION(std::runtime_error, RPCConsole::RPCExecuteCommandLine(m_node, result, "rpcNestedTest abc,,abc")); //don't tolerate empty arguments when using ,
