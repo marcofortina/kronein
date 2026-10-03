@@ -2,10 +2,14 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
+#include <key.h>
 #include <psbt.h>
+#include <script/interpreter.h>
 
 #include <boost/test/unit_test.hpp>
 #include <test/util/setup_common.h>
+
+#include <array>
 
 BOOST_FIXTURE_TEST_SUITE(psbt_tests, BasicTestingSetup)
 
@@ -189,6 +193,51 @@ BOOST_AUTO_TEST_CASE(merge_proprietary_fields)
     const auto output_it = left.outputs[0].m_proprietary.find(right_prop);
     BOOST_REQUIRE(output_it != left.outputs[0].m_proprietary.end());
     BOOST_CHECK(output_it->value == right_prop.value);
+}
+
+BOOST_AUTO_TEST_CASE(final_witness_requires_verification)
+{
+    std::array<unsigned char, 32> secret{};
+    secret.back() = 1;
+    CKey key;
+    key.Set(secret.begin(), secret.end(), true);
+    const XOnlyPubKey output_key{key.GetPubKey()};
+    CMutableTransaction tx;
+    tx.vin.emplace_back(COutPoint{Txid::FromUint256(uint256::ONE), 0});
+    tx.vout.emplace_back(0, CScript{} << OP_RETURN);
+    PartiallySignedTransaction valid{tx};
+    valid.inputs[0].witness_utxo = CTxOut{1'000, CScript{} << OP_1 << output_key};
+    const auto txdata{PrecomputePSBTData(valid)};
+    BOOST_REQUIRE(txdata);
+    ScriptExecutionData execution;
+    execution.m_annex_init = true;
+    execution.m_annex_present = false;
+    uint256 digest;
+    BOOST_REQUIRE(SignatureHashSchnorr(digest, execution, tx, 0, SIGHASH_DEFAULT,
+                                      SigVersion::TAPROOT, *txdata, MissingDataBehavior::FAIL));
+    std::array<unsigned char, 64> signature{};
+    BOOST_REQUIRE(key.SignSchnorr(digest, signature, nullptr, uint256{}));
+    valid.inputs[0].final_script_witness.stack = {{signature.begin(), signature.end()}};
+    BOOST_REQUIRE(PSBTInputSignedAndVerified(valid, 0, &*txdata));
+    BOOST_REQUIRE(FinalizePSBT(valid));
+    CMutableTransaction extracted;
+    BOOST_REQUIRE(FinalizeAndExtractPSBT(valid, extracted));
+    BOOST_CHECK(extracted.vin[0].scriptWitness == valid.inputs[0].final_script_witness);
+
+    for (int mutation{0}; mutation < 3; ++mutation) {
+        auto invalid{valid};
+        if (mutation == 0) invalid.inputs[0].final_script_witness.stack[0][0] ^= 1;
+        if (mutation == 1) invalid.inputs[0].witness_utxo.nValue += 1;
+        if (mutation == 2) invalid.inputs[0].final_script_witness.stack[0].clear();
+        const auto invalid_txdata{PrecomputePSBTData(invalid)};
+        BOOST_REQUIRE(invalid_txdata);
+        BOOST_REQUIRE(PSBTInputSigned(invalid.inputs[0]));
+        BOOST_CHECK(!PSBTInputSignedAndVerified(invalid, 0, &*invalid_txdata));
+        BOOST_CHECK(!FinalizePSBT(invalid));
+        CMutableTransaction result;
+        BOOST_CHECK(!FinalizeAndExtractPSBT(invalid, result));
+        BOOST_CHECK(result.vin.empty());
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

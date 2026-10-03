@@ -533,6 +533,10 @@ util::Expected<void, PSBTError> SignPSBTInput(const SigningProvider& provider, P
     if (PSBTInputSignedAndVerified(psbt, index, txdata)) {
         return {};
     }
+    // A supplied final witness was not verified. FillSignatureData would mark
+    // it complete based on presence alone, and ProduceSignature would then
+    // short-circuit to success. Never turn that untrusted claim into success.
+    if (PSBTInputSigned(input)) return util::Unexpected{PSBTError::INCOMPLETE};
 
     // Fill SignatureData with input info
     SignatureData sigdata;
