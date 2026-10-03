@@ -39,6 +39,27 @@ using util::ToString;
 
 BOOST_FIXTURE_TEST_SUITE(net_tests, RegTestingSetup)
 
+BOOST_AUTO_TEST_CASE(connman_polymorphic_destruction)
+{
+    struct DestructionProbe final : CConnman {
+        bool& m_destroyed;
+
+        DestructionProbe(AddrMan& addrman, const NetGroupManager& netgroupman,
+                         const CChainParams& params, bool& destroyed)
+            : CConnman{0, 0, addrman, netgroupman, params}, m_destroyed{destroyed}
+        {
+        }
+
+        ~DestructionProbe() override { m_destroyed = true; }
+    };
+
+    bool destroyed{false};
+    std::unique_ptr<CConnman> connman{std::make_unique<DestructionProbe>(
+        *m_node.addrman, *m_node.netgroupman, Params(), destroyed)};
+    connman.reset();
+    BOOST_CHECK(destroyed);
+}
+
 BOOST_AUTO_TEST_CASE(cnode_listen_port)
 {
     // test default
