@@ -15,6 +15,8 @@ export PACKAGES="llvm clang g++-multilib"
 export DEP_OPTS="DEBUG=1 NO_IPC=1"
 export GOAL="install"
 export CI_LIMIT_STACK_SIZE=1
+# The portable RandomX interpreter makes mined-chain fixtures much slower.
+export TEST_RUNNER_TIMEOUT_FACTOR=120
 export BITCOIN_CONFIG="\
  --preset=dev-mode \
  -DENABLE_IPC=OFF \
