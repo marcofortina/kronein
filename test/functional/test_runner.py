@@ -178,6 +178,7 @@ BASE_SCRIPTS = [
     'tool_kronein_chainstate.py',
     'tool_wallet.py',
     'tool_utils.py',
+    'tool_randomx.py',
     'tool_genesis_ceremony.py',
     'tool_signet_miner.py',
     'tool_signet_quorum.py',
