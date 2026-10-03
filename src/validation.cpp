@@ -300,6 +300,44 @@ static bool IsCurrentForFeeEstimation(Chainstate& active_chainstate) EXCLUSIVE_L
     return true;
 }
 
+/** Administrative operations have no authority UTXO to conflict with.
+ * Recheck them when the confirmed sequence or height-selected quorum changes.
+ * Admission serializes authority operations against confirmed state, so each
+ * candidate must be checked independently, not chained to another pool entry. */
+static void RemoveInvalidAuthorityTransactions(Chainstate& chainstate, CTxMemPool& pool)
+    EXCLUSIVE_LOCKS_REQUIRED(cs_main, pool.cs)
+{
+    AssertLockHeld(cs_main);
+    AssertLockHeld(pool.cs);
+    const auto& consensus{chainstate.m_chainman.GetConsensus()};
+    if (!consensus.chain_registry.Enabled()) return;
+    const auto next_height{static_cast<uint32_t>(chainstate.m_chain.Height() + 1)};
+    auto candidate{chainstate.ChainRegistryState().Registry()};
+    std::vector<CTransactionRef> invalid;
+    for (const auto& entry : pool.mapTx) {
+        const auto& tx{entry.GetTx()};
+        const auto extracted{chainregistry::ExtractTransactionOperation(tx)};
+        if (!extracted.IsValid() || !extracted.operation) continue;
+        const auto& operation{extracted.operation->operation};
+        if (!std::holds_alternative<chainregistry::AuthorizeDealer>(operation) &&
+            !std::holds_alternative<chainregistry::UpdateDealer>(operation) &&
+            !std::holds_alternative<chainregistry::RevokeDealer>(operation) &&
+            !std::holds_alternative<chainregistry::RotateAuthority>(operation)) continue;
+        if (!consensus.chain_registry.IsActive(next_height)) {
+            invalid.push_back(entry.GetSharedTx());
+            continue;
+        }
+        const auto result{candidate.ApplyTransaction(tx, next_height, consensus.hashGenesisBlock,
+                                                      consensus.chain_registry.dealer_authority)};
+        if (!result.IsValid()) {
+            invalid.push_back(entry.GetSharedTx());
+        } else if (result.applied) {
+            Assert(result.undo && candidate.Undo(*result.undo));
+        }
+    }
+    for (const auto& tx : invalid) pool.removeRecursive(*tx, MemPoolRemovalReason::REORG);
+}
+
 void Chainstate::MaybeUpdateMempoolForReorg(
     DisconnectedBlockTransactions& disconnectpool,
     bool fAddToMempool)
@@ -390,6 +428,7 @@ void Chainstate::MaybeUpdateMempoolForReorg(
 
     // We also need to remove any now-immature transactions
     m_mempool->removeForReorg(m_chain, filter_final_and_mature);
+    RemoveInvalidAuthorityTransactions(*this, *m_mempool);
     // Re-limit mempool size, in case we added any transactions
     LimitMempoolSize(*m_mempool, this->CoinsTip());
 }
@@ -3205,6 +3244,9 @@ bool Chainstate::ConnectTip(
         LogDebug(BCLog::BENCH, "  - Using cached block\n");
     }
 
+    const auto previous_authority_sequence{ChainRegistryState().Registry().AuthoritySequence()};
+    const auto previous_authority{ChainRegistryState().Registry().Authority(
+        pindexNew->nHeight, m_chainman.GetConsensus().chain_registry.dealer_authority)};
     const auto registry_validation{ChainRegistryState().ValidateBlock(
         *block_to_connect, pindexNew->nHeight, pindexNew->GetBlockHash())};
     if (!ApplyRegistryStateResult(registry_validation, state)) {
@@ -3275,6 +3317,12 @@ bool Chainstate::ConnectTip(
     }
     // Update m_chain & related variables.
     m_chain.SetTip(*pindexNew);
+    if (m_mempool &&
+        (previous_authority_sequence != ChainRegistryState().Registry().AuthoritySequence() ||
+         previous_authority != ChainRegistryState().Registry().Authority(
+             pindexNew->nHeight + 1, m_chainman.GetConsensus().chain_registry.dealer_authority))) {
+        RemoveInvalidAuthorityTransactions(*this, *m_mempool);
+    }
     m_chainman.UpdateIBDStatus();
     UpdateTip(pindexNew);
 

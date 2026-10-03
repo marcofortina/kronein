@@ -173,6 +173,138 @@ class DealerAuthorityTest(BitcoinTestFramework):
         self.generatetoaddress(node, 1, self.address)
         assert_equal(peer.getchaindealer(dealer_id)["remaining_licenses"], 20)
 
+        self.test_rotation(dealer_id)
+
+    def test_rotation(self, dealer_id):
+        node, peer = self.nodes
+        replacement_secrets = sorted(
+            (i.to_bytes(32, "big") for i in range(11, 16)),
+            key=lambda secret: compute_xonly_pubkey(secret)[0],
+        )
+        replacement_keys = [compute_xonly_pubkey(secret)[0].hex() for secret in replacement_secrets]
+        before = node.getchainregistryinfo()
+        sequence = before["authority_sequence"] + 1
+        parameters = {
+            "authority_sequence": sequence,
+            "previous_policy_hash": before["dealer_authority_policy_hash"],
+            "next_authority_keys": replacement_keys,
+            "next_authority_threshold": 4,
+        }
+        self.log.info("Require both independent quorums for a delayed authority handover")
+        draft = node.createchainregistryoperation("rotate_authority", parameters)
+        assert_equal(draft["rotation_delay"], 144)
+        assert_equal(draft["next_authority_signatures_needed"], 4)
+        signed = self.signed_parameters("rotate_authority", parameters, range(4))
+        old_only = node.createchainregistryoperation("rotate_authority", signed)
+        assert not old_only["authority_complete"]
+        assert not node.testmempoolaccept([self.funded_transaction(old_only["data"])])[0]["allowed"]
+        new_signatures = [
+            {"key_index": i, "signature": sign_schnorr(
+                replacement_secrets[i], bytes.fromhex(draft["authority_hash"])).hex()}
+            for i in range(1, 5)
+        ]
+        signed["next_authority_signatures"] = new_signatures
+        complete = node.createchainregistryoperation("rotate_authority", signed)
+        assert complete["authority_complete"]
+        assert_equal(complete["authority_hash"], draft["authority_hash"])
+        decoded = node.decodechainregistryoperation(complete["script"])
+        assert_equal(decoded["next_authority_signatures"], new_signatures)
+        assert_equal(decoded["next_authority_keys"], replacement_keys)
+        for invalid in (
+            {**parameters, "previous_policy_hash": "11" * 32},
+            {**parameters, "next_authority_threshold": 3},
+            {**parameters, "next_authority_keys": self.keys},
+        ):
+            assert_raises_rpc_error(-8, "without changing", node.createchainregistryoperation,
+                                    "rotate_authority", invalid)
+        raw = self.funded_transaction(complete["data"])
+        txid = node.sendrawtransaction(raw)
+        self.sync_mempools()
+        inclusion_block = self.generatetoaddress(node, 1, self.address)[0]
+        included = node.getchainregistryinfo()
+        activation = included["height"] + 144
+        assert_equal(included["dealer_authority_activation_height"], activation)
+        assert included["dealer_authority_rotation_pending"]
+        assert_equal(included["dealer_authority_keys"], self.keys)
+        assert_equal(included["dealer_authority_pending_keys"], replacement_keys)
+        assert included["root"] != before["root"]
+        assert included["authority_state_hash"] != before["authority_state_hash"]
+        assert_raises_rpc_error(-8, "already pending", node.createchainregistryoperation,
+                                "rotate_authority", {**parameters, "authority_sequence": sequence + 1})
+        self.restart_node(1)
+        self.connect_nodes(0, 1)
+        self.sync_blocks()
+        assert_equal(peer.getchainregistryinfo(), included)
+
+        # A fully signed old-authority operation remains valid until the next
+        # block reaches activation. Keep its raw transaction to test consensus,
+        # independently of the RPC builder's signature checks.
+        update = {"authority_sequence": sequence + 1, "dealer_id": dealer_id, "added_licenses": 1}
+        old_update = self.signed_parameters("update_dealer", update, range(4))
+        old_raw = self.funded_transaction(node.createchainregistryoperation("update_dealer", old_update)["data"])
+        self.generatetoaddress(node, 142, self.address)
+        assert_equal(node.getblockcount(), activation - 2)
+        assert node.testmempoolaccept([old_raw])[0]["allowed"]
+        # Keep an old-quorum transaction in one node's pool while its peer
+        # mines the boundary without it. It must be evicted when the tip moves.
+        self.disconnect_nodes(0, 1)
+        old_txid = node.sendrawtransaction(old_raw)
+        self.generatetoaddress(peer, 1, self.address, sync_fun=self.no_op)
+        self.connect_nodes(0, 1)
+        self.sync_blocks()
+        assert old_txid not in node.getrawmempool()
+        boundary = node.getchainregistryinfo()
+        assert_equal(boundary["height"], activation - 1)
+        assert_equal(boundary["dealer_authority_keys"], self.keys)
+        assert_equal(boundary["dealer_authority_next_block_keys"], replacement_keys)
+        assert not node.testmempoolaccept([old_raw])[0]["allowed"]
+        assert_raises_rpc_error(-8, "authority_signatures do not verify", node.createchainregistryoperation,
+                                "update_dealer", old_update)
+        self.log.info("Activate exactly at H+144 and restore the old quorum across reorgs")
+        previous_secrets = self.secrets
+        self.secrets = replacement_secrets
+        new_update = self.signed_parameters("update_dealer", update, range(4))
+        new_raw = self.funded_transaction(node.createchainregistryoperation("update_dealer", new_update)["data"])
+        node.sendrawtransaction(new_raw)
+        activated_block = self.generatetoaddress(node, 1, self.address)[0]
+        active = node.getchainregistryinfo()
+        assert not active["dealer_authority_rotation_pending"]
+        assert_equal(active["dealer_authority_keys"], replacement_keys)
+        assert_equal(active["dealer_authority_pending_keys"], [])
+        assert_equal(peer.getchaindealer(dealer_id)["remaining_licenses"], 21)
+        for n in self.nodes:
+            n.invalidateblock(activated_block)
+            assert n.getchainregistryinfo()["dealer_authority_rotation_pending"]
+            assert_equal(n.getchainregistryinfo()["dealer_authority_keys"], self.keys)
+            assert_equal(n.getchaindealer(dealer_id)["remaining_licenses"], 20)
+        for n in self.nodes:
+            n.reconsiderblock(activated_block)
+        self.sync_blocks()
+        assert_equal(peer.getchainregistryinfo(), active)
+        self.restart_node(1, extra_args=[*self.extra_args[1], "-reindex-chainstate"])
+        self.connect_nodes(0, 1)
+        self.sync_blocks()
+        assert_equal(peer.getchainregistryinfo(), active)
+
+        for n in self.nodes:
+            n.invalidateblock(inclusion_block)
+            restored = n.getchainregistryinfo()
+            assert_equal(restored["root"], before["root"])
+            assert_equal(restored["dealer_authority_keys"], self.keys)
+            assert_equal(restored["dealer_authority_activation_height"], 0)
+            assert_equal(restored["authority_sequence"], before["authority_sequence"])
+        # Deep invalidations only resurrect transactions from the ten most
+        # recently disconnected blocks. Check validity, then rebroadcast the
+        # rotation after both nodes have restored the pre-rotation chainstate.
+        assert node.testmempoolaccept([raw])[0]["allowed"]
+        assert_equal(node.sendrawtransaction(raw), txid)
+        self.secrets = previous_secrets
+        for n in self.nodes:
+            n.reconsiderblock(inclusion_block)
+        self.sync_blocks()
+        assert_equal(peer.getchainregistryinfo(), active)
+
+
 
 if __name__ == "__main__":
     DealerAuthorityTest(__file__).main()
