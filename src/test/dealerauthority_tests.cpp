@@ -6,7 +6,6 @@
 #include <key.h>
 #include <primitives/dealerauthority.h>
 #include <streams.h>
-#include <test/util/setup_common.h>
 
 #include <boost/test/unit_test.hpp>
 
@@ -54,7 +53,9 @@ struct AuthorityFixture {
 
 } // namespace
 
-BOOST_FIXTURE_TEST_SUITE(dealerauthority_tests, BasicTestingSetup)
+// These primitive/registry tests need elliptic-curve signing, not a running node
+// or a RandomX VM. Keep them usable by memory checkers without JIT execution.
+BOOST_FIXTURE_TEST_SUITE(dealerauthority_tests, ECC_Context)
 
 BOOST_AUTO_TEST_CASE(all_quorums_and_subsets)
 {
