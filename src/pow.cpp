@@ -325,8 +325,9 @@ std::optional<RandomXSeed> GetRandomXSeed(const CBlockIndex* pindex_prev, int bl
     if (pindex_prev == nullptr || *seed_height > pindex_prev->nHeight) return std::nullopt;
     const CBlockIndex* seed_index{pindex_prev->GetAncestor(*seed_height)};
     if (seed_index == nullptr) return std::nullopt;
+    const uint256 seed_hash{seed_index->GetBlockHash()};
     RandomXSeed seed;
-    std::copy(seed_index->GetBlockHash().begin(), seed_index->GetBlockHash().end(), seed.begin());
+    std::copy(seed_hash.begin(), seed_hash.end(), seed.begin());
     return seed;
 }
 
