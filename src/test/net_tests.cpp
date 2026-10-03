@@ -92,6 +92,68 @@ BOOST_AUTO_TEST_CASE(cnode_listen_port)
     BOOST_CHECK(port == altPort);
 }
 
+BOOST_AUTO_TEST_CASE(listen_socket_options)
+{
+    struct SocketFactoryGuard {
+        decltype(CreateSock) original{CreateSock};
+        ~SocketFactoryGuard() { CreateSock = original; }
+    } guard;
+    struct State {
+        bool option_set{false};
+        bool bound{false};
+        bool reject_option;
+    };
+    struct ListenSock final : ZeroSock {
+        State& state;
+        explicit ListenSock(State& state_in) : state{state_in} {}
+
+        int SetSockOpt(int level, int option, const void* value, socklen_t size) const override
+        {
+            BOOST_CHECK_EQUAL(level, SOL_SOCKET);
+#ifdef WIN32
+            BOOST_CHECK_EQUAL(option, SO_EXCLUSIVEADDRUSE);
+#else
+            BOOST_CHECK_EQUAL(option, SO_REUSEADDR);
+#endif
+            BOOST_CHECK_EQUAL(size, sizeof(int));
+            BOOST_CHECK_EQUAL(*static_cast<const int*>(value), 1);
+            state.option_set = true;
+            return state.reject_option ? SOCKET_ERROR : 0;
+        }
+
+        int Bind(const sockaddr*, socklen_t) const override
+        {
+            BOOST_CHECK(state.option_set);
+            state.bound = true;
+            return 0;
+        }
+
+    private:
+        ListenSock& operator=(Sock&&) override
+        {
+            assert(false && "Move of Sock into ListenSock not allowed.");
+            return *this;
+        }
+    };
+
+    auto& connman{static_cast<ConnmanTestMsg&>(*m_node.connman)};
+    CConnman::Options options;
+    options.vBinds.push_back(LookupNumeric("127.0.0.1:56762"));
+    for (const bool reject_option : {false, true}) {
+        State state{.reject_option = reject_option};
+        CreateSock = [&](int, int, int) { return std::make_unique<ListenSock>(state); };
+#ifdef WIN32
+        const bool expected{!reject_option}; // Never listen without exclusive ownership.
+#else
+        const bool expected{true}; // Failure to enable TIME_WAIT reuse is nonfatal.
+#endif
+        BOOST_CHECK_EQUAL(connman.InitBindsPublic(options), expected);
+        BOOST_CHECK(state.option_set);
+        BOOST_CHECK_EQUAL(state.bound, expected);
+        connman.StopNodes();
+    }
+}
+
 BOOST_AUTO_TEST_CASE(cnode_simple_test)
 {
     NodeId id = 0;
