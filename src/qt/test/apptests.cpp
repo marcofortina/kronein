@@ -12,6 +12,7 @@
 #include <qt/bitcoin.h>
 #include <qt/bitcoingui.h>
 #include <qt/childchaindialog.h>
+#include <qt/dealerauthoritydialog.h>
 #include <qt/networkstyle.h>
 #include <qt/rpcconsole.h>
 #include <test/util/setup_common.h>
@@ -20,6 +21,7 @@
 #include <QAction>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QPlainTextEdit>
 #include <QRegularExpression>
 #include <QScopedPointer>
 #include <QSignalSpy>
@@ -103,6 +105,19 @@ void AppTests::guiTests(BitcoinGUI* window)
     QTableWidget* child_chain_table = child_chains->findChild<QTableWidget*>("childChainTable");
     QVERIFY(child_chain_table);
     QCOMPARE(child_chain_table->columnCount(), 8);
+    auto* authority_button{child_chains->findChild<QPushButton*>("childChainAuthorityButton")};
+    QVERIFY(authority_button);
+    authority_button->click();
+    auto* authority{child_chains->findChild<DealerAuthorityDialog*>("dealerAuthorityDialog")};
+    QVERIFY(authority);
+    QVERIFY(authority->isVisible());
+    auto* authority_status{authority->findChild<QPlainTextEdit*>("dealerAuthorityStatus")};
+    QVERIFY(authority_status);
+    QVERIFY(authority_status->toPlainText().contains("dealer_authority_activation_height"));
+    auto* authority_submit{authority->findChild<QPushButton*>("dealerAuthoritySubmit")};
+    QVERIFY(authority_submit);
+    QVERIFY(!authority_submit->isEnabled());
+    authority->close();
     QPushButton* add_peer_button = child_chains->findChild<QPushButton*>("childChainAddPeerButton");
     QPushButton* remove_peer_button = child_chains->findChild<QPushButton*>("childChainRemovePeerButton");
     QPushButton* binds_button = child_chains->findChild<QPushButton*>("childChainBindsButton");

@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <qt/childchaindialog.h>
+#include <qt/dealerauthoritydialog.h>
 
 #include <bitcoin-build-config.h> // IWYU pragma: keep
 #include <core_io.h>
@@ -214,6 +215,16 @@ ChildChainDialog::ChildChainDialog(interfaces::Node& node, QWidget* parent)
     m_discovery_button = actions->addButton(tr("Discovery…"), QDialogButtonBox::ActionRole);
     m_network_button = actions->addButton(tr("Pause Network"), QDialogButtonBox::ActionRole);
     m_bmm_button = actions->addButton(tr("BMM…"), QDialogButtonBox::ActionRole);
+    auto* authority_button{actions->addButton(tr("Dealer Authority…"), QDialogButtonBox::ActionRole)};
+    authority_button->setObjectName(QStringLiteral("childChainAuthorityButton"));
+    connect(authority_button, &QPushButton::clicked, this, [this] {
+        auto* dialog{new DealerAuthorityDialog{m_node, this}};
+        dialog->setAttribute(Qt::WA_DeleteOnClose);
+#ifdef ENABLE_WALLET
+        dialog->setWalletModel(m_wallet_model);
+#endif
+        dialog->show();
+    });
 #ifdef ENABLE_WALLET
     m_register_button = actions->addButton(tr("Register…"), QDialogButtonBox::ActionRole);
     m_registry_psbt_button = actions->addButton(tr("Registry PSBT…"), QDialogButtonBox::ActionRole);
