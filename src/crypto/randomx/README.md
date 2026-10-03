@@ -16,7 +16,7 @@ The upstream source and its BSD 3-Clause license are retained under
   corresponding v2.0.1 upstream files;
 - batch API parameter documentation is attached to the corresponding function
   declaration, allowing strict Clang documentation checks;
-- leading indentation in the public C header uses spaces for strict Clang
+- leading indentation in the public C header uses spaces for strict compiler
   whitespace checks in native consumers;
 - BLAKE2's C/C++ compile-time layout checks explicitly convert their boolean
   conditions to integers, avoiding MSVC C4804 without disabling warnings;
