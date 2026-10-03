@@ -57,6 +57,7 @@ class NativeBlockTest(BitcoinTestFramework):
         )
         if transactions:
             add_witness_commitment(block)
+        assert_equal(block.nVersion, version)
         block.solve()
         return block
 
