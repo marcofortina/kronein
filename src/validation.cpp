@@ -852,9 +852,27 @@ bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
     std::set<Txid> visiting;
     std::vector<const CTransaction*> ordered_ancestors;
     const auto& removals{m_subpackage.m_changeset->GetRemovals()};
-    const auto visit_ancestors = [&](const auto& self, const CTransaction& tx)
+    const auto visit_ancestors = [&](const CTransaction& tx)
         EXCLUSIVE_LOCKS_REQUIRED(cs_main, m_pool.cs) -> bool {
-        for (const CTxIn& input : tx.vin) {
+        struct Frame {
+            const CTransaction* tx;
+            size_t next_input{0};
+        };
+        std::vector<Frame> pending{{&tx}};
+        while (!pending.empty()) {
+            Frame& frame{pending.back()};
+            if (frame.next_input == frame.tx->vin.size()) {
+                const CTransaction* completed{frame.tx};
+                pending.pop_back();
+                if (!pending.empty()) {
+                    const Txid id{completed->GetHash()};
+                    visiting.erase(id);
+                    visited.insert(id);
+                    ordered_ancestors.push_back(completed);
+                }
+                continue;
+            }
+            const CTxIn& input{frame.tx->vin[frame.next_input++]};
             const auto parent{m_pool.GetIter(input.prevout.hash)};
             if (!parent) continue;
             if (removals.contains(*parent)) {
@@ -868,17 +886,14 @@ bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
                 return ws.m_state.Invalid(TxValidationResult::TX_CONSENSUS,
                                           "chain-registry-ancestor-cycle");
             }
-            if (!self(self, parent_tx)) return false;
-            visiting.erase(parent_id);
-            visited.insert(parent_id);
-            ordered_ancestors.push_back(&parent_tx);
+            pending.push_back({&parent_tx});
         }
         return true;
     };
 
     const auto staged{m_subpackage.m_changeset->GetAddedTxns()};
     for (const auto& tx : staged) {
-        if (!visit_ancestors(visit_ancestors, *tx)) return false;
+        if (!visit_ancestors(*tx)) return false;
     }
 
     const auto apply = [&](const CTransaction& tx) {
