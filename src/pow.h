@@ -54,6 +54,8 @@ std::optional<RandomXSeed> GetRandomXSeed(const CBlockIndex* pindex_prev, int bl
 std::optional<uint256> GetRandomXWorkHash(const CBlockHeader& header, std::span<const unsigned char> seed);
 /** Check RandomX v2 work against the compact target committed by the header. */
 bool CheckProofOfWork(const CBlockHeader& header, std::span<const unsigned char> seed, const Consensus::Params&);
+/** Verify real RandomX work even in a fuzz build (e.g. frozen genesis proofs). */
+bool CheckProofOfWorkImpl(const CBlockHeader& header, std::span<const unsigned char> seed, const Consensus::Params&);
 /** Check using the bootstrap/fixed seed (genesis and regtest convenience). */
 bool CheckProofOfWork(const CBlockHeader& header, const Consensus::Params&);
 

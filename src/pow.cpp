@@ -345,9 +345,16 @@ std::optional<uint256> GetRandomXWorkHash(const CBlockHeader& header, std::span<
 
 bool CheckProofOfWork(const CBlockHeader& header, std::span<const unsigned char> seed, const Consensus::Params& params)
 {
-    if (!DeriveTarget(header.nBits, params.powLimit)) return false;
     // Keep fuzz targets fast while preserving deterministic accept/reject behavior.
-    if (EnableFuzzDeterminism()) return (header.GetHash().data()[31] & 0x80) == 0;
+    if (EnableFuzzDeterminism()) {
+        return DeriveTarget(header.nBits, params.powLimit) && (header.GetHash().data()[31] & 0x80) == 0;
+    }
+    return CheckProofOfWorkImpl(header, seed, params);
+}
+
+bool CheckProofOfWorkImpl(const CBlockHeader& header, std::span<const unsigned char> seed, const Consensus::Params& params)
+{
+    if (!DeriveTarget(header.nBits, params.powLimit)) return false;
     const auto work_hash{GetRandomXWorkHash(header, seed)};
     return work_hash && CheckProofOfWorkTarget(*work_hash, header.nBits, params);
 }
@@ -361,6 +368,16 @@ bool MineProofOfWork(CBlockHeader& header, std::span<const unsigned char> seed, 
 {
     const auto target{DeriveTarget(header.nBits, params.powLimit)};
     if (!target || seed.empty()) return false;
+
+    if (EnableFuzzDeterminism()) {
+        while (max_tries > 0) {
+            if (CheckProofOfWork(header, seed, params)) return true;
+            --max_tries;
+            if (header.nNonce == std::numeric_limits<uint32_t>::max()) return false;
+            ++header.nNonce;
+        }
+        return false;
+    }
 
     const randomx_pow::Mode mode{use_full_memory && !params.randomx.fixed_seed ? randomx_pow::Mode::FULL : randomx_pow::Mode::LIGHT};
     auto hasher{randomx_pow::GetCachedHasher(seed, mode, threads)};

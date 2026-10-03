@@ -24,6 +24,23 @@ void initialize_pow()
     SelectParams(ChainType::MAIN);
 }
 
+FUZZ_TARGET(pow_mining, .init = initialize_pow)
+{
+    FuzzedDataProvider provider(buffer.data(), buffer.size());
+    CBlockHeader header;
+    header.nNonce = provider.ConsumeIntegral<uint32_t>();
+    header.nTime = provider.ConsumeIntegral<uint32_t>();
+    const auto& consensus{Params().GetConsensus()};
+    header.nBits = provider.ConsumeBool() ? Params().GenesisBlock().nBits : provider.ConsumeIntegral<uint32_t>();
+    uint64_t tries{provider.ConsumeIntegralInRange<uint64_t>(0, 16)};
+    const uint64_t initial_tries{tries};
+    if (MineProofOfWork(header, consensus, tries, /*threads=*/1, /*use_full_memory=*/false)) {
+        Assert(tries > 0);
+        Assert(CheckProofOfWork(header, consensus));
+    }
+    Assert(tries <= initial_tries);
+}
+
 FUZZ_TARGET(pow, .init = initialize_pow)
 {
     FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());

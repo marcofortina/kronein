@@ -166,7 +166,7 @@ public:
         consensus.asert = ASERTParameters(genesis, consensus.nPowTargetSpacing);
         consensus.nMinimumChainWork = ArithToUint256(GetBlockProof(genesis));
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(CheckProofOfWork(genesis, consensus));
+        assert(CheckProofOfWorkImpl(genesis, consensus.randomx.bootstrap_key, consensus));
         assert(consensus.hashGenesisBlock == uint256{"d79a7c8037d9e67d1aa7fc8ea321da88b8edf99b6a5fd7ab5fbfee2751885ad9"});
         assert(genesis.hashMerkleRoot == uint256{"ee1e466a37851f03f38481dd281b38a0ae273b0ac305b793ced40cd249cc94ee"});
         assert(GetSerializeSize(static_cast<const CBlockHeader&>(genesis)) == 80);
@@ -233,7 +233,7 @@ public:
         consensus.asert = ASERTParameters(genesis, consensus.nPowTargetSpacing);
         consensus.nMinimumChainWork = ArithToUint256(GetBlockProof(genesis));
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(CheckProofOfWork(genesis, consensus));
+        assert(CheckProofOfWorkImpl(genesis, consensus.randomx.bootstrap_key, consensus));
         assert(consensus.hashGenesisBlock == uint256{"c81c93beedf92bb04515d8981f16a3e28337d072f6f1b8b2177073cbb121bfdc"});
         assert(genesis.hashMerkleRoot == uint256{"afa5478a2505eb78f1a0b45b391170bb08059c0d0ff97e12950d7bae18e331a5"});
         assert(GetSerializeSize(static_cast<const CBlockHeader&>(genesis)) == 80);
@@ -326,7 +326,7 @@ public:
         consensus.asert = ASERTParameters(genesis, consensus.nPowTargetSpacing);
         consensus.nMinimumChainWork = ArithToUint256(GetBlockProof(genesis));
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(CheckProofOfWork(genesis, consensus));
+        assert(CheckProofOfWorkImpl(genesis, consensus.randomx.bootstrap_key, consensus));
         assert(consensus.hashGenesisBlock == uint256{"70839a886fd128e4d6ec2de17bd0786bbf10b1184aa8ba06fc43de9cf3f096ad"});
         assert(genesis.hashMerkleRoot == uint256{"b206dec2776def7418f69919ed312ccef711ea94030f895f1c3658b5a9fe5207"});
         assert(GetSerializeSize(static_cast<const CBlockHeader&>(genesis)) == 80);
@@ -390,7 +390,7 @@ public:
         genesis = CreateGenesisBlock("regtest", 1789776000, 1, 0x207fffff, 1, 50 * COIN);
         consensus.nMinimumChainWork = ArithToUint256(GetBlockProof(genesis));
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(CheckProofOfWork(genesis, consensus));
+        assert(CheckProofOfWorkImpl(genesis, consensus.randomx.bootstrap_key, consensus));
         assert(consensus.hashGenesisBlock == uint256{"a55bf2cd9513e5203827b029e15153769d596b0ad29e6ebca232eaba07c95f73"});
         assert(genesis.hashMerkleRoot == uint256{"ad0a917028b6f38fa62dde00a12c869db1ebed1c78e45db36fcc1297b79c7516"});
         assert(GetSerializeSize(static_cast<const CBlockHeader&>(genesis)) == 80);

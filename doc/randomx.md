@@ -119,6 +119,12 @@ and mining/verification round trips. The Python functional
 framework calls the same vendored implementation through a test-only bridge;
 it does not substitute another hash function or bypass proof of work.
 
+As in upstream Bitcoin Core, the separate fuzz harness uses a cheap,
+deterministic work predicate. Its miner and verifier use the same predicate;
+the fixed genesis proofs are still checked with real RandomX through
+`CheckProofOfWorkImpl`. This substitution is unavailable in production builds
+and is not used by the functional tests.
+
 ## Reproducible launch measurements
 
 Build the existing benchmark target and run:

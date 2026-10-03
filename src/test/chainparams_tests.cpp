@@ -118,7 +118,7 @@ BOOST_AUTO_TEST_CASE(randomx_genesis_proofs)
     };
     for (const auto& [params, name] : networks) {
         BOOST_TEST_CONTEXT(name) {
-            BOOST_CHECK(CheckProofOfWork(params->GenesisBlock(), params->GetConsensus()));
+            BOOST_CHECK(CheckProofOfWorkImpl(params->GenesisBlock(), params->GetConsensus().randomx.bootstrap_key, params->GetConsensus()));
             BOOST_CHECK_EQUAL(GetSerializeSize(static_cast<const CBlockHeader&>(params->GenesisBlock())), 80U);
         }
     }
