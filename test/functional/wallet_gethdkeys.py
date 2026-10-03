@@ -161,6 +161,10 @@ class WalletGetHDKeyTest(BitcoinTestFramework):
                 assert False
 
     def test_mixed_multisig(self):
+        wallet = self.nodes[0].get_wallet_rpc("ranged_multisig")
+        for info in wallet.gethdkeys(private=True):
+            assert_equal("xprv" in info, info["has_private"])
+
         self.log.info("Non-HD keys of a multisig do not appear in gethdkeys")
         self.nodes[0].createwallet("single_multisig")
         wallet = self.nodes[0].get_wallet_rpc("single_multisig")
