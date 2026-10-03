@@ -305,6 +305,14 @@ BOOST_AUTO_TEST_CASE(util_ReplaceAll)
     test_replaceall("%s", "foo", "A test \"foo\" string 'foo'.");
     test_replaceall("\"", "foo", "A test foo%sfoo string '%s'.");
     test_replaceall("'", "foo", "A test \"%s\" string foo%sfoo.");
+    auto literal = [](std::string text, const std::string& search, const std::string& replacement, const std::string& expected) {
+        ReplaceAll(text, search, replacement);
+        BOOST_CHECK_EQUAL(text, expected);
+    };
+    literal("a.b", ".", "x", "axb");
+    literal("%w and %w", "%w", "$&$`$'$1$$", "$&$`$'$1$$ and $&$`$'$1$$");
+    literal("x", "x", "xx", "xx");
+    literal("unchanged", "absent", "replacement", "unchanged");
 }
 
 BOOST_AUTO_TEST_CASE(util_TrimString)
