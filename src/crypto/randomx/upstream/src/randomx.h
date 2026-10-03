@@ -262,13 +262,29 @@ RANDOMX_EXPORT void randomx_calculate_hash(randomx_vm *machine, const void *inpu
  * @param machine is a pointer to a randomx_vm structure. Must not be NULL.
  * @param input is a pointer to memory to be hashed. Must not be NULL.
  * @param inputSize is the number of bytes to be hashed.
+*/
+RANDOMX_EXPORT void randomx_calculate_hash_first(randomx_vm* machine, const void* input, size_t inputSize);
+
+/**
+ * Outputs the previous hash and begins the next calculation in a batch.
+ * May alter the floating point rounding mode of the calling thread.
+ *
+ * @param machine is a pointer to a randomx_vm structure. Must not be NULL.
  * @param nextInput is a pointer to memory to be hashed for the next hash. Must not be NULL.
  * @param nextInputSize is the number of bytes to be hashed for the next hash.
  * @param output is a pointer to memory where the hash will be stored. Must not
  *        be NULL and at least RANDOMX_HASH_SIZE bytes must be available for writing.
 */
-RANDOMX_EXPORT void randomx_calculate_hash_first(randomx_vm* machine, const void* input, size_t inputSize);
 RANDOMX_EXPORT void randomx_calculate_hash_next(randomx_vm* machine, const void* nextInput, size_t nextInputSize, void* output);
+
+/**
+ * Outputs the final hash in a batch.
+ * May alter the floating point rounding mode of the calling thread.
+ *
+ * @param machine is a pointer to a randomx_vm structure. Must not be NULL.
+ * @param output is a pointer to memory where the hash will be stored. Must not
+ *        be NULL and at least RANDOMX_HASH_SIZE bytes must be available for writing.
+*/
 RANDOMX_EXPORT void randomx_calculate_hash_last(randomx_vm* machine, void* output);
 
 /**

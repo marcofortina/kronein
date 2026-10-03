@@ -14,9 +14,11 @@ The upstream source and its BSD 3-Clause license are retained under
   under the project's strict CI configuration;
 - documentation links for files omitted from the vendored subset point to the
   corresponding v2.0.1 upstream files;
+- batch API parameter documentation is attached to the corresponding function
+  declaration, allowing strict Clang documentation checks;
 - the x86 static assembly declares a non-executable GNU stack on ELF targets.
 
-Algorithm and API sources are unchanged.
+The algorithm and API signatures are unchanged.
 
 Kronein's C++ ownership, cache reuse, v2 flag selection, and full/light mode
 adapter live in `src/crypto/randomx.{h,cpp}` outside this directory.
