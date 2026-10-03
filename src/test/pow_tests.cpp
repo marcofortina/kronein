@@ -14,6 +14,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include <array>
+#include <cmath>
 
 BOOST_FIXTURE_TEST_SUITE(pow_tests, BasicTestingSetup)
 
@@ -179,6 +180,63 @@ BOOST_AUTO_TEST_CASE(asert_large_pow_limit_is_overflow_safe)
                                     consensus.nPowTargetSpacing - consensus.asert.half_life,
                                     0, pow_limit, consensus.asert.half_life),
                       pow_limit >> 1);
+}
+
+BOOST_AUTO_TEST_CASE(asert_launch_hashrate_scenarios)
+{
+    // Deterministic expected-arrival model, not a stochastic forecast or a
+    // security claim. Exercise the production DAA, including compact rounding
+    // and monotonic, whole-second timestamps, without mining actual blocks.
+    const auto params{CreateChainParams(*m_node.args, ChainType::MAIN)};
+    auto consensus{params->GetConsensus()};
+    // A calibrated hypothetical launch target with room for a 100x departure.
+    // Never change the actual network's target or half-life in this experiment.
+    arith_uint256 launch_target{UintToArith256(consensus.powLimit)};
+    launch_target >>= 10;
+    consensus.asert.anchor_bits = launch_target.GetCompact();
+    const arith_uint256 reference{arith_uint256{}.SetCompact(consensus.asert.anchor_bits)};
+    const double spacing{static_cast<double>(consensus.nPowTargetSpacing)};
+    for (const double multiplier : {0.01, 0.1, 1.0, 10.0, 100.0}) {
+        CBlockIndex previous{params->GenesisBlock()};
+        previous.nBits = consensus.asert.anchor_bits;
+        const int64_t start_time{previous.GetBlockTime()};
+        double elapsed{0};
+        int recovery_blocks{-1};
+        double recovery_seconds{0};
+        double maximum_interval{0};
+        double excess_blocks{0};
+        // First observe the changed hashrate; then return to baseline after
+        // 6000 blocks and require recovery from the departure too.
+        for (int height{1}; height <= 12000; ++height) {
+            const double rate{height <= 6000 ? multiplier : 1.0};
+            CBlockHeader candidate;
+            candidate.nTime = previous.nTime + 1;
+            const uint32_t bits{GetNextWorkRequired(&previous, &candidate, consensus)};
+            const arith_uint256 target{arith_uint256{}.SetCompact(bits)};
+            BOOST_REQUIRE(target > 0 && target <= UintToArith256(consensus.powLimit));
+            const double interval{spacing * reference.getdouble() / target.getdouble() / rate};
+            elapsed += interval;
+            if (height <= 6000) {
+                maximum_interval = std::max(maximum_interval, interval);
+                excess_blocks = height - elapsed / spacing;
+                if (recovery_blocks == -1 && std::abs(interval / spacing - 1.0) < 0.1) {
+                    recovery_blocks = height;
+                    recovery_seconds = elapsed;
+                }
+            }
+            if (height == 6000 || height == 12000) {
+                BOOST_CHECK_LT(std::abs(interval / spacing - 1.0), 0.1);
+            }
+            previous.nHeight = height;
+            previous.nBits = bits;
+            previous.nTime = std::max<int64_t>(previous.nTime + 1, start_time + std::llround(elapsed));
+        }
+        BOOST_CHECK_GE(recovery_blocks, 1);
+        BOOST_TEST_MESSAGE("ASERT hashrate=" << multiplier << "x; recovery_to_10pct_blocks="
+                           << recovery_blocks << "; recovery_hours=" << recovery_seconds / 3600
+                           << "; maximum_expected_gap_hours=" << maximum_interval / 3600
+                           << "; schedule_excess_blocks_at_6000=" << excess_blocks);
+    }
 }
 
 BOOST_AUTO_TEST_CASE(asert_published_vectors)

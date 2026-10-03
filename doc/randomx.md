@@ -118,3 +118,29 @@ header validation, official ASERT vectors, spike/recovery difficulty cases,
 and mining/verification round trips. The Python functional
 framework calls the same vendored implementation through a test-only bridge;
 it does not substitute another hash function or bypass proof of work.
+
+## Reproducible launch measurements
+
+Build the existing benchmark target and run:
+
+```sh
+cmake --build build --target bench_bitcoin
+build/bin/bench_kronein '-filter=RandomX(Full|Light)' -min-time=5000
+build/bin/test_kronein --run_test=pow_tests/asert_launch_hashrate_scenarios --log_level=message
+```
+
+`RandomXFull` and `RandomXLight` hash changing 80-byte headers through the same
+wrapper as mining and verification. Results are hashes per second for one VM;
+parallel dataset construction is not parallel mining. Cache/dataset setup is
+excluded. Record CPU, build mode, background load, power governor, and repeated
+runs before using a measurement. Do not extrapolate a shared development
+machine into a claimed network hashrate.
+
+The ASERT test uses the production integer difficulty calculation with a
+hypothetical anchor 1024 times harder than powLimit. It measures deterministic
+expected arrivals after 10x/100x increases and decreases, then a return to the
+baseline rate. It is not a stochastic forecast, adversarial simulation, or a
+promise of rapid recovery. At the two-day half-life, recovery can take days.
+At powLimit no DAA can make a block easier: if the remaining hashrate is too
+low, the target interval cannot be restored. Launch hashrate, powLimit, initial
+target and half-life must therefore be evaluated together.
