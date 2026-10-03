@@ -178,6 +178,13 @@ if [ "${RUN_TIDY}" = "true" ]; then
 fi
 
 if [[ "${RUN_IWYU}" == true ]]; then
+  # RandomX is a separately maintained vendored C/C++ library. Keep its
+  # upstream headers (including the C API) out of automatic include rewrites.
+  # The native crypto/randomx.cpp adapter remains checked and all sources
+  # remain part of the normal build and runtime tests.
+  IWYU_VENDOR_PATTERN="/src/crypto/randomx/upstream/"
+  jq --arg vendor "$IWYU_VENDOR_PATTERN" 'map(select(.file | contains($vendor) | not))' "${BASE_BUILD_DIR}/compile_commands.json" > "${BASE_BUILD_DIR}/compile_commands_iwyu_native.json"
+  mv "${BASE_BUILD_DIR}/compile_commands_iwyu_native.json" "${BASE_BUILD_DIR}/compile_commands.json"
   # TODO: Consider enforcing IWYU across the entire codebase.
   FILES_WITH_ENFORCED_IWYU="/src/((crypto|index|kernel|primitives|univalue/(lib|test)|zmq)/.*\\.cpp|node/blockstorage\\.cpp|node/utxo_snapshot\\.cpp|core_io\\.cpp|signet\\.cpp)"
   jq --arg patterns "$FILES_WITH_ENFORCED_IWYU" 'map(select(.file | test($patterns)))' "${BASE_BUILD_DIR}/compile_commands.json" > "${BASE_BUILD_DIR}/compile_commands_iwyu_errors.json"
@@ -193,7 +200,7 @@ if [[ "${RUN_IWYU}" == true ]]; then
              -Xiwyu --max_line_length=160 \
              -Xiwyu --check_also="*/primitives/*.h" \
              2>&1 | tee /tmp/iwyu_ci.out
-    python3 "/include-what-you-use/fix_includes.py" --nosafe_headers < /tmp/iwyu_ci.out
+    python3 "/include-what-you-use/fix_includes.py" --nosafe_headers --ignore_re="$IWYU_VENDOR_PATTERN" < /tmp/iwyu_ci.out
     git diff -U1 | ./contrib/devtools/clang-format-diff.py -binary="clang-format-${TIDY_LLVM_V}" -p1 -i -v
   }
 
