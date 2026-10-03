@@ -1121,7 +1121,7 @@ BOOST_AUTO_TEST_CASE(registry_block_transition_and_undo)
         main_genesis,
         TestAuthorityKey(),
         10,
-        chainregistry::CommitmentRequirement::OPTIONAL)};
+        chainregistry::CommitmentRequirement::NOT_REQUIRED)};
     BOOST_REQUIRE(optional_result.IsValid());
     BOOST_REQUIRE(optional_result.undo.has_value());
     BOOST_REQUIRE(registry.UndoBlock(*optional_result.undo));
@@ -1162,7 +1162,7 @@ BOOST_AUTO_TEST_CASE(registry_block_failures_are_atomic)
         main_genesis,
         TestAuthorityKey(),
         0,
-        chainregistry::CommitmentRequirement::OPTIONAL);
+        chainregistry::CommitmentRequirement::NOT_REQUIRED);
     BOOST_CHECK(result.error == chainregistry::RegistryBlockError::TOO_MANY_OPERATIONS);
     BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(), empty_root.GetHex());
 
@@ -1172,7 +1172,7 @@ BOOST_AUTO_TEST_CASE(registry_block_failures_are_atomic)
         main_genesis,
         TestAuthorityKey(),
         10,
-        chainregistry::CommitmentRequirement::OPTIONAL);
+        chainregistry::CommitmentRequirement::NOT_REQUIRED);
     BOOST_CHECK(result.error == chainregistry::RegistryBlockError::TRANSACTION_TRANSITION);
     BOOST_CHECK(result.tx_index == 2U);
     BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(), empty_root.GetHex());
@@ -1185,7 +1185,7 @@ BOOST_AUTO_TEST_CASE(registry_block_failures_are_atomic)
         main_genesis,
         TestAuthorityKey(),
         10,
-        chainregistry::CommitmentRequirement::OPTIONAL);
+        chainregistry::CommitmentRequirement::NOT_REQUIRED);
     BOOST_CHECK(result.error == chainregistry::RegistryBlockError::NON_COINBASE_COMMITMENT);
 
     CMutableTransaction operation_coinbase{CoinbaseTx()};
@@ -1198,7 +1198,7 @@ BOOST_AUTO_TEST_CASE(registry_block_failures_are_atomic)
         main_genesis,
         TestAuthorityKey(),
         10,
-        chainregistry::CommitmentRequirement::OPTIONAL);
+        chainregistry::CommitmentRequirement::NOT_REQUIRED);
     BOOST_CHECK(result.error == chainregistry::RegistryBlockError::COINBASE_OPERATION);
     BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(), empty_root.GetHex());
 }

@@ -49,7 +49,7 @@ std::optional<CTxOut> AddRegistryCommitment(CBlock& block, Chainstate& chainstat
                                            chainstate.m_chainman.GetConsensus().hashGenesisBlock,
                                            params.dealer_authority,
                                            params.maximum_operations,
-                                           chainregistry::CommitmentRequirement::OPTIONAL)};
+                                           chainregistry::CommitmentRequirement::NOT_REQUIRED)};
     if (!result.IsValid()) {
         throw std::runtime_error(strprintf(
             "Cannot construct child-chain registry commitment (error %u, transaction %s)",

@@ -338,7 +338,7 @@ struct CommitmentTxResult {
 };
 
 enum class CommitmentRequirement : uint8_t {
-    OPTIONAL,
+    NOT_REQUIRED,
     REQUIRED,
 };
 
