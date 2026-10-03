@@ -229,7 +229,8 @@ class BlockchainTest(BitcoinTestFramework):
         self.log.info("Test getchaintxstats")
 
         # Test `getchaintxstats` invalid extra parameters
-        assert_raises_rpc_error(-1, 'getchaintxstats', self.nodes[0].getchaintxstats, 0, '', 0)
+        assert_raises_rpc_error(-1, 'getchaintxstats', self.nodes[0].getchaintxstats, 0, '', None, 0)
+        assert_raises_rpc_error(-3, 'JSON value of type number is not of expected type string', self.nodes[0].getchaintxstats, chain_id=0)
 
         # Test `getchaintxstats` invalid `nblocks`
         assert_raises_rpc_error(-3, "JSON value of type string is not of expected type number", self.nodes[0].getchaintxstats, '')

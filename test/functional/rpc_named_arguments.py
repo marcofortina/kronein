@@ -18,7 +18,8 @@ class NamedArgumentTest(BitcoinTestFramework):
     def run_test(self):
         node = self.nodes[0]
         h = node.help(command='getblockchaininfo')
-        assert h.startswith('getblockchaininfo\n')
+        assert h.startswith('getblockchaininfo ( "chain_id" )\n')
+        assert_raises_rpc_error(-8, 'chain_id must be exactly 32 non-null bytes', node.getblockchaininfo, chain_id='0')
 
         assert_raises_rpc_error(-8, 'Unknown named parameter', node.help, random='getblockchaininfo')
 
