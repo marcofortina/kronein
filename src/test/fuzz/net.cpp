@@ -13,6 +13,7 @@
 #include <test/fuzz/util.h>
 #include <test/fuzz/util/net.h>
 #include <test/util/net.h>
+#include <test/util/random.h>
 #include <test/util/setup_common.h>
 #include <util/asmap.h>
 #include <util/chaintype.h>
@@ -30,6 +31,7 @@ void initialize_net()
 
 FUZZ_TARGET(net, .init = initialize_net)
 {
+    SeedRandomStateForTest(SeedRand::ZEROS);
     FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
     SetMockTime(ConsumeTime(fuzzed_data_provider));
     CNode node{ConsumeNode(fuzzed_data_provider)};
@@ -75,6 +77,7 @@ FUZZ_TARGET(net, .init = initialize_net)
 
 FUZZ_TARGET(local_address, .init = initialize_net)
 {
+    SeedRandomStateForTest(SeedRand::ZEROS);
     FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
     SetMockTime(ConsumeTime(fuzzed_data_provider));
     CService service{ConsumeService(fuzzed_data_provider)};
