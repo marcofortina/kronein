@@ -956,8 +956,8 @@
         <translation type="unfinished">(%1 bloccato)</translation>
     </message>
     <message>
-        <source>Can vary +/- %1 satoshi(s) per input.</source>
-        <translation type="unfinished">Può variare di +/- %1 satoshi per input.</translation>
+        <source>Can vary +/- %1 KNE atomic units per input.</source>
+        <translation type="unfinished">Può variare di +/- %1 unità atomiche KNE per input.</translation>
     </message>
     <message>
         <source>(no label)</source>
@@ -2814,10 +2814,10 @@ Per ulteriori informazioni su come usare la console, premi %6.
     <message>
         <source>Specify a custom fee per kB (1,000 bytes) of the transaction's virtual size.
 
-Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satoshis per kvB" for a transaction size of 500 virtual bytes (half of 1 kvB) would ultimately yield a fee of only 50 satoshis.</source>
+Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 KNE atomic units per kvB" for a transaction size of 500 virtual bytes (half of 1 kvB) would ultimately yield a fee of only 50 KNE atomic units.</source>
         <translation type="unfinished">Specifica una tariffa personalizzata per kB (1.000 byte) della dimensione virtuale della transazione
 
-Nota: poiché la commissione è calcolata su base per byte, una commissione di "100 satoshi per kB" per una dimensione di transazione di 500 byte (metà di 1 kB) alla fine produrrà una commissione di soli 50 satoshi.</translation>
+Nota: poiché la commissione è calcolata su base per byte, una commissione di "100 unità atomiche KNE per kB" per una dimensione di transazione di 500 byte (metà di 1 kB) alla fine produrrà una commissione di soli 50 unità atomiche KNE.</translation>
     </message>
     <message>
         <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for Kronein transactions than the network can process.</source>
@@ -4645,8 +4645,27 @@ Controlla la proposta completa qui sotto. La revoca disabilita definitivamente l
 <context>
     <name>ChildChainDialog</name>
     <message>
+        <source>KNE atomic units/vB</source>
+        <translation>unità atomiche KNE/vB</translation>
+    </message>
+    <message>
         <source>Dealer Authority…</source>
         <translation>Autorità dei dealer…</translation>
+    </message>
+</context>
+<context>
+    <name>BitcoinUnits</name>
+    <message>
+        <source>KNE atomic unit</source>
+        <translation>Unità atomica KNE</translation>
+    </message>
+    <message>
+        <source>KNE atomic units</source>
+        <translation>unità atomiche KNE</translation>
+    </message>
+    <message>
+        <source>KNE atomic unit (1 / 100,000,000 KNE)</source>
+        <translation>Unità atomica KNE (1 / 100.000.000 KNE)</translation>
     </message>
 </context>
 </TS>

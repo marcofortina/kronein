@@ -20,6 +20,7 @@ public:
 private Q_SLOTS:
     void init(); // called before each test function execution.
     void extractFilter();
+    void atomicUnit();
 
 private:
     common::Settings m_previous_settings;

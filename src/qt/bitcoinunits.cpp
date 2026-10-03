@@ -35,7 +35,7 @@ QString BitcoinUnits::longName(Unit unit)
     case Unit::BTC: return QString("KNE");
     case Unit::mBTC: return QString("mKNE");
     case Unit::uBTC: return QString::fromUtf8("µKNE");
-    case Unit::SAT: return QString("Satoshi (sat)");
+    case Unit::SAT: return tr("KNE atomic unit");
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }
@@ -46,7 +46,7 @@ QString BitcoinUnits::shortName(Unit unit)
     case Unit::BTC: return longName(unit);
     case Unit::mBTC: return longName(unit);
     case Unit::uBTC: return longName(unit);
-    case Unit::SAT: return QString("sat");
+    case Unit::SAT: return tr("KNE atomic units");
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }
@@ -57,7 +57,7 @@ QString BitcoinUnits::description(Unit unit)
     case Unit::BTC: return QString("Kronein (KNE)");
     case Unit::mBTC: return QString("Milli-Kronein (1 / 1" THIN_SP_UTF8 "000)");
     case Unit::uBTC: return QString("Micro-Kronein (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
-    case Unit::SAT: return QString("Satoshi (sat) (1 / 100" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case Unit::SAT: return tr("KNE atomic unit (1 / 100,000,000 KNE)");
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }

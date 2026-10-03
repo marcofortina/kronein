@@ -1311,7 +1311,7 @@ void ChildChainDialog::createBmmProposal(const QString& chain_id)
     auto* fee_rate = new QSpinBox{&input_dialog};
     fee_rate->setRange(1, 100000);
     fee_rate->setValue(1);
-    fee_rate->setSuffix(QStringLiteral(" ") + tr("sat/vB"));
+    fee_rate->setSuffix(QStringLiteral(" ") + tr("KNE atomic units/vB"));
     fee_rate->setToolTip(
         tr("The resulting main-chain transaction fee is the recurring BMM security bid."));
     form->addRow(tr("Child chain:"), chain);

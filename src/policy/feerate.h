@@ -18,7 +18,7 @@
 #include <type_traits>
 
 const std::string CURRENCY_UNIT = "KNE"; // One formatted unit
-const std::string CURRENCY_ATOM = "sat"; // One indivisible minimum value unit
+const std::string CURRENCY_ATOM = "KNE atomic units"; // One indivisible minimum value unit
 
 enum class FeeRateFormat {
     BTC_KVB, //!< Use KNE/kvB fee rate unit

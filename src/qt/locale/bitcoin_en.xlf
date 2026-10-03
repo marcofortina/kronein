@@ -2396,7 +2396,7 @@ Transaction: %1</source>
         <context-group purpose="location"><context context-type="linenumber">801</context></context-group>
       </trans-unit>
       <trans-unit id="_msg528">
-        <source xml:space="preserve">sat/vB</source>
+        <source xml:space="preserve">KNE atomic units/vB</source>
         <context-group purpose="location"><context context-type="linenumber">1303</context></context-group>
       </trans-unit>
       <trans-unit id="_msg529">
@@ -2877,7 +2877,7 @@ Existing chain data will remain on disk. The chain can be reopened later by addi
         <context-group purpose="location"><context context-type="linenumber">364</context></context-group>
       </trans-unit>
       <trans-unit id="_msg635">
-        <source xml:space="preserve">Can vary +/- %1 satoshi(s) per input.</source>
+        <source xml:space="preserve">Can vary +/- %1 KNE atomic units per input.</source>
         <context-group purpose="location"><context context-type="linenumber">502</context></context-group>
       </trans-unit>
       <trans-unit id="_msg636">
@@ -4112,6 +4112,17 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </group>
   </body></file>
   <file original="../bitcoinunits.cpp" datatype="cpp" source-language="en"><body>
+    <group restype="x-trolltech-linguist-context" resname="BitcoinUnits">
+      <trans-unit id="_atomicUnitName">
+        <source xml:space="preserve">KNE atomic unit</source>
+      </trans-unit>
+      <trans-unit id="_atomicUnitPlural">
+        <source xml:space="preserve">KNE atomic units</source>
+      </trans-unit>
+      <trans-unit id="_atomicUnitDescription">
+        <source xml:space="preserve">KNE atomic unit (1 / 100,000,000 KNE)</source>
+      </trans-unit>
+    </group>
     <group restype="x-trolltech-linguist-context" resname="QObject">
       <trans-unit id="_msg895">
         <source xml:space="preserve">Amount</source>
@@ -5237,7 +5248,7 @@ For more information on using this console, type %6.
       <trans-unit id="_msg1131">
         <source xml:space="preserve">Specify a custom fee per kB (1,000 bytes) of the transaction&apos;s virtual size.
 
-Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 satoshis per kvB&quot; for a transaction size of 500 virtual bytes (half of 1 kvB) would ultimately yield a fee of only 50 satoshis.</source>
+Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 KNE atomic units per kvB&quot; for a transaction size of 500 virtual bytes (half of 1 kvB) would ultimately yield a fee of only 50 KNE atomic units.</source>
         <context-group purpose="location"><context context-type="linenumber">828</context></context-group>
       </trans-unit>
       <trans-unit id="_msg1132">

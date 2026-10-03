@@ -49,6 +49,8 @@ class GenesisCeremonyTest(BitcoinTestFramework):
         ):
             params = manifest["networks"][network]["parameters"]
             assert params["development_only"]
+            assert_equal(params["atomic_unit"], "KNE atomic unit")
+            assert_equal(params["atomic_units_per_coin"], 100_000_000)
             assert_equal(params["authority_threshold"], threshold)
             assert_equal(len(params["authority_keys"]), count)
             assert_equal(params["hrp"], hrp)

@@ -176,6 +176,7 @@ static UniValue GenesisInfo()
     info.pushKV("network", ChainTypeToString(gArgs.GetChainType()));
     info.pushKV("development_only", true);
     info.pushKV("currency", "KNE");
+    info.pushKV("atomic_unit", "KNE atomic unit");
     info.pushKV("atomic_units_per_coin", COIN);
     info.pushKV("maximum_money", MAX_MONEY);
     info.pushKV("initial_subsidy", params.GenesisBlock().vtx[0]->vout[0].nValue);
