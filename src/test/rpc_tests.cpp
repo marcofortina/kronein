@@ -1385,6 +1385,41 @@ BOOST_AUTO_TEST_CASE(rpc_convert_values_setchildnetworkdiscovery)
     BOOST_CHECK_EQUAL(params[2][0].get_str(), "127.0.0.1:19846");
 }
 
+BOOST_AUTO_TEST_CASE(rpc_convert_child_workflow_arguments)
+{
+    const std::string chain_id(64, '2');
+    const auto deposit{RPCConvertValues("walletcreatefundchainpsbt",
+        {chain_id, "1", std::string(64, '3'), "0.001", R"({"fee_rate":2})", "false"})};
+    BOOST_CHECK_EQUAL(deposit[0].get_str(), chain_id);
+    BOOST_CHECK_EQUAL(deposit[1].getInt<int>(), 1);
+    BOOST_CHECK(deposit[3].isNum());
+    BOOST_CHECK_EQUAL(deposit[4]["fee_rate"].getInt<int>(), 2);
+    BOOST_CHECK(!deposit[5].get_bool());
+
+    const auto named{RPCConvertNamedValues("walletcreatechildanchorpsbt",
+        {"chain_id=" + chain_id, "child_block_hash=" + std::string(64, '4'),
+         "fee_rate=2", "minconf=1", "lock_unspents=true"})};
+    BOOST_CHECK_EQUAL(named["chain_id"].get_str(), chain_id);
+    BOOST_CHECK_EQUAL(named["fee_rate"].getInt<int>(), 2);
+    BOOST_CHECK_EQUAL(named["minconf"].getInt<int>(), 1);
+    BOOST_CHECK(named["lock_unspents"].get_bool());
+    BOOST_CHECK(!named.exists("args"));
+
+    // Base64 padding remains part of a positional PSBT in -named mode.
+    const auto psbt{RPCConvertNamedValues("walletprocesschildpsbt",
+        {"cHNidP8=", "max_fee=0.001", "sign=false", "finalize=true"})};
+    BOOST_CHECK_EQUAL(psbt["args"][0].get_str(), "cHNidP8=");
+    BOOST_CHECK(psbt["max_fee"].isNum());
+    BOOST_CHECK(!psbt["sign"].get_bool());
+    BOOST_CHECK(psbt["finalize"].get_bool());
+
+    const auto routed{RPCConvertNamedValues("sendtoaddress",
+        {"address=rkne1test", "amount=1", "child_fee=0.001", "chain_id=" + chain_id})};
+    BOOST_CHECK_EQUAL(routed["chain_id"].get_str(), chain_id);
+    BOOST_CHECK(routed["child_fee"].isNum());
+    BOOST_CHECK(!routed.exists("args"));
+}
+
 BOOST_AUTO_TEST_CASE(rpc_getblockstats_calculate_percentiles_by_weight)
 {
     int64_t total_weight = 200;
@@ -1461,6 +1496,22 @@ BOOST_AUTO_TEST_CASE(rpc_getblockstats_calculate_percentiles_by_weight)
 
     for (int64_t i = 0; i < NUM_GETBLOCKSTATS_PERCENTILES; i++) {
         BOOST_CHECK_EQUAL(result4[i], 1);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(nested_object_help)
+{
+    for (const auto type : {RPCArg::Type::OBJ, RPCArg::Type::OBJ_NAMED_PARAMS, RPCArg::Type::OBJ_USER_KEYS}) {
+        const RPCArg inner{"nested", type, RPCArg::Optional::NO, "Nested options", {
+            {"key", RPCArg::Type::NUM, RPCArg::Optional::NO, "Numeric field"},
+        }};
+        const RPCArg outer{"parameters", RPCArg::Type::OBJ, RPCArg::Optional::NO, "", {inner}};
+        const std::string suffix{type == RPCArg::Type::OBJ ? "" : ",..."};
+        BOOST_CHECK_EQUAL(inner.ToStringObj(true), "\"nested\":{\"key\":n" + suffix + "}");
+        BOOST_CHECK_EQUAL(inner.ToStringObj(false), "\"nested\": {\"key\": n" + suffix + "}");
+        BOOST_CHECK_EQUAL(outer.ToString(true), "{\"nested\":{\"key\":n" + suffix + "}}");
+        const RPCHelpMan help{"nested", "Nested object help", {outer}, RPCResults{}, RPCExamples{""}};
+        BOOST_CHECK_NO_THROW(help.ToString());
     }
 }
 

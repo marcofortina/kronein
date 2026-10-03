@@ -93,6 +93,12 @@ class HelpRpcTest(BitcoinTestFramework):
 
         for argname, convert in converts_by_argname.items():
             if all(convert) != any(convert):
+                if argname == "network":
+                    # A transport-family name (e.g. "ipv4") is a string;
+                    # the child runtime's network configuration is an object.
+                    assert_equal(dict(zip(all_methods_by_argname[argname], convert)),
+                                 {"getnodeaddresses": True, "loadchildchain": False})
+                    continue
                 # Only allow dummy and psbt to fail consistency check
                 assert argname in ['dummy', "psbt"], ('WARNING: conversion mismatch for argument named %s (%s)' % (argname, list(zip(all_methods_by_argname[argname], converts_by_argname[argname]))))
 
@@ -118,6 +124,17 @@ class HelpRpcTest(BitcoinTestFramework):
         invalid_entries = [entry for entry in filtered_string_params if entry not in server_method_param_tuples]
         if invalid_entries:
             raise AssertionError(f"String parameters contains invalid entries: {invalid_entries}")
+
+        # Once a method uses explicit STRING conversion, all of its string
+        # names must be known. Otherwise -named can misread chain_id=... as a
+        # positional argument (or split the '=' padding of a positional PSBT).
+        string_methods = {entry[0] for entry in filtered_string_params}
+        missing_strings = [
+            tuple(entry[:3]) for entry in mapping_server
+            if entry[3] and entry[0] in string_methods
+            and tuple(entry[:3]) not in filtered_string_params
+        ]
+        assert_equal(missing_strings, [])
 
     def test_categories(self):
         node = self.nodes[0]
@@ -158,9 +175,9 @@ class HelpRpcTest(BitcoinTestFramework):
                 f.write(self.nodes[0].help(call))
 
     def wallet_help(self):
-        assert 'getnewaddress ( "label" )' in self.nodes[0].help('getnewaddress')
+        assert 'getnewaddress ( "label" "chain_id" )' in self.nodes[0].help('getnewaddress')
         self.restart_node(0, extra_args=['-nowallet=1'])
-        assert 'getnewaddress ( "label" )' in self.nodes[0].help('getnewaddress')
+        assert 'getnewaddress ( "label" "chain_id" )' in self.nodes[0].help('getnewaddress')
 
 if __name__ == '__main__':
     HelpRpcTest(__file__).main()

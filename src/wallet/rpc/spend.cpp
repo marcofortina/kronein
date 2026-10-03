@@ -1113,6 +1113,20 @@ static std::vector<RPCArg> FundTxDoc(bool solving_data = true)
     return args;
 }
 
+/** Funding options for main-chain transactions with fixed protocol outputs. */
+static std::vector<RPCArg> ProtocolFundTxDoc()
+{
+    return Cat<std::vector<RPCArg>>({
+        {"include_unsafe", RPCArg::Type::BOOL, RPCArg::Default{false}, "Include unconfirmed inputs that may become invalid."},
+        {"minconf", RPCArg::Type::NUM, RPCArg::Default{0}, "Minimum confirmations for automatically selected inputs."},
+        {"maxconf", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "Maximum confirmations for automatically selected inputs."},
+        {"change_address", RPCArg::Type::STR, RPCArg::DefaultHint{"automatic"}, "The Kronein address to receive change."},
+        {"lock_unspents", RPCArg::Type::BOOL, RPCArg::Default{false}, "Lock selected unspent outputs."},
+        {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"wallet fee estimation"}, "Fee rate in " + CURRENCY_ATOM + "/vB."},
+        {"max_tx_weight", RPCArg::Type::NUM, RPCArg::Default{MAX_STANDARD_TX_WEIGHT}, "Maximum acceptable transaction weight."},
+    }, FundTxDoc());
+}
+
 CreatedTransactionResult FundTransaction(CWallet& wallet, const CMutableTransaction& tx, const std::vector<CRecipient>& recipients, const UniValue& options, CCoinControl& coinControl, bool override_min_fee)
 {
     // We want to make sure tx.vout is not used now that we are passing outputs as a vector of recipients.
@@ -2712,7 +2726,7 @@ RPCHelpMan walletcreatefundchainpsbt()
             {"recipient_type", RPCArg::Type::NUM, RPCArg::Optional::NO, "Non-zero recipient namespace defined by the child template"},
             {"recipient", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Canonical child recipient bytes (1-64 bytes)"},
             {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "Amount of KNE to burn irreversibly on the main chain"},
-            {"options", RPCArg::Type::OBJ_NAMED_PARAMS, RPCArg::Optional::OMITTED, "Funding options. The deposit output and amount cannot be altered by fee subtraction.", FundTxDoc(), RPCArgOptions{.oneline_description="options"}},
+            {"options", RPCArg::Type::OBJ_NAMED_PARAMS, RPCArg::Optional::OMITTED, "Funding options. The deposit output and amount cannot be altered by fee subtraction.", ProtocolFundTxDoc(), RPCArgOptions{.oneline_description="options"}},
             {"bip32derivs", RPCArg::Type::BOOL, RPCArg::Default{true}, "Include known BIP32 derivation paths"},
         },
         RPCResult{RPCResult::Type::OBJ, "", "Funded, unsigned child-deposit transaction", {
@@ -3026,7 +3040,7 @@ RPCHelpMan walletcreatechildanchorpsbt()
         {
             {"chain_id", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Exact non-null child-chain identifier"},
             {"child_block_hash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Exact non-null child block hash to anchor"},
-            {"options", RPCArg::Type::OBJ_NAMED_PARAMS, RPCArg::Optional::OMITTED, "Funding options; fee_rate controls the BMM security bid. The anchor output cannot be altered by fee subtraction.", FundTxDoc(), RPCArgOptions{.oneline_description="options"}},
+            {"options", RPCArg::Type::OBJ_NAMED_PARAMS, RPCArg::Optional::OMITTED, "Funding options; fee_rate controls the BMM security bid. The anchor output cannot be altered by fee subtraction.", ProtocolFundTxDoc(), RPCArgOptions{.oneline_description="options"}},
             {"bip32derivs", RPCArg::Type::BOOL, RPCArg::Default{true}, "Include known BIP32 derivation paths"},
         },
         RPCResult{RPCResult::Type::OBJ, "", "Funded, unsigned BMM anchor transaction", {
@@ -3371,7 +3385,7 @@ RPCHelpMan walletcreatechainregistrypsbt()
                 {"dealer_control_address", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "REGISTER: dealer successor Taproot address"},
                 {"dealer_payment", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "REGISTER: positive sale price paid to the dealer"},
             }},
-            {"options", RPCArg::Type::OBJ_NAMED_PARAMS, RPCArg::Optional::OMITTED, "Funding options. Protocol input/output ordering cannot be overridden.", FundTxDoc(), RPCArgOptions{.oneline_description="options"}},
+            {"options", RPCArg::Type::OBJ_NAMED_PARAMS, RPCArg::Optional::OMITTED, "Funding options. Protocol input/output ordering cannot be overridden.", ProtocolFundTxDoc(), RPCArgOptions{.oneline_description="options"}},
             {"bip32derivs", RPCArg::Type::BOOL, RPCArg::Default{true}, "Include known BIP32 derivation paths"},
         },
         RPCResult{RPCResult::Type::OBJ, "", "Funded, unsigned registry transaction", {

@@ -631,8 +631,16 @@ class ChainRegistryTest(BitcoinTestFramework):
                 "dealer_payment": Decimal("0.25000000"),
             },
             {"fee_rate": 1})
-        funding_probe = wallet.walletcreatefundchainpsbt(
-            chain_id, 1, child_recipient, Decimal("0.01000000"), {"fee_rate": 1})
+        if self.is_cli_compiled():
+            # Exercise typed -named arguments through the actual CLI, not
+            # only through the JSON-RPC Python proxy.
+            funding_probe = node.cli("-rpcwallet=registry").walletcreatefundchainpsbt(
+                chain_id=chain_id, recipient_type=1, recipient=child_recipient,
+                amount=Decimal("0.01000000"), fee_rate=1, minconf=1,
+                bip32derivs=False)
+        else:
+            funding_probe = wallet.walletcreatefundchainpsbt(
+                chain_id, 1, child_recipient, Decimal("0.01000000"), {"fee_rate": 1})
         decoded_probe = node.decodepsbt(funding_probe["psbt"])["tx"]
         assert control_outpoint not in [
             {"txid": txin["txid"], "vout": txin["vout"]}
