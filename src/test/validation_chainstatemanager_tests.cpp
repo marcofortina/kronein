@@ -126,6 +126,9 @@ BOOST_FIXTURE_TEST_CASE(chainstatemanager_delete_chainstate_no_mempool, ChainTes
     auto& validated{WITH_LOCK(::cs_main, return manager.InitializeChainstate(/*mempool=*/nullptr))};
     auto& snapshot{WITH_LOCK(::cs_main, return manager.AddChainstate(std::make_unique<Chainstate>(nullptr, manager.m_blockman, manager, uint256::ONE)))};
     WITH_LOCK(::cs_main, validated.SetTargetBlock(nullptr));
+    // Native chainstates also own a registry view; close it before deletion,
+    // exactly as the reindex/cleanup caller does for the coins database.
+    WITH_LOCK(::cs_main, snapshot.ResetCoinsViews());
     BOOST_CHECK(WITH_LOCK(::cs_main, return manager.DeleteChainstate(snapshot))); // Accept Kernel's null mempool
 }
 
