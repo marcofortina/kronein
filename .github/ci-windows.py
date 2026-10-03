@@ -174,7 +174,11 @@ def run_tests(ci_type):
             "--test-dir",
             str(build_dir),
             "--output-on-failure",
+            "--verbose",
             "--stop-on-failure",
+            # Match the per-suite budget used by the Unix CI runner.
+            "--timeout",
+            str(60 * int(os.environ.get("TEST_RUNNER_TIMEOUT_FACTOR", "40"))),
             "-j",
             num_procs,
             "--build-config",
