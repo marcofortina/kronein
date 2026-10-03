@@ -322,9 +322,8 @@ class ConfArgsTest(BitcoinTestFramework):
         ):
             self.start_node(0, extra_args=['-dnsseed=1', '-fixedseeds=1', f'-mocktime={start}', UNREACHABLE_PROXY_ARG])
 
-        # Only regtest has no fixed seeds. To avoid connections to random
-        # nodes, regtest is the only network where it is safe to enable
-        # -fixedseeds in tests
+        # Use regtest's intentionally empty seed list, independently of the
+        # current development seed lists for the public networks.
         util.assert_equal(self.nodes[0].getblockchaininfo()['chain'],'regtest')
 
         with self.nodes[0].assert_debug_log(expected_msgs=[
@@ -340,7 +339,7 @@ class ConfArgsTest(BitcoinTestFramework):
                 "Loaded 0 addresses from peers.dat",
                 "DNS seeding disabled",
                 "Adding fixed seeds as -dnsseed=0 (or IPv4/IPv6 connections are disabled via -onlynet) and neither -addnode nor -seednode are provided\n",
-        ], timeout=2):
+        ], timeout=10):  # Includes startup/RandomX initialization, not just the seed timer.
             self.start_node(0, extra_args=['-dnsseed=0', '-fixedseeds=1'])
         self.stop_node(0)
         self.nodes[0].assert_start_raises_init_error(['-dnsseed=1', '-onlynet=i2p', '-i2psam=127.0.0.1:7656'], "Error: Incompatible options: -dnsseed=1 was explicitly specified, but -onlynet forbids connections to IPv4/IPv6")
@@ -352,7 +351,7 @@ class ConfArgsTest(BitcoinTestFramework):
                 "Loaded 0 addresses from peers.dat",
                 "DNS seeding disabled",
                 "Fixed seeds are disabled",
-        ], timeout=2):
+        ], timeout=10):
             self.start_node(0, extra_args=['-dnsseed=0', '-fixedseeds=0'])
         self.stop_node(0)
 
