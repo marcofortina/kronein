@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -187,5 +188,6 @@ bool SpendsTaproot(const CTransaction& tx, const CCoinsViewCache& prevouts)
 
 int64_t GetVirtualTransactionSize(int64_t weight)
 {
-    return (weight + WITNESS_SCALE_FACTOR - 1) / WITNESS_SCALE_FACTOR;
+    // Round upwards without overflowing when weight is near INT64_MAX.
+    return weight / WITNESS_SCALE_FACTOR + (weight % WITNESS_SCALE_FACTOR > 0);
 }

@@ -1,4 +1,5 @@
 // Copyright (c) 2011-present The Bitcoin Core developers
+// Copyright (c) 2026 The Kronein Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -15,11 +16,36 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <cstdint>
 #include <limits>
 #include <string>
 #include <vector>
 
 BOOST_AUTO_TEST_SUITE(transaction_tests)
+
+BOOST_AUTO_TEST_CASE(virtual_transaction_size_rounding)
+{
+    BOOST_CHECK_EQUAL(GetVirtualTransactionSize(0), 0);
+    for (int64_t size = 1; size <= 100; ++size) {
+        for (int64_t remainder = 0; remainder < 4; ++remainder) {
+            BOOST_CHECK_EQUAL(GetVirtualTransactionSize(size * 4 - remainder), size);
+        }
+    }
+
+    constexpr auto maximum{std::numeric_limits<int64_t>::max()};
+    BOOST_CHECK_EQUAL(GetVirtualTransactionSize(maximum), maximum / 4 + 1);
+    BOOST_CHECK_EQUAL(GetVirtualTransactionSize(maximum - 1), maximum / 4 + 1);
+    BOOST_CHECK_EQUAL(GetVirtualTransactionSize(maximum - 2), maximum / 4 + 1);
+    BOOST_CHECK_EQUAL(GetVirtualTransactionSize(maximum - 3), maximum / 4);
+    BOOST_CHECK_EQUAL(GetVirtualTransactionSize(maximum - 4), maximum / 4);
+
+    // The integer fuzz target also supplies signed values outside the weight domain.
+    constexpr auto minimum{std::numeric_limits<int64_t>::min()};
+    BOOST_CHECK_EQUAL(GetVirtualTransactionSize(minimum), minimum / 4);
+    BOOST_CHECK_EQUAL(GetVirtualTransactionSize(minimum + 1), minimum / 4 + 1);
+    BOOST_CHECK_EQUAL(GetVirtualTransactionSize(-4), -1);
+    BOOST_CHECK_EQUAL(GetVirtualTransactionSize(-3), 0);
+}
 
 static CScript TaprootOutput()
 {
