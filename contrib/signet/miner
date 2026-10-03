@@ -22,7 +22,7 @@ sys.path.insert(0, PATH_BASE_TEST_FUNCTIONAL)
 
 from test_framework.blocktools import get_witness_script, script_BIP34_coinbase_height, SIGNET_HEADER # noqa: E402
 from test_framework.messages import CBlock, CBlockHeader, COutPoint, CTransaction, CTxIn, CTxInWitness, CTxOut, from_binary, from_hex, ser_uint256, tx_from_hex, MAX_SEQUENCE_NONFINAL # noqa: E402
-from test_framework.psbt import PSBT, PSBTMap, PSBT_GLOBAL_TX_VERSION, PSBT_IN_FINAL_SCRIPTWITNESS, PSBT_IN_OUTPUT_INDEX, PSBT_IN_PREVIOUS_TXID, PSBT_IN_SEQUENCE, PSBT_IN_WITNESS_UTXO, PSBT_OUT_AMOUNT, PSBT_OUT_SCRIPT # noqa: E402
+from test_framework.psbt import PSBT, PSBTMap, PSBT_GLOBAL_FALLBACK_LOCKTIME, PSBT_GLOBAL_TX_VERSION, PSBT_IN_FINAL_SCRIPTWITNESS, PSBT_IN_OUTPUT_INDEX, PSBT_IN_PREVIOUS_TXID, PSBT_IN_REQUIRED_HEIGHT_LOCKTIME, PSBT_IN_REQUIRED_TIME_LOCKTIME, PSBT_IN_SEQUENCE, PSBT_IN_WITNESS_UTXO, PSBT_OUT_AMOUNT, PSBT_OUT_SCRIPT # noqa: E402
 from test_framework.script import CScript, CScriptOp # noqa: E402
 
 logging.basicConfig(
@@ -87,6 +87,47 @@ def get_randomx_seed_from_psbt(psbt):
     if len(randomx_seed) != 32:
         raise ValueError("PSBT contains an invalid RandomX seed")
     return randomx_seed
+
+def check_signer_response(original, response):
+    """A custodian may add signatures, never replace the block or virtual spend."""
+    if not isinstance(response, str) or len(response) > 2 * 1024 * 1024:
+        raise ValueError("Invalid or oversized signer PSBT")
+    signed = decode_challenge_psbt(response)
+    for key in (PSBT_SIGNET_BLOCK, PSBT_RANDOMX_SEED, PSBT_GLOBAL_TX_VERSION):
+        if signed.g.map.get(key) != original.g.map.get(key):
+            raise ValueError("Signer changed the block, seed or transaction version")
+    if signed.g.map.get(PSBT_GLOBAL_FALLBACK_LOCKTIME, bytes(4)) != original.g.map.get(PSBT_GLOBAL_FALLBACK_LOCKTIME, bytes(4)):
+        raise ValueError("Signer changed the transaction locktime")
+    for key in (PSBT_IN_PREVIOUS_TXID, PSBT_IN_OUTPUT_INDEX, PSBT_IN_SEQUENCE, PSBT_IN_WITNESS_UTXO,
+                PSBT_IN_REQUIRED_HEIGHT_LOCKTIME, PSBT_IN_REQUIRED_TIME_LOCKTIME):
+        if signed.i[0].map.get(key) != original.i[0].map.get(key):
+            raise ValueError("Signer changed the challenge input")
+    for key in (PSBT_OUT_AMOUNT, PSBT_OUT_SCRIPT):
+        if signed.o[0].map.get(key) != original.o[0].map.get(key):
+            raise ValueError("Signer changed the challenge output")
+    return signed
+
+def sign_challenge(psbt, signers, verifier, timeout):
+    original = decode_challenge_psbt(psbt)
+    for index, signer in enumerate(signers):
+        try:
+            input_stream = os.linesep.join([psbt, "true", "DEFAULT"]).encode('utf8')
+            result = json.loads(signer("-stdin", "walletprocesspsbt", input=input_stream, timeout=timeout))
+            signed = check_signer_response(original, result["psbt"])
+            if result.get("complete", False):
+                get_solution_from_psbt(signed)  # require a real final witness
+                # Do not trust a remote custodian's 'complete' claim. The local
+                # node verifies the final virtual spend against its challenge.
+                verified = json.loads(verifier("-stdin", "finalizepsbt", input=(result["psbt"] + "\nfalse").encode('utf8'), timeout=timeout))
+                if not verified.get("complete", False):
+                    raise ValueError("Signer supplied an invalid final witness")
+                return check_signer_response(original, verified["psbt"])
+            psbt = result["psbt"]
+        except (subprocess.SubprocessError, OSError, ValueError, KeyError, AssertionError) as error:
+            # A missing or faulty custodian must not prevent the other quorum
+            # members from signing. Never log a command containing credentials.
+            logging.warning("Signet signer %d failed: %s", index + 1, type(error).__name__)
+    raise ValueError("Signet signing quorum not reached; no block was mined or submitted")
 
 def finish_block(block, signet_solution, grind_cmd, randomx_seed):
     block.vtx[0].vout[-1].scriptPubKey += CScriptOp.encode_op_pushdata(SIGNET_HEADER + signet_solution)
@@ -340,19 +381,17 @@ class Generate:
 
         return tmpl
 
-    def mine(self, bcli, grind_cmd, tmpl, reward_spk):
+    def mine(self, bcli, signers, signer_timeout, grind_cmd, tmpl, reward_spk):
         block = new_block(tmpl, reward_spk, blocktime=self.mine_time, poolid=self.poolid)
 
         signet_spk = tmpl["signet_challenge"]
         randomx_seed = bytes.fromhex(tmpl["randomx"]["seed"])
         psbt = generate_psbt(block, signet_spk, randomx_seed)
-        input_stream = os.linesep.join([psbt, "true", "DEFAULT"]).encode('utf8')
-        psbt_signed = json.loads(bcli("-stdin", "walletprocesspsbt", input=input_stream))
-        if not psbt_signed.get("complete",False):
-            logging.debug("Generated PSBT: %s" % (psbt,))
-            sys.stderr.write("PSBT signing failed\n")
+        try:
+            psbt = sign_challenge(psbt, signers, bcli, signer_timeout)
+        except ValueError as error:
+            logging.error("%s", error)
             return None
-        psbt = decode_challenge_psbt(psbt_signed["psbt"])
         signet_solution = get_solution_from_psbt(psbt)
 
         return finish_block(block, signet_solution, grind_cmd, randomx_seed)
@@ -375,7 +414,7 @@ def do_generate(args):
         logging.info("Treating negative block time as current time (%d)" % (args.set_block_time))
 
     if args.min_nbits:
-        args.nbits = "1e0377ae"
+        args.nbits = "207fffff"
         logging.info("Using nbits=%s" % (args.nbits))
 
     if args.set_block_time is None:
@@ -408,6 +447,11 @@ def do_generate(args):
 
     poolid = get_poolid(args)
 
+    if args.nbits is None:
+        # An explicitly timed single block does not need a pacing target.
+        # Use the current chain target for the subsequent scheduling report.
+        tip = args.bcli("getbestblockhash")
+        args.nbits = json.loads(args.bcli("getblockheader", tip))["bits"]
     ultimate_target = nbits_to_target(int(args.nbits,16))
 
     gen = Generate(multiminer=my_blocks, ultimate_target=ultimate_target, poisson=args.poisson, max_interval=args.max_interval,
@@ -463,7 +507,7 @@ def do_generate(args):
         # mine block
         logging.debug("Mining block delta=%s start=%s mine=%s", seconds_to_hms(gen.mine_time-bestheader["time"]), gen.mine_time, gen.is_mine)
         mined_blocks += 1
-        block = gen.mine(args.bcli, args.grind_cmd, tmpl, reward_spk)
+        block = gen.mine(args.bcli, args.signers, args.signer_timeout, args.grind_cmd, tmpl, reward_spk)
         if block is None:
             return 1
 
@@ -481,6 +525,7 @@ def do_generate(args):
         logging.info("Mined %s at height %d; next in %s (%s)", bstr, tmpl["height"], seconds_to_hms(next_delta), ("mine" if next_is_mine else "backup"))
         if r != "":
             logging.warning("submitblock returned %s for height %d hash %s", r, tmpl["height"], block.hash_hex)
+            return 1
         lastheader = block.hash_hex
 
 def do_calibrate(args):
@@ -574,6 +619,8 @@ def main():
     generate.add_argument("--backup-delay", default=300, type=int, help="Seconds to delay before mining blocks reserved for other miners (default=300)")
     generate.add_argument("--standby-delay", default=0, type=int, help="Seconds to delay before mining blocks (default=0)")
     generate.add_argument("--max-interval", default=1800, type=int, help="Maximum interblock interval (seconds)")
+    generate.add_argument("--signer-cli", action="append", default=[], help="Repeat for separate custodian wallet CLI commands; replaces the default CLI as signer")
+    generate.add_argument("--signer-timeout", default=30, type=int, help="Maximum seconds per custodian (default=30)")
 
     calibrate = cmds.add_parser("calibrate", help="Calibrate difficulty")
     calibrate.set_defaults(fn=do_calibrate)
@@ -596,6 +643,13 @@ def main():
     args = parser.parse_args(sys.argv[1:])
 
     args.bcli = lambda *a, input=b"", **kwargs: bitcoin_cli(shlex.split(args.cli), list(a), input=input, **kwargs)
+    if hasattr(args, "signer_cli"):
+        if args.signer_timeout < 1 or args.signer_timeout > 300 or len(args.signer_cli) > 5:
+            parser.error("Require a 1..300 second signer timeout and at most five signers")
+        args.signers = [
+            (lambda *a, command=shlex.split(command), **kwargs: bitcoin_cli(command, list(a), **kwargs))
+            for command in args.signer_cli
+        ] or [args.bcli]
 
     if hasattr(args, "address") and hasattr(args, "descriptor"):
         args.derived_addresses = {}
@@ -614,4 +668,4 @@ def main():
         return 1
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

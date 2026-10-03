@@ -20,6 +20,54 @@ public Signet.
 miner
 =====
 
+Development challenge and cooperative signing
+--------------------------------------------
+
+The default development Signet uses a Taproot **2-of-3 script-path** challenge.
+Its NUMS internal key has no known private key; none of the three custodians
+has a single-key spending bypass. The reproducible descriptor (add its checksum
+with `getdescriptorinfo`) is:
+
+```text
+tr(50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0,multi_a(2,5d045857332d5b9e541514731622af8d60c180165d971a61e06b70a9b3834765,d528ecd9b696b54c907a9ed045447a79bb408ec39b68df504bb51f459bc3ffc9,fe8d1eb1bcb3432b1db5833ff5f2226d9cb5e65cee430558c18ed3a3c86ce1af))
+```
+
+The challenge is `512043ff4e5478ee4c2664707b4d80358225b1205a391afcddf789a8ade04c3a5bfe`
+and its derived message magic is `b409be08`. These keys are public fixtures
+(private scalars 42, 43 and 44, sorted by public key). **Do not use them for a
+public or valuable network.** This is a custody simulation, not three
+independent real custodians. Replacing the old development challenge changes
+the network magic and requires a fresh Signet data directory, not migration of
+old blocks under the new challenge.
+
+Each custodian imports the same descriptor, replacing only their own public
+key with its WIF; the other two remain public. The coordinator only needs a
+reward wallet and access to the signing services. Configure separate signer
+CLI commands, using protected configuration files instead of passwords on the
+command line:
+
+```sh
+contrib/signet/miner --cli="kronein-cli -conf=coordinator.conf" generate \
+  --address="$REWARD_ADDRESS" --nbits=207fffff \
+  --grind-cmd="kronein-util -signet -randomxlight grind" \
+  --signer-cli="kronein-cli -conf=custodian-a.conf -rpcwallet=signet-a" \
+  --signer-cli="kronein-cli -conf=custodian-b.conf -rpcwallet=signet-b" \
+  --signer-cli="kronein-cli -conf=custodian-c.conf -rpcwallet=signet-c"
+```
+
+The miner passes the partial PSBT between custodians, checks that the block,
+seed and virtual transaction were not replaced, and has the local node verify
+the final witness before doing proof of work. A missing custodian is skipped
+after `--signer-timeout` seconds (default 30, range 1..300). Failure to reach
+quorum exits unsuccessfully without submitting a block. `--ongoing` automates
+subsequent blocks too. The services must apply their own signing policy;
+automatic RPC access is not an offline custody solution. Dealer authority keys
+must never be reused here. Without `--signer-cli`, the original single-wallet
+workflow remains available for explicit custom challenges.
+
+Calibration and pacing
+----------------------
+
 You will first need to pick a difficulty target. Since signet chains are primarily protected by a signature rather than proof of work, there is no need to spend as much energy as possible mining, however you may wish to choose to spend more time than the absolute minimum. The calibrate subcommand can be used to pick a target appropriate for your hardware, eg:
 
     MINER="./contrib/signet/miner"
@@ -54,11 +102,16 @@ The --debug and --quiet options are available to control how noisy the signet mi
 
 Instead of specifying --ongoing, you can specify --max-blocks=N to mine N blocks and stop.
 
-The --set-block-time option is available to manually move timestamps forward or backward (subject to the rules that blocktime must be greater than mediantime, and dates can't be more than two hours in the future). It can only be used when mining a single block (ie, not when using --ongoing or --max-blocks greater than 1).
+The --set-block-time option sets a single block's timestamp. Kronein also requires
+it to be no earlier than the previous block, exceed median time past, and remain
+within the future-time limit. It cannot be combined with multi-block generation. If no pacing nBits is
+provided, the current chain target is used; the block itself always uses GBT's
+consensus target.
 
 Instead of using a single address, a ranged descriptor may be provided via the --descriptor parameter, with the reward for the block at height H being sent to the H'th address generated from the descriptor.
 
-Instead of calculating a specific nbits value, --min-nbits can be specified instead, in which case the minimum signet difficulty will be targeted. Signet's minimum difficulty corresponds to --nbits=1e0377ae.
+Instead of calculating a specific nbits value, --min-nbits can be specified instead,
+in which case Kronein Signet's minimum difficulty (`--nbits=207fffff`) is targeted.
 
 By default, the signet miner mines blocks at fixed intervals with minimal variation. If you want blocks to appear more randomly, as they do in mainnet, specify the --poisson option.
 

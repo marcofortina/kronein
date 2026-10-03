@@ -179,6 +179,7 @@ BASE_SCRIPTS = [
     'tool_wallet.py',
     'tool_utils.py',
     'tool_signet_miner.py',
+    'tool_signet_quorum.py',
     'rpc_getchaintips.py',
     'rpc_misc.py',
     'p2p_1p1c_network.py',

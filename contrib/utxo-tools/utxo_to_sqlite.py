@@ -24,7 +24,7 @@ import time
 UTXO_DUMP_MAGIC = b'utxo\xff'
 NET_MAGIC_BYTES = {
     b"\xf9\xbe\xb4\xd9": "Mainnet",
-    b"\x4c\x4a\x0e\xc6": "Signet",
+    b"\xb4\x09\xbe\x08": "Signet",
     b"\x1c\x16\x3f\x28": "Testnet4",
     b"\xfa\xbf\xb5\xda": "Regtest",
 }

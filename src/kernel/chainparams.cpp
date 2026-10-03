@@ -238,7 +238,10 @@ public:
         vSeeds.clear();
 
         if (!options.challenge) {
-            bin = "512096f445564af704e1fbbbb462124c15080958ac19ffb12693a6c9ab68d313811e"_hex_v_u8;
+            // Development-only 2-of-3 multi_a leaf, with NUMS_H as internal key.
+            // Custodian fixtures 42/43/44 are public test secrets, not launch keys.
+            // See contrib/signet/README.md for the reproducible descriptor.
+            bin = "512043ff4e5478ee4c2664707b4d80358225b1205a391afcddf789a8ade04c3a5bfe"_hex_v_u8;
         } else {
             bin = *options.challenge;
             LogInfo("Signet with challenge %s", HexStr(bin));

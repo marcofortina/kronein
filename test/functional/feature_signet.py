@@ -9,7 +9,7 @@ from decimal import Decimal
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import assert_equal
 
-SIGNET_DEFAULT_CHALLENGE = '512096f445564af704e1fbbbb462124c15080958ac19ffb12693a6c9ab68d313811e'
+SIGNET_DEFAULT_CHALLENGE = '512043ff4e5478ee4c2664707b4d80358225b1205a391afcddf789a8ade04c3a5bfe'
 SIGNET_CUSTOM_CHALLENGES = [
     '5120842154d0f7c3a22799eb663fa90bc67b985ead411905e85745aef3d8c43aa8d1',
     '5120450a61e748659c90a27c712bd1d5b4c38d27cc9da64607230ec3f6515303bbf9',
