@@ -49,7 +49,7 @@ void ReadRegTestArgs(const ArgsManager& args, CChainParams::RegTestOptions& opti
     const bool has_max_deposits{args.IsArgSet("-chaindepositmaxperblock")};
     const bool has_bmm_activation{args.IsArgSet("-chainbmmactivationheight")};
     const bool has_max_bmm_anchors{args.IsArgSet("-chainbmmmaxanchorsperblock")};
-    const bool has_registry_options{has_activation || has_authority || has_max_operations};
+    const bool has_registry_options{has_activation || has_authority || has_max_operations || args.IsArgSet("-chaindealerauthoritythreshold")};
     const bool has_deposit_options{has_deposit_activation || has_deposit_minimum || has_max_deposits};
     const bool has_bmm_options{has_bmm_activation || has_max_bmm_anchors};
     if (!has_registry_options && !has_deposit_options && !has_bmm_options) return;
@@ -71,10 +71,26 @@ void ReadRegTestArgs(const ArgsManager& args, CChainParams::RegTestOptions& opti
         throw std::runtime_error("-chainregistryactivationheight must be between 1 and INT_MAX.");
     }
 
-    const auto authority_key{TryParseHex<uint8_t>(*args.GetArg("-chaindealerauthoritykey"))};
-    if (!authority_key || authority_key->size() != 32 ||
-        !XOnlyPubKey{*authority_key}.IsFullyValid()) {
-        throw std::runtime_error("-chaindealerauthoritykey must be a valid 32-byte x-only public key.");
+    chainregistry::DealerAuthority authority;
+    const auto authority_keys{args.GetArgs("-chaindealerauthoritykey")};
+    if (authority_keys.size() > chainregistry::MAX_DEALER_AUTHORITY_KEYS) {
+        throw std::runtime_error("At most five -chaindealerauthoritykey values are allowed.");
+    }
+    const auto threshold{args.GetIntArg("-chaindealerauthoritythreshold")};
+    if ((!threshold && authority_keys.size() != 1) ||
+        (threshold && (*threshold < 1 || *threshold > static_cast<int64_t>(authority_keys.size())))) {
+        throw std::runtime_error("-chaindealerauthoritythreshold must be between 1 and the number of authority keys (required for multiple keys).");
+    }
+    authority.threshold = static_cast<uint8_t>(threshold.value_or(1));
+    for (const auto& value : authority_keys) {
+        const auto key{TryParseHex<uint8_t>(value)};
+        if (!key || key->size() != 32 || !XOnlyPubKey{*key}.IsFullyValid()) {
+            throw std::runtime_error("-chaindealerauthoritykey must be a valid 32-byte x-only public key.");
+        }
+        std::copy(key->begin(), key->end(), authority.keys.emplace_back().begin());
+    }
+    if (!authority.IsValid()) {
+        throw std::runtime_error("Dealer authority keys must be distinct and in increasing hexadecimal order.");
     }
 
     const auto maximum_operations{args.GetIntArg("-chainregistrymaxoperations")};
@@ -84,9 +100,9 @@ void ReadRegTestArgs(const ArgsManager& args, CChainParams::RegTestOptions& opti
 
     Consensus::Params::ChainRegistryParams registry{
         .activation_height = static_cast<int>(*activation_height),
+        .dealer_authority = std::move(authority),
         .maximum_operations = static_cast<uint32_t>(*maximum_operations),
     };
-    std::copy(authority_key->begin(), authority_key->end(), registry.dealer_authority_key.begin());
 
     if (has_deposit_options) {
         const auto deposit_activation_height{args.GetIntArg("-chaindepositactivationheight")};

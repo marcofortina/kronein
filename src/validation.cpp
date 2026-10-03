@@ -847,7 +847,7 @@ bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
             tx,
             static_cast<uint32_t>(next_height),
             m_active_chainstate.m_chainman.GetConsensus().hashGenesisBlock,
-            XOnlyPubKey{params.dealer_authority_key})};
+            params.dealer_authority)};
         if (result.IsValid()) return true;
         return ws.m_state.Invalid(
             TxValidationResult::TX_CONSENSUS,

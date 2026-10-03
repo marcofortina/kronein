@@ -4648,7 +4648,12 @@ static RPCHelpMan getchainregistryinfo()
             {RPCResult::Type::BOOL, "active", "Whether registry consensus is active at the current tip"},
             {RPCResult::Type::BOOL, "active_for_next_block", "Whether registry consensus applies to the next block"},
             {RPCResult::Type::NUM, "activation_height", "Activation height, or -1 when disabled"},
-            {RPCResult::Type::STR_HEX, "dealer_authority_key", "BIP340 x-only dealer authority key"},
+            {RPCResult::Type::ARR, "dealer_authority_keys", "Ordered BIP340 x-only authority keys; array offsets are signer indices", {
+                {RPCResult::Type::STR_HEX, "", "Authority public key"},
+            }},
+            {RPCResult::Type::NUM, "dealer_authority_threshold", "Required number of distinct authority signatures"},
+            {RPCResult::Type::NUM, "dealer_initial_licenses", "Required initial allocation per dealer"},
+            {RPCResult::Type::NUM, "dealer_max_added_licenses", "Maximum allocation per dealer update"},
             {RPCResult::Type::NUM, "maximum_operations", "Maximum registry transitions per block"},
             {RPCResult::Type::BOOL, "bmm_enabled", "Whether child-chain BMM anchor consensus is configured"},
             {RPCResult::Type::BOOL, "bmm_active", "Whether child-chain BMM anchors are active at the current tip"},
@@ -4693,7 +4698,12 @@ static RPCHelpMan getchainregistryinfo()
     result.pushKV("active", params.IsActive(height));
     result.pushKV("active_for_next_block", params.IsActive(height + 1));
     result.pushKV("activation_height", params.activation_height);
-    result.pushKV("dealer_authority_key", HexStr(params.dealer_authority_key));
+    UniValue authority_keys{UniValue::VARR};
+    for (const auto& key : params.dealer_authority.keys) authority_keys.push_back(HexStr(key));
+    result.pushKV("dealer_authority_keys", std::move(authority_keys));
+    result.pushKV("dealer_authority_threshold", params.dealer_authority.threshold);
+    result.pushKV("dealer_initial_licenses", chainregistry::DEALER_INITIAL_LICENSES);
+    result.pushKV("dealer_max_added_licenses", chainregistry::DEALER_MAX_ADDED_LICENSES);
     result.pushKV("maximum_operations", params.maximum_operations);
     result.pushKV("bmm_enabled", params.BmmEnabled());
     result.pushKV("bmm_active", params.BmmActive(height));

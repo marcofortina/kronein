@@ -8,6 +8,7 @@
 #define BITCOIN_CONSENSUS_PARAMS_H
 
 #include <consensus/amount.h>
+#include <primitives/dealerauthority.h>
 #include <uint256.h>
 
 #include <array>
@@ -24,8 +25,8 @@ struct Params {
     struct ChainRegistryParams {
         /** Negative means the registry consensus rules are disabled. */
         int activation_height{-1};
-        /** BIP340 x-only key authorizing dealer lifecycle operations. */
-        std::array<unsigned char, 32> dealer_authority_key{};
+        /** Initial BIP340 quorum authorizing dealer lifecycle operations. */
+        chainregistry::DealerAuthority dealer_authority;
         /** Maximum number of registry state transitions accepted per block. */
         uint32_t maximum_operations{0};
         /** Negative means one-way deposit consensus rules are disabled. */
@@ -42,7 +43,7 @@ struct Params {
         bool Enabled() const
         {
             return activation_height >= 0 &&
-                   dealer_authority_key != decltype(dealer_authority_key){} &&
+                   dealer_authority.IsValid() &&
                    maximum_operations > 0;
         }
         bool IsActive(int height) const { return Enabled() && height >= activation_height; }

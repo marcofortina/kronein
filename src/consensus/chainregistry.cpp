@@ -477,7 +477,7 @@ std::optional<RegistryNonInclusionProof> ChainRegistry::GetNonInclusionProof(con
 RegistryTransitionResult ChainRegistry::ApplyTransaction(const CTransaction& tx,
                                                          uint32_t height,
                                                          const uint256& main_genesis_hash,
-                                                         const XOnlyPubKey& dealer_authority_key)
+                                                         const DealerAuthority& dealer_authority)
 {
     const auto extracted{ExtractTransactionOperation(tx)};
     if (!extracted.IsValid()) {
@@ -515,7 +515,7 @@ RegistryTransitionResult ChainRegistry::ApplyTransaction(const CTransaction& tx,
         if (!spent_controls.empty() || !spent_dealer_controls.empty()) {
             return TransitionError(RegistryError::WRONG_CONTROL_OUTPOINT);
         }
-        if (!dealer_authority_key.IsFullyValid()) {
+        if (!dealer_authority.IsValid()) {
             return TransitionError(RegistryError::INVALID_AUTHORITY_KEY);
         }
         if (m_authority_sequence == std::numeric_limits<uint64_t>::max()) {
@@ -535,16 +535,16 @@ RegistryTransitionResult ChainRegistry::ApplyTransaction(const CTransaction& tx,
             return TransitionError(RegistryError::INVALID_AUTHORITY_SEQUENCE);
         }
         const auto authority_hash{ComputeDealerAuthorityHash(main_genesis_hash, operation)};
-        const auto signature{std::visit([](const auto& payload) -> std::span<const unsigned char> {
+        const auto* signatures{std::visit([](const auto& payload) -> const DealerAuthoritySignatures* {
             using Payload = std::decay_t<decltype(payload)>;
             if constexpr (std::is_same_v<Payload, AuthorizeDealer> ||
                           std::is_same_v<Payload, UpdateDealer> ||
                           std::is_same_v<Payload, RevokeDealer>) {
-                return payload.authority_signature;
+                return &payload.authority_signatures;
             }
             return {};
         }, operation)};
-        if (!authority_hash || !dealer_authority_key.VerifySchnorr(*authority_hash, signature)) {
+        if (!authority_hash || !signatures || !signatures->Verify(*authority_hash, dealer_authority)) {
             return TransitionError(RegistryError::INVALID_AUTHORITY_SIGNATURE);
         }
 
@@ -944,7 +944,7 @@ BlockDepositsResult ValidateBlockDeposits(
 RegistryBlockResult ChainRegistry::ApplyBlock(const CBlock& block,
                                               uint32_t height,
                                               const uint256& main_genesis_hash,
-                                              const XOnlyPubKey& dealer_authority_key,
+                                              const DealerAuthority& dealer_authority,
                                               size_t maximum_operations,
                                               CommitmentRequirement commitment_requirement,
                                               std::optional<DepositValidationParams> deposit_params)
@@ -997,7 +997,7 @@ RegistryBlockResult ChainRegistry::ApplyBlock(const CBlock& block,
         }
 
         auto transition{ApplyTransaction(
-            *block.vtx[tx_index], height, main_genesis_hash, dealer_authority_key)};
+            *block.vtx[tx_index], height, main_genesis_hash, dealer_authority)};
         if (!transition.IsValid()) {
             result.error = RegistryBlockError::TRANSACTION_TRANSITION;
             result.tx_index = tx_index;

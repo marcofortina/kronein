@@ -7,6 +7,7 @@
 
 #include <attributes.h>
 #include <consensus/amount.h>
+#include <primitives/dealerauthority.h>
 #include <script/script.h>
 #include <serialize.h>
 #include <uint256.h>
@@ -104,7 +105,7 @@ inline constexpr std::string_view MANIFEST_HASH_TAG{"Kronein/ChainManifest/v1"};
 inline constexpr std::string_view CHAIN_ID_TAG{"Kronein/ChainId/v1"};
 inline constexpr std::string_view DEPOSIT_ID_TAG{"Kronein/DepositId/v1"};
 inline constexpr std::string_view DEALER_ID_TAG{"Kronein/DealerId/v1"};
-inline constexpr std::string_view DEALER_AUTHORITY_TAG{"Kronein/DealerAuthority/v1"};
+inline constexpr std::string_view DEALER_AUTHORITY_TAG{"Kronein/DealerAuthority/v2"};
 
 inline constexpr uint16_t PROTOCOL_VERSION{1};
 inline constexpr size_t MAX_CONSENSUS_PARAMETERS_SIZE{1024};
@@ -112,8 +113,11 @@ inline constexpr size_t MAX_FEE_RECIPIENT_SIZE{64};
 inline constexpr size_t MAX_REGISTRY_DATA_SIZE{1400};
 inline constexpr size_t DEALER_CONTROL_KEY_SIZE{32};
 inline constexpr size_t DEALER_AUTHORITY_SIGNATURE_SIZE{64};
+inline constexpr uint32_t DEALER_INITIAL_LICENSES{10};
+inline constexpr uint32_t DEALER_MAX_ADDED_LICENSES{10};
 inline constexpr std::array<unsigned char, 4> REGISTRY_MAGIC{'K', 'R', 'E', 'G'};
 inline constexpr uint8_t REGISTRY_ENVELOPE_VERSION{1};
+inline constexpr uint8_t DEALER_ENVELOPE_VERSION{2};
 
 enum class AnchoringPolicy : uint8_t {
     BMM_V1 = 1,
@@ -248,7 +252,7 @@ struct AuthorizeDealer {
     uint32_t control_output{std::numeric_limits<uint32_t>::max()};
     std::vector<unsigned char> payout_script;
     uint32_t initial_licenses{0};
-    std::array<unsigned char, DEALER_AUTHORITY_SIGNATURE_SIZE> authority_signature{};
+    DealerAuthoritySignatures authority_signatures{};
 
     SERIALIZE_METHODS(AuthorizeDealer, obj)
     {
@@ -258,7 +262,7 @@ struct AuthorizeDealer {
                   obj.control_output,
                   obj.payout_script,
                   obj.initial_licenses,
-                  obj.authority_signature);
+                  obj.authority_signatures);
     }
 
     friend bool operator==(const AuthorizeDealer&, const AuthorizeDealer&) = default;
@@ -270,7 +274,7 @@ struct UpdateDealer {
     DealerId dealer_id;
     uint32_t added_licenses{0};
     std::vector<unsigned char> payout_script;
-    std::array<unsigned char, DEALER_AUTHORITY_SIGNATURE_SIZE> authority_signature{};
+    DealerAuthoritySignatures authority_signatures{};
 
     SERIALIZE_METHODS(UpdateDealer, obj)
     {
@@ -278,7 +282,7 @@ struct UpdateDealer {
                   obj.dealer_id,
                   obj.added_licenses,
                   obj.payout_script,
-                  obj.authority_signature);
+                  obj.authority_signatures);
     }
 
     friend bool operator==(const UpdateDealer&, const UpdateDealer&) = default;
@@ -288,11 +292,11 @@ struct UpdateDealer {
 struct RevokeDealer {
     uint64_t authority_sequence{0};
     DealerId dealer_id;
-    std::array<unsigned char, DEALER_AUTHORITY_SIGNATURE_SIZE> authority_signature{};
+    DealerAuthoritySignatures authority_signatures{};
 
     SERIALIZE_METHODS(RevokeDealer, obj)
     {
-        READWRITE(obj.authority_sequence, obj.dealer_id, obj.authority_signature);
+        READWRITE(obj.authority_sequence, obj.dealer_id, obj.authority_signatures);
     }
 
     friend bool operator==(const RevokeDealer&, const RevokeDealer&) = default;

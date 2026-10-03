@@ -264,7 +264,7 @@ BOOST_AUTO_TEST_CASE(registry_block_validation_uses_final_registry_state)
     chainregistry::ChainRegistry expected;
     BOOST_REQUIRE(expected.LoadState({}, {Dealer()}, 0).IsValid());
     BOOST_REQUIRE(expected.ApplyTransaction(
-        CTransaction{registration}, 50, MAIN_GENESIS, XOnlyPubKey::NUMS_H).IsValid());
+        CTransaction{registration}, 50, MAIN_GENESIS, chainregistry::DealerAuthority{}).IsValid());
     CBlock register_and_fund{Block({Coinbase(expected.ComputeRoot()), registration,
                                     FundingTx(chain_id, 2'000)})};
 
@@ -274,7 +274,7 @@ BOOST_AUTO_TEST_CASE(registry_block_validation_uses_final_registry_state)
         register_and_fund,
         50,
         MAIN_GENESIS,
-        XOnlyPubKey::NUMS_H,
+        chainregistry::DealerAuthority{},
         4,
         chainregistry::CommitmentRequirement::REQUIRED,
         chainregistry::DepositValidationParams{.minimum_amount = 1'000, .maximum_deposits = 4})};
@@ -290,7 +290,7 @@ BOOST_AUTO_TEST_CASE(registry_block_validation_uses_final_registry_state)
         chainregistry::RetireChain{.chain_id = chain_id}));
     chainregistry::ChainRegistry retired_state{registry};
     BOOST_REQUIRE(retired_state.ApplyTransaction(
-        CTransaction{retirement}, 51, MAIN_GENESIS, XOnlyPubKey::NUMS_H).IsValid());
+        CTransaction{retirement}, 51, MAIN_GENESIS, chainregistry::DealerAuthority{}).IsValid());
     const CBlock retire_and_fund{Block({Coinbase(retired_state.ComputeRoot()),
                                        FundingTx(chain_id, 2'000), retirement})};
 
@@ -299,7 +299,7 @@ BOOST_AUTO_TEST_CASE(registry_block_validation_uses_final_registry_state)
         retire_and_fund,
         51,
         MAIN_GENESIS,
-        XOnlyPubKey::NUMS_H,
+        chainregistry::DealerAuthority{},
         4,
         chainregistry::CommitmentRequirement::REQUIRED,
         chainregistry::DepositValidationParams{.minimum_amount = 1'000, .maximum_deposits = 4})};

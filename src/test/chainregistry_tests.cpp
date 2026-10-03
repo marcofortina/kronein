@@ -68,10 +68,15 @@ const CKey& TestAuthorityPrivateKey()
     return key;
 }
 
-const XOnlyPubKey& TestAuthorityKey()
+const chainregistry::DealerAuthority& TestAuthorityKey()
 {
-    static const XOnlyPubKey key{TestAuthorityPrivateKey().GetPubKey()};
-    return key;
+    static const auto authority{[] {
+        const XOnlyPubKey pubkey{TestAuthorityPrivateKey().GetPubKey()};
+        chainregistry::DealerAuthority result{.threshold = 1, .keys = {{}}};
+        std::copy(pubkey.begin(), pubkey.end(), result.keys[0].begin());
+        return result;
+    }()};
+    return authority;
 }
 
 template <typename Operation>
@@ -80,8 +85,10 @@ Operation SignAdminOperation(Operation operation, const uint256& main_genesis)
     chainregistry::RegistryOperation variant{operation};
     const auto digest{chainregistry::ComputeDealerAuthorityHash(main_genesis, variant)};
     BOOST_REQUIRE(digest.has_value());
+    operation.authority_signatures.signers = 1;
+    operation.authority_signatures.signatures.resize(1);
     BOOST_REQUIRE(TestAuthorityPrivateKey().SignSchnorr(
-        *digest, operation.authority_signature, nullptr, uint256{}));
+        *digest, operation.authority_signatures.signatures[0], nullptr, uint256{}));
     return operation;
 }
 
@@ -365,24 +372,27 @@ BOOST_AUTO_TEST_CASE(operation_script_vectors_and_roundtrip)
         .control_output = 1,
         .payout_script = ParseHex(
             "51207777777777777777777777777777777777777777777777777777777777777777"),
-        .initial_licenses = 5,
+        .initial_licenses = 10,
     };
     const auto authority_key{ParseHex(
         "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798")};
     std::copy(authority_key.begin(), authority_key.end(), authorization.control_key.begin());
-    authorization.authority_signature.fill(0x88);
+    authorization.authority_signatures = {1, {{}}};
+    authorization.authority_signatures.signatures[0].fill(0x88);
     chainregistry::UpdateDealer dealer_update{
         .authority_sequence = 2,
         .dealer_id = TestDealerId(),
         .added_licenses = 3,
         .payout_script = {},
     };
-    dealer_update.authority_signature.fill(0x99);
+    dealer_update.authority_signatures = {1, {{}}};
+    dealer_update.authority_signatures.signatures[0].fill(0x99);
     chainregistry::RevokeDealer dealer_revocation{
         .authority_sequence = 3,
         .dealer_id = TestDealerId(),
     };
-    dealer_revocation.authority_signature.fill(0xaa);
+    dealer_revocation.authority_signatures = {1, {{}}};
+    dealer_revocation.authority_signatures.signatures[0].fill(0xaa);
 
     const std::vector<std::pair<chainregistry::RegistryOperation, std::string_view>> vectors{
         {registration,
@@ -399,22 +409,23 @@ BOOST_AUTO_TEST_CASE(operation_script_vectors_and_roundtrip)
         {retirement,
          "6a264b52454701035555555555555555555555555555555555555555555555555555555555555555"},
         {authorization,
-         "6a4cb94b52454701040100000000000000"
+         "6a4cba4b52454702040100000000000000"
          "6666666666666666666666666666666666666666666666666666666666666666"
          "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
          "010000002251207777777777777777777777777777777777777777777777777777777777777777"
-         "05000000"
+         "0a00000001"
          "8888888888888888888888888888888888888888888888888888888888888888"
          "8888888888888888888888888888888888888888888888888888888888888888"},
         {dealer_update,
-         "6a4c734b52454701050200000000000000"
+         "6a4c744b52454702050200000000000000"
          "0101010101010101010101010101010101010101010101010101010101010101"
-         "0300000000"
+         "030000000001"
          "9999999999999999999999999999999999999999999999999999999999999999"
          "9999999999999999999999999999999999999999999999999999999999999999"},
         {dealer_revocation,
-         "6a4c6e4b52454701060300000000000000"
+         "6a4c6f4b52454702060300000000000000"
          "0101010101010101010101010101010101010101010101010101010101010101"
+         "01"
          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
     };
@@ -829,7 +840,7 @@ BOOST_AUTO_TEST_CASE(dealer_authorization_sale_update_revoke_and_undo)
             "0101010101010101010101010101010101010101010101010101010101010101"},
         .control_output = 1,
         .payout_script = {initial_payout.begin(), initial_payout.end()},
-        .initial_licenses = 2,
+        .initial_licenses = 10,
     };
     std::copy(dealer_xonly.begin(), dealer_xonly.end(), authorization.control_key.begin());
     const auto authority_digest{chainregistry::ComputeDealerAuthorityHash(
@@ -837,9 +848,10 @@ BOOST_AUTO_TEST_CASE(dealer_authorization_sale_update_revoke_and_undo)
     BOOST_REQUIRE(authority_digest.has_value());
     BOOST_CHECK_EQUAL(
         HexStr(std::span{authority_digest->begin(), authority_digest->size()}),
-        "89e5dce42b40f48d453febd6bcd431aa1e76f7c499fc37f74a2acbe6329f901f");
+        "28c3eeebcf6d5a51128f2ccaa6407976f2638e1b41977c5698abe0b1276e491d");
     auto authorization_with_signature{authorization};
-    authorization_with_signature.authority_signature.fill(0x42);
+    authorization_with_signature.authority_signatures = {1, {{}}};
+    authorization_with_signature.authority_signatures.signatures[0].fill(0x42);
     BOOST_CHECK(chainregistry::ComputeDealerAuthorityHash(
                     main_genesis,
                     chainregistry::RegistryOperation{authorization_with_signature}) ==
@@ -859,7 +871,7 @@ BOOST_AUTO_TEST_CASE(dealer_authorization_sale_update_revoke_and_undo)
     const chainregistry::DealerId dealer_id{*authorized.dealer_id};
     const auto* dealer{registry.FindDealer(dealer_id)};
     BOOST_REQUIRE(dealer);
-    BOOST_CHECK_EQUAL(dealer->remaining_licenses, 2U);
+    BOOST_CHECK_EQUAL(dealer->remaining_licenses, 10U);
     BOOST_CHECK(dealer->payout_script == initial_payout);
     BOOST_CHECK(dealer->control_outpoint == COutPoint(authorization_tx.GetHash(), 1));
 
@@ -871,7 +883,7 @@ BOOST_AUTO_TEST_CASE(dealer_authorization_sale_update_revoke_and_undo)
 
     auto bad_signature{authorization};
     bad_signature.authority_sequence = 2;
-    bad_signature.authority_signature[0] ^= 1;
+    bad_signature.authority_signatures.signatures[0][0] ^= 1;
     const auto invalid_signature{registry.ApplyTransaction(
         CTransaction{OperationTx(bad_signature, dealer_control_script)},
         11, main_genesis, TestAuthorityKey())};
@@ -889,7 +901,7 @@ BOOST_AUTO_TEST_CASE(dealer_authorization_sale_update_revoke_and_undo)
     BOOST_REQUIRE(updated.undo.has_value());
     dealer = registry.FindDealer(dealer_id);
     BOOST_REQUIRE(dealer);
-    BOOST_CHECK_EQUAL(dealer->remaining_licenses, 5U);
+    BOOST_CHECK_EQUAL(dealer->remaining_licenses, 13U);
     BOOST_CHECK(dealer->payout_script == rotated_payout);
     BOOST_CHECK_EQUAL(registry.AuthoritySequence(), 2U);
 
@@ -909,7 +921,7 @@ BOOST_AUTO_TEST_CASE(dealer_authorization_sale_update_revoke_and_undo)
     BOOST_REQUIRE(sold.undo.has_value());
     dealer = registry.FindDealer(dealer_id);
     BOOST_REQUIRE(dealer);
-    BOOST_CHECK_EQUAL(dealer->remaining_licenses, 4U);
+    BOOST_CHECK_EQUAL(dealer->remaining_licenses, 12U);
     BOOST_CHECK(dealer->control_outpoint == COutPoint(sale.GetHash(), 2));
 
     const uint256 pre_corrupt_undo_root{registry.ComputeRoot()};

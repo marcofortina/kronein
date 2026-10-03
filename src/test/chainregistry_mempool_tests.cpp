@@ -83,15 +83,16 @@ struct RegistryMempoolSetup : public TestChain100Setup {
             .control_output = 1,
             .payout_script = std::vector<unsigned char>{
                 payout_script.begin(), payout_script.end()},
-            .initial_licenses = 1,
+            .initial_licenses = 10,
         };
         std::copy(dealer_control_key.begin(), dealer_control_key.end(),
                   authorization.control_key.begin());
         const auto authority_hash{chainregistry::ComputeDealerAuthorityHash(
             Params().GetConsensus().hashGenesisBlock, authorization)};
         BOOST_REQUIRE(authority_hash.has_value());
+        authorization.authority_signatures = {1, {{}}};
         BOOST_REQUIRE(authority_key.SignSchnorr(
-            *authority_hash, authorization.authority_signature, nullptr, uint256{}));
+            *authority_hash, authorization.authority_signatures.signatures[0], nullptr, uint256{}));
 
         const COutPoint funding{m_coinbase_txns[0]->GetHash(), 0};
         const CMutableTransaction transaction{CreateValidTransaction(
@@ -239,13 +240,13 @@ BOOST_AUTO_TEST_CASE(validate_unconfirmed_registry_transition_chain)
     chainregistry::ChainRegistry expected;
     BOOST_REQUIRE(expected.ApplyTransaction(
         *dealer.transaction, 101, Params().GetConsensus().hashGenesisBlock,
-        XOnlyPubKey{Params().GetConsensus().chain_registry.dealer_authority_key}).IsValid());
+        Params().GetConsensus().chain_registry.dealer_authority).IsValid());
     BOOST_REQUIRE(expected.ApplyTransaction(
         CTransaction{registration_tx}, 101, Params().GetConsensus().hashGenesisBlock,
-        XOnlyPubKey{Params().GetConsensus().chain_registry.dealer_authority_key}).IsValid());
+        Params().GetConsensus().chain_registry.dealer_authority).IsValid());
     BOOST_REQUIRE(expected.ApplyTransaction(
         CTransaction{update_tx}, 101, Params().GetConsensus().hashGenesisBlock,
-        XOnlyPubKey{Params().GetConsensus().chain_registry.dealer_authority_key}).IsValid());
+        Params().GetConsensus().chain_registry.dealer_authority).IsValid());
     BOOST_CHECK(*commitment.root == expected.ComputeRoot());
 
     block->hashMerkleRoot = BlockMerkleRoot(*block);

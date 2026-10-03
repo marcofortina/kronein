@@ -400,13 +400,13 @@ public:
     RegistryTransitionResult ApplyTransaction(const CTransaction& tx,
                                               uint32_t height,
                                               const uint256& main_genesis_hash,
-                                              const XOnlyPubKey& dealer_authority_key);
+                                              const DealerAuthority& dealer_authority);
     bool Undo(const RegistryUndo& undo);
 
     RegistryBlockResult ApplyBlock(const CBlock& block,
                                    uint32_t height,
                                    const uint256& main_genesis_hash,
-                                   const XOnlyPubKey& dealer_authority_key,
+                                   const DealerAuthority& dealer_authority,
                                    size_t maximum_operations,
                                    CommitmentRequirement commitment_requirement,
                                    std::optional<DepositValidationParams> deposit_params = std::nullopt);

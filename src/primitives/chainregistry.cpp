@@ -132,10 +132,10 @@ OperationValidationError ValidateOperation(const RegistryOperation& operation)
                 !CScript{payload.payout_script.begin(), payload.payout_script.end()}.IsPayToTaproot()) {
                 return OperationValidationError::INVALID_PAYOUT_SCRIPT;
             }
-            if (payload.initial_licenses == 0) {
+            if (payload.initial_licenses != DEALER_INITIAL_LICENSES) {
                 return OperationValidationError::INVALID_LICENSE_COUNT;
             }
-            if (std::ranges::all_of(payload.authority_signature, [](unsigned char value) { return value == 0; })) {
+            if (!payload.authority_signatures.IsWellFormed() || payload.authority_signatures.signers == 0) {
                 return OperationValidationError::INVALID_AUTHORITY_SIGNATURE;
             }
         } else if constexpr (std::is_same_v<Payload, UpdateDealer>) {
@@ -143,14 +143,15 @@ OperationValidationError ValidateOperation(const RegistryOperation& operation)
                 return OperationValidationError::INVALID_AUTHORITY_SEQUENCE;
             }
             if (payload.dealer_id.IsNull()) return OperationValidationError::NULL_DEALER_ID;
-            if (payload.added_licenses == 0 && payload.payout_script.empty()) {
+            if (payload.added_licenses > DEALER_MAX_ADDED_LICENSES ||
+                (payload.added_licenses == 0 && payload.payout_script.empty())) {
                 return OperationValidationError::INVALID_LICENSE_COUNT;
             }
             if (!payload.payout_script.empty() &&
                 !CScript{payload.payout_script.begin(), payload.payout_script.end()}.IsPayToTaproot()) {
                 return OperationValidationError::INVALID_PAYOUT_SCRIPT;
             }
-            if (std::ranges::all_of(payload.authority_signature, [](unsigned char value) { return value == 0; })) {
+            if (!payload.authority_signatures.IsWellFormed() || payload.authority_signatures.signers == 0) {
                 return OperationValidationError::INVALID_AUTHORITY_SIGNATURE;
             }
         } else if constexpr (std::is_same_v<Payload, RevokeDealer>) {
@@ -158,7 +159,7 @@ OperationValidationError ValidateOperation(const RegistryOperation& operation)
                 return OperationValidationError::INVALID_AUTHORITY_SEQUENCE;
             }
             if (payload.dealer_id.IsNull()) return OperationValidationError::NULL_DEALER_ID;
-            if (std::ranges::all_of(payload.authority_signature, [](unsigned char value) { return value == 0; })) {
+            if (!payload.authority_signatures.IsWellFormed() || payload.authority_signatures.signers == 0) {
                 return OperationValidationError::INVALID_AUTHORITY_SIGNATURE;
             }
         }
@@ -170,7 +171,9 @@ CScript BuildOperationScript(const RegistryOperation& operation)
 {
     std::vector<unsigned char> data{REGISTRY_MAGIC.begin(), REGISTRY_MAGIC.end()};
     VectorWriter writer{data, data.size()};
-    writer << REGISTRY_ENVELOPE_VERSION << static_cast<uint8_t>(GetOperationType(operation));
+    const auto type{GetOperationType(operation)};
+    const uint8_t version{type >= OperationType::AUTHORIZE_DEALER ? DEALER_ENVELOPE_VERSION : REGISTRY_ENVELOPE_VERSION};
+    writer << version << static_cast<uint8_t>(type);
     std::visit([&](const auto& payload) { writer << payload; }, operation);
     return CScript{} << OP_RETURN << data;
 }
@@ -205,7 +208,10 @@ OperationParseResult ParseOperationScript(const CScript& script)
         uint8_t envelope_version;
         uint8_t operation_type;
         reader >> envelope_version >> operation_type;
-        if (envelope_version != REGISTRY_ENVELOPE_VERSION) {
+        const bool dealer_operation{operation_type >= static_cast<uint8_t>(OperationType::AUTHORIZE_DEALER) &&
+                                    operation_type <= static_cast<uint8_t>(OperationType::REVOKE_DEALER)};
+        const uint8_t expected_version{dealer_operation ? DEALER_ENVELOPE_VERSION : REGISTRY_ENVELOPE_VERSION};
+        if (envelope_version != expected_version) {
             return {OperationParseError::UNSUPPORTED_ENVELOPE_VERSION, std::nullopt};
         }
 

@@ -11,6 +11,7 @@
 #include <test/util/mining.h>
 #include <test/util/setup_common.h>
 #include <util/check.h>
+#include <util/strencodings.h>
 #include <validation.h>
 
 #include <boost/test/unit_test.hpp>
@@ -21,6 +22,8 @@
 #include <set>
 #include <string_view>
 #include <vector>
+
+using namespace util::hex_literals;
 
 BOOST_AUTO_TEST_SUITE(chainparams_tests)
 
@@ -111,12 +114,11 @@ BOOST_AUTO_TEST_CASE(randomx_genesis_proofs)
 
 BOOST_AUTO_TEST_CASE(regtest_chain_registry_options)
 {
-    std::array<unsigned char, 32> dealer_authority_key{};
-    dealer_authority_key.fill(3);
+    constexpr auto dealer_authority_key{"79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"_hex_u8};
     CChainParams::RegTestOptions options;
     options.chain_registry = Consensus::Params::ChainRegistryParams{
         .activation_height = 42,
-        .dealer_authority_key = dealer_authority_key,
+        .dealer_authority = {1, {dealer_authority_key}},
         .maximum_operations = 17,
         .deposit_activation_height = 50,
         .minimum_deposit_amount = COIN / 100,
@@ -129,7 +131,9 @@ BOOST_AUTO_TEST_CASE(regtest_chain_registry_options)
     BOOST_CHECK(registry.Enabled());
     BOOST_CHECK(!registry.IsActive(41));
     BOOST_CHECK(registry.IsActive(42));
-    BOOST_CHECK(registry.dealer_authority_key == dealer_authority_key);
+    BOOST_CHECK_EQUAL(registry.dealer_authority.threshold, 1);
+    BOOST_REQUIRE_EQUAL(registry.dealer_authority.keys.size(), 1U);
+    BOOST_CHECK(registry.dealer_authority.keys[0] == dealer_authority_key);
     BOOST_CHECK_EQUAL(registry.maximum_operations, 17U);
     BOOST_CHECK(registry.DepositsEnabled());
     BOOST_CHECK(!registry.DepositsActive(49));
