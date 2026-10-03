@@ -291,7 +291,7 @@ BOOST_AUTO_TEST_CASE(persists_bounded_local_proposals)
         BOOST_REQUIRE(stored.has_value());
         BOOST_CHECK_EQUAL(stored->created_time, 100);
         BOOST_CHECK(stored->block.GetHash() == first.GetHash());
-        const uint256 missing{
+        constexpr uint256 missing{
             "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
         const std::vector<uint256> incomplete{first.GetHash(), missing};
         BOOST_CHECK(!db.EraseLocalProposals(incomplete, /*sync=*/true));
