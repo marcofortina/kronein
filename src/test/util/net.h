@@ -84,6 +84,13 @@ public:
         m_nodes.clear();
     }
 
+    /** Discard the counterpart sessions when their test nodes are destroyed. */
+    void StopNodes()
+    {
+        CConnman::StopNodes();
+        m_test_peer_transports.clear();
+    }
+
     void CreateNodeFromAcceptedSocketPublic(std::unique_ptr<Sock> sock,
                                             NetPermissionFlags permissions,
                                             const CAddress& addr_bind,

@@ -60,6 +60,25 @@ BOOST_AUTO_TEST_CASE(connman_polymorphic_destruction)
     BOOST_CHECK(destroyed);
 }
 
+BOOST_AUTO_TEST_CASE(test_peer_transport_lifecycle)
+{
+    auto& connman{static_cast<ConnmanTestMsg&>(*m_node.connman)};
+    // optional reuses the exact same storage, independently of the allocator.
+    std::optional<CNode> peer;
+    for (const auto type : {ConnectionType::INBOUND, ConnectionType::OUTBOUND_FULL_RELAY}) {
+        for (int iteration = 0; iteration < 2; ++iteration) {
+            peer.emplace(0, nullptr, CAddress{}, 0, 0, CService{}, std::string{},
+                         type, false, 0);
+            connman.FlushSendBuffer(*peer);
+            BOOST_REQUIRE(peer->m_transport->GetInfo().transport_type == TransportProtocolType::V2);
+            BOOST_CHECK(connman.ReceiveMsgFrom(*peer, NetMsg::Make(NetMsgType::VERACK)));
+            BOOST_CHECK(connman.ReceiveMsgFrom(*peer, NetMsg::Make(NetMsgType::VERACK)));
+            peer.reset();
+            connman.StopNodes();
+        }
+    }
+}
+
 BOOST_AUTO_TEST_CASE(cnode_listen_port)
 {
     // test default

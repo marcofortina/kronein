@@ -125,7 +125,7 @@ FUZZ_TARGET(process_message, .init = initialize_process_message)
         node.peerman->SendMessages(p2p_node);
     }
     node.validation_signals->SyncWithValidationInterfaceQueue();
-    node.connman->StopNodes();
+    connman.StopNodes();
     if (block_index_size != WITH_LOCK(chainman.GetMutex(), return chainman.BlockIndex().size())) {
         // Reuse the global chainman, but reset it when it is dirty
         ResetChainman(*g_setup);
