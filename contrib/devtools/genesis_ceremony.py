@@ -13,6 +13,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 
@@ -79,15 +80,16 @@ def uint32(value):
 
 
 class Utility:
-    def __init__(self, executable, *, timeout=3600, full_memory=False):
-        self.executable = str(Path(executable).resolve())
+    def __init__(self, executable, *, extra_args=(), timeout=3600, full_memory=False):
+        self.executable = str(Path(shutil.which(executable) or executable).resolve())
+        self.extra_args = list(extra_args)
         self.timeout = timeout
         self.full_memory = full_memory
 
     def call(self, network, command, *arguments):
         if network not in NETWORKS:
             raise ValueError("Unknown network")
-        argv = [self.executable, f"-chain={network}"]
+        argv = [self.executable, *self.extra_args, f"-chain={network}"]
         if not self.full_memory:
             argv.append("-randomxlight")
         result = subprocess.run([*argv, command, *map(str, arguments)], capture_output=True,
@@ -200,6 +202,8 @@ def verify_artifact(util, manifest, artifact, entropy):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--util", required=True, help="Path to this checkout's kronein-util")
+    parser.add_argument("--util-arg", action="append", default=[],
+                        help="Argument before utility options; repeat for a launcher, e.g. --util-arg=-m --util-arg=util")
     parser.add_argument("--timeout", type=int, default=3600)
     parser.add_argument("--full-memory", action="store_true")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -219,7 +223,7 @@ def main():
     try:
         if not 1 <= args.timeout <= 14400:
             raise ValueError("Timeout must be between 1 and 14400 seconds")
-        util = Utility(args.util, timeout=args.timeout, full_memory=args.full_memory)
+        util = Utility(args.util, extra_args=args.util_arg, timeout=args.timeout, full_memory=args.full_memory)
         if args.command == "manifest":
             result = make_manifest(util, args.not_before, args.genesis_time)
         elif args.command == "mine":

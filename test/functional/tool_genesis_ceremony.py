@@ -21,6 +21,7 @@ from test_framework.util import assert_equal, assert_raises
 class GenesisCeremonyTest(BitcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 0
+        self.setup_clean_chain = True
 
     def setup_network(self):
         pass
@@ -32,8 +33,7 @@ class GenesisCeremonyTest(BitcoinTestFramework):
         tool = Path(self.config["environment"]["SRCDIR"]) / "contrib/devtools/genesis_ceremony.py"
         module = runpy.run_path(str(tool))
         util_argv = self.get_binaries().util_argv()
-        assert_equal(len(util_argv), 1)
-        util = module["Utility"](util_argv[0], timeout=90)
+        util = module["Utility"](util_argv[0], extra_args=util_argv[1:], timeout=90)
         canonical = module["canonical"]
         not_before, genesis_time = 1_800_000_000, 1_800_000_600
         manifest = module["make_manifest"](util, not_before, genesis_time)
@@ -123,7 +123,8 @@ class GenesisCeremonyTest(BitcoinTestFramework):
         manifest_path.write_bytes(canonical(manifest))
         entropy_path.write_bytes(entropy)
         artifact_path.write_bytes(canonical(artifact))
-        command = [sys.executable, str(tool), "--util", util_argv[0], "verify",
+        command = [sys.executable, str(tool), "--util", util_argv[0],
+                   *(f"--util-arg={arg}" for arg in util_argv[1:]), "verify",
                    "--manifest", str(manifest_path), "--entropy-file", str(entropy_path), "--artifact", str(artifact_path)]
         result = subprocess.run(command, capture_output=True, text=True, timeout=90)
         assert_equal(result.returncode, 0)
