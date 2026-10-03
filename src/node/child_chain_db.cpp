@@ -1487,25 +1487,14 @@ ChildChainDBLoadResult ChildChainDB::Load(
         }
     }
 
-    enum class CandidateVisit : uint8_t {
-        UNVISITED,
-        VISITING,
-        VISITED,
-    };
-    std::map<uint256, CandidateVisit> candidate_visits;
-    const auto validate_candidate = [&](const auto& self,
-                                        const uint256& hash) -> bool {
-        CandidateVisit& visit{candidate_visits[hash]};
-        if (visit == CandidateVisit::VISITED) return true;
-        if (visit == CandidateVisit::VISITING) return false;
-        visit = CandidateVisit::VISITING;
-        const ChildCandidateRecord& candidate{side_candidates.at(hash)};
+    // Every edge must decrease height by exactly one. Checking all edges
+    // rejects cycles without a recursive walk through the candidate graph.
+    const auto validate_candidate = [&](const ChildCandidateRecord& candidate) -> bool {
         uint32_t parent_height{0};
         if (candidate.block.hashPrevBlock != stored_state.child_genesis_hash) {
             const auto side_parent{
                 side_candidates.find(candidate.block.hashPrevBlock)};
             if (side_parent != side_candidates.end()) {
-                if (!self(self, side_parent->first)) return false;
                 parent_height = side_parent->second.undo.block_height;
             } else {
                 const auto canonical_parent{
@@ -1518,11 +1507,10 @@ ChildChainDBLoadResult ChildChainDB::Load(
             candidate.undo.block_height != parent_height + 1) {
             return false;
         }
-        visit = CandidateVisit::VISITED;
         return true;
     };
     for (const auto& [hash, candidate] : side_candidates) {
-        if (!validate_candidate(validate_candidate, hash)) {
+        if (!validate_candidate(candidate)) {
             return LoadError(ChildChainDBLoadError::INVALID_CANDIDATE_DAG);
         }
     }

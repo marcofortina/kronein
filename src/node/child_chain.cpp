@@ -87,58 +87,63 @@ bool ReferenceChildRuntime::RebuildChildIndex(uint32_t genesis_time)
     if (!candidates) return false;
     std::map<uint256, const chainregistry::ChildForkCandidate*> by_hash;
     for (const auto& candidate : *candidates) {
-        if (!by_hash.emplace(candidate.block_hash, &candidate).second) {
+        if (candidate.block_hash == m_definition.genesis_hash ||
+            !by_hash.emplace(candidate.block_hash, &candidate).second) {
             return false;
         }
     }
 
     std::set<uint256> visiting;
-    const auto build = [&](const auto& self,
-                           const uint256& hash) -> CBlockIndex* {
-        const auto existing{m_child_index.find(hash)};
-        if (existing != m_child_index.end()) return existing->second.get();
-        const auto candidate{by_hash.find(hash)};
-        if (candidate == by_hash.end() || !visiting.insert(hash).second) {
-            return nullptr;
+    const auto build = [&](const uint256& hash) -> bool {
+        std::vector<uint256> pending;
+        uint256 current{hash};
+        while (current != m_definition.genesis_hash &&
+               !m_child_index.contains(current)) {
+            const auto candidate{by_hash.find(current)};
+            if (candidate == by_hash.end() || !visiting.insert(current).second) {
+                return false;
+            }
+            pending.push_back(current);
+            current = candidate->second->parent_hash;
         }
-        CBlockIndex* parent{nullptr};
-        if (candidate->second->parent_hash == m_definition.genesis_hash) {
-            parent = m_genesis.get();
-        } else {
-            parent = self(self, candidate->second->parent_hash);
-        }
-        if (!parent) return nullptr;
+        CBlockIndex* parent{current == m_definition.genesis_hash
+                                ? m_genesis.get()
+                                : m_child_index.at(current).get()};
 
-        CBlock block;
-        chainregistry::ReferenceChildBlockUndo undo;
-        if (!m_db->ReadBlock(hash, block) ||
-            !m_db->ReadUndo(hash, undo) || block.GetHash() != hash ||
-            block.hashPrevBlock != parent->GetBlockHash() ||
-            undo.block_hash != hash ||
-            undo.parent_hash != block.hashPrevBlock ||
-            undo.block_height != static_cast<uint32_t>(parent->nHeight + 1)) {
-            return nullptr;
+        for (auto it{pending.rbegin()}; it != pending.rend(); ++it) {
+            const uint256& block_hash{*it};
+            CBlock block;
+            chainregistry::ReferenceChildBlockUndo undo;
+            if (!m_db->ReadBlock(block_hash, block) ||
+                !m_db->ReadUndo(block_hash, undo) || block.GetHash() != block_hash ||
+                block.hashPrevBlock != parent->GetBlockHash() ||
+                undo.block_hash != block_hash ||
+                undo.parent_hash != block.hashPrevBlock ||
+                undo.block_height != static_cast<uint32_t>(parent->nHeight + 1)) {
+                return false;
+            }
+            auto index{std::make_unique<CBlockIndex>(block)};
+            index->pprev = parent;
+            index->nHeight = parent->nHeight + 1;
+            index->nTimeMax = std::max(parent->nTimeMax, index->nTime);
+            index->nTx = block.vtx.size();
+            if (parent->m_chain_tx_count >
+                std::numeric_limits<uint64_t>::max() - index->nTx) {
+                return false;
+            }
+            index->m_chain_tx_count = parent->m_chain_tx_count + index->nTx;
+            index->BuildSkip();
+            auto [stored, inserted]{
+                m_child_index.emplace(block_hash, std::move(index))};
+            if (!inserted) return false;
+            stored->second->phashBlock = &stored->first;
+            visiting.erase(block_hash);
+            parent = stored->second.get();
         }
-        auto index{std::make_unique<CBlockIndex>(block)};
-        index->pprev = parent;
-        index->nHeight = parent->nHeight + 1;
-        index->nTimeMax = std::max(parent->nTimeMax, index->nTime);
-        index->nTx = block.vtx.size();
-        if (parent->m_chain_tx_count >
-            std::numeric_limits<uint64_t>::max() - index->nTx) {
-            return nullptr;
-        }
-        index->m_chain_tx_count = parent->m_chain_tx_count + index->nTx;
-        index->BuildSkip();
-        auto [stored, inserted]{
-            m_child_index.emplace(hash, std::move(index))};
-        if (!inserted) return nullptr;
-        stored->second->phashBlock = &stored->first;
-        visiting.erase(hash);
-        return stored->second.get();
+        return true;
     };
     for (const auto& [hash, candidate] : by_hash) {
-        if (!build(build, hash)) return false;
+        if (!build(hash)) return false;
     }
 
     if (m_state.child_tip == m_definition.genesis_hash) {
