@@ -28,6 +28,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <initializer_list>
 #include <ios>
 #include <memory>
 #include <optional>
