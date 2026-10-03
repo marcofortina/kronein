@@ -4,7 +4,13 @@
 
 #include <init.h>
 #include <interfaces/init.h>
+#include <kernel/mempool_entry.h>
+#include <policy/fees/block_policy_estimator_args.h>
 #include <rpc/server.h>
+#include <scheduler.h>
+#include <streams.h>
+#include <util/fs.h>
+#include <validationinterface.h>
 
 #include <boost/test/unit_test.hpp>
 #include <test/util/common.h>
@@ -53,7 +59,16 @@ BOOST_AUTO_TEST_CASE(init_test)
     BOOST_REQUIRE(m_node.child_chainman);
     BOOST_REQUIRE(m_node.child_chain_notifications);
     Interrupt(m_node);
+    // Leave a block update queued after the scheduler stops, as at shutdown.
+    m_node.scheduler->stop();
+    constexpr unsigned int queued_height{123};
+    m_node.validation_signals->MempoolTransactionsRemovedForBlock({}, queued_height);
+    BOOST_REQUIRE_GT(m_node.validation_signals->CallbacksPending(), 0);
     Shutdown(m_node);
+    AutoFile estimates_file{fsbridge::fopen(FeeestPath(*m_node.args), "rb")};
+    unsigned int best_seen_height;
+    estimates_file >> best_seen_height;
+    BOOST_CHECK_EQUAL(best_seen_height, queued_height);
     BOOST_CHECK(!m_node.child_chain_notifications);
     BOOST_CHECK(!m_node.child_chainman);
 }
