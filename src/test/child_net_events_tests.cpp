@@ -10,6 +10,7 @@
 #include <netbase.h>
 #include <netgroup.h>
 #include <netmessagemaker.h>
+#include <protocol.h>
 #include <test/util/net.h>
 #include <test/util/setup_common.h>
 #include <util/chaintype.h>
@@ -156,7 +157,7 @@ BOOST_AUTO_TEST_CASE(adapts_only_the_isolated_child_protocol)
     peer.fDisconnect = false;
 
     BOOST_REQUIRE(connman.ReceiveMsgFrom(
-        peer, NetMsg::Make("main-only-message", uint8_t{0})));
+        peer, NetMsg::Make(NetMsgType::PING, uint64_t{0})));
     {
         LOCK(NetEventsInterface::g_msgproc_mutex);
         connman.ProcessMessagesOnce(peer);

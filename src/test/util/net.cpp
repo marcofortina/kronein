@@ -145,6 +145,8 @@ void ConnmanTestMsg::FlushSendBuffer(CNode& node) const
 
 bool ConnmanTestMsg::ReceiveMsgFrom(CNode& node, CSerializedNetMsg&& ser_msg) const
 {
+    // The transport's long encoding has a fixed-width message type field.
+    assert(ser_msg.m_type.size() <= CMessageHeader::MESSAGE_TYPE_SIZE);
     V2Transport& peer{GetTestPeerTransport(node)};
     bool queued = peer.SetMessageToSend(ser_msg);
     assert(queued);
