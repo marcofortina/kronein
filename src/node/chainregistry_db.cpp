@@ -543,16 +543,27 @@ bool ChainRegistryDB::WriteDisconnectedBlock(const chainregistry::ChainRegistry&
         ((parent_state.best_block.IsNull() && parent_state.height == 0)
              ? current_state.height != 0
              : current_state.height != parent_state.height + 1) ||
-        current_state.deposit_history_start_height != parent_state.deposit_history_start_height ||
-        current_state.anchor_history_start_height != parent_state.anchor_history_start_height ||
-        undo.deposits.size() > std::numeric_limits<uint64_t>::max() - parent_state.deposit_count ||
-        undo.anchors.size() > std::numeric_limits<uint64_t>::max() - parent_state.anchor_count ||
-        current_state.deposit_count != parent_state.deposit_count + undo.deposits.size() ||
-        current_state.anchor_count != parent_state.anchor_count + undo.anchors.size()) return false;
+        std::min(current_state.deposit_history_start_height, current_state.height) != parent_state.deposit_history_start_height ||
+        std::min(current_state.anchor_history_start_height, current_state.height) != parent_state.anchor_history_start_height) return false;
+
+    const bool deposits_indexed{current_state.height >= current_state.deposit_history_start_height};
+    const bool anchors_indexed{current_state.height >= current_state.anchor_history_start_height};
+    const auto deposits{deposits_indexed ? std::span{undo.deposits} : std::span<const chainregistry::DepositId>{}};
+    const auto anchors{anchors_indexed ? std::span{undo.anchors} : std::span<const BmmAnchorId>{}};
+    if ((!deposits_indexed && current_state.deposit_count != 0) ||
+        (!anchors_indexed && current_state.anchor_count != 0) ||
+        deposits.size() > current_state.deposit_count ||
+        anchors.size() > current_state.anchor_count ||
+        parent_state.deposit_count != current_state.deposit_count - deposits.size() ||
+        parent_state.anchor_count != current_state.anchor_count - anchors.size()) return false;
 
     std::set<chainregistry::DepositId> unique_deposits;
     for (const auto& deposit_id : undo.deposits) {
         const auto deposit{ReadDeposit(deposit_id)};
+        if (!deposits_indexed) {
+            if (deposit) return false;
+            continue;
+        }
         if (!unique_deposits.insert(deposit_id).second || !deposit ||
             deposit->block_hash != disconnected_block_hash ||
             !m_db.Exists(DepositByChildKey{
@@ -562,6 +573,10 @@ bool ChainRegistryDB::WriteDisconnectedBlock(const chainregistry::ChainRegistry&
     std::set<chainregistry::ChainId> unique_anchor_chains;
     for (const auto& anchor_id : undo.anchors) {
         const auto anchor{ReadAnchor(anchor_id)};
+        if (!anchors_indexed) {
+            if (anchor) return false;
+            continue;
+        }
         if (!unique_anchor_chains.insert(anchor_id.chain_id).second || !anchor ||
             anchor->id.main_block_hash != disconnected_block_hash ||
             !m_db.Exists(AnchorByChildKey{
@@ -570,14 +585,14 @@ bool ChainRegistryDB::WriteDisconnectedBlock(const chainregistry::ChainRegistry&
 
     CDBBatch batch{m_db};
     WriteChangedRecords(batch, registry, undo.registry);
-    for (const auto& deposit_id : undo.deposits) {
+    for (const auto& deposit_id : deposits) {
         const auto deposit{ReadDeposit(deposit_id)};
         if (!deposit) return false;
         batch.Erase(DepositKey{DB_DEPOSIT, deposit_id});
         batch.Erase(DepositByChildKey{
             DB_DEPOSIT_BY_CHILD, DepositByChild(*deposit)});
     }
-    for (const auto& anchor_id : undo.anchors) {
+    for (const auto& anchor_id : anchors) {
         const auto anchor{ReadAnchor(anchor_id)};
         if (!anchor) return false;
         batch.Erase(AnchorKey{DB_BMM_ANCHOR, anchor_id});
@@ -587,6 +602,38 @@ bool ChainRegistryDB::WriteDisconnectedBlock(const chainregistry::ChainRegistry&
     batch.Erase(UndoKey{DB_REGISTRY_UNDO, disconnected_block_hash});
     batch.Write(DB_REGISTRY_STATE, parent_state);
     m_db.WriteBatch(batch, sync);
+    return true;
+}
+
+bool ChainRegistryDB::ImportUndo(const ChainRegistryDB& source, const std::function<bool()>& interrupted)
+{
+    if (m_main_genesis_hash != source.m_main_genesis_hash) return false;
+    std::unique_ptr<CDBIterator> cursor{const_cast<CDBWrapper&>(source.m_db).NewIterator()};
+    CDBBatch batch{m_db};
+    cursor->Seek(UndoKey{DB_REGISTRY_UNDO, uint256{}});
+    while (cursor->Valid()) {
+        if (interrupted()) return false;
+        uint8_t prefix;
+        if (!cursor->GetKey(prefix)) return false;
+        if (prefix != DB_REGISTRY_UNDO) break;
+        UndoKey key;
+        ChainRegistryDBUndo undo;
+        if (!cursor->GetKey(key) || key.second.IsNull() || !cursor->GetValue(undo)) return false;
+        if (m_db.Exists(key)) {
+            ChainRegistryDBUndo existing;
+            if (!m_db.Read(key, existing) || existing != undo) return false;
+        } else {
+            batch.Write(key, undo);
+        }
+        if (batch.ApproximateSize() >= 4 * 1024 * 1024) {
+            m_db.WriteBatch(batch, /*fSync=*/true);
+            batch.Clear();
+        }
+        cursor->Next();
+    }
+    // A partially copied prefix is harmless and can be retried after a crash.
+    // Completion must be durable before the historical database is removed.
+    m_db.WriteBatch(batch, /*fSync=*/true);
     return true;
 }
 

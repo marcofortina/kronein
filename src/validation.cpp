@@ -6308,6 +6308,16 @@ SnapshotCompletionResult ChainstateManager::MaybeValidateSnapshot(Chainstate& va
         return SnapshotCompletionResult::HASH_MISMATCH;
     }
 
+    if (!unvalidated_cs.ChainRegistryState().ImportSnapshotUndo(
+            validated_cs.ChainRegistryState(), *unvalidated_cs.m_from_snapshot_blockhash,
+            [&] { return bool{m_interrupt}; })) {
+        if (!m_interrupt) {
+            GetNotifications().fatalError(Untranslated(
+                "Unable to preserve snapshot registry undo. Both chainstates have been retained; restart to retry."));
+        }
+        return SnapshotCompletionResult::REGISTRY_HISTORY_FAILED;
+    }
+
     LogInfo("[snapshot] snapshot beginning at %s has been fully validated",
         unvalidated_cs.m_from_snapshot_blockhash->ToString());
 

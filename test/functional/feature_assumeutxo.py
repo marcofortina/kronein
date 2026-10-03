@@ -411,6 +411,13 @@ class AssumeutxoTest(BitcoinTestFramework):
 
         self.log.info("Snapshot node should reorg to the most-work chain without the snapshot block")
         self.sync_blocks(nodes=(snapshot_node, forking_node))
+        registry = snapshot_node.getchainregistryinfo()
+        assert_equal(registry["root"], forking_node.getchainregistryinfo()["root"])
+        # Historical undo supports the reorg, but does not invent old index data.
+        assert_equal(registry["deposit_history_start_height"], fork_point + 1)
+        assert_equal(registry["bmm_anchor_history_start_height"], fork_point + 1)
+        assert not registry["deposit_history_complete"]
+        assert not registry["bmm_anchor_history_complete"]
 
     def assert_only_network_limited_service(self, node):
         node_services = node.getnetworkinfo()['localservicesnames']

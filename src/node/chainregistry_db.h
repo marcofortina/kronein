@@ -12,6 +12,7 @@
 #include <uint256.h>
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <span>
 #include <vector>
@@ -243,6 +244,11 @@ public:
                                 bool sync = false);
 
     bool EraseUndo(std::span<const uint256> block_hashes, bool sync = false);
+
+    /** Copy available historical undo in bounded, durable, restartable batches.
+     * Does not claim coverage for deposit or anchor indexes absent from a snapshot.
+     */
+    bool ImportUndo(const ChainRegistryDB& source, const std::function<bool()>& interrupted);
 
     bool ReadUndo(const uint256& block_hash, ChainRegistryDBUndo& undo) const;
     bool ReadRecord(const chainregistry::ChainId& chain_id, chainregistry::ChainRecord& record) const;

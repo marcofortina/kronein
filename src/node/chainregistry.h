@@ -12,6 +12,7 @@
 #include <uint256.h>
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <span>
@@ -137,6 +138,12 @@ public:
                                              bool sync = false);
     ChainRegistryStateResult PruneUndo(std::span<const uint256> block_hashes,
                                        bool sync = false);
+
+    /** Preserve undo from the background chainstate before retiring it. The caller
+     * must first validate that its tip is the active snapshot's base block.
+     */
+    bool ImportSnapshotUndo(const ChainRegistryState& source, const uint256& snapshot_base,
+                            const std::function<bool()>& interrupted);
 
     bool Enabled() const { return m_params.Enabled(); }
     bool IsInitialized() const { return m_initialized; }

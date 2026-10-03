@@ -6,6 +6,7 @@
 
 #include <test/util/setup_common.h>
 #include <util/fs.h>
+#include <util/strencodings.h>
 
 #include <boost/test/unit_test.hpp>
 
@@ -127,6 +128,76 @@ node::BmmAnchorIndexEntry Anchor(const chainregistry::ChainRegistry& registry,
 } // namespace
 
 BOOST_FIXTURE_TEST_SUITE(chainregistry_db_tests, BasicTestingSetup)
+
+BOOST_AUTO_TEST_CASE(imported_snapshot_undo_restores_authority_and_rejects_conflicts)
+{
+    using namespace util::hex_literals;
+    constexpr uint256 parent_hash{"5151515151515151515151515151515151515151515151515151515151515151"};
+    constexpr uint256 block_hash{"5252525252525252525252525252525252525252525252525252525252525252"};
+    const chainregistry::DealerAuthorityTransition transition{
+        .activation_height = 245,
+        .previous = {1, {"79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"_hex_u8}},
+        .next = {1, {"c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5"_hex_u8}},
+    };
+    chainregistry::ChainRegistry registry;
+    const auto parent_state{node::MakeChainRegistryDBState(parent_hash, 100, registry)};
+    const node::ChainRegistryDBUndo undo{
+        .parent_block = parent_hash,
+        .registry = {{chainregistry::RegistryUndo{
+            .chain_id = {},
+            .previous_chain = {},
+            .dealer_id = {},
+            .previous_dealer = {},
+            .previous_authority_sequence = 0,
+            .previous_authority_transition = chainregistry::DealerAuthorityTransition{},
+        }}},
+        .deposits = {},
+        .anchors = {},
+    };
+    const auto db_params = [&](const char* name) {
+        return DBParams{.path = m_args.GetDataDirBase() / name, .cache_bytes = 1 << 20, .memory_only = true};
+    };
+    node::ChainRegistryDB source{db_params("undo_source"), MAIN_GENESIS};
+    BOOST_REQUIRE(source.WriteInitialState(registry, parent_state));
+    BOOST_REQUIRE(registry.LoadState({}, {}, 1, transition).IsValid());
+    const auto source_state{node::MakeChainRegistryDBState(block_hash, 101, registry)};
+    BOOST_REQUIRE(source.WriteConnectedBlock(registry, source_state, block_hash, undo));
+
+    node::ChainRegistryDB destination{db_params("undo_destination"), MAIN_GENESIS};
+    const auto snapshot_state{node::MakeChainRegistryDBState(block_hash, 101, registry, 102, 0, 102, 0)};
+    BOOST_REQUIRE(destination.WriteInitialState(registry, snapshot_state));
+    BOOST_CHECK(!destination.ImportUndo(source, [] { return true; }));
+    node::ChainRegistryDBUndo stored;
+    BOOST_CHECK(!destination.ReadUndo(block_hash, stored));
+    BOOST_REQUIRE(destination.ImportUndo(source, [] { return false; }));
+    BOOST_REQUIRE(destination.ImportUndo(source, [] { return false; }));
+    BOOST_REQUIRE(destination.ReadUndo(block_hash, stored));
+    BOOST_CHECK(stored == undo);
+    chainregistry::ChainRegistry loaded;
+    node::ChainRegistryDBState loaded_state;
+    BOOST_REQUIRE(destination.Load(loaded, loaded_state).IsValid());
+    BOOST_CHECK(loaded_state == snapshot_state);
+    BOOST_CHECK(loaded.AuthorityTransition() == transition);
+    BOOST_REQUIRE(loaded.UndoBlock(stored.registry));
+    const auto restored_state{node::MakeChainRegistryDBState(parent_hash, 100, loaded, 101, 0, 101, 0)};
+    BOOST_REQUIRE(destination.WriteDisconnectedBlock(loaded, restored_state, block_hash, stored, true));
+    BOOST_REQUIRE(destination.Load(loaded, loaded_state).IsValid());
+    BOOST_CHECK_EQUAL(loaded.AuthoritySequence(), 0U);
+    BOOST_CHECK(loaded.AuthorityTransition() == chainregistry::DealerAuthorityTransition{});
+    BOOST_CHECK(loaded.ComputeRoot() == parent_state.registry_root);
+
+    // A conflicting record must fail closed, never overwrite validated undo.
+    node::ChainRegistryDB conflicting{db_params("undo_conflict"), MAIN_GENESIS};
+    BOOST_REQUIRE(conflicting.WriteInitialState(loaded, parent_state));
+    auto conflict{undo};
+    conflict.registry.operations[0].previous_authority_sequence = 2;
+    BOOST_REQUIRE(conflicting.WriteConnectedBlock(registry, source_state, block_hash, conflict));
+    BOOST_CHECK(!conflicting.ImportUndo(source, [] { return false; }));
+    BOOST_REQUIRE(conflicting.ReadUndo(block_hash, stored));
+    BOOST_CHECK(stored == conflict);
+    node::ChainRegistryDB other_network{db_params("undo_other_network"), OTHER_GENESIS};
+    BOOST_CHECK(!other_network.ImportUndo(source, [] { return false; }));
+}
 
 BOOST_AUTO_TEST_CASE(registry_db_connect_load_disconnect)
 {

@@ -318,6 +318,89 @@ BOOST_AUTO_TEST_CASE(indexes_snapshot_descendant_deposit_and_reverts_it)
     }
 }
 
+BOOST_AUTO_TEST_CASE(snapshot_reorg_preserves_historical_undo_without_claiming_index_coverage)
+{
+    constexpr uint256 genesis_hash{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
+    constexpr uint256 parent_hash{"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"};
+    const Consensus::Params::ChainRegistryParams params{
+        .activation_height = 1,
+        .dealer_authority = {1, {DealerAuthorityKey()}},
+        .maximum_operations = 4,
+        .deposit_activation_height = 101,
+        .minimum_deposit_amount = 1'000,
+        .maximum_deposits = 4,
+        .bmm_activation_height = 101,
+        .maximum_bmm_anchors = 4,
+    };
+    const auto record{Record()};
+    chainregistry::ChainRegistry registry;
+    BOOST_REQUIRE(registry.LoadRecords({record}).IsValid());
+    CBlock block{Block(parent_hash, chainregistry::BuildRegistryCommitment(registry.ComputeRoot()))};
+    CMutableTransaction funding;
+    funding.vin.emplace_back(COutPoint{Txid::FromUint256(parent_hash), 0});
+    funding.vout.emplace_back(50'000, chainregistry::BuildFundScript({
+        .chain_id = record.chain_id,
+        .recipient_type = 1,
+        .recipient = std::vector<unsigned char>(32, 0x42),
+    }));
+    block.vtx.push_back(MakeTransactionRef(funding));
+    block.vtx.push_back(BmmProposal(record.chain_id, genesis_hash, 4));
+    block.hashMerkleRoot = BlockMerkleRoot(block);
+    const auto block_hash{block.GetHash()};
+    const auto deposit_id{chainregistry::DeriveDepositId(genesis_hash, COutPoint{funding.GetHash(), 0})};
+    const node::BmmAnchorId anchor_id{record.chain_id, block_hash};
+    node::ChainRegistryState background{params, genesis_hash};
+    BOOST_REQUIRE(background.InitializeFromSnapshot(
+        Params(m_args.GetDataDirBase() / "historical_registry", true), parent_hash, 100,
+        registry, registry.ComputeRoot()).IsValid());
+    BOOST_REQUIRE(background.ConnectBlock(block, 101, block_hash, true).IsValid());
+    BOOST_REQUIRE(background.FindDeposit(deposit_id));
+    BOOST_REQUIRE(background.FindAnchor(anchor_id));
+
+    const auto path{m_args.GetDataDirBase() / "snapshot_registry_undo"};
+    {
+        node::ChainRegistryState snapshot{params, genesis_hash};
+        BOOST_REQUIRE(snapshot.InitializeFromSnapshot(
+            Params(path, true), block_hash, 101, registry, registry.ComputeRoot()).IsValid());
+        BOOST_CHECK(snapshot.DisconnectBlock(block_hash, parent_hash, 100).error == node::ChainRegistryStateError::UNDO_MISSING);
+        BOOST_CHECK(!snapshot.ImportSnapshotUndo(background, parent_hash, [] { return false; }));
+        BOOST_CHECK(!snapshot.ImportSnapshotUndo(background, block_hash, [] { return true; }));
+        BOOST_CHECK(!snapshot.UndoParent(block_hash));
+        BOOST_REQUIRE(snapshot.ImportSnapshotUndo(background, block_hash, [] { return false; }));
+        BOOST_REQUIRE(snapshot.ImportSnapshotUndo(background, block_hash, [] { return false; }));
+        BOOST_CHECK(snapshot.UndoParent(block_hash) == parent_hash);
+        BOOST_CHECK(!snapshot.FindDeposit(deposit_id));
+        BOOST_CHECK(!snapshot.FindAnchor(anchor_id));
+        BOOST_CHECK_EQUAL(snapshot.State().deposit_history_start_height, 102U);
+        BOOST_CHECK_EQUAL(snapshot.State().anchor_history_start_height, 102U);
+    }
+    {
+        node::ChainRegistryState snapshot{params, genesis_hash};
+        BOOST_REQUIRE(snapshot.Initialize(Params(path), block_hash, 101).IsValid());
+        BOOST_REQUIRE(snapshot.DisconnectBlock(block_hash, parent_hash, 100, true).IsValid());
+        BOOST_CHECK_EQUAL(snapshot.State().deposit_count, 0U);
+        BOOST_CHECK_EQUAL(snapshot.State().anchor_count, 0U);
+        BOOST_CHECK_EQUAL(snapshot.State().deposit_history_start_height, 101U);
+        BOOST_CHECK_EQUAL(snapshot.State().anchor_history_start_height, 101U);
+        BOOST_CHECK(snapshot.Registry().ComputeRoot() == registry.ComputeRoot());
+    }
+    {
+        node::ChainRegistryState snapshot{params, genesis_hash};
+        BOOST_REQUIRE(snapshot.Initialize(Params(path), parent_hash, 100).IsValid());
+        BOOST_REQUIRE(snapshot.ConnectBlock(block, 101, block_hash, true).IsValid());
+        BOOST_CHECK_EQUAL(snapshot.State().deposit_count, 1U);
+        BOOST_CHECK_EQUAL(snapshot.State().anchor_count, 1U);
+        BOOST_CHECK(snapshot.FindDeposit(deposit_id).has_value());
+        BOOST_CHECK(snapshot.FindAnchor(anchor_id).has_value());
+        BOOST_REQUIRE(snapshot.DisconnectBlock(block_hash, parent_hash, 100, true).IsValid());
+        BOOST_CHECK_EQUAL(snapshot.State().deposit_count, 0U);
+        BOOST_CHECK_EQUAL(snapshot.State().anchor_count, 0U);
+    }
+    // Importing snapshot undo must not consume the background node's indexes.
+    BOOST_CHECK(background.FindDeposit(deposit_id).has_value());
+    BOOST_CHECK(background.FindAnchor(anchor_id).has_value());
+}
+
 BOOST_AUTO_TEST_CASE(indexes_bmm_anchor_across_restart_and_reorg)
 {
     constexpr uint256 genesis_hash{

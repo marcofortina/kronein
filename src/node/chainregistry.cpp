@@ -8,6 +8,7 @@
 #include <primitives/block.h>
 #include <primitives/bmm.h>
 
+#include <algorithm>
 #include <limits>
 #include <optional>
 #include <utility>
@@ -509,26 +510,42 @@ ChainRegistryStateResult ChainRegistryState::DisconnectBlock(const uint256& bloc
     if (!candidate.UndoBlock(undo.registry)) {
         return StateError(ChainRegistryStateError::UNDO_FAILED);
     }
-    if (undo.deposits.size() > m_state.deposit_count) {
+    // Snapshot undo can extend below the locally indexed history. Such blocks
+    // still revert consensus state, but have no local index entries to remove.
+    const size_t deposits_removed{m_state.height >= m_state.deposit_history_start_height ? undo.deposits.size() : 0};
+    const size_t anchors_removed{m_state.height >= m_state.anchor_history_start_height ? undo.anchors.size() : 0};
+    if (deposits_removed > m_state.deposit_count) {
         return StateError(ChainRegistryStateError::UNDO_FAILED);
     }
-    if (undo.anchors.size() > m_state.anchor_count) {
+    if (anchors_removed > m_state.anchor_count) {
         return StateError(ChainRegistryStateError::UNDO_FAILED);
     }
     const auto parent_state{MakeChainRegistryDBState(
         parent_hash,
         parent_height < 0 ? 0 : static_cast<uint32_t>(parent_height),
         candidate,
-        m_state.deposit_history_start_height,
-        m_state.deposit_count - undo.deposits.size(),
-        m_state.anchor_history_start_height,
-        m_state.anchor_count - undo.anchors.size())};
+        std::min(m_state.deposit_history_start_height, m_state.height),
+        m_state.deposit_count - deposits_removed,
+        std::min(m_state.anchor_history_start_height, m_state.height),
+        m_state.anchor_count - anchors_removed)};
     if (!m_db->WriteDisconnectedBlock(candidate, parent_state, block_hash, undo, sync)) {
         return StateError(ChainRegistryStateError::DATABASE_WRITE_FAILED);
     }
     m_registry = std::move(candidate);
     m_state = parent_state;
     return {};
+}
+
+bool ChainRegistryState::ImportSnapshotUndo(const ChainRegistryState& source,
+                                          const uint256& snapshot_base,
+                                          const std::function<bool()>& interrupted)
+{
+    if (!Enabled()) return !source.Enabled();
+    if (!m_initialized || !source.m_initialized || !m_db || !source.m_db ||
+        m_main_genesis_hash != source.m_main_genesis_hash ||
+        snapshot_base.IsNull() || source.m_state.best_block != snapshot_base ||
+        source.m_state.height > m_state.height) return false;
+    return m_db->ImportUndo(*source.m_db, interrupted);
 }
 
 ChainRegistryStateResult ChainRegistryState::PruneUndo(std::span<const uint256> block_hashes,

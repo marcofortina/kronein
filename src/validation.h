@@ -942,6 +942,9 @@ enum class SnapshotCompletionResult {
     // The UTXO set hash of the validated chainstate does not match the one
     // expected by assumeutxo chainparams.
     HASH_MISMATCH,
+
+    // Failed to preserve registry undo from the background chainstate.
+    REGISTRY_HISTORY_FAILED,
 };
 
 /**
