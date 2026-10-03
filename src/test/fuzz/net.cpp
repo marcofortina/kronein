@@ -38,7 +38,8 @@ FUZZ_TARGET(net, .init = initialize_net)
     if (const auto service_opt = ConsumeDeserializable<CService>(fuzzed_data_provider)) {
         node.SetAddrLocal(*service_opt);
     }
-    LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 10000) {
+    bool receive_failed{false};
+    LIMITED_WHILE(!receive_failed && fuzzed_data_provider.ConsumeBool(), 10000) {
         CallOneOf(
             fuzzed_data_provider,
             [&] {
@@ -60,7 +61,9 @@ FUZZ_TARGET(net, .init = initialize_net)
             [&] {
                 const std::vector<uint8_t> b = ConsumeRandomLengthByteVector(fuzzed_data_provider);
                 bool complete;
-                node.ReceiveMsgBytes(b, complete);
+                // A rejected transport must not receive more bytes, just as
+                // the socket handler disconnects it after a receive failure.
+                receive_failed = !node.ReceiveMsgBytes(b, complete);
             });
     }
 
