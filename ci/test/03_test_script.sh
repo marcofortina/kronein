@@ -166,7 +166,9 @@ if [ "${RUN_TIDY}" = "true" ]; then
   set -eo pipefail
   # Filter out:
   # * qt qrc and moc generated files
-  jq 'map(select(.file | test("src/qt/.*_autogen/.*\\.cpp$") | not))' "${BASE_BUILD_DIR}/compile_commands.json" > tmp.json
+  # * separately maintained RandomX vendor sources, not the native adapter
+  #   (all vendor sources remain compiled and exercised by runtime tests)
+  jq 'map(select(.file | test("src/qt/.*_autogen/.*\\.cpp$|src/crypto/randomx/upstream/") | not))' "${BASE_BUILD_DIR}/compile_commands.json" > tmp.json
   mv tmp.json "${BASE_BUILD_DIR}/compile_commands.json"
 
   cd "${BASE_BUILD_DIR}/src/"
