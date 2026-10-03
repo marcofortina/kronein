@@ -99,6 +99,8 @@ class ScantxoutsetTest(BitcoinTestFramework):
         assert_raises_rpc_error(-8, "Range is too large", node.scantxoutset, "start", [{"desc": "desc", "range": [0, 1000001]}])
 
         self.log.info("Test Taproot extended-key derivation")
+        range_end = 2**31 - 1
+        assert node.scantxoutset("start", [{"desc": tr(MASTER_PRIVATE_KEY, "0'/*"), "range": [range_end, range_end]}])["success"]
         for path, amount in derived_outputs:
             key = MASTER_PUBLIC_KEY if "'" not in path else MASTER_PRIVATE_KEY
             assert_equal(node.scantxoutset("start", [tr(key, path)])["total_amount"], Decimal(str(amount)))
