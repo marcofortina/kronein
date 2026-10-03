@@ -13,7 +13,7 @@ import subprocess
 import sys
 import time
 
-from test_framework.blocktools import DIFF_1_N_BITS, SIGNET_HEADER
+from test_framework.blocktools import DIFF_1_N_BITS, EMPTY_REGISTRY_COMMITMENT, SIGNET_HEADER
 from test_framework.key import compute_xonly_pubkey
 from test_framework.script import CScript, taproot_construct
 from test_framework.test_framework import BitcoinTestFramework
@@ -28,9 +28,13 @@ CHALLENGE_PRIVATE_KEY = (42).to_bytes(32, 'big')
 
 def get_segwit_commitment(node):
     coinbase = node.getblock(node.getbestblockhash(), 2)['tx'][0]
-    commitment = coinbase['vout'][1]['scriptPubKey']['hex']
-    assert_equal(commitment[0:12], '6a24aa21a9ed')
-    return commitment
+    scripts = [output['scriptPubKey']['hex'] for output in coinbase['vout']]
+    assert_equal(scripts.count(EMPTY_REGISTRY_COMMITMENT.hex()), 1)
+    # The registry is a separate output. Consensus selects the highest-index
+    # witness commitment, not a fixed coinbase output number.
+    commitments = [script for script in scripts if script.startswith('6a24aa21a9ed')]
+    assert commitments
+    return commitments[-1]
 
 def get_signet_commitment(segwit_commitment):
     for el in CScript.fromhex(segwit_commitment):

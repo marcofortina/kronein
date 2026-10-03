@@ -432,7 +432,9 @@ class MiningTest(BitcoinTestFramework):
         block.hashMerkleRoot = block.calc_merkle_root()
 
         self.log.info("getblocktemplate: segwit rule must be set")
-        assert_raises_rpc_error(-8, "getblocktemplate must be called with the segwit rule set", node.getblocktemplate, {})
+        assert_raises_rpc_error(-8, "getblocktemplate must be called with the segwit rule set", node.getblocktemplate, {"rules": ["chainregistry"]})
+        self.log.info("getblocktemplate: chainregistry rule must also be set")
+        assert_raises_rpc_error(-8, "getblocktemplate must be called with the chainregistry rule set", node.getblocktemplate, {"rules": ["segwit"]})
 
         self.log.info("submitblock: Test block decode failure")
         assert_raises_rpc_error(-22, "Block decode failed", node.submitblock, block.serialize()[:-15].hex())
