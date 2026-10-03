@@ -311,13 +311,13 @@ ChildNetProcessorResult ChildNetProcessor::ReceiveGetBlocks(
         const auto view{
             m_manager.GetBlockView(m_definition.chain_id, hash)};
         if (!view.IsValid() || !view.block.block) continue;
-        const size_t block_size{
+        const uint64_t block_size{
             GetSerializeSize(TX_WITH_WITNESS(*view.block.block))};
         if (block_size > MAX_BLOCK_SERIALIZED_SIZE ||
             block_size > MAX_CHILD_BLOCK_RESPONSE_BYTES - response_bytes) {
             break;
         }
-        response_bytes += block_size;
+        response_bytes += static_cast<size_t>(block_size);
         result.outbound.push_back({
             .peer = peer,
             .command = ChildNetCommand::BLOCK,
@@ -403,7 +403,7 @@ ChildNetProcessorResult ChildNetProcessor::ReceiveBlock(
     if (result.submission.error == ChainManagerError::RUNTIME_REJECTED &&
         result.submission.runtime.error ==
             ReferenceChildRuntimeError::CHILD_PARENT_UNAVAILABLE) {
-        const size_t block_size{
+        const uint64_t block_size{
             GetSerializeSize(TX_WITH_WITNESS(data.block))};
         if (m_deferred.size() >= MAX_DEFERRED_CHILD_BLOCKS ||
             block_size > MAX_DEFERRED_CHILD_BLOCK_BYTES - m_deferred_bytes) {
@@ -414,11 +414,11 @@ ChildNetProcessorResult ChildNetProcessor::ReceiveBlock(
             block_hash,
             DeferredBlock{
                 .block = data.block,
-                .serialized_size = block_size,
+                .serialized_size = static_cast<size_t>(block_size),
                 .expiry = now + DEFERRED_CHILD_BLOCK_TIMEOUT,
                 .source = peer,
             });
-        m_deferred_bytes += block_size;
+        m_deferred_bytes += static_cast<size_t>(block_size);
         result.deferred_blocks.push_back(block_hash);
 
         const uint256& parent_hash{data.block.hashPrevBlock};
