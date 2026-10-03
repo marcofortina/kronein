@@ -6,8 +6,10 @@
 #include <key.h>
 #include <primitives/block.h>
 #include <primitives/chainregistry.h>
+#include <primitives/dealerauthority.h>
 
 #include <primitives/transaction.h>
+#include <serialize.h>
 #include <streams.h>
 #include <util/strencodings.h>
 
@@ -651,6 +653,7 @@ BOOST_AUTO_TEST_CASE(registry_record_hash_vectors)
         .retired_height = 0,
     };
     DataStream stream;
+    stream.reserve(GetSerializeSize(record));
     stream << record;
     BOOST_CHECK_EQUAL(
         HexStr(stream),
@@ -684,7 +687,14 @@ BOOST_AUTO_TEST_CASE(registry_record_hash_vectors)
     };
     DataStream undo_stream;
     undo_stream << undo;
-    chainregistry::RegistryUndo decoded;
+    // Deserializing an absent transition must also clear a preexisting value.
+    chainregistry::RegistryUndo decoded{
+        .chain_id = {},
+        .previous_chain = {},
+        .dealer_id = {},
+        .previous_dealer = {},
+        .previous_authority_transition = chainregistry::DealerAuthorityTransition{},
+    };
     undo_stream >> decoded;
     BOOST_CHECK(decoded == undo);
     BOOST_CHECK(undo_stream.empty());
