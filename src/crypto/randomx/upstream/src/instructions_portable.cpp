@@ -121,10 +121,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef HAVE_SMULH
 	int64_t smulh(int64_t a, int64_t b) {
-		int64_t hi = mulh(a, b);
-		if (a < 0LL) hi -= b;
-		if (b < 0LL) hi -= a;
-		return hi;
+		uint64_t hi = mulh(a, b);
+		if (a < 0LL) hi -= static_cast<uint64_t>(b);
+		if (b < 0LL) hi -= static_cast<uint64_t>(a);
+		return unsigned64ToSigned2sCompl(hi);
 	}
 	#define HAVE_SMULH
 #endif

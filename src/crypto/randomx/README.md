@@ -20,6 +20,8 @@ The upstream source and its BSD 3-Clause license are retained under
   conditions to integers, avoiding MSVC C4804 without disabling warnings;
 - MSVC multiplication intrinsics use documented target macros (`_M_X64`,
   `_M_ARM64`) instead of internal SDK macros, avoiding C4067 with newer SDKs;
+- the portable signed multiply-high fallback uses unsigned intermediate
+  subtraction to avoid signed overflow, preserving its two's-complement result;
 - the x86 static assembly declares a non-executable GNU stack on ELF targets.
 
 The algorithm and API signatures are unchanged.
