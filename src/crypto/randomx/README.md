@@ -6,10 +6,12 @@ This directory vendors the RandomX reference implementation at release
 Upstream: <https://github.com/tevador/RandomX>
 
 The upstream source and its BSD 3-Clause license are retained under
-`upstream/`. Kronein carries two integration-only patches:
+`upstream/`. Kronein carries these integration-only patches:
 
 - tests and installation can be disabled in the upstream `CMakeLists.txt`
   when RandomX is built as an internal dependency;
+- the CMake policy baseline is 3.10, avoiding deprecated compatibility modes
+  under the project's strict CI configuration;
 - the x86 static assembly declares a non-executable GNU stack on ELF targets.
 
 Algorithm and API sources are unchanged.
