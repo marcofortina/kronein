@@ -4,6 +4,8 @@
 
 #include <qt/dealerauthoritydialog.h>
 
+#include <bitcoin-build-config.h> // IWYU pragma: keep
+
 #include <interfaces/node.h>
 #include <random.h>
 #ifdef ENABLE_WALLET
