@@ -90,6 +90,34 @@ BOOST_AUTO_TEST_CASE(selects_most_anchored_work_independent_of_arrival_order)
                 selected.head_score.cumulative_anchor_work);
 }
 
+BOOST_AUTO_TEST_CASE(evaluates_deep_parent_chains_without_recursion)
+{
+    constexpr uint32_t DEPTH{20'000};
+    const uint256 genesis{Hash(DEPTH + 1)};
+    std::vector<chainregistry::ChildForkCandidate> candidates;
+    candidates.reserve(DEPTH);
+    for (uint32_t i{0}; i < DEPTH; ++i) {
+        candidates.push_back(Candidate(i + 1, 0, {}));
+    }
+    std::sort(candidates.begin(), candidates.end(), [](const auto& a, const auto& b) {
+        return a.block_hash < b.block_hash;
+    });
+    // The first map entry is the tip, forcing a walk of the entire ancestry.
+    for (uint32_t i{0}; i < DEPTH; ++i) {
+        candidates[i].parent_hash = i + 1 == DEPTH ? genesis : candidates[i + 1].block_hash;
+        candidates[i].anchors.push_back(Anchor(DEPTH + 2 + i, DEPTH - i, 1));
+    }
+    const auto selected{chainregistry::SelectChildFork(genesis, candidates)};
+    BOOST_REQUIRE(selected.IsValid());
+    BOOST_CHECK(selected.head == candidates.front().block_hash);
+    BOOST_CHECK_EQUAL(selected.head_score.child_height, DEPTH);
+    BOOST_CHECK(selected.head_score.cumulative_anchor_work == arith_uint256{DEPTH});
+
+    candidates.back().parent_hash = candidates.front().block_hash;
+    const auto cycle{chainregistry::SelectChildFork(genesis, candidates)};
+    BOOST_CHECK(cycle.error == chainregistry::ChildForkChoiceError::CYCLIC_PARENT);
+}
+
 BOOST_AUTO_TEST_CASE(repeated_anchors_add_work_once_and_survive_late_reveal)
 {
     const uint256 genesis{Hash(1)};

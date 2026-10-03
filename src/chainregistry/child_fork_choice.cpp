@@ -134,22 +134,10 @@ ChildForkChoiceResult SelectChildFork(
     result.head = child_genesis_hash;
     std::map<uint256, VisitState> visits;
 
-    const auto evaluate = [&](const auto& self,
-                              const ChildForkCandidate& candidate)
+    const auto evaluate = [&](const ChildForkCandidate& candidate)
         -> ChildForkChoiceError {
-        VisitState& visit{visits[candidate.block_hash]};
-        if (visit == VisitState::VISITED) return ChildForkChoiceError::NONE;
-        if (visit == VisitState::VISITING) {
-            result.failed_candidate = candidate.block_hash;
-            return ChildForkChoiceError::CYCLIC_PARENT;
-        }
-        visit = VisitState::VISITING;
-
         ChildForkScore parent_score;
         if (candidate.parent_hash != child_genesis_hash) {
-            const ChildForkCandidate& parent{*by_hash.at(candidate.parent_hash)};
-            const auto error{self(self, parent)};
-            if (error != ChildForkChoiceError::NONE) return error;
             parent_score = result.scores.at(candidate.parent_hash);
         }
         if (parent_score.child_height ==
@@ -192,15 +180,31 @@ ChildForkChoiceResult SelectChildFork(
             }
         }
         result.scores.emplace(candidate.block_hash, score);
-        visit = VisitState::VISITED;
+        visits[candidate.block_hash] = VisitState::VISITED;
         return ChildForkChoiceError::NONE;
     };
 
     for (const auto& [hash, candidate] : by_hash) {
-        const auto error{evaluate(evaluate, *candidate)};
-        if (error != ChildForkChoiceError::NONE) {
-            result.error = error;
-            return result;
+        std::vector<const ChildForkCandidate*> pending;
+        const ChildForkCandidate* current{candidate};
+        while (visits[current->block_hash] != VisitState::VISITED) {
+            VisitState& visit{visits[current->block_hash]};
+            if (visit == VisitState::VISITING) {
+                result.failed_candidate = current->block_hash;
+                result.error = ChildForkChoiceError::CYCLIC_PARENT;
+                return result;
+            }
+            visit = VisitState::VISITING;
+            pending.push_back(current);
+            if (current->parent_hash == child_genesis_hash) break;
+            current = by_hash.at(current->parent_hash);
+        }
+        for (auto it{pending.rbegin()}; it != pending.rend(); ++it) {
+            const auto error{evaluate(**it)};
+            if (error != ChildForkChoiceError::NONE) {
+                result.error = error;
+                return result;
+            }
         }
         const ChildForkScore& score{result.scores.at(hash)};
         if (score.eligible && BetterHead(
