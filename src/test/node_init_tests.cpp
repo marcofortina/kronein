@@ -2,6 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <chainparams.h>
+#include <common/args.h>
 #include <init.h>
 #include <interfaces/init.h>
 #include <kernel/mempool_entry.h>
@@ -10,11 +12,15 @@
 #include <scheduler.h>
 #include <streams.h>
 #include <util/fs.h>
+#include <util/strencodings.h>
 #include <validationinterface.h>
 
 #include <boost/test/unit_test.hpp>
 #include <test/util/common.h>
 #include <test/util/setup_common.h>
+
+#include <stdexcept>
+#include <string>
 
 using node::NodeContext;
 
@@ -24,6 +30,29 @@ struct InitTestSetup : BasicTestingSetup {
 };
 
 BOOST_FIXTURE_TEST_SUITE(node_init_tests, InitTestSetup)
+
+BOOST_AUTO_TEST_CASE(server_help_uses_network_defaults)
+{
+    ArgsManager custom;
+    const std::string challenge{"512079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"};
+    custom.ForceSetArg("-signetchallenge", challenge);
+    custom.ForceSetArg("-fastprune", "1");
+    SetupServerArgs(custom);
+
+    ArgsManager defaults;
+    SetupServerArgs(defaults);
+    BOOST_CHECK_EQUAL(custom.GetHelpMessage(), defaults.GetHelpMessage());
+
+    // Caching help defaults must not cache the caller's active network options.
+    BOOST_CHECK(CreateChainParams(custom, ChainType::SIGNET)->GetConsensus().signet_challenge == ParseHex(challenge));
+    BOOST_CHECK(CreateChainParams(defaults, ChainType::SIGNET)->GetConsensus().signet_challenge != ParseHex(challenge));
+    BOOST_CHECK_EQUAL(CreateChainParams(custom, ChainType::REGTEST)->PruneAfterHeight(), 100U);
+    BOOST_CHECK_EQUAL(CreateChainParams(defaults, ChainType::REGTEST)->PruneAfterHeight(), 1000U);
+
+    // Invalid overrides must still be rejected when selecting the active chain.
+    custom.ForceSetArg("-signetchallenge", "not-hex");
+    BOOST_CHECK_THROW(CreateChainParams(custom, ChainType::SIGNET), std::runtime_error);
+}
 
 //! Custom implementation of interfaces::Init for testing.
 class TestInit : public interfaces::Init

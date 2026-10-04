@@ -475,10 +475,13 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
     const auto testnet4BaseParams = CreateBaseChainParams(ChainType::TESTNET4);
     const auto signetBaseParams = CreateBaseChainParams(ChainType::SIGNET);
     const auto regtestBaseParams = CreateBaseChainParams(ChainType::REGTEST);
-    const auto defaultChainParams = CreateChainParams(argsman, ChainType::MAIN);
-    const auto testnet4ChainParams = CreateChainParams(argsman, ChainType::TESTNET4);
-    const auto signetChainParams = CreateChainParams(argsman, ChainType::SIGNET);
-    const auto regtestChainParams = CreateChainParams(argsman, ChainType::REGTEST);
+    // Help describes network defaults, not this caller's overrides. Reuse the
+    // immutable defaults instead of rebuilding four RandomX genesis caches on
+    // every registration. Active chain parameters are still created separately.
+    static const auto defaultChainParams = CChainParams::Main();
+    static const auto testnet4ChainParams = CChainParams::TestNet4();
+    static const auto signetChainParams = CChainParams::SigNet({});
+    static const auto regtestChainParams = CChainParams::RegTest({});
 
     // Hidden Options
     std::vector<std::string> hidden_args = {
