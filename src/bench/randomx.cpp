@@ -32,10 +32,14 @@ void RandomXHeaders(benchmark::Bench& bench, randomx_pow::Mode mode)
     });
 }
 
+#if INTPTR_MAX > INT32_MAX
+// The full dataset exceeds PTRDIFF_MAX on 32-bit hosts. Light mode computes
+// the same hash there; do not advertise a benchmark that cannot allocate.
 void RandomXFull(benchmark::Bench& bench)
 {
     RandomXHeaders(bench, randomx_pow::Mode::FULL);
 }
+#endif
 
 void RandomXLight(benchmark::Bench& bench)
 {
@@ -44,5 +48,7 @@ void RandomXLight(benchmark::Bench& bench)
 
 } // namespace
 
+#if INTPTR_MAX > INT32_MAX
 BENCHMARK(RandomXFull);
+#endif
 BENCHMARK(RandomXLight);
