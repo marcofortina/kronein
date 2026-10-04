@@ -66,10 +66,15 @@ the light cache or VM is a local resource error and never makes an invalid
 block valid.
 
 The full dataset is 2,181,038,016 bytes, exceeding `PTRDIFF_MAX` on a 32-bit
-host. The adapter rejects full mode before cache
-initialization on those hosts, and the built-in miner takes the same light-mode
-fallback. Validation and hashing remain available, with identical consensus
-results. Tests verify this rejection and fallback on 32-bit builds, and retain
+host. The adapter rejects full mode before cache initialization on those hosts.
+On 32-bit builds, the built-in mining RPCs (`generatetoaddress`,
+`generatetodescriptor`, and `generateblock`) are available only on regtest.
+Node and wallet operation, light-mode validation, `getblocktemplate`, and
+`submitblock` remain available on every network. Regtest generation remains
+enabled for wallet, network, and RPC tests; no consensus checks are skipped.
+The lower-level nonce grinder also retains its light-mode fallback for tests
+and tools. Validation and hashing produce identical consensus results.
+Tests verify full-mode rejection and fallback on 32-bit builds, and retain
 mandatory light/full hash equivalence on 64-bit builds.
 
 MemorySanitizer builds use the portable interpreter instead of the JIT:

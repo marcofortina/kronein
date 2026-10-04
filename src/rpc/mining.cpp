@@ -35,6 +35,7 @@
 #include <script/signingprovider.h>
 #include <txmempool.h>
 #include <univalue.h>
+#include <util/chaintype.h>
 #include <util/signalinterrupt.h>
 #include <util/strencodings.h>
 #include <util/string.h>
@@ -135,6 +136,17 @@ static RPCHelpMan getnetworkhashps()
     };
 }
 
+static void EnsureBlockGenerationAllowed(const ChainstateManager& chainman)
+{
+    // Keep light-mode validation and regtest generation available on 32-bit
+    // hosts, without starting an impractically slow public-network miner.
+    if constexpr (sizeof(void*) < 8) {
+        if (chainman.GetParams().GetChainType() != ChainType::REGTEST) {
+            throw JSONRPCError(RPC_MISC_ERROR, "Built-in mining requires a 64-bit executable outside regtest. Block validation and external mining RPCs remain available.");
+        }
+    }
+}
+
 static bool GenerateBlock(ChainstateManager& chainman, CBlock&& block, uint64_t& max_tries, std::shared_ptr<const CBlock>& block_out, bool process_new_block)
 {
     block_out.reset();
@@ -213,7 +225,8 @@ static RPCHelpMan generatetodescriptor()
 {
     return RPCHelpMan{
         "generatetodescriptor",
-        "Mine to a specified descriptor and return the block hashes.",
+        "Mine to a specified descriptor and return the block hashes.\n"
+        "On 32-bit builds, built-in mining is available only on regtest.",
         {
             {"num_blocks", RPCArg::Type::NUM, RPCArg::Optional::NO, "How many blocks are generated."},
             {"descriptor", RPCArg::Type::STR, RPCArg::Optional::NO, "The descriptor to send the newly generated KNE to."},
@@ -239,8 +252,9 @@ static RPCHelpMan generatetodescriptor()
     }
 
     NodeContext& node = EnsureAnyNodeContext(request.context);
-    Mining& miner = EnsureMining(node);
     ChainstateManager& chainman = EnsureChainman(node);
+    EnsureBlockGenerationAllowed(chainman);
+    Mining& miner = EnsureMining(node);
 
     return generateBlocks(chainman, miner, coinbase_output_script, num_blocks, max_tries);
 },
@@ -257,7 +271,8 @@ static RPCHelpMan generate()
 static RPCHelpMan generatetoaddress()
 {
     return RPCHelpMan{"generatetoaddress",
-        "Mine to a specified address and return the block hashes.",
+        "Mine to a specified address and return the block hashes.\n"
+        "On 32-bit builds, built-in mining is available only on regtest.",
          {
              {"nblocks", RPCArg::Type::NUM, RPCArg::Optional::NO, "How many blocks are generated."},
              {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The address to send the newly generated KNE to."},
@@ -285,8 +300,9 @@ static RPCHelpMan generatetoaddress()
     }
 
     NodeContext& node = EnsureAnyNodeContext(request.context);
-    Mining& miner = EnsureMining(node);
     ChainstateManager& chainman = EnsureChainman(node);
+    EnsureBlockGenerationAllowed(chainman);
+    Mining& miner = EnsureMining(node);
 
     CScript coinbase_output_script = GetScriptForDestination(destination);
 
@@ -298,7 +314,8 @@ static RPCHelpMan generatetoaddress()
 static RPCHelpMan generateblock()
 {
     return RPCHelpMan{"generateblock",
-        "Mine a set of ordered transactions to a specified address or descriptor and return the block hash.",
+        "Mine a set of ordered transactions to a specified address or descriptor and return the block hash.\n"
+        "On 32-bit builds, built-in mining is available only on regtest.",
         {
             {"output", RPCArg::Type::STR, RPCArg::Optional::NO, "The address or descriptor to send the newly generated KNE to."},
             {"transactions", RPCArg::Type::ARR, RPCArg::Optional::NO, "An array of hex strings which are either txids or raw transactions.\n"
@@ -337,6 +354,8 @@ static RPCHelpMan generateblock()
     }
 
     NodeContext& node = EnsureAnyNodeContext(request.context);
+    ChainstateManager& chainman = EnsureChainman(node);
+    EnsureBlockGenerationAllowed(chainman);
     Mining& miner = EnsureMining(node);
     const CTxMemPool& mempool = EnsureMemPool(node);
 
@@ -365,7 +384,6 @@ static RPCHelpMan generateblock()
     const bool process_new_block{request.params[2].isNull() ? true : request.params[2].get_bool()};
     CBlock block;
 
-    ChainstateManager& chainman = EnsureChainman(node);
     {
         LOCK(chainman.GetMutex());
         {

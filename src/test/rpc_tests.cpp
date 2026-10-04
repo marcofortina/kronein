@@ -3,11 +3,13 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <addresstype.h>
 #include <chainparams.h>
 #include <consensus/merkle.h>
 #include <core_io.h>
 #include <hash.h>
 #include <interfaces/chain.h>
+#include <key_io.h>
 #include <node/chain_manager.h>
 #include <node/child_network_manager.h>
 #include <node/context.h>
@@ -225,6 +227,43 @@ UniValue RPCTestingSetup::CallRPC(std::string args)
     }
 }
 
+
+BOOST_AUTO_TEST_SUITE(rpc_mining_platform_tests)
+
+BOOST_AUTO_TEST_CASE(block_generation_availability)
+{
+    for (const auto network : {ChainType::MAIN, ChainType::TESTNET4, ChainType::SIGNET, ChainType::REGTEST}) {
+        const auto setup{MakeNoLogFileContext<TestingSetup>(network, TestOpts{.setup_net = false})};
+        // No miner is installed in this fixture: allowed requests must reach
+        // EnsureMining; unsupported requests must fail before trying to mine.
+        BOOST_REQUIRE(!setup->m_node.mining);
+        const auto address{EncodeDestination(WitnessV1Taproot{TestChildFeeRecipient()})};
+        const bool supported{sizeof(void*) >= 8 || network == ChainType::REGTEST};
+        if (RPCIsInWarmup(nullptr)) SetRPCWarmupFinished();
+        for (const auto& [method, params] : {
+                 std::pair{"generatetoaddress", JSON("[0,\"" + address + "\"]")},
+                 std::pair{"generatetodescriptor", JSON("[0,\"addr(" + address + ")\"]")},
+                 std::pair{"generateblock", JSON("[\"addr(" + address + ")\",[]]")},
+             }) {
+            JSONRPCRequest request;
+            request.context = &setup->m_node;
+            request.strMethod = method;
+            request.params = params;
+            BOOST_CHECK_EXCEPTION(tableRPC.execute(request), UniValue, [&](const UniValue& error) {
+                return error["code"].getInt<int>() == (supported ? RPC_INTERNAL_ERROR : RPC_MISC_ERROR) &&
+                       error["message"].get_str() == (supported ? "Node miner not found" :
+                           "Built-in mining requires a 64-bit executable outside regtest. Block validation and external mining RPCs remain available.");
+            });
+        }
+        JSONRPCRequest request;
+        request.context = &setup->m_node;
+        request.strMethod = "getblockcount";
+        request.params = UniValue{UniValue::VARR};
+        BOOST_CHECK_EQUAL(tableRPC.execute(request).getInt<int>(), 0);
+    }
+}
+
+BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_FIXTURE_TEST_SUITE(rpc_tests, RPCTestingSetup)
 
