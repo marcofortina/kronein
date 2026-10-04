@@ -3,6 +3,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test utxo-to-sqlite conversion tool"""
+from contextlib import closing
 from itertools import product
 import os.path
 try:
@@ -109,7 +110,9 @@ class UtxoToSqliteTest(BitcoinTestFramework):
             assert_equal(muhash_sqlite, muhash_compact_serialized)
             # The main chain is registry-active. Converting the UTXO table
             # must preserve, not silently drop, its authenticated trailer.
-            with sqlite3.connect(output_filename) as converted:
+            # sqlite3's context manager commits/rolls back but does not close
+            # the connection, which keeps the file locked on Windows.
+            with closing(sqlite3.connect(output_filename)) as converted:
                 trailer = b"".join(row[0] for row in converted.execute(
                     "SELECT data FROM registry_snapshot_chunks ORDER BY sequence"))
             assert trailer.startswith(b"kreg\xff\x04")
