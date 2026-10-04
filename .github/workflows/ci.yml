@@ -21,22 +21,19 @@ defaults:
   run:
     shell: bash
 jobs:
-  macos-native-arm64:
+  windows-native-dll:
     name: ${{ matrix.job-name }}
-    runs-on: macos-15
+    runs-on: windows-2025-vs2026
     if: ${{ vars.SKIP_BRANCH_PUSH != 'true' || github.event_name == 'pull_request' }}
-    timeout-minutes: ${{ matrix.timeout-minutes }}
+    env:
+      PYTHONUTF8: 1
+      TEST_RUNNER_TIMEOUT_FACTOR: 40
     strategy:
       fail-fast: false
       matrix:
         include:
           - job-type: fuzz
-            file-env: ./ci/test/00_setup_env_mac_native_fuzz.sh
-            job-name: macOS native, fuzz
-            timeout-minutes: 120
-    env:
-      DANGER_RUN_CI_ON_HOST: 1
-      BASE_ROOT_DIR: ${{ github.workspace }}/repo_archive
+            job-name: Windows native, fuzz, VS
     steps:
       - name: Annotate with pull request number
         run: |
@@ -47,44 +44,65 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: ${{ github.event_name == 'pull_request' && github.ref || '' }}
-      - name: Clang version
+      - name: Import Visual Studio env vars
+        run: py -3 .github/ci-windows.py "standard" github_import_vs_env
+      - name: Get tool information
         run: |
-          # Use the latest Xcode supported by the version of macOS denoted in
-          # doc/release-notes-empty-template.md and providing at least the
-          # minimum clang version denoted in doc/dependencies.md.
-          # See: https://developer.apple.com/documentation/xcode-release-notes/xcode-16_2-release-notes
-          sudo xcode-select --switch /Applications/Xcode_16.2.app
-          clang --version
-      - name: Install Homebrew packages
-        env:
-          HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+          set -o errexit -o pipefail -o xtrace -o nounset
+
+          cmake -version | tee cmake_version
+          echo '---'
+          msbuild.exe -version | tee msbuild_version
+          echo "${VCToolsVersion-}" | tee toolset_version
+          py -3 --version
+          bash --version
+      - name: Using vcpkg with MSBuild
         run: |
-          # A workaround for "The `brew link` step did not complete successfully" error.
-          brew install --quiet python@3 || brew link --overwrite python@3
-          brew install --quiet coreutils ninja pkgconf ccache boost libevent zeromq qt@6 qrencode capnp
-      - name: Set Ccache directory
-        run: echo "CCACHE_DIR=${RUNNER_TEMP}/ccache_dir" >> "$GITHUB_ENV"
-      - name: Restore Ccache cache
-        id: ccache-cache
+          echo "set(VCPKG_BUILD_TYPE release)" >> "${VCPKG_INSTALLATION_ROOT}/triplets/x64-windows.cmake"
+          # Workaround for libevent, which requires CMake 3.1 but is incompatible with CMake >= 4.0.
+          sed -i '1s/^/set(ENV{CMAKE_POLICY_VERSION_MINIMUM} 3.5)\n/' "${VCPKG_INSTALLATION_ROOT}/scripts/ports.cmake"
+      - name: Set VCPKG_ROOT
+        run: |
+          echo "VCPKG_ROOT=${VCPKG_INSTALLATION_ROOT}" >> "$GITHUB_ENV"
+      - name: Restore vcpkg tools cache
+        id: vcpkg-tools-cache
         uses: actions/cache/restore@v5
         with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ github.job }}-${{ matrix.job-type }}-ccache-${{ github.run_id }}
-          restore-keys: ${{ github.job }}-${{ matrix.job-type }}-ccache-
-      - name: Create git archive
-        run: |
-          git log -1
-          git archive --format=tar --prefix=repo_archive/ --output=repo.tar HEAD
-          tar -xf repo.tar
-      - name: CI script
-        run: |
-          cd repo_archive
-          ./ci/test_run_all.sh
-        env:
-          FILE_ENV: ${{ matrix.file-env }}
-      - name: Save Ccache cache
-        uses: actions/cache/save@v5
-        if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch && steps.ccache-cache.outputs.cache-hit != 'true'
+          path: C:/vcpkg/downloads/tools
+          key: ${{ github.job }}-vcpkg-tools-${{ github.run_id }}
+          restore-keys: ${{ github.job }}-vcpkg-tools-
+      - name: Restore vcpkg binary cache
+        uses: actions/cache/restore@v5
+        id: vcpkg-binary-cache
         with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ github.job }}-${{ matrix.job-type }}-ccache-${{ github.run_id }}
+          path: ~/AppData/Local/vcpkg/archives
+          key: ${{ github.job }}-vcpkg-binary-${{ hashFiles('cmake_version', 'msbuild_version', 'toolset_version', 'vcpkg.json') }}
+      - name: Generate build system
+        run: |
+          py -3 .github/ci-windows.py ${{ matrix.job-type }} generate
+      - name: Save vcpkg binary cache
+        uses: actions/cache/save@v5
+        if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch && steps.vcpkg-binary-cache.outputs.cache-hit != 'true' && matrix.job-type == 'standard'
+        with:
+          path: ~/AppData/Local/vcpkg/archives
+          key: ${{ github.job }}-vcpkg-binary-${{ hashFiles('cmake_version', 'msbuild_version', 'toolset_version', 'vcpkg.json') }}
+      - name: Save vcpkg tools cache
+        uses: actions/cache/save@v5
+        if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch && steps.vcpkg-tools-cache.outputs.cache-hit != 'true' && matrix.job-type == 'standard'
+        with:
+          path: C:/vcpkg/downloads/tools
+          key: ${{ github.job }}-vcpkg-tools-${{ github.run_id }}
+      - name: Build
+        run: |
+          py -3 .github/ci-windows.py ${{ matrix.job-type }} build
+      - name: Check executable manifests
+        run: |
+          py -3 .github/ci-windows.py ${{ matrix.job-type }} check_manifests
+      - name: Prepare tests
+        run: |
+          py -3 .github/ci-windows.py ${{ matrix.job-type }} prepare_tests
+      - name: Run tests
+        env:
+          TEST_RUNNER_EXTRA: --timeout-factor=${{ env.TEST_RUNNER_TIMEOUT_FACTOR }} ${{ case(github.event_name == 'pull_request', '', '--extended') }}
+        run: |
+          py -3 .github/ci-windows.py ${{ matrix.job-type }} run_tests
