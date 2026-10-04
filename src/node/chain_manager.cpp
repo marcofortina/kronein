@@ -1795,7 +1795,8 @@ ChainManagerWalletHistoryView ChainManager::ScanWalletHistory(
             result.error = ChainManagerWalletHistoryError::DATA_UNAVAILABLE;
             return result;
         }
-        for (size_t index{block.vtx.size()}; index-- > 0;) {
+        for (size_t remaining{block.vtx.size()}; remaining > 0; --remaining) {
+            const size_t index{remaining - 1};
             const CTransactionRef& tx{block.vtx[index]};
             ChildWalletTransactionView transaction{
                 .transaction = tx,

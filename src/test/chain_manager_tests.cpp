@@ -561,6 +561,19 @@ BOOST_AUTO_TEST_CASE(isolates_concurrent_child_block_submission)
             first_connected.IsValid(),
             static_cast<int>(first_connected.runtime.error));
 
+        // A single-transaction block must visit index zero without decrementing
+        // an unsigned counter past zero at the end of the reverse scan.
+        BOOST_REQUIRE_EQUAL(first_block.vtx.size(), 1U);
+        BOOST_REQUIRE(!first_block.vtx.front()->vout.empty());
+        const auto history{manager.ScanWalletHistory(
+            first.chain_id, {first_block.vtx.front()->vout.front().scriptPubKey})};
+        BOOST_REQUIRE(history.IsValid());
+        BOOST_REQUIRE_EQUAL(history.transactions.size(), 1U);
+        BOOST_CHECK(history.transactions.front().transaction->GetHash() ==
+                    first_block.vtx.front()->GetHash());
+        BOOST_CHECK_EQUAL(history.transactions.front().block_index, 0U);
+        BOOST_CHECK(!history.next_height);
+
         const auto first_view{manager.GetChainView(first.chain_id)};
         const auto second_after_first{
             manager.GetBmmStatusView(second.chain_id)};
