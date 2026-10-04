@@ -124,6 +124,25 @@ BOOST_AUTO_TEST_CASE(randomx_genesis_proofs)
     }
 }
 
+BOOST_AUTO_TEST_CASE(network_magic_lookup)
+{
+    const std::array networks{
+        CChainParams::Main(), CChainParams::TestNet4(),
+        CChainParams::SigNet({}), CChainParams::RegTest({}),
+    };
+    // Repeated lookups must preserve the network mapping and reject unknown
+    // magic values even after all default identities have been cached.
+    for (int repeat{0}; repeat < 3; ++repeat) {
+        for (const auto& params : networks) {
+            const auto network{GetNetworkForMagic(params->MessageStart())};
+            BOOST_REQUIRE(network);
+            BOOST_CHECK(*network == params->GetChainType());
+        }
+        BOOST_CHECK(!GetNetworkForMagic({0, 0, 0, 0}));
+        BOOST_CHECK(!GetNetworkForMagic({0xf9, 0xbe, 0xb4, 0xd9}));
+    }
+}
+
 BOOST_AUTO_TEST_CASE(regtest_chain_registry_options)
 {
     constexpr auto dealer_authority_key{"79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"_hex_u8};

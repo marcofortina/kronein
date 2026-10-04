@@ -483,10 +483,13 @@ std::vector<int> CChainParams::GetAvailableSnapshotHeights() const
 
 std::optional<ChainType> GetNetworkForMagic(const MessageStartChars& message)
 {
-    const auto mainnet_msg = CChainParams::Main()->MessageStart();
-    const auto testnet4_msg = CChainParams::TestNet4()->MessageStart();
-    const auto regtest_msg = CChainParams::RegTest({})->MessageStart();
-    const auto signet_msg = CChainParams::SigNet({})->MessageStart();
+    // These identify default networks, not caller-supplied overrides. Cache
+    // only the four-byte values: parsing malformed metadata must not rebuild
+    // four RandomX genesis caches on every lookup.
+    static const auto mainnet_msg = CChainParams::Main()->MessageStart();
+    static const auto testnet4_msg = CChainParams::TestNet4()->MessageStart();
+    static const auto regtest_msg = CChainParams::RegTest({})->MessageStart();
+    static const auto signet_msg = CChainParams::SigNet({})->MessageStart();
 
     if (std::ranges::equal(message, mainnet_msg)) {
         return ChainType::MAIN;
