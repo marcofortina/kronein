@@ -309,6 +309,7 @@ BASE_SCRIPTS = [
     'feature_chain_tiebreaks.py',
     'feature_fastprune.py',
     'feature_framework_miniwallet.py',
+    'feature_framework_cache.py',
     'mempool_unbroadcast.py',
     'mempool_accept_wtxid.py',
     'mempool_dust.py',

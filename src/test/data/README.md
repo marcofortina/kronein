@@ -16,8 +16,8 @@ Each `TestChain100Setup` loads fresh blocks into an independent chainstate throu
 normal block processing, including RandomX proof-of-work and transaction
 validation. Only nonce searching during common setup is removed. No chainstate,
 UTXO database or cached block-validation flags are shared. Further blocks and
-mining tests continue to use real mining. This does not change the Python
-functional-test cache.
+mining tests continue to use real mining. The Python functional-test cache uses
+a separate 199-block fixture documented in `test/functional/data/README.md`.
 
 The JSON records its format version, network, genesis hash, RandomX seed, coinbase
 script and expected tips. Incompatible metadata, unsupported registry activation

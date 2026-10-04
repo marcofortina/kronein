@@ -20,8 +20,8 @@ import sys
 import tempfile
 import time
 
-from .address import create_deterministic_address_rkne1_p2tr_op_true
 from .authproxy import JSONRPCException
+from .chaincache import load_cache_fixture
 from . import coverage
 from .messages import CAddress
 from .p2p import NetworkThread
@@ -866,20 +866,10 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
             # Set a time in the past, so that blocks don't end up in the future
             cache_node.setmocktime(cache_node.getblockheader(cache_node.getbestblockhash())['time'])
 
-            # Create a 199-block-long chain; each of the 3 first nodes
-            # gets 25 mature blocks and 25 immature.
-            # The 4th address gets 25 mature and only 24 immature blocks so that the very last
-            # block in the cache does not age too much (have an old tip age).
-            # This is needed so that we are out of IBD when the test starts,
-            # see the tip age check in IsInitialBlockDownload().
-            gen_addresses = [k.address for k in TestNode.PRIV_KEYS][:3] + [create_deterministic_address_rkne1_p2tr_op_true()[0]]
-            assert_equal(len(gen_addresses), 4)
-            for i in range(8):
-                self.generatetoaddress(
-                    cache_node,
-                    nblocks=25 if i != 7 else 24,
-                    address=gen_addresses[i % len(gen_addresses)],
-                )
+            # Rebuild the cache with fully validated, genuinely mined blocks.
+            # The payout distribution is unchanged. setup_nodes still mines a
+            # fresh block 200 to leave IBD; tests continue to mine normally.
+            load_cache_fixture(cache_node, self.chain)
 
             assert_equal(cache_node.getblockchaininfo()["blocks"], 199)
 
