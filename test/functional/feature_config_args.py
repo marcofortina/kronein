@@ -38,6 +38,10 @@ class ConfArgsTest(BitcoinTestFramework):
     # responsibility of each test function.
     def setup_nodes(self):
         self.add_nodes(self.num_nodes, self.extra_args)
+        # assert_debug_log starts its deadline before the context body. Allow
+        # the node's startup budget plus time for asynchronous network logs.
+        # The helper applies timeout_factor itself, so remove it here first.
+        self.startup_log_timeout = self.rpc_timeout / self.options.timeout_factor + 10
         # Ensure a log file exists as TestNode.assert_debug_log() expects it.
         self.nodes[0].debug_log_path.parent.mkdir()
         self.nodes[0].debug_log_path.touch()
@@ -318,7 +322,7 @@ class ConfArgsTest(BitcoinTestFramework):
                     "0 addresses found from DNS seeds",
                     "opencon thread start",  # Ensure ThreadOpenConnections::start time is properly set
                 ],
-                timeout=10,
+                timeout=self.startup_log_timeout,
         ):
             self.start_node(0, extra_args=['-dnsseed=1', '-fixedseeds=1', f'-mocktime={start}', UNREACHABLE_PROXY_ARG])
 
@@ -339,7 +343,7 @@ class ConfArgsTest(BitcoinTestFramework):
                 "Loaded 0 addresses from peers.dat",
                 "DNS seeding disabled",
                 "Adding fixed seeds as -dnsseed=0 (or IPv4/IPv6 connections are disabled via -onlynet) and neither -addnode nor -seednode are provided\n",
-        ], timeout=10):  # Includes startup/RandomX initialization, not just the seed timer.
+        ], timeout=self.startup_log_timeout):
             self.start_node(0, extra_args=['-dnsseed=0', '-fixedseeds=1'])
         self.stop_node(0)
         self.nodes[0].assert_start_raises_init_error(['-dnsseed=1', '-onlynet=i2p', '-i2psam=127.0.0.1:7656'], "Error: Incompatible options: -dnsseed=1 was explicitly specified, but -onlynet forbids connections to IPv4/IPv6")
@@ -351,7 +355,7 @@ class ConfArgsTest(BitcoinTestFramework):
                 "Loaded 0 addresses from peers.dat",
                 "DNS seeding disabled",
                 "Fixed seeds are disabled",
-        ], timeout=10):
+        ], timeout=self.startup_log_timeout):
             self.start_node(0, extra_args=['-dnsseed=0', '-fixedseeds=0'])
         self.stop_node(0)
 
@@ -365,7 +369,7 @@ class ConfArgsTest(BitcoinTestFramework):
                     "DNS seeding disabled",
                     "opencon thread start",  # Ensure ThreadOpenConnections::start time is properly set
                 ],
-                timeout=10,
+                timeout=self.startup_log_timeout,
         ):
             self.start_node(0, extra_args=['-dnsseed=0', '-fixedseeds=1', '-addnode=fakenodeaddr', f'-mocktime={start}', UNREACHABLE_PROXY_ARG])
         with self.nodes[0].assert_debug_log(expected_msgs=[
@@ -395,7 +399,7 @@ class ConfArgsTest(BitcoinTestFramework):
         # If the user did not disable -dnsseed, but it was soft-disabled because they provided -connect,
         # they shouldn't see a warning about -dnsseed being ignored.
         with self.nodes[0].assert_debug_log(expected_msgs=addcon_thread_started,
-                unexpected_msgs=dnsseed_ignored, timeout=2):
+                unexpected_msgs=dnsseed_ignored, timeout=self.startup_log_timeout):
             self.restart_node(0, extra_args=['-connect=fakeaddress1', UNREACHABLE_PROXY_ARG])
 
         # We have to supply expected_msgs as it's a required argument
@@ -403,7 +407,7 @@ class ConfArgsTest(BitcoinTestFramework):
         # These cases test for -connect being supplied but only to disable it
         for connect_arg in ['-connect=0', '-noconnect']:
             with self.nodes[0].assert_debug_log(expected_msgs=addcon_thread_started,
-                    unexpected_msgs=seednode_ignored, timeout=2):
+                    unexpected_msgs=seednode_ignored, timeout=self.startup_log_timeout):
                 self.restart_node(0, extra_args=[connect_arg, '-seednode=fakeaddress2'])
 
             # Make sure -noconnect soft-disables -listen and -dnsseed.
