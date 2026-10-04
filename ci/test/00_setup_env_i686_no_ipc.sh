@@ -17,6 +17,9 @@ export GOAL="install"
 export CI_LIMIT_STACK_SIZE=1
 # The portable RandomX interpreter makes mined-chain fixtures much slower.
 export TEST_RUNNER_TIMEOUT_FACTOR=120
+# Qt's independent five-minute watchdog does not inherit CTest's timeout.
+# Allow the wallet's mined-chain fixture to finish under the interpreter.
+export QTEST_FUNCTION_TIMEOUT=1800000
 export BITCOIN_CONFIG="\
  --preset=dev-mode \
  -DENABLE_IPC=OFF \
