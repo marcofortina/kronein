@@ -45,7 +45,9 @@ struct FuzzedWallet {
 
                 FlatSigningProvider keys;
                 std::string error;
-                auto parsed_desc = std::move(Parse(descriptor, keys, error, /*require_checksum=*/false).at(0));
+                auto descriptors = Parse(descriptor, keys, error, /*require_checksum=*/false);
+                assert(descriptors.size() == 1);
+                auto parsed_desc = std::move(descriptors.front());
                 assert(parsed_desc);
                 assert(error.empty());
                 assert(parsed_desc->IsRange());

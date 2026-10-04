@@ -2,6 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <key.h>
+#include <key_io.h>
 #include <test/fuzz/FuzzedDataProvider.h>
 #include <test/fuzz/fuzz.h>
 #include <test/fuzz/util.h>
@@ -15,6 +17,9 @@
 #include <wallet/test/util.h>
 #include <wallet/wallet.h>
 #include <validation.h>
+
+#include <array>
+#include <cstddef>
 
 using util::ToString;
 
@@ -37,10 +42,13 @@ FUZZ_TARGET(wallet_create_transaction, .init = initialize_setup)
     Chainstate& chainstate{node.chainman->ActiveChainstate()};
     ArgsManager& args = *node.args;
     args.ForceSetArg("-dustrelayfee", ToString(fuzzed_data_provider.ConsumeIntegralInRange<CAmount>(0, MAX_MONEY)));
+    // Deterministic, test-only key encoded for the selected network.
+    CExtKey master_key;
+    master_key.SetSeed(std::array<std::byte, 32>{});
     FuzzedWallet fuzzed_wallet{
         *g_setup->m_node.chain,
         "fuzzed_wallet_a",
-        "KprvX52zFobmhqU3G9uMVwFjx5kk1RTc8p2LJvGExMewDDV82UrjMwH9jxuVeFiRThUQBjHtLSUufn9wsDceDo9m2NAC1kZCgZzWxmzf1ZSkr6o",
+        EncodeExtKey(master_key),
     };
 
     CCoinControl coin_control;
