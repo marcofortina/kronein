@@ -7,6 +7,7 @@
 #include <chainregistry/child_net.h>
 #include <chainregistry/deposit_import.h>
 #include <chainregistry/mainchain_lightclient.h>
+#include <consensus/amount.h>
 #include <consensus/bmm.h>
 #include <consensus/chainregistry.h>
 #include <consensus/deposit_proof.h>
@@ -31,10 +32,34 @@
 namespace {
 
 template <typename T>
+bool CanRoundTrip(const T&)
+{
+    return true;
+}
+
+bool CanRoundTrip(const chainregistry::ReferenceChildBlockUndo& undo)
+{
+    // Coin serialization uses CompressAmount, whose documented domain is
+    // [0, MAX_MONEY]. Arbitrary bytes can decode to amounts outside that
+    // domain; the child database rejects them before restoring any coins.
+    for (const auto& tx_undo : undo.coins.vtxundo) {
+        for (const auto& coin : tx_undo.vprevout) {
+            if (!MoneyRange(coin.out.nValue)) return false;
+        }
+    }
+    return true;
+}
+
+bool CanRoundTrip(const node::ChildCandidateRecord& candidate)
+{
+    return CanRoundTrip(candidate.undo);
+}
+
+template <typename T>
 void FuzzPersistenceRecord(FuzzedDataProvider& provider)
 {
     const auto record{ConsumeDeserializable<T>(provider)};
-    if (!record) return;
+    if (!record || !CanRoundTrip(*record)) return;
 
     DataStream encoded;
     encoded << *record;
