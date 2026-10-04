@@ -26,6 +26,7 @@
 #include <tinyformat.h>
 #include <uint256.h>
 #include <util/chaintype.h>
+#include <util/check.h>
 #include <util/log.h>
 #include <util/strencodings.h>
 
@@ -414,7 +415,11 @@ public:
                 .height = 200,
                 .muhash = AssumeutxoHash{uint256{"bc6091f37a68f39526c5be0fcc5bc15c616d041a31d6ffb0a888ca2fccdb4eb3"}},
                 .m_chain_tx_count = 201,
-                .blockhash = uint256{"096846783e6fdf5590f5d7a382251b040841991a449ca203224bdcb40be10ece"},
+                // Fuzz mining uses the deterministic work predicate, not RandomX.
+                // The transactions and UTXO hash are identical, but nonces differ.
+                .blockhash = EnableFuzzDeterminism()
+                    ? uint256{"035625cfcfba3579a526251cd066abe7cb6789593600ad668fd4031602e56236"}
+                    : uint256{"096846783e6fdf5590f5d7a382251b040841991a449ca203224bdcb40be10ece"},
             },
             {
                 // For use by test/functional/feature_assumeutxo.py and test/functional/tool_kronein_chainstate.py
