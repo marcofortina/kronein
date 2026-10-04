@@ -70,7 +70,7 @@ size_t RegistryProofDepth(uint64_t leaf_count)
 {
     size_t depth{0};
     while (leaf_count > 1) {
-        leaf_count = (leaf_count + 1) / 2;
+        leaf_count = leaf_count / 2 + leaf_count % 2;
         ++depth;
     }
     return depth;
@@ -210,7 +210,7 @@ bool VerifyRegistryInclusion(const ChainRecord& record,
             current = ComputeRegistryNodeHash(sibling, current);
         }
         index /= 2;
-        width = (width + 1) / 2;
+        width = width / 2 + width % 2;
     }
     const uint256 chain_root{FinalizeRegistryRoot(proof.leaf_count, current)};
     return ComputeRegistryStateRoot(chain_root, proof.dealer_root, proof.authority_sequence, proof.authority_state_hash) == expected_root;

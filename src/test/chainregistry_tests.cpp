@@ -3,6 +3,7 @@
 // file COPYING or https://opensource.org/license/mit/.
 
 #include <consensus/chainregistry.h>
+#include <hash.h>
 #include <key.h>
 #include <primitives/block.h>
 #include <primitives/chainregistry.h>
@@ -17,9 +18,11 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstdint>
 #include <limits>
 #include <span>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <variant>
@@ -1231,6 +1234,47 @@ BOOST_AUTO_TEST_CASE(registry_block_failures_are_atomic)
         chainregistry::CommitmentRequirement::NOT_REQUIRED);
     BOOST_CHECK(result.error == chainregistry::RegistryBlockError::COINBASE_OPERATION);
     BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(), empty_root.GetHex());
+}
+
+BOOST_AUTO_TEST_CASE(registry_inclusion_proof_large_leaf_counts)
+{
+    const chainregistry::ChainRecord record{};
+    BOOST_CHECK(!chainregistry::VerifyRegistryInclusion(record, {}, {}));
+    for (const uint64_t leaf_count : {
+             uint64_t{1}, uint64_t{2}, uint64_t{3},
+             (uint64_t{1} << 63) - 1, uint64_t{1} << 63, (uint64_t{1} << 63) + 1,
+             std::numeric_limits<uint64_t>::max() - 1, std::numeric_limits<uint64_t>::max()}) {
+        for (const uint64_t leaf_index : {uint64_t{0}, leaf_count - 1}) {
+            chainregistry::RegistryInclusionProof proof;
+            proof.leaf_count = leaf_count;
+            proof.leaf_index = leaf_index;
+            uint256 current{chainregistry::ComputeRegistryLeafHash(record)};
+            uint64_t index{leaf_index};
+            uint64_t width{leaf_count};
+            // Construct only the authentication path, not the enormous tree.
+            for (int depth{0}; depth < std::bit_width(leaf_count - 1); ++depth) {
+                const uint256 sibling{(index & 1) == 0 && index == width - 1 ? current : uint256{}};
+                proof.siblings.push_back(sibling);
+                current = (index & 1) != 0
+                    ? chainregistry::ComputeRegistryNodeHash(sibling, current)
+                    : chainregistry::ComputeRegistryNodeHash(current, sibling);
+                index /= 2;
+                width = 1 + (width - 1) / 2;
+            }
+            auto hasher{TaggedHash(std::string{chainregistry::REGISTRY_ROOT_HASH_TAG})};
+            hasher << leaf_count << current;
+            const uint256 root{chainregistry::ComputeRegistryStateRoot(
+                hasher.GetSHA256(), proof.dealer_root, proof.authority_sequence, proof.authority_state_hash)};
+            BOOST_CHECK(chainregistry::VerifyRegistryInclusion(record, proof, root));
+            proof.leaf_index = leaf_count;
+            BOOST_CHECK(!chainregistry::VerifyRegistryInclusion(record, proof, root));
+            proof.leaf_index = leaf_index;
+            if (!proof.siblings.empty()) {
+                proof.siblings.pop_back();
+                BOOST_CHECK(!chainregistry::VerifyRegistryInclusion(record, proof, root));
+            }
+        }
+    }
 }
 
 BOOST_AUTO_TEST_CASE(registry_inclusion_and_non_inclusion_proofs)
