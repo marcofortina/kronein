@@ -21,7 +21,7 @@ BOOST_FIXTURE_TEST_SUITE(spend_tests, WalletTestingSetup)
 BOOST_FIXTURE_TEST_CASE(input_size_uses_matching_outpoint_weight, BasicTestingSetup)
 {
     const CTxOut output{COIN, GetScriptForDestination(WitnessV1Taproot{XOnlyPubKey::NUMS_H})};
-    const Txid txid{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
+    constexpr Txid txid{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
     const COutPoint first{txid, 0};
     const COutPoint second{txid, 1};
     const COutPoint unknown{txid, 2};
