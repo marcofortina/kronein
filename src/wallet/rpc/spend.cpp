@@ -1873,6 +1873,16 @@ static RPCHelpMan bumpfee_helper(std::string method_name)
         result.pushKV("txid", txid.GetHex());
     } else {
         PartiallySignedTransaction psbtx(mtx);
+        // Taproot signatures commit to the amounts and scripts of all inputs,
+        // including external inputs whose funding transactions are not in the
+        // wallet. Populate those UTXOs before either participant signs.
+        std::map<COutPoint, Coin> coins;
+        for (const CTxIn& input : mtx.vin) coins.try_emplace(input.prevout);
+        pwallet->chain().findCoins(coins);
+        for (size_t index{0}; index < mtx.vin.size(); ++index) {
+            const Coin& coin{coins.at(mtx.vin[index].prevout)};
+            if (!coin.IsSpent()) psbtx.inputs[index].witness_utxo = coin.out;
+        }
         bool complete = false;
         const auto err{pwallet->FillPSBT(psbtx, {.sign = false, .bip32_derivs = true}, complete)};
         CHECK_NONFATAL(!err);

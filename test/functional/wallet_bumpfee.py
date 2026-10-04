@@ -381,7 +381,13 @@ def test_notmine_bumpfee(self, rbf_node, peer_node, dest_address):
     # Note that this test depends upon the RPC code checking input ownership prior to change outputs
     # (since it can't use fundrawtransaction, it lacks a proper change output)
     fee = Decimal("0.001")
-    utxos = [node.listunspent(minimumAmount=fee)[-1] for node in (rbf_node, peer_node)]
+    # Use a peer coinbase rather than a random change output: the latter may
+    # share a funding transaction with an output already known to rbf_node.
+    peer_utxo = next(utxo for utxo in peer_node.listunspent(minimumAmount=fee)
+                     if peer_node.gettransaction(utxo["txid"]).get("generated", False))
+    assert_raises_rpc_error(-5, "Invalid or non-wallet transaction id",
+                            rbf_node.gettransaction, peer_utxo["txid"])
+    utxos = [rbf_node.listunspent(minimumAmount=fee)[-1], peer_utxo]
     inputs = [{
         "txid": utxo["txid"],
         "vout": utxo["vout"],
@@ -400,6 +406,9 @@ def test_notmine_bumpfee(self, rbf_node, peer_node, dest_address):
                             rbf_node.bumpfee, rbfid)
 
     def finish_psbtbumpfee(psbt):
+        # Taproot DEFAULT commits to every input's amount and script, including
+        # those owned by the other wallet. They must be known before signing.
+        assert all("witness_utxo" in txin for txin in rbf_node.decodepsbt(psbt)["inputs"])
         psbt = rbf_node.walletprocesspsbt(psbt)
         psbt = peer_node.walletprocesspsbt(psbt["psbt"])
         if "hex" not in psbt:
