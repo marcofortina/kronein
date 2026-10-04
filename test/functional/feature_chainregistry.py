@@ -594,7 +594,7 @@ class ChainRegistryTest(BitcoinTestFramework):
             wallet.getbalance, 0, False, chain_id)
         assert_raises_rpc_error(
             -8, "child chain is not configured locally",
-            wallet.listsinceblock, "", 1, True, False, None, chain_id)
+            wallet.listsinceblock, "", 1, True, False, chain_id=chain_id)
 
         self.log.info("Reserve registry control outputs from ordinary wallet spending")
         control_outpoint = {"txid": registration_txid, "vout": 1}
@@ -973,6 +973,11 @@ class ChainRegistryTest(BitcoinTestFramework):
         all_wallet_deposits = wallet.listwalletchaindeposits()
         assert_equal(all_wallet_deposits["total"], 1)
         assert_equal(all_wallet_deposits["returned"], 1)
+        assert_equal(wallet.listwalletchaindeposits(None, 1), all_wallet_deposits)
+        assert_equal(wallet.listwalletchaindeposits(count=1), all_wallet_deposits)
+        assert_equal(wallet.listwalletchaindeposits(None, 1, 1)["returned"], 0)
+        for identifier in ("1" * 64, "0" + "1" * 63):
+            assert_equal(wallet.listwalletchaindeposits(identifier)["total"], 0)
         assert_equal(wallet.listwalletchaindeposits(chain_id, 1, 1)["returned"], 0)
         assert_raises_rpc_error(
             -8, "chain_id must be exactly 32 non-null bytes",
@@ -1929,8 +1934,12 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(pending_attacker_tx["decoded"]["txid"],
                      signed_child["txid"])
 
+        # A CLI label of "null" is a literal label, not an omitted filter.
+        # Named chain selection leaves the optional label unset on both transports.
         pending_since_block = wallet.listsinceblock(
-            child_block["blockhash"], 1, True, False, None, chain_id)
+            child_block["blockhash"], 1, True, False, chain_id=chain_id)
+        assert_equal(wallet.listsinceblock(
+            child_block["blockhash"], 1, True, False, "null", chain_id)["transactions"], [])
         assert_equal(pending_since_block["chain_id"], chain_id)
         assert_equal(pending_since_block["lastblock"],
                      child_block["blockhash"])
@@ -2037,7 +2046,7 @@ class ChainRegistryTest(BitcoinTestFramework):
         assert_equal(attacker.getbalance(1, False, chain_id),
                      child_spend_amount)
         confirmed_since_import = wallet.listsinceblock(
-            child_block["blockhash"], 2, True, False, None, chain_id)
+            child_block["blockhash"], 2, True, False, chain_id=chain_id)
         assert_equal(confirmed_since_import["chain_id"], chain_id)
         assert_equal(confirmed_since_import["lastblock"],
                      child_block["blockhash"])
@@ -2047,16 +2056,16 @@ class ChainRegistryTest(BitcoinTestFramework):
             for entry in confirmed_since_import["transactions"]
         }
         assert_equal(wallet.listsinceblock(
-            spend_block["blockhash"], 1, False, False, None,
-            chain_id), {
+            spend_block["blockhash"], 1, False, False,
+            chain_id=chain_id), {
                 "transactions": [],
                 "lastblock": spend_block["blockhash"],
                 "chain_id": chain_id,
             })
         assert_raises_rpc_error(
             -5, "Child block not found",
-            wallet.listsinceblock, "42" * 32, 1, True, False, None,
-            chain_id)
+            wallet.listsinceblock, "42" * 32, 1, True, False,
+            chain_id=chain_id)
         confirmed_wallet_tx = wallet.gettransaction(
             signed_child["txid"], False, chain_id)
         assert_equal(confirmed_wallet_tx["amount"], -child_spend_amount)
@@ -2090,7 +2099,7 @@ class ChainRegistryTest(BitcoinTestFramework):
             wallet.getbalance, 0, False, chain_id)
         assert_raises_rpc_error(
             -1, "child chain is not loaded",
-            wallet.listsinceblock, "", 1, True, False, None, chain_id)
+            wallet.listsinceblock, "", 1, True, False, chain_id=chain_id)
         assert_equal(node.loadchildchain(chain_id)["height"], 2)
         assert_equal(wallet.listtransactions("*", 10, 0, chain_id),
                      confirmed_history)

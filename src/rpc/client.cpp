@@ -15,7 +15,7 @@
 
 //! Specify whether parameter should be parsed by kronein-cli as a JSON value,
 //! or passed unchanged as a string, or a combination of both.
-enum ParamFormat { JSON, STRING, JSON_OR_STRING };
+enum ParamFormat { JSON, STRING, JSON_OR_STRING, STRING_OR_NULL };
 
 class CRPCConvertParam
 {
@@ -40,6 +40,11 @@ public:
  * useful for arguments like hash_or_height, allowing invocations such as
  * `kronein-cli getblockstats <hash>` without needing to quote the hash string
  * as JSON (`'"<hash>"'`).
+ *
+ * `STRING_OR_NULL` preserves strings except for the literal `null`, which is
+ * converted to JSON null. Use it for optional hexadecimal identifiers so that
+ * callers can omit a positional filter without interpreting digit-only hashes
+ * as JSON numbers.
  *
  * String parameters that may contain an '=' character (e.g. base64 strings,
  * filenames, or labels) need to be listed here with format `ParamFormat::STRING`
@@ -434,14 +439,17 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getnewchildrecipient", 0, "chain_id", ParamFormat::STRING },
     { "getnewchildrecipient", 1, "label", ParamFormat::STRING },
     { "getnewchildrecipient", 2, "for_registration" },
+    { "getrawtransaction", 0, "txid", ParamFormat::STRING },
+    { "getrawtransaction", 2, "blockhash", ParamFormat::STRING_OR_NULL },
+    { "getrawtransaction", 3, "chain_id", ParamFormat::STRING },
     { "getreceivedbylabel", 3, "chain_id", ParamFormat::STRING },
     { "listchaindealers", 0, "include_revoked" },
-    { "listchildchains", 0, "start_after", ParamFormat::STRING },
+    { "listchildchains", 0, "start_after", ParamFormat::STRING_OR_NULL },
     { "listchildproposals", 0, "chain_id", ParamFormat::STRING },
     { "listchildrecipients", 0, "chain_id", ParamFormat::STRING },
     { "listsinceblock", 5, "chain_id", ParamFormat::STRING },
     { "listtransactions", 3, "chain_id", ParamFormat::STRING },
-    { "listwalletchaindeposits", 0, "chain_id", ParamFormat::STRING },
+    { "listwalletchaindeposits", 0, "chain_id", ParamFormat::STRING_OR_NULL },
     { "listwalletchaindeposits", 1, "count" },
     { "listwalletchaindeposits", 2, "skip" },
     { "loadchildchain", 0, "chain_id", ParamFormat::STRING },
@@ -582,6 +590,7 @@ const CRPCConvertParam* FromName(std::string_view method, std::string_view name)
 
 static UniValue ParseParam(const CRPCConvertParam* param, std::string_view raw)
 {
+    if (param && param->format == ParamFormat::STRING_OR_NULL && raw == "null") return UniValue::VNULL;
     // Only parse parameters which have the JSON or JSON_OR_STRING format; otherwise, treat them as strings.
     return (param && (param->format == ParamFormat::JSON || param->format == ParamFormat::JSON_OR_STRING)) ? Parse(raw, param->format) : UniValue(std::string(raw));
 }
@@ -651,7 +660,7 @@ UniValue RPCConvertNamedValues(const std::string &strMethod, const std::vector<s
             if (positional_param && positional_param->format == ParamFormat::JSON && parsed_value.read(s)) {
                 positional_args.push_back(std::move(parsed_value));
                 continue;
-            } else if (positional_param && positional_param->format == ParamFormat::STRING) {
+            } else if (positional_param && (positional_param->format == ParamFormat::STRING || positional_param->format == ParamFormat::STRING_OR_NULL)) {
                 positional_args.push_back(s);
                 continue;
             }

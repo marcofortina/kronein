@@ -28,6 +28,7 @@
 #include <any>
 #include <future>
 #include <string_view>
+#include <utility>
 
 #include <boost/test/unit_test.hpp>
 
@@ -1449,6 +1450,78 @@ BOOST_AUTO_TEST_CASE(rpc_convert_child_workflow_arguments)
     BOOST_CHECK_EQUAL(routed["chain_id"].get_str(), chain_id);
     BOOST_CHECK(routed["child_fee"].isNum());
     BOOST_CHECK(!routed.exists("args"));
+}
+
+BOOST_AUTO_TEST_CASE(rpc_convert_nullable_chain_identifiers)
+{
+    for (const auto& [method, name] : {
+             std::pair{"listwalletchaindeposits", "chain_id"},
+             std::pair{"listchildchains", "start_after"}}) {
+        BOOST_TEST_CONTEXT(method) {
+            const auto positional{RPCConvertValues(method, {"null", "2"})};
+            BOOST_REQUIRE_EQUAL(positional.size(), 2U);
+            BOOST_CHECK(positional[0].isNull());
+            BOOST_CHECK_EQUAL(positional[1].getInt<int>(), 2);
+
+            const auto named{RPCConvertNamedValues(method, {std::string{name} + "=null"})};
+            BOOST_CHECK(named.exists(name));
+            BOOST_CHECK(named[name].isNull());
+            BOOST_CHECK(!named.exists("args"));
+
+            const auto mixed{RPCConvertNamedValues(method, {"null", "2"})};
+            BOOST_REQUIRE_EQUAL(mixed["args"].size(), 2U);
+            BOOST_CHECK(mixed["args"][0].isNull());
+            BOOST_CHECK_EQUAL(mixed["args"][1].getInt<int>(), 2);
+
+            // Preserve digit-only hashes, leading zeros, and invalid input for
+            // the server to validate; only the exact null placeholder is special.
+            for (const std::string& identifier : {
+                     std::string(64, '1'), std::string(64, '0'),
+                     "0" + std::string(63, '1'), std::string(64, 'a'),
+                     std::string{"false"}, std::string{"nullish"},
+                     std::string{"null=1"}, std::string{}}) {
+                const auto value{RPCConvertValues(method, {identifier})};
+                BOOST_CHECK_EQUAL(value[0].get_str(), identifier);
+                const auto by_name{RPCConvertNamedValues(method, {std::string{name} + "=" + identifier})};
+                BOOST_CHECK_EQUAL(by_name[name].get_str(), identifier);
+                const auto by_position{RPCConvertNamedValues(method, {identifier})};
+                BOOST_CHECK_EQUAL(by_position["args"][0].get_str(), identifier);
+            }
+        }
+    }
+    // Required identifiers and arbitrary string parameters keep their semantics.
+    BOOST_CHECK_EQUAL(RPCConvertValues("getchildchain", {"null"})[0].get_str(), "null");
+    BOOST_CHECK_EQUAL(RPCConvertValues("createwallet", {"null"})[0].get_str(), "null");
+    BOOST_CHECK_EQUAL(RPCConvertValues("listsinceblock", {"", "1", "true", "false", "null"})[4].get_str(), "null");
+}
+
+BOOST_AUTO_TEST_CASE(rpc_convert_getrawtransaction_blockhash)
+{
+    const std::string txid(64, '1');
+    const std::string chain_id(64, '2');
+    const auto positional{RPCConvertValues("getrawtransaction", {txid, "1", "null", chain_id})};
+    BOOST_CHECK_EQUAL(positional[0].get_str(), txid);
+    BOOST_CHECK_EQUAL(positional[1].getInt<int>(), 1);
+    BOOST_CHECK(positional[2].isNull());
+    BOOST_CHECK_EQUAL(positional[3].get_str(), chain_id);
+
+    const auto named{RPCConvertNamedValues("getrawtransaction",
+        {"txid=" + txid, "verbosity=1", "blockhash=null", "chain_id=" + chain_id})};
+    BOOST_CHECK_EQUAL(named["txid"].get_str(), txid);
+    BOOST_CHECK(named.exists("blockhash"));
+    BOOST_CHECK(named["blockhash"].isNull());
+    BOOST_CHECK_EQUAL(named["chain_id"].get_str(), chain_id);
+    BOOST_CHECK(!named.exists("args"));
+
+    const auto mixed{RPCConvertNamedValues("getrawtransaction", {txid, "1", "null", "chain_id=" + chain_id})};
+    BOOST_REQUIRE_EQUAL(mixed["args"].size(), 3U);
+    BOOST_CHECK(mixed["args"][2].isNull());
+    BOOST_CHECK_EQUAL(mixed["chain_id"].get_str(), chain_id);
+
+    for (const std::string& blockhash : {std::string(64, '3'), "0" + std::string(63, '3'), std::string(64, 'a')}) {
+        BOOST_CHECK_EQUAL(RPCConvertValues("getrawtransaction", {txid, "1", blockhash})[2].get_str(), blockhash);
+        BOOST_CHECK_EQUAL(RPCConvertNamedValues("getrawtransaction", {"txid=" + txid, "blockhash=" + blockhash})["blockhash"].get_str(), blockhash);
+    }
 }
 
 BOOST_AUTO_TEST_CASE(rpc_getblockstats_calculate_percentiles_by_weight)
