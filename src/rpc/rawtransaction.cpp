@@ -1587,6 +1587,9 @@ static RPCHelpMan converttopsbt()
     if (!DecodeHexTx(tx, request.params[0].get_str())) {
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
     }
+    if (tx.version != CTransaction::CURRENT_VERSION) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("PSBT transaction version must be %d", CTransaction::CURRENT_VERSION));
+    }
 
     // Remove all signature data from inputs
     for (CTxIn& input : tx.vin) {

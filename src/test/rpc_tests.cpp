@@ -14,6 +14,7 @@
 #include <pow.h>
 #include <primitives/bmm.h>
 #include <primitives/chainregistry.h>
+#include <psbt.h>
 #include <rpc/blockchain.h>
 #include <rpc/client.h>
 #include <rpc/server.h>
@@ -1078,6 +1079,36 @@ BOOST_AUTO_TEST_CASE(rpc_rawparams)
     BOOST_CHECK_THROW(CallRPC("sendrawtransaction null"), std::runtime_error);
     BOOST_CHECK_THROW(CallRPC("sendrawtransaction DEADBEEF"), std::runtime_error);
     BOOST_CHECK_THROW(CallRPC(std::string("sendrawtransaction ")+rawtx+" extra"), std::runtime_error);
+}
+
+BOOST_AUTO_TEST_CASE(rpc_converttopsbt_transaction_version)
+{
+    CMutableTransaction tx;
+    tx.vin.emplace_back(COutPoint{Txid::FromUint256(uint256{1}), 0});
+    tx.vout.emplace_back(0, CScript{} << OP_RETURN);
+
+    // Valid transactions still round-trip without changing their contents.
+    const auto converted{DecodeBase64PSBT(CallRPC("converttopsbt " + EncodeHexTx(CTransaction{tx})).get_str())};
+    BOOST_REQUIRE(converted);
+    const auto unsigned_tx{converted->GetUnsignedTx()};
+    BOOST_REQUIRE(unsigned_tx);
+    BOOST_CHECK_EQUAL(EncodeHexTx(CTransaction{*unsigned_tx}), EncodeHexTx(CTransaction{tx}));
+
+    // Untrusted versions must fail at the RPC boundary, not reach the PSBT
+    // constructor's assertion. Discarding signatures must not bypass this.
+    for (const auto version : {0U, 2U, 3U, 0x7fffffffU, 0x80000000U, 0xffffffffU}) {
+        tx.version = version;
+        for (const bool permitsigdata : {false, true}) {
+            JSONRPCRequest request;
+            request.context = &m_node;
+            request.strMethod = "converttopsbt";
+            request.params = UniValue{UniValue::VARR};
+            request.params.push_back(EncodeHexTx(CTransaction{tx}));
+            request.params.push_back(permitsigdata);
+            BOOST_CHECK_EXCEPTION(tableRPC.execute(request), UniValue,
+                                  HasJSON(R"({"code":-8,"message":"PSBT transaction version must be 1"})"));
+        }
+    }
 }
 
 BOOST_AUTO_TEST_CASE(rpc_togglenetwork)
