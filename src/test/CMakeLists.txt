@@ -13,6 +13,14 @@ set_target_properties(randomx_test_bridge PROPERTIES
 )
 add_windows_application_manifest(randomx_test_bridge)
 
+# Explicit developer tool; never mine or rewrite fixture data during a build.
+add_executable(generate_chain100 EXCLUDE_FROM_ALL generate_chain100.cpp)
+target_link_libraries(generate_chain100 PRIVATE
+  core_interface test_util bitcoin_node $<TARGET_NAME_IF_EXISTS:bitcoin_wallet>
+)
+set_target_properties(generate_chain100 PROPERTIES OUTPUT_NAME kronein-generate-chain100)
+add_windows_application_manifest(generate_chain100)
+
 add_executable(test_bitcoin
   main.cpp
   addrman_tests.cpp
@@ -137,6 +145,7 @@ add_executable(test_bitcoin
   serfloat_tests.cpp
   serialize_tests.cpp
   settings_tests.cpp
+  setup_common_tests.cpp
   skiplist_tests.cpp
   sock_tests.cpp
   span_tests.cpp

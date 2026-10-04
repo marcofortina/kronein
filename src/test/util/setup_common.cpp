@@ -14,6 +14,7 @@
 #include <consensus/merkle.h>
 #include <consensus/params.h>
 #include <consensus/validation.h>
+#include <core_io.h>
 #include <crypto/sha256.h>
 #include <init.h>
 #include <init/common.h>
@@ -44,6 +45,7 @@
 #include <script/sigcache.h>
 #include <script/solver.h>
 #include <streams.h>
+#include <test/data/regtest_chain100.json.h>
 #include <test/util/coverage.h>
 #include <test/util/net.h>
 #include <test/util/random.h>
@@ -51,6 +53,7 @@
 #include <test/util/txmempool.h>
 #include <txdb.h>
 #include <txmempool.h>
+#include <univalue.h>
 #include <util/chaintype.h>
 #include <util/check.h>
 #include <util/fs_helpers.h>
@@ -387,7 +390,8 @@ TestingSetup::TestingSetup(
 
 TestChain100Setup::TestChain100Setup(
     const ChainType chain_type,
-    TestOpts opts)
+    TestOpts opts,
+    BlockSource block_source)
     : TestingSetup{ChainType::REGTEST, opts}
 {
     SetMockTime(Params().GenesisBlock().Time() + 1s);
@@ -395,9 +399,58 @@ TestChain100Setup::TestChain100Setup(
         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}};
     coinbaseKey.Set(vchKey.begin(), vchKey.end(), true);
 
-    // Generate a 100-block chain:
-    this->mineBlocks(COINBASE_MATURITY);
+    if (block_source == BlockSource::MINE) {
+        this->mineBlocks(COINBASE_MATURITY);
+        return;
+    }
 
+    // Cache only the immutable JSON, never blocks with cached validation flags
+    // or mutable chainstate. Every fixture validates its own fresh block objects.
+    static const UniValue data{[] {
+        UniValue result;
+        if (!result.read(json_tests::regtest_chain100) || !result.isObject()) {
+            throw std::runtime_error("Invalid regtest_chain100.json fixture");
+        }
+        return result;
+    }()};
+    const auto& consensus{Params().GetConsensus()};
+    const auto script{GetScriptForDestination(WitnessV1Taproot{XOnlyPubKey{coinbaseKey.GetPubKey()}})};
+    if (data["format_version"].getInt<int>() != 1 || data["network"].get_str() != "regtest" ||
+        data["genesis_hash"].get_str() != consensus.hashGenesisBlock.GetHex() ||
+        !consensus.randomx.fixed_seed || data["randomx_seed"].get_str() != HexStr(consensus.randomx.bootstrap_key) ||
+        data["coinbase_script"].get_str() != HexStr(script)) {
+        throw std::runtime_error("Incompatible regtest_chain100.json metadata; regenerate the fixture explicitly");
+    }
+    const bool registry_active{consensus.chain_registry.IsActive(1)};
+    if (registry_active != consensus.chain_registry.IsActive(COINBASE_MATURITY)) {
+        throw std::runtime_error("regtest_chain100.json does not cover registry activation within the first 100 blocks");
+    }
+    const auto& profile{data[registry_active ? "registry_active" : "registry_inactive"]};
+    const auto& blocks{profile["blocks"].get_array()};
+    if (blocks.size() != COINBASE_MATURITY) {
+        throw std::runtime_error("regtest_chain100.json must contain exactly COINBASE_MATURITY blocks per profile");
+    }
+    auto& chainman{*Assert(m_node.chainman)};
+    for (const auto& hex : blocks.getValues()) {
+        auto block{std::make_shared<CBlock>()};
+        if (!DecodeHexBlk(*block, hex.get_str()) || block->vtx.size() != 1 ||
+            block->vtx[0]->vout.empty() || block->vtx[0]->vout[0].scriptPubKey != script ||
+            block->Time() != Now<NodeSeconds>()) {
+            throw std::runtime_error("Invalid block in regtest_chain100.json");
+        }
+        bool new_block{false};
+        if (!chainman.ProcessNewBlock(block, /*force_processing=*/true, /*min_pow_checked=*/true, &new_block) ||
+            !new_block || WITH_LOCK(cs_main, return chainman.ActiveChain().Tip()->GetBlockHash()) != block->GetHash()) {
+            throw std::runtime_error("regtest_chain100.json block failed consensus validation");
+        }
+        m_coinbase_txns.push_back(block->vtx[0]);
+        SetMockTime(Now<NodeSeconds>() + 1s);
+    }
+    LOCK(cs_main);
+    if (chainman.ActiveHeight() != COINBASE_MATURITY ||
+        chainman.ActiveChain().Tip()->GetBlockHash().GetHex() != profile["tip_hash"].get_str()) {
+        throw std::runtime_error("Unexpected regtest_chain100.json chain tip");
+    }
 }
 
 void TestChain100Setup::mineBlocks(int num_blocks)

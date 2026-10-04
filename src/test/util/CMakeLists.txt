@@ -21,6 +21,9 @@ add_library(test_util STATIC EXCLUDE_FROM_ALL
   $<$<BOOL:${ENABLE_WALLET}>:${PROJECT_SOURCE_DIR}/src/wallet/test/util.cpp>
 )
 
+include(TargetDataSources)
+target_json_data_sources(test_util ../data/regtest_chain100.json)
+
 target_link_libraries(test_util
   PRIVATE
     core_interface
