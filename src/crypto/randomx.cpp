@@ -22,8 +22,9 @@ randomx_flags RecommendedFlags()
 #if defined(__has_feature)
 #if __has_feature(memory_sanitizer)
     // JIT-generated writes cannot update MemorySanitizer's shadow memory.
-    // Use the instrumented interpreter, with the same v2 consensus output.
-    flags = RANDOMX_FLAG_V2;
+    // Keep compiler-instrumented AES and Argon2 intrinsics enabled; only the
+    // generated code must be replaced by the interpreter.
+    flags = static_cast<randomx_flags>(flags & ~(RANDOMX_FLAG_JIT | RANDOMX_FLAG_SECURE));
 #endif
 #endif
     if ((flags & RANDOMX_FLAG_JIT) != 0) flags |= RANDOMX_FLAG_SECURE;
