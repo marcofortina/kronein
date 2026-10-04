@@ -54,11 +54,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: No wallet
-            warp-runner: warp-ubuntu-latest-x64-4x
+          - name: MSan, fuzz
+            warp-runner: warp-ubuntu-latest-x64-8x
             fallback-runner: ubuntu-latest
-            timeout-minutes: 120
-            file-env: ./ci/test/00_setup_env_native_nowallet.sh
+            timeout-minutes: 150
+            file-env: ./ci/test/00_setup_env_native_fuzz_with_msan.sh
     steps:
       - name: Annotate with pull request number
         run: |
