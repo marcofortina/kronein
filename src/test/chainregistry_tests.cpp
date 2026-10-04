@@ -698,6 +698,25 @@ BOOST_AUTO_TEST_CASE(registry_record_hash_vectors)
     undo_stream >> decoded;
     BOOST_CHECK(decoded == undo);
     BOOST_CHECK(undo_stream.empty());
+
+    using namespace util::hex_literals;
+    auto with_transition{undo};
+    with_transition.previous_authority_transition = chainregistry::DealerAuthorityTransition{
+        .activation_height = 245,
+        .previous = {1, {"79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"_hex_u8}},
+        .next = {1, {"c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5"_hex_u8}},
+    };
+    // Exercise both an empty optional and replacement of a populated value.
+    for (int repetition{0}; repetition < 2; ++repetition) {
+        undo_stream << with_transition;
+        undo_stream >> decoded;
+        BOOST_CHECK(decoded == with_transition);
+        BOOST_CHECK(undo_stream.empty());
+    }
+    undo_stream << undo;
+    undo_stream >> decoded;
+    BOOST_CHECK(decoded == undo);
+    BOOST_CHECK(undo_stream.empty());
 }
 
 BOOST_AUTO_TEST_CASE(registry_commitment_vectors_and_roundtrip)

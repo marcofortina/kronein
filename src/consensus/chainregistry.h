@@ -19,6 +19,7 @@
 #include <map>
 #include <optional>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 class CBlock;
@@ -166,10 +167,16 @@ struct RegistryUndo {
         bool has_transition;
         SER_WRITE(obj, has_transition = obj.previous_authority_transition.has_value());
         READWRITE(has_transition);
-        SER_READ(obj, obj.previous_authority_transition.reset());
         if (has_transition) {
-            SER_READ(obj, obj.previous_authority_transition.emplace());
-            READWRITE(*obj.previous_authority_transition);
+            if constexpr (Operation::ForRead()) {
+                DealerAuthorityTransition transition;
+                READWRITE(transition);
+                obj.previous_authority_transition = std::move(transition);
+            } else {
+                READWRITE(*obj.previous_authority_transition);
+            }
+        } else {
+            SER_READ(obj, obj.previous_authority_transition.reset());
         }
     }
 
