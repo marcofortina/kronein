@@ -71,21 +71,37 @@ std::string g_limit_to_rpc_command;
 // reading or writing to a filename passed as an RPC parameter, RPC commands
 // resulting in network activity, etc.
 const std::vector<std::string> RPC_COMMANDS_NOT_SAFE_FOR_FUZZING{
+    "addchildchain", // persists the child catalog
+    "addchildnode",  // persists peers and opens network connections
     "addconnection",  // avoid DNS lookups
     "addnode",        // avoid DNS lookups
     "addpeeraddress", // avoid DNS lookups
+    "createchildblock",       // persists a local block proposal
+    "createchildimportblock", // persists a local block proposal
     "dumptxoutset",   // avoid writing to disk
     "enumeratesigners",
     "echoipc",              // avoid assertion failure (Assertion `"EnsureAnyNodeContext(request.context).init" && check' failed.)
+    "forgetchildchain", // rewrites the persistent child catalog
     "generatetoaddress",    // avoid prohibitively slow execution (when `num_blocks` is large)
     "generatetodescriptor", // avoid prohibitively slow execution (when `nblocks` is large)
     "gettxoutproof",        // avoid prohibitively slow execution
     "importmempool", // avoid reading from disk
+    "loadchildchain", // opens databases and starts child network threads
     "loadtxoutset",   // avoid reading from disk
     "loadwallet",   // avoid reading from disk
+    "removechildnode",     // persists peer settings and changes connections
+    "removechildproposal", // removes a durable block proposal
     "savemempool",           // disabled as a precautionary measure: may take a file path argument in the future
     "setban",                // avoid DNS lookups
+    "setchildnetworkactive",    // persists settings and changes connections
+    "setchildnetworkbinds",     // binds sockets and restarts network threads
+    "setchildnetworkdiscovery", // persists peers and restarts network threads
     "stop",                  // avoid shutdown state
+    "storechildproposal", // persists a local block proposal
+    "submitchildanchor",  // persists authenticated child anchor state
+    "submitchildblock",   // persists child chainstate and block data
+    "submitchildproposal", // persists chainstate and removes the proposal
+    "unloadchildchain", // stops network threads and closes databases
 };
 
 // RPC commands which are safe for fuzzing.
@@ -96,12 +112,19 @@ const std::vector<std::string> RPC_COMMANDS_SAFE_FOR_FUZZING{
     "combinepsbt",
     "combinerawtransaction",
     "converttopsbt",
+    "createchainregistryoperation",
+    "createchildimporttransaction",
+    "createfundchainoutput",
     "createpsbt",
     "createrawtransaction",
+    "createreferencechildmanifest",
+    "decodechainregistryoperation",
+    "decodefundchainoutput",
     "decodepsbt",
     "decoderawtransaction",
     "decodescript",
     "deriveaddresses",
+    "derivechildchainid",
     "descriptorprocesspsbt",
     "disconnectnode",
     "echo",
@@ -123,10 +146,20 @@ const std::vector<std::string> RPC_COMMANDS_SAFE_FOR_FUZZING{
     "getblockheader",
     "getblockstats",
     "getblocktemplate",
+    "getbmmanchorproof",
+    "getchaindealer",
+    "getchainregistryinfo",
     "getchaintips",
     "getchainstates",
     "getchaintxstats",
+    "getchildbmmstatus",
+    "getchildchain",
+    "getchildnetworkinfo",
+    "getchildpendingblocks",
+    "getchildproposal",
     "getconnectioncount",
+    "getdepositproof",
+    "getdepositstatus",
     "getdescriptoractivity",
     "getdescriptorinfo",
     "getdifficulty",
@@ -158,6 +191,10 @@ const std::vector<std::string> RPC_COMMANDS_SAFE_FOR_FUZZING{
     "invalidateblock",
     "joinpsbts",
     "listbanned",
+    "listchaindealers",
+    "listchildchainruntimes",
+    "listchildchains",
+    "listchildproposals",
     "logging",
     "mockscheduler",
     "ping",
@@ -343,18 +380,20 @@ void initialize_rpc()
 {
     rpc_testing_setup = InitializeRPCFuzzTestingSetup();
     const std::vector<std::string> supported_rpc_commands = rpc_testing_setup->GetRPCCommands();
+    bool valid_classification{true};
     for (const std::string& rpc_command : supported_rpc_commands) {
         const bool safe_for_fuzzing = std::find(RPC_COMMANDS_SAFE_FOR_FUZZING.begin(), RPC_COMMANDS_SAFE_FOR_FUZZING.end(), rpc_command) != RPC_COMMANDS_SAFE_FOR_FUZZING.end();
         const bool not_safe_for_fuzzing = std::find(RPC_COMMANDS_NOT_SAFE_FOR_FUZZING.begin(), RPC_COMMANDS_NOT_SAFE_FOR_FUZZING.end(), rpc_command) != RPC_COMMANDS_NOT_SAFE_FOR_FUZZING.end();
         if (!(safe_for_fuzzing || not_safe_for_fuzzing)) {
             std::cerr << "Error: RPC command \"" << rpc_command << "\" not found in RPC_COMMANDS_SAFE_FOR_FUZZING or RPC_COMMANDS_NOT_SAFE_FOR_FUZZING. Please update " << __FILE__ << ".\n";
-            std::terminate();
+            valid_classification = false;
         }
         if (safe_for_fuzzing && not_safe_for_fuzzing) {
             std::cerr << "Error: RPC command \"" << rpc_command << "\" found in *both* RPC_COMMANDS_SAFE_FOR_FUZZING and RPC_COMMANDS_NOT_SAFE_FOR_FUZZING. Please update " << __FILE__ << ".\n";
-            std::terminate();
+            valid_classification = false;
         }
     }
+    if (!valid_classification) std::terminate();
     const char* limit_to_rpc_command_env = std::getenv("LIMIT_TO_RPC_COMMAND");
     if (limit_to_rpc_command_env != nullptr) {
         g_limit_to_rpc_command = std::string{limit_to_rpc_command_env};
