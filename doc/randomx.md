@@ -65,6 +65,13 @@ falls back to the slower but bit-identical light mode. Failure to allocate even
 the light cache or VM is a local resource error and never makes an invalid
 block valid.
 
+The full dataset is 2,181,038,016 bytes, exceeding `PTRDIFF_MAX` on a 32-bit
+host. The adapter rejects full mode before cache
+initialization on those hosts, and the built-in miner takes the same light-mode
+fallback. Validation and hashing remain available, with identical consensus
+results. Tests verify this rejection and fallback on 32-bit builds, and retain
+mandatory light/full hash equivalence on 64-bit builds.
+
 MemorySanitizer builds use the portable interpreter instead of the JIT:
 generated machine code cannot update the sanitizer's shadow memory. The
 interpreter remains instrumented, uses the same RandomX v2 algorithm, and is

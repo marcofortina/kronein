@@ -51,7 +51,8 @@ public:
 /**
  * Return a process-wide cached context. Two light contexts are retained to
  * make epoch transitions and shallow reorgs cheap; one full mining context is
- * retained. Returns null when the required memory or VM cannot be allocated.
+ * retained. Returns null when the dataset exceeds PTRDIFF_MAX
+ * (full mode on 32-bit hosts), or the required memory or VM cannot be allocated.
  */
 std::shared_ptr<Hasher> GetCachedHasher(std::span<const unsigned char> key, Mode mode, unsigned int dataset_threads = 0);
 

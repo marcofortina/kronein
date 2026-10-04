@@ -7,6 +7,7 @@
 #include <crypto/randomx/upstream/src/randomx.h>
 
 #include <algorithm>
+#include <limits>
 #include <list>
 #include <mutex>
 #include <thread>
@@ -145,6 +146,14 @@ Hasher& Hasher::operator=(Hasher&&) noexcept = default;
 std::shared_ptr<Hasher> Hasher::Create(std::span<const unsigned char> key, Mode mode, unsigned int dataset_threads)
 {
     if (key.empty()) return {};
+    // Keep the full dataset within PTRDIFF_MAX for portable allocations.
+    // RandomX v2's dataset exceeds that limit on 32-bit hosts. Reject this
+    // mining optimization before building a cache that cannot be used; callers
+    // can still use the bit-identical light mode for mining and verification.
+    if (mode == Mode::FULL && randomx_dataset_item_count() >
+            static_cast<size_t>(std::numeric_limits<std::ptrdiff_t>::max()) / RANDOMX_DATASET_ITEM_SIZE) {
+        return {};
+    }
 
     auto impl{std::make_unique<Impl>()};
     impl->mode = mode;
