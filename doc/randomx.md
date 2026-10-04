@@ -143,7 +143,10 @@ As in upstream Bitcoin Core, the separate fuzz harness uses a cheap,
 deterministic work predicate. Its miner and verifier use the same predicate;
 the fixed genesis proofs are still checked with real RandomX through
 `CheckProofOfWorkImpl`. This substitution is unavailable in production builds
-and is not used by the functional tests.
+and is not used by the functional tests. The height-200 regtest assumeutxo
+fixture consequently has separately frozen block hashes for real and fuzz
+mining, with the same transaction count and UTXO hash. The snapshot fuzz
+targets check all of these values before replaying any inputs.
 
 ## Reproducible launch measurements
 
@@ -161,6 +164,10 @@ parallel dataset construction is not parallel mining. Cache/dataset setup is
 excluded. Record CPU, build mode, background load, power governor, and repeated
 runs before using a measurement. Do not extrapolate a shared development
 machine into a claimed network hashrate.
+
+On 32-bit hosts only `RandomXLight` is registered: the full dataset exceeds
+`PTRDIFF_MAX` and cannot be allocated. Full-mode allocation and hashing remain
+mandatory checks on 64-bit hosts; the benchmark does not silently fall back.
 
 The ASERT test uses the production integer difficulty calculation with a
 hypothetical anchor 1024 times harder than powLimit. It measures deterministic
