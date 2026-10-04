@@ -32,8 +32,8 @@ def process_mapping(fname):
                 if line.startswith('};'):
                     in_rpcs = False
                 elif '{' in line and '"' in line:
-                    # Match lines with ParamFormat::STRING
-                    m_string = re.search(r'{ *("[^"]*") *, *([0-9]+) *, *("[^"]*") *, *ParamFormat::STRING *},?', line)
+                    # Nullable strings still name string parameters in the RPC help.
+                    m_string = re.search(r'{ *("[^"]*") *, *([0-9]+) *, *("[^"]*") *, *ParamFormat::STRING(?:_OR_NULL)? *},?', line)
                     if m_string:
                         name = parse_string(m_string.group(1))
                         idx = int(m_string.group(2))
