@@ -4,9 +4,11 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chainparams.h>
+#include <coins.h>
 #include <consensus/consensus.h>
 #include <consensus/merkle.h>
 #include <consensus/validation.h>
+#include <hash.h>
 #include <kernel/coinstats.h>
 #include <node/miner.h>
 #include <test/fuzz/FuzzedDataProvider.h>
@@ -15,6 +17,7 @@
 #include <test/util/mining.h>
 #include <test/util/script.h>
 #include <test/util/setup_common.h>
+#include <txdb.h>
 #include <util/chaintype.h>
 #include <util/time.h>
 #include <validation.h>
@@ -50,6 +53,8 @@ FUZZ_TARGET(utxo_total_supply)
     std::vector<std::pair<COutPoint, CTxOut>> txos;
     /** The utxo stats at the chain tip */
     kernel::CCoinsStats utxo_stats;
+    /** Commitment to every outpoint and coin in database iteration order. */
+    uint256 utxo_hash;
     /** The total amount of coins in the utxo set */
     CAmount circulation{0};
 
@@ -73,10 +78,23 @@ FUZZ_TARGET(utxo_total_supply)
     const auto UpdateUtxoStats = [&](bool wipe_cache) {
         LOCK(chainman.GetMutex());
         chainman.ActiveChainstate().ForceFlushStateToDisk(wipe_cache);
-        // NONE leaves muhash unset and cannot detect UTXO changes after a
-        // rejected block when the total amount happens to remain unchanged.
         utxo_stats = std::move(
-            *Assert(kernel::ComputeUTXOStats(kernel::CoinStatsHashType::MUHASH, &chainman.ActiveChainstate().CoinsDB(), chainman.m_blockman, {})));
+            *Assert(kernel::ComputeUTXOStats(kernel::CoinStatsHashType::NONE, &chainman.ActiveChainstate().CoinsDB(), chainman.m_blockman, {})));
+        // Keep a full-state commitment: equal totals alone cannot detect a
+        // changed outpoint, script, height, or coinbase flag. Database cursors
+        // have deterministic key order, so this needs no unordered MuHash.
+        HashWriter hash;
+        auto cursor{chainman.ActiveChainstate().CoinsDB().Cursor()};
+        assert(cursor);
+        while (cursor->Valid()) {
+            COutPoint outpoint;
+            Coin coin;
+            assert(cursor->GetKey(outpoint));
+            assert(cursor->GetValue(coin));
+            hash << outpoint << coin;
+            cursor->Next();
+        }
+        utxo_hash = hash.GetHash();
         // Check that miner can't print more money than they are allowed to
         assert(circulation == utxo_stats.total_amount);
     };
@@ -147,7 +165,7 @@ FUZZ_TARGET(utxo_total_supply)
                 const bool was_valid = !MineBlock(node, current_block).IsNull();
                 if (duplicate_coinbase) assert(!was_valid);
 
-                const uint256 prev_muhash{utxo_stats.muhash};
+                const uint256 prev_utxo_hash{utxo_hash};
                 if (was_valid) {
                     circulation += GetBlockSubsidy(ActiveHeight(), Params().GetConsensus());
                     StoreTxos(*current_block->vtx.front());
@@ -157,7 +175,7 @@ FUZZ_TARGET(utxo_total_supply)
 
                 if (!was_valid) {
                     // utxo stats must not change
-                    assert(prev_muhash == utxo_stats.muhash);
+                    assert(prev_utxo_hash == utxo_hash);
                 }
 
                 current_block = PrepareNextBlock();
