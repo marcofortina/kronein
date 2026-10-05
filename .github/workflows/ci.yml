@@ -54,11 +54,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: MSan, fuzz
-            warp-runner: warp-ubuntu-latest-x64-8x
-            fallback-runner: ubuntu-latest
-            timeout-minutes: 150
-            file-env: ./ci/test/00_setup_env_native_fuzz_with_msan.sh
+          - name: 32 bit ARM
+            warp-runner: ubuntu-24.04-arm
+            fallback-runner: ubuntu-24.04-arm
+            timeout-minutes: 120
+            file-env: ./ci/test/00_setup_env_arm.sh
+            provider: gha
     steps:
       - name: Annotate with pull request number
         run: |
