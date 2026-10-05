@@ -850,25 +850,25 @@ bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
     // serialized against the confirmed authority sequence.
     std::set<Txid> visited;
     std::set<Txid> visiting;
-    std::vector<const CTransaction*> ordered_ancestors;
+    std::vector<CTransactionRef> ordered_ancestors;
     const auto& removals{m_subpackage.m_changeset->GetRemovals()};
-    const auto visit_ancestors = [&](const CTransaction& tx)
+    const auto visit_ancestors = [&](const CTransactionRef& tx)
         EXCLUSIVE_LOCKS_REQUIRED(cs_main, m_pool.cs) -> bool {
         struct Frame {
-            const CTransaction* tx;
+            CTransactionRef tx;
             size_t next_input{0};
         };
-        std::vector<Frame> pending{{&tx}};
+        std::vector<Frame> pending{{tx}};
         while (!pending.empty()) {
             Frame& frame{pending.back()};
             if (frame.next_input == frame.tx->vin.size()) {
-                const CTransaction* completed{frame.tx};
+                CTransactionRef completed{std::move(frame.tx)};
                 pending.pop_back();
                 if (!pending.empty()) {
                     const Txid id{completed->GetHash()};
                     visiting.erase(id);
                     visited.insert(id);
-                    ordered_ancestors.push_back(completed);
+                    ordered_ancestors.push_back(std::move(completed));
                 }
                 continue;
             }
@@ -886,14 +886,14 @@ bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
                 return ws.m_state.Invalid(TxValidationResult::TX_CONSENSUS,
                                           "chain-registry-ancestor-cycle");
             }
-            pending.push_back({&parent_tx});
+            pending.push_back({(*parent)->GetSharedTx()});
         }
         return true;
     };
 
     const auto staged{m_subpackage.m_changeset->GetAddedTxns()};
     for (const auto& tx : staged) {
-        if (!visit_ancestors(*tx)) return false;
+        if (!visit_ancestors(tx)) return false;
     }
 
     const auto apply = [&](const CTransaction& tx) {
@@ -912,7 +912,7 @@ bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
                       static_cast<unsigned>(result.parse_error),
                       tx.GetHash().ToString()));
     };
-    for (const CTransaction* tx : ordered_ancestors) {
+    for (const auto& tx : ordered_ancestors) {
         if (!apply(*tx)) return false;
     }
     for (const auto& tx : staged) {
@@ -922,9 +922,7 @@ bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
     if (params.DepositsActive(next_height)) {
         CBlock candidate_block;
         candidate_block.vtx.reserve(ordered_ancestors.size() + staged.size());
-        for (const CTransaction* tx : ordered_ancestors) {
-            candidate_block.vtx.push_back(MakeTransactionRef(*tx));
-        }
+        candidate_block.vtx.insert(candidate_block.vtx.end(), ordered_ancestors.begin(), ordered_ancestors.end());
         candidate_block.vtx.insert(candidate_block.vtx.end(), staged.begin(), staged.end());
         const auto deposits{chainregistry::ValidateBlockDeposits(
             candidate_block,
@@ -954,9 +952,7 @@ bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
         candidate_block.vtx.reserve(
             1 + ordered_ancestors.size() + staged.size());
         candidate_block.vtx.push_back(MakeTransactionRef(std::move(coinbase)));
-        for (const CTransaction* tx : ordered_ancestors) {
-            candidate_block.vtx.push_back(MakeTransactionRef(*tx));
-        }
+        candidate_block.vtx.insert(candidate_block.vtx.end(), ordered_ancestors.begin(), ordered_ancestors.end());
         candidate_block.vtx.insert(
             candidate_block.vtx.end(), staged.begin(), staged.end());
         const auto anchors{chainregistry::ValidateBlockBmmAnchors(
