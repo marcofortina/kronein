@@ -908,6 +908,12 @@ BOOST_AUTO_TEST_CASE(dealer_authorization_sale_update_revoke_and_undo)
     BOOST_CHECK(dealer->payout_script == initial_payout);
     BOOST_CHECK(dealer->control_outpoint == COutPoint(authorization_tx.GetHash(), 1));
 
+    CMutableTransaction dealer_control_spend;
+    dealer_control_spend.vin.emplace_back(dealer->control_outpoint);
+    BOOST_CHECK(registry.SpendsControlOutput(CTransaction{dealer_control_spend}));
+    ++dealer_control_spend.vin.front().prevout.n;
+    BOOST_CHECK(!registry.SpendsControlOutput(CTransaction{dealer_control_spend}));
+
     auto replay_tx{authorization_tx};
     replay_tx.vin[0].prevout.n = 1;
     const auto replayed{registry.ApplyTransaction(
@@ -1022,6 +1028,7 @@ BOOST_AUTO_TEST_CASE(registry_rejects_unauthorized_control_spends)
     CMutableTransaction silent_spend;
     silent_spend.vin.emplace_back(record->control_outpoint);
     silent_spend.vout.emplace_back(0, TaprootScript(2));
+    BOOST_CHECK(registry.SpendsControlOutput(CTransaction{silent_spend}));
     auto result{registry.ApplyTransaction(CTransaction{silent_spend}, 101, main_genesis, TestAuthorityKey())};
     BOOST_CHECK(result.error == chainregistry::RegistryError::CONTROL_SPEND_WITHOUT_OPERATION);
     BOOST_CHECK_EQUAL(registry.ComputeRoot().GetHex(), root.GetHex());
@@ -1030,6 +1037,7 @@ BOOST_AUTO_TEST_CASE(registry_rejects_unauthorized_control_spends)
         chainregistry::MetadataHash{"abababababababababababababababababababababababababababababababab"}, 2)};
     wrong_control.vin[0].prevout = COutPoint{
         Txid{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}, 0};
+    BOOST_CHECK(!registry.SpendsControlOutput(CTransaction{wrong_control}));
     result = registry.ApplyTransaction(CTransaction{wrong_control}, 101, main_genesis, TestAuthorityKey());
     BOOST_CHECK(result.error == chainregistry::RegistryError::WRONG_CONTROL_OUTPOINT);
 

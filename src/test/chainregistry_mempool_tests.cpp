@@ -256,6 +256,30 @@ BOOST_AUTO_TEST_CASE(validate_unconfirmed_registry_transition_chain)
     BOOST_REQUIRE(record);
     BOOST_CHECK(record->metadata_hash == next_metadata);
     BOOST_CHECK(record->control_outpoint == COutPoint(update_tx.GetHash(), 1));
+
+    // With the transitions confirmed, no unconfirmed operation builds an
+    // overlay. Both types of control output must still be protected, while
+    // an ordinary payment can use the confirmed registry without copying it.
+    const auto check_spend = [&](const CTransactionRef& parent, uint32_t output,
+                                 const CKey& key, bool control) {
+        const auto spend{CreateValidTransaction(
+            {parent}, {COutPoint{parent->GetHash(), output}},
+            /*input_height=*/101, {key},
+            {{parent->vout[output].nValue - COIN / 100, TaprootScript(key)}},
+            std::nullopt, std::nullopt).first};
+        const auto result{m_node.chainman->ProcessTransaction(
+            MakeTransactionRef(spend), /*test_accept=*/true)};
+        if (control) {
+            BOOST_CHECK(result.m_result_type == MempoolAcceptResult::ResultType::INVALID);
+            BOOST_CHECK_EQUAL(result.m_state.GetRejectReason(), "bad-chain-registry");
+        } else {
+            BOOST_CHECK_MESSAGE(result.m_result_type == MempoolAcceptResult::ResultType::VALID,
+                                result.m_state.ToString());
+        }
+    };
+    check_spend(MakeTransactionRef(update_tx), 1, next_control_key, /*control=*/true);
+    check_spend(MakeTransactionRef(registration_tx), 2, coinbaseKey, /*control=*/true);
+    check_spend(MakeTransactionRef(registration_tx), 4, coinbaseKey, /*control=*/false);
 }
 
 BOOST_AUTO_TEST_CASE(validate_deposit_against_unconfirmed_registration)

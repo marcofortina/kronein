@@ -840,8 +840,8 @@ bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
                                   "chain-bmm-inactive");
     }
 
-    chainregistry::ChainRegistry candidate{
-        m_active_chainstate.ChainRegistryState().Registry()};
+    const auto& confirmed_registry{m_active_chainstate.ChainRegistryState().Registry()};
+    std::optional<chainregistry::ChainRegistry> candidate;
 
     // Rebuild the input-dependent mempool overlay. Child updates and dealer
     // sales spend their predecessor control output, so every unconfirmed
@@ -897,7 +897,15 @@ bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
     }
 
     const auto apply = [&](const CTransaction& tx) {
-        const auto result{candidate.ApplyTransaction(
+        // Ordinary transactions do not mutate the registry. Avoid copying its
+        // entire contents until an operation requires a mutable overlay, but
+        // still reject spending a control output without its operation.
+        if (!candidate) {
+            const auto operation{chainregistry::ExtractTransactionOperation(tx)};
+            if (operation.IsValid() && !operation.operation && !confirmed_registry.SpendsControlOutput(tx)) return true;
+            candidate.emplace(confirmed_registry);
+        }
+        const auto result{candidate->ApplyTransaction(
             tx,
             static_cast<uint32_t>(next_height),
             m_active_chainstate.m_chainman.GetConsensus().hashGenesisBlock,
@@ -918,6 +926,7 @@ bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
     for (const auto& tx : staged) {
         if (!apply(*tx)) return false;
     }
+    const auto& effective_registry{candidate ? *candidate : confirmed_registry};
 
     if (params.DepositsActive(next_height)) {
         CBlock candidate_block;
@@ -926,7 +935,7 @@ bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
         candidate_block.vtx.insert(candidate_block.vtx.end(), staged.begin(), staged.end());
         const auto deposits{chainregistry::ValidateBlockDeposits(
             candidate_block,
-            candidate,
+            effective_registry,
             m_active_chainstate.m_chainman.GetConsensus().hashGenesisBlock,
             {
                 .minimum_amount = params.minimum_deposit_amount,
@@ -956,7 +965,7 @@ bool MemPoolAccept::ChainRegistryPolicyChecks(Workspace& ws)
         candidate_block.vtx.insert(
             candidate_block.vtx.end(), staged.begin(), staged.end());
         const auto anchors{chainregistry::ValidateBlockBmmAnchors(
-            candidate_block, candidate, params.maximum_bmm_anchors)};
+            candidate_block, effective_registry, params.maximum_bmm_anchors)};
         if (!anchors.IsValid()) {
             return ws.m_state.Invalid(
                 TxValidationResult::TX_CONSENSUS,

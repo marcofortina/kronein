@@ -340,6 +340,13 @@ const DealerRecord* ChainRegistry::FindDealer(const DealerId& dealer_id) const
     return it == m_dealers.end() ? nullptr : &it->second;
 }
 
+bool ChainRegistry::SpendsControlOutput(const CTransaction& tx) const
+{
+    return std::ranges::any_of(tx.vin, [&](const CTxIn& input) {
+        return m_control_index.contains(input.prevout) || m_dealer_control_index.contains(input.prevout);
+    });
+}
+
 RegistryLoadResult ChainRegistry::LoadRecords(std::vector<ChainRecord> records)
 {
     return LoadState(std::move(records), {}, 0);

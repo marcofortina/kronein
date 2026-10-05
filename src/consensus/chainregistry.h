@@ -404,6 +404,8 @@ private:
 public:
     const ChainRecord* Find(const ChainId& chain_id) const;
     const DealerRecord* FindDealer(const DealerId& dealer_id) const;
+    /** Whether any input spends a current chain or dealer control output. */
+    bool SpendsControlOutput(const CTransaction& tx) const;
     size_t Size() const { return m_records.size(); }
     size_t DealerSize() const { return m_dealers.size(); }
     uint64_t AuthoritySequence() const { return m_authority_sequence; }
