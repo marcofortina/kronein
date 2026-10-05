@@ -404,11 +404,15 @@ FUZZ_TARGET(tx_package_eval, .init = initialize_tx_pool)
                     // Create input
                     const auto sequence = ConsumeSequence(fuzzed_data_provider);
                     const auto script_sig = CScript{};
+                    const bool clean_stack{fuzzed_data_provider.ConsumeBool()};
                     CTxIn in;
                     in.prevout = outpoint;
                     in.nSequence = sequence;
                     in.scriptSig = script_sig;
                     in.scriptWitness.stack = P2TR_OP_TRUE_WITNESS_STACK;
+                    // Preserve the upstream valid/invalid witness choice.
+                    // OP_TRUE leaves this extra item on the Taproot stack.
+                    if (!clean_stack) in.scriptWitness.stack.insert(in.scriptWitness.stack.begin(), std::vector<unsigned char>{1});
 
                     tx_mut.vin.push_back(in);
                 }

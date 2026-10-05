@@ -14,6 +14,7 @@
 #include <script/solver.h>
 #include <streams.h>
 #include <test/util/common.h>
+#include <test/util/script.h>
 #include <test/util/setup_common.h>
 #include <test/util/transaction_utils.h>
 #include <util/strencodings.h>
@@ -90,6 +91,18 @@ BOOST_AUTO_TEST_CASE(native_output_verification)
         BOOST_CHECK(!VerifyScript({}, script, nullptr, STANDARD_SCRIPT_VERIFY_FLAGS, BaseSignatureChecker{}, &error));
         BOOST_CHECK_EQUAL(error, SCRIPT_ERR_WITNESS_PROGRAM_WRONG_LENGTH);
     }
+}
+
+BOOST_AUTO_TEST_CASE(taproot_fuzz_witness_cleanstack)
+{
+    CScriptWitness witness;
+    witness.stack = P2TR_OP_TRUE_WITNESS_STACK;
+    ScriptError error;
+    BOOST_CHECK(VerifyScript({}, P2TR_OP_TRUE, &witness, STANDARD_SCRIPT_VERIFY_FLAGS, BaseSignatureChecker{}, &error));
+    BOOST_CHECK_EQUAL(error, SCRIPT_ERR_OK);
+    witness.stack.insert(witness.stack.begin(), std::vector<unsigned char>{1});
+    BOOST_CHECK(!VerifyScript({}, P2TR_OP_TRUE, &witness, STANDARD_SCRIPT_VERIFY_FLAGS, BaseSignatureChecker{}, &error));
+    BOOST_CHECK_EQUAL(error, SCRIPT_ERR_CLEANSTACK);
 }
 
 BOOST_AUTO_TEST_CASE(sign_invalid_miniscript)
