@@ -5,7 +5,9 @@
 
 #include <chain.h>
 #include <chainparams.h>
+#include <crypto/randomx.h>
 #include <pow.h>
+#include <streams.h>
 #include <test/util/random.h>
 #include <test/util/common.h>
 #include <test/util/setup_common.h>
@@ -13,10 +15,56 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 
 BOOST_FIXTURE_TEST_SUITE(pow_tests, BasicTestingSetup)
+
+BOOST_AUTO_TEST_CASE(randomx_work_hash_reuse)
+{
+    const auto params{CChainParams::RegTest({})};
+    const CBlockHeader header{params->GenesisBlock()};
+    const auto seed{params->GetConsensus().randomx.bootstrap_key};
+    const auto check = [](const CBlockHeader& candidate, const RandomXSeed& key) {
+        DataStream encoded;
+        encoded << candidate;
+        const auto reference{randomx_pow::HashLight(key, {
+            reinterpret_cast<const unsigned char*>(encoded.data()), encoded.size()})};
+        BOOST_REQUIRE(reference);
+        const auto first{GetRandomXWorkHash(candidate, key)};
+        BOOST_REQUIRE(first);
+        BOOST_CHECK(std::ranges::equal(*reference, *first));
+        BOOST_CHECK(GetRandomXWorkHash(candidate, key) == first);
+    };
+    check(header, seed);
+    // Every serialized header field participates in the cache key.
+    for (int field{0}; field < 6; ++field) {
+        auto changed{header};
+        switch (field) {
+        case 0: ++changed.nVersion; break;
+        case 1: changed.hashPrevBlock.begin()[0] ^= 1; break;
+        case 2: changed.hashMerkleRoot.begin()[0] ^= 1; break;
+        case 3: ++changed.nTime; break;
+        case 4: changed.nBits ^= 1; break;
+        case 5: ++changed.nNonce; break;
+        }
+        check(changed, seed);
+        check(header, seed);
+    }
+    auto other_seed{seed};
+    other_seed[0] ^= 1;
+    check(header, other_seed);
+    check(header, seed);
+    // Failed hashing must not populate the cache.
+    BOOST_CHECK(!GetRandomXWorkHash(header, {}));
+    check(header, seed);
+    // Reusing a work hash must never reuse a previous target decision.
+    auto consensus{params->GetConsensus()};
+    BOOST_CHECK(CheckProofOfWorkImpl(header, seed, consensus));
+    consensus.powLimit.SetNull();
+    BOOST_CHECK(!CheckProofOfWorkImpl(header, seed, consensus));
+}
 
 /* Test calculation of next difficulty target with no constraints applying */
 BOOST_AUTO_TEST_CASE(get_next_work)

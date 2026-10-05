@@ -57,6 +57,13 @@ Consensus verification uses RandomX light mode. It needs the RandomX cache
 light contexts so an epoch transition or a shallow reorganization does not
 immediately discard the previous key.
 
+Work-hash calculation also retains the last successful result per thread.
+Reuse requires byte-for-byte equality of the entire 80-byte header and the
+32-byte epoch seed. This bounded, single-entry cache avoids rehashing an
+unchanged header (including repeated genesis checks); it does not cache a
+validation decision. Target limits and contextual difficulty rules are still
+checked on every validation, and a different header or seed requires hashing.
+
 The built-in nonce grinder uses full mode on public networks and light mode on
 regtest. Full mode builds the approximately 2 GiB RandomX dataset and is meant
 for repeated mining hashes. Dataset construction cannot block the independent

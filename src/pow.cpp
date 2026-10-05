@@ -337,10 +337,30 @@ std::optional<uint256> GetRandomXWorkHash(const CBlockHeader& header, std::span<
     stream << header;
     if (stream.size() != 80) return std::nullopt;
     const auto input{std::span<const unsigned char>{reinterpret_cast<const unsigned char*>(stream.data()), stream.size()}};
+    // The same header is often checked more than once, including the frozen
+    // genesis when constructing chain parameters. Retain only the last result
+    // per thread, with exact header and seed equality (not just block identity).
+    // Target and contextual difficulty checks remain outside this hash cache.
+    struct CachedWorkHash {
+        std::array<unsigned char, 80> header;
+        RandomXSeed seed;
+        uint256 hash;
+    };
+    static thread_local std::optional<CachedWorkHash> last_hash;
+    if (last_hash && std::ranges::equal(last_hash->header, input) &&
+        std::ranges::equal(last_hash->seed, seed)) {
+        return last_hash->hash;
+    }
     const auto hash{randomx_pow::HashLight(seed, input)};
     if (!hash) return std::nullopt;
     uint256 work_hash;
     std::copy(hash->begin(), hash->end(), work_hash.begin());
+    if (seed.size() == RandomXSeed{}.size()) {
+        auto& cached{last_hash.emplace()};
+        std::copy(input.begin(), input.end(), cached.header.begin());
+        std::copy(seed.begin(), seed.end(), cached.seed.begin());
+        cached.hash = work_hash;
+    }
     return work_hash;
 }
 
